@@ -89,17 +89,17 @@ function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::CurvedMesh{3},
     # Interfaces in x-direction (`orientation` = 1)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
-                         element, 1, u, surface_flux, mesh, equations, dg, cache)
+                         element, 1, u, mesh, equations, dg, cache)
     
     # Interfaces in x-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
-                         element, 2, u, surface_flux, mesh, equations, dg, cache)
+                         element, 2, u, mesh, equations, dg, cache)
 
     # Interfaces in x-direction (`orientation` = 3)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[3, element],
-                         element, 3, u, surface_flux, mesh, equations, dg, cache)
+                         element, 3, u, mesh, equations, dg, cache)
   end
 
   return nothing
@@ -107,7 +107,8 @@ end
 
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
-                                      surface_flux, mesh::CurvedMesh{3}, equations, dg::DG, cache)
+                                      mesh::CurvedMesh{3}, equations, dg::DG, cache)
+  @unpack surface_flux = dg
 
   @unpack contravariant_vectors = cache.elements
 
@@ -136,58 +137,6 @@ end
     end
 
     flux = surface_flux(u_ll, u_rr, normal_vector, equations)
-
-    for v in eachvariable(equations)
-      surface_flux_values[v, i, j, right_direction, left_element] = flux[v]
-      surface_flux_values[v, i, j, left_direction, right_element] = flux[v]
-    end
-  end
-
-  return nothing
-end
-
-
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
-                                      surface_flux::FluxRotated, mesh::CurvedMesh{3}, equations, dg::DG, cache)
-  @unpack jacobian_matrix, contravariant_vectors = cache.elements
-
-  right_direction = 2 * orientation
-  left_direction = right_direction - 1
-
-  for j in eachnode(dg), i in eachnode(dg)
-    if orientation == 1
-      u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, j, left_element)
-      u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
-
-      # First contravariant vector Ja^1 as SVector
-      normal_vector = get_contravariant_vector(1, contravariant_vectors, 1, i, j, right_element)
-      # First tangent vector is second column of the Jacobian matrix
-      tangent_vector1 = get_node_coords(jacobian_matrix, equations, dg, 2, 1, i, j, right_element)
-      # Second tangent vector is cross product of normal vector and first tangent vector to ensure orthogonality
-      tangent_vector2 = cross(normal_vector, tangent_vector1)
-    elseif orientation == 2
-      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
-      u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
-
-      # Second contravariant vector Ja^2 as SVector
-      normal_vector = get_contravariant_vector(2, contravariant_vectors, i, 1, j, right_element)
-      # First tangent vector is third column of the Jacobian matrix
-      tangent_vector1 = get_node_coords(jacobian_matrix, equations, dg, 3, i, 1, j, right_element)
-      # Second tangent vector is cross product of normal vector and first tangent vector to ensure orthogonality
-      tangent_vector2 = cross(normal_vector, tangent_vector1)
-    else # orientation == 3
-      u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
-      u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
-
-      # Third contravariant vector Ja^3 as SVector
-      normal_vector = get_contravariant_vector(3, contravariant_vectors, i, j, 1, right_element)
-      # First tangent vector is first column of the Jacobian matrix
-      tangent_vector1 = get_node_coords(jacobian_matrix, equations, dg, 1, i, j, 1, right_element)
-      # Second tangent vector is cross product of normal vector and first tangent vector to ensure orthogonality
-      tangent_vector2 = cross(normal_vector, tangent_vector1)
-    end
-
-    flux = surface_flux(u_ll, u_rr, normal_vector, tangent_vector1, tangent_vector2, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, j, right_direction, left_element] = flux[v]

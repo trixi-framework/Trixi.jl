@@ -53,37 +53,44 @@ struct FluxRotated{NumericalFlux}
   numerical_flux::NumericalFlux
 end
 
-@inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal_vector::AbstractVector, equations)
+@inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal, equations::AbstractEquations{2})
   @unpack numerical_flux = flux_rotated
 
-  norm_ = norm(normal_vector)
-  # normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal = normal_vector / norm_
+  norm_ = norm(normal)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal_normalized = normal / norm_
 
-  u_ll_rotated = rotate_to_x(u_ll, normal, equations)
-  u_rr_rotated = rotate_to_x(u_rr, normal, equations)
+  u_ll_rotated = rotate_to_x(u_ll, normal_normalized, equations)
+  u_rr_rotated = rotate_to_x(u_rr, normal_normalized, equations)
 
   f = numerical_flux(u_ll_rotated, u_rr_rotated, 1, equations)
 
-  return rotate_from_x(f, normal, equations) * norm_
+  return rotate_from_x(f, normal_normalized, equations) * norm_
 end
 
 
-@inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal_vector, tangent_vector1, tangent_vector2, equations)
+@inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal, equations::AbstractEquations{3})
   @unpack numerical_flux = flux_rotated
 
-  norm_ = norm(normal_vector)
-  # normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal = normal_vector / norm_
-  tangent1 = normalize(tangent_vector1)
-  tangent2 = normalize(tangent_vector2)
+  norm_ = norm(normal)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal_normalized = normal / norm_
 
-  u_ll_rotated = rotate_to_x(u_ll, normal, tangent1, tangent2, equations)
-  u_rr_rotated = rotate_to_x(u_rr, normal, tangent1, tangent2, equations)
+  # Some vector that can't be identical to normal (unless normal == 0)
+  tangent1 = SVector(normal[2], normal[3], -normal[1])
+  # Orthogonal projection
+  tangent1 -= dot(normal_normalized, tangent1) * normal_normalized
+  tangent1 = normalize(tangent1)
+
+  # Third orthogonal vector
+  tangent2 = normalize(cross(normal, tangent1))
+
+  u_ll_rotated = rotate_to_x(u_ll, normal_normalized, tangent1, tangent2, equations)
+  u_rr_rotated = rotate_to_x(u_rr, normal_normalized, tangent1, tangent2, equations)
 
   f = numerical_flux(u_ll_rotated, u_rr_rotated, 1, equations)
 
-  return rotate_from_x(f, normal, tangent1, tangent2, equations) * norm_
+  return rotate_from_x(f, normal_normalized, tangent1, tangent2, equations) * norm_
 end
 
 Base.show(io::IO, f::FluxRotated) = print(io, "FluxRotated(",  f.numerical_flux, ")")
