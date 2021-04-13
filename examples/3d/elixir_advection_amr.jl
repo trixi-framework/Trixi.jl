@@ -9,9 +9,7 @@ advectionvelocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
-
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5, -5, -5)
 coordinates_max = ( 5,  5,  5)
@@ -56,12 +54,12 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 stepsize_callback = StepsizeCallback(cfl=1.2)
 
-callbacks = CallbackSet(summary_callback, 
-                        analysis_callback, 
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
                         alive_callback,
-                        save_restart, 
+                        save_restart,
                         save_solution,
-                        amr_callback, 
+                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################

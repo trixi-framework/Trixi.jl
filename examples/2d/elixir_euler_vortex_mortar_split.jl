@@ -9,10 +9,9 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_isentropic_vortex
 
-surface_flux = flux_lax_friedrichs
 volume_flux = flux_kennedy_gruber
-polydeg = 3
-solver = DGSEM(polydeg, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-10, -10)
 coordinates_max = ( 10,  10)

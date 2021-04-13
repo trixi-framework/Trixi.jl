@@ -4,7 +4,7 @@ using Trixi
 
 
 # Define new structs inside a module to allow re-evaluating the file.
-# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
+# This module name needs to be unique among all examples, otherwise Julia will throw warnings
 # if multiple test cases using the same module name are run in the same session.
 module TrixiExtensionAdvectionRotated
 
@@ -44,7 +44,7 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equat
   f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
-  
+
   return SVector(scalar)
 end
 
@@ -65,7 +65,7 @@ advectionvelocity = Tuple(T * [1.0, 1.0])
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(3, flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 mapping(xi, eta) = T * SVector(2 * xi, eta)
 

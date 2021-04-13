@@ -11,9 +11,7 @@ equations = LinearScalarAdvectionEquation1D(advectionvelocity)
 initial_condition = initial_condition_gauss
 boundary_conditions = boundary_condition_gauss
 
-surface_flux = flux_lax_friedrichs
-polydeg = 3
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (0.0,)
 coordinates_max = (5.0,)

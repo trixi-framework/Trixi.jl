@@ -12,10 +12,9 @@ function initial_condition_linear_stability(x, t, equation::InviscidBurgersEquat
   2 + sinpi(k * (x[1] - 0.7)) |> SVector
 end
 
-polydeg = 3
-surface_flux = flux_ec
 volume_flux = flux_ec
-solver = DGSEM(polydeg, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux=flux_ec,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = -1.0
 coordinates_max =  1.0

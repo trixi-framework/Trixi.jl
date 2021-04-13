@@ -8,10 +8,7 @@ using Trixi
 equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
-
-surface_flux = flux_lax_friedrichs
-polydeg = 3
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (0, 0, 0)
 coordinates_max = (2, 2, 2)

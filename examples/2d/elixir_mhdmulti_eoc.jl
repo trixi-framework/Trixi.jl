@@ -10,9 +10,9 @@ equations = IdealGlmMhdMulticomponentEquations2D(gammas         = (5/3, 5/3, 5/3
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_lax_friedrichs
-volume_flux  = flux_derigs_etal
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_derigs_etal
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0, 0)
 coordinates_max = (sqrt(2), sqrt(2))
