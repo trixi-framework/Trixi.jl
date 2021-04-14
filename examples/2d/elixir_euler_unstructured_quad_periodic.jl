@@ -23,7 +23,7 @@ solver = DGSEM(polydeg, surface_flux)
 
 mesh_file = joinpath(@__DIR__, "PeriodicXandY20.mesh")
 periodicity = true
-mesh = UnstructuredQuadMesh(Float64, mesh_file, periodicity)
+mesh = UnstructuredQuadMesh(mesh_file, periodicity)
 
 ###############################################################################
 # create the semi discretization object

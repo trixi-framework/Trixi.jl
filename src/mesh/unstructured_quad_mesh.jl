@@ -29,7 +29,7 @@ end
 # constructor for an unstructured mesh read in from a file
 # TODO: this mesh file parsing and construction of the mesh skeleton can likely be improved in terms
 #       of performance
-function UnstructuredQuadMesh(RealT, filename, periodic)
+function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
 
   NDIMS = 2
 

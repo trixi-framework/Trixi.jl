@@ -23,7 +23,7 @@ solver = DGSEM(polydeg, surface_flux)
 
 mesh_file = joinpath(@__DIR__, "BoxAroundCircle8.mesh")
 periodicity = false
-mesh = UnstructuredQuadMesh(Float64, mesh_file, periodicity)
+mesh = UnstructuredQuadMesh(mesh_file, periodicity)
 
 ###############################################################################
 # create the semi discretization object
