@@ -19,7 +19,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Run 2D tests with elixirs for both mesh types
   test_examples_2d = Dict(
     "TreeMesh" => "elixir_euler_blast_wave_amr.jl",
-    "CurvedMesh" => "elixir_euler_source_terms_waving_flag.jl"
+    "CurvedMesh" => "elixir_euler_source_terms_waving_flag.jl",
+    "UnstructuredQuadMesh" => "elixir_euler_unstructured_quad.jl"
   )
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
@@ -70,7 +71,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "2D plot recipes" begin
       pd = PlotData2D(sol)
-  
+
       @test_nowarn_debug plot(sol)
       @test_nowarn_debug plot(pd)
       @test_nowarn_debug plot(pd["p"])

@@ -123,7 +123,7 @@ end
 
 
 """
-    PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
+    PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:Union{CurvedMesh,UnstructuredQuadMesh}};
                solution_variables=nothing, kwargs...)
 
 Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
@@ -153,7 +153,6 @@ function PlotData2D(u::AbstractArray{<:Any, 4},
   data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
 
   if grid_lines
-    # TODO Implement mesh vertix calculation for UnstructuredQuadMesh
     mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
   else
     mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
