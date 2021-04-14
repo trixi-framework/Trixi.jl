@@ -70,6 +70,7 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg:
   end
 end
 
+
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
