@@ -15,10 +15,7 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
-function penis(s)
-  return SVector(-1.0, s - 1.0)
-end
-# f1(s) = SVector(-1.0, s - 1.0)
+f1(s) = SVector(-1.0, s - 1.0)
 f2(s) = SVector( 1.0, s + 1.0)
 f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
 f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
@@ -26,7 +23,7 @@ f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, (penis, f2, f3, f4))
+mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
