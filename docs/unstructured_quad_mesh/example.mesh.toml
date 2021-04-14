@@ -1,0 +1,81 @@
+# General information (could be omitted -> implicit from size of other data structures)
+n_corners = 7
+n_surfaces = 9
+n_elements = 3
+mesh_poly_deg = 8
+
+# Coordinates of the corner nodes, stored as `(x,y)` pairs
+corner_nodes = [
+  [1.0, -1.0],
+  [3.0,  0.0],
+  [1.0,  1.0],
+  [2.0,  0.0],
+  [0.0,  0.0],
+  [3.0,  1.0],
+  [3.0, -1.0],
+]
+
+# Information about the edges
+# - start node, end node
+# - primary ("left") element, secondary ("right") element
+# - local surface index on primary element, local surface index on secondary element
+# A value of zero indicates a boundary interface, a negative value means the secondary element's
+# coordinate system if flipped with respect to the primary element's coordinate system
+edges = [
+  [2, 4, 3, 2, 2, -1],
+  [3, 5, 1, 0, 4,  0],
+  [1, 5, 1, 0, 1,  0],
+  [1, 4, 1, 3, 2,  3],
+  [2, 6, 2, 0, 2,  0],
+  [1, 7, 3, 0, 4,  0],
+  [3, 6, 2, 0, 3,  0],
+  [2, 7, 3, 0, 1,  0],
+  [3, 4, 2, 1, 4, -3],
+]
+
+# Label for each edge: `---` indicates an internal interface, other strings indicate boundaries
+edge_labels = [
+  "---",
+  "Slant2",
+  "Slant1",
+  "---",
+  "Right",
+  "Bottom",
+  "Top",
+  "Right",
+  "---",
+]
+
+# List of nodes for each element. The starting node indicates the origin of the local coordinate
+# system and the nodes are sorted counter-clockwise to yield a right-handed system (i.e., the
+# direction from the first to the second node indicates the `\xi` direction)
+element_nodes = [
+  [5, 1, 4, 3],
+  [4, 2, 6, 3],
+  [7, 2, 4, 1],
+]
+
+# Store for each element if its edges are straight (indicated by `0`) or curved (indicate by
+# nonzero value). Nonzero values give the index to the edge coordinates in `element_curves`: a
+# positive value means the coordinates are stored according to the right-handed system, a negative
+# index means they need to be flipped.
+element_curved_edges = [
+  [0, 0,  1, 0],
+  [0, 0, -1, 0],
+  [0, 0,  0, 0],
+]
+
+# Store the node locations for each curve
+element_curves = [
+  [
+    [1.000000000000000, 1.000000000000000],
+    [1.024948365654583, 0.934461926834452],
+    [1.116583018200151, 0.777350964621867],
+    [1.295753434047077, 0.606254343587194],
+    [1.537500000000000, 0.462500000000000],
+    [1.768263070247418, 0.329729152118310],
+    [1.920916981799849, 0.185149035378133],
+    [1.986035130050921, 0.054554577460044],
+    [2.000000000000000, 0.000000000000000],
+  ],
+]
