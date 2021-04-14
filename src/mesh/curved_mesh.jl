@@ -90,7 +90,7 @@ function CurvedMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicit
 
   # Include faces definition in `mapping_as_string` to allow for evaluation 
   # without knowing the face functions
-  mapping_as_string = "$faces_definition; mapping = transfinite_mapping(faces)"
+  mapping_as_string = "$faces_definition; faces = $(string(faces)); mapping = transfinite_mapping(faces)"
 
   return CurvedMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
 end

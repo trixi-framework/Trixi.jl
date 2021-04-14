@@ -8,6 +8,8 @@ using Trixi
 advectionvelocity = (1.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
+initial_condition = initial_condition_constant
+
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
@@ -32,7 +34,7 @@ cells_per_dimension = (16, 16)
 mesh = CurvedMesh(cells_per_dimension, mapping)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -52,11 +54,15 @@ analysis_callback = AnalysisCallback(semi, interval=100)
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
+# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
+
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=2.0)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_restart, save_solution, stepsize_callback)
 
 
 ###############################################################################

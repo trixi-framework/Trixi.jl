@@ -8,12 +8,17 @@ using Trixi
 advectionvelocity = (1.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
+initial_condition = initial_condition_convergence_test
+
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
-f1(s) = SVector(-1.0, s - 1.0)
+function penis(s)
+  return SVector(-1.0, s - 1.0)
+end
+# f1(s) = SVector(-1.0, s - 1.0)
 f2(s) = SVector( 1.0, s + 1.0)
 f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
 f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
@@ -21,10 +26,10 @@ f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
+mesh = CurvedMesh(cells_per_dimension, (penis, f2, f3, f4))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -40,6 +45,10 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100)
 
+# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
+
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
@@ -48,7 +57,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_restart, save_solution, stepsize_callback)
 
 
 ###############################################################################

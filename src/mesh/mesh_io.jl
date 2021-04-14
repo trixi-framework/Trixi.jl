@@ -134,8 +134,8 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max, RealT)
     end
 
     size = Tuple(size_)
-    mapping = mapping_as_string |> Meta.parse |> eval
-    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
+    mapping_ = mapping_as_string |> Meta.parse |> eval
+    mesh = CurvedMesh(size, mapping_; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
   else
     error("Unknown mesh type!")
   end
