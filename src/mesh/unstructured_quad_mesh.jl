@@ -1,5 +1,5 @@
 """
-    UnstructuredQuadMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
+    UnstructuredQuadMesh{RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: AbstractMesh{2}
 
 An unstructured (possibly curved) quadrilateral mesh.
 
@@ -8,7 +8,7 @@ All mesh information, neighbour coupling, and boundary curve information is read
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-struct UnstructuredQuadMesh{NDIMS, RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: AbstractMesh{NDIMS}
+struct UnstructuredQuadMesh{RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: AbstractMesh{2}
   filename             ::String
   n_corners            ::Int
   n_surfaces           ::Int # total number of surfaces
@@ -30,8 +30,6 @@ end
 # TODO: this mesh file parsing and construction of the mesh skeleton can likely be improved in terms
 #       of performance
 function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
-
-  NDIMS = 2
 
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
@@ -83,7 +81,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
     n_interfaces = n_surfaces - n_boundary
   end
 
-  return UnstructuredQuadMesh{NDIMS, RealT, GammaCurveT}(
+  return UnstructuredQuadMesh{RealT, GammaCurveT}(
     filename, n_corners, n_surfaces, n_interfaces, n_boundary,
     n_elements, mesh_poly_deg, corner_nodes,
     interface_info, bndy_names, periodic,
@@ -217,8 +215,8 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
   return n_boundary
 end
 
-@inline Base.ndims(::UnstructuredQuadMesh{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::UnstructuredQuadMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.ndims(::UnstructuredQuadMesh) = 2
+@inline Base.real(::UnstructuredQuadMesh{RealT}) where {RealT} = RealT
 
 # Check if mesh is periodic
 isperiodic(mesh::UnstructuredQuadMesh) = mesh.periodicity
@@ -226,16 +224,16 @@ isperiodic(mesh::UnstructuredQuadMesh) = mesh.periodicity
 Base.length(mesh::UnstructuredQuadMesh) = mesh.n_elements
 
 
-function Base.show(io::IO, ::UnstructuredQuadMesh{NDIMS, RealT}) where {NDIMS, RealT}
-  print(io, "UnstructuredQuadMesh{", NDIMS, ", ", RealT, "}")
+function Base.show(io::IO, ::UnstructuredQuadMesh{RealT, GammaCurveT}) where {RealT, GammaCurveT}
+  print(io, "UnstructuredQuadMesh{2, ", RealT, ", ", GammaCurveT, "}")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{NDIMS, RealT}) where {NDIMS, RealT}
+function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{RealT, GammaCurveT}) where {RealT, GammaCurveT}
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "UnstructuredQuadMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
+    summary_header(io, "UnstructuredQuadMesh{" * string(2) * ", " * string(RealT) * ", " * string(GammaCurveT) * "}")
     summary_line(io, "mesh file", mesh.filename)
     summary_line(io, "number of elements", length(mesh))
     summary_line(io, "faces", mesh.n_surfaces)

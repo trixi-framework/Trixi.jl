@@ -35,7 +35,7 @@ function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{1},CurvedMesh{1}
 end
 
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh{2}}, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh}, equations, dg::DG, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
@@ -53,7 +53,7 @@ end
 end
 
 
-function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh{2}}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)

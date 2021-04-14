@@ -15,7 +15,7 @@ function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
 
   interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
 
-  # TODO: if the mesh is periodic we probabyl can avoid creating this "empty" boundary container
+  # TODO: if the mesh is periodic we probably can avoid creating this "empty" boundary container
   if isperiodic(mesh)
     boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg_}(0)
   else
