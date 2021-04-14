@@ -134,8 +134,25 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max, RealT)
     end
 
     size = Tuple(size_)
-    mapping_ = mapping_as_string |> Meta.parse |> eval
-    mesh = CurvedMesh(size, mapping_; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
+
+    # A temporary workaround to evaluate the code that defines the domain mapping in a local scope.
+    # This prevents errors when multiple restart elixirs are executed in one session, where one
+    # defines `mapping` as a variable, while the other defines it as a function.
+    #
+    # This should be replaced with something more robust and secure,
+    # see https://github.com/trixi-framework/Trixi.jl/issues/541).
+    expr = Meta.parse(mapping_as_string)
+    @info "" mapping_as_string
+    if expr.head == :toplevel
+      expr.head = :block
+    end
+
+    mapping = @eval function(xi, eta)
+      $expr
+      mapping(xi, eta)
+    end
+
+    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
   else
     error("Unknown mesh type!")
   end
