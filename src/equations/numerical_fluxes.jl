@@ -53,6 +53,8 @@ struct FluxRotated{NumericalFlux}
   numerical_flux::NumericalFlux
 end
 
+
+# Rotated surface flux computation (2D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal, equations::AbstractEquations{2})
   @unpack numerical_flux = flux_rotated
 
@@ -69,6 +71,7 @@ end
 end
 
 
+# Rotated surface flux computation (3D version)
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal, equations::AbstractEquations{3})
   @unpack numerical_flux = flux_rotated
 
