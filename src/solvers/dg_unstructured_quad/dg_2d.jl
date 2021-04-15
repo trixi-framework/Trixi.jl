@@ -42,7 +42,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
                                                                 dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(u, mesh, equations, dg, cache)
+  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
   @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values, mesh,
@@ -50,7 +50,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
                                                               dg, cache)
 
   # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(u, mesh, equations, dg, cache)
+  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
   #  TODO: remove initial condition as an input argument here, only needed for hacky BCs
@@ -108,8 +108,8 @@ end
 
 # prolong the solution into the convenience array in the interior interface container
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
-function prolong2interfaces!(u::AbstractArray{<:Any,4}, mesh::UnstructuredQuadMesh, equations,
-                             dg::DG, cache)
+function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, mesh::UnstructuredQuadMesh,
+                             equations, dg::DG)
   @unpack interfaces = cache
 
   @threaded for interface in eachinterface(dg, cache)
@@ -221,8 +221,8 @@ end
 
 
 # move the approximate solution onto physical boundaries within a "right-handed" element
-function prolong2boundaries!(u::AbstractArray{<:Any,4}, mesh::UnstructuredQuadMesh, equations,
-                             dg::DG, cache)
+function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, mesh::UnstructuredQuadMesh,
+                             equations, dg::DG)
   @unpack boundaries = cache
 
   @threaded for boundary in eachboundary(boundaries)

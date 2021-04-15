@@ -1,5 +1,12 @@
-
-# TODO: put in docstring style documation that is only comments
+# """
+#     GammaCurve{RealT<:Real, NNODES}
+#
+# Contains the data needed to represent a curve with data points (x,y) as a Lagrange polynomial
+# interpolant written in barycentric form at a given set of nodes.
+#
+# !!! warning "Experimental code"
+#     This mesh type is experimental and can change any time.
+# """
 struct GammaCurve{RealT<:Real, NNODES}
   nodes               ::SVector{NNODES, RealT}
   barycentric_weights ::SVector{NNODES, RealT}
