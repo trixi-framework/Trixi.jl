@@ -75,6 +75,7 @@ end
 @inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal, equations::AbstractEquations{3})
   @unpack numerical_flux = flux_rotated
 
+  # Storing these vectors could increase the performance by 20 percent
   norm_ = norm(normal)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
   normal_normalized = normal / norm_
