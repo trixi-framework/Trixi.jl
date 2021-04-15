@@ -176,6 +176,54 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   return unstructured_data, new_coordinates, new_levels, center_level_0
 end
 
+function unstructured_1d_to_2d(original_nodes, unstructured_data, slice_axis, slice_axis_intercept)
+
+  if slice_axis === :x
+    slice_axis_dimension = 1
+    other_dimension = 2
+  elseif slice_axis === :y
+    slice_axis_dimension = 2
+    other_dimension = 1
+  else
+    error("illegal dimension '$slice_axis', supported dimensions are :x and :y")
+  end
+
+  n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  lower_limit = original_nodes[:, 1, 1, 1]
+  upper_limit = original_nodes[:, n_nodes_in, n_nodes_in, n_elements]
+
+  @views new_unstructured_data = similar(unstructured_data[1, ..])
+  @views new_nodes = similar(original_nodes[1, 1, ..])
+
+  new_id = 0
+
+  if slice_axis === :x
+    original_nodes = permutedims(original_nodes, [1, 3, 2, 4])
+    unstructured_data = permutedims(unstructured_data, [2, 1, 3, 4])
+  end
+
+  for element_id in 1:n_elements
+    min_coordinate = original_nodes[:, 1, 1, element_id]
+    max_coordinate = original_nodes[:, n_nodes_in, n_nodes_in, element_id]
+
+    if !((min_coordinate[slice_axis_dimension] <= slice_axis_intercept &&
+        max_coordinate[slice_axis_dimension] > slice_axis_intercept) ||
+        (slice_axis_intercept == upper_limit && max_coordinate[slice_axis_intercept] == upper_limit))
+
+        continue
+    end
+
+    new_id += 1
+
+    new_unstructured_data[:, new_id, :] = unstructured_data[:, 1, element_id, :]
+    new_nodes[:, new_id] = original_nodes[other_dimension, :, 1, element_id]
+  end
+
+  return reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :]
+end
+
 
 # Interpolate unstructured DG data to structured data (cell-centered)
 #
@@ -368,8 +416,8 @@ function calc_vertices(node_coordinates, mesh)
 
     line_index += 1
   end
-  
-  
+
+
   # Lines in y-direction
   # Left boundary
   i = 1
@@ -403,6 +451,6 @@ function calc_vertices(node_coordinates, mesh)
 
     line_index += 1
   end
-  
+
   return x, y
 end

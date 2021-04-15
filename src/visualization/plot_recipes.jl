@@ -439,16 +439,21 @@ exactly the number of nodes in the DG elements are used.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing)
+function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing, slice_axis=:y, slice_axis_intercept=0)
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
+  @assert ndims(mesh) in (1, 2) "unsupported number of dimensions $ndims (must be 1 or 2)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
   variable_names = SVector(varnames(solution_variables_, equations))
   original_nodes = cache.elements.node_coordinates
 
   unstructured_data = get_unstructured_data(u, semi, solution_variables_)
+
+  if ndims(mesh) == 2
+    original_nodes, unstructured_data = unstructured_1d_to_2d(original_nodes, unstructured_data, slice_axis, slice_axis_intercept)
+  end
+
   x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
   return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]))
