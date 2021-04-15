@@ -266,5 +266,5 @@ from the Trixi.jl main directory. Then, you can look at the html files generated
 For PRs triggered from branches inside the Trixi.jl main repository previews of
 the new documentation are generated at `https://trixi-framework.github.io/Trixi.jl/previews/PRXXX`,
 where `XXX` is the number of the PR.
-This does not work for PRs from forks for security reasons (since people could otherwise push
+This does not work for PRs from forks for security reasons (since anyone could otherwise push
 arbitrary stuff to the Trixi website, including malicious code).
