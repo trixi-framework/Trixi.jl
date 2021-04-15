@@ -16,7 +16,7 @@ end
 
 # construct an empty curved element container to be filled later with geometries in the
 # unstructured mesh constructor
-function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity::Int) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
+function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
 
   nnodes = POLYDEG + 1
   nan_RealT = convert(RealT, NaN)
@@ -110,7 +110,7 @@ end
 
 # construct an empty curved interface container to be filled later with neighbour information in the
 # unstructured mesh constructor
-function UnstructuredInterfaceContainer2D{uEltype, NVARS, POLYDEG}(capacity::Int) where {uEltype<:Real, NVARS, POLYDEG}
+function UnstructuredInterfaceContainer2D{uEltype, NVARS, POLYDEG}(capacity::Integer) where {uEltype<:Real, NVARS, POLYDEG}
 
   n_nodes = POLYDEG + 1
   nan_uEltype = convert(uEltype, NaN)
@@ -244,7 +244,7 @@ end
 
 # construct an empty curved boundary container to be filled later with neighbour information in the
 # unstructured mesh constructor
-function UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity::Int) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
+function UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
 
   n_nodes = POLYDEG + 1
   nan_RealT = convert(RealT, NaN)
@@ -268,7 +268,7 @@ end
 
 function init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg)
 
-  boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg}(mesh.n_boundary)
+  boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg}(mesh.n_boundaries)
 
   # extract and save the appropriate neighbour information
   init_boundaries!(boundaries, mesh.neighbour_information, mesh.boundary_names, elements)

@@ -9,7 +9,7 @@ function transfinite_quad_map(xi, eta, gamma_curves::AbstractVector{<:GammaCurve
   x_corner3, y_corner3 = evaluate_at( 1.0, gamma_curves[3])
   x_corner4, y_corner4 = evaluate_at(-1.0, gamma_curves[3])
 
-  # evaluate along the gamma curves at a particular point (\xi, \eta) in computational space to get
+  # evaluate along the gamma curves at a particular point (ξ, η) in computational space to get
   # the value (x,y) in physical space
   x1, y1 = evaluate_at(xi , gamma_curves[1])
   x2, y2 = evaluate_at(eta, gamma_curves[2])
@@ -38,14 +38,14 @@ function transfinite_quad_map_metrics(xi, eta, gamma_curves::AbstractVector{<:Ga
   x_corner3, y_corner3 = evaluate_at( 1.0, gamma_curves[3])
   x_corner4, y_corner4 = evaluate_at(-1.0, gamma_curves[3])
 
-  # evaluate along the gamma curves at a particular point (\xi, \eta) in computational space to get
+  # evaluate along the gamma curves at a particular point (ξ, η) in computational space to get
   # the value (x,y) in physical space
   x1, y1 = evaluate_at(xi , gamma_curves[1])
   x2, y2 = evaluate_at(eta, gamma_curves[2])
   x3, y3 = evaluate_at(xi , gamma_curves[3])
   x4, y4 = evaluate_at(eta, gamma_curves[4])
 
-  # evaluate along the derivative of the gamma curves at a particular point (\xi, \eta) in
+  # evaluate along the derivative of the gamma curves at a particular point (ξ, η) in
   # computational space to get the value (x_prime,y_prime) in physical space
   x1_prime, y1_prime = derivative_at(xi , gamma_curves[1])
   x2_prime, y2_prime = derivative_at(eta, gamma_curves[2])

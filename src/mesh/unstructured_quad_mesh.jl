@@ -13,7 +13,7 @@ struct UnstructuredQuadMesh{RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: Abst
   n_corners            ::Int
   n_surfaces           ::Int # total number of surfaces
   n_interfaces         ::Int # number of interior surfaces
-  n_boundary           ::Int # number of surfaces on the physical boundary
+  n_boundaries         ::Int # number of surfaces on the physical boundary
   n_elements           ::Int
   poly_deg             ::Int
   corners              ::Array{RealT, 2}  # [ndims, n_corners]
@@ -72,17 +72,17 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
             element_is_curved, surface_curves, bndy_names)
   counters = (n_corners, n_surfaces, n_elements)
 
-  n_boundary = parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheby_nodes, bary_weights)
+  n_boundaries = parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheby_nodes, bary_weights)
 
   # get the number of internal interfaces in the mesh
   if periodic
     n_interfaces = n_surfaces
   else
-    n_interfaces = n_surfaces - n_boundary
+    n_interfaces = n_surfaces - n_boundaries
   end
 
   return UnstructuredQuadMesh{RealT, GammaCurveT}(
-    filename, n_corners, n_surfaces, n_interfaces, n_boundary,
+    filename, n_corners, n_surfaces, n_interfaces, n_boundaries,
     n_elements, mesh_poly_deg, corner_nodes,
     interface_info, bndy_names, periodic,
     element_node_ids, element_is_curved, surface_curves)
@@ -116,7 +116,7 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
   #    interface_info[5] = local side ID on the primary element
   #    interface_info[6] = local side ID on the secondary element
   # container to for the interface neighbour information and connectivity
-  n_boundary = 0
+  n_boundaries = 0
   for j in 1:n_surfaces
     current_line   = split(file_lines[file_idx])
     interface_info[1, j] = parse(Int, current_line[1])
@@ -128,7 +128,7 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
 
     # count the number of physical boundaries
     if interface_info[4,j] == 0
-      n_boundary += 1
+      n_boundaries += 1
     end
     file_idx += 1
   end
@@ -212,7 +212,7 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
     file_idx += 1
   end
 
-  return n_boundary
+  return n_boundaries
 end
 
 @inline Base.ndims(::UnstructuredQuadMesh) = 2

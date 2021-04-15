@@ -437,14 +437,14 @@ function calc_vertices(node_coordinates, mesh::UnstructuredQuadMesh)
 
   # Lines along all the third local sides
   for element in 1:n_elements
-    x[2*n_nodes+1:3*n_nodes, element] = reverse(node_coordinates[1, 1:n_nodes, end, element])
-    y[2*n_nodes+1:3*n_nodes, element] = reverse(node_coordinates[2, 1:n_nodes, end, element])
+    x[2*n_nodes+1:3*n_nodes, element] = node_coordinates[1, n_nodes:-1:1, end, element]
+    y[2*n_nodes+1:3*n_nodes, element] = node_coordinates[2, n_nodes:-1:1, end, element]
   end
 
   # Lines along all the fourth local sides
   for element in 1:n_elements
-    x[3*n_nodes+1:4*n_nodes, element] = reverse(node_coordinates[1, 1, 1:n_nodes, element])
-    y[3*n_nodes+1:4*n_nodes, element] = reverse(node_coordinates[2, 1, 1:n_nodes, element])
+    x[3*n_nodes+1:4*n_nodes, element] = node_coordinates[1, 1, n_nodes:-1:1, element]
+    y[3*n_nodes+1:4*n_nodes, element] = node_coordinates[2, 1, n_nodes:-1:1, element]
   end
 
   return x, y
