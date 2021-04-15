@@ -182,16 +182,16 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
     # loop through the primary element coordinate system and compute the interface coupling
     for primary_index in eachnode(dg)
       # pull the primary and secondary states from the boundary u values
-      u_ll = u[1, :, primary_index, interface]
-      u_rr = u[2, :, secondary_index, interface]
+#      u_ll = u[1, :, primary_index, interface]
+#      u_rr = u[2, :, secondary_index, interface]
+      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, interface)
+      u_rr = get_one_sided_surface_node_vars(u, equations, dg, 2, secondary_index, interface)
 
       # pull the directional vectors and scaling factors
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         and tangents for hanging nodes and other non-conforming approximation spaces
-      # TODO: remove the allocation that occurs for normal/tangent_vector either with a different
-      #       storage layout or adding accessors to extract an SVector
-      normal_vector  = normals[:, primary_index, primary_side, primary_element]
-      tangent_vector = tangents[:, primary_index, primary_side, primary_element]
+      normal_vector  = get_surface_vec(normals, primary_index, primary_side, primary_element)
+      tangent_vector = get_surface_vec(tangents, primary_index, primary_side, primary_element)
       scaling_ll     = scaling[primary_index, primary_side, primary_element]
       scaling_rr     = scaling[secondary_index, secondary_side, secondary_element]
 
@@ -271,35 +271,37 @@ function calc_boundary_flux!(cache, t, boundary_condition, equations, dg::DG, in
     primary_element = element_id[boundary]
     primary_side    = element_side_id[boundary]
 
-    for i in eachnode(dg)
+    for primary_index in eachnode(dg)
       # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
       # for a mesh with flipped elements
-      u_ext = initial_condition((node_coordinates[1, i, boundary],
-                                 node_coordinates[2, i, boundary]),
-                                 t, equations)
+      u_external = initial_condition((node_coordinates[1, primary_index, boundary],
+                                      node_coordinates[2, primary_index, boundary]),
+                                      t, equations)
 
       # pull the left state from the boundary u values on the primary element as well as the
       # directional vectors and scaling
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         and tangents for hanging nodes and other non-conforming approximation spaces
-      u_ll  = u[1, :, i, boundary]
-      n_vec = normals[ :, i, primary_side, primary_element]
-      t_vec = tangents[:, i, primary_side, primary_element]
-      scal  = scaling[i, primary_side, primary_element]
+#      u_ll = u[1, :, primary_index, boundary]
+      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, boundary)
+
+      normal_vector  = get_surface_vec(normals, primary_index, primary_side, primary_element)
+      tangent_vector = get_surface_vec(tangents, primary_index, primary_side, primary_element)
+      scaling_ll  = scaling[primary_index, primary_side, primary_element]
 
       # rotate states
-      u_tilde_ll  = rotate_solution(u_ll , n_vec, t_vec, equations)
-      u_tilde_ext = rotate_solution(u_ext, n_vec, t_vec, equations)
+      u_tilde_ll       = rotate_solution(u_ll, normal_vector, tangent_vector, equations)
+      u_tilde_external = rotate_solution(u_external, normal_vector, tangent_vector, equations)
 
       # Call pointwise Riemann solver in the rotated direction
-      flux_tilde = surface_flux(u_tilde_ll, u_tilde_ext, 1, equations)
+      flux_tilde = surface_flux(u_tilde_ll, u_tilde_external, 1, equations)
 
       # backrotate the flux into the original direction
-      flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
+      flux = backrotate_flux(flux_tilde, normal_vector, tangent_vector, equations)
 
       # Scale the flux appropriately and copy back to primary element storage
       for v in eachvariable(equations)
-        surface_flux_values[v, i, primary_side, primary_element] = flux[v] * scal
+        surface_flux_values[v, primary_index, primary_side, primary_element] = flux[v] * scaling_ll
       end
     end
   end
