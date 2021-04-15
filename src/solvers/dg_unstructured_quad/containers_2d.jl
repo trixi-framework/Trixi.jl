@@ -8,7 +8,6 @@ struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG
   Y_eta              ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
   inverse_jacobian   ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
   normals            ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
-  tangents           ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
   scaling            ::Array{RealT, 3}   # [nnodes, local sides, nelement]
   surface_flux_values::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
 end
@@ -29,14 +28,13 @@ function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity
   Y_eta               = fill(nan_RealT, (nnodes, nnodes, capacity))
   inverse_jacobian    = fill(nan_RealT, (nnodes, nnodes, capacity))
   normals             = fill(nan_RealT, (2, nnodes, 4, capacity))
-  tangents            = fill(nan_RealT, (2, nnodes, 4, capacity))
   scaling             = fill(nan_RealT, (nnodes, 4, capacity))
   surface_flux_values = fill(nan_uEltype, (NVARS, nnodes, 4, capacity))
 
   return UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(node_coordinates,
                                                                         X_xi, X_eta, Y_xi, Y_eta,
                                                                         inverse_jacobian,
-                                                                        normals, tangents, scaling,
+                                                                        normals, scaling,
                                                                         surface_flux_values)
 end
 
@@ -49,7 +47,7 @@ Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uElt
 
 
 @inline function get_surface_vec(vec, indices...)
-  # way to extract the normal or tangent vectors at the surfaces without allocating
+  # way to extract the normal vector at the surfaces without allocating
   surface_vector = SVector(ntuple(j -> vec[j, indices...], 2))
   return surface_vector
 end
@@ -91,8 +89,8 @@ function init_element!(elements, element, nodes, corners_or_gamma_curves)
   calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.X_xi, elements.X_eta,
                          elements.Y_xi, elements.Y_eta)
 
-  calc_normals_scaling_and_tangents!(elements.normals, elements.scaling, elements.tangents,
-                                     element, nodes, corners_or_gamma_curves)
+  calc_normals_and_scaling!(elements.normals, elements.scaling, element, nodes,
+                            corners_or_gamma_curves)
 
   return elements
 end

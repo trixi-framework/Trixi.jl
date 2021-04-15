@@ -165,7 +165,7 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4}, mesh:
                               nonconservative_terms::Val{false}, equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack u, start_index, inc_index, element_ids, element_side_ids = cache.interfaces
-  @unpack normals, tangents, scaling = cache.elements
+  @unpack normals, scaling = cache.elements
 
 
   @threaded for interface in eachinterface(dg, cache)
@@ -188,21 +188,20 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4}, mesh:
 
       # pull the directional vectors and scaling factors
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
-      #         and tangents for hanging nodes and other non-conforming approximation spaces
+      #         for hanging nodes and other non-conforming approximation spaces
       normal_vector  = get_surface_vec(normals, primary_index, primary_side, primary_element)
-      tangent_vector = get_surface_vec(tangents, primary_index, primary_side, primary_element)
       scaling_ll     = scaling[primary_index, primary_side, primary_element]
       scaling_rr     = scaling[secondary_index, secondary_side, secondary_element]
 
       # rotate states
-      u_tilde_ll = rotate_solution(u_ll, normal_vector, tangent_vector, equations)
-      u_tilde_rr = rotate_solution(u_rr, normal_vector, tangent_vector, equations)
+      u_tilde_ll = rotate_to_x(u_ll, normal_vector, equations)
+      u_tilde_rr = rotate_to_x(u_rr, normal_vector, equations)
 
       # Call pointwise Riemann solver in the rotated direction
       flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
 
       # backrotate the flux into the original direction
-      flux = backrotate_flux(flux_tilde, normal_vector, tangent_vector, equations)
+      flux = rotate_from_x(flux_tilde, normal_vector, equations)
 
       # Scale the flux appropriately and copy back to primary/secondary element storage
       # Note the sign change for the normal flux in the secondary element!
@@ -265,7 +264,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, equations, mesh::Unst
                              dg::DG, initial_condition)
 
   @unpack surface_flux = dg
-  @unpack normals, tangents, scaling, surface_flux_values = cache.elements
+  @unpack normals, scaling, surface_flux_values = cache.elements
   @unpack u, element_id, element_side_id, node_coordinates, name  = cache.boundaries
 
   @threaded for boundary in eachboundary(cache.boundaries)
@@ -283,22 +282,21 @@ function calc_boundary_flux!(cache, t, boundary_condition, equations, mesh::Unst
       # pull the left state from the boundary u values on the primary element as well as the
       # directional vectors and scaling
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
-      #         and tangents for hanging nodes and other non-conforming approximation spaces
+      #         for hanging nodes and other non-conforming approximation spaces
       u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, boundary)
 
       normal_vector  = get_surface_vec(normals, primary_index, primary_side, primary_element)
-      tangent_vector = get_surface_vec(tangents, primary_index, primary_side, primary_element)
       scaling_ll  = scaling[primary_index, primary_side, primary_element]
 
       # rotate states
-      u_tilde_ll       = rotate_solution(u_ll, normal_vector, tangent_vector, equations)
-      u_tilde_external = rotate_solution(u_external, normal_vector, tangent_vector, equations)
+      u_tilde_ll       = rotate_to_x(u_ll, normal_vector, equations)
+      u_tilde_external = rotate_to_x(u_external, normal_vector, equations)
 
       # Call pointwise Riemann solver in the rotated direction
       flux_tilde = surface_flux(u_tilde_ll, u_tilde_external, 1, equations)
 
       # backrotate the flux into the original direction
-      flux = backrotate_flux(flux_tilde, normal_vector, tangent_vector, equations)
+      flux = rotate_from_x(flux_tilde, normal_vector, equations)
 
       # Scale the flux appropriately and copy back to primary element storage
       for v in eachvariable(equations)

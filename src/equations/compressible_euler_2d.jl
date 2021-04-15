@@ -871,11 +871,12 @@ end
   c = normal[1]
   s = normal[2]
 
-  # Clockwise rotation by α
-  # Multiply with [ 1     0       0     0;
-  #                 0   cos(α)  sin(α)  0;
-  #                 0  -sin(α)  cos(α)  0;
-  #                 0     0       0     1 ]
+  # Apply the 2D rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  n_2  0;
+  #   0   t_1  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
 
   return SVector(u[1],
                  c * u[2] + s * u[3],
@@ -890,40 +891,17 @@ end
   c = normal[1]
   s = normal[2]
 
-  # Counterclockwise rotation by α
-  # Multiply with [ 1    0       0      0;
-  #                 0  cos(α)  -sin(α)  0;
-  #                 0  sin(α)  cos(α)   0;
-  #                 0    0       0      1 ]
+  # Apply the 2D back-rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  t_1  0;
+  #   0   n_2  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
 
   return SVector(u[1],
                  c * u[2] - s * u[3],
                  s * u[2] + c * u[3],
                  u[4])
-end
-
-
-##
-# TODO: merge these with the routines above in a smart way
-@inline function rotate_solution(u, normal, tangent, equations::CompressibleEulerEquations2D)
-
-  u_tilde1 = u[1]
-  u_tilde2 = u[2] * normal[1]  + u[3] * normal[2]
-  u_tilde3 = u[2] * tangent[1] + u[3] * tangent[2]
-  u_tilde4 = u[4]
-
-  return SVector(u_tilde1, u_tilde2, u_tilde3, u_tilde4)
-end
-
-
-@inline function backrotate_flux(f_tilde, normal, tangent, equations::CompressibleEulerEquations2D)
-
-  f1 = f_tilde[1]
-  f2 = f_tilde[2] * normal[1] + f_tilde[3] * tangent[1]
-  f3 = f_tilde[2] * normal[2] + f_tilde[3] * tangent[2]
-  f4 = f_tilde[4]
-
-  return SVector(f1, f2, f3, f4)
 end
 
 
