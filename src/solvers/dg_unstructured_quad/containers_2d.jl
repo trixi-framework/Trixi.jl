@@ -48,6 +48,13 @@ end
 Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 
+@inline function get_surface_vec(vec, indices...)
+  # way to extract the normal or tangent vectors at the surfaces without allocating
+  surface_vector = SVector(ntuple(j -> vec[j, indices...], 2))
+  return surface_vector
+end
+
+
 function init_elements(RealT, uEltype, mesh, dg_nodes, nvars, polydeg)
   elements = UnstructuredElementContainer2D{RealT, uEltype, nvars, polydeg}(mesh.n_elements)
   init_elements!(elements, mesh, dg_nodes)
