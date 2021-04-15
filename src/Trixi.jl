@@ -40,7 +40,7 @@ using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
-using StrideArrays: PtrArray, StaticInt
+using StrideArrays: PtrArray, StrideArray, StaticInt
 using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack
 using UnPack: @pack!

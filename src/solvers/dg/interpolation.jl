@@ -135,10 +135,24 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, matrix::Abst
                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2)))
 
   # Interpolate in x-direction
-  @tullio threads=false tmp1[v, i, j]     = matrix[i, ii] * data_in[v, ii, j]
+  # @tullio threads=false tmp1[v, i, j]     = matrix[i, ii] * data_in[v, ii, j]
+  @avx inline=true for j in axes(tmp1, 3), i in axes(tmp1, 2), v in axes(tmp1, 1)
+    res = zero(eltype(tmp1))
+    for ii in axes(matrix, 2)
+      res += matrix[i, ii] * data_in[v, ii, j]
+    end
+    tmp1[v, i, j] = res
+  end
 
   # Interpolate in y-direction
-  @tullio threads=false data_out[v, i, j] = matrix[j, jj] * tmp1[v, i, jj]
+  # @tullio threads=false data_out[v, i, j] = matrix[j, jj] * tmp1[v, i, jj]
+  @avx inline=true for j in axes(data_out, 3), i in axes(data_out, 2), v in axes(data_out, 1)
+    res = zero(eltype(data_out))
+    for jj in axes(matrix, 2)
+      res += matrix[j, jj] * tmp1[v, i, jj]
+    end
+    data_out[v, i, j] = res
+  end
 
   return nothing
 end
