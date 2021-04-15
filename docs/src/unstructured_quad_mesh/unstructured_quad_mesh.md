@@ -15,7 +15,7 @@ The first line of the mesh file lists the total number of *corners*, *surfaces*,
 ```
     7    9    3    8
 ```
-corresponding to seven corners, nine surfaces, and three elements. We note that the mesh polynomial degree of eight is taken simply for illustrative purposes. In practice, this mesh polynomial degree typically depends on the particular application for which the curved, unstructured mesh is required. 
+corresponding to seven corners, nine surfaces, and three elements. We note that the mesh polynomial degree of eight is taken simply for illustrative purposes. In practice, this mesh polynomial degree typically depends on the particular application for which the curved, unstructured mesh is required.
 
 
 ## List of corner nodes
@@ -94,7 +94,7 @@ As an example, the complete information for element `1` in the example mesh woul
  1.986035130050921   0.054554577460044
  2.000000000000000                   0
  Slant1 --- --- Slant2
- ```
+```
 
 We collect the complete set of element information for the example mesh
 ```
