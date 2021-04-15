@@ -252,3 +252,19 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
   if everything was released correctly, you should only need to do these checks manually
   if new minor versions with changes in the docs of Trixi2Vtk/Trixi2Img were released
   but no new version of Trixi was released afterwards.
+
+
+
+## Preview of the documentation
+
+You can build the documentation of Trixi.jl locally by running
+```bash
+julia --project=docs docs/make.jl
+```
+from the Trixi.jl main directory. Then, you can look at the html files generated in
+`docs/build`.
+For PRs triggered from branches inside the Trixi.jl main repository previews of
+the new documentation are generated at `https://trixi-framework.github.io/Trixi.jl/previews/PRXXX`,
+where `XXX` is the number of the PR.
+This does not work for PRs from forks for security reasons (since anyone could otherwise push
+arbitrary stuff to the Trixi website, including malicious code).

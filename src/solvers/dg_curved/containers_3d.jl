@@ -16,7 +16,6 @@ function init_elements!(elements, mesh::CurvedMesh{3}, basis::LobattoLegendreBas
     calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix, node_coordinates, basis)
 
     calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
-    
   end
 
   initialize_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
