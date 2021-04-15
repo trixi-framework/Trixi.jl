@@ -865,6 +865,7 @@ end
 end
 
 
+# Rotate normal vector to x-axis; normal vector `normal` needs to be normalized
 @inline function rotate_to_x(u, normal, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).

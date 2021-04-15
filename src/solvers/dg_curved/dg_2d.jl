@@ -97,6 +97,7 @@ end
   end
 
   @unpack surface_flux = dg
+  @unpack contravariant_vectors = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -107,13 +108,13 @@ end
       u_rr = get_node_vars(u, equations, dg, 1,          i, right_element)
 
       # First contravariant vector Ja^1 as SVector
-      normal_vector = get_contravariant_vector(1, cache, 1, i, right_element)
+      normal_vector = get_contravariant_vector(1, contravariant_vectors, 1, i, right_element)
     else # orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          right_element)
 
       # Second contravariant vector Ja^2 as SVector
-      normal_vector = get_contravariant_vector(2, cache, i, 1, right_element)
+      normal_vector = get_contravariant_vector(2, contravariant_vectors, i, 1, right_element)
     end
 
     flux = surface_flux(u_ll, u_rr, normal_vector, equations)
@@ -249,14 +250,14 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
                                           boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
                                           direction, node_indices, surface_node_indices, element)
-  @unpack node_coordinates = cache.elements
+  @unpack node_coordinates, contravariant_vectors= cache.elements
   @unpack surface_flux = dg
 
   u_inner = get_node_vars(u, equations, dg, node_indices..., element)
   x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
   # Contravariant vector Ja^i is the normal vector
-  normal_vector = get_contravariant_vector(orientation, cache, node_indices..., element)
+  normal_vector = get_contravariant_vector(orientation, contravariant_vectors, node_indices..., element)
   flux = boundary_condition(u_inner, normal_vector, direction, x, t, surface_flux, equations)
 
   for v in eachvariable(equations)

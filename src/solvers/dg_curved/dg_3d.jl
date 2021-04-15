@@ -80,6 +80,7 @@ end
 function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::CurvedMesh{3},
                               equations, dg::DG, cache)
   @unpack elements = cache
+  @unpack surface_flux = dg
 
   @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
@@ -106,8 +107,9 @@ end
 
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
-                              mesh::CurvedMesh{3}, equations, dg::DG, cache)
+                                      mesh::CurvedMesh{3}, equations, dg::DG, cache)
   @unpack surface_flux = dg
+  @unpack contravariant_vectors = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -116,15 +118,24 @@ end
     if orientation == 1
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, j, left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
+
+      # First contravariant vector Ja^1 as SVector
+      normal = get_contravariant_vector(1, contravariant_vectors, 1, i, j, right_element)
     elseif orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
+
+      # Second contravariant vector Ja^2 as SVector
+      normal = get_contravariant_vector(2, contravariant_vectors, i, 1, j, right_element)
     else # orientation == 3
       u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
+
+      # Third contravariant vector Ja^3 as SVector
+      normal = get_contravariant_vector(3, contravariant_vectors, i, j, 1, right_element)
     end
 
-    flux = transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, mesh, equations, cache)
+    flux = surface_flux(u_ll, u_rr, normal, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, j, right_direction, left_element] = flux[v]
@@ -149,21 +160,4 @@ function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::CurvedMesh, equations
   end
 
   return nothing
-end
-
-
-# TODO: This needs to be adapted for actually curved (not rectangular) meshes
-function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
-    mesh::CurvedMesh{3}, equations::AbstractEquations, cache)
-  @unpack jacobian_matrix = cache.elements
-
-  if orientation == 1
-    factor = jacobian_matrix[2, 2, 1, 1, 1, 1] * jacobian_matrix[3, 3, 1, 1, 1, 1]
-  elseif orientation == 2
-    factor = jacobian_matrix[1, 1, 1, 1, 1, 1] * jacobian_matrix[3, 3, 1, 1, 1, 1]
-  else # orientation == 3
-    factor = jacobian_matrix[1, 1, 1, 1, 1, 1] * jacobian_matrix[2, 2, 1, 1, 1, 1]
-  end
-
-  return factor * surface_flux(u_ll, u_rr, orientation, equations)
 end
