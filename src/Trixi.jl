@@ -34,6 +34,7 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
+using LoopVectorization: LoopVectorization, @avx
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
@@ -44,11 +45,6 @@ using StrideArrays: PtrArray, StrideArray, StaticInt
 using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack
 using UnPack: @pack!
-
-# Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
-# Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.
-using Tullio: @tullio
-using LoopVectorization
 
 
 # Define the entry points of our type hierarchy, e.g.
