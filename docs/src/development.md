@@ -263,7 +263,7 @@ julia --project=docs docs/make.jl
 ```
 from the Trixi.jl main directory. Then, you can look at the html files generated in
 `docs/build`.
-For PRs triggered from branches inside the Trixi.jl amin repository previews of
+For PRs triggered from branches inside the Trixi.jl main repository previews of
 the new documentation are generated at `https://trixi-framework.github.io/Trixi.jl/previews/PRXXX`,
 where `XXX` is the number of the PR.
 This does not work for PRs from forks for security reasons (since people could otherwise push
