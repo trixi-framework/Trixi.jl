@@ -43,7 +43,7 @@ function create_cache_analysis(analyzer, mesh::CurvedMesh{3},
   jacobian_tmp1 = similar(jacobian_local,
                           nnodes(analyzer), nnodes(dg), nnodes(dg))
   jacobian_tmp2 = similar(jacobian_local,
-                          nnodes(analyzer), nnodes(analyzer), nnodes(dg))                                         
+                          nnodes(analyzer), nnodes(analyzer), nnodes(dg))
 
   return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2)
 end
@@ -141,8 +141,7 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
 
   # Normalize with total volume
   if normalize
-    total_volume_ = total_volume(mesh)
-    integral = integral / total_volume_
+    integral = integral / total_volume(mesh)
   end
 
   return integral
@@ -179,6 +178,12 @@ end
 function integrate(func::Func, u::AbstractArray{<:Any,5},
                    mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
+    # The compiler heuristics might decide not to inline this function although
+    # it's small. In particular, this can happen when `wrap_array` returns a more
+    # complicated object than a plain `Array`. Hence, we nudge the compiler to
+    # inline this function.
+    Base.@_inline_meta
+
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
     return func(u_local, equations)
   end
@@ -189,6 +194,12 @@ function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,5}, u
                  mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, k, element, equations, dg, du
+    # The compiler heuristics might decide not to inline this function although
+    # it's small. In particular, this can happen when `wrap_array` returns a more
+    # complicated object than a plain `Array`. Hence, we nudge the compiler to
+    # inline this function.
+    Base.@_inline_meta
+
     u_node  = get_node_vars(u,  equations, dg, i, j, k, element)
     du_node = get_node_vars(du, equations, dg, i, j, k, element)
     dot(cons2entropy(u_node, equations), du_node)

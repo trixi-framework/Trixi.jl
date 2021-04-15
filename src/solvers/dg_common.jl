@@ -24,7 +24,7 @@ end
   # optimized `PtrArray`s whenever possible and fall back to plain `Array`s
   # otherwise.
   if LoopVectorization.check_args(u_ode)
-    # This version using `PtrArray`s from StrideArrays.jl is very faster and
+    # This version using `PtrArray`s from StrideArrays.jl is very fast and
     # does not result in allocations.
     #
     # !!! danger "Heisenbug"
@@ -38,7 +38,7 @@ end
     #     Chris Elrod in this case.
     PtrArray(pointer(u_ode),
              (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
-            #  (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+            #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
   else
     # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
     unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),

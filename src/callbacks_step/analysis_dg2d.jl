@@ -130,8 +130,7 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
 
   # Normalize with total volume
   if normalize
-    total_volume_ = total_volume(mesh)
-    integral = integral / total_volume_
+    integral = integral / total_volume(mesh)
   end
 
   return integral
@@ -168,6 +167,12 @@ end
 function integrate(func::Func, u::AbstractArray{<:Any,4},
                    mesh::Union{TreeMesh{2},CurvedMesh{2}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, element, equations, dg
+    # The compiler heuristics might decide not to inline this function although
+    # it's small. In particular, this can happen when `wrap_array` returns a more
+    # complicated object than a plain `Array`. Hence, we nudge the compiler to
+    # inline this function.
+    Base.@_inline_meta
+
     u_local = get_node_vars(u, equations, dg, i, j, element)
     return func(u_local, equations)
   end
@@ -178,6 +183,12 @@ function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,4}, u
                  mesh::Union{TreeMesh{2},CurvedMesh{2}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, element, equations, dg, du
+    # The compiler heuristics might decide not to inline this function although
+    # it's small. In particular, this can happen when `wrap_array` returns a more
+    # complicated object than a plain `Array`. Hence, we nudge the compiler to
+    # inline this function.
+    Base.@_inline_meta
+
     u_node  = get_node_vars(u,  equations, dg, i, j, element)
     du_node = get_node_vars(du, equations, dg, i, j, element)
     dot(cons2entropy(u_node, equations), du_node)
@@ -242,14 +253,14 @@ function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
                  dg::DG, cache)
   @unpack derivative_matrix, weights = dg.basis
-  
+
   # integrate over all elements to get the divergence-free condition errors
   linf_divb = zero(eltype(u))
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       divb = zero(eltype(u))
       for k in eachnode(dg)
-        divb += ( derivative_matrix[i, k] * u[5, k, j, element] + 
+        divb += ( derivative_matrix[i, k] * u[5, k, j, element] +
                   derivative_matrix[j, k] * u[6, i, k, element] )
       end
       divb *= cache.elements.inverse_jacobian[element]

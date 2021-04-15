@@ -13,14 +13,14 @@ function create_cache_analysis(analyzer, mesh::TreeMesh,
 end
 
 
-function create_cache_analysis(analyzer, mesh::CurvedMesh, equations::AbstractEquations{1}, 
+function create_cache_analysis(analyzer, mesh::CurvedMesh, equations::AbstractEquations{1},
                                dg::DG, cache, RealT, uEltype)
   # pre-allocate buffers
   u_local = zeros(uEltype,
                   nvariables(equations), nnodes(analyzer))
   x_local = zeros(RealT,
                   ndims(equations), nnodes(analyzer))
-  jacobian_local = zeros(RealT, 
+  jacobian_local = zeros(RealT,
                          nnodes(analyzer))
   return (; u_local, x_local, jacobian_local)
 end
@@ -144,8 +144,7 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,3},
 
   # Normalize with total volume
   if normalize
-    total_volume_ = total_volume(mesh)
-    integral = integral / total_volume_
+    integral = integral / total_volume(mesh)
   end
 
   return integral
@@ -155,6 +154,12 @@ end
 function integrate(func::Func, u::AbstractArray{<:Any,3},
                    mesh::Union{TreeMesh{1},CurvedMesh{1}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
+    # The compiler heuristics might decide not to inline this function although
+    # it's small. In particular, this can happen when `wrap_array` returns a more
+    # complicated object than a plain `Array`. Hence, we nudge the compiler to
+    # inline this function.
+    Base.@_inline_meta
+
     u_local = get_node_vars(u, equations, dg, i, element)
     return func(u_local, equations)
   end
@@ -165,6 +170,12 @@ function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,3}, u
                  mesh::Union{TreeMesh{1},CurvedMesh{1}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, element, equations, dg, du
+    # The compiler heuristics might decide not to inline this function although
+    # it's small. In particular, this can happen when `wrap_array` returns a more
+    # complicated object than a plain `Array`. Hence, we nudge the compiler to
+    # inline this function.
+    Base.@_inline_meta
+
     u_node  = get_node_vars(u,  equations, dg, i, element)
     du_node = get_node_vars(du, equations, dg, i, element)
     dot(cons2entropy(u_node, equations), du_node)
