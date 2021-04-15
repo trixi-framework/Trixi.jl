@@ -18,7 +18,9 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
   @testset "elixir_advection_free_stream_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream_curved.jl"),
       l2   = [1.830875777528287e-14],
-      linf = [1.525446435834965e-12])
+      linf = [7.491784970170556e-13],
+      atol = 8e-13, # required to make tests pass on Windows
+      )
   end
 
   @testset "elixir_euler_source_terms_curved.jl" begin
