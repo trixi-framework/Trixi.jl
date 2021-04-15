@@ -9,11 +9,10 @@ function create_cache(mesh::CurvedMesh, equations::AbstractEquations, dg::DG, ::
   return cache
 end
 
-
 # Extract contravariant vector Ja^i (i = index) as SVector
-@inline function get_contravariant_vector(index, contravariant_vectors::AbstractArray{<:Any,NDIMSP3}, indices...) where {NDIMSP3}
+@inline function get_contravariant_vector(index, contravariant_vectors, indices...)
 
-  SVector(ntuple(dim -> contravariant_vectors[index, dim, indices...], NDIMSP3 - 3))
+  SVector(ntuple(dim -> contravariant_vectors[index, dim, indices...], ndims(contravariant_vectors) - 3))
 end
 
 
