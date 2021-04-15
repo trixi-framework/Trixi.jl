@@ -7,6 +7,13 @@ The following lists a few coding conventions for Trixi:
   * Maximum line length (strictly): **100**.
   * Functions that mutate their *input* are named with a trailing `!`.
   * Functions order their parameters [similar to Julia Base](https://docs.julialang.org/en/v1/manual/style-guide/#Write-functions-with-argument-ordering-similar-to-Julia-Base-1).
+    * The main modified argument comes first. For example, if the right-hand side `du` is modified, 
+      it should come first. If only modify the `cache` is modified, e.g. in `prolong2interfaces!` 
+      and its siblings, put the `cache` first.
+    * Otherwise, use the order `mesh, equations, solver, cache`.
+    * If something needs to be specified more for dispatch, put the additional argument before the one 
+      that is specified in more detail. For example, we use `have_nonconservative_terms(equations), equations`
+      and `dg.mortar, dg`.
   * Prefer `for i in ...` to `for i = ...` for better semantic clarity and greater flexibility.
   * Executable code should only use ASCII characters.
   * Docstrings and comments can and should use Unicode characters where it helps understanding.
