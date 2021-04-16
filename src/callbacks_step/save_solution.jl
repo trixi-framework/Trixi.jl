@@ -82,7 +82,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
-  @timeit_debug timer() "I/O" begin
+  @_timeit timer() "I/O" begin
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory)
       mesh.unsaved_changes = false
@@ -113,7 +113,7 @@ function (solution_callback::SaveSolutionCallback)(integrator)
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
-  @timeit_debug timer() "I/O" begin
+  @_timeit timer() "I/O" begin
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory, iter)
       mesh.unsaved_changes = false

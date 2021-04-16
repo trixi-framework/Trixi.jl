@@ -3,26 +3,26 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
     initial_condition, boundary_conditions, source_terms,
     dg::DG, cache)
   # Reset du
-  @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh, equations,
+  @_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh, equations,
                                                                 dg.volume_integral, dg, cache)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
+  @_timeit timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, u, t, boundary_conditions, equations, mesh, dg)
+  @_timeit timer() "boundary flux" calc_boundary_flux!(cache, u, t, boundary_conditions, equations, mesh, dg)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
+  @_timeit timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @timeit_debug timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+  @_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
+  @_timeit timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
 
   return nothing
 end
@@ -115,7 +115,7 @@ end
   if left_element <= 0 # left_element = 0 at boundaries
     return surface_flux_values
   end
-  
+
   @unpack surface_flux = dg
   @unpack contravariant_vectors = cache.elements
 
@@ -164,8 +164,8 @@ end
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
                              equations, mesh::CurvedMesh{3}, dg::DG)
-  calc_boundary_flux!(cache, u, t, 
-                      (boundary_condition, boundary_condition, boundary_condition, 
+  calc_boundary_flux!(cache, u, t,
+                      (boundary_condition, boundary_condition, boundary_condition,
                        boundary_condition, boundary_condition, boundary_condition),
                       equations, mesh, dg)
 end
@@ -176,7 +176,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
   @unpack surface_flux = dg
   @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
-  
+
   for cell_z in axes(mesh, 3), cell_y in axes(mesh, 2)
     # Negative x-direction
     direction = 1

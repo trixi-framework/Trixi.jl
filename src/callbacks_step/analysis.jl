@@ -174,7 +174,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
-  @timeit_debug timer() "analyze solution" begin
+  @_timeit timer() "analyze solution" begin
     # General information
     mpi_println()
     mpi_println("─"^100)

@@ -2,7 +2,7 @@ include("containers.jl")
 include("math.jl")
 
 
-# Enable debug timings `@timeit_debug timer() "name" stuff...`.
+# Enable debug timings `@_timeit timer() "name" stuff...`.
 # This allows us to disable timings completely by executing
 # `TimerOutputs.disable_debug_timings(Trixi)`
 # and to enable them again by executing
@@ -172,4 +172,32 @@ macro threaded(expr)
   #     Look at the comments for `wrap_array` when considering to change this macro.
 
   return esc(quote @batch $(expr) end)
+end
+
+
+#     @_timeit timer() "some label" expression
+#
+# Basically the same as a special case of `@timeit_debug` from
+# [TimerOutputs.jl](https://github.com/KristofferC/TimerOutputs.jl),
+# but without `try ... finally ... end` block. Thus, it's not exception-safe,
+# but it also avoids some related performance problems. Since we do not use
+# exception handling in Trixi, that's not really an issue.
+macro _timeit(timer_output, label, expr)
+  timeit_block = quote
+    if timeit_debug_enabled()
+      local to = $(esc(timer_output))
+      local enabled = to.enabled
+      if enabled
+        local accumulated_data = $(TimerOutputs.push!)(to, $(esc(label)))
+      end
+      local b₀ = $(TimerOutputs.gc_bytes)()
+      local t₀ = $(TimerOutputs.time_ns)()
+    end
+    local val = $(esc(expr))
+    if timeit_debug_enabled() && enabled
+      $(TimerOutputs.do_accumulate!)(accumulated_data, t₀, b₀)
+      $(TimerOutputs.pop!)(to)
+    end
+    val
+  end
 end

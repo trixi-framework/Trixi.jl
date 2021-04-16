@@ -1,12 +1,12 @@
 # Redistribute data for load balancing after partitioning the mesh
-function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, 
+function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
                             dg::DGSEM, cache, old_mpi_ranks_per_cell)
   if cache.elements.cell_ids == local_leaf_cells(mesh.tree)
     # Cell ids of the current elements are the same as the local leaf cells of the
     # newly partitioned mesh, so the solver doesn't need to be rebalanced on this rank.
     return
   end
-  
+
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
   old_cell_ids = copy(cache.elements.cell_ids)
@@ -14,7 +14,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-    @timeit_debug timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
+    @_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -22,7 +22,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-    @timeit_debug timer() "exchange data" begin
+    @_timeit timer() "exchange data" begin
       # Collect MPI requests for MPI_Waitall
       requests = Vector{MPI.Request}()
 
@@ -37,7 +37,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
         end
       end
 
-      # Loop over all elements in new container and either copy them from old container 
+      # Loop over all elements in new container and either copy them from old container
       # or receive them with MPI
       for element in eachelement(dg, cache)
         cell_id = cache.elements.cell_ids[element]
@@ -119,7 +119,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
-    
+
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
