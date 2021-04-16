@@ -7,7 +7,7 @@ function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
   polydeg_ = polydeg(dg.basis)
   nvars = nvariables(equations)
 
-  if polydeg_ > mesh.polydeg
+  if polydeg_ > mesh.polydeg && any(mesh.element_is_curved)
     throw(ArgumentError("polynomial degree of DG (= $polydeg_) must be less than or equal to mesh polynomial degree (= $(mesh.polydeg))"))
   end
 
