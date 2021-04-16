@@ -139,15 +139,24 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::Abs
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
                                  data_in2::AbstractArray{<:Any, 2})
   # @tullio threads=false data_out[v, i] = matrix1[i, ii] * data_in1[v, ii] + matrix2[i, ii] * data_in2[v, ii]
+  # TODO: LoopVectorization upgrade
+  #   We would like to use `@avx` for the outermost loop possibly fuse both inner
+  #   loops, but that does currently not work because of limitations of
+  #   LoopVectorizationjl. However, Chris Elrod is planning to address this in
+  #   the future, cf. https://github.com/JuliaSIMD/LoopVectorization.jl/issues/230#issuecomment-810632972
   @avx inline=true for i in axes(data_out, 2), v in axes(data_out, 1)
     res = zero(eltype(data_out))
     for ii in axes(matrix1, 2)
       res += matrix1[i, ii] * data_in1[v, ii]
     end
+    data_out[v, i] = res
+  end
+  @avx inline=true for i in axes(data_out, 2), v in axes(data_out, 1)
+    res = zero(eltype(data_out))
     for ii in axes(matrix2, 2)
       res += matrix2[i, ii] * data_in2[v, ii]
     end
-    data_out[v, i] = res
+    data_out[v, i] += res
   end
 
   return nothing
@@ -290,8 +299,8 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::Abst
   # @tullio threads=false tmp2[v, i, j, k]     = matrix[j, jj] * tmp1[v, i, jj, k]
   @avx inline=true for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2), v in axes(tmp2, 1)
     res = zero(eltype(tmp2))
-    for ii in axes(matrix, 2)
-      res += matrix[i, ii] * data_in[v, ii, j, k]
+    for jj in axes(matrix, 2)
+      res += matrix[j, jj] * tmp1[v, i, jj, k]
     end
     tmp2[v, i, j, k] = res
   end
@@ -371,8 +380,8 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
   # @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
   @avx inline=true for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2), v in axes(tmp2, 1)
     res = zero(eltype(tmp1))
-    for ii in axes(matrix2, 2)
-      res += matrix2[i, ii] * data_in[v, ii, j, k]
+    for jj in axes(matrix2, 2)
+      res += matrix2[j, jj] * tmp1[v, i, jj, k]
     end
     tmp2[v, i, j, k] = res
   end
@@ -411,8 +420,8 @@ function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
   # @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
   @avx inline=true for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2), v in axes(tmp2, 1)
     res = zero(eltype(tmp1))
-    for ii in axes(matrix2, 2)
-      res += matrix2[i, ii] * data_in[v, ii, j, k]
+    for jj in axes(matrix2, 2)
+      res += matrix2[j, jj] * tmp1[v, i, jj, k]
     end
     tmp2[v, i, j, k] = res
   end
@@ -429,4 +438,3 @@ function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
 
   return nothing
 end
-

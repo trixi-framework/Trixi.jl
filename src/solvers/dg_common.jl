@@ -10,9 +10,9 @@ end
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
   # We would like to use
-  #   reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+  #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
   # but that results in
-  #   ERROR: LoadError: cannot resize array with shared data
+  #     ERROR: LoadError: cannot resize array with shared data
   # when we resize! `u_ode` during AMR.
   #
   # !!! danger "Segfaults"
@@ -30,12 +30,12 @@ end
     # !!! danger "Heisenbug"
     #     Do not use this code when `@threaded` uses `Threads.@threads`. There is
     #     a very strange Heisenbug that makes some parts very slow *sometimes*.
-    #     In fact, everything can be fast and fine for amny cases but some parts
+    #     In fact, everything can be fast and fine for many cases but some parts
     #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
     #     Hence, this version should only be used when `@threaded` is based on
     #     `@batch` from CheapThreads.jl or something similar. Using CheapThreads.jl
     #     is probably the best option since everything will be handed over to
-    #     Chris Elrod in this case.
+    #     Chris Elrod, one of the best performance software engineers for Julia.
     PtrArray(pointer(u_ode),
              (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
             #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
