@@ -164,75 +164,10 @@ end
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
                              equations, mesh::CurvedMesh{3}, dg::DG)
-  @unpack surface_flux = dg
-  @unpack surface_flux_values = cache.elements
-  linear_indices = LinearIndices(size(mesh))
-  
-  for cell_z in axes(mesh, 3), cell_y in axes(mesh, 2)
-    # Negative x-direction
-    direction = 1
-    element = linear_indices[begin, cell_y, cell_z]
-
-    for k in eachnode(dg), j in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (1, j, k), (j, k), element)
-    end
-
-    # Positive x-direction
-    direction = 2
-    element = linear_indices[end, cell_y, cell_z]
-
-    for k in eachnode(dg), j in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (nnodes(dg), j, k), (j, k), element)
-    end
-  end
-
-  for cell_z in axes(mesh, 3), cell_x in axes(mesh, 1)
-    # Negative y-direction
-    direction = 3
-    element = linear_indices[cell_x, begin, cell_z]
-
-    for k in eachnode(dg), i in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (i, 1, k), (i, k), element)
-    end
-
-    # Positive y-direction
-    direction = 4
-    element = linear_indices[cell_x, end, cell_z]
-
-    for k in eachnode(dg), i in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (i, nnodes(dg), k), (i, k), element)
-    end
-  end
-
-  for cell_y in axes(mesh, 2), cell_x in axes(mesh, 1)
-    # Negative z-direction
-    direction = 5
-    element = linear_indices[cell_x, cell_y, begin]
-
-    for j in eachnode(dg), i in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 3,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (i, j, 1), (i, j), element)
-    end
-
-    # Positive z-direction
-    direction = 6
-    element = linear_indices[cell_x, cell_y, end]
-
-    for j in eachnode(dg), i in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 3,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (i, j, nnodes(dg)), (i, j), element)
-    end
-  end
+  calc_boundary_flux!(cache, u, t, 
+                      (boundary_condition, boundary_condition, boundary_condition, 
+                       boundary_condition, boundary_condition, boundary_condition),
+                      equations, mesh, dg)
 end
 
 

@@ -138,53 +138,10 @@ end
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
                              equations, mesh::CurvedMesh{2}, dg::DG)
-  @unpack surface_flux = dg
-  @unpack surface_flux_values = cache.elements
-  linear_indices = LinearIndices(size(mesh))
-  
-  for cell_y in axes(mesh, 2)
-    # Negative x-direction
-    direction = 1
-    element = linear_indices[begin, cell_y]
-
-    for j in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (1, j), (j,), element)
-    end
-
-    # Positive x-direction
-    direction = 2
-    element = linear_indices[end, cell_y]
-
-    for j in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (nnodes(dg), j), (j,), element)
-    end
-  end
-
-  for cell_x in axes(mesh, 1)
-    # Negative y-direction
-    direction = 3
-    element = linear_indices[cell_x, begin]
-
-    for i in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (i, 1), (i,), element)
-    end
-
-    # Positive y-direction
-    direction = 4
-    element = linear_indices[cell_x, end]
-
-    for i in eachnode(dg)
-      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
-                                       boundary_condition, equations, mesh, dg, cache,
-                                       direction, (i, nnodes(dg)), (i,), element)
-    end
-  end
+  calc_boundary_flux!(cache, u, t, 
+                      (boundary_condition, boundary_condition, 
+                       boundary_condition, boundary_condition),
+                      equations, mesh, dg)
 end
 
 
