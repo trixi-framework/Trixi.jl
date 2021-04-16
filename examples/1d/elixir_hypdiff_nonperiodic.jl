@@ -11,8 +11,7 @@ initial_condition = initial_condition_poisson_nonperiodic
 
 boundary_conditions = boundary_condition_poisson_nonperiodic
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(4, surface_flux)
+solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = 0
 coordinates_max = 1

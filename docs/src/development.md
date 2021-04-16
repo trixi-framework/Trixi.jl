@@ -18,7 +18,7 @@ package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
 To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
 ```julia
-(@v1.5) pkg> add Revise
+(@v1.6) pkg> add Revise
 ```
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache! Before you start using
@@ -28,7 +28,7 @@ Another recommended package for working from the REPL is
 [OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl). It can be installed
 by running
 ```julia
-(@v1.5) pkg> add OhMyREPL
+(@v1.6) pkg> add OhMyREPL
 ```
 and adds syntax highlighting, bracket highlighting, and other helpful
 improvements for using Julia interactively. To automatically use OhMyREPL when
@@ -252,3 +252,19 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
   if everything was released correctly, you should only need to do these checks manually
   if new minor versions with changes in the docs of Trixi2Vtk/Trixi2Img were released
   but no new version of Trixi was released afterwards.
+
+
+
+## Preview of the documentation
+
+You can build the documentation of Trixi.jl locally by running
+```bash
+julia --project=docs docs/make.jl
+```
+from the Trixi.jl main directory. Then, you can look at the html files generated in
+`docs/build`.
+For PRs triggered from branches inside the Trixi.jl main repository previews of
+the new documentation are generated at `https://trixi-framework.github.io/Trixi.jl/previews/PRXXX`,
+where `XXX` is the number of the PR.
+This does not work for PRs from forks for security reasons (since anyone could otherwise push
+arbitrary stuff to the Trixi website, including malicious code).

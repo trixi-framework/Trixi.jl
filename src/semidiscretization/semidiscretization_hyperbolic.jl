@@ -1,5 +1,3 @@
-
-# TODO: Taal refactor, Mesh<:AbstractMesh{NDIMS}, Equations<:AbstractEquations{NDIMS} ?
 """
     SemidiscretizationHyperbolic
 

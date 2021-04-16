@@ -9,7 +9,6 @@ struct CompressibleEulerEquations3D{RealT<:Real} <: AbstractCompressibleEulerEqu
 end
 
 
-get_name(::CompressibleEulerEquations3D) = "CompressibleEulerEquations3D"
 varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D) = ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations3D) = ("rho", "v1", "v2", "v3", "p")
 
@@ -89,6 +88,30 @@ Source terms used for convergence tests in combination with
   # du5 = ((((((12 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 12 * c * γ) - 4c) - 9γ) + 9) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
 
   return SVector(du1, du2, du3, du4, du5)
+end
+
+
+"""
+    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                        surface_flux_function,
+                                        equations::CompressibleEulerEquations3D)
+
+Boundary conditions used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref) and [`source_terms_convergence_test`](@ref).
+"""
+function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations3D)
+  u_boundary = initial_condition_convergence_test(x, t, equations)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
 end
 
 
@@ -416,7 +439,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::CompressibleEulerEquations3D)
+@inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -688,11 +711,13 @@ See also
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
-  # Calculate primitive variables and speed of sound
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
@@ -706,26 +731,16 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-  f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_v3_rr - rho_v3_ll)
-  f5 = 1/2 * (f_ll[5] + f_rr[5]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-
-  return SVector(f1, f2, f3, f4, f5)
 end
 
 
-function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
-  # Calculate primitive variables and speed of sound
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
@@ -736,46 +751,52 @@ function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations
   v3_rr = rho_v3_rr / rho_rr
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   if orientation == 1 # x-direction
-    Ssl = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
-    Ssr = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
+    λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
+    λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
   elseif orientation == 2 # y-direction
-    Ssl = v2_ll - sqrt(equations.gamma * p_ll / rho_ll)
-    Ssr = v2_rr + sqrt(equations.gamma * p_rr / rho_rr)
+    λ_min = v2_ll - sqrt(equations.gamma * p_ll / rho_ll)
+    λ_max = v2_rr + sqrt(equations.gamma * p_rr / rho_rr)
   else # z-direction
-    Ssl = v3_ll - sqrt(equations.gamma * p_ll / rho_ll)
-    Ssr = v3_rr + sqrt(equations.gamma * p_rr / rho_rr)
+    λ_min = v3_ll - sqrt(equations.gamma * p_ll / rho_ll)
+    λ_max = v3_rr + sqrt(equations.gamma * p_rr / rho_rr)
   end
 
-  if Ssl >= 0.0 && Ssr > 0.0
-    f1 = f_ll[1]
-    f2 = f_ll[2]
-    f3 = f_ll[3]
-    f4 = f_ll[4]
-    f5 = f_ll[5]
-  elseif Ssr <= 0.0 && Ssl < 0.0
-    f1 = f_rr[1]
-    f2 = f_rr[2]
-    f3 = f_rr[3]
-    f4 = f_rr[4]
-    f5 = f_rr[5]
-  else
-    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr    - rho_ll))    / (Ssr - Ssl)
-    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr - rho_v1_ll)) / (Ssr - Ssl)
-    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_v2_rr - rho_v2_ll)) / (Ssr - Ssl)
-    f4 = (Ssr*f_ll[4] - Ssl*f_rr[4] + Ssl*Ssr*(rho_v3_rr - rho_v3_ll)) / (Ssr - Ssl)
-    f5 = (Ssr*f_ll[5] - Ssl*f_rr[5] + Ssl*Ssr*(rho_e_rr  - rho_e_ll))  / (Ssr - Ssl)
-  end
-
-  return SVector(f1, f2, f3, f4, f5)
+  return λ_min, λ_max
 end
 
 
- """
+# Rotate normal vector to x-axis; normal, tangent1 and tangent2 need to be orthonormal
+@inline function rotate_to_x(u, normal, tangent1, tangent2, equations::CompressibleEulerEquations3D)
+  # Multiply with [ 1   0      0       0   0;
+  #                 0   ―    normal    ―   0;
+  #                 0   ―   tangent1   ―   0;
+  #                 0   ―   tangent2   ―   0;
+  #                 0   0      0       0   1 ]
+  return SVector(u[1], 
+                 normal[1]   * u[2] + normal[2]   * u[3] + normal[3]   * u[4],
+                 tangent1[1] * u[2] + tangent1[2] * u[3] + tangent1[3] * u[4],
+                 tangent2[1] * u[2] + tangent2[2] * u[3] + tangent2[3] * u[4],
+                 u[5])
+end
+
+
+# Rotate x-axis to normal vector; normal, tangent1 and tangent2 need to be orthonormal
+@inline function rotate_from_x(u, normal, tangent1, tangent2, equations::CompressibleEulerEquations3D)
+  # Multiply with [ 1    0       0        0      0;
+  #                 0    |       |        |      0;
+  #                 0  normal tangent1 tangent2  0;
+  #                 0    |       |        |      0;
+  #                 0    0       0        0      1 ]
+  return SVector(u[1], 
+                 normal[1] * u[2] + tangent1[1] * u[3] + tangent2[1] * u[4],
+                 normal[2] * u[2] + tangent1[2] * u[3] + tangent2[2] * u[4],
+                 normal[3] * u[2] + tangent1[3] * u[3] + tangent2[3] * u[4],
+                 u[5])
+end
+
+
+"""
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
 
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
@@ -944,6 +965,31 @@ end
   w5 = -rho_p
 
   return SVector(w1, w2, w3, w4, w5)
+end
+
+@inline function entropy2cons(w, equations::CompressibleEulerEquations3D)
+  # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
+  # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
+  @unpack gamma = equations
+
+  # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
+  # instead of `-rho * s / (gamma - 1)`
+  V1,V2,V3,V4,V5 = w * (gamma-1) 
+
+  # s = specific entropy, eq. (53)      
+  V_square    = V2^2 + V3^2 + V4^2
+  s = gamma - V1 + V_square/(2*V5)
+
+  # eq. (52)  
+  rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
+
+  # eq. (51)    
+  rho     = -rho_iota * V5
+  rho_v1  =  rho_iota * V2
+  rho_v2  =  rho_iota * V3
+  rho_v3  =  rho_iota * V4  
+  rho_e   =  rho_iota*(1-V_square/(2*V5))
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 

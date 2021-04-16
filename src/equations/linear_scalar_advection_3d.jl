@@ -21,7 +21,6 @@ function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
 end
 
 
-get_name(::LinearScalarAdvectionEquation3D) = "LinearScalarAdvectionEquation3D"
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar", )
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar", )
 
@@ -70,6 +69,30 @@ function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D
 
   scalar = exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))
   return SVector(scalar)
+end
+
+
+"""
+    boundary_condition_gauss(u_inner, orientation, direction, x, t,
+                             surface_flux_function,
+                             equation::LinearScalarAdvectionEquation3D)
+
+Boundary conditions for
+[`initial_condition_gauss`](@ref).
+"""
+function boundary_condition_gauss(u_inner, orientation, direction, x, t,
+                                  surface_flux_function,
+                                  equation::LinearScalarAdvectionEquation3D)
+  u_boundary = initial_condition_gauss(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
 end
 
 
@@ -129,17 +152,30 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equation::LinearScalarAdvectionEquation3D)
+@inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation3D)
   a = equation.advectionvelocity[orientation]
   return a * u
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation3D)
-  a = equation.advectionvelocity[orientation]
-  return 0.5 * ( a * (u_ll + u_rr) - abs(a) * (u_rr - u_ll) )
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation3D)
+  λ_max = abs(equation.advectionvelocity[orientation])
 end
 
+
+# Calculate 1D flux for a single point in direction of a normal vector
+@inline function flux(u, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation3D)
+  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+  return a * u
+end
+
+
+# Calculate maximum wave speed in direction of a normal vector for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation3D)
+  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+  return abs(a)
+end
 
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)

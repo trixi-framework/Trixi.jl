@@ -11,7 +11,6 @@ in one space dimension.
 struct InviscidBurgersEquation1D <: AbstractInviscidBurgersEquation{1, 1} end
 
 
-get_name(::InviscidBurgersEquation1D) = "InviscidBurgersEquation1D"
 varnames(::typeof(cons2cons), ::InviscidBurgersEquation1D) = ("scalar", )
 varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar", )
 
@@ -68,7 +67,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equation::InviscidBurgersEquation1D)
+@inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
   return SVector(0.5 * u[1]^2)
 end
 
@@ -87,11 +86,12 @@ end
 end
 
 
-@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  return SVector(0.5 * ( 0.5 * (u_L^2 + u_R^2) - max(abs(u_L), abs(u_R)) * (u_R - u_L) ))
+  λ_max = max(abs(u_L), abs(u_R))
 end
 
 

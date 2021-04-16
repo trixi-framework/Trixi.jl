@@ -16,11 +16,17 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
-  # Run Trixi
-  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
-                                   tspan=(0,0.1))
+  # Run 2D tests with elixirs for both mesh types
+  test_examples_2d = Dict(
+    "TreeMesh" => "elixir_euler_blast_wave_amr.jl",
+    "CurvedMesh" => "elixir_euler_source_terms_waving_flag.jl"
+  )
 
-  @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
+  @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
+    # Run Trixi
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", test_examples_2d[mesh]),
+                                     tspan=(0,0.1))
+
     # Constructor
     @test PlotData2D(sol) isa PlotData2D
     @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
@@ -61,15 +67,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test getmesh(pd).plot_data == pd
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
-  end
 
-  @testset "2D plot recipes" begin
-    pd = PlotData2D(sol)
-
-    @test_nowarn_debug plot(sol)
-    @test_nowarn_debug plot(pd)
-    @test_nowarn_debug plot(pd["p"])
-    @test_nowarn_debug plot(getmesh(pd))
+    @testset "2D plot recipes" begin
+      pd = PlotData2D(sol)
+  
+      @test_nowarn_debug plot(sol)
+      @test_nowarn_debug plot(pd)
+      @test_nowarn_debug plot(pd["p"])
+      @test_nowarn_debug plot(getmesh(pd))
+    end
   end
 
   @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
@@ -115,6 +121,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
 
+    # nvisnodes
+    @test size(pd.data) == (512, 3)
+    pd0 = PlotData1D(sol, nvisnodes=0)
+    @test size(pd0.data) == (256, 3)
+    pd2 = PlotData1D(sol, nvisnodes=2)
+    @test size(pd2.data) == (128, 3)
+
     @testset "1D plot recipes" begin
       pd = PlotData1D(sol)
 
@@ -141,6 +154,19 @@ isdir(outdir) && rm(outdir, recursive=true)
       fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d)
       @test_nowarn_debug plot(fake2d)
     end
+  end
+
+  @testset "adapt_to_mesh_level" begin
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"),
+                                     tspan=(0,0.1))
+    @test adapt_to_mesh_level(sol, 5) isa Tuple
+
+    u_ode_level5, semi_level5 = adapt_to_mesh_level(sol, 5)
+    u_ode_level4, semi_level4 = adapt_to_mesh_level(u_ode_level5, semi_level5, 4)
+    @test isapprox(sol.u[end], u_ode_level4, atol=1e-13)
+
+    @test adapt_to_mesh_level!(sol, 5) isa Tuple
+    @test isapprox(sol.u[end], u_ode_level5, atol=1e-13)
   end
 
   @testset "plot 3D" begin

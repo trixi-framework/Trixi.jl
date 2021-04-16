@@ -41,7 +41,7 @@ volume_integral = VolumeIntegralLocalFluxComparison(flux_central, volume_flux)
 # volume_flux = flux_ranocha
 # volume_integral = VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux))
 
-solver = DGSEM(3, surface_flux, volume_integral)
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux, volume_integral = volume_integral)
 
 coordinates_min = (-pi, -pi, -pi)
 coordinates_max = ( pi,  pi,  pi)

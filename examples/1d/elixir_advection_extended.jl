@@ -18,11 +18,9 @@ initial_condition = initial_condition_convergence_test
 boundary_conditions = boundary_condition_periodic
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-surface_flux = flux_lax_friedrichs
-polydeg = 3
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = -1 # minimum coordinate 
+coordinates_min = -1 # minimum coordinate
 coordinates_max =  1 # maximum coordinate
 
 # Create a uniformely refined mesh with periodic boundaries

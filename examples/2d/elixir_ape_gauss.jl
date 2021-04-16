@@ -4,10 +4,13 @@ using Trixi
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-equations = AcousticPerturbationEquations2D(v_mean=(0.25, 0.25), c_mean=1.0, rho_mean=1.0)
+v_mean_global = (0.25, 0.25)
+c_mean_global = 1.0
+rho_mean_global = 1.0
+equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(3, flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-1, -1) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1,  1) # maximum coordinates (max(x), max(y))
@@ -25,7 +28,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss, so
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0))
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

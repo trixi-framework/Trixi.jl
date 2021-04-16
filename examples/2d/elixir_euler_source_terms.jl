@@ -12,8 +12,8 @@ initial_condition = initial_condition_convergence_test
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 # TODO: Change back
-# solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
-solver = DGSEM(3, surface_flux, VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux)))
+# solver = DGSEM(polydeg=3, surface_flux = surface_flux, volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux = surface_flux, volume_integral = VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux)))
 
 coordinates_min = (0, 0)
 coordinates_max = (2, 2)

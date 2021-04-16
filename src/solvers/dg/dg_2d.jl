@@ -53,11 +53,11 @@ function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equat
   f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
 
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype}
-  fstar_upper_threaded               = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded               = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_threaded     = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  MA2d = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype, 2, nvariables(equations) * nnodes(dg)}
+  fstar_upper_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded,
           fstar_upper_threaded, fstar_lower_threaded,
@@ -138,8 +138,8 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
-  # TODO: Taal compare performance of different types
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype}
+  # TODO: Taal performance using different types
+  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}
   fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
@@ -150,35 +150,6 @@ function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMo
   (; fstar_upper_threaded, fstar_lower_threaded)
 end
 
-
-@inline function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
-  @boundscheck begin
-    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
-  end
-  # We would like to use
-  #   reshape(u_ode, (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
-  # but that results in
-  #   ERROR: LoadError: cannot resize array with shared data
-  # when we resize! `u_ode` during AMR.
-
-  # The following version is fast and allows us to `resize!(u_ode, ...)`.
-  # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
-  #      and other stuff that is only used indirectly via `wrap_array` afterwards!
-  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-              (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
-end
-
-
-function compute_coefficients!(u, func, t, mesh::TreeMesh{2}, equations, dg::DG, cache)
-
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
-      u_node = func(x_node, t, equations)
-      set_node_vars!(u, u_node, equations, dg, i, j, element)
-    end
-  end
-end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
@@ -1341,26 +1312,26 @@ end
     end
   end
 
-  for v in eachvariable(equations)
-    # The code below is semantically equivalent to
-    # surface_flux_values[v, :, direction, large_element] .=
-    #   (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
-    # but faster and does not allocate.
-    # Note that `true * some_float == some_float` in Julia, i.e. `true` acts as
-    # a universal `one`. Hence, the second `mul!` means "add the matrix-vector
-    # product to the current value of the destination".
-    @views mul!(surface_flux_values[v, :, direction, large_element],
-                mortar_l2.reverse_upper, fstar_upper[v, :])
-    @views mul!(surface_flux_values[v, :, direction, large_element],
-                mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
-  end
   # TODO: Taal performance
+  # for v in eachvariable(equations)
+  #   # The code below is semantically equivalent to
+  #   # surface_flux_values[v, :, direction, large_element] .=
+  #   #   (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
+  #   # but faster and does not allocate.
+  #   # Note that `true * some_float == some_float` in Julia, i.e. `true` acts as
+  #   # a universal `one`. Hence, the second `mul!` means "add the matrix-vector
+  #   # product to the current value of the destination".
+  #   @views mul!(surface_flux_values[v, :, direction, large_element],
+  #               mortar_l2.reverse_upper, fstar_upper[v, :])
+  #   @views mul!(surface_flux_values[v, :, direction, large_element],
+  #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
+  # end
   # The code above could be replaced by the following code. However, the relative efficiency
   # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
   # Using StaticArrays for both makes the code above faster for common test cases.
-  # multiply_dimensionwise!(
-  #   view(surface_flux_values, :, :, direction, large_element), mortar_l2.reverse_upper, fstar_upper,
-  #                                                              mortar_l2.reverse_lower, fstar_lower)
+  multiply_dimensionwise!(
+    view(surface_flux_values, :, :, direction, large_element), mortar_l2.reverse_upper, fstar_upper,
+                                                               mortar_l2.reverse_lower, fstar_lower)
 
   return nothing
 end

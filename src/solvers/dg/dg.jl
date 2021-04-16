@@ -326,14 +326,6 @@ end
 end
 
 
-function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
-  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
-  # cf. wrap_array
-  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-end
-
-
-
 # Used for analyze_solution
 SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
 
@@ -377,6 +369,17 @@ end
 
 DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
+# The constructor using only keyword arguments is convenient for elixirs since
+# it allows to modify the polynomial degree and other parameters via
+# `trixi_include`.
+function DGSEM(; RealT=Float64,
+                 polydeg::Integer,
+                 surface_flux=flux_central,
+                 volume_integral=VolumeIntegralWeakForm())
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  return DGSEM(basis, surface_flux, volume_integral)
+end
+
 
 
 """
@@ -401,6 +404,11 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
   end
 
   return nothing
+end
+
+
+function volume_jacobian(element, mesh::TreeMesh, cache)
+  return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
 
 
