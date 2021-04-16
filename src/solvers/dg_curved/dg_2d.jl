@@ -6,7 +6,8 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh, equations,
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations), equations,
                                                                 dg.volume_integral, dg, cache)
 
   # Calculate interface fluxes
@@ -28,8 +29,11 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, equations,
-                               volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               mesh::CurvedMesh,
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -93,7 +97,7 @@ end
                                       orientation, u, equations, dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
   if left_element <= 0 # left_element = 0 at boundaries
-    return surface_flux_values
+    return nothing
   end
 
   @unpack surface_flux = dg
@@ -125,7 +129,7 @@ end
     end
   end
 
-  return surface_flux_values
+  return nothing
 end
 
 

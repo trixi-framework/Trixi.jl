@@ -120,14 +120,15 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), equations,
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations), equations,
                                                                 dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, equations, dg)
+  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values,
+  @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values, mesh,
                                                               have_nonconservative_terms(equations), equations,
                                                               dg, cache)
 
@@ -159,6 +160,7 @@ end
 
 
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               mesh::TreeMesh,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -238,6 +240,7 @@ end
 
 
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               mesh::TreeMesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -322,7 +325,9 @@ end
 
 
 # TODO: Taal dimension agnostic
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms, equations,
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               mesh::TreeMesh,
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
   @unpack element_ids_dg, element_ids_dgfv = cache
@@ -354,7 +359,9 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_te
 end
 
 # TODO: Taal dimension agnostic
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms, equations,
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               mesh::TreeMesh,
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
   @unpack volume_flux_fv = volume_integral
@@ -545,7 +552,8 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
   return nothing
  end
 
-function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
+function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, mesh::TreeMesh,
+                             equations, dg::DG)
   @unpack interfaces = cache
   @unpack orientations = interfaces
 
@@ -572,6 +580,7 @@ function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG
 end
 
 function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                              mesh::TreeMesh,
                               nonconservative_terms::Val{false}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
@@ -605,6 +614,7 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
 end
 
 function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                              mesh::TreeMesh,
                               nonconservative_terms::Val{true}, equations,
                               dg::DG, cache)
   @unpack u, neighbor_ids, orientations = cache.interfaces

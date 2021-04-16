@@ -38,7 +38,8 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh, have_nonconservative_terms(equations), equations,
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh,
+                                                                have_nonconservative_terms(equations), equations,
                                                                 dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
@@ -71,7 +72,8 @@ end
 
 
 # compute volume contribution of the DG approximation with the divergence of the contravariant fluxes
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::UnstructuredQuadMesh,
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               mesh::UnstructuredQuadMesh,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -161,7 +163,8 @@ end
 
 
 # compute the numerical flux interface coupling between two elements on an unstructured quadrilateral mesh
-function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4}, mesh::UnstructuredQuadMesh,
+function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                              mesh::UnstructuredQuadMesh,
                               nonconservative_terms::Val{false}, equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -185,6 +188,12 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4}, mesh:
       # pull the primary and secondary states from the boundary u values
       u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, interface)
       u_rr = get_one_sided_surface_node_vars(u, equations, dg, 2, secondary_index, interface)
+
+      # TODO: Meshes, performance. The rotation shouldn't be hard-coded here
+      #       since it's not generally applicable to all equations. Thus, it
+      #       should be moved to the numerical flux, cf. `CurvedMesh`.
+      #       This will make this part strictly more general and allow additional
+      #       performance optimizations.
 
       # pull the directional vectors and scaling factors
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals

@@ -618,6 +618,21 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux(u, normal::AbstractVector, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+
+  v_normal = v1 * normal[1] + v2 * normal[2]
+  rho_v_normal = rho * v_normal
+  f1 = rho_v_normal
+  f2 = rho_v_normal * v1 + p * normal[1]
+  f3 = rho_v_normal * v2 + p * normal[2]
+  f4 = (rho_e + p) * v_normal
+  return SVector(f1, f2, f3, f4)
+end
+
 
 """
     function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
