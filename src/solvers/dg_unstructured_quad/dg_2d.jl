@@ -8,7 +8,7 @@ function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
   nvars = nvariables(equations)
 
   if polydeg_ > mesh.polydeg
-    error("polynomial degree of DG must be less than or equal to mesh polynomial degree")
+    throw(ArgumentError("polynomial degree of DG (= $polydeg_) must be less than or equal to mesh polynomial degree (= $(mesh.polydeg))"))
   end
 
   elements = init_elements(RealT, uEltype, mesh, dg.basis.nodes, nvars, polydeg_)
