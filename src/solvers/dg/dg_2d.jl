@@ -407,6 +407,8 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
   du_ec  .= zero(eltype(du_ec))
   du_cen .= zero(eltype(du_cen))
 
+  c = 1.0e-12
+
   @threaded for element in eachelement(dg, cache)
     # compute volume integral with flux, and for comparison with central flux
     split_form_kernel!(du_ec,  u, nonconservative_terms, equations, volume_flux, dg, cache, element)
@@ -420,18 +422,27 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
       w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, element), equations)
       delta_entropy += weights[i] * weights[j] * dot(w_node, du_ec_node - du_cen_node)
     end
-    if delta_entropy < 0
-      for j in eachnode(dg), i in eachnode(dg)
-        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
-        add_to_node_vars!(du, du_cen_node, equations, dg, i, j, element)
-      end
-    else
-      for j in eachnode(dg), i in eachnode(dg)
-        du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
-        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
-        add_to_node_vars!(du, 2*du_ec_node-du_cen_node, equations, dg, i, j, element)
-      end
+    b = - delta_entropy
+    hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+    δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+    #δ = (hyp - b) / 2hyp # just use the more dissipative flux
+    for j in eachnode(dg), i in eachnode(dg)
+      du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+      du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
+      add_to_node_vars!(du, du_cen_node + δ * (du_ec_node - du_cen_node) , equations, dg, i, j, element)
     end
+    #if delta_entropy < 0
+    #  for j in eachnode(dg), i in eachnode(dg)
+    #    du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+    #    add_to_node_vars!(du, du_cen_node, equations, dg, i, j, element)
+    #  end
+    #else
+    #  for j in eachnode(dg), i in eachnode(dg)
+    #    du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
+    #    du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+    #    add_to_node_vars!(du, 2*du_ec_node-du_cen_node, equations, dg, i, j, element)
+    #  end
+    #end
   end
 end
 
@@ -492,7 +503,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
     w = w_threaded[Threads.threadid()]
     fluxes_a = fluxes_a_threaded[Threads.threadid()]
     fluxes_b = fluxes_b_threaded[Threads.threadid()]
-    c = 1.0e-7
+    c = 1.0e-12
 
     # compute entropy variables
     for j in eachnode(dg), i in eachnode(dg)
