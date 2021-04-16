@@ -73,6 +73,30 @@ end
 
 
 """
+    boundary_condition_gauss(u_inner, orientation, direction, x, t,
+                             surface_flux_function,
+                             equation::LinearScalarAdvectionEquation3D)
+
+Boundary conditions for
+[`initial_condition_gauss`](@ref).
+"""
+function boundary_condition_gauss(u_inner, orientation, direction, x, t,
+                                  surface_flux_function,
+                                  equation::LinearScalarAdvectionEquation3D)
+  u_boundary = initial_condition_gauss(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+"""
     initial_condition_sin(x, t, equations::LinearScalarAdvectionEquation1D)
 
 A sine wave in the conserved variable.

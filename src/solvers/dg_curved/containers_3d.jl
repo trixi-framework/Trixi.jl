@@ -155,9 +155,12 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{3}, 
       left_neighbors[1, element] = linear_indices[cell_x - 1, cell_y, cell_z]
     end
 
-    # Periodic boundary
-    left_neighbors[1, linear_indices[1, cell_y, cell_z]] = linear_indices[end, cell_y, cell_z]
-
+    if isperiodic(mesh, 1)
+      # Periodic boundary
+      left_neighbors[1, linear_indices[1, cell_y, cell_z]] = linear_indices[end, cell_y, cell_z]
+    else
+      left_neighbors[1, linear_indices[1, cell_y, cell_z]] = 0
+    end
   end
 
   # Neighbors in y-direction
@@ -168,8 +171,12 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{3}, 
       left_neighbors[2, element] = linear_indices[cell_x, cell_y - 1, cell_z]
     end
 
-    # Periodic boundary
-    left_neighbors[2, linear_indices[cell_x, 1, cell_z]] = linear_indices[cell_x, end, cell_z]
+    if isperiodic(mesh, 2)
+      # Periodic boundary
+      left_neighbors[2, linear_indices[cell_x, 1, cell_z]] = linear_indices[cell_x, end, cell_z]
+    else
+      left_neighbors[2, linear_indices[cell_x, 1, cell_z]] = 0
+    end
   end
 
   # Neighbors in z-direction
@@ -180,10 +187,13 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{3}, 
       left_neighbors[3, element] = linear_indices[cell_x, cell_y, cell_z - 1]
     end
 
-    # Periodic boundary
-    left_neighbors[3, linear_indices[cell_x, cell_y, 1]] = linear_indices[cell_x, cell_y, end]
+    if isperiodic(mesh, 3)
+      # Periodic boundary
+      left_neighbors[3, linear_indices[cell_x, cell_y, 1]] = linear_indices[cell_x, cell_y, end]
+    else
+      left_neighbors[3, linear_indices[cell_x, cell_y, 1]] = 0
+    end
   end
-
 
   return left_neighbors
 end
