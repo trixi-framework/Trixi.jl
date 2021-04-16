@@ -16,16 +16,16 @@ end
 end
 
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
-                                          boundary_condition::BoundaryConditionPeriodic, equations, mesh::CurvedMesh, 
-                                          dg::DG, cache, direction, node_indices, surface_node_indices, element)
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
+                                                  boundary_condition::BoundaryConditionPeriodic, equations, mesh::CurvedMesh, 
+                                                  dg::DG, cache, direction, node_indices, surface_node_indices, element)
   @assert isperiodic(mesh, orientation)
 end
 
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
-                                          boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
-                                          direction, node_indices, surface_node_indices, element)
+                                                  boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
+                                                  direction, node_indices, surface_node_indices, element)
   @unpack node_coordinates, contravariant_vectors = cache.elements
   @unpack surface_flux = dg
 
