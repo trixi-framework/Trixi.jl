@@ -10,7 +10,7 @@
 struct CurvedSurface{RealT<:Real}
   nodes               ::Vector{RealT}
   barycentric_weights ::Vector{RealT}
-  coordinates         ::Array{RealT, 2} #[ndims, nnodes]
+  coordinates         ::Array{RealT, 2} #[nnodes, ndims]
 end
 
 
@@ -19,9 +19,9 @@ function evaluate_at(s, boundary_curve::CurvedSurface)
 
    @unpack nodes, barycentric_weights, coordinates = boundary_curve
 
-   x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, 1, :),
+   x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, :, 1),
                                                                 barycentric_weights)
-   y_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, 2, :),
+   y_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, :, 2),
                                                                 barycentric_weights)
 
    return x_coordinate_at_s_on_boundary_curve, y_coordinate_at_s_on_boundary_curve
@@ -35,10 +35,10 @@ function derivative_at(s, boundary_curve::CurvedSurface)
    @unpack nodes, barycentric_weights, coordinates = boundary_curve
 
    x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
-                                                                                 view(coordinates, 1, :),
+                                                                                 view(coordinates, :, 1),
                                                                                  barycentric_weights)
    y_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
-                                                                                 view(coordinates, 2, :),
+                                                                                 view(coordinates, :, 2),
                                                                                  barycentric_weights)
    return x_coordinate_at_s_on_boundary_curve_prime, y_coordinate_at_s_on_boundary_curve_prime
 end

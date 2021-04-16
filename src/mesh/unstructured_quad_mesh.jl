@@ -53,7 +53,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
   curved_check      = Vector{Int}(undef, 4)
   cornerNodeVals    = Array{RealT}(undef, (4, 2))
   tempNodes         = Array{RealT}(undef, (4, 2))
-  curve_vals        = Array{RealT}(undef, (2, mesh_nnodes))
+  curve_vals        = Array{RealT}(undef, (mesh_nnodes, 2))
   element_is_curved = Array{Bool}(undef, n_elements)
   CurvedSurfaceT    = CurvedSurface{RealT}
   surface_curves    = Array{CurvedSurfaceT}(undef, (4, n_elements))
@@ -177,9 +177,9 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
           # when curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
           # straight line. So we must construct the interpolant for this line
           for k in 1:mesh_nnodes
-            curve_vals[1, k] = tempNodes[m1, 1] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 1]
+            curve_vals[k, 1] = tempNodes[m1, 1] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 1]
                                                                                  - tempNodes[m1, 1])
-            curve_vals[2, k] = tempNodes[m1, 2] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 2]
+            curve_vals[k, 2] = tempNodes[m1, 2] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 2]
                                                                                  - tempNodes[m1, 2])
           end
         else
@@ -188,8 +188,8 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
           for k in 1:mesh_nnodes
             file_idx      += 1
             current_line   = split(file_lines[file_idx])
-            curve_vals[1, k] = parse(RealT,current_line[1])
-            curve_vals[2, k] = parse(RealT,current_line[2])
+            curve_vals[k, 1] = parse(RealT,current_line[1])
+            curve_vals[k, 2] = parse(RealT,current_line[2])
           end
         end
         # construct the curve interpolant for the current side
