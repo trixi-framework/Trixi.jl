@@ -7,8 +7,15 @@ const SUITE = BenchmarkGroup()
 let dimension = "2d"
   SUITE[dimension] = BenchmarkGroup()
   EXAMPLES_DIR = joinpath(examples_dir(), dimension)
-  for elixir in ["elixir_advection_extended.jl", "elixir_advection_amr_nonperiodic.jl",
-                  "elixir_euler_ec.jl", "elixir_euler_vortex_mortar.jl", "elixir_euler_vortex_mortar_shockcapturing.jl"]
+  for elixir in ["elixir_advection_extended.jl",
+                 "elixir_advection_extended_curved.jl",
+                 "elixir_advection_amr_nonperiodic.jl",
+                 "elixir_advection_nonperiodic_curved.jl",
+                 "elixir_euler_ec.jl",
+                 "elixir_euler_nonperiodic_curved.jl",
+                 "elixir_euler_unstructured_quad.jl",
+                 "elixir_euler_vortex_mortar.jl",
+                 "elixir_euler_vortex_mortar_shockcapturing.jl"]
     SUITE[dimension][elixir] = BenchmarkGroup()
     for polydeg in [3, 7]
       trixi_include(joinpath(EXAMPLES_DIR, elixir), tspan=(0.0, 1.0e-10); polydeg)
@@ -23,7 +30,11 @@ let dimension = "3d"
   SUITE[dimension] = BenchmarkGroup()
   EXAMPLES_DIR = joinpath(examples_dir(), dimension)
   for elixir in ["elixir_advection_extended.jl",
-                 "elixir_euler_ec.jl", "elixir_euler_mortar.jl"]
+                 "elixir_advection_nonperiodic_curved.jl",
+                 "elixir_euler_ec.jl",
+                 "elixir_euler_nonperiodic_curved.jl",
+                 "elixir_euler_mortar.jl",
+                 "elixir_euler_shockcapturing.jl"]
     SUITE[dimension][elixir] = BenchmarkGroup()
     for polydeg in [3, 7]
       trixi_include(joinpath(EXAMPLES_DIR, elixir), tspan=(0.0, 1.0e-10); polydeg)
