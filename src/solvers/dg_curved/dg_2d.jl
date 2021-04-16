@@ -40,9 +40,9 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, 
       flux1 = flux(u_node, 1, equations)
       flux2 = flux(u_node, 2, equations)
 
-      # Compute the contravariant flux by taking the scalar product of the 
+      # Compute the contravariant flux by taking the scalar product of the
       # first contravariant vector Ja^1 and the flux vector
-      contravariant_flux1 = (contravariant_vectors[1, 1, i, j, element] * flux1 + 
+      contravariant_flux1 = (contravariant_vectors[1, 1, i, j, element] * flux1 +
                              contravariant_vectors[1, 2, i, j, element] * flux2)
 
       for ii in eachnode(dg)
@@ -50,9 +50,9 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, 
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
-      # Compute the contravariant flux by taking the scalar product of the 
+      # Compute the contravariant flux by taking the scalar product of the
       # second contravariant vector Ja^2 and the flux vector
-      contravariant_flux2 = (contravariant_vectors[2, 1, i, j, element] * flux1 + 
+      contravariant_flux2 = (contravariant_vectors[2, 1, i, j, element] * flux1 +
                              contravariant_vectors[2, 2, i, j, element] * flux2)
 
       for jj in eachnode(dg)
@@ -78,7 +78,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::CurvedMesh{2},
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
                          element, 1, u, equations, dg, cache)
-    
+
     # Interfaces in y-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
@@ -89,7 +89,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::CurvedMesh{2},
 end
 
 
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, 
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u, equations, dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
   if left_element <= 0 # left_element = 0 at boundaries
@@ -138,8 +138,8 @@ end
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
                              equations, mesh::CurvedMesh{2}, dg::DG)
-  calc_boundary_flux!(cache, u, t, 
-                      (boundary_condition, boundary_condition, 
+  calc_boundary_flux!(cache, u, t,
+                      (boundary_condition, boundary_condition,
                        boundary_condition, boundary_condition),
                       equations, mesh, dg)
 end
@@ -150,7 +150,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
   @unpack surface_flux = dg
   @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
-  
+
   for cell_y in axes(mesh, 2)
     # Negative x-direction
     direction = 1
@@ -197,7 +197,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::CurvedMesh, equations, dg::DG, cache)
+function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::Union{CurvedMesh, UnstructuredQuadMesh}, equations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 
   @threaded for element in eachelement(dg, cache)
