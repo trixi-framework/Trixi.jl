@@ -15,6 +15,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       linf = [0.00016152468882624227])
   end
 
+  @testset "elixir_burgers_basic.jl with flux_godunov" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_basic.jl"),
+      surface_flux = flux_godunov,
+      l2   = [2.967494855204592e-5],
+      linf = [0.0001615256989919711])
+  end
+
   @testset "elixir_burgers_linear_stability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_linear_stability.jl"),
       l2   = [0.5660569881106876],
