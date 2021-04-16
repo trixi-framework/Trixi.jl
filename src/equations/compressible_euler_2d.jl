@@ -872,13 +872,14 @@ end
   c = normal[1]
   s = normal[2]
 
-  # Clockwise rotation by α
-  # Multiply with [ 1     0       0     0;
-  #                 0   cos(α)  sin(α)  0;
-  #                 0  -sin(α)  cos(α)  0;
-  #                 0     0       0     1 ]
+  # Apply the 2D rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  n_2  0;
+  #   0   t_1  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
 
-  return SVector(u[1], 
+  return SVector(u[1],
                  c * u[2] + s * u[3],
                  -s * u[2] + c * u[3],
                  u[4])
@@ -891,13 +892,14 @@ end
   c = normal[1]
   s = normal[2]
 
-  # Counterclockwise rotation by α
-  # Multiply with [ 1    0       0      0;
-  #                 0  cos(α)  -sin(α)  0;
-  #                 0  sin(α)  cos(α)   0;
-  #                 0    0       0      1 ]
+  # Apply the 2D back-rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  t_1  0;
+  #   0   n_2  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
 
-  return SVector(u[1], 
+  return SVector(u[1],
                  c * u[2] - s * u[3],
                  s * u[2] + c * u[3],
                  u[4])
@@ -1053,18 +1055,18 @@ end
   # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
   # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
   @unpack gamma = equations
-  
+
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`
   V1, V2, V3, V5 = w * (gamma-1)
-  
-  # s = specific entropy, eq. (53)    
+
+  # s = specific entropy, eq. (53)
   s = gamma - V1 + (V2^2 + V3^2)/(2*V5)
 
   # eq. (52)
   rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
 
-  # eq. (51)  
+  # eq. (51)
   rho      = -rho_iota * V5
   rho_v1   =  rho_iota * V2
   rho_v2   =  rho_iota * V3

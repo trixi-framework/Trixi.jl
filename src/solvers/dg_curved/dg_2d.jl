@@ -197,7 +197,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::CurvedMesh, equations, dg::DG, cache)
+function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::Union{CurvedMesh, UnstructuredQuadMesh}, equations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 
   @threaded for element in eachelement(dg, cache)

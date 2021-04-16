@@ -27,6 +27,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Curved mesh
   include("test_examples_2d_curved.jl")
+
+  # Unstructured curved mesh
+  include("test_examples_2d_unstructured_quad.jl")
 end
 
 # Coverage test for all initial conditions

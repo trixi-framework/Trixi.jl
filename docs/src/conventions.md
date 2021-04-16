@@ -2,7 +2,7 @@
 
 ## Spatial dimensions and directions
 
-We use the following numbering schemes on Cartesian meshes.
+We use the following numbering schemes on Cartesian or curved structured meshes.
 - The `orientation`s are numbered as
   `1 => x, 2 => y, 3 => z`.
   For example, numerical fluxes such as
