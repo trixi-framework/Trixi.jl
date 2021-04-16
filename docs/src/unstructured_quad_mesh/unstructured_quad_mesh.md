@@ -7,7 +7,7 @@ with possibly curved boundaries.
 
 We use the following unstructured mesh with three elements for this discussion:
 
-![example-mesh](example_mesh.png)
+![example-mesh](https://user-images.githubusercontent.com/25242486/114917530-552eac00-9e26-11eb-9d79-baed4d4c4c66.png)
 
 Further, we provide a complete mesh file below in the format that could be read into Trixi.
 
@@ -15,7 +15,7 @@ Further, we provide a complete mesh file below in the format that could be read 
 ## Mesh file header
 
 The first line of the mesh file lists the total number of *corners*, *surfaces*, *elements*, and
-the *polynomial order* that the mesh will use to represent any curved sides. For the example mesh
+the *polynomial degree* that the mesh will use to represent any curved sides. For the example mesh
 these quantities are
 ```
     7    9    3    8
@@ -27,7 +27,7 @@ the particular application for which the curved, unstructured mesh is required.
 
 ## List of corner nodes
 
-After these global counts that prescribe information about the mesh skeleton the mesh file give a
+After these global counts that prescribe information about the mesh skeleton, the mesh file give a
 list of the physical `(x,y)` coordinates of all the corners. The corner nodes are listed in the
 order prescribed by mesh generator. Thus, for the example mesh this node list would be
 ```
@@ -39,6 +39,9 @@ order prescribed by mesh generator. Thus, for the example mesh this node list wo
  3.0    1.0
  3.0    -1.0
 ```
+The corner nodes are internally referenced by their position in the list above. For example, here
+the node at `(1.0, -1.0)` would have node id 1, node id 2 would be at `(3.0, 0.0)` etc.
+
 
 ## List of neighbor connectivity
 

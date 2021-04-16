@@ -1,5 +1,5 @@
 # """
-#     GammaCurve{RealT<:Real, NNODES}
+#     CurvedSurface{RealT<:Real, NNODES}
 #
 # Contains the data needed to represent a curve with data points (x,y) as a Lagrange polynomial
 # interpolant written in barycentric form at a given set of nodes.
@@ -7,32 +7,22 @@
 # !!! warning "Experimental code"
 #     This mesh type is experimental and can change any time.
 # """
-struct GammaCurve{RealT<:Real, NNODES}
-  nodes               ::SVector{NNODES, RealT}
-  barycentric_weights ::SVector{NNODES, RealT}
-  x                   ::SVector{NNODES, RealT}
-  y                   ::SVector{NNODES, RealT}
-end
-
-
-# construct a single instance of the gamma curve struct
-function GammaCurve(RealT, curve_polydeg, curve_x_vals, curve_y_vals)
-  nnodes_ = curve_polydeg + 1
-
-  nodes, _ = chebyshev_gauss_lobatto_nodes_weights(nnodes_)
-  wbary    = barycentric_weights(nodes)
-
-  return GammaCurve{RealT, nnodes_}(nodes, wbary, curve_x_vals, curve_y_vals)
+struct CurvedSurface{RealT<:Real, NNODES}
+  nodes               ::Vector{RealT}
+  barycentric_weights ::Vector{RealT}
+  coordinates         ::Array{RealT, 2}
 end
 
 
 # evalute the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
-function evaluate_at(s, boundary_curve::GammaCurve)
+function evaluate_at(s, boundary_curve::CurvedSurface)
 
-   @unpack nodes, barycentric_weights, x, y = boundary_curve
+   @unpack nodes, barycentric_weights, coordinates = boundary_curve
 
-   x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, x, barycentric_weights)
-   y_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, y, barycentric_weights)
+   x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, 1, :),
+                                                                barycentric_weights)
+   y_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, view(coordinates, 2, :),
+                                                                barycentric_weights)
 
    return x_coordinate_at_s_on_boundary_curve, y_coordinate_at_s_on_boundary_curve
 end
@@ -40,14 +30,16 @@ end
 
 # evalute the derivative of a Gamma curve interpolant at a particular point s
 # and return the (x,y) coordinate
-function derivative_at(s, boundary_curve::GammaCurve)
+function derivative_at(s, boundary_curve::CurvedSurface)
 
-   @unpack nodes, barycentric_weights, x, y = boundary_curve
+   @unpack nodes, barycentric_weights, coordinates = boundary_curve
 
-   x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes, x,
-                                                                                 barycentric_weights)
-   y_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes, y,
-                                                                                 barycentric_weights)
+   x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
+                                                                             view(coordinates, 1, :),
+                                                                             barycentric_weights)
+   y_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
+                                                                             view(coordinates, 2, :),
+                                                                             barycentric_weights)
    return x_coordinate_at_s_on_boundary_curve_prime, y_coordinate_at_s_on_boundary_curve_prime
 end
 

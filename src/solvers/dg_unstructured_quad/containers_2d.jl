@@ -46,7 +46,7 @@ end
 Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 
-@inline function get_surface_vec(vec, indices...)
+@inline function get_surface_normal(vec, indices...)
   # way to extract the normal vector at the surfaces without allocating
   surface_vector = SVector(ntuple(j -> vec[j, indices...], 2))
   return surface_vector
@@ -79,18 +79,18 @@ end
 
 
 # initialize all the values in the container of a general element (either straight sided or curved)
-function init_element!(elements, element, nodes, corners_or_gamma_curves)
+function init_element!(elements, element, nodes, corners_or_surface_curves)
 
-  calc_node_coordinates!(elements.node_coordinates, element, nodes, corners_or_gamma_curves)
+  calc_node_coordinates!(elements.node_coordinates, element, nodes, corners_or_surface_curves)
 
   calc_metric_terms!(elements.X_xi, elements.X_eta, elements.Y_xi, elements.Y_eta, element,
-                     nodes, corners_or_gamma_curves)
+                     nodes, corners_or_surface_curves)
 
   calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.X_xi, elements.X_eta,
                          elements.Y_xi, elements.Y_eta)
 
   calc_normals_and_scaling!(elements.normals, elements.scaling, element, nodes,
-                            corners_or_gamma_curves)
+                            corners_or_surface_curves)
 
   return elements
 end
@@ -100,7 +100,7 @@ end
 struct UnstructuredInterfaceContainer2D{uEltype<:Real, NVARS, POLYDEG}
   u                ::Array{uEltype, 4} # [primary/secondary, variables, i, interfaces]
   start_index      ::Vector{Int}       # [interfaces]
-  inc_index        ::Vector{Int}       # [interfaces]
+  index_increment  ::Vector{Int}       # [interfaces]
   element_ids      ::Array{Int, 2}     # [primary/secondary, interfaces]
   element_side_ids ::Array{Int, 2}     # [primary/secondary, interfaces]
 end
@@ -115,12 +115,12 @@ function UnstructuredInterfaceContainer2D{uEltype, NVARS, POLYDEG}(capacity::Int
 
   u                = fill(nan_uEltype, (2, NVARS, n_nodes, capacity))
   start_index      = fill(typemin(Int), capacity)
-  inc_index        = fill(typemin(Int), capacity)
+  index_increment  = fill(typemin(Int), capacity)
   element_ids      = fill(typemin(Int), (2, capacity))
   element_side_ids = fill(typemin(Int), (2, capacity))
 
-  return UnstructuredInterfaceContainer2D{uEltype, NVARS, POLYDEG}(u, start_index, inc_index,
-                                                                 element_ids, element_side_ids)
+  return UnstructuredInterfaceContainer2D{uEltype, NVARS, POLYDEG}(u, start_index, index_increment,
+                                                                   element_ids, element_side_ids)
 end
 
 
@@ -157,13 +157,13 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
       interfaces.element_side_ids[2,intr_count] = abs(edge_information[6,j]) # secondary side id
       # default the start and increment indexing
       interfaces.start_index[intr_count] = 1
-      interfaces.inc_index[intr_count]   = 1
+      interfaces.index_increment[intr_count] = 1
       if edge_information[6,j] < 0
       # coordinate system in the secondary element is "flipped" compared to the primary element.
       # Adjust the start and increment indexes such that the secondary element coordinate system
       # can match the primary neighbour when surface coupling is computed
         interfaces.start_index[intr_count] = polydeg + 1
-        interfaces.inc_index[intr_count]   = -1
+        interfaces.index_increment[intr_count] = -1
       end
       intr_count += 1
     end
@@ -188,13 +188,13 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
       interfaces.element_side_ids[2,j] = abs(edge_information[6,j]) # secondary side id
       # default the start and increment indexing
       interfaces.start_index[j] = 1
-      interfaces.inc_index[j]   = 1
+      interfaces.index_increment[j] = 1
       if edge_information[6,j] < 0
         # coordinate system in the secondary element is "flipped" compared to the primary element.
         # Adjust the start and increment indexes such that the secondary element coordinate system
         # can match the primary neighbour when surface coupling is computed
         interfaces.start_index[j] = polydeg + 1
-        interfaces.inc_index[j]   = -1
+        interfaces.index_increment[j] = -1
       end
     else
       # way to set periodic BCs where we are assuming to have a structured mesh with internal curves
@@ -222,7 +222,7 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
       # set the start and increment indexing
       #  Note! We assume that the periodic mesh has no flipped element coordinate systems
       interfaces.start_index[j] = 1
-      interfaces.inc_index[j]   = 1
+      interfaces.index_increment[j] = 1
     end
   end
 

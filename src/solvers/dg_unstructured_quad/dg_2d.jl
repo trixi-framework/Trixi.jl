@@ -7,7 +7,7 @@ function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
   polydeg_ = polydeg(dg.basis)
   nvars = nvariables(equations)
 
-  if polydeg_ > mesh.poly_deg
+  if polydeg_ > mesh.polydeg
     error("polynomial degree of DG must be less than or equal to mesh polynomial degree")
   end
 
@@ -164,7 +164,7 @@ end
 function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4}, mesh::UnstructuredQuadMesh,
                               nonconservative_terms::Val{false}, equations, dg::DG, cache)
   @unpack surface_flux = dg
-  @unpack u, start_index, inc_index, element_ids, element_side_ids = cache.interfaces
+  @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
   @unpack normals, scaling = cache.elements
 
 
@@ -189,9 +189,9 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4}, mesh:
       # pull the directional vectors and scaling factors
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         for hanging nodes and other non-conforming approximation spaces
-      normal_vector  = get_surface_vec(normals, primary_index, primary_side, primary_element)
-      scaling_ll     = scaling[primary_index, primary_side, primary_element]
-      scaling_rr     = scaling[secondary_index, secondary_side, secondary_element]
+      normal_vector = get_surface_normal(normals, primary_index, primary_side, primary_element)
+      scaling_ll    = scaling[primary_index, primary_side, primary_element]
+      scaling_rr    = scaling[secondary_index, secondary_side, secondary_element]
 
       # rotate states
       u_tilde_ll = rotate_to_x(u_ll, normal_vector, equations)
@@ -211,7 +211,7 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4}, mesh:
       end
 
       # increment the index of the coordinate system in the secondary element
-      secondary_index += inc_index[interface]
+      secondary_index += index_increment[interface]
     end
   end
 
@@ -285,7 +285,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, equations, mesh::Unst
       #         for hanging nodes and other non-conforming approximation spaces
       u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, boundary)
 
-      normal_vector  = get_surface_vec(normals, primary_index, primary_side, primary_element)
+      normal_vector  = get_surface_normal(normals, primary_index, primary_side, primary_element)
       scaling_ll  = scaling[primary_index, primary_side, primary_element]
 
       # rotate states

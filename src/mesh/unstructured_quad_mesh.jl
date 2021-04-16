@@ -1,5 +1,5 @@
 """
-    UnstructuredQuadMesh{RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: AbstractMesh{2}
+    UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
 
 An unstructured (possibly curved) quadrilateral mesh.
 
@@ -8,21 +8,21 @@ All mesh information, neighbour coupling, and boundary curve information is read
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-struct UnstructuredQuadMesh{RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: AbstractMesh{2}
+struct UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
   filename             ::String
   n_corners            ::Int
   n_surfaces           ::Int # total number of surfaces
   n_interfaces         ::Int # number of interior surfaces
   n_boundaries         ::Int # number of surfaces on the physical boundary
   n_elements           ::Int
-  poly_deg             ::Int
+  polydeg              ::Int
   corners              ::Array{RealT, 2}  # [ndims, n_corners]
   neighbour_information::Array{Int, 2}  # [neighbour node/element/edge ids, n_surfaces]
   boundary_names       ::Array{String, 2} # [local sides, n_elements]
   periodicity          ::Bool
   element_node_ids     ::Array{Int, 2} # [node ids, n_elements]
   element_is_curved    ::Vector{Bool}
-  surface_curves       ::Array{GammaCurveT, 2} # [local sides, n_elements]
+  surface_curves       ::Array{CurvedSurfaceT, 2} # [local sides, n_elements]
 end
 
 
@@ -35,13 +35,13 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
   file_lines = readlines(open(filename))
 
   # readin the number of nodes, number of interfaces, number of elements and local polynomial degree
-  current_line  = split(file_lines[1])
-  n_corners     = parse(Int, current_line[1])
-  n_surfaces    = parse(Int, current_line[2])
-  n_elements    = parse(Int, current_line[3])
-  mesh_poly_deg = parse(Int, current_line[4])
+  current_line = split(file_lines[1])
+  n_corners    = parse(Int, current_line[1])
+  n_surfaces   = parse(Int, current_line[2])
+  n_elements   = parse(Int, current_line[3])
+  mesh_polydeg = parse(Int, current_line[4])
 
-  mesh_nnodes = mesh_poly_deg + 1
+  mesh_nnodes = mesh_polydeg + 1
 
   # The types of structs used in the following depend on information read from
   # the mesh file. Thus, this cannot be type stable at all. Hence, we allocate
@@ -53,11 +53,10 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
   curved_check      = Vector{Int}(undef, 4)
   cornerNodeVals    = Array{RealT}(undef, (4, 2))
   tempNodes         = Array{RealT}(undef, (4, 2))
-  curve_vals        = Array{RealT}(undef, (mesh_nnodes, 2))
-  curve_vals_static = reinterpret(SVector{mesh_nnodes, RealT}, curve_vals)
+  curve_vals        = Array{RealT}(undef, (2, mesh_nnodes))
   element_is_curved = Array{Bool}(undef, n_elements)
-  GammaCurveT = GammaCurve{RealT, mesh_nnodes}
-  surface_curves    = Array{GammaCurveT}(undef, (4, n_elements))
+  CurvedSurfaceT    = CurvedSurface{RealT, mesh_nnodes}
+  surface_curves    = Array{CurvedSurfaceT}(undef, (4, n_elements))
   bndy_names        = Array{String}(undef, (4, n_elements))
 
   # create the Chebyshev-Gauss-Lobatto nodes used to represent any curved boundaries that are
@@ -67,12 +66,12 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
   cheby_nodes  = SVector{mesh_nnodes}(cheby_nodes_)
   bary_weights = SVector{mesh_nnodes}(bary_weights_)
 
-  arrays = (corner_nodes, interface_info, element_node_ids, curved_check,
-            cornerNodeVals, tempNodes, curve_vals, curve_vals_static,
-            element_is_curved, surface_curves, bndy_names)
-  counters = (n_corners, n_surfaces, n_elements)
+  arrays = (; corner_nodes, interface_info, element_node_ids, curved_check,
+              cornerNodeVals, tempNodes, curve_vals,
+              element_is_curved, surface_curves, bndy_names)
+  counters = (; n_corners, n_surfaces, n_elements)
 
-  n_boundaries = parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheby_nodes, bary_weights)
+  n_boundaries = parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
 
   # get the number of internal interfaces in the mesh
   if periodic
@@ -81,18 +80,18 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
     n_interfaces = n_surfaces - n_boundaries
   end
 
-  return UnstructuredQuadMesh{RealT, GammaCurveT}(
+  return UnstructuredQuadMesh{RealT, CurvedSurfaceT}(
     filename, n_corners, n_surfaces, n_interfaces, n_boundaries,
-    n_elements, mesh_poly_deg, corner_nodes,
+    n_elements, mesh_polydeg, corner_nodes,
     interface_info, bndy_names, periodic,
     element_node_ids, element_is_curved, surface_curves)
 end
 
-function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheby_nodes, bary_weights)
-  ( corner_nodes, interface_info, element_node_ids, curved_check,
-    cornerNodeVals, tempNodes, curve_vals, curve_vals_static,
-    element_is_curved, surface_curves, bndy_names ) = arrays
-  n_corners, n_surfaces, n_elements = counters
+function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
+  @unpack ( corner_nodes, interface_info, element_node_ids, curved_check,
+            cornerNodeVals, tempNodes, curve_vals,
+            element_is_curved, surface_curves, bndy_names ) = arrays
+  @unpack n_corners, n_surfaces, n_elements = counters
   mesh_nnodes = length(cheby_nodes)
 
   # counter to step through the mesh file line by line
@@ -178,9 +177,9 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
           # when curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
           # straight line. So we must construct the interpolant for this line
           for k in 1:mesh_nnodes
-            curve_vals[k, 1] = tempNodes[m1, 1] + 0.5 * (cheby_nodes[k] + 1.0) * (  tempNodes[m2, 1]
+            curve_vals[1, k] = tempNodes[m1, 1] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 1]
                                                                                  - tempNodes[m1, 1])
-            curve_vals[k, 2] = tempNodes[m1, 2] + 0.5 * (cheby_nodes[k] + 1.0) * (  tempNodes[m2, 2]
+            curve_vals[2, k] = tempNodes[m1, 2] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 2]
                                                                                  - tempNodes[m1, 2])
           end
         else
@@ -189,12 +188,12 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
           for k in 1:mesh_nnodes
             file_idx      += 1
             current_line   = split(file_lines[file_idx])
-            curve_vals[k, 1] = parse(RealT,current_line[1])
-            curve_vals[k, 2] = parse(RealT,current_line[2])
+            curve_vals[1, k] = parse(RealT,current_line[1])
+            curve_vals[2, k] = parse(RealT,current_line[2])
           end
         end
         # construct the curve interpolant for the current side
-        surface_curves[i, j] = GammaCurveT(cheby_nodes, bary_weights, curve_vals_static[1], curve_vals_static[2])
+        surface_curves[i, j] = CurvedSurfaceT(cheby_nodes, bary_weights, copy(curve_vals))
         # indexing update that contains a "flip" to ensure correct element orientation
         # if we need to construct the straight line "curves" when curved_check[i] == 0
         m1 += 1
@@ -224,20 +223,20 @@ isperiodic(mesh::UnstructuredQuadMesh) = mesh.periodicity
 Base.length(mesh::UnstructuredQuadMesh) = mesh.n_elements
 
 
-function Base.show(io::IO, ::UnstructuredQuadMesh{RealT, GammaCurveT}) where {RealT, GammaCurveT}
-  print(io, "UnstructuredQuadMesh{2, ", RealT, ", ", GammaCurveT, "}")
+function Base.show(io::IO, ::UnstructuredQuadMesh{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
+  print(io, "UnstructuredQuadMesh{2, ", RealT, ", ", CurvedSurfaceT, "}")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{RealT, GammaCurveT}) where {RealT, GammaCurveT}
+function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "UnstructuredQuadMesh{" * string(2) * ", " * string(RealT) * ", " * string(GammaCurveT) * "}")
+    summary_header(io, "UnstructuredQuadMesh{" * string(2) * ", " * string(RealT) * ", " * string(CurvedSurfaceT) * "}")
     summary_line(io, "mesh file", mesh.filename)
     summary_line(io, "number of elements", length(mesh))
     summary_line(io, "faces", mesh.n_surfaces)
-    summary_line(io, "mesh polynomial degree", mesh.poly_deg)
+    summary_line(io, "mesh polynomial degree", mesh.polydeg)
     summary_footer(io)
   end
 end

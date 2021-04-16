@@ -21,7 +21,7 @@ solver = DGSEM(polydeg, surface_flux)
 ###############################################################################
 # Get the curved quad mesh from a file
 
-mesh_file = joinpath(@__DIR__, "PeriodicXandY20.mesh")
+mesh_file = joinpath(@__DIR__, "mesh_euler_unstructured_quad_periodic.mesh")
 periodicity = true
 mesh = UnstructuredQuadMesh(mesh_file, periodicity)
 

@@ -8,5 +8,5 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, eleme
   return inverse_jacobian
 end
 
-include("curved_map_and_geom.jl")
-include("straight_map_and_geom.jl")
+include("mappings_geometry_curved_2d.jl")
+include("mappings_geometry_straight_2d.jl")

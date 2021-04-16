@@ -198,6 +198,6 @@ end
 
 include("parallel.jl")
 include("curved_mesh.jl")
-include("curve_interpolant.jl")
+include("surface_interpolant.jl")
 include("unstructured_quad_mesh.jl")
 include("mesh_io.jl")
