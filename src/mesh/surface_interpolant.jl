@@ -1,5 +1,5 @@
 # """
-#     CurvedSurface{RealT<:Real, NNODES}
+#     CurvedSurface{RealT<:Real}
 #
 # Contains the data needed to represent a curve with data points (x,y) as a Lagrange polynomial
 # interpolant written in barycentric form at a given set of nodes.
@@ -7,10 +7,10 @@
 # !!! warning "Experimental code"
 #     This mesh type is experimental and can change any time.
 # """
-struct CurvedSurface{RealT<:Real, NNODES}
+struct CurvedSurface{RealT<:Real}
   nodes               ::Vector{RealT}
   barycentric_weights ::Vector{RealT}
-  coordinates         ::Array{RealT, 2}
+  coordinates         ::Array{RealT, 2} #[ndims, nnodes]
 end
 
 
@@ -35,11 +35,11 @@ function derivative_at(s, boundary_curve::CurvedSurface)
    @unpack nodes, barycentric_weights, coordinates = boundary_curve
 
    x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
-                                                                             view(coordinates, 1, :),
-                                                                             barycentric_weights)
+                                                                                 view(coordinates, 1, :),
+                                                                                 barycentric_weights)
    y_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes,
-                                                                             view(coordinates, 2, :),
-                                                                             barycentric_weights)
+                                                                                 view(coordinates, 2, :),
+                                                                                 barycentric_weights)
    return x_coordinate_at_s_on_boundary_curve_prime, y_coordinate_at_s_on_boundary_curve_prime
 end
 

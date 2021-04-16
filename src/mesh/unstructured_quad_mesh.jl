@@ -55,7 +55,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
   tempNodes         = Array{RealT}(undef, (4, 2))
   curve_vals        = Array{RealT}(undef, (2, mesh_nnodes))
   element_is_curved = Array{Bool}(undef, n_elements)
-  CurvedSurfaceT    = CurvedSurface{RealT, mesh_nnodes}
+  CurvedSurfaceT    = CurvedSurface{RealT}
   surface_curves    = Array{CurvedSurfaceT}(undef, (4, n_elements))
   bndy_names        = Array{String}(undef, (4, n_elements))
 
