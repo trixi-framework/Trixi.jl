@@ -95,9 +95,9 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
   @testset "elixir_advection_restart_curved.jl with free stream mesh" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
       l2   = [6.639325026542281e-15],
-      linf = [6.350475700855895e-14],
+      linf = [1.829647544582258e-13],
       elixir_file="elixir_advection_free_stream_curved.jl",
-      restart_file="restart_000102.h5")
+      restart_file="restart_000068.h5")
   end
 
   @testset "elixir_euler_source_terms_curved.jl" begin
