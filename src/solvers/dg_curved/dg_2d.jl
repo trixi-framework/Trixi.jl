@@ -88,12 +88,12 @@ function calc_interface_flux!(cache, u::AbstractArray{<:Any,4},
     # Interfaces in x-direction (`orientation` = 1)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
-                         element, 1, u, equations, dg, cache)
+                         element, 1, u, mesh, equations, dg, cache)
 
     # Interfaces in y-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
-                         element, 2, u, equations, dg, cache)
+                         element, 2, u, mesh, equations, dg, cache)
   end
 
   return nothing
@@ -101,7 +101,9 @@ end
 
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
-                                      orientation, u, equations, dg::DG, cache)
+                                      orientation, u,
+                                      mesh::CurvedMesh{2}, equations,
+                                      dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
   if left_element <= 0 # left_element = 0 at boundaries
     return nothing

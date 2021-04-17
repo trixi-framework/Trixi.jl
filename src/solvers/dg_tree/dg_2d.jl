@@ -562,8 +562,8 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
   return nothing
  end
 
-function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, mesh::TreeMesh,
-                             equations, dg::DG)
+function prolong2interfaces!(cache, u::AbstractArray{<:Any,4},
+                             mesh::TreeMesh, equations, dg::DG)
   @unpack interfaces = cache
   @unpack orientations = interfaces
 
@@ -796,7 +796,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
 end
 
 
-function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, mesh::TreeMesh, equations,
+function prolong2mortars!(cache, u::AbstractArray{<:Any,4},
+                          mesh::TreeMesh, equations,
                           mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
 
   @threaded for mortar in eachmortar(dg, cache)
