@@ -176,7 +176,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition,
   calc_boundary_flux!(cache, u, t,
                       (boundary_condition, boundary_condition, boundary_condition,
                        boundary_condition, boundary_condition, boundary_condition),
-                       mesh, equations, dg)
+                      mesh, equations, dg)
 end
 
 

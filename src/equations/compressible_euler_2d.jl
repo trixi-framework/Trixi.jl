@@ -859,7 +859,6 @@ end
 end
 
 
-
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
