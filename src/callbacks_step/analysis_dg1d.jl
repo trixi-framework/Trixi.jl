@@ -4,10 +4,10 @@ function create_cache_analysis(analyzer, mesh::TreeMesh,
                                RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer))
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)))
 
   return (; u_local, x_local)
 end
@@ -16,12 +16,12 @@ end
 function create_cache_analysis(analyzer, mesh::CurvedMesh, equations::AbstractEquations{1},
                                dg::DG, cache, RealT, uEltype)
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer))
-  jacobian_local = zeros(RealT,
-                         nnodes(analyzer))
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)))
+  jacobian_local = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)))
   return (; u_local, x_local, jacobian_local)
 end
 

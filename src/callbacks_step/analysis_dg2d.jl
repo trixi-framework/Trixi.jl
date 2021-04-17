@@ -21,18 +21,18 @@ function create_cache_analysis(analyzer, mesh::Union{CurvedMesh{2}, Unstructured
                                equations::AbstractEquations{2}, dg::DG, cache,
                                RealT, uEltype)
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer), nnodes(analyzer))
-  u_tmp1 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(dg))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer), nnodes(analyzer))
-  x_tmp1 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(dg))
-  jacobian_local = zeros(RealT,
-                         nnodes(analyzer), nnodes(analyzer))
-  jacobian_tmp1 = similar(jacobian_local,
-                          nnodes(analyzer), nnodes(dg))
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  u_tmp1  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  x_tmp1  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  jacobian_local = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  jacobian_tmp1  = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
 
   return (; u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1)
 end
