@@ -1058,7 +1058,7 @@ end
 
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`
-  V1, V2, V3, V5 = w * (gamma-1)
+  V1, V2, V3, V5 = w .* (gamma-1)
 
   # s = specific entropy, eq. (53)
   s = gamma - V1 + (V2^2 + V3^2)/(2*V5)
