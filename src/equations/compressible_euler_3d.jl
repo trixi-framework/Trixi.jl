@@ -467,6 +467,23 @@ end
   return SVector(f1, f2, f3, f4, f5)
 end
 
+@inline function flux(u, normal::AbstractVector, equations::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  v3 = rho_v3/rho
+  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+
+  v_normal = v1 * normal[1] + v2 * normal[2] + v3 * normal[3]
+  rho_v_normal = rho * v_normal
+  f1 = rho_v_normal
+  f2 = rho_v_normal * v1 + p * normal[1]
+  f3 = rho_v_normal * v2 + p * normal[2]
+  f4 = rho_v_normal * v3 + p * normal[3]
+  f5 = (rho_e + p) * v_normal
+  return SVector(f1, f2, f3, f4, f5)
+end
+
 
 """
     function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
@@ -773,7 +790,7 @@ end
   #                 0   ―   tangent1   ―   0;
   #                 0   ―   tangent2   ―   0;
   #                 0   0      0       0   1 ]
-  return SVector(u[1], 
+  return SVector(u[1],
                  normal[1]   * u[2] + normal[2]   * u[3] + normal[3]   * u[4],
                  tangent1[1] * u[2] + tangent1[2] * u[3] + tangent1[3] * u[4],
                  tangent2[1] * u[2] + tangent2[2] * u[3] + tangent2[3] * u[4],
@@ -788,7 +805,7 @@ end
   #                 0  normal tangent1 tangent2  0;
   #                 0    |       |        |      0;
   #                 0    0       0        0      1 ]
-  return SVector(u[1], 
+  return SVector(u[1],
                  normal[1] * u[2] + tangent1[1] * u[3] + tangent2[1] * u[4],
                  normal[2] * u[2] + tangent1[2] * u[3] + tangent2[2] * u[4],
                  normal[3] * u[2] + tangent1[3] * u[3] + tangent2[3] * u[4],
@@ -974,20 +991,20 @@ end
 
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`
-  V1,V2,V3,V4,V5 = w * (gamma-1) 
+  V1,V2,V3,V4,V5 = w * (gamma-1)
 
-  # s = specific entropy, eq. (53)      
+  # s = specific entropy, eq. (53)
   V_square    = V2^2 + V3^2 + V4^2
   s = gamma - V1 + V_square/(2*V5)
 
-  # eq. (52)  
+  # eq. (52)
   rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
 
-  # eq. (51)    
+  # eq. (51)
   rho     = -rho_iota * V5
   rho_v1  =  rho_iota * V2
   rho_v2  =  rho_iota * V3
-  rho_v3  =  rho_iota * V4  
+  rho_v3  =  rho_iota * V4
   rho_e   =  rho_iota*(1-V_square/(2*V5))
   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
