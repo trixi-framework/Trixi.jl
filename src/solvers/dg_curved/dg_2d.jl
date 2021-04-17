@@ -6,24 +6,30 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh,
-                                                                have_nonconservative_terms(equations), equations,
-                                                                dg.volume_integral, dg, cache)
+  @timeit_debug timer() "volume integral" calc_volume_integral!(
+    du, u, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
+  @timeit_debug timer() "interface flux" calc_interface_flux!(
+    cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, u, t, boundary_conditions, equations, mesh, dg)
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(
+    cache, u, t, boundary_conditions, mesh, equations, dg)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
+  @timeit_debug timer() "surface integral" calc_surface_integral!(
+    du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @timeit_debug timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+  @timeit_debug timer() "Jacobian" apply_jacobian!(
+    du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
+  @timeit_debug timer() "source terms" calc_sources!(
+    du, u, t, source_terms, equations, dg, cache)
 
   return nothing
 end
@@ -70,8 +76,9 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::CurvedMesh{2},
-                              equations, dg::DG, cache)
+function calc_interface_flux!(cache, u::AbstractArray{<:Any,4},
+                              mesh::CurvedMesh{2},
+                              equations, dg::DG)
   @unpack elements = cache
 
   @threaded for element in eachelement(dg, cache)
@@ -135,22 +142,22 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             equations, mesh::CurvedMesh{2}, dg::DG)
+                             mesh::CurvedMesh{2}, equations, dg::DG)
   @assert isperiodic(mesh)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             equations, mesh::CurvedMesh{2}, dg::DG)
+                             mesh::CurvedMesh{2}, equations, dg::DG)
   calc_boundary_flux!(cache, u, t,
                       (boundary_condition, boundary_condition,
                        boundary_condition, boundary_condition),
-                      equations, mesh, dg)
+                      mesh, equations, dg)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             equations, mesh::CurvedMesh{2}, dg::DG)
+                             mesh::CurvedMesh{2}, equations, dg::DG)
   @unpack surface_flux = dg
   @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
@@ -162,7 +169,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 
     for j in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
-                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       boundary_conditions[direction],
+                                       mesh, equations, dg, cache,
                                        direction, (1, j), (j,), element)
     end
 
@@ -172,7 +180,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 
     for j in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
-                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       boundary_conditions[direction],
+                                       mesh, equations, dg, cache,
                                        direction, (nnodes(dg), j), (j,), element)
     end
   end
@@ -184,7 +193,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 
     for i in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
-                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       boundary_conditions[direction],
+                                       mesh, equations, dg, cache,
                                        direction, (i, 1), (i,), element)
     end
 
@@ -194,14 +204,17 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 
     for i in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
-                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       boundary_conditions[direction],
+                                       mesh, equations, dg, cache,
                                        direction, (i, nnodes(dg)), (i,), element)
     end
   end
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::Union{CurvedMesh, UnstructuredQuadMesh}, equations, dg::DG, cache)
+function apply_jacobian!(du::AbstractArray{<:Any,4},
+                         mesh::Union{CurvedMesh, UnstructuredQuadMesh},
+                         equations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 
   @threaded for element in eachelement(dg, cache)

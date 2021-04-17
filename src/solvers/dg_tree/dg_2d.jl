@@ -120,40 +120,50 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh,
-                                                                have_nonconservative_terms(equations), equations,
-                                                                dg.volume_integral, dg, cache)
+  @timeit_debug timer() "volume integral" calc_volume_integral!(
+    du, u, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh, equations, dg)
+  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                                                              have_nonconservative_terms(equations), equations,
-                                                              dg, cache)
+  @timeit_debug timer() "interface flux" calc_interface_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg, cache)
 
   # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
+  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(
+    cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg)
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg)
 
   # Prolong solution to mortars
-  @timeit_debug timer() "prolong2mortars" prolong2mortars!(cache, u, equations, dg.mortar, dg)
+  @timeit_debug timer() "prolong2mortars" prolong2mortars!(
+    cache, u, mesh, equations, dg.mortar, dg)
 
   # Calculate mortar fluxes
-  @timeit_debug timer() "mortar flux" calc_mortar_flux!(cache.elements.surface_flux_values,
-                                                        have_nonconservative_terms(equations), equations,
-                                                        dg.mortar, dg, cache)
+  @timeit_debug timer() "mortar flux" calc_mortar_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.mortar, dg, cache)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
+  @timeit_debug timer() "surface integral" calc_surface_integral!(
+    du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @timeit_debug timer() "Jacobian" apply_jacobian!(du, equations, dg, cache)
+  @timeit_debug timer() "Jacobian" apply_jacobian!(
+    du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
+  @timeit_debug timer() "source terms" calc_sources!(
+    du, u, t, source_terms, equations, dg, cache)
 
   return nothing
 end
@@ -670,7 +680,8 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
 end
 
 
-function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
+function prolong2boundaries!(cache, u::AbstractArray{<:Any,4},
+                             mesh::TreeMesh, equations, dg::DG)
   @unpack boundaries = cache
   @unpack orientations, neighbor_sides = boundaries
 
@@ -710,13 +721,13 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             equations::AbstractEquations{2}, dg::DG)
+                             mesh::TreeMesh, equations::AbstractEquations{2}, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition,
-                             equations::AbstractEquations{2}, dg::DG)
+                             mesh::TreeMesh, equations::AbstractEquations{2}, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -733,7 +744,7 @@ function calc_boundary_flux!(cache, t, boundary_condition,
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             equations::AbstractEquations{2}, dg::DG)
+                             mesh::TreeMesh, equations::AbstractEquations{2}, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -785,7 +796,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
 end
 
 
-function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, equations,
+function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, mesh::TreeMesh, equations,
                           mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
 
   @threaded for mortar in eachmortar(dg, cache)
@@ -871,6 +882,7 @@ end
 
 
 function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                           mesh::TreeMesh,
                            nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = cache.mortars
@@ -894,6 +906,7 @@ function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,4},
 end
 
 function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                           mesh::TreeMesh,
                            nonconservative_terms::Val{true}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations, large_sides = cache.mortars
@@ -1040,7 +1053,8 @@ end
 end
 
 
-function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
+function calc_surface_integral!(du::AbstractArray{<:Any,4}, mesh,
+                                equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
@@ -1063,7 +1077,8 @@ function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,4}, equations, dg::DG, cache)
+function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::TreeMesh,
+                         equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
@@ -1080,11 +1095,13 @@ end
 
 
 # TODO: Taal dimension agnostic
-function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms::Nothing, equations, dg::DG, cache)
+function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms::Nothing,
+                       equations, dg::DG, cache)
   return nothing
 end
 
-function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, equations, dg::DG, cache)
+function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms,
+                       equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
