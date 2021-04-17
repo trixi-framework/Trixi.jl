@@ -9,6 +9,7 @@ using RecursiveArrayTools
 using Setfield
 using BenchmarkTools
 using TimerOutputs
+using Octavian
 
 using NodesAndModes
 using StartUpDG
@@ -27,7 +28,7 @@ elem_type = Quad() # currently assumes Quad()
 vol_quad = NodesAndModes.quad_nodes(elem_type,2*N-1)
 rd = RefElemData(elem_type,N; quad_rule_vol = vol_quad)
 # rd = RefElemData(elem_type,N)
-rd = @set rd.Vf = droptol!(sparse(rd.Vf),1e-12) # make sparse interp matrix
+# rd = @set rd.Vf = droptol!(sparse(rd.Vf),1e-12) # make sparse interp matrix
 
 VX,VY,EToV = uniform_mesh(elem_type,K1D)
 md = MeshData(VX,VY,EToV,rd)
@@ -104,14 +105,14 @@ function build_invMQT(rd)
     return invMQTr,invMQTs
 end
 
-function build_invMQT(rd::RefElemData{2,Quad})
-    @unpack M,Dr,Ds = rd
-    Qr = M*Dr
-    Qs = M*Ds
-    invMQTr = droptol!(sparse(-M\Qr'),100*eps())
-    invMQTs = droptol!(sparse(-M\Qs'),100*eps())
-    return invMQTr,invMQTs
-end
+# function build_invMQT(rd::RefElemData{2,Quad})
+#     @unpack M,Dr,Ds = rd
+#     Qr = M*Dr
+#     Qs = M*Ds
+#     invMQTr = droptol!(sparse(-M\Qr'),100*eps())
+#     invMQTs = droptol!(sparse(-M\Qs'),100*eps())
+#     return invMQTr,invMQTs
+# end
 
 # specialize for quads
 function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd, RealT, uEltype)
@@ -182,19 +183,19 @@ function apply_DG_deriv!(dQ,fx,fy,fxf,fyf,diss,rd,cache)
     @unpack dfxdr,dfxds,dfydr,dfyds,lifted_flux,interface_flux = cache
     for i = 1:length(dQ)
         @. interface_flux = nxJ*fxf[i] + nyJ*fyf[i] - diss[i]*sJ
-        mul!(dfxdr,invMQTr,fx[i])
-        mul!(dfydr,invMQTr,fy[i])
-        mul!(dfxds,invMQTs,fx[i])
-        mul!(dfyds,invMQTs,fy[i])
-        mul!(lifted_flux,LIFT,interface_flux)
+        matmul!(dfxdr,invMQTr,fx[i])
+        matmul!(dfydr,invMQTr,fy[i])
+        matmul!(dfxds,invMQTs,fx[i])
+        matmul!(dfyds,invMQTs,fy[i])
+        matmul!(lifted_flux,LIFT,interface_flux)
         @. dQ[i] = -(rxJ.*dfxdr + sxJ.*dfxds + ryJ.*dfydr + syJ.*dfyds + lifted_flux)/J
 
         # # scale columns + accumulate into dQ[i]. Broken - why?
-        # mul!(dQ[i],LIFT,interface_flux) # dQ[i] = dQ[i]*0 + 1.0*LIFT*interface_flux
-        # mul!(dQ[i],dfxdr,rxJ_diag,1.0,1.0) 
-        # mul!(dQ[i],dfxds,sxJ_diag,1.0,1.0) 
-        # mul!(dQ[i],dfydr,ryJ_diag,1.0,1.0) 
-        # mul!(dQ[i],dfyds,syJ_diag,1.0,1.0) 
+        # matmul!(dQ[i],LIFT,interface_flux) # dQ[i] = dQ[i]*0 + 1.0*LIFT*interface_flux
+        # matmul!(dQ[i],dfxdr,rxJ_diag,1.0,1.0) 
+        # matmul!(dQ[i],dfxds,sxJ_diag,1.0,1.0) 
+        # matmul!(dQ[i],dfydr,ryJ_diag,1.0,1.0) 
+        # matmul!(dQ[i],dfyds,syJ_diag,1.0,1.0) 
         # dQ[i] .= -dQ[i] * invJ_diag
     end
 end
@@ -204,14 +205,14 @@ function entropy_projection!(cache,Q,rd)
     @unpack VU,Uq,VUq = cache
     K = cache.md.K
     for i = 1:length(Q)
-        mul!(Uq[i],Vq,Q[i])
+        matmul!(Uq[i],Vq,Q[i])
     end
     Nq = length(first(VUq))
     Trixi.@threaded for i = 1:Nq
         setindex!.(VUq,v_u(getindex.(Uq,i)),i)
     end
     for i = 1:length(VU)
-        mul!(VU[i],Pq,VUq[i])
+        matmul!(VU[i],Pq,VUq[i])
     end
 end
 
@@ -219,8 +220,8 @@ function interp_entropy_vars!(cache,rd)
     @unpack Vf,Vq = rd
     @unpack VU,VUq,VUf = cache
     for i = 1:length(VU)
-        mul!(VUf[i],Vf,VU[i])
-        mul!(VUq[i],Vq,VU[i])
+        matmul!(VUf[i],Vf,VU[i])
+        matmul!(VUq[i],Vq,VU[i])
     end
 end
 
@@ -248,13 +249,13 @@ function project_flux(cache,Uq,rd)
     end
     @unpack fx,fy = cache
     for i = 1:length(fx)
-        mul!(fx[i],Pq,fxq[i])
-        mul!(fy[i],Pq,fyq[i])
+        matmul!(fx[i],Pq,fxq[i])
+        matmul!(fy[i],Pq,fyq[i])
     end        
     @unpack fxf,fyf = cache
     for i = 1:length(fx)
-        mul!(fxf[i],Vf,fx[i])
-        mul!(fyf[i],Vf,fy[i])
+        matmul!(fxf[i],Vf,fx[i])
+        matmul!(fyf[i],Vf,fy[i])
     end
 end
 
