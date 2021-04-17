@@ -255,7 +255,7 @@ Entropy conserving two-point flux adapted by
   divergence diminishing ideal magnetohydrodynamics equations for multicomponent
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations2D)
+function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -375,7 +375,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -557,7 +557,7 @@ end
   w4 = -1.0 / T
   w5 = B1 / T
   w6 = B2 / T
-  w7 = B3 / T 
+  w7 = B3 / T
   w8 = psi / T
 
   entrop_other = SVector{8, real(equations)}(w1, w2, w3, w4, w5, w6, w7, w8)
@@ -580,7 +580,7 @@ end
   gamma = totalgamma(prim, equations)
   rho_e = p/(gamma-1) + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
                                  0.5 * (B1^2 + B2^2 + B3^2) + 0.5 * psi^2
-        
+
   cons_other = SVector{8, real(equations)}(rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
 
   return vcat(cons_other, cons_rho)

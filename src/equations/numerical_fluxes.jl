@@ -2,16 +2,16 @@
 # This file contains general numerical fluxes that are not specific to certain equations
 
 """
-    flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
+    flux_central(u_ll, u_rr, orientation_or_normal, equations::AbstractEquations)
 
 The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
 used as volume flux, the discretization is equivalent to the classical weak form
 DG method (except floating point errors).
 """
-@inline function flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
+@inline function flux_central(u_ll, u_rr, orientation_or_normal, equations::AbstractEquations)
   # Calculate regular 1D fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation_or_normal, equations)
+  f_rr = flux(u_rr, orientation_or_normal, equations)
 
   # Average regular fluxes
   return 0.5 * (f_ll + f_rr)
@@ -126,8 +126,9 @@ Base.show(io::IO, d::DissipationGlobalLaxFriedrichs) = print(io, "DissipationGlo
     DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
 
 Create a local Lax-Friedrichs dissipation operator where the maximum absolute wave speed
-is estimated as `max_abs_speed(u_ll, u_rr, orientation, equations)`, defaulting to
-[`max_abs_speed_naive`](@ref).
+is estimated as
+`max_abs_speed(u_ll, u_rr, orientation_or_normal, equations)`,
+defaulting to [`max_abs_speed_naive`](@ref).
 """
 struct DissipationLocalLaxFriedrichs{MaxAbsSpeed}
   max_abs_speed::MaxAbsSpeed
@@ -180,7 +181,8 @@ const flux_lax_friedrichs = FluxLaxFriedrichs()
     FluxHLL(min_max_speed=min_max_speed_naive)
 
 Create an HLL (Harten, Lax, van Leer) numerical flux where the minimum and maximum
-wave speeds are estimated as `λ_min, λ_max = min_max_speed(u_ll, u_rr, orientation, equations)`,
+wave speeds are estimated as
+`λ_min, λ_max = min_max_speed(u_ll, u_rr, orientation_or_normal, equations)`,
 defaulting to [`min_max_speed_naive`](@ref).
 """
 struct FluxHLL{MinMaxSpeed}

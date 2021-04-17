@@ -239,11 +239,11 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# @inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
+# @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations3D)
 #   λ_max =
 # end
 
-@inline function flux_godunov(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations3D)
   if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
   elseif orientation == 2 # y-direction
@@ -271,7 +271,7 @@ Calculate the macroscopic density from the pressure `p` or the particle distribu
 Calculate the macroscopic velocity for the given `orientation` (1 -> x, 2 -> y, 3 -> z) from the
 particle distribution functions `u`.
 """
-@inline function velocity(u, orientation, equations::LatticeBoltzmannEquations3D)
+@inline function velocity(u, orientation::Integer, equations::LatticeBoltzmannEquations3D)
   if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
   elseif orientation == 2 # y-direction

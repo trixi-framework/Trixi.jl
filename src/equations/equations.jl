@@ -55,10 +55,11 @@ end
 
 
 """
-    flux(u, orientation, equations)
+    flux(u, orientation_or_normal, equations)
 
 Given the conservative variables `u`, calculate the (physical) flux in spatial
-direction `orientation` for the coressponding set of governing `equations`
+direction `orientation::Integer` or `normal::AbstractVector` for the
+coressponding set of governing `equations`.
 `orientation` is `1`, `2`, and `3` for the x-, y-, and z-directions, respectively.
 """
 function flux end
