@@ -482,10 +482,20 @@ Cassette.@context Ctx
       cons_vars = prim2cons(SVector(rho, v1, p),equations)
       entropy_vars = cons2entropy(cons_vars, equations)
       @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+
+      # test tuple args
+      cons_vars = prim2cons((rho, v1, p),equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
     let equations = CompressibleEulerEquations2D(1.4)
       cons_vars = prim2cons(SVector(rho,v1,v2,p),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      # test tuple args
+      cons_vars = prim2cons((rho,v1,v2,p),equations)
       entropy_vars = cons2entropy(cons_vars,equations)
       @test cons_vars ≈ entropy2cons(entropy_vars,equations)
     end
@@ -494,6 +504,11 @@ Cassette.@context Ctx
       cons_vars = prim2cons(SVector(rho,v1,v2,v3,p),equations)
       entropy_vars = cons2entropy(cons_vars,equations)
       @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      # test tuple args
+      cons_vars = prim2cons((rho,v1,v2,v3,p),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)      
     end
   end
 
