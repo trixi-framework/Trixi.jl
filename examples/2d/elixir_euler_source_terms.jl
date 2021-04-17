@@ -8,7 +8,12 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+
+surface_flux = flux_lax_friedrichs
+volume_flux = flux_ranocha
+# TODO: Change back
+# solver = DGSEM(polydeg=3, surface_flux = surface_flux, volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux = surface_flux, volume_integral = VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux)))
 
 coordinates_min = (0, 0)
 coordinates_max = (2, 2)
