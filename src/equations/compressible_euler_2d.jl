@@ -834,7 +834,8 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+# TODO: This doesn't really use the `orientation` - should it?
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
@@ -853,9 +854,14 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
+@inline function max_abs_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations2D)
+  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal)
+end
+
+
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
