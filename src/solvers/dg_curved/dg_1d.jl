@@ -1,4 +1,4 @@
-function rhs!(du::AbstractArray{<:Any,3}, u, t,
+function rhs!(du, u, t,
               mesh::CurvedMesh{1}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
@@ -35,7 +35,7 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
 end
 
 
-function calc_interface_flux!(cache, u::AbstractArray{<:Any,3}, mesh::CurvedMesh{1},
+function calc_interface_flux!(cache, u, mesh::CurvedMesh{1},
                               equations, dg::DG)
   @unpack surface_flux = dg
 
@@ -61,20 +61,20 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::CurvedMesh{1}, equations::AbstractEquations{1}, dg::DG)
+                             mesh::CurvedMesh{1}, equations, dg::DG)
   @assert isperiodic(mesh)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             mesh::CurvedMesh{1}, equations::AbstractEquations{1}, dg::DG)
+                             mesh::CurvedMesh{1}, equations, dg::DG)
   calc_boundary_flux!(cache, u, t, (boundary_condition, boundary_condition),
                       mesh, equations, dg)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             mesh::CurvedMesh{1}, equations::AbstractEquations{1}, dg::DG)
+                             mesh::CurvedMesh{1}, equations, dg::DG)
   @unpack surface_flux = dg
   @unpack surface_flux_values, node_coordinates = cache.elements
 

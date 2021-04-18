@@ -1,5 +1,5 @@
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
+function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -21,7 +21,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
+function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -37,7 +37,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+function max_dt(u, t, mesh::ParallelTreeMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -53,7 +53,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+function max_dt(u, t, mesh::ParallelTreeMesh{2},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -69,7 +69,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
+function max_dt(u, t, mesh::CurvedMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -102,7 +102,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
+function max_dt(u, t, mesh::CurvedMesh{2},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 

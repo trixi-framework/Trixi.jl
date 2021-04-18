@@ -1,7 +1,7 @@
-function rhs!(du::AbstractArray{<:Any,5}, u, t,
-    mesh::CurvedMesh, equations,
-    initial_condition, boundary_conditions, source_terms,
-    dg::DG, cache)
+function rhs!(du, u, t,
+              mesh::CurvedMesh{3}, equations,
+              initial_condition, boundary_conditions, source_terms,
+              dg::DG, cache)
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
@@ -35,8 +35,8 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
-                               mesh::CurvedMesh,
+function calc_volume_integral!(du, u,
+                               mesh::CurvedMesh{3},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -87,7 +87,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
 end
 
 
-function calc_interface_flux!(cache, u::AbstractArray{<:Any,5}, mesh::CurvedMesh{3},
+function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
                               equations, dg::DG)
   @unpack elements = cache
   @unpack surface_flux = dg
@@ -260,8 +260,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,5},
-                         mesh::CurvedMesh,
+function apply_jacobian!(du,
+                         mesh::CurvedMesh{3},
                          equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)

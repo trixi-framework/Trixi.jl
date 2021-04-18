@@ -1,7 +1,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
+function create_cache(mesh::UnstructuredQuadMesh, equations,
                       dg::DG, RealT, uEltype)
 
   polydeg_ = polydeg(dg.basis)
@@ -30,7 +30,7 @@ end
 
 # Note! The mesh also passed to some functions, e.g., calc_volume_integral! to dispatch on the
 #       correct version and use the ::UnstructuredQuadMesh variable type below to keep track on it
-function rhs!(du::AbstractArray{<:Any,4}, u, t,
+function rhs!(du, u, t,
               mesh::UnstructuredQuadMesh, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
@@ -80,7 +80,7 @@ end
 
 
 # compute volume contribution of the DG approximation with the divergence of the contravariant fluxes
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+function calc_volume_integral!(du, u,
                                mesh::UnstructuredQuadMesh,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
@@ -122,7 +122,7 @@ end
 
 # prolong the solution into the convenience array in the interior interface container
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
-function prolong2interfaces!(cache, u::AbstractArray{<:Any,4},
+function prolong2interfaces!(cache, u,
                              mesh::UnstructuredQuadMesh,
                              equations, dg::DG)
   @unpack interfaces = cache
@@ -176,7 +176,7 @@ end
 
 
 # compute the numerical flux interface coupling between two elements on an unstructured quadrilateral mesh
-function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
+function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredQuadMesh,
                               nonconservative_terms::Val{false}, equations, dg::DG, cache)
   @unpack surface_flux = dg
@@ -242,7 +242,7 @@ end
 
 
 # move the approximate solution onto physical boundaries within a "right-handed" element
-function prolong2boundaries!(cache, u::AbstractArray{<:Any,4},
+function prolong2boundaries!(cache, u,
                              mesh::UnstructuredQuadMesh,
                              equations, dg::DG)
   @unpack boundaries = cache
@@ -347,7 +347,7 @@ end
 #          -----------------                  -----------------
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
-function calc_surface_integral!(du::AbstractArray{<:Any,4}, mesh::UnstructuredQuadMesh,
+function calc_surface_integral!(du, mesh::UnstructuredQuadMesh,
                                 equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements

@@ -114,7 +114,7 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2},
+function create_cache(mesh::ParallelTreeMesh{2}, equations,
                       dg::DG, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -260,7 +260,7 @@ function init_mpi_data_structures(mpi_neighbor_interfaces, ndims, nvars, n_nodes
 end
 
 
-function rhs!(du::AbstractArray{<:Any,4}, u, t,
+function rhs!(du, u, t,
               mesh::ParallelTreeMesh{2}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
@@ -342,8 +342,8 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
-                                mesh::ParallelTreeMesh,
+function prolong2mpiinterfaces!(cache, u,
+                                mesh::ParallelTreeMesh{2},
                                 equations, dg::DG)
   @unpack mpi_interfaces = cache
 
@@ -377,8 +377,8 @@ function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
 end
 
 
-function calc_mpi_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
-                                  mesh::ParallelTreeMesh,
+function calc_mpi_interface_flux!(surface_flux_values,
+                                  mesh::ParallelTreeMesh{2},
                                   nonconservative_terms::Val{false}, equations,
                                   dg::DG, cache)
   @unpack surface_flux = dg

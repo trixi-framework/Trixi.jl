@@ -181,8 +181,7 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, f3,
-                                                    u::AbstractArray{<:Any,5}, element,
+@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
                                                     equations::IdealGlmMhdEquations3D, dg, cache)
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, k, element)

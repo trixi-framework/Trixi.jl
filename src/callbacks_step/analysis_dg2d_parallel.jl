@@ -1,5 +1,5 @@
 
-function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
+function calc_error_norms(func, u, t, analyzer,
                           mesh::ParallelTreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   # call the method accepting a general `mesh::TreeMesh{2}`
@@ -32,7 +32,7 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
+function integrate_via_indices(func::Func, u,
                                mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   # call the method accepting a general `mesh::TreeMesh{2}`
