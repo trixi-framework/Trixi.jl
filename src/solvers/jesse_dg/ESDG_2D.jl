@@ -16,7 +16,7 @@ using StartUpDG
 
 # using EntropyStableEuler
 
-include("./ESDG_utils.jl") # some setup utils
+include("/Users/jessechan/.julia/dev/Trixi/src/solvers/jesse_dg/ESDG_utils.jl") # some setup utils
 
 ###############################################################################
 # semidiscretization 
@@ -38,18 +38,16 @@ end
 
 # accumulate Q.*F into rhs
 function hadsum_ATr!(rhs,ATr,F::Fxn,u; skip_index=(i,j)->false) where {Fxn}
-    val_i = zero(eltype(rhs)) # preallocate array
     rows,cols = axes(ATr)
     for i in cols
-        ui = getindex(u,i)
-        val_i = getindex(rhs,i)
+        ui = u[i]
+        val_i = rhs[i]
         for j in rows
             if !skip_index(i,j)
-                uj = getindex(u,j)
-                val_i += ATr[j,i]*F(ui,uj)
+                val_i += ATr[j,i]*F(ui,u[j]) # breaks for tuples
             end
         end
-        setindex!(rhs,val_i,i)
+        rhs[i] = val_i
     end
 end
 
@@ -62,25 +60,37 @@ function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
     return prim2cons((ρ,u,v,p),equations)
 end
 
-xyz = StructArray(md.xyz)
 eqn = CompressibleEulerEquations2D(1.4)
+F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,eqn)
+Qrhskew,Qshskew,VhP,Ph = build_hSBP_ops(rd)
+QrhskewTr = Matrix(Qrhskew')
+QshskewTr = Matrix(Qshskew')
 
-# ArraysOfArrays initialization
+# StructArray initialization - problem in entropy2cons
+xyz = StructArray(SVector{2}.(zip(md.xyz...)))
+U = (xyz->initial_condition(xyz,0,eqn)).(xyz) # hack to retain tuple elements in U
 
-
-
-# structarray initialization - problem in entropy2cons
-U = (xyz->tuple(initial_condition(xyz,0,eqn)...)).(xyz) # hack to retain tuple elements in U
-
-tmp_vol_quad = StructArray(ntuple(x->similar(md.xq),Trixi.nvariables(eqn))) # storage at volume quadrature points
-tmp_face_quad = StructArray(ntuple(x->similar(md.xf),Trixi.nvariables(eqn))) # storage at face quadrature points
-VqPq = rd.Vq*rd.Pq # project + evaluate at quad points
+_staticzip(::Type{SVector{M}},x::NTuple{M,Array{T,N}}) where {M,T,N} = SVector{M}.(zip(x...))
+StructArray(_staticzip(SVector{2},md.xyz))
+q_tmp = StructArray(_staticzip(SVector{4},ntuple(_->similar(md.xq),4)))
+f_tmp = StructArray(_staticzip(SVector{4},ntuple(_->similar(md.xf),4)))
+h_tmp = StructArray(_staticzip(SVector{4},ntuple(_->similar([md.xq;md.xf]),4)))
+Uh = similar(h_tmp)
 
 # entropy projection - should be zero alloc
-StructArrays.foreachfield((u,uout)->matmul!(uout,rd.Vq,u),U,tmp_vol_quad)
-tmp_vol_quad .= (u->tuple(cons2entropy(u,eqn)...)).(tmp_vol_quad)
-StructArrays.foreachfield((u,uout)->matmul!(uout,VqPq,u),U,tmp_vol_quad)
-tmp_vol_quad .= (v->tuple(entropy2cons(v,eqn)...)).(tmp_vol_quad) # issue - w * (γ-1) in entropy2cons fails for w::Tuple
+StructArrays.foreachfield((uout,u)->matmul!(uout,rd.Vq,u),q_tmp,U)
+q_tmp .= (u->cons2entropy(u,eqn)).(q_tmp)
+StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),h_tmp,q_tmp)
+Uh .= (v->entropy2cons(v,eqn)).(h_tmp) # issue - w * (γ-1) in entropy2cons fails for w::Tuple
+
+e = 1
+@unpack rxJ,sxJ,ryJ,syJ = md
+QxTr = LazyArray(@~ 2 .*(rxJ[1,e].*QrhskewTr .+ sxJ[1,e].*QshskewTr)) 
+QyTr = LazyArray(@~ 2 .*(ryJ[1,e].*QrhskewTr .+ syJ[1,e].*QshskewTr)) 
+rhs = similar(Uh[:,e])
+hadsum_ATr!(rhs,QxTr,F(1),Uh[:,e]) 
+
+
 
 
 Base.real(rd::RefElemData) = Float64 # is this for DiffEq.jl?
