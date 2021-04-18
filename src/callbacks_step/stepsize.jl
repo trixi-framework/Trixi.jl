@@ -62,13 +62,10 @@ end
     t = integrator.t
     u_ode = integrator.u
     semi = integrator.p
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack cfl_number = stepsize_callback
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt = @timeit_debug timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
-                                                                  have_constant_speed(equations), equations,
-                                                                  solver, cache)
+    dt = calculate_dt(u_ode, t, cfl_number, semi)
+
     set_proposed_dt!(integrator, dt)
     integrator.opts.dtmax = dt
     integrator.dtcache = dt
@@ -77,6 +74,30 @@ end
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
   return nothing
+end
+
+
+function calculate_dt(u_ode, t, cfl_number, semi)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+  dt = @timeit_debug timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
+                                                                have_constant_speed(equations), equations,
+                                                                solver, cache)
+end
+
+
+function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationHyperbolicCoupled)
+  @unpack u_indices = semi
+
+  dt = Inf
+  for i in 1:nmeshes(semi)
+    dt_ = calculate_dt(u_ode[u_indices[i]], t, cfl_number, semi.semis[i])
+
+    dt = min(dt, dt_)
+  end
+
+  return dt
 end
 
 

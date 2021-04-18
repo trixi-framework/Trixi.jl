@@ -64,6 +64,7 @@ include("mesh/mesh.jl")
 include("solvers/solvers.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
+include("semidiscretization/semidiscretization_hyperbolic_coupled.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
@@ -156,6 +157,8 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
+
+export SemidiscretizationHyperbolicCoupled
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, VisualizationCallback,
