@@ -173,7 +173,17 @@ function PlotData2D(u::AbstractArray{<:Any, 4},
 
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
+  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
+    orientation_x = 1
+    orientation_y = 2
+  else
+    # TODO: VIsualization. Which (order of the) axes do we use in 3D?
+    orientation_x = 0
+    orientation_y = 0
+  end
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+                    orientation_x, orientation_y)
 end
 
 
