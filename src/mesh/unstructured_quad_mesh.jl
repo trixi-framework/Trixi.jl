@@ -1,9 +1,12 @@
 """
-    UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
+    UnstructuredQuadMesh{RealT<:Real} <: AbstractMesh{2}
 
 An unstructured (possibly curved) quadrilateral mesh.
 
-All mesh information, neighbour coupling, and boundary curve information is read in from a mesh file
+    UnstructuredQuadMesh(filename, periodic; RealT=Float64)
+
+All mesh information, neighbour coupling, and boundary curve information is read in
+from a mesh file `filename`.
 
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.

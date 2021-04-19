@@ -147,7 +147,7 @@ end
   gamma = totalgamma(u, equations)
   p = (gamma - 1) * (rho_e - kin_en - mag_en)
 
-  
+
   f_rho = densities(u, v1, equations)
   f1 = rho_v1*v1 + p + mag_en - B1^2
   f2 = rho_v1*v2 - B1*B2
@@ -173,7 +173,7 @@ Entropy conserving two-point flux adapted by
   divergence diminishing ideal magnetohydrodynamics equations for multicomponent
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations1D)
+function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations1D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr = u_rr
@@ -232,7 +232,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultico
   # Calculate fluxes depending on orientation with specific direction averages
   help1       = zero(T_ll)
   help2       = zero(T_rr)
-  
+
   f_rho       = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
   for i in eachcomponent(equations)
     help1     += f_rho[i] * cv[i]
@@ -252,7 +252,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultico
         f5 * B1_avg + f6 * B2_avg + f7 * B3_avg - 0.5*v1_mag_avg +
         B1_avg * vel_dot_mag_avg
 
-  
+
   f_other  = SVector{7, real(equations)}(f1, f2, f3, f4, f5, f6, f7)
 
   return vcat(f_other, f_rho)
@@ -260,7 +260,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations1D)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr = u_rr
 
@@ -351,7 +351,7 @@ end
   w4 = -1.0 / T
   w5 = B1 / T
   w6 = B2 / T
-  w7 = B3 / T 
+  w7 = B3 / T
 
   entrop_other = SVector{7, real(equations)}(w1, w2, w3, w4, w5, w6, w7)
 
@@ -373,7 +373,7 @@ end
   gamma = totalgamma(prim, equations)
   rho_e = p/(gamma-1) + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
                                  0.5 * (B1^2 + B2^2 + B3^2)
-        
+
   cons_other = SVector{7, real(equations)}(rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3)
 
   return vcat(cons_other, cons_rho)
@@ -407,7 +407,7 @@ end
   b2 = B2 / sqrt_rho
   b3 = B3 / sqrt_rho
   b_square = b1^2 + b2^2 + b3^2
-  
+
   c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2))
 
   return c_f
