@@ -434,12 +434,15 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes in the DG elements are used.
 
-
+When visualizing data from a two-dimensional simulation, a 1D stripe is extracted for plotting.
+`stripe_axis` specifies the axis stripped from the plane and may be `:x`, or `:y`. The
+point on the stripe axis where it intersects with the orthogonal axis is given in `stripe_axis_intercept`.
+Both of these values are ignored when visualizing 1D data.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing, slice_axis=:y, slice_axis_intercept=0)
+function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing, stripe_axis=:x, stripe_axis_intercept=0)
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (1, 2) "unsupported number of dimensions $ndims (must be 1 or 2)"
@@ -451,7 +454,7 @@ function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing, slic
   unstructured_data = get_unstructured_data(u, semi, solution_variables_)
 
   if ndims(mesh) == 2
-    original_nodes, unstructured_data = unstructured_1d_to_2d(original_nodes, unstructured_data, slice_axis, slice_axis_intercept)
+    original_nodes, unstructured_data = unstructured_1d_to_2d(original_nodes, unstructured_data, stripe_axis, stripe_axis_intercept)
   end
 
   x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
