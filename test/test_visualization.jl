@@ -145,14 +145,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       data1d = rand(5, 11)
       variable_names = string.('a':'e')
       mesh_vertices_x1d = [x[begin], x[end]]
-      fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d)
+      fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d, 0)
       @test_nowarn_debug plot(fake1d)
 
       y = x
       data2d = [rand(11,11) for _ in 1:5]
       mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
       mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
-      fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d)
+      fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
       @test_nowarn_debug plot(fake2d)
     end
   end

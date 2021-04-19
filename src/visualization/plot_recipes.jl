@@ -120,14 +120,7 @@ function PlotData2D(u, semi;
                                                              slice_axis, slice_axis_intercept)
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
-    orientation_x = 1
-    orientation_y = 2
-  else
-    # TODO: VIsualization. Which (order of the) axes do we use in 3D?
-    orientation_x = 0
-    orientation_y = 0
-  end
+  orientation_x, orientation_y = _get_orientations(mesh, slice_axis)
 
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
                     orientation_x, orientation_y)
@@ -173,14 +166,7 @@ function PlotData2D(u::AbstractArray{<:Any, 4},
 
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
-    orientation_x = 1
-    orientation_y = 2
-  else
-    # TODO: VIsualization. Which (order of the) axes do we use in 3D?
-    orientation_x = 0
-    orientation_y = 0
-  end
+  orientation_x, orientation_y = _get_orientations(mesh, nothing)
 
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
                     orientation_x, orientation_y)
@@ -209,6 +195,23 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
     This is an experimental feature and may change in future releases.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+
+function _get_orientations(mesh, slice_axis)
+  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
+    orientation_x = 1
+    orientation_y = 2
+  elseif ndims(mesh) == 3 && slice_axis === :y
+    orientation_x = 1
+    orientation_y = 3
+  elseif ndims(mesh) == 3 && slice_axis === :x
+    orientation_x = 2
+    orientation_y = 3
+  else
+    orientation_x = 0
+    orientation_y = 0
+  end
+  return orientation_x, orientation_y
+end
 
 # Auxiliary data structure for visualizing a single variable
 #
