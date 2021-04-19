@@ -139,11 +139,21 @@ appropriate conversion function to `solution_variables`.
 function PlotData2D(u::AbstractArray{<:Any, 4},
                     semi::SemidiscretizationHyperbolic{<:Union{CurvedMesh,UnstructuredQuadMesh}};
                     solution_variables=nothing, grid_lines=true, kwargs...)
+
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
+
+  @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations))
+
+  x, y, data, mesh_vertices_x, mesh_vertices_y = get_plot_data(u, solution_variables_, semi; grid_lines=grid_lines)
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
+end
+
+function get_plot_data(u, solution_variables_, semi; grid_lines=true)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack node_coordinates = cache.elements
-
-  @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
-  solution_variables_ = digest_solution_variables(equations, solution_variables)
 
   unstructured_data = get_unstructured_data(u, semi, solution_variables_)
 
@@ -159,7 +169,44 @@ function PlotData2D(u::AbstractArray{<:Any, 4},
     mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
   end
 
+  return x, y, data, mesh_vertices_x, mesh_vertices_y
+end
+
+
+function PlotData2D(u_ode::AbstractVector,
+                    semi::SemidiscretizationHyperbolicCoupled;
+                    solution_variables=nothing, grid_lines=true, kwargs...)
+
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
+
+  @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
+
+  x_vec = []
+  y_vec = []
+  data_vec = []
+  mesh_vertices_x_vec = []
+  mesh_vertices_y_vec = []
+
+  @unpack semis, u_indices = semi
+  for i in 1:nmeshes(semi)
+    semi_ = semis[i]
+    x_, y_, data_, mesh_vertices_x_, mesh_vertices_y_ = get_plot_data(wrap_array(u_ode[u_indices[i]], semi_), solution_variables_, semi_; grid_lines=grid_lines)
+
+    push!(x_vec, x_)
+    push!(y_vec, y_)
+    push!(data_vec, data_)
+    push!(mesh_vertices_x_vec, mesh_vertices_x_)
+    push!(mesh_vertices_y_vec, mesh_vertices_y_)
+  end
+
+  x = vcat(x_vec...)
+  y = vcat(y_vec...)
+  data = [vcat([data_vec[i][v] for i in 1:nmeshes(semi)]...) for v in 1:nvariables(equations)]
+
+  mesh_vertices_x = hcat(mesh_vertices_x_vec...)
+  mesh_vertices_y = hcat(mesh_vertices_y_vec...)
 
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
 end

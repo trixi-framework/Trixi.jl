@@ -29,15 +29,20 @@ function allocate_coupled_boundary_conditions(semis)
     for direction in 1:4 # TODO
       boundary_condition = semi.boundary_conditions[direction]
 
-      allocate_coupled_boundary_condition(boundary_condition, mesh, equations, solver)
+      allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver)
     end
   end
 end
 
-function allocate_coupled_boundary_condition(boundary_condition, mesh, equations, dg) end
+function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, dg) end
 
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled, mesh, equations, dg)
-  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), size(mesh, 2))
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled, direction, mesh, equations, dg)
+  if direction in (1, 2)
+    cell_size = size(mesh, 2)
+  else
+    cell_size = size(mesh, 1)
+  end
+  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), cell_size)
 end
 
 
@@ -96,6 +101,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 end
 
 
+@inline Base.ndims(semi::SemidiscretizationHyperbolicCoupled) = ndims(semi.semis[1].mesh)
 @inline nmeshes(semi::SemidiscretizationHyperbolicCoupled) = length(semi.semis)
 @inline Base.real(semi::SemidiscretizationHyperbolicCoupled) = real(semi.semis[1])
 

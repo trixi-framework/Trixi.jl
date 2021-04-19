@@ -72,8 +72,8 @@ semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_converge
                                      boundary_conditions=(boundary_condition_test_1_left(), boundary_condition_test_1_right(),
                                                           boundary_condition_periodic, boundary_condition_periodic))
 
-coordinates_min = (-0.5, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (1.5, -1.0) # minimum coordinates (min(x), min(y))
+coordinates_max = (3.0,  1.0) # maximum coordinates (max(x), max(y))
 
 cells_per_dimension = (12, 16)
 
