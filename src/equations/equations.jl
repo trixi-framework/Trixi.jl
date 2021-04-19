@@ -148,6 +148,31 @@ performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 
+mutable struct BoundaryConditionCoupled
+  u_boundary
+  other_mesh_id
+  prolong2boundary
+
+  BoundaryConditionCoupled(other_mesh_id, prolong2boundary) = new(nothing, other_mesh_id, prolong2boundary)
+end
+
+
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction, 
+                                                        cell_index, surface_node_indices,
+                                                        surface_flux_function, equations)
+  u_boundary = boundary_condition.u_boundary[:, surface_node_indices..., cell_index]
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
+
+
 # FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
 @deprecate varnames_prim(equations) varnames(cons2prim, equations)

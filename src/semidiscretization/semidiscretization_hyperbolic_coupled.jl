@@ -14,9 +14,30 @@ function SemidiscretizationHyperbolicCoupled(semis)
     u_indices[i] = range(offset, length=n_coeffs[i])
   end
 
+  allocate_coupled_boundary_conditions(semis)
+
   performance_counter = PerformanceCounter()
 
   SemidiscretizationHyperbolicCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices, performance_counter)
+end
+
+
+function allocate_coupled_boundary_conditions(semis)
+  for semi in semis
+    mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+
+    for direction in 1:4 # TODO
+      boundary_condition = semi.boundary_conditions[direction]
+
+      allocate_coupled_boundary_condition(boundary_condition, mesh, equations, solver)
+    end
+  end
+end
+
+function allocate_coupled_boundary_condition(boundary_condition, mesh, equations, dg) end
+
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled, mesh, equations, dg)
+  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), size(mesh, 2))
 end
 
 
@@ -165,6 +186,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicCoupled, t)
   @unpack u_indices = semi
 
   time_start = time_ns()
+
+  prolong_to_coupled_boundaries(u_ode, semi)
+
   for i in 1:nmeshes(semi)
     u_loc  = @view u_ode[u_indices[i]]
     du_loc = @view du_ode[u_indices[i]]
@@ -176,4 +200,27 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicCoupled, t)
   put!(semi.performance_counter, runtime)
 
   return nothing
+end
+
+
+function prolong_to_coupled_boundaries(u_ode, semi)
+  for semi_ in semi.semis
+    for boundary_condition in semi_.boundary_conditions
+      prolong2boundary(boundary_condition, u_ode, semi)
+    end
+  end
+end
+
+
+function prolong2boundary(boundary_condition, u_ode, semi) end
+
+function prolong2boundary(boundary_condition::BoundaryConditionCoupled, u_ode, semi)
+  @unpack u_indices = semi
+
+  other_mesh_id = boundary_condition.other_mesh_id
+
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_mesh_id])
+  u = wrap_array(u_ode[u_indices[other_mesh_id]], mesh, equations, solver, cache)
+
+  boundary_condition.prolong2boundary(boundary_condition, u, mesh)
 end

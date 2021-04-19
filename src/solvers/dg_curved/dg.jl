@@ -42,6 +42,33 @@ end
 end
 
 
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
+                                                  boundary_condition::BoundaryConditionCoupled, 
+                                                  equations, mesh::CurvedMesh, dg::DG, cache,
+                                                  direction, node_indices, surface_node_indices, element)
+  @unpack node_coordinates, contravariant_vectors = cache.elements
+  @unpack surface_flux = dg
+
+  cartesian_indices = CartesianIndices(size(mesh))
+  if orientation == 1
+    cell_index = cartesian_indices[element][2]
+  else
+    cell_index = cartesian_indices[element][1]
+  end
+
+  u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+  x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
+
+  # Contravariant vector Ja^i is the normal vector
+  normal = get_contravariant_vector(orientation, contravariant_vectors, node_indices..., element)
+  flux = boundary_condition(u_inner, normal, direction, cell_index, surface_node_indices, surface_flux, equations)
+
+  for v in eachvariable(equations)
+    surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
+  end
+end
+
+
 @inline ndofs(mesh::CurvedMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
