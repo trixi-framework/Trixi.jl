@@ -23,10 +23,10 @@ mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
-mesh = CurvedMesh((4, 4), coordinates_min, coordinates_max)
-semi3 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# mesh = CurvedMesh((4, 4), coordinates_min, coordinates_max)
+# semi3 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
-semi = SemidiscretizationHyperbolicCoupled((semi1, semi2, semi3))
+semi = SemidiscretizationHyperbolicCoupled((semi1, semi2))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -36,10 +36,10 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
-# summary_callback = SummaryCallback()
+summary_callback = SummaryCallback()
 
-# # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-# analysis_callback = AnalysisCallback(semi, interval=100)
+# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+analysis_callback = AnalysisCallback(semi, interval=100)
 
 # # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 # save_solution = SaveSolutionCallback(interval=100,
@@ -49,7 +49,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(stepsize_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback)
 
 
 ###############################################################################
@@ -61,4 +61,4 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             save_everystep=false, callback=callbacks);
 
 # Print the timer summary
-# summary_callback()
+summary_callback()

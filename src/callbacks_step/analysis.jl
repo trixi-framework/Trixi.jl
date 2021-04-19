@@ -20,7 +20,8 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
+# TODO Analyzer<:SolutionAnalyzer
+mutable struct AnalysisCallback{Analyzer<:Union{SolutionAnalyzer,Tuple}, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -94,6 +95,56 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
                                        cache_analysis)
+
+  DiscreteCallback(condition, analysis_callback,
+                   save_positions=(false,false),
+                   initialize=initialize!)
+end
+
+
+function AnalysisCallback(semi::SemidiscretizationHyperbolicCoupled; kwargs...)
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
+  AnalysisCallback(semi, equations; kwargs...)
+end
+
+
+function AnalysisCallback(semi::SemidiscretizationHyperbolicCoupled, equations;
+                          interval=0,
+                          save_analysis=false,
+                          output_directory="out",
+                          analysis_filename="analysis.dat",
+                          extra_analysis_errors=Symbol[],
+                          analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
+                          extra_analysis_integrals=(),
+                          analysis_integrals=(), # TODO union(default_analysis_integrals(equations), extra_analysis_integrals),
+                          RealT=real(semi),
+                          uEltype=eltype(semi.semis[1].cache.elements), # TODO
+                          kwargs...)
+  # when is the callback activated
+  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
+                                                     isfinished(integrator))
+
+  analyzers_ = []
+  caches_analysis_ = []
+
+  for semi_ in semi.semis
+    mesh, equations_, solver, cache = mesh_equations_solver_cache(semi_)
+
+    analyzer = SolutionAnalyzer(solver; kwargs...)
+    cache_analysis = create_cache_analysis(analyzer, mesh, equations_, solver, cache, RealT, uEltype)
+
+    push!(analyzers_, analyzer)
+    push!(caches_analysis_, cache_analysis)
+  end
+
+  analyzers = Tuple(analyzers_)
+  caches_analysis = Tuple(caches_analysis_)
+
+  analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
+                                       analyzers,
+                                       analysis_errors, Tuple(analysis_integrals),
+                                       SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
+                                       caches_analysis)
 
   DiscreteCallback(condition, analysis_callback,
                    save_positions=(false,false),
@@ -210,6 +261,74 @@ function (analysis_callback::AnalysisCallback)(integrator)
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
     l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
+
+    mpi_println("─"^100)
+    mpi_println()
+
+    # Add line break and close analysis file if it was opened
+    if mpi_isroot() && analysis_callback.save_analysis
+      # This resolves a possible type instability introduced above, since `io`
+      # can either be an `IOStream` or `devnull`, but we know that it must be
+      # an `IOStream here`.
+      println(io::IOStream)
+      close(io::IOStream)
+    end
+  end
+
+  # avoid re-evaluating possible FSAL stages
+  u_modified!(integrator, false)
+
+  # Return errors for EOC analysis
+  return l2_error, linf_error
+end
+
+
+# TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
+function (analysis_callback::AnalysisCallback{<:Tuple})(integrator)
+  semi = integrator.p
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
+  @unpack dt, t, iter = integrator
+
+  runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
+  runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
+
+  @timeit_debug timer() "analyze solution" begin
+    # General information
+    mpi_println()
+    mpi_println("─"^100)
+    # TODO: Taal refactor, polydeg is specific to DGSEM
+    mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(semi))
+    mpi_println("─"^100)
+    mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
+                "               " *
+                " run time:       " * @sprintf("%10.8e s", runtime_absolute))
+    mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
+                "               " *
+                " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
+    mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
+    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
+    mpi_println(" #elements:      " * @sprintf("% 14s", string(join(nelements(semi), "+"), "=", sum(nelements(semi)))))
+
+    # # Level information (only show for AMR)
+    # print_amr_information(integrator.opts.callback, mesh, solver, cache)
+    mpi_println()
+
+    # Open file for appending and store time step and time information
+    if mpi_isroot() && analysis_callback.save_analysis
+      io = open(joinpath(analysis_callback.output_directory, analysis_callback.analysis_filename), "a")
+      @printf(io, "% 9d", iter)
+      @printf(io, "  %10.8e", t)
+      @printf(io, "  %10.8e", dt)
+    else
+      io = devnull
+    end
+
+    # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
+    du_ode = first(get_tmp_cache(integrator))
+    @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
+    # du needs to be accessed via du[v, ..]
+    du = reshape(du_ode, 2, :)
+    l2_error, linf_error = analysis_callback(io, du, integrator.u, integrator.u, t, semi)
 
     mpi_println("─"^100)
     mpi_println()
