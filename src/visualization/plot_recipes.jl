@@ -196,6 +196,7 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
+# Convert `slice_axis` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
 function _get_orientations(mesh, slice_axis)
   if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
     orientation_x = 1
@@ -292,6 +293,7 @@ Extract grid lines from `pd` for plotting with `Plots.plot`.
 """
 getmesh(pd::PlotData2D) = PlotMesh2D(pd)
 
+# Convert `orientation` into a guide label (see also `_get_orientations`)
 function _get_guide(orientation::Integer)
   if orientation == 1
     return "\$x\$"
