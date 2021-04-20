@@ -1,6 +1,6 @@
 
-function (steady_state_callback::SteadyStateCallback)(du::AbstractArray{<:Any, 4}, u,
-                                                      mesh, equations, dg::DG, cache)
+function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{2},
+                                                      equations, dg::DG, cache)
   @unpack abstol, reltol = steady_state_callback
 
   terminate = true

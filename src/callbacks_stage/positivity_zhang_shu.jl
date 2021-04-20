@@ -38,8 +38,7 @@ end
 # Note that you shouldn't use this with too many elements per tuple since the
 # compile times can increase otherwise - but a handful of elements per tuple
 # is definitely fine.
-function limiter_zhang_shu!(u::AbstractArray{<:Any},
-                            thresholds::NTuple{N,<:Real}, variables::NTuple{N,Any},
+function limiter_zhang_shu!(u, thresholds::NTuple{N,<:Real}, variables::NTuple{N,Any},
                             mesh, equations, solver, cache) where {N}
   threshold = first(thresholds)
   remaining_thresholds = Base.tail(thresholds)
@@ -52,8 +51,7 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any},
 end
 
 # terminate the type-stable iteration over tuples
-function limiter_zhang_shu!(u::AbstractArray{<:Any},
-                            thresholds::Tuple{}, variables::Tuple{},
+function limiter_zhang_shu!(u, thresholds::Tuple{}, variables::Tuple{},
                             mesh, equations, solver, cache)
   nothing
 end

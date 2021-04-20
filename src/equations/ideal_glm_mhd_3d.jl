@@ -181,8 +181,7 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, f3,
-                                                    u::AbstractArray{<:Any,5}, element,
+@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
                                                     equations::IdealGlmMhdEquations3D, dg, cache)
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, k, element)
@@ -231,7 +230,7 @@ Entropy conserving two-point flux by
   divergence diminishing ideal magnetohydrodynamics equations
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
+function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -324,7 +323,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -354,7 +353,7 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
   An HLLC Riemann solver for magneto-hydrodynamics
   [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
-@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -404,7 +403,7 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along an interface! normal direction is super important
-function noncons_interface_flux(u_left, u_right, orientation, equations::IdealGlmMhdEquations3D)
+function noncons_interface_flux(u_left, u_right, orientation::Integer, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
 
