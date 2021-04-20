@@ -476,6 +476,25 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 """
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
+function PlotData1D(timeseries_callback::TimeseriesCallback, point_id::Integer)
+  @unpack time, variable_names, point_data = timeseries_callback
+
+  n_solution_variables = length(variable_names)
+  data = Matrix{Float64}(undef, length(time), n_solution_variables)
+  reshaped = reshape(point_data[point_id], n_solution_variables, length(time))
+  for v in 1:n_solution_variables
+    @views data[:, v] = reshaped[v, :]
+  end
+
+  mesh_vertices_x = Vector{Float64}(undef, 0)
+
+  return PlotData1D(time, data, SVector(variable_names), mesh_vertices_x)
+end
+
+function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeseriesCallback}, point_id::Integer)
+  return PlotData1D(cb.affect!, point_id)
+end
+
 # Store multiple PlotData1D objects in one PlotDataSeries1D.
 # This is used for multi-variable equations.
 struct PlotDataSeries1D{PD<:PlotData1D}
@@ -625,4 +644,13 @@ end
                       solution_variables, grid_lines, max_supported_level,
                       nvisnodes, slice_axis, slice_axis_intercept)
   end
+end
+
+
+@recipe function f(cb::DiscreteCallback{<:Any, <:TimeseriesCallback}, point_id::Integer)
+  return cb.affect!, point_id
+end
+
+@recipe function f(timeseries_callback::TimeseriesCallback, point_id::Integer)
+  return PlotData1D(timeseries_callback, point_id)
 end

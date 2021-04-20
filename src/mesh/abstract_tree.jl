@@ -174,6 +174,17 @@ end
 end
 
 
+# Determine if point is located inside cell
+function is_point_in_cell(t::AbstractTree, point_coordinates, cell_id)
+  cell_length = length_at_cell(t, cell_id)
+  cell_coordinates_ = cell_coordinates(t, cell_id)
+  min_coordinates = cell_coordinates_ .- cell_length / 2
+  max_coordinates = cell_coordinates_ .+ cell_length / 2
+
+  return (point_coordinates >= min_coordinates) && (point_coordinates <= max_coordinates)
+end
+
+
 # Store cell id in each cell to use for post-AMR analysis
 function reset_original_cell_ids!(t::AbstractTree)
   t.original_cell_ids[1:length(t)] .= 1:length(t)
