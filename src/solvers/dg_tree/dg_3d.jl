@@ -5,7 +5,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::TreeMesh{3}, equations::AbstractEquations{3},
+function create_cache(mesh::TreeMesh{3}, equations,
                       dg::DG, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -142,7 +142,7 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
-function rhs!(du::AbstractArray{<:Any,5}, u, t,
+function rhs!(du, u, t,
               mesh::TreeMesh{3}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
@@ -150,45 +150,57 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
   @_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @_timeit timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), equations,
-                                                                dg.volume_integral, dg, cache)
+  @_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  @_timeit timer() "prolong2interfaces" prolong2interfaces!(cache, u, equations, dg)
+  @_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
-  @_timeit timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values,
-                                                              have_nonconservative_terms(equations), equations,
-                                                              dg, cache)
+  @_timeit timer() "interface flux" calc_interface_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg, cache)
 
   # Prolong solution to boundaries
-  @_timeit timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
+  @_timeit timer() "prolong2boundaries" prolong2boundaries!(
+    cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  @_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg)
+  @_timeit timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg)
 
   # Prolong solution to mortars
-  @_timeit timer() "prolong2mortars" prolong2mortars!(cache, u, equations, dg.mortar, dg)
+  @_timeit timer() "prolong2mortars" prolong2mortars!(
+    cache, u, mesh, equations, dg.mortar, dg)
 
   # Calculate mortar fluxes
-  @_timeit timer() "mortar flux" calc_mortar_flux!(cache.elements.surface_flux_values,
-                                                        have_nonconservative_terms(equations), equations,
-                                                        dg.mortar, dg, cache)
+  @_timeit timer() "mortar flux" calc_mortar_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.mortar, dg, cache)
 
   # Calculate surface integrals
-  @_timeit timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
+  @_timeit timer() "surface integral" calc_surface_integral!(
+    du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @_timeit timer() "Jacobian" apply_jacobian!(du, equations, dg, cache)
+  @_timeit timer() "Jacobian" apply_jacobian!(
+    du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @_timeit timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
+  @_timeit timer() "source terms" calc_sources!(
+    du, u, t, source_terms, equations, dg, cache)
 
   return nothing
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
+function calc_volume_integral!(du, u,
+                               mesh::TreeMesh{3},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -284,7 +296,8 @@ function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
+function calc_volume_integral!(du, u,
+                               mesh::TreeMesh{3},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -386,7 +399,9 @@ end
 
 
 # TODO: Taal dimension agnostic
-function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, nonconservative_terms, equations,
+function calc_volume_integral!(du, u,
+                               mesh::TreeMesh{3},
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
   @unpack element_ids_dg, element_ids_dgfv = cache
@@ -420,7 +435,9 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, nonconservative_te
 end
 
 # TODO: Taal dimension agnostic
-function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, nonconservative_terms, equations,
+function calc_volume_integral!(du, u,
+                               mesh::TreeMesh{3},
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
   @unpack volume_flux_fv = volume_integral
@@ -496,7 +513,8 @@ end
 end
 
 
-function prolong2interfaces!(cache, u::AbstractArray{<:Any,5}, equations, dg::DG)
+function prolong2interfaces!(cache, u,
+                             mesh::TreeMesh{3}, equations, dg::DG)
   @unpack interfaces = cache
   @unpack orientations = interfaces
 
@@ -528,7 +546,8 @@ function prolong2interfaces!(cache, u::AbstractArray{<:Any,5}, equations, dg::DG
   return nothing
 end
 
-function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,5},
+function calc_interface_flux!(surface_flux_values,
+                              mesh::TreeMesh{3},
                               nonconservative_terms::Val{false}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
@@ -560,7 +579,8 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,5},
   end
 end
 
-function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,5},
+function calc_interface_flux!(surface_flux_values,
+                              mesh::TreeMesh{3},
                               nonconservative_terms::Val{true}, equations,
                               dg::DG, cache)
   @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -617,7 +637,8 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,5},
 end
 
 
-function prolong2boundaries!(cache, u::AbstractArray{<:Any,5}, equations, dg::DG)
+function prolong2boundaries!(cache, u,
+                             mesh::TreeMesh{3}, equations, dg::DG)
   @unpack boundaries = cache
   @unpack orientations, neighbor_sides = boundaries
 
@@ -670,13 +691,13 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             equations::AbstractEquations{3}, dg::DG)
+                             mesh::TreeMesh{3}, equations, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition,
-                             equations::AbstractEquations{3}, dg::DG)
+                             mesh::TreeMesh{3}, equations, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -693,7 +714,7 @@ function calc_boundary_flux!(cache, t, boundary_condition,
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             equations::AbstractEquations{3}, dg::DG)
+                             mesh::TreeMesh{3}, equations, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -749,7 +770,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
 end
 
 
-function prolong2mortars!(cache, u::AbstractArray{<:Any,5}, equations,
+function prolong2mortars!(cache, u,
+                          mesh::TreeMesh{3}, equations,
                           mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
   # temporary buffer for projections
   @unpack fstar_tmp1_threaded = cache
@@ -877,7 +899,8 @@ end
 end
 
 
-function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,5},
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::TreeMesh{3},
                            nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack (u_lower_left, u_lower_right, u_upper_left, u_upper_right,
@@ -910,7 +933,8 @@ function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,5},
   return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,5},
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::TreeMesh{3},
                            nonconservative_terms::Val{true}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack (u_lower_left, u_lower_right, u_upper_left, u_upper_right,
@@ -1116,7 +1140,8 @@ end
 end
 
 
-function calc_surface_integral!(du::AbstractArray{<:Any,5}, equations, dg::DGSEM, cache)
+function calc_surface_integral!(du, mesh::Union{TreeMesh{3}, CurvedMesh{3}},
+                                equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
@@ -1143,7 +1168,8 @@ function calc_surface_integral!(du::AbstractArray{<:Any,5}, equations, dg::DGSEM
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,5}, equations, dg::DG, cache)
+function apply_jacobian!(du, mesh::TreeMesh{3},
+                         equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
@@ -1160,11 +1186,13 @@ end
 
 
 # TODO: Taal dimension agnostic
-function calc_sources!(du::AbstractArray{<:Any,5}, u, t, source_terms::Nothing, equations, dg::DG, cache)
+function calc_sources!(du, u, t, source_terms::Nothing,
+                       equations::AbstractEquations{3}, dg::DG, cache)
   return nothing
 end
 
-function calc_sources!(du::AbstractArray{<:Any,5}, u, t, source_terms, equations, dg::DG, cache)
+function calc_sources!(du, u, t, source_terms,
+                       equations::AbstractEquations{3}, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

@@ -1,4 +1,4 @@
-# Conventions
+# [Conventions](@id conventions)
 
 ## Spatial dimensions and directions
 

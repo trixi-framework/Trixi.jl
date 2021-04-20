@@ -291,7 +291,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
 """
-@inline function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+@inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
@@ -327,7 +327,7 @@ Kinetic energy preserving two-point flux by
   Navier-Stokes equations for a compressible fluid
   [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
@@ -360,7 +360,7 @@ Entropy conserving two-point flux by
   for Compressible Euler and Navier-Stokes Equations
   [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
@@ -407,7 +407,7 @@ See also
   the Euler Equations Using Summation-by-Parts Operators
 [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
@@ -436,7 +436,7 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
@@ -455,7 +455,7 @@ end
 
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
@@ -480,7 +480,7 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
@@ -597,17 +597,17 @@ end
   # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
   # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
   @unpack gamma = equations
-  
+
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`
-  V1, V2, V5 = w * (gamma - 1)
-  
+  V1, V2, V5 = w .* (gamma - 1)
+
   # specific entropy, eq. (53)
   s = gamma - V1 + 0.5 * (V2^2) / V5
-  
+
   # eq. (52)
   energy_internal = ((gamma - 1) / (-V5)^gamma)^inv(gamma - 1) * exp(-s / (gamma - 1))
-  
+
   # eq. (51)
   rho    = -V5 * energy_internal
   rho_v1 = V2 * energy_internal

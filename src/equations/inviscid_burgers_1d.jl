@@ -73,7 +73,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::InviscidBurgersEquation1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 

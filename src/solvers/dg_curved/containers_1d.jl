@@ -1,6 +1,6 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors, 
+  @unpack node_coordinates, left_neighbors,
           jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   # Calculate node coordinates, Jacobian matrix, and inverse Jacobian determinant
@@ -29,10 +29,10 @@ function calc_node_coordinates!(node_coordinates, cell_x, mapping, mesh::CurvedM
 
   # Get cell length in reference mesh
   dx = 2 / size(mesh, 1)
-  
+
   # Calculate node coordinates of reference mesh
   cell_x_offset = -1 + (cell_x-1) * dx + dx/2
-  
+
   for i in eachnode(basis)
     # node_coordinates are the mapped reference node_coordinates
     node_coordinates[1, i, cell_x] = mapping(cell_x_offset + dx/2 * nodes[i])[1]
@@ -41,10 +41,10 @@ end
 
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
-function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::AbstractArray{<:Any,3}, 
-                            basis::LobattoLegendreBasis)
+function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::AbstractArray{<:Any,3},
+                               basis::LobattoLegendreBasis)
   @views mul!(jacobian_matrix[1, 1, :, element], basis.derivative_matrix, node_coordinates[1, :, element]) # x_ξ
-  
+
   return jacobian_matrix
 end
 

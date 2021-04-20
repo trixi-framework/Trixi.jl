@@ -114,7 +114,7 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2},
+function create_cache(mesh::ParallelTreeMesh{2}, equations,
                       dg::DG, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -260,7 +260,7 @@ function init_mpi_data_structures(mpi_neighbor_interfaces, ndims, nvars, n_nodes
 end
 
 
-function rhs!(du::AbstractArray{<:Any,4}, u, t,
+function rhs!(du, u, t,
               mesh::ParallelTreeMesh{2}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
@@ -269,7 +269,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 
   # Prolong solution to MPI interfaces
   @_timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(
-    cache, u, equations, dg)
+    cache, u, mesh, equations, dg)
 
   # Start to send MPI data
   @_timeit timer() "start MPI send" start_mpi_send!(
@@ -280,35 +280,36 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 
   # Calculate volume integral
   @_timeit timer() "volume integral" calc_volume_integral!(
-    du, u, have_nonconservative_terms(equations), equations,
+    du, u, mesh,
+    have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
   # TODO: Taal decide order of arguments, consistent vs. modified cache first?
   @_timeit timer() "prolong2interfaces" prolong2interfaces!(
-    cache, u, equations, dg)
+    cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
   @_timeit timer() "interface flux" calc_interface_flux!(
-    cache.elements.surface_flux_values,
+    cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg, cache)
 
   # Prolong solution to boundaries
   @_timeit timer() "prolong2boundaries" prolong2boundaries!(
-    cache, u, equations, dg)
+    cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
   @_timeit timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, equations, dg)
+    cache, t, boundary_conditions, mesh, equations, dg)
 
   # Prolong solution to mortars
   @_timeit timer() "prolong2mortars" prolong2mortars!(
-    cache, u, equations, dg.mortar, dg)
+    cache, u, mesh, equations, dg.mortar, dg)
 
   # Calculate mortar fluxes
   @_timeit timer() "mortar flux" calc_mortar_flux!(
-    cache.elements.surface_flux_values,
+    cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg.mortar, dg, cache)
 
@@ -318,17 +319,17 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 
   # Calculate MPI interface fluxes
   @_timeit timer() "MPI interface flux" calc_mpi_interface_flux!(
-    cache.elements.surface_flux_values,
+    cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg, cache)
 
   # Calculate surface integrals
   @_timeit timer() "surface integral" calc_surface_integral!(
-    du, equations, dg, cache)
+    du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
   @_timeit timer() "Jacobian" apply_jacobian!(
-    du, equations, dg, cache)
+    du, mesh, equations, dg, cache)
 
   # Calculate source terms
   @_timeit timer() "source terms" calc_sources!(
@@ -341,7 +342,8 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
+function prolong2mpiinterfaces!(cache, u,
+                                mesh::ParallelTreeMesh{2},
                                 equations, dg::DG)
   @unpack mpi_interfaces = cache
 
@@ -375,7 +377,8 @@ function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
 end
 
 
-function calc_mpi_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
+function calc_mpi_interface_flux!(surface_flux_values,
+                                  mesh::ParallelTreeMesh{2},
                                   nonconservative_terms::Val{false}, equations,
                                   dg::DG, cache)
   @unpack surface_flux = dg
