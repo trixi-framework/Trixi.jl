@@ -77,6 +77,12 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug plot(pd["p"])
       @test_nowarn_debug plot(getmesh(pd))
     end
+
+    @testset "1D plot from 2D solution"
+      @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+      pd1D = PlotData1D(sol)
+      @test_nowarn_debug plot(pd1D)
+    end
   end
 
   @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin

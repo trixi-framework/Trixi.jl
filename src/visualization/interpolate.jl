@@ -176,6 +176,78 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   return unstructured_data, new_coordinates, new_levels, center_level_0
 end
 
+# Convert 2d unstructured data to 1d stripe.
+function unstructured_1d_to_2d(original_nodes, unstructured_data, stripe_axis, stripe_axis_intercept)
+
+  if stripe_axis === :x
+    stripe_axis_dimension = 2
+    other_dimension = 1
+  elseif stripe_axis === :y
+    stripe_axis_dimension = 1
+    other_dimension = 2
+  else
+    error("illegal dimension '$stripe_axis', supported dimensions are :x and :y")
+  end
+
+  # Set up data structures to stroe new 1D data.
+  @views new_unstructured_data = similar(unstructured_data[1, ..])
+  @views new_nodes = similar(original_nodes[1, 1, ..])
+
+  n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  # Test if stripe_axis_intercept lies in the domain.
+  lower_limit = original_nodes[1, 1, 1, 1]
+  upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_elements]
+
+  if stripe_axis_intercept < lower_limit || stripe_axis_intercept > upper_limit
+    error(string("stripe_axis_intercept = $stripe_axis_intercept is outside of domain. ",
+        "must be between $lower_limit and $upper_limit"))
+  end
+
+  # Count the amount of new elements.
+  new_id = 0
+
+  # Permute dimensions so that the stripe dimension is always correct place for later use.
+  if stripe_axis === :y
+    original_nodes = permutedims(original_nodes, [1, 3, 2, 4])
+    unstructured_data = permutedims(unstructured_data, [2, 1, 3, 4])
+  end
+
+  # Iterate over all elements to find the ones that lie on the stripe axis.
+  for element_id in 1:n_elements
+    min_coordinate = original_nodes[:, 1, 1, element_id]
+    max_coordinate = original_nodes[:, n_nodes_in, n_nodes_in, element_id]
+    element_length = max_coordinate - min_coordinate
+
+    # Test if the element is on the stripe axis. If not just continue with the next element.
+    if !((min_coordinate[stripe_axis_dimension] <= stripe_axis_intercept &&
+        max_coordinate[stripe_axis_dimension] > stripe_axis_intercept) ||
+        (stripe_axis_intercept == upper_limit && max_coordinate[stripe_axis_intercept] == upper_limit))
+
+        continue
+    end
+
+    new_id += 1
+
+    # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
+    normalized_intercept =
+          (stripe_axis_intercept - min_coordinate[stripe_axis_dimension]) /
+          element_length[1] * 2 - 1
+    vandermonde = polynomial_interpolation_matrix(nodes_in, normalized_intercept)
+
+    # Interpolate to each node of new 1D element.
+    for v in 1:n_variables
+      for node in 1:n_nodes_in
+        new_unstructured_data[node, new_id, v] = (vandermonde*unstructured_data[node, :, element_id, v])[1]
+      end
+    end
+
+    new_nodes[:, new_id] = original_nodes[other_dimension, :, 1, element_id]
+  end
+
+  return reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :]
+end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
 #
