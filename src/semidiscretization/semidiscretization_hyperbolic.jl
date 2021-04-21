@@ -167,7 +167,6 @@ end
 end
 
 
-#TODO
 function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic, cache_analysis)
   @unpack mesh, equations, initial_condition, solver, cache = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
