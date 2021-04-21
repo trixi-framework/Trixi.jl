@@ -79,7 +79,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+      @test_nowarn_debug PlotData1D(sol, stripe_axis=:y, stripe_axis_intercept=-0.5) isa PlotData1D
       pd1D = PlotData1D(sol)
       @test_nowarn_debug plot(pd1D)
     end
