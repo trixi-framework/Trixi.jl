@@ -3,19 +3,17 @@
 # If you want to use Trixi for your own research, you might be interested in
 # a new physics model that's not already included in Trixi.jl. In this tutorial,
 # we will implement the cubic conservation law
-#  ```math
-#  \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
-#  ```
+# ```math
+# \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
+# ```
 #  in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
 #  is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
-  
   
 # # Basic setup
   
 # Let's start by creating a module (in the REPL, in a file, in a Jupyter notebook, ...).
 # That ensures that we can re-create `struct`s defined therein without having to
 # restart Julia.
-  
 module CubicConservationLaw
   
   using Trixi
@@ -34,7 +32,8 @@ end # module
 # The complete code can be found at the end.
 # Next, we define the physical flux `f(u) = u^3` using the calling structure
 # used in Trixi.jl.
-
+using Trixi
+import .CubicConservationLaw
 Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
 
 # In Trixi.jl, the conserved variables `u` are usually passed as `SVector`s of variables
