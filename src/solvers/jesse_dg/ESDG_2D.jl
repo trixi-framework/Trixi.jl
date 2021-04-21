@@ -43,7 +43,7 @@ function hadsum_ATr!(rhs,ATr,F::Fxn,u; skip_index=(i,j)->false) where {Fxn}
         val_i = rhs[i]
         for j in rows
             if !skip_index(i,j)
-                val_i .+= ATr[j,i].*F(ui,u[j]) # breaks for tuples
+                val_i .+= ATr[j,i].*F(ui,u[j]) # breaks for tuples, OK for StaticArrays
             end
         end
         rhs[i] .= val_i
@@ -76,7 +76,7 @@ function tmap!(out,f,x)
     end
 end
 
-project_and_store!(y,x) = matmul!(y,Ph,x)
+project_and_store!(y,x) = mul!(y,Ph,x) # how to use matmul! ?
 
 Base.real(rd::RefElemData) = Float64 # is this for DiffEq.jl?
 
@@ -98,8 +98,9 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, 
     VUh = StructArray(staticzip(SVector{4},ntuple(_->similar([md.xq;md.xf]),4)))
     Uh = similar(VUh)
 
-    cache = (;md,QrhskewTr,QshskewTr,VhP,Ph,
-             Uq,VUq,VUh,Uh,Uf)
+    cache = (;md,
+            QrhskewTr,QshskewTr,VhP,Ph,
+            Uq,VUq,VUh,Uh,Uf)
 
     return cache
 end
@@ -109,8 +110,10 @@ function compute_entropy_projection!(Q,rd::RefElemData,cache,equations)
     @unpack QrhskewTr,QshskewTr,VhP,Ph = cache
     @unpack Uq, VUq, VUh, Uh, Uf = cache
 
+    Nh,Nq = size(VhP)
+
     # entropy projection - should be zero alloc
-    StructArrays.foreachfield((uout,u)->matmul!(uout,rd.Vq,u),Uq,U)
+    StructArrays.foreachfield((uout,u)->matmul!(uout,rd.Vq,u),Uq,Q)
     VUq .= (u->cons2entropy(u,eqn)).(Uq)
     StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq)
     Uh .= (v->entropy2cons(v,eqn)).(VUh) 
@@ -119,7 +122,7 @@ function compute_entropy_projection!(Q,rd::RefElemData,cache,equations)
     return Uh,Uf
 end
 
-function Trixi.rhs!(du, u::StructArray, t,
+function Trixi.rhs!(dQ, Q::StructArray, t,
                     mesh::UnstructuredMesh, equations::CompressibleEulerEquations2D,
                     initial_condition, boundary_conditions, source_terms,
                     rd::RefElemData, cache)
@@ -129,20 +132,17 @@ function Trixi.rhs!(du, u::StructArray, t,
     @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
     @unpack Vq,wf = rd
 
-    # unpack VecOfArray storage for bcast    
-    Q = u.u 
-    dQ = du.u
-
     Nh,Nq = size(VhP)
 
     @inline F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations2D(1.4))
 
     Uh, Uf = compute_entropy_projection!(Q,rd,cache,equations)
     
-    rhse = similar(Uh[:,1]) # preallocate storage to be reused 
-    Trixi.@threaded for e = 1:md.K
+    rhse = StructArray([MVector{4}(zeros(4)) for i = 1:length(Uh[:,1])]) #
+    # rhse = similar(Uh[:,1]) # preallocate storage to be reused 
+    for e = 1:md.K
         fill!(rhse,zeros(Trixi.nvariables(eqn))) # reset contributions
-        Ue = view.(Uh,:,e)
+        Ue = view(Uh,:,e)
         QxTr = LazyArray(@~ 2 .*(rxJ[1,e].*QrhskewTr .+ sxJ[1,e].*QshskewTr)) 
         QyTr = LazyArray(@~ 2 .*(ryJ[1,e].*QrhskewTr .+ syJ[1,e].*QshskewTr))
 
@@ -238,10 +238,10 @@ zz = rd.Vp*Q[1]
 scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
 
 # # LaxFriedrichs(flux_ranocha)
-# mesh = UnstructuredMesh((VX,VY),EToV)
-# eqns = CompressibleEulerEquations2D(1.4)
-# cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
-# Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
-# dQ = similar(Q)
-# Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
-# Trixi.rhs!(dQ,Q,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
+mesh = UnstructuredMesh((VX,VY),EToV)
+eqns = CompressibleEulerEquations2D(1.4)
+cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
+Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
+dQ = similar(Q)
+Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
+Trixi.rhs!(dQ,Q,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
