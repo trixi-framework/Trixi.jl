@@ -143,7 +143,7 @@ function PlotData2D(u, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, 
   x = vec(view(node_coordinates, 1, ..))
   y = vec(view(node_coordinates, 2, ..))
 
-  data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
+  data = [vec(unstructured_data[.., v]) for v in eachvariable(equations)]
 
   if grid_lines
     mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
