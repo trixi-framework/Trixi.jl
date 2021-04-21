@@ -1,11 +1,11 @@
 """
-    adapt_to_mesh_level!(u_ode::AbstractVector, semi, level)
+    adapt_to_mesh_level!(u_ode, semi, level)
     adapt_to_mesh_level!(sol::Trixi.TrixiODESolution, level)
 
 Like [`adapt_to_mesh_level`](@ref), but modifies the solution and parts of the
 semidiscretization (mesh and caches) in place.
 """
-function adapt_to_mesh_level!(u_ode::AbstractVector, semi, level)
+function adapt_to_mesh_level!(u_ode, semi, level)
   # Create AMR callback with controller that refines everything towards a single level
   amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first), base_level=level)
   amr_callback = AMRCallback(semi, amr_controller, interval=0)
@@ -23,7 +23,7 @@ adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[
 
 
 """
-    adapt_to_mesh_level(u_ode::AbstractVector, semi, level)
+    adapt_to_mesh_level(u_ode, semi, level)
     adapt_to_mesh_level(sol::Trixi.TrixiODESolution, level)
 
 Use the regular adaptive mesh refinement routines to adaptively refine/coarsen the solution `u_ode`
@@ -38,7 +38,7 @@ extracted as needed.
 
 See also: [`adapt_to_mesh_level!`](@ref)
 """
-function adapt_to_mesh_level(u_ode::AbstractVector, semi, level)
+function adapt_to_mesh_level(u_ode, semi, level)
   # Create new semidiscretization with copy of the current mesh
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
   new_semi = remake(semi, mesh=deepcopy(mesh))

@@ -167,6 +167,7 @@ end
 end
 
 
+#TODO
 function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic, cache_analysis)
   @unpack mesh, equations, initial_condition, solver, cache = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -186,7 +187,7 @@ function compute_coefficients(t, semi::SemidiscretizationHyperbolic)
   compute_coefficients(semi.initial_condition, t, semi)
 end
 
-function compute_coefficients!(u_ode::AbstractVector, t, semi::SemidiscretizationHyperbolic)
+function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolic)
   compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
