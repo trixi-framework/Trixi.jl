@@ -1,6 +1,6 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors, 
+  @unpack node_coordinates, left_neighbors,
           jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
@@ -64,9 +64,9 @@ end
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,5}, element, jacobian_matrix)
   # First contravariant vector Ja^1
   @. @views contravariant_vectors[1, 1, :, :, element] =  jacobian_matrix[2, 2, :, :, element]
-  @. @views contravariant_vectors[1, 2, :, :, element] = -jacobian_matrix[1, 2, :, :, element]
+  @. @views contravariant_vectors[2, 1, :, :, element] = -jacobian_matrix[1, 2, :, :, element]
   # Second contravariant vector Ja^2
-  @. @views contravariant_vectors[2, 1, :, :, element] = -jacobian_matrix[2, 1, :, :, element]
+  @. @views contravariant_vectors[1, 2, :, :, element] = -jacobian_matrix[2, 1, :, :, element]
   @. @views contravariant_vectors[2, 2, :, :, element] =  jacobian_matrix[1, 1, :, :, element]
 
   return contravariant_vectors

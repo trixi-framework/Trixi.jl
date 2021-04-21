@@ -651,7 +651,7 @@ Entropy conserving two-point flux by
   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations""
   arXiv:1904.00972v3 [math.NA] 4 Feb 2020
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations2D)
   # Unpack left and right state
   @unpack gammas, gas_constants, cv = equations
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
@@ -718,7 +718,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 

@@ -1,7 +1,6 @@
 
-function limiter_zhang_shu!(u::AbstractArray{<:Any,5},
-                            threshold::Real, variable,
-                            mesh, equations, dg::DGSEM, cache)
+function limiter_zhang_shu!(u, threshold::Real, variable,
+                            mesh::AbstractMesh{3}, equations, dg::DGSEM, cache)
   @unpack weights = dg.basis
 
   @threaded for element in eachelement(dg, cache)

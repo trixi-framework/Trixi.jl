@@ -37,6 +37,11 @@ makedocs(
         "Home" => "index.md",
         "Visualization" => "visualization.md",
         "Conventions" => "conventions.md",
+        "Meshes" => [
+            "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
+            "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
+            "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
+        ],
         "Time integration" => "time_integration.md",
         "Callbacks" => "callbacks.md",
         "Development" => "development.md",

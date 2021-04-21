@@ -618,6 +618,21 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux(u, normal::AbstractVector, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+
+  v_normal = v1 * normal[1] + v2 * normal[2]
+  rho_v_normal = rho * v_normal
+  f1 = rho_v_normal
+  f2 = rho_v_normal * v1 + p * normal[1]
+  f3 = rho_v_normal * v2 + p * normal[2]
+  f4 = (rho_e + p) * v_normal
+  return SVector(f1, f2, f3, f4)
+end
+
 
 """
     function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
@@ -632,7 +647,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
 """
-@inline function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+@inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -679,7 +694,7 @@ Kinetic energy preserving two-point flux by
   Navier-Stokes equations for a compressible fluid
   [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -723,7 +738,7 @@ Entropy conserving two-point flux by
   for Compressible Euler and Navier-Stokes Equations
   [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -780,7 +795,7 @@ See also
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -819,7 +834,8 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+# TODO: This doesn't really use the `orientation` - should it?
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
@@ -838,9 +854,13 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
+@inline function max_abs_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations2D)
+  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal)
+end
+
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
@@ -872,13 +892,14 @@ end
   c = normal[1]
   s = normal[2]
 
-  # Clockwise rotation by α
-  # Multiply with [ 1     0       0     0;
-  #                 0   cos(α)  sin(α)  0;
-  #                 0  -sin(α)  cos(α)  0;
-  #                 0     0       0     1 ]
+  # Apply the 2D rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  n_2  0;
+  #   0   t_1  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
 
-  return SVector(u[1], 
+  return SVector(u[1],
                  c * u[2] + s * u[3],
                  -s * u[2] + c * u[3],
                  u[4])
@@ -891,13 +912,14 @@ end
   c = normal[1]
   s = normal[2]
 
-  # Counterclockwise rotation by α
-  # Multiply with [ 1    0       0      0;
-  #                 0  cos(α)  -sin(α)  0;
-  #                 0  sin(α)  cos(α)   0;
-  #                 0    0       0      1 ]
+  # Apply the 2D back-rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  t_1  0;
+  #   0   n_2  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
 
-  return SVector(u[1], 
+  return SVector(u[1],
                  c * u[2] - s * u[3],
                  s * u[2] + c * u[3],
                  u[4])
@@ -911,7 +933,7 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -1053,18 +1075,18 @@ end
   # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
   # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
   @unpack gamma = equations
-  
+
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`
-  V1, V2, V3, V5 = w * (gamma-1)
-  
-  # s = specific entropy, eq. (53)    
+  V1, V2, V3, V5 = w .* (gamma-1)
+
+  # s = specific entropy, eq. (53)
   s = gamma - V1 + (V2^2 + V3^2)/(2*V5)
 
   # eq. (52)
   rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
 
-  # eq. (51)  
+  # eq. (51)
   rho      = -rho_iota * V5
   rho_v1   =  rho_iota * V2
   rho_v2   =  rho_iota * V3

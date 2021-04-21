@@ -92,6 +92,30 @@ end
 
 
 """
+    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                        surface_flux_function,
+                                        equations::CompressibleEulerEquations3D)
+
+Boundary conditions used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref) and [`source_terms_convergence_test`](@ref).
+"""
+function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations3D)
+  u_boundary = initial_condition_convergence_test(x, t, equations)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
+
+
+"""
     initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations3D)
 
 A Gaussian pulse in the density with constant velocity and pressure; reduces the
@@ -443,6 +467,23 @@ end
   return SVector(f1, f2, f3, f4, f5)
 end
 
+@inline function flux(u, normal::AbstractVector, equations::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  v3 = rho_v3/rho
+  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+
+  v_normal = v1 * normal[1] + v2 * normal[2] + v3 * normal[3]
+  rho_v_normal = rho * v_normal
+  f1 = rho_v_normal
+  f2 = rho_v_normal * v1 + p * normal[1]
+  f3 = rho_v_normal * v2 + p * normal[2]
+  f4 = rho_v_normal * v3 + p * normal[3]
+  f5 = (rho_e + p) * v_normal
+  return SVector(f1, f2, f3, f4, f5)
+end
+
 
 """
     function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
@@ -457,7 +498,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
 """
-@inline function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+@inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
@@ -516,7 +557,7 @@ Kinetic energy preserving two-point flux by
   Navier-Stokes equations for a compressible fluid
   [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
@@ -571,7 +612,7 @@ Entropy conserving two-point flux by
   for Compressible Euler and Navier-Stokes Equations
   [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
@@ -639,7 +680,7 @@ See also
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
@@ -689,7 +730,8 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+# TODO: This doesn't really use the `orientation` - should it?
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
@@ -710,9 +752,13 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
+@inline function max_abs_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations3D)
+  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal)
+end
+
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
@@ -749,7 +795,7 @@ end
   #                 0   ―   tangent1   ―   0;
   #                 0   ―   tangent2   ―   0;
   #                 0   0      0       0   1 ]
-  return SVector(u[1], 
+  return SVector(u[1],
                  normal[1]   * u[2] + normal[2]   * u[3] + normal[3]   * u[4],
                  tangent1[1] * u[2] + tangent1[2] * u[3] + tangent1[3] * u[4],
                  tangent2[1] * u[2] + tangent2[2] * u[3] + tangent2[3] * u[4],
@@ -764,7 +810,7 @@ end
   #                 0  normal tangent1 tangent2  0;
   #                 0    |       |        |      0;
   #                 0    0       0        0      1 ]
-  return SVector(u[1], 
+  return SVector(u[1],
                  normal[1] * u[2] + tangent1[1] * u[3] + tangent2[1] * u[4],
                  normal[2] * u[2] + tangent1[2] * u[3] + tangent2[2] * u[4],
                  normal[3] * u[2] + tangent1[3] * u[3] + tangent2[3] * u[4],
@@ -779,7 +825,7 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
@@ -950,20 +996,20 @@ end
 
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`
-  V1,V2,V3,V4,V5 = w * (gamma-1) 
+  V1, V2, V3, V4, V5 = w .* (gamma-1)
 
-  # s = specific entropy, eq. (53)      
+  # s = specific entropy, eq. (53)
   V_square    = V2^2 + V3^2 + V4^2
   s = gamma - V1 + V_square/(2*V5)
 
-  # eq. (52)  
+  # eq. (52)
   rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
 
-  # eq. (51)    
+  # eq. (51)
   rho     = -rho_iota * V5
   rho_v1  =  rho_iota * V2
   rho_v2  =  rho_iota * V3
-  rho_v3  =  rho_iota * V4  
+  rho_v3  =  rho_iota * V4
   rho_e   =  rho_iota*(1-V_square/(2*V5))
   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end

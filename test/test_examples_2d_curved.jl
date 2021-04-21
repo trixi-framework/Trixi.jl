@@ -45,19 +45,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
         linf = [4.906526503622999e-5],
         alpha = 0.1)
     end
-    
+
     @testset "elixir_advection_rotated.jl with α = 0.5 * pi" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
         l2   = [7.013143474176369e-6],
         linf = [4.906526503622999e-5],
         alpha = 0.5 * pi)
     end
-  end
-  
-  @testset "elixir_advection_restart_curved.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
-      l2   = [6.398955192910044e-6],
-      linf = [3.474337336717426e-5])
   end
 
   @testset "elixir_advection_parallelogram.jl" begin
@@ -82,6 +76,28 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic_curved.jl"),
       l2   = [0.00023766972629056245],
       linf = [0.004142508319267935])
+  end
+
+  @testset "elixir_advection_restart_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
+      l2   = [6.398955192910044e-6],
+      linf = [3.474337336717426e-5])
+  end
+
+  @testset "elixir_advection_restart_curved.jl with waving flag mesh" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
+      l2   = [0.00017274040834067234],
+      linf = [0.0015435741643734513],
+      elixir_file="elixir_advection_waving_flag.jl",
+      restart_file="restart_000041.h5")
+  end
+
+  @testset "elixir_advection_restart_curved.jl with free stream mesh" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
+      l2   = [6.639325026542281e-15],
+      linf = [1.829647544582258e-13],
+      elixir_file="elixir_advection_free_stream_curved.jl",
+      restart_file="restart_000068.h5")
   end
 
   @testset "elixir_euler_source_terms_curved.jl" begin
@@ -111,7 +127,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [8.357487707666422e-6, 4.287882448716918e-6, 1.4423290043641401e-5, 4.496211536153538e-5],
       alpha = 0.2 * pi)
     end
-    
+
     @testset "elixir_euler_source_terms_rotated.jl with α = 0.5 * pi" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
       l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
@@ -134,6 +150,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
   @testset "elixir_euler_free_stream_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_curved.jl"),
+      l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
+      linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13])
+  end
+
+  @testset "elixir_euler_free_stream_curved.jl with FluxRotated(flux_lax_friedrichs)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_curved.jl"),
+      surface_flux=FluxRotated(flux_lax_friedrichs),
       l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
       linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13])
   end
