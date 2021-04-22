@@ -6,9 +6,9 @@
 # ```math
 # \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
 # ```
-#  in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
-#  is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
-  
+# in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
+# is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
+
 # # Basic setup
   
 # Let's start by creating a module (in the REPL, in a file, in a Jupyter notebook, ...).
@@ -19,7 +19,7 @@ module CubicConservationLaw
   using Trixi
   
   struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
-                                                  1 #= number of primary variables, i.e. scalar =#}
+                                                  1 #= number of primary variables, i.e. scalar =#};
   end
   
 end # module
@@ -34,7 +34,10 @@ end # module
 # used in Trixi.jl.
 using Trixi
 import .CubicConservationLaw
-Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
+
+Trixi.flux(u, orientation, equation::CubicConservationLaw.CubicEquation) = u.^3
+Trixi.varnames(::typeof(cons2cons), ::CubicConservationLaw.CubicEquation) = ("u")
+Trixi.varnames(::typeof(cons2prim), ::CubicConservationLaw.CubicEquation) = ("u")
 
 # In Trixi.jl, the conserved variables `u` are usually passed as `SVector`s of variables
 # at a single physical location. Hence, we must use `u.^3` instead of the scalar
@@ -45,17 +48,15 @@ Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
 # of our new `module`.
 
 ## Create a simulation setup
-import .CubicConservationLaw
-using Trixi
 using OrdinaryDiffEq
   
 equation = CubicConservationLaw.CubicEquation()
   
 initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation) = SVector(sinpi(x[1]))
   
-mesh = mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
-                       initial_refinement_level=4,
-                       n_cells_max=10^4)
+mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
+                initial_refinement_level=4,
+                n_cells_max=10^4)
   
 solver = DGSEM(3 #= polynomial degree =#, flux_central)
   
@@ -63,7 +64,7 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
   
 ## Create ODE problem with given time span
 tspan = (0.0, 0.09)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan);
 
 # We wrap the return value of the `initial_condition_sine` inside an `SVector` since that's the approach
 # used in Trixi.jl also for systems of equations. We need to index the spatial coordinate `x[1]`,
@@ -80,7 +81,7 @@ callbacks = CallbackSet(summary_callback)
   
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, maxiters=1e5);
   
 ## Print the timer summary
 summary_callback()
@@ -88,10 +89,10 @@ summary_callback()
 # That's it, you ran your first simulation using your new equation with Trixi! Now,
 # we can plot the solution at the final time using Plots.jl.
 
+using Plots
 plot(sol)
   
-  
-# ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
+#md ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
   
 # You can already see that discontinuities will develop and oscillations start to
 # occur around steep parts of the wave. That's expected from our central discretization.
@@ -104,7 +105,7 @@ plot(sol)
 # Thus, we add a Godunov's flux for our cubic equation. That is easy for this equation
 # since the wave speed `f'(u) = 3u^2` is always non-negative.
 
-@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
+@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicConservationLaw.CubicEquation) = flux(u_ll, orientation, equation)
 
 # Let's run the example again but with a dissipative numerical flux at interfaces.
 # `remake` will recreate the semidiscretization we used before and only change
@@ -118,7 +119,7 @@ sol = solve(ode, SSPRK43(),
 summary_callback()
 plot!(sol)
   
-# ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
+#md ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
   
 # You can see that there are fewer oscillations, in particular around steep edges.
 # Now let's increase the final time (and also the spatial resolution).
@@ -130,15 +131,14 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 
-  
-# ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
+#md ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
   
 # You can observe that nonclassical shocks develop and are stable under grid refinement,
 # e.g. for `initial_refinement_level=12`. In this case, these nonclassical shocks
 # can be avoided by using an entropy-dissipative semidiscretization. Thus, we need
 # to define an entropy-conservative numerical flux
 
-@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
+@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicConservationLaw.CubicEquation)
   return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
 end
 
@@ -152,7 +152,7 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 
-# ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
+#md ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
   
 # Possible next steps could be
 # - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`
@@ -235,6 +235,6 @@ ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(), save_everystep=false);
 plot(sol);
   
-## output
-Plot{Plots.GRBackend() n=1}
+# output
+# Plot{Plots.GRBackend() n=1}
   

@@ -2,27 +2,23 @@ using Documenter
 using Literate
 using Trixi
 
-# filename = first_example
-# Literate.notebook(joinpath(repo_src,filename), notebooks_dir)
-title = "first_example.jl"
-tutorial_title = string("# # Tutorial ", 1, ": ", title)
+# For title, preprocessing, ... look into `make.jl` of `gridap/Tutorials`
+tutorial_file = "Start"
+Literate.notebook(joinpath(@__DIR__,"files/index.jl"), joinpath(@__DIR__,"notebooks"); name=tutorial_file, execute=false)
+Literate.markdown(joinpath(@__DIR__,"files/index.jl"), joinpath(@__DIR__,"src"); name=tutorial_file, codefence="```julia" => "```")
 
-# Generate notebooks
-function preprocess_notebook(content)
-  return string(tutorial_title, "\n\n", content)
-end
+tutorial_file = "First example"
+Literate.notebook(joinpath(@__DIR__,"files/first_example.jl"), joinpath(@__DIR__,"notebooks"); name=tutorial_file, execute=false)
+Literate.markdown(joinpath(@__DIR__,"files/first_example.jl"), joinpath(@__DIR__,"src"); name=tutorial_file, codefence="```julia" => "```")
 
-# Generate markdown
-function preprocess_docs(content)
-  return string(tutorial_title, "\n\n", content)#"\n", binder_badge, "\n", nbviwer_badge, "\n\n", content)
-end
-Literate.notebook(joinpath(@__DIR__,"files/index.jl"), joinpath(@__DIR__,"notebooks"); preprocess=preprocess_notebook)
-Literate.markdown(joinpath(@__DIR__,"files/index.jl"), joinpath(@__DIR__,"src"); preprocess=preprocess_docs, codefence="```julia" => "```")
+tutorial_file = "Adding a new equation"
+Literate.notebook(joinpath(@__DIR__,"files/adding_a_new_equation.jl"), joinpath(@__DIR__,"notebooks"); name=tutorial_file, execute=false)
+Literate.markdown(joinpath(@__DIR__,"files/adding_a_new_equation.jl"), joinpath(@__DIR__,"src"); name=tutorial_file, codefence="```julia" => "```")
 
-Literate.notebook(joinpath(@__DIR__,"files/first_example.jl"), joinpath(@__DIR__,"notebooks"); preprocess=preprocess_notebook)
-Literate.markdown(joinpath(@__DIR__,"files/first_example.jl"), joinpath(@__DIR__,"src"); preprocess=preprocess_docs, codefence="```julia" => "```")
-
-# Literate.notebook(joinpath(@__DIR__,"files/adding_a_new_equation.jl"), joinpath(@__DIR__,"notebooks"); preprocess=preprocess_notebook)
-Literate.markdown(joinpath(@__DIR__,"files/adding_a_new_equation.jl"), joinpath(@__DIR__,"src"); preprocess=preprocess_docs, codefence="```julia" => "```")
+tutorial_file = "Differentiable programming"
+Literate.notebook(joinpath(@__DIR__,"files/differentiable_programming.jl"), joinpath(@__DIR__,"notebooks"); name=tutorial_file, execute=false)
+Literate.markdown(joinpath(@__DIR__,"files/differentiable_programming.jl"), joinpath(@__DIR__,"src"); name=tutorial_file, codefence="```julia" => "```")
 
 makedocs(sitename="My Documentation")# , root = joinpath(@__DIR__, "out", "markdowns"))
+
+# Run notebook with `notebook(joinpath(@__DIR__, "docs/src/tutorials/notebooks))`

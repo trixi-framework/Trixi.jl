@@ -10,7 +10,10 @@ y = 2//5
 # When adding `x` and `y` together we obtain a new rational number:
 
 z = x + y
-
+x=range(-1, 1, length=50)
+y=rand(50)
+using Plots
+plot(x, y)
 # Test for latex:
 # ```math
 # \left\lbrace
