@@ -8,7 +8,10 @@ simulation setups, called *elixirs* in Trixi, are provided in the
 [examples](https://github.com/trixi-framework/Trixi.jl/blob/main/examples)
 folder.
 
-Trixi uses the method of lines. Thus, the main ingredients of an elixir designed
+Trixi uses the method of lines, i.e., the full space-time discretization is separated into two steps;
+the spatial semidiscretization is performed at first and the resulting ODE system is solved numerically
+using a suitable time integration method. 
+Thus, the main ingredients of an elixir designed
 to solve a PDE numerically are the spatial semidiscretization and the time
 integration scheme.
 
