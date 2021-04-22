@@ -25,6 +25,12 @@ mutable struct TimeseriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables,
   output_directory::String
   filename::String
   point_coordinates::Array{RealT, 2}
+  # Point data is stored as a vector of vectors of the solution data type:
+  # * the "outer" `Vector` contains one vector for each point at which a timeseries is recorded
+  # * the "inner" `Vector` contains the actual time series for a single point,
+  #   with each record  adding "n_vars" entries
+  # The reason for using this data structure is that the length of the inner vectors needs to be
+  # increased for each record, which can only be realized in Julia using ordinary `Vector`s.
   point_data::Vector{Vector{uEltype}}
   time::Vector{RealT}
   step::Vector{Int}
