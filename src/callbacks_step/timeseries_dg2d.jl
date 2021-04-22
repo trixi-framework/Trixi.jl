@@ -1,4 +1,5 @@
 
+# Creates cache for time series callback
 function create_cache_timeseries(point_coordinates, mesh::TreeMesh{2}, dg, cache)
   # Determine element ids for point coordinates
   element_ids = get_elements_by_coordinates(point_coordinates, mesh, dg, cache)
@@ -13,6 +14,7 @@ function create_cache_timeseries(point_coordinates, mesh::TreeMesh{2}, dg, cache
 end
 
 
+# Find element ids containing coordinates given as a matrix [ndims, npoints]
 function get_elements_by_coordinates!(element_ids, coordinates, mesh::TreeMesh, dg, cache)
   @assert length(element_ids) == size(coordinates, 2) "size mismatch"
 
@@ -66,6 +68,8 @@ function get_elements_by_coordinates(coordinates, mesh, dg, cache)
 end
 
 
+# Calculate the interpolating polynomials to extract data at the given coordinates
+# The coordinates are known to be located in the respective element in `element_ids`
 function calc_interpolating_polynomials!(interpolating_polynomials, coordinates, element_ids,
                                          mesh::TreeMesh, dg, cache)
   @unpack tree = mesh
@@ -83,6 +87,7 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
     cell_length = length_at_cell(tree, cell_id)
     unit_coordinates = (x .- cell_coordinates_) * 2 / cell_length
 
+    # Calculate interpolating polynomial for each dimension, making use of tensor product structure
     for d in 1:ndims(mesh)
       interpolating_polynomials[:, d, index] .= lagrange_interpolating_polynomials(
           unit_coordinates[d], nodes, wbary)
@@ -103,19 +108,24 @@ function calc_interpolating_polynomials(coordinates, element_ids, mesh::TreeMesh
 end
 
 
+# Record the solution variables at each given point
 function record_state_at_points!(point_data, u, solution_variables, n_solution_variables,
                                  mesh::TreeMesh{2}, equations, dg::DG, timeseries_cache)
   @unpack element_ids, interpolating_polynomials = timeseries_cache
   old_length = length(first(point_data))
   new_length = old_length + n_solution_variables
 
+  # Loop over all points/elements that should be recorded
   for index in 1:length(element_ids)
+    # Extract data array and element id
     data = point_data[index]
     element_id = element_ids[index]
 
+    # Make room for new data to be recorded
     resize!(data, new_length)
     data[(old_length+1):new_length] .= zero(eltype(data))
 
+    # Loop over all nodes to compute their contribution to the interpolated values
     for j in eachnode(dg), i in eachnode(dg)
       u_node = solution_variables(get_node_vars(u, equations, dg, i, j, element_id), equations)
 

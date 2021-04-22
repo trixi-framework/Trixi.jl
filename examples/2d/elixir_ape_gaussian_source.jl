@@ -61,6 +61,7 @@ analysis_callback = AnalysisCallback(semi, interval=100)
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
+# The TimeseriesCallback records the solution at the given points over time
 timeseries = TimeseriesCallback(semi, [(0.0, 0.0), (-1.0, 0.5)])
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
