@@ -84,7 +84,8 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
     unit_coordinates = (x .- cell_coordinates_) * 2 / cell_length
 
     for d in 1:ndims(mesh)
-      interpolating_polynomials[:, d, index] .= lagrange_interpolating_polynomials(x[d], nodes, wbary)
+      interpolating_polynomials[:, d, index] .= lagrange_interpolating_polynomials(
+          unit_coordinates[d], nodes, wbary)
     end
   end
 
