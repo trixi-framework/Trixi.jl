@@ -1,5 +1,4 @@
 
-#TODO TimeseriesCallback: Rename to `TimeSeriesCallback` and `time_series.jl` for consistency?
 """
     TimeseriesCallback(semi, point_coordinates;
                        interval=1, solution_variables=cons2cons,
