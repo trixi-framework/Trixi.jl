@@ -1,4 +1,4 @@
-# [Conventions](@id conventions)
+# [User-facing conventions](@id conventions)
 
 ## Spatial dimensions and directions
 

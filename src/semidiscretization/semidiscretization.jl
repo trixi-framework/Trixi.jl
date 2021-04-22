@@ -11,14 +11,14 @@ end
 
 
 """
-    integrate_via_indices(func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true)
+    integrate_via_indices(func, u_ode, semi::AbstractSemidiscretization, args...; normalize=true)
 
 Call `func(u, i..., element, equations, solver, args...)` for all nodal indices `i..., element`
 and integrate the result using a quadrature associated with the semidiscretization `semi`.
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate_via_indices(func::Func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true) where {Func}
+function integrate_via_indices(func::Func, u_ode, semi::AbstractSemidiscretization, args...; normalize=true) where {Func}
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -26,14 +26,14 @@ function integrate_via_indices(func::Func, u_ode::AbstractVector, semi::Abstract
 end
 
 """
-    integrate([func=(u_node,equations)->u_node,] u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true)
+    integrate([func=(u_node,equations)->u_node,] u_ode, semi::AbstractSemidiscretization; normalize=true)
 
 Call `func(u_node, equations)` for each vector of nodal variables `u_node` in `u_ode`
 and integrate the result using a quadrature associated with the semidiscretization `semi`.
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate(func::Func, u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true) where {Func}
+function integrate(func::Func, u_ode, semi::AbstractSemidiscretization; normalize=true) where {Func}
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -112,7 +112,7 @@ end
 
 Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
-function compute_coefficients!(u_ode::AbstractVector, func, t, semi::AbstractSemidiscretization)
+function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
   u = wrap_array(u_ode, semi)
   # Call `compute_coefficients` defined by the solver
   compute_coefficients!(u, func, t, mesh_equations_solver_cache(semi)...)
@@ -240,7 +240,7 @@ end
 #   get_element_variables!(element_variables, ..)
 # is used to retrieve such up to date element variables, modifying
 # `element_variables::Dict{Symbol,Any}` in place.
-function get_element_variables!(element_variables, u_ode::AbstractVector, semi::AbstractSemidiscretization)
+function get_element_variables!(element_variables, u_ode, semi::AbstractSemidiscretization)
   u = wrap_array(u_ode, semi)
   get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
 end
@@ -285,7 +285,7 @@ end
 # to avoid stochastic memory errors.
 #
 # Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
-function wrap_array(u_ode::AbstractVector, semi::AbstractSemidiscretization)
+function wrap_array(u_ode, semi::AbstractSemidiscretization)
   wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
@@ -298,7 +298,7 @@ end
 # - nnodes(solver)
 # - real(solver)
 # - create_cache(mesh, equations, solver, RealT)
-# - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
+# - wrap_array(u_ode, mesh, equations, solver, cache)
 # - integrate(func, u, mesh, equations, solver, cache; normalize=true)
 # - integrate_via_indices(func, u, mesh, equations, solver, cache, args...; normalize=true)
 # - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
