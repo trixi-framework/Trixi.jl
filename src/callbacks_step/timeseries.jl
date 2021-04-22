@@ -24,7 +24,7 @@ mutable struct TimeseriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables,
   variable_names::VariableNames
   output_directory::String
   filename::String
-  point_coordinates::Matrix{RealT}
+  point_coordinates::Array{RealT, 2}
   point_data::Vector{Vector{uEltype}}
   time::Vector{RealT}
   step::Vector{Int}
@@ -38,7 +38,6 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeseriesCallback})
   timeseries_callback = cb.affect!
   @unpack interval, solution_variables, output_directory, filename = timeseries_callback
   print(io, "TimeseriesCallback(",
-            "<list of point coordinates>; ",
             "interval=", interval, ", ",
             "solution_variables=", interval, ", ",
             "output_directory=", "\"output_directory\"", ", ",

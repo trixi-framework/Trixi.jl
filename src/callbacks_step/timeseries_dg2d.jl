@@ -71,7 +71,7 @@ end
 # Calculate the interpolating polynomials to extract data at the given coordinates
 # The coordinates are known to be located in the respective element in `element_ids`
 function calc_interpolating_polynomials!(interpolating_polynomials, coordinates, element_ids,
-                                         mesh::TreeMesh, dg, cache)
+                                         mesh::TreeMesh, dg::DGSEM, cache)
   @unpack tree = mesh
   @unpack nodes = dg.basis
 

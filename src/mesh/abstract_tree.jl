@@ -181,7 +181,7 @@ function is_point_in_cell(t::AbstractTree, point_coordinates, cell_id)
   min_coordinates = cell_coordinates_ .- cell_length / 2
   max_coordinates = cell_coordinates_ .+ cell_length / 2
 
-  return all(point_coordinates .>= min_coordinates) && all(point_coordinates .<= max_coordinates)
+  return all(min_coordinates .<= point_coordinates .<= max_coordinates)
 end
 
 
