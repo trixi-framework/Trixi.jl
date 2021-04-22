@@ -538,7 +538,7 @@ function PlotData1D(timeseries_callback::TimeseriesCallback, point_id::Integer)
 
   mesh_vertices_x = Vector{Float64}(undef, 0)
 
-  return PlotData1D(time, data, SVector(variable_names), mesh_vertices_x)
+  return PlotData1D(time, data, SVector(variable_names), mesh_vertices_x, 0)
 end
 
 function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeseriesCallback}, point_id::Integer)
