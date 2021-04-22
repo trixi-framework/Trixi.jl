@@ -35,11 +35,12 @@ makedocs(
     # Explicitly specify documentation structure
     pages = [
         "Home" => "index.md",
-        "Visualization" => "visualization.md",
-        "Conventions" => [
-            "User-facing conventions" => "conventions_user.md",
-            "Internal conventions" => "conventions_internal.md",
+        "Overview" => "overview.md",
+        "Tutorials" => [
+            "Adding a new equation" => "adding_a_new_equation.md",
+            "Differentiable programming" => "differentiable_programming.md",
         ],
+        "Visualization" => "visualization.md",
         "Meshes" => [
             "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
             "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
@@ -47,14 +48,11 @@ makedocs(
         ],
         "Time integration" => "time_integration.md",
         "Callbacks" => "callbacks.md",
+        "Conventions" =>"conventions.md",
         "Development" => "development.md",
         "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
         "Testing" => "testing.md",
-        "Tutorials" => [
-            "Adding a new equation" => "adding_a_new_equation.md",
-            "Differentiable programming" => "differentiable_programming.md",
-        ],
         "Troubleshooting" => "troubleshooting.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
