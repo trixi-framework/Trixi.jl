@@ -1,11 +1,12 @@
-# Visualization
+# [Visualization](@id visualization)
+
 There are two possible approaches to visualize results from Trixi: either
 directly from the REPL using [Plots.jl](@ref) or with ParaView/VisIt by
 postprocessing Trixi's output files with [Trixi2Vtk](@ref).
 
 !!! note
     There is also a package [Trixi2Img](@ref) that allows to create images
-    from Trixi's HDF5 output files. However, it is deprecated in favor of plotting 
+    from Trixi's HDF5 output files. However, it is deprecated in favor of plotting
     directly from the REPL with [Plots.jl](@ref).
 
 
