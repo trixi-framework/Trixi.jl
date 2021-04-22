@@ -49,7 +49,7 @@ end
 
 
 # the condition
-function (steady_state_callback::SteadyStateCallback)(u_ode::AbstractVector, t, integrator)
+function (steady_state_callback::SteadyStateCallback)(u_ode, t, integrator)
   semi = integrator.p
 
   u  = wrap_array(u_ode, semi)

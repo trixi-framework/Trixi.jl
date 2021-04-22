@@ -36,7 +36,10 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Visualization" => "visualization.md",
-        "Conventions" => "conventions.md",
+        "Conventions" => [
+            "User-facing conventions" => "conventions_user.md",
+            "Internal conventions" => "conventions_internal.md",
+        ],
         "Meshes" => [
             "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
             "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
