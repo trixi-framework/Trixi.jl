@@ -52,7 +52,7 @@ makedocs(
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
         ],
-        "Advanced topics and developer documentation" => [
+        "Advanced topics & developers" => [
             "Conventions" =>"conventions.md",
             "Development" => "development.md",
             "GitHub & Git" => "github-git.md",

@@ -1,8 +1,8 @@
 # Overview of the structure of Trixi
 
 Trixi is designed as a library of components for discretizations of hyperbolic
-conservation laws. Thus, it is not a classical monolithic PDE solver often found
-in legacy codes that might be configured at runtime via parameter files.
+conservation laws. Thus, it is not a monolithic PDE solver that is configured at runtime
+via parameter files, as it is often found in classical numerical simulation codes.
 Instead, each simulation is configured by pure Julia code. Many examples of such
 simulation setups, called *elixirs* in Trixi, are provided in the
 [examples](https://github.com/trixi-framework/Trixi.jl/blob/main/examples)
@@ -16,9 +16,9 @@ integration scheme.
 ## Semidiscretizations
 
 Semidiscretizations are high-level descriptions of spatial discretizations
-specialized to certain PDEs. Trixi's main focus is on hyperbolic conservation
+specialized for certain PDEs. Trixi's main focus is on hyperbolic conservation
 laws represented in a [`SemidiscretizationHyperbolic`](@ref).
-Such semidiscretizations are usually called `semi` in Trixi.
+Such semidiscretizations are usually named `semi` in Trixi.
 
 The basic building blocks of a semidiscretization are
 
@@ -29,7 +29,8 @@ The basic building blocks of a semidiscretization are
 In addition, a semidiscretization bundles initial and boundary conditions, and
 possible source terms. These different ingredients of a semidiscretization can
 be configured individually and combined together.
-When a semidiscretization is constructed, it will create an internal `cache`
+When a semidiscretization is constructed, it will create an internal `cache`,
+i.e., a collection of setup-specific data structures,
 that is usually passed to all lower level functions.
 
 Due to Trixi's modular nature using Julia's multiple dispatch features, new
@@ -45,7 +46,7 @@ design goals behind Trixi.
 
 Trixi is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
 In particular, a spatial semidiscretization can be wrapped in an ODE problem
-using [`semidiscretize`](@ref), which returns on `ode`. This `ODE` is a wrapper
+using [`semidiscretize`](@ref), which returns an `ODEProblem`. This `ODEProblem` is a wrapper
 of `Trixi.rhs!(du_ode, u_ode, semi, t)`, which gets called in ODE solvers.
 Further information can be found in the
 [section on time integration methods](@ref time-integration).
@@ -55,11 +56,11 @@ Further information can be found in the
 
 We explicitly encourage people interested in Trixi to have a look at the
 [examples](https://github.com/trixi-framework/Trixi.jl/blob/main/examples)
-bundled with Trixi to get an impression of what's possible and the general
+bundled with Trixi to get an impression of what is possible and the general
 look and feel of Trixi.
-Before doing that, it is usually good to have an idea of
+Before doing that, it is usually good to get an idea of
 [how to visualize numerical results](@ref visualization).
 
 If you like learning by doing, looking at the tutorials and trying to mix
 your own elixirs based thereon is probably a good next step.
-Otherwise, you can go to the documentation of Trixi's basic building blocks.
+Otherwise, you can further dig into the documentation by looking at Trixi's basic building blocks.
