@@ -1,5 +1,5 @@
-function apply_collision!(u::AbstractArray{<:Any,4}, dt, collision_op,
-                          mesh, equations, dg::DG, cache)
+function apply_collision!(u, dt, collision_op,
+                          mesh::AbstractMesh{2}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)

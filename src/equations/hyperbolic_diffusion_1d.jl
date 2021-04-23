@@ -201,7 +201,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations1D)
   λ_max = sqrt(equations.nu * equations.inv_Tr)
 end
 

@@ -1,6 +1,15 @@
 # Unstructured quadrilateral mesh
 
-Herein we describe the conventions taken in the implementation for two-dimensional unstructured
+The [`UnstructuredQuadMesh`](@ref) is an unstructured, possibly curvilinear,
+conforming mesh type in two space dimensions.
+Due to its curvilinear nature, (numerical) fluxes need to implement methods
+dispatching on the `normal::AbstractVector`. Rotationally invariant equations
+such as the compressible Euler equations can use [`FluxRotated`](@ref) to
+wrap numerical fluxes implemented only for Cartesian meshes. This simplifies
+the re-use of existing functionality for the [`TreeMesh`](@ref) but is usually
+less efficient, cf. [PR #550](https://github.com/trixi-framework/Trixi.jl/pull/550).
+
+Next, we describe the conventions taken in the implementation for two-dimensional unstructured
 quadrilateral meshes. Principally, this relates to how a file with the extension `.mesh` encodes
 information about the numbering and orientation of elements in an unstructured quadrilateral mesh
 with possibly curved boundaries.

@@ -35,24 +35,33 @@ makedocs(
     # Explicitly specify documentation structure
     pages = [
         "Home" => "index.md",
-        "Visualization" => "visualization.md",
-        "Conventions" => "conventions.md",
-        "Meshes" => [
-            "Unstructured mesh" => joinpath("unstructured_quad_mesh", "unstructured_quad_mesh.md"),
+        "Getting started" => [
+            "Overview" => "overview.md",
+            "Visualization" => "visualization.md",
         ],
-        "Time integration" => "time_integration.md",
-        "Callbacks" => "callbacks.md",
-        "Development" => "development.md",
-        "Performance" => "performance.md",
-        "Parallelization" => "parallelization.md",
-        "Testing" => "testing.md",
         "Tutorials" => [
             "Adding a new equation" => "adding_a_new_equation.md",
             "Differentiable programming" => "differentiable_programming.md",
         ],
-        "Troubleshooting" => "troubleshooting.md",
-        "Style guide" => "styleguide.md",
-        "GitHub & Git" => "github-git.md",
+        "Basic building blocks" => [
+            "Meshes" => [
+                "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
+                "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
+                "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
+            ],
+            "Time integration" => "time_integration.md",
+            "Callbacks" => "callbacks.md",
+        ],
+        "Advanced topics & developers" => [
+            "Conventions" =>"conventions.md",
+            "Development" => "development.md",
+            "GitHub & Git" => "github-git.md",
+            "Style guide" => "styleguide.md",
+            "Testing" => "testing.md",
+            "Performance" => "performance.md",
+            "Parallelization" => "parallelization.md",
+        ],
+        "Troubleshooting and FAQ" => "troubleshooting.md",
         "Reference" => [
                         "Trixi.jl" => "reference-trixi.md",
                         "Trixi2Vtk.jl" => "reference-trixi2vtk.md",

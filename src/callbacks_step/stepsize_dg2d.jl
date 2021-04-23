@@ -1,5 +1,5 @@
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
+function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -21,7 +21,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
+function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -37,7 +37,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+function max_dt(u, t, mesh::ParallelTreeMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -53,7 +53,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+function max_dt(u, t, mesh::ParallelTreeMesh{2},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -69,7 +69,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
+function max_dt(u, t, mesh::CurvedMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -84,17 +84,17 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
       λ1, λ2 = max_abs_speeds(u_node, equations)
 
       # Local speeds transformed to the reference element
-      λ1_transformed = abs(contravariant_vectors[1, 1, i, j, element] * λ1 + 
-                           contravariant_vectors[1, 2, i, j, element] * λ2)
-      λ2_transformed = abs(contravariant_vectors[2, 1, i, j, element] * λ1 + 
-                           contravariant_vectors[2, 2, i, j, element] * λ2)
+      Ja11, Ja12     = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+      λ1_transformed = abs(Ja11 * λ1 + Ja12 * λ2)
+      Ja21, Ja22     = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+      λ2_transformed = abs(Ja21 * λ1 + Ja22 * λ2)
 
       inv_jacobian = inverse_jacobian[i, j, element]
 
       max_λ1 = max(max_λ1, λ1_transformed * inv_jacobian)
       max_λ2 = max(max_λ2, λ2_transformed * inv_jacobian)
     end
-    
+
     max_scaled_speed = max(max_scaled_speed, max_λ1 + max_λ2)
   end
 
@@ -102,7 +102,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
+function max_dt(u, t, mesh::CurvedMesh{2},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
@@ -115,10 +115,10 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::CurvedMesh{2},
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       # Local speeds transformed to the reference element
-      λ1_transformed = abs(contravariant_vectors[1, 1, i, j, element] * max_λ1 + 
-                           contravariant_vectors[1, 2, i, j, element] * max_λ2)
-      λ2_transformed = abs(contravariant_vectors[2, 1, i, j, element] * max_λ1 + 
-                           contravariant_vectors[2, 2, i, j, element] * max_λ2)
+      Ja11, Ja12     = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+      λ1_transformed = abs(Ja11 * max_λ1 + Ja12 * max_λ2)
+      Ja21, Ja22     = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+      λ2_transformed = abs(Ja21 * max_λ1 + Ja22 * max_λ2)
 
       inv_jacobian = inverse_jacobian[i, j, element]
       max_scaled_speed = max(max_scaled_speed, inv_jacobian * (λ1_transformed + λ2_transformed))

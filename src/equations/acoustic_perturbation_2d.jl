@@ -323,7 +323,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::AcousticPerturbationEquations2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::AcousticPerturbationEquations2D)
   # Calculate v = v_prime + v_mean
   v_prime_ll = u_ll[orientation]
   v_prime_rr = u_rr[orientation]
