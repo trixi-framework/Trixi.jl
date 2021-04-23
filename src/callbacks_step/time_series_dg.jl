@@ -1,9 +1,9 @@
 
 # Store time series file for a TreeMesh with a DG solver
-function save_timeseries_file(timeseries_callback, mesh::TreeMesh, equations, dg::DG)
+function save_time_series_file(time_series_callback, mesh::TreeMesh, equations, dg::DG)
   @unpack (interval, solution_variables, variable_names,
            output_directory, filename, point_coordinates,
-           point_data, time, step, timeseries_cache) = timeseries_callback
+           point_data, time, step, time_series_cache) = time_series_callback
   n_points = length(point_data)
 
   h5open(joinpath(output_directory, filename), "w") do file

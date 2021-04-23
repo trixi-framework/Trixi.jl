@@ -1,6 +1,6 @@
 
 # Creates cache for time series callback
-function create_cache_timeseries(point_coordinates, mesh::TreeMesh{2}, dg, cache)
+function create_cache_time_series(point_coordinates, mesh::TreeMesh{2}, dg, cache)
   # Determine element ids for point coordinates
   element_ids = get_elements_by_coordinates(point_coordinates, mesh, dg, cache)
 
@@ -8,9 +8,9 @@ function create_cache_timeseries(point_coordinates, mesh::TreeMesh{2}, dg, cache
   interpolating_polynomials = calc_interpolating_polynomials(point_coordinates, element_ids, mesh,
                                                              dg, cache)
 
-  timeseries_cache = (; element_ids, interpolating_polynomials)
+  time_series_cache = (; element_ids, interpolating_polynomials)
 
-  return timeseries_cache
+  return time_series_cache
 end
 
 
@@ -112,8 +112,8 @@ end
 
 # Record the solution variables at each given point
 function record_state_at_points!(point_data, u, solution_variables, n_solution_variables,
-                                 mesh::TreeMesh{2}, equations, dg::DG, timeseries_cache)
-  @unpack element_ids, interpolating_polynomials = timeseries_cache
+                                 mesh::TreeMesh{2}, equations, dg::DG, time_series_cache)
+  @unpack element_ids, interpolating_polynomials = time_series_cache
   old_length = length(first(point_data))
   new_length = old_length + n_solution_variables
 

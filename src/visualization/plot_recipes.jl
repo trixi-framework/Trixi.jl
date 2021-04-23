@@ -526,8 +526,8 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 """
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
-function PlotData1D(timeseries_callback::TimeseriesCallback, point_id::Integer)
-  @unpack time, variable_names, point_data = timeseries_callback
+function PlotData1D(time_series_callback::TimeSeriesCallback, point_id::Integer)
+  @unpack time, variable_names, point_data = time_series_callback
 
   n_solution_variables = length(variable_names)
   data = Matrix{Float64}(undef, length(time), n_solution_variables)
@@ -541,7 +541,7 @@ function PlotData1D(timeseries_callback::TimeseriesCallback, point_id::Integer)
   return PlotData1D(time, data, SVector(variable_names), mesh_vertices_x, 0)
 end
 
-function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeseriesCallback}, point_id::Integer)
+function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return PlotData1D(cb.affect!, point_id)
 end
 
@@ -698,10 +698,10 @@ end
 end
 
 
-@recipe function f(cb::DiscreteCallback{<:Any, <:TimeseriesCallback}, point_id::Integer)
+@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return cb.affect!, point_id
 end
 
-@recipe function f(timeseries_callback::TimeseriesCallback, point_id::Integer)
-  return PlotData1D(timeseries_callback, point_id)
+@recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
+  return PlotData1D(time_series_callback, point_id)
 end

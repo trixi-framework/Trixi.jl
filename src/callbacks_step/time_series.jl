@@ -1,8 +1,8 @@
 
 """
-    TimeseriesCallback(semi, point_coordinates;
+    TimeSeriesCallback(semi, point_coordinates;
                        interval=1, solution_variables=cons2cons,
-                       output_directory="out", filename="timeseries.h5",
+                       output_directory="out", filename="time_series.h5",
                        RealT=real(solver), uEltype=eltype(cache.elements))
 
 Create a callback that records point-wise data at points given in `point_coordinates` every
@@ -18,7 +18,7 @@ types used in the solver and the cache.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-mutable struct TimeseriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables, VariableNames, Cache}
+mutable struct TimeSeriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables, VariableNames, Cache}
   interval::Int
   solution_variables::SolutionVariables
   variable_names::VariableNames
@@ -26,7 +26,7 @@ mutable struct TimeseriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables,
   filename::String
   point_coordinates::Array{RealT, 2}
   # Point data is stored as a vector of vectors of the solution data type:
-  # * the "outer" `Vector` contains one vector for each point at which a timeseries is recorded
+  # * the "outer" `Vector` contains one vector for each point at which a time_series is recorded
   # * the "inner" `Vector` contains the actual time series for a single point,
   #   with each record  adding "n_vars" entries
   # The reason for using this data structure is that the length of the inner vectors needs to be
@@ -34,16 +34,16 @@ mutable struct TimeseriesCallback{RealT<:Real, uEltype<:Real, SolutionVariables,
   point_data::Vector{Vector{uEltype}}
   time::Vector{RealT}
   step::Vector{Int}
-  timeseries_cache::Cache
+  time_series_cache::Cache
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeseriesCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
   @nospecialize cb # reduce precompilation time
 
-  timeseries_callback = cb.affect!
-  @unpack interval, solution_variables, output_directory, filename = timeseries_callback
-  print(io, "TimeseriesCallback(",
+  time_series_callback = cb.affect!
+  @unpack interval, solution_variables, output_directory, filename = time_series_callback
+  print(io, "TimeSeriesCallback(",
             "interval=", interval, ", ",
             "solution_variables=", interval, ", ",
             "output_directory=", "\"output_directory\"", ", ",
@@ -51,32 +51,32 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeseriesCallback})
             ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:TimeseriesCallback})
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
   @nospecialize cb # reduce precompilation time
 
   if get(io, :compact, false)
     show(io, cb)
   else
-    timeseries_callback = cb.affect!
+    time_series_callback = cb.affect!
 
     setup = [
-             "#points" => size(timeseries_callback.point_coordinates, 2),
-             "interval" => timeseries_callback.interval,
-             "solution_variables" => timeseries_callback.solution_variables,
-             "output_directory" => timeseries_callback.output_directory,
-             "filename" => timeseries_callback.filename,
+             "#points" => size(time_series_callback.point_coordinates, 2),
+             "interval" => time_series_callback.interval,
+             "solution_variables" => time_series_callback.solution_variables,
+             "output_directory" => time_series_callback.output_directory,
+             "filename" => time_series_callback.filename,
             ]
-    summary_box(io, "TimeseriesCallback", setup)
+    summary_box(io, "TimeSeriesCallback", setup)
   end
 end
 
 
 # Main constructor
-function TimeseriesCallback(mesh, equations, solver, cache, point_coordinates;
+function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
                             interval::Integer=1,
                             solution_variables=cons2cons,
                             output_directory="out",
-                            filename="timeseries.h5",
+                            filename="time_series.h5",
                             RealT=real(solver),
                             uEltype=eltype(cache.elements))
   # check arguments
@@ -97,9 +97,9 @@ function TimeseriesCallback(mesh, equations, solver, cache, point_coordinates;
   point_data = Vector{uEltype}[Vector{uEltype}() for _ in 1:n_points]
   time = Vector{RealT}()
   step = Vector{Int}()
-  timeseries_cache = create_cache_timeseries(point_coordinates, mesh, solver, cache)
+  time_series_cache = create_cache_time_series(point_coordinates, mesh, solver, cache)
 
-  timeseries_callback = TimeseriesCallback(interval,
+  time_series_callback = TimeSeriesCallback(interval,
                                            solution_variables,
                                            variable_names,
                                            output_directory,
@@ -108,22 +108,22 @@ function TimeseriesCallback(mesh, equations, solver, cache, point_coordinates;
                                            point_data,
                                            time,
                                            step,
-                                           timeseries_cache)
+                                           time_series_cache)
 
-  return DiscreteCallback(condition, timeseries_callback, save_positions=(false,false))
+  return DiscreteCallback(condition, time_series_callback, save_positions=(false,false))
 end
 
 
 # Convenience constructor that unpacks the semidiscretization into mesh, equations, solver, cache
-function TimeseriesCallback(semi, point_coordinates; kwargs...)
+function TimeSeriesCallback(semi, point_coordinates; kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
-  return TimeseriesCallback(mesh, equations, solver, cache, point_coordinates; kwargs...)
+  return TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates; kwargs...)
 end
 
 
 # Convenience constructor that converts a vector of points into a Trixi-style coordinate array
-function TimeseriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
+function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
                             kwargs...)
   # Coordinates are always stored in [ndims, n_points]
   n_points = length(point_coordinates)
@@ -135,27 +135,27 @@ function TimeseriesCallback(mesh, equations, solver, cache, point_coordinates::A
     end
   end
 
-  return TimeseriesCallback(mesh, equations, solver, cache, point_coordinates_; kwargs...)
+  return TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates_; kwargs...)
 end
 
 
 # This method is called as callback during the time integration.
-@inline function (timeseries_callback::TimeseriesCallback)(integrator)
+@inline function (time_series_callback::TimeSeriesCallback)(integrator)
   # Ensure this is not accidentally used with AMR enabled
   if uses_amr(integrator.opts.callback)
     error("the TimeSeriesCallback does not work with AMR enabled")
   end
 
   @unpack iter = integrator
-  @unpack interval = timeseries_callback
+  @unpack interval = time_series_callback
 
   # Create record if in correct interval (needs to be checked since the callback is also called
   # after the final step for storing the data on disk, indepdendent of the current interval)
   if integrator.iter % interval == 0
     @timeit_debug timer() "time series" begin
       # Store time and step
-      push!(timeseries_callback.time, integrator.t)
-      push!(timeseries_callback.step, iter)
+      push!(time_series_callback.time, integrator.t)
+      push!(time_series_callback.step, iter)
 
       # Unpack data
       u_ode = integrator.u
@@ -164,19 +164,19 @@ end
       u = wrap_array(u_ode, mesh, equations, solver, cache)
 
       @unpack (point_data, solution_variables,
-              variable_names, timeseries_cache) = timeseries_callback
+              variable_names, time_series_cache) = time_series_callback
 
       # Record state at points (solver/mesh-dependent implementation)
       record_state_at_points!(point_data, u, solution_variables, length(variable_names), mesh,
-                              equations, solver, timeseries_cache)
+                              equations, solver, time_series_cache)
     end
   end
 
-  # Store timeseries if this is the last time step
+  # Store time_series if this is the last time step
   if isfinished(integrator)
     semi = integrator.p
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
-    save_timeseries_file(timeseries_callback, mesh, equations, solver)
+    save_time_series_file(time_series_callback, mesh, equations, solver)
   end
 
   # avoid re-evaluating possible FSAL stages
@@ -186,5 +186,5 @@ end
 end
 
 
-include("timeseries_dg.jl")
-include("timeseries_dg2d.jl")
+include("time_series_dg.jl")
+include("time_series_dg2d.jl")
