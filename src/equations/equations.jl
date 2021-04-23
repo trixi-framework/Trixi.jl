@@ -148,12 +148,16 @@ performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 
-mutable struct BoundaryConditionCoupled
-  u_boundary
-  other_mesh_id
-  prolong2boundary
+mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, P}
+  u_boundary      ::Array{uEltype, NDIMST2M1}
+  other_mesh_id   ::Int
+  prolong2boundary::P
 
-  BoundaryConditionCoupled(other_mesh_id, prolong2boundary) = new(nothing, other_mesh_id, prolong2boundary)
+  function BoundaryConditionCoupled(other_mesh_id, prolong2boundary, NDIMS, uEltype)
+    u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
+
+    new{NDIMS*2-1, uEltype, typeof(prolong2boundary)}(u_boundary, other_mesh_id, prolong2boundary)
+  end
 end
 
 

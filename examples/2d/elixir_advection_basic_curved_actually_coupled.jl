@@ -8,10 +8,13 @@ function boundary_condition_test_1_left()
 
   function prolong2boundary_(boundary_condition, u, mesh)
     linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, end, :, linear_indices[end, :]]
+
+    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
+      boundary_condition.u_boundary[v, j, cell_y] = u[v, end, j, linear_indices[end, cell_y]]
+    end
   end
 
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
 end
 
 
@@ -20,10 +23,13 @@ function boundary_condition_test_1_right()
 
   function prolong2boundary_(boundary_condition, u, mesh)
     linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, 1, :, linear_indices[1, :]]
+    
+    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
+      boundary_condition.u_boundary[v, j, cell_y] = u[v, 1, j, linear_indices[1, cell_y]]
+    end
   end
 
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
 end
 
 
@@ -32,10 +38,13 @@ function boundary_condition_test_2_left()
 
   function prolong2boundary_(boundary_condition, u, mesh)
     linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, end, :, linear_indices[end, :]]
+
+    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
+      boundary_condition.u_boundary[v, j, cell_y] = u[v, end, j, linear_indices[end, cell_y]]
+    end
   end
 
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
 end
 
 
@@ -44,10 +53,13 @@ function boundary_condition_test_2_right()
 
   function prolong2boundary_(boundary_condition, u, mesh)
     linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, 1, :, linear_indices[1, :]]
+    
+    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
+      boundary_condition.u_boundary[v, j, cell_y] = u[v, 1, j, linear_indices[1, cell_y]]
+    end
   end
 
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
 end
 
 ###############################################################################
