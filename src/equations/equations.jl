@@ -148,31 +148,16 @@ performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 
-mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, P}
-  u_boundary      ::Array{uEltype, NDIMST2M1}
-  other_mesh_id   ::Int
-  prolong2boundary::P
+mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
+  u_boundary            ::Array{uEltype, NDIMST2M1}
+  other_mesh_id         ::Int
+  other_mesh_orientation::Int
+  indices               ::I
 
-  function BoundaryConditionCoupled(other_mesh_id, prolong2boundary, NDIMS, uEltype)
+  function BoundaryConditionCoupled(other_mesh_id, other_mesh_orientation, indices, NDIMS, uEltype)
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
 
-    new{NDIMS*2-1, uEltype, typeof(prolong2boundary)}(u_boundary, other_mesh_id, prolong2boundary)
-  end
-end
-
-function prolong2boundary_right(boundary_condition, u, mesh)
-  linear_indices = LinearIndices(size(mesh))
-
-  for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
-    boundary_condition.u_boundary[v, j, cell_y] = u[v, end, j, linear_indices[end, cell_y]]
-  end
-end
-
-function prolong2boundary_left(boundary_condition, u, mesh)
-  linear_indices = LinearIndices(size(mesh))
-  
-  for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
-    boundary_condition.u_boundary[v, j, cell_y] = u[v, 1, j, linear_indices[1, cell_y]]
+    new{NDIMS*2-1, uEltype, typeof(indices)}(u_boundary, other_mesh_id, other_mesh_orientation, indices)
   end
 end
 

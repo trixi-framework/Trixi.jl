@@ -3,54 +3,6 @@ using OrdinaryDiffEq
 using Trixi
 
 
-function boundary_condition_test_1_bottom()
-  other_mesh_id = 2
-
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, :, end, linear_indices[:, end]]
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
-end
-
-
-function boundary_condition_test_1_top()
-  other_mesh_id = 2
-
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, :, 1, linear_indices[:, 1]]
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
-end
-
-
-function boundary_condition_test_2_bottom()
-  other_mesh_id = 1
-
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, :, end, linear_indices[:, end]]
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
-end
-
-
-function boundary_condition_test_2_top()
-  other_mesh_id = 1
-
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-    boundary_condition.u_boundary .= u[:, :, 1, linear_indices[:, 1]]
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_)
-end
-
-
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
@@ -59,6 +11,11 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 
 solver = DGSEM(polydeg=3, surface_flux=FluxRotated(flux_lax_friedrichs))
+
+boundary_1_top    = Trixi.BoundaryConditionCoupled(2, 2, (:i, 1),    2, Float64)
+boundary_1_bottom = Trixi.BoundaryConditionCoupled(2, 2, (:i, :end), 2, Float64)
+boundary_2_top    = Trixi.BoundaryConditionCoupled(1, 2, (:i, 1), 2, Float64)
+boundary_2_bottom = Trixi.BoundaryConditionCoupled(1, 2, (:i, :end),    2, Float64)
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
@@ -72,7 +29,7 @@ mesh = CurvedMesh((16, 8), (f1, f2, f3, f4))
 semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic,
-                                                          boundary_condition_test_1_bottom(), boundary_condition_test_1_top()))
+                                                          boundary_1_bottom, boundary_1_top))
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
@@ -87,7 +44,7 @@ mesh = CurvedMesh((16, 8), (f1, f2, f3, f4))
 semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic,
-                                                          boundary_condition_test_2_bottom(), boundary_condition_test_2_top()))
+                                                          boundary_2_bottom, boundary_2_top))
 
 
 semi = SemidiscretizationHyperbolicCoupled((semi1, semi2))

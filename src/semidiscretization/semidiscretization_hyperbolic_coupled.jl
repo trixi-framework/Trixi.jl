@@ -193,7 +193,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicCoupled, t)
 
   time_start = time_ns()
 
-  prolong_to_coupled_boundaries(u_ode, semi)
+  @timeit_debug timer() "prolong to coupled boundaries" prolong_to_coupled_boundaries(u_ode, semi)
 
   for i in 1:nmeshes(semi)
     u_loc  = @view u_ode[u_indices[i]]
@@ -220,13 +220,43 @@ end
 
 function prolong2boundary(boundary_condition, u_ode, semi) end
 
+function indexfunction(indices, i, size, dim)
+  if indices[dim] === :i
+    return i
+  elseif indices[dim] === :mi
+    return size[dim] - i + 1
+  elseif indices[dim] == 1
+    return 1
+  elseif indices[dim] == :end
+    return size[dim]
+  end
+end
+
 function prolong2boundary(boundary_condition::BoundaryConditionCoupled, u_ode, semi)
   @unpack u_indices = semi
-
-  other_mesh_id = boundary_condition.other_mesh_id
+  @unpack other_mesh_id, other_mesh_orientation, indices = boundary_condition
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_mesh_id])
-  u = wrap_array(u_ode[u_indices[other_mesh_id]], mesh, equations, solver, cache)
+  @views u = wrap_array(u_ode[u_indices[other_mesh_id]], mesh, equations, solver, cache)
 
-  boundary_condition.prolong2boundary(boundary_condition, u, mesh)
+  linear_indices = LinearIndices(size(mesh))
+  size_ = (nnodes(solver), nnodes(solver))
+
+  if other_mesh_orientation == 1
+    for cell_y in axes(mesh, 2), i in 1:size(u, 3), v in 1:size(u, 1)
+      boundary_condition.u_boundary[v, i, cell_y] = u[v, indexfunction(indices, i, size_, 1), 
+                                                         indexfunction(indices, i, size_, 2), 
+                                                         linear_indices[indexfunction(indices, cell_y, size(mesh), 1), 
+                                                                        indexfunction(indices, cell_y, size(mesh), 2)]]
+    end
+  elseif other_mesh_orientation == 2
+    for cell_x in axes(mesh, 1), j in 1:size(u, 3), v in 1:size(u, 1)
+      boundary_condition.u_boundary[v, j, cell_x] = u[v, indexfunction(indices, j, size_, 1), 
+                                                         indexfunction(indices, j, size_, 2), 
+                                                         linear_indices[indexfunction(indices, cell_x, size(mesh), 1), 
+                                                                        indexfunction(indices, cell_x, size(mesh), 2)]]
+    end
+  else
+    error("Something went horribly wrong!")
+  end
 end

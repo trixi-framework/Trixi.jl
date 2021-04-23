@@ -3,30 +3,6 @@ using OrdinaryDiffEq
 using Trixi
 
 
-function boundary_condition_test_1_left()
-  other_mesh_id = 2
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_right, 2, Float64)
-end
-
-function boundary_condition_test_1_right()
-  other_mesh_id = 2
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_left, 2, Float64)
-end
-
-function boundary_condition_test_2_left()
-  other_mesh_id = 1
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_right, 2, Float64)
-end
-
-function boundary_condition_test_2_right()
-  other_mesh_id = 1
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_left, 2, Float64)
-end
-
 ###############################################################################
 # semidiscretization of the linear advection equation
 
@@ -36,29 +12,37 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (-0.5,  1.0) # maximum coordinates (max(x), max(y))
+indices_left  = (1,     :i)
+indices_right = (:end,  :i)
 
-cells_per_dimension = (4, 16)
+boundary_1_left   = Trixi.BoundaryConditionCoupled(2, 1, indices_right, 2, Float64)
+boundary_1_right  = Trixi.BoundaryConditionCoupled(2, 1, indices_left,  2, Float64)
+boundary_2_left   = Trixi.BoundaryConditionCoupled(1, 1, indices_right, 2, Float64)
+boundary_2_right  = Trixi.BoundaryConditionCoupled(1, 1, indices_left,  2, Float64)
+
+coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
+coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+
+cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
 mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver, 
-                                     boundary_conditions=(boundary_condition_test_1_left(), boundary_condition_test_1_right(),
+                                     boundary_conditions=(boundary_1_left, boundary_1_right,
                                                           boundary_condition_periodic, boundary_condition_periodic))
 
-coordinates_min = (1.5, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (3.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (1.0, 1.0) # minimum coordinates (min(x), min(y))
+coordinates_max = (3.0, 3.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (12, 16)
+cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
 mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
-                                     boundary_conditions=(boundary_condition_test_2_left(), boundary_condition_test_2_right(),
+                                     boundary_conditions=(boundary_2_left, boundary_2_right,
                                                           boundary_condition_periodic, boundary_condition_periodic))
 
 # mesh = CurvedMesh((4, 4), coordinates_min, coordinates_max)
