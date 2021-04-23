@@ -161,8 +161,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))
-    point_data_1 = time_series.affect!.point_data[1]
-    @test all(isapprox.(point_data_1[1:7], [-2.4417734981719132e-5, -3.4296207289200194e-5, 0.0018130846385739788, -0.5, 0.25, 1.0, 1.0]))
+
+    @test_nowarn_debug plot(time_series, 1)
+    @test PlotData1D(time_series, 1) isa PlotData1D
   end
 
   @testset "adapt_to_mesh_level" begin

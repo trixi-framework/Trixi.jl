@@ -17,7 +17,7 @@ end
 # Find element ids containing coordinates given as a matrix [ndims, npoints]
 function get_elements_by_coordinates!(element_ids, coordinates, mesh::TreeMesh, dg, cache)
   if length(element_ids) != size(coordinates, 2)
-    throw(DimensionMatch("storage length for element ids does not match the number of coordinates"))
+    throw(DimensionMismatch("storage length for element ids does not match the number of coordinates"))
   end
 
   @unpack cell_ids = cache.elements
