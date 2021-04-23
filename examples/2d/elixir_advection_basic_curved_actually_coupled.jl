@@ -6,60 +6,25 @@ using Trixi
 function boundary_condition_test_1_left()
   other_mesh_id = 2
 
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-
-    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
-      boundary_condition.u_boundary[v, j, cell_y] = u[v, end, j, linear_indices[end, cell_y]]
-    end
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_right, 2, Float64)
 end
-
 
 function boundary_condition_test_1_right()
   other_mesh_id = 2
 
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-    
-    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
-      boundary_condition.u_boundary[v, j, cell_y] = u[v, 1, j, linear_indices[1, cell_y]]
-    end
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_left, 2, Float64)
 end
-
 
 function boundary_condition_test_2_left()
   other_mesh_id = 1
 
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-
-    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
-      boundary_condition.u_boundary[v, j, cell_y] = u[v, end, j, linear_indices[end, cell_y]]
-    end
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_right, 2, Float64)
 end
-
 
 function boundary_condition_test_2_right()
   other_mesh_id = 1
 
-  function prolong2boundary_(boundary_condition, u, mesh)
-    linear_indices = LinearIndices(size(mesh))
-    
-    for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
-      boundary_condition.u_boundary[v, j, cell_y] = u[v, 1, j, linear_indices[1, cell_y]]
-    end
-  end
-
-  Trixi.BoundaryConditionCoupled(other_mesh_id, prolong2boundary_, 2, Float64)
+  Trixi.BoundaryConditionCoupled(other_mesh_id, Trixi.prolong2boundary_left, 2, Float64)
 end
 
 ###############################################################################

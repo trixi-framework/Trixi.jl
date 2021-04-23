@@ -160,11 +160,29 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, P}
   end
 end
 
+function prolong2boundary_right(boundary_condition, u, mesh)
+  linear_indices = LinearIndices(size(mesh))
+
+  for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
+    boundary_condition.u_boundary[v, j, cell_y] = u[v, end, j, linear_indices[end, cell_y]]
+  end
+end
+
+function prolong2boundary_left(boundary_condition, u, mesh)
+  linear_indices = LinearIndices(size(mesh))
+  
+  for cell_y in axes(mesh, 2), j in 1:size(u, 3), v in 1:size(u, 1)
+    boundary_condition.u_boundary[v, j, cell_y] = u[v, 1, j, linear_indices[1, cell_y]]
+  end
+end
+
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction, 
                                                         cell_index, surface_node_indices,
                                                         surface_flux_function, equations)
-  u_boundary = boundary_condition.u_boundary[:, surface_node_indices..., cell_index]
+  # get_node_vars(), but we don't have a solver here
+  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_index], 
+                              Val(nvariables(equations))))
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
