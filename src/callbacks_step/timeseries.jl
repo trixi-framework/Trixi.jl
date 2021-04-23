@@ -79,7 +79,6 @@ function TimeseriesCallback(mesh, equations, solver, cache, point_coordinates;
                             filename="timeseries.h5",
                             RealT=real(solver),
                             uEltype=eltype(cache.elements))
-
   # check arguments
   if !(interval isa Integer && interval >= 0)
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
@@ -142,6 +141,11 @@ end
 
 # This method is called as callback during the time integration.
 @inline function (timeseries_callback::TimeseriesCallback)(integrator)
+  # Ensure this is not accidentally used with AMR enabled
+  if uses_amr(integrator.opts.callback)
+    error("the TimeSeriesCallback does not work with AMR enabled")
+  end
+
   @unpack iter = integrator
   @unpack interval = timeseries_callback
 
