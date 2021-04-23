@@ -29,7 +29,7 @@ end
 # This method is called when the `ExampleStageCallback` is used as `stage_limiter!`
 # which gets called after every RK stage. There is no specific initialization
 # method for such `stage_limiter!`s in OrdinaryDiffEq.jl.
-function (example_stage_callback::ExampleStageCallback)(u_ode::AbstractVector, _, semi, t)
+function (example_stage_callback::ExampleStageCallback)(u_ode, _, semi, t)
 
   min_val, max_val = extrema(u_ode)
   push!(example_stage_callback.times, t)

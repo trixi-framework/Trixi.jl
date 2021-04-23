@@ -4,7 +4,7 @@
 get_element_variables!(element_variables, u, mesh, equations, solver, cache,
                        callback; kwargs...) = nothing
 
-@inline function get_element_variables!(element_variables, u_ode::AbstractVector,
+@inline function get_element_variables!(element_variables, u_ode,
                                         semi::AbstractSemidiscretization, cb::DiscreteCallback;
                                         kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
