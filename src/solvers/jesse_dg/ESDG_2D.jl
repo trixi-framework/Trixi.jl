@@ -12,6 +12,7 @@ using LinearAlgebra
 
 using Octavian
 using LoopVectorization
+using CheapThreads
 
 using StartUpDG
 
@@ -20,10 +21,10 @@ include("/Users/jessechan/.julia/dev/Trixi/src/solvers/jesse_dg/ESDG_utils.jl") 
 ###############################################################################
 # semidiscretization 
 
-N = 2
-K1D = 32
-CFL = .1
-FinalTime = .50
+N = 3
+K1D = 16
+CFL = .25
+FinalTime = 1.0
 
 VX,VY,EToV = uniform_mesh(Tri(),K1D)
 rd = RefElemData(Tri(),N)
@@ -65,18 +66,24 @@ Qrhskew,Qshskew,VhP,Ph = build_hSBP_ops(rd)
 QrhskewTr = Matrix(Qrhskew')
 QshskewTr = Matrix(Qshskew')
 
-# # StructArray initialization - problem in entropy2cons
-# staticzip(::Type{SVector{M}},x::NTuple{M,Array{T,N}}) where {M,T,N} = SVector{M}.(zip(x...))
+# StructArray initialization - problem in entropy2cons
+staticzip(::Type{SVector{M}},x::NTuple{M,Array{T,N}}) where {M,T,N} = SVector{M}.(zip(x...))
 # xyz = StructArray(staticzip(SVector{2},md.xyz))
 # U = (xyz->initial_condition(xyz,0,eqn)).(xyz) # hack to retain tuple elements in U
 
-function tmap!(out,f,x)
-    Trixi.@threaded for i = 1:length(x)
-        out[i] = f(x[i])
+project_and_store!(y,x) = mul!(y,Ph,x) # can't seem to use matmul! here b/c this is inside a threaded for loop
+
+## ====== workaround for StructArrays/DiffEq.jl from https://github.com/SciML/OrdinaryDiffEq.jl/issues/1386
+function RecursiveArrayTools.recursivecopy(a::AbstractArray{T,N}) where {T<:AbstractArray,N}
+    if ArrayInterface.ismutable(a)
+      b = similar(a)
+      map!(recursivecopy,b,a)
+    else
+      ArrayInterface.restructure(a,map(recursivecopy,a))
     end
 end
-
-project_and_store!(y,x) = mul!(y,Ph,x) # how to use matmul! ?
+ArrayInterface.ismutable(x::StructArray) = true
+## ====== end workaround ===========
 
 Base.real(rd::RefElemData) = Float64 # is this for DiffEq.jl?
 
@@ -105,19 +112,34 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, 
     return cache
 end
 
-function compute_entropy_projection!(Q,rd::RefElemData,cache,equations)
+@inline function tmap!(f,out,x)
+    Trixi.@threaded for i = 1:length(x)
+        @inbounds out[i] = f(x[i])
+    end
+end
+
+## workaround for matmul! with threads https://discourse.julialang.org/t/odd-benchmarktools-timings-using-threads-and-octavian/59838/5
+@inline function bmap!(f,out,x)
+    @batch for i = 1:length(x)
+        @inbounds out[i] = f(x[i])
+    end
+end
+
+
+function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn) # why 91.46ms ???
     @unpack Vq = rd    
-    @unpack QrhskewTr,QshskewTr,VhP,Ph = cache
+    @unpack VhP,Ph = cache
     @unpack Uq, VUq, VUh, Uh, Uf = cache
 
-    Nh,Nq = size(VhP)
-
     # entropy projection - should be zero alloc
-    StructArrays.foreachfield((uout,u)->matmul!(uout,rd.Vq,u),Uq,Q)
-    VUq .= (u->cons2entropy(u,eqn)).(Uq)
-    StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq)
-    Uh .= (v->entropy2cons(v,eqn)).(VUh) 
-    Uf .= Uh[Nq+1:Nh,:]
+    StructArrays.foreachfield((uout,u)->matmul!(uout,Vq,u),Uq,Q) # 5μs
+    # VUq .= (u->cons2entropy(u,eqn)).(Uq) # 482.656 μs
+    bmap!(u->cons2entropy(u,eqn),VUq,Uq) # 77.5μs
+    StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq) # 7.902 μs
+    # # Uh .= (v->entropy2cons(v,eqn)).(VUh) # 2.148 ms
+    bmap!(v->entropy2cons(v,eqn),Uh,VUh) # 327.204 μs
+    Nh,Nq = size(VhP)
+    Uf .= view(Uh,Nq+1:Nh,:) # 104 μs
 
     return Uh,Uf
 end
@@ -138,8 +160,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
 
     Uh, Uf = compute_entropy_projection!(Q,rd,cache,equations)
     
-    rhse = StructArray([MVector{4}(zeros(4)) for i = 1:length(Uh[:,1])]) #
-    # rhse = similar(Uh[:,1]) # preallocate storage to be reused 
+    rhse = StructArray([MVector{4}(zeros(4)) for i = 1:length(Uh[:,1])]) # preallocate storage to be reused     
     for e = 1:md.K
         fill!(rhse,zeros(Trixi.nvariables(eqn))) # reset contributions
         Ue = view(Uh,:,e)
@@ -234,10 +255,9 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 summary_callback()
 
 Q = sol.u[end]
-zz = rd.Vp*Q[1]
+zz = rd.Vp*StructArrays.component(Q,1)
 scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
 
-# # LaxFriedrichs(flux_ranocha)
 mesh = UnstructuredMesh((VX,VY),EToV)
 eqns = CompressibleEulerEquations2D(1.4)
 cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
