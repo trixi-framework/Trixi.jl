@@ -47,11 +47,13 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
   variable_names::VariableNames
   mesh_vertices_x::Vertices
   mesh_vertices_y::Vertices
+  orientation_x::Int
+  orientation_y::Int
 end
 
 
 """
-    PlotData2D(u, semi;
+    PlotData2D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                slice_axis=:z, slice_axis_intercept=0)
@@ -94,11 +96,15 @@ julia> plot(pd["scalar"]) # To plot only a single variable
 julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
-function PlotData2D(u, semi;
+
+PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi),
+                                                mesh_equations_solver_cache(semi)...;
+                                                kwargs...)
+
+function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                     slice_axis=:z, slice_axis_intercept=0)
-  mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -109,7 +115,7 @@ function PlotData2D(u, semi;
   coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
   levels = mesh.tree.levels[leaf_cell_ids]
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
+  unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
   x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0, length_level_0,
                                                              leaf_cell_ids, coordinates, levels,
                                                              ndims(mesh), unstructured_data,
@@ -118,49 +124,40 @@ function PlotData2D(u, semi;
                                                              slice_axis, slice_axis_intercept)
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
+  orientation_x, orientation_y = _get_orientations(mesh, slice_axis)
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+                    orientation_x, orientation_y)
 end
 
 
-"""
-    PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:Union{CurvedMesh,UnstructuredQuadMesh}};
-               solution_variables=nothing, kwargs...)
-
-Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
-`u` with `Plots.jl` for the mesh type `CurvedMesh` or `UnstructuredQuadMesh`. All relevant
-geometrical information is extracted from the semidiscretization `semi`. By default, the
-conservative variables from the solution are used for plotting. This can be changed by passing an
-appropriate conversion function to `solution_variables`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
-"""
-function PlotData2D(u::AbstractArray{<:Any, 4},
-                    semi::SemidiscretizationHyperbolic{<:Union{CurvedMesh,UnstructuredQuadMesh}};
+function PlotData2D(u, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, solver, cache;
                     solution_variables=nothing, grid_lines=true, kwargs...)
 
-  _, equations, _, _ = mesh_equations_solver_cache(semi)
-
-  @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
+  @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  x, y, data, mesh_vertices_x, mesh_vertices_y = get_plot_data(u, solution_variables_, semi; grid_lines=grid_lines)
+  (x, y, data, mesh_vertices_x, mesh_vertices_y) = get_plot_data(u, solution_variables_, mesh, equations, solver, cache; 
+                                                                 grid_lines=grid_lines, kwargs...)
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
+  orientation_x, orientation_y = _get_orientations(mesh, nothing)
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+                    orientation_x, orientation_y)
 end
 
-function get_plot_data(u, solution_variables_, semi; grid_lines=true)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+function get_plot_data(u, solution_variables, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, solver, cache;
+                       grid_lines=true, kwargs...)
   @unpack node_coordinates = cache.elements
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
+  unstructured_data = get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
 
   x = vec(view(node_coordinates, 1, ..))
   y = vec(view(node_coordinates, 2, ..))
 
-  data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
+  data = [vec(unstructured_data[.., v]) for v in eachvariable(equations)]
 
   if grid_lines
     mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
@@ -177,11 +174,11 @@ function PlotData2D(u_ode::AbstractVector,
                     semi::SemidiscretizationHyperbolicCoupled;
                     solution_variables=nothing, grid_lines=true, kwargs...)
 
-  _, equations, _, _ = mesh_equations_solver_cache(semi)
+  _, equations_, _, _ = mesh_equations_solver_cache(semi)
 
   @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
-  solution_variables_ = digest_solution_variables(equations, solution_variables)
-  variable_names = SVector(varnames(solution_variables_, equations))
+  solution_variables_ = digest_solution_variables(equations_, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations_))
 
   x_vec = []
   y_vec = []
@@ -191,8 +188,11 @@ function PlotData2D(u_ode::AbstractVector,
 
   @unpack semis, u_indices = semi
   for i in 1:nmeshes(semi)
-    semi_ = semis[i]
-    x_, y_, data_, mesh_vertices_x_, mesh_vertices_y_ = get_plot_data(wrap_array(u_ode[u_indices[i]], semi_), solution_variables_, semi_; grid_lines=grid_lines)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+
+    x_, y_, data_, mesh_vertices_x_, mesh_vertices_y_ = get_plot_data(
+      wrap_array(u_ode[u_indices[i]], semis[i]), solution_variables_, 
+      mesh, equations, solver, cache; grid_lines=grid_lines)
 
     push!(x_vec, x_)
     push!(y_vec, y_)
@@ -203,28 +203,21 @@ function PlotData2D(u_ode::AbstractVector,
 
   x = vcat(x_vec...)
   y = vcat(y_vec...)
-  data = [vcat([data_vec[i][v] for i in 1:nmeshes(semi)]...) for v in 1:nvariables(equations)]
+  data = [vcat([data_vec[i][v] for i in 1:nmeshes(semi)]...) for v in 1:nvariables(equations_)]
 
   mesh_vertices_x = hcat(mesh_vertices_x_vec...)
   mesh_vertices_y = hcat(mesh_vertices_y_vec...)
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
+  # TODO why pass mesh when we only need ndims?
+  orientation_x, orientation_y = _get_orientations(semis[1].mesh, nothing)
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y, 
+                    orientation_x, orientation_y)
 end
 
 
 """
-    PlotData2D(u_ode::AbstractVector, semi; kwargs...)
-
-Create a `PlotData2D` object from a one-dimensional ODE solution `u_ode` and the semidiscretization
-`semi`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-PlotData2D(u_ode::AbstractVector, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi), semi; kwargs...)
-
-"""
-    PlotData2D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}; kwargs...)
+    PlotData2D(sol; kwargs...)
 
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
@@ -234,6 +227,24 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
     This is an experimental feature and may change in future releases.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+
+# Convert `slice_axis` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
+function _get_orientations(mesh, slice_axis)
+  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
+    orientation_x = 1
+    orientation_y = 2
+  elseif ndims(mesh) == 3 && slice_axis === :y
+    orientation_x = 1
+    orientation_y = 3
+  elseif ndims(mesh) == 3 && slice_axis === :x
+    orientation_x = 2
+    orientation_y = 3
+  else
+    orientation_x = 0
+    orientation_y = 0
+  end
+  return orientation_x, orientation_y
+end
 
 # Auxiliary data structure for visualizing a single variable
 #
@@ -314,13 +325,25 @@ Extract grid lines from `pd` for plotting with `Plots.plot`.
 """
 getmesh(pd::PlotData2D) = PlotMesh2D(pd)
 
+# Convert `orientation` into a guide label (see also `_get_orientations`)
+function _get_guide(orientation::Integer)
+  if orientation == 1
+    return "\$x\$"
+  elseif orientation == 2
+    return "\$y\$"
+  elseif orientation == 3
+    return "\$z\$"
+  else
+    return ""
+  end
+end
 
 # Visualize a single variable in a 2D plot (default: heatmap)
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 @recipe function f(pds::PlotDataSeries2D)
   @unpack plot_data, variable_id = pds
-  @unpack x, y, data, variable_names = plot_data
+  @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
   # Set geometric properties
   xlims --> (x[begin], x[end])
@@ -331,6 +354,8 @@ getmesh(pd::PlotData2D) = PlotMesh2D(pd)
   legend -->  :none
   title --> variable_names[variable_id]
   colorbar --> :true
+  xguide --> _get_guide(orientation_x)
+  yguide --> _get_guide(orientation_y)
 
   # Set series properties
   seriestype --> :heatmap
@@ -345,7 +370,7 @@ end
 # Note: This is an experimental feature and may be changed in future releases without notice.
 @recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data, variable_id = pds
-  @unpack x, y, data, variable_names = plot_data
+  @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
   # Set geometric properties
   xlims --> (minimum(x), maximum(x))
@@ -356,6 +381,8 @@ end
   legend -->  :none
   title --> variable_names[variable_id]
   colorbar --> :true
+  xguide --> _get_guide(orientation_x)
+  yguide --> _get_guide(orientation_y)
 
   # Set series properties
   seriestype --> :scatter
@@ -467,10 +494,12 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
   data::Data
   variable_names::VariableNames
   mesh_vertices_x::Vertices
+  orientation_x::Integer
 end
 
 """
-    PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing))
+    PlotData1D(u, semi [or mesh, equations, solver, cache];
+               solution_variables=nothing, nvisnodes=nothing)
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
@@ -482,38 +511,38 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes in the DG elements are used.
 
-
-
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing)
+PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi),
+                                                mesh_equations_solver_cache(semi)...;
+                                                kwargs...)
 
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+function PlotData1D(u, mesh, equations, solver, cache;
+                    solution_variables=nothing, nvisnodes=nothing)
+
   @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
   variable_names = SVector(varnames(solution_variables_, equations))
   original_nodes = cache.elements.node_coordinates
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
+  unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
   x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
-  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]))
+  if ndims(mesh) == 1
+    orientation_x = 1
+  else
+    orientation_x = 0
+  end
+
+  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]),
+                    orientation_x)
 end
 
-"""
-    PlotData1D(u_ode::AbstractVector, semi)
-
-Create a `PlotData1D` object from a one-dimensional ODE solution `u_ode` and the semidiscretization
-`semi`.
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
 
 """
-    PlotData1D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution})
+    PlotData1D(sol; kwargs...)
 
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
@@ -583,7 +612,7 @@ getmesh(pd::PlotData1D) = PlotMesh1D(pd)
 # Plot a single variable.
 @recipe function f(pds::PlotDataSeries1D)
   @unpack plot_data, variable_id = pds
-  @unpack x, data, variable_names = plot_data
+  @unpack x, data, variable_names, orientation_x = plot_data
 
   # Set geometric properties
   xlims --> (x[begin], x[end])
@@ -591,6 +620,7 @@ getmesh(pd::PlotData1D) = PlotMesh1D(pd)
   # Set annotation properties
   legend --> :none
   title --> variable_names[variable_id]
+  xguide --> _get_guide(orientation_x)
 
   # Return data for plotting
   x, data[:, variable_id]

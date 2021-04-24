@@ -187,7 +187,7 @@ Here, we used some knowledge about the internal memory layout of Trixi, an array
 with the conserved variables as fastest-varying index in memory.
 
 
-### Differentiating through a complete simulation
+## Differentiating through a complete simulation
 
 It is also possible to differentiate through a complete simulation. As an example, let's differentiate
 the total energy of a simulation using the linear scalar advection equation with respect to the

@@ -370,7 +370,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   end
 
   # Calculate L2/Linf errors, which are also returned
-  l2_error, linf_error = calc_error_norms(u, t, analyzer, semi, cache_analysis)
+  l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi, cache_analysis)
 
   if mpi_isroot()
     # L2 error
@@ -434,7 +434,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
 
   # L2/L∞ errors of the primitive variables
   if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
-    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u, t, analyzer, semi, cache_analysis)
+    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u_ode, t, analyzer, semi, cache_analysis)
 
     if mpi_isroot()
       print(" Variable:    ")

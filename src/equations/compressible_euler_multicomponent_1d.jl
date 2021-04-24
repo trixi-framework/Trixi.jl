@@ -135,7 +135,7 @@ Source terms used for convergence tests in combination with
 
   x1,     = x
   si, co  = sincos((t - x1)*omega)
-  tmp = (-((4 * si * A - 4c) + 1) * (gamma - 1) * co * A * omega) / 2 
+  tmp = (-((4 * si * A - 4c) + 1) * (gamma - 1) * co * A * omega) / 2
 
   # Here we compute an arbitrary number of different rhos. (one rho is double the next rho while the sum of all rhos is 1
   du_rho  = SVector{ncomponents(equations), real(equations)}(0.0 for i in eachcomponent(equations))
@@ -192,12 +192,12 @@ function initial_condition_two_interacting_blast_waves(x, t, equations::Compress
   prim_rho    = SVector{3, real(equations)}(rho1, rho2, rho3)
 
   v1          = 0.0
-  
-  if x[1] <= 0.1 
+
+  if x[1] <= 0.1
     p = 1000
   elseif x[1] < 0.9
     p = 0.01
-  else 
+  else
     p = 100
   end
 
@@ -231,12 +231,12 @@ end
 
   v1    = rho_v1/rho
   gamma = totalgamma(u, equations)
-  p     = (gamma - 1) * (rho_e - 0.5 * rho * v1^2)      
+  p     = (gamma - 1) * (rho_e - 0.5 * rho * v1^2)
 
   f_rho = densities(u, v1, equations)
   f1  = rho_v1 * v1 + p
   f2  = (rho_e + p) * v1
- 
+
   f_other  = SVector{2, real(equations)}(f1, f2)
 
   return vcat(f_other, f_rho)
@@ -251,7 +251,7 @@ Entropy conserving two-point flux by
   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations""
   arXiv:1904.00972v3 [math.NA] 4 Feb 2020
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations1D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations1D)
   # Unpack left and right state
   @unpack gammas, gas_constants, cv = equations
   rho_v1_ll, rho_e_ll = u_ll
@@ -282,7 +282,7 @@ Entropy conserving two-point flux by
     help1_ll  += u_ll[i+2] * cv[i]
     help1_rr  += u_rr[i+2] * cv[i]
   end
- 
+
   T_ll        = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2)) / help1_ll
   T_rr        = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2)) / help1_rr
   T           = 0.5 * (1.0/T_ll + 1.0/T_rr)
@@ -291,7 +291,7 @@ Entropy conserving two-point flux by
   # Calculate fluxes depending on orientation
   help1       = zero(T_ll)
   help2       = zero(T_rr)
-  
+
   f_rho       = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
   for i in eachcomponent(equations)
     help1     += f_rho[i] * cv[i]
@@ -299,7 +299,7 @@ Entropy conserving two-point flux by
   end
   f1 = (help2) * v1_avg + enth/T
   f2 = (help1)/T_log - 0.5 * (v1_square) * (help2) + v1_avg * f1
-  
+
   f_other  = SVector{2, real(equations)}(f1, f2)
 
   return vcat(f_other, f_rho)
@@ -307,7 +307,7 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations1D)
   rho_v1_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_e_rr = u_rr
 

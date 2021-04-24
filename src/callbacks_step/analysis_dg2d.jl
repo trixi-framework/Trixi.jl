@@ -1,6 +1,6 @@
 
 function create_cache_analysis(analyzer, mesh::TreeMesh{2},
-                               equations::AbstractEquations{2}, dg::DG, cache,
+                               equations, dg::DG, cache,
                                RealT, uEltype)
 
   # pre-allocate buffers
@@ -18,7 +18,7 @@ end
 
 
 function create_cache_analysis(analyzer, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
-                               equations::AbstractEquations{2}, dg::DG, cache,
+                               equations, dg::DG, cache,
                                RealT, uEltype)
   # pre-allocate buffers
   u_local = zeros(uEltype,
@@ -38,7 +38,7 @@ function create_cache_analysis(analyzer, mesh::Union{CurvedMesh{2}, Unstructured
 end
 
 
-function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
+function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
@@ -74,7 +74,7 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
 end
 
 
-function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
+function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
 
@@ -123,7 +123,7 @@ function calc_l2_integral_and_linf(func, u::AbstractArray{<:Any,4}, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
+function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   @unpack weights = dg.basis
@@ -149,7 +149,7 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
 end
 
 
-function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
+function integrate_via_indices(func::Func, u,
                                mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
                                dg::DGSEM, cache, args...; normalize=true) where {Func}
   @unpack weights = dg.basis
@@ -176,8 +176,9 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
 end
 
 
-function integrate(func::Func, u::AbstractArray{<:Any,4},
-                   mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh}, equations, dg::DGSEM, cache; normalize=true) where {Func}
+function integrate(func::Func, u,
+                   mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh},
+                   equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, element)
     return func(u_local, equations)
@@ -185,8 +186,9 @@ function integrate(func::Func, u::AbstractArray{<:Any,4},
 end
 
 
-function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,4}, u, t,
-                 mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh}, equations, dg::DG, cache)
+function analyze(::typeof(entropy_timederivative), du, u, t,
+                 mesh::Union{TreeMesh{2},CurvedMesh{2},UnstructuredQuadMesh},
+                 equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, element)
@@ -197,7 +199,7 @@ end
 
 
 
-function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
+function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdEquations2D,
                  dg::DG, cache)
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
@@ -211,7 +213,7 @@ function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
   end |> sqrt
 end
 
-function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
+function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
                  dg::DG, cache)
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
@@ -226,7 +228,7 @@ function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
+function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdEquations2D,
                  dg::DG, cache)
   @unpack derivative_matrix, weights = dg.basis
@@ -249,7 +251,7 @@ function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
+function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
                  dg::DG, cache)
   @unpack derivative_matrix, weights = dg.basis

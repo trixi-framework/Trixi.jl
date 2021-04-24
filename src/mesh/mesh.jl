@@ -13,6 +13,11 @@ get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
 # different form). Also, these data values can be performance critical, so a mesh would
 # have to store them for all solvers in an efficient way - OTOH, different solvers might
 # use different cells of a shared mesh, so "efficient" is again solver dependent.
+"""
+    TreeMesh{NDIMS} <: AbstractMesh{NDIMS}
+
+A Cartesian mesh based on trees of hypercubes to support adaptive mesh refinement.
+"""
 mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}} <: AbstractMesh{NDIMS}
   tree::TreeType
   current_filename::String

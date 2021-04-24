@@ -12,19 +12,21 @@ end
 # Extract contravariant vector Ja^i (i = index) as SVector
 @inline function get_contravariant_vector(index, contravariant_vectors, indices...)
 
-  SVector(ntuple(dim -> contravariant_vectors[index, dim, indices...], ndims(contravariant_vectors) - 3))
+  SVector(ntuple(dim -> contravariant_vectors[dim, index, indices...], ndims(contravariant_vectors) - 3))
 end
 
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
-                                                  boundary_condition::BoundaryConditionPeriodic, equations, mesh::CurvedMesh, 
-                                                  dg::DG, cache, direction, node_indices, surface_node_indices, element)
+                                                  boundary_condition::BoundaryConditionPeriodic,
+                                                  mesh::CurvedMesh, equations, dg::DG, cache,
+                                                  direction, node_indices, surface_node_indices, element)
   @assert isperiodic(mesh, orientation)
 end
 
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
-                                                  boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
+                                                  boundary_condition,
+                                                  mesh::CurvedMesh, equations, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
   @unpack node_coordinates, contravariant_vectors = cache.elements
   @unpack surface_flux = dg
@@ -44,7 +46,7 @@ end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
                                                   boundary_condition::BoundaryConditionCoupled, 
-                                                  equations, mesh::CurvedMesh, dg::DG, cache,
+                                                  mesh::CurvedMesh, equations, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
   @unpack node_coordinates, contravariant_vectors = cache.elements
   @unpack surface_flux = dg
