@@ -5,8 +5,8 @@ using Plots
 using UnPack
 using StructArrays
 using StaticArrays
-using ArraysOfArrays 
 using RecursiveArrayTools
+using ArrayInterface
 using LazyArrays
 using LinearAlgebra
 
@@ -21,7 +21,7 @@ include("/Users/jessechan/.julia/dev/Trixi/src/solvers/jesse_dg/ESDG_utils.jl") 
 ###############################################################################
 # semidiscretization 
 
-N = 3
+N = 2
 K1D = 16
 CFL = .25
 FinalTime = 1.0
@@ -35,6 +35,10 @@ struct UnstructuredMesh{NDIMS,Tv,Ti}
     VXYZ::NTuple{NDIMS,Tv}
     EToV::Matrix{Ti}
 end
+function Base.show(io::IO, md::UnstructuredMesh{NDIMS}) where {NDIMS}
+    @nospecialize md
+    println("Unstructured mesh in $NDIMS dimensions.")
+end
 
 # accumulate Q.*F into rhs
 function hadsum_ATr!(rhs,ATr,F::Fxn,u; skip_index=(i,j)->false) where {Fxn}
@@ -47,13 +51,14 @@ function hadsum_ATr!(rhs,ATr,F::Fxn,u; skip_index=(i,j)->false) where {Fxn}
                 val_i .+= ATr[j,i].*F(ui,u[j]) # breaks for tuples, OK for StaticArrays
             end
         end
-        rhs[i] .= val_i
+        rhs[i] = val_i # why not .= here?
     end
 end
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
     x,y = xyz
-    ρ = 1. + .5*exp(-25*(x^2+y^2))
+    ρ = 1 + .5*exp(-25*(x^2+y^2))
+    # ρ = 1 + .5*sin(pi*x)*sin(pi*y)
     u = 1.0
     v = .5    
     p = 2.
@@ -160,15 +165,15 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
 
     Uh, Uf = compute_entropy_projection!(Q,rd,cache,equations)
     
-    rhse = StructArray([MVector{4}(zeros(4)) for i = 1:length(Uh[:,1])]) # preallocate storage to be reused     
+    rhse = MVector{4}.(Uh[:,1]) # preallocate storage to be reused     
     for e = 1:md.K
-        fill!(rhse,zeros(Trixi.nvariables(eqn))) # reset contributions
+        fill!(rhse,MVector{4}(zeros(4))) # reset contributions
         Ue = view(Uh,:,e)
         QxTr = LazyArray(@~ 2 .*(rxJ[1,e].*QrhskewTr .+ sxJ[1,e].*QshskewTr)) 
         QyTr = LazyArray(@~ 2 .*(ryJ[1,e].*QrhskewTr .+ syJ[1,e].*QshskewTr))
 
-        hadsum_ATr!(rhse, QxTr, F(1), Ue; skip_index=(i,j)->i>Nq && j>Nq)
-        hadsum_ATr!(rhse, QyTr, F(2), Ue; skip_index=(i,j)->i>Nq && j>Nq) 
+        hadsum_ATr!(rhse, QxTr, F(1), Ue)#; skip_index=(i,j)->i>Nq && j>Nq)
+        hadsum_ATr!(rhse, QyTr, F(2), Ue)#; skip_index=(i,j)->i>Nq && j>Nq) 
         
         # add in face contributions
         for (i,vol_id) = enumerate(Nq+1:Nh)
@@ -176,7 +181,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
             Fy = F(2)(Uf[mapP[i,e]],Uf[i,e])
             dissipation = .25*(Uf[mapP[i,e]] .- Uf[i,e])
             val = @. (Fx * nxJ[i,e] + Fy * nyJ[i,e] - dissipation*sJ[i,e]) * wf[i]
-            rhse[vol_id] .+= val
+            rhse[vol_id] = rhse[vol_id] .+ val
         end
 
         # project down and store
@@ -254,14 +259,14 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 # Print the timer summary
 summary_callback()
 
-Q = sol.u[end]
-zz = rd.Vp*StructArrays.component(Q,1)
-scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
+# mesh = UnstructuredMesh((VX,VY),EToV)
+# eqns = CompressibleEulerEquations2D(1.4)
+# cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
+# Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
+# dQ = similar(Q)
+# Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
+# Trixi.rhs!(dQ,Q,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
 
-mesh = UnstructuredMesh((VX,VY),EToV)
-eqns = CompressibleEulerEquations2D(1.4)
-cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
-Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
-dQ = similar(Q)
-Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
-Trixi.rhs!(dQ,Q,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
+# Q = sol.u[end]
+# zz = rd.Vp*StructArrays.component(dQ,1)
+# scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90))
