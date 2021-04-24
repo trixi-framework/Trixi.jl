@@ -522,7 +522,8 @@ Cassette.@context Ctx
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:7], [-2.4417734981719132e-5, -3.4296207289200194e-5,
                                             0.0018130846385739788, -0.5, 0.25, 1.0, 1.0]))
-    @test_throws DimensionMismatch get_elements_by_coordinates!([1, 2], rand(2, 4), mesh, solver, nothing)
+    @test_throws DimensionMismatch Trixi.get_elements_by_coordinates!([1, 2], rand(2, 4), mesh,
+                                                                      solver, nothing)
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
   end
