@@ -35,8 +35,8 @@ struct UnstructuredMesh{NDIMS,Tv,Ti}
     VXYZ::NTuple{NDIMS,Tv}
     EToV::Matrix{Ti}
 end
-function Base.show(io::IO, md::UnstructuredMesh{NDIMS}) where {NDIMS}
-    @nospecialize md
+function Base.show(io::IO, mesh::UnstructuredMesh{NDIMS}) where {NDIMS}
+    @nospecialize mesh
     println("Unstructured mesh in $NDIMS dimensions.")
 end
 
@@ -130,17 +130,16 @@ end
     end
 end
 
-
 function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn) # why 91.46ms ???
     @unpack Vq = rd    
     @unpack VhP,Ph = cache
     @unpack Uq, VUq, VUh, Uh, Uf = cache
 
     # entropy projection - should be zero alloc
-    StructArrays.foreachfield((uout,u)->matmul!(uout,Vq,u),Uq,Q) # 5μs
+    StructArrays.foreachfield((uout,u)->mul!(uout,Vq,u),Uq,Q) # 5μs
     # VUq .= (u->cons2entropy(u,eqn)).(Uq) # 482.656 μs
     bmap!(u->cons2entropy(u,eqn),VUq,Uq) # 77.5μs
-    StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq) # 7.902 μs
+    StructArrays.foreachfield((uout,u)->mul!(uout,VhP,u),VUh,VUq) # 7.902 μs
     # # Uh .= (v->entropy2cons(v,eqn)).(VUh) # 2.148 ms
     bmap!(v->entropy2cons(v,eqn),Uh,VUh) # 327.204 μs
     Nh,Nq = size(VhP)
@@ -185,7 +184,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         end
 
         # project down and store
-        StructArrays.foreachfield(project_and_store!,view(dQ,:,e),rhse)
+        StructArrays.foreachfield(project_and_store!,view(dQ,:,e),-rhse/J[1,e])
     end
 
     return nothing
@@ -199,7 +198,7 @@ function Trixi.allocate_coefficients(mesh::UnstructuredMesh,
                     equations, rd::RefElemData, cache)
     @unpack md = cache
     NVARS = nvariables(equations) # TODO: replace with static type info?
-    return StructArray([MVector{4}(zeros(4)) for i in axes(md.x,1), j in axes(md.x,2)])
+    return StructArray([SVector{4}(zeros(4)) for i in axes(md.x,1), j in axes(md.x,2)])
 end
 
 function Trixi.compute_coefficients!(u::StructArray, initial_condition, t, 
@@ -208,8 +207,6 @@ function Trixi.compute_coefficients!(u::StructArray, initial_condition, t,
         xyz_i = getindex.(cache.md.xyz,i)
         u[i] = initial_condition(xyz_i,t,equations) # interpolate
     end
-    # u .= initial_condition(cache.md.xyz,t,equations) # interpolate
-    # u .= (x->Pq*x).(initial_condition(cache.md.xyzq,t,equations)) # TODO - projection
 end
 
 Trixi.wrap_array(u_ode::StructArray, semi::Trixi.AbstractSemidiscretization) = u_ode
@@ -251,8 +248,6 @@ CN = (N+1)*(N+2)/2
 dt0 = CFL * sqrt(minimum(md.J)) / CN
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-#             dt = dt0, save_everystep=false, callback=callbacks);
 # sol = solve(ode, SSPRK43(), dt=.01*dt0, save_everystep=false, callback=callbacks);
 sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 
@@ -263,10 +258,10 @@ summary_callback()
 # eqns = CompressibleEulerEquations2D(1.4)
 # cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
 # Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
-# dQ = similar(Q)
+# dQ = zero(Q)
 # Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
 # Trixi.rhs!(dQ,Q,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
 
-# Q = sol.u[end]
-# zz = rd.Vp*StructArrays.component(dQ,1)
-# scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90))
+Q = sol.u[end]
+zz = rd.Vp*StructArrays.component(Q,1)
+scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90))
