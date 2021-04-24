@@ -38,6 +38,11 @@ of these can be found at [examples/2d/elixir\_advection\_extended.jl](https://gi
 An example showing how to restart a simulation from a restart file can be found at
 [examples/2d/elixir\_advection\_restart.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_restart.jl).
 
+Sometimes it is useful to record the evoluation of state variables over time at
+a given set of points. This can be achieved by the [`TimeSeriesCallback`](@ref), which is used,
+e.g., in
+[examples/2d/elixir\_ape\_gaussian\_source.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_ape_gaussian_source.jl).
+
 ### Miscellaneous
 * The [`AliveCallback`](@ref) prints some information to the screen to show that a simulation is
   still running.
