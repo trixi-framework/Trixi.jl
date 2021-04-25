@@ -86,8 +86,23 @@ end
 
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::CurvedMesh{3}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          mesh::CurvedMesh{3}, equations,
+                          initial_condition, dg::DGSEM, cache, cache_analysis)
+
+  l2_integral, linf_error = calc_l2_integral_and_linf(
+    func, u, t, analyzer, mesh, equations, 
+    initial_condition, dg, cache, cache_analysis)
+  
+  # For L2 error, divide by total volume
+  l2_error = sqrt.(l2_integral ./ total_volume(mesh, dg, cache))
+
+  return l2_error, linf_error
+end
+
+
+function calc_l2_integral_and_linf(func, u::AbstractArray{<:Any,5}, t, analyzer,
+                                   mesh::CurvedMesh{3}, equations,
+                                   initial_condition, dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
   @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
@@ -95,7 +110,6 @@ function calc_error_norms(func, u, t, analyzer,
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
   linf_error = copy(l2_error)
-  total_volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
@@ -112,12 +126,8 @@ function calc_error_norms(func, u, t, analyzer,
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j, k), equations)
       l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * jacobian_local[i, j, k])
       linf_error = @. max(linf_error, abs(diff))
-      total_volume += weights[i] * weights[j] * weights[k] * jacobian_local[i, j, k]
     end
   end
-
-  # For L2 error, divide by total volume
-  l2_error = @. sqrt(l2_error / total_volume)
 
   return l2_error, linf_error
 end

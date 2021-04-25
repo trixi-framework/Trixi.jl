@@ -78,12 +78,12 @@ function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
 
-  l2_integral, total_volume, linf_error = calc_l2_integral_and_linf(
+  l2_integral, linf_error = calc_l2_integral_and_linf(
     func, u, t, analyzer, mesh, equations, 
     initial_condition, dg, cache, cache_analysis)
   
   # For L2 error, divide by total volume
-  l2_error = @. sqrt(l2_integral / total_volume)
+  l2_error = sqrt.(l2_integral ./ total_volume(mesh, dg, cache))
 
   return l2_error, linf_error
 end
@@ -98,7 +98,6 @@ function calc_l2_integral_and_linf(func, u::AbstractArray{<:Any,4}, t, analyzer,
   # Set up data structures
   l2_integral = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_integral)
-  total_volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
@@ -115,11 +114,10 @@ function calc_l2_integral_and_linf(func, u::AbstractArray{<:Any,4}, t, analyzer,
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
       l2_integral += diff.^2 * (weights[i] * weights[j] * jacobian_local[i, j])
       linf_error = @. max(linf_error, abs(diff))
-      total_volume += weights[i] * weights[j] * jacobian_local[i, j]
     end
   end
 
-  return l2_integral, total_volume, linf_error
+  return l2_integral, linf_error
 end
 
 
@@ -156,20 +154,18 @@ function integrate_via_indices(func::Func, u,
 
   # Initialize integral with zeros of the right shape
   integral = zero(func(u, 1, 1, 1, equations, dg, args...))
-  total_volume = zero(real(mesh))
 
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
       integral += volume_jacobian * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
-      total_volume += volume_jacobian * weights[i] * weights[j]
     end
   end
 
   # Normalize with total volume
   if normalize
-    integral = integral / total_volume
+    integral = integral / total_volume(mesh, dg, cache)
   end
 
   return integral
