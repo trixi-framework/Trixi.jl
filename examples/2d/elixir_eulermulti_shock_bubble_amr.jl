@@ -6,7 +6,7 @@ using Trixi
 
 # 1) Dry Air  2) Helium + 28% Air
 equations           = CompressibleEulerMulticomponentEquations2D(gammas        = (1.4, 1.648),
-                                                                 gas_constants = (0.287, 1.578)) 
+                                                                 gas_constants = (0.287, 1.578))
 
 initial_condition   = initial_condition_shock_bubble
 
@@ -35,20 +35,20 @@ semi                = SemidiscretizationHyperbolic(mesh, eulermulti, equations, 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan               = (0.0, 0.0012) 
+tspan               = (0.0, 0.0012)
 ode                 = semidiscretize(semi, tspan)
 
 summary_callback    = SummaryCallback()
 
-analysis_interval   = 100 
+analysis_interval   = 100
 analysis_callback   = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution       = SaveSolutionCallback(interval=100,   
+save_solution       = SaveSolutionCallback(interval=100,
                                            save_initial_solution=true,
                                            save_final_solution=true,
-                                           solution_variables=:primitive)
+                                           solution_variables=cons2prim)
 
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,
@@ -58,18 +58,18 @@ amr_indicator = IndicatorHennemannGassner(semi,
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                           base_level=5,
-                                          max_level =9, max_threshold=0.01) 
+                                          max_level =9, max_threshold=0.01)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                               interval=5,  
+                               interval=5,
                                adapt_initial_condition=true,
                                adapt_initial_condition_only_refine=true)
 
 stepsize_callback   = StepsizeCallback(cfl=0.3)
 
 callbacks           = CallbackSet(summary_callback,
-                                  analysis_callback, 
-                                  alive_callback, 
+                                  analysis_callback,
+                                  alive_callback,
                                   save_solution,
                                   amr_callback,
                                   stepsize_callback)
@@ -79,6 +79,6 @@ callbacks           = CallbackSet(summary_callback,
 # run the simulation
 sol                 = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
                                                       dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                                                      save_everystep=false, 
+                                                      save_everystep=false,
                                                       callback=callbacks);
 summary_callback() # print the timer summary
