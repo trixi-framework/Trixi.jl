@@ -164,10 +164,10 @@ end
 
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction, 
-                                                        cell_index, surface_node_indices,
+                                                        cell_indices, surface_node_indices,
                                                         surface_flux_function, equations)
   # get_node_vars(), but we don't have a solver here
-  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_index], 
+  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...], 
                               Val(nvariables(equations))))
 
   # Calculate boundary flux
