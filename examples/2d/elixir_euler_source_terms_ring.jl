@@ -23,7 +23,7 @@ function gnomonic_projection(inner_radius, thickness, offset)
   mapping(eta, xi) = radius(eta) * SVector(cos(alpha(xi)), sin(alpha(xi)))
 end
 
-mapping_as_string = """
+mapping_as_string(offset) = """
   function gnomonic_projection(inner_radius, thickness, offset)
     R1 = inner_radius;
     R2 = R1 + thickness;
@@ -32,7 +32,7 @@ mapping_as_string = """
     radius(eta) = R1 + R2 * (0.5 * (eta + 1));
 
     mapping(eta, xi) = radius(eta) * SVector(cos(alpha(xi)), sin(alpha(xi)));
-  end; mapping = gnomonic_projection(1, 1, 3*pi/2)
+  end; mapping = gnomonic_projection(1, 1, $offset)
 """
 
 
@@ -40,7 +40,7 @@ indices_y_neg = (:i, 1)
 indices_y_pos = (:i, :end)
 
 mesh1 = CurvedMesh((16, 16), gnomonic_projection(1, 1, 0), 
-                   periodicity=false, mapping_as_string=mapping_as_string)
+                   periodicity=false, mapping_as_string=mapping_as_string(0))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
@@ -51,7 +51,7 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver
   ))
 
 mesh2 = CurvedMesh((16, 16), gnomonic_projection(1, 1, pi/2), 
-                   periodicity=false, mapping_as_string=mapping_as_string)
+                   periodicity=false, mapping_as_string=mapping_as_string(pi/2))
 
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
@@ -62,7 +62,7 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver
   ))
 
 mesh3 = CurvedMesh((16, 16), gnomonic_projection(1, 1, 2 * pi/2), 
-                   periodicity=false, mapping_as_string=mapping_as_string)
+                   periodicity=false, mapping_as_string=mapping_as_string(pi))
 
 semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
@@ -73,7 +73,7 @@ semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver
   ))
 
 mesh4 = CurvedMesh((16, 16), gnomonic_projection(1, 1, 3 * pi/2), 
-                   periodicity=false, mapping_as_string=mapping_as_string)
+                   periodicity=false, mapping_as_string=mapping_as_string(3*pi/2))
 
 semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
@@ -98,9 +98,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
@@ -110,7 +107,7 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # save_restart, save_solution,
+                        save_solution,
                         stepsize_callback)
 ###############################################################################
 # run the simulation
