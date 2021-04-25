@@ -167,6 +167,8 @@ end
                                              semi::SemidiscretizationHyperbolic,
                                              t, iter;
                                              kwargs...)
+  # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
+  # it when doing AMR while still dispatching on the `mesh` etc.
   amr_callback(u_ode, mesh_equations_solver_cache(semi)..., t, iter; kwargs...)
 end
 

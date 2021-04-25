@@ -100,7 +100,7 @@ function (restart_callback::SaveRestartCallback)(integrator)
 end
 
 
-@inline function save_restart_file(u_ode::AbstractVector, t, dt, iter,
+@inline function save_restart_file(u_ode, t, dt, iter,
                                    semi::AbstractSemidiscretization, restart_callback)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)

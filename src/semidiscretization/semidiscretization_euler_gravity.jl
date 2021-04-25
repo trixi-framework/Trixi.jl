@@ -222,7 +222,7 @@ end
 
 
 # TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
-function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector)
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
   @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
 
   # Can be changed by AMR
@@ -413,7 +413,7 @@ end
 
 
 # TODO: Taal decide, where should specific parts like these be?
-@inline function save_solution_file(u_ode::AbstractVector, t, dt, iter,
+@inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::SemidiscretizationEulerGravity, solution_callback,
                                     element_variables=Dict{Symbol,Any}())
 
@@ -431,7 +431,7 @@ end
 end
 
 
-@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
+@inline function (amr_callback::AMRCallback)(u_ode,
                                              semi::SemidiscretizationEulerGravity,
                                              t, iter; kwargs...)
   passive_args = ((semi.cache.u_ode, mesh_equations_solver_cache(semi.semi_gravity)...),)
