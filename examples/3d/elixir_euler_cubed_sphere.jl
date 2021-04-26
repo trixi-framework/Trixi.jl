@@ -12,27 +12,6 @@ initial_condition = initial_condition_convergence_test
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 
-# function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, offset_lambda, offset_theta)
-#   alpha = xi * pi/4
-#   beta = eta * pi/4
-
-#   a = sqrt(2)/2 * inner_radius
-#   x = a * tan(alpha)
-#   y = a * tan(beta)
-
-#   r = sqrt(a^2 + x^2 + y^2)
-
-#   lambda = alpha + offset_lambda
-#   theta = asin(y/r) + offset_theta
-#   # sin_theta = y/r
-#   # cos_theta = sqrt(1 - (y/r)^2)
-#   sin_theta = sin(theta)
-#   cos_theta = cos(theta)
-#   radius = inner_radius + thickness * (0.5 * (zeta + 1))
-
-#   radius * SVector(-sin_theta, sin(lambda) * cos_theta, cos(lambda) * cos_theta)
-# end
-
 function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   alpha = xi * pi/4
   beta = eta * pi/4
@@ -64,22 +43,22 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   alpha = xi * pi/4
   beta = eta * pi/4
 
-  a = sqrt(2)/2 * inner_radius
-  x = a * tan(alpha)
-  y = a * tan(beta)
+  x = tan(alpha)
+  y = tan(beta)
 
-  r = sqrt(a^2 + x^2 + y^2)
+  r = sqrt(1 + x^2 + y^2)
 
   R = inner_radius + thickness * (0.5 * (zeta + 1))
 
-  vectors = [SVector(-a, x, y),
-             SVector( a, x, y),
-             SVector(x, -a, y),
-             SVector(x,  a, y),
-             SVector(x, y, -a),
-             SVector(x, y,  a)]
+  # Cube coordinates per direction
+  cube_coordinates = [SVector(-1, x, y),
+                      SVector( 1, x, y),
+                      SVector(x, -1, y),
+                      SVector(x,  1, y),
+                      SVector(x, y, -1),
+                      SVector(x, y,  1)]
 
-  R / r * vectors[direction]
+  R / r * cube_coordinates[direction]
 end; function cubed_sphere_mapping(inner_radius, thickness, direction)
   mapping(xi, eta, zeta) = cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
 end; mapping = cubed_sphere_mapping($inner_radius, $thickness, $direction)
