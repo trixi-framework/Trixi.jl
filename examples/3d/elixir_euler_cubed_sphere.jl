@@ -64,7 +64,7 @@ end; function cubed_sphere_mapping(inner_radius, thickness, direction)
 end; mapping = cubed_sphere_mapping($inner_radius, $thickness, $direction)
 """
 
-cells_per_dimension = (8, 8, 2)
+cells_per_dimension = (5, 5, 1)
 
 inner_radius = 1
 thickness = 0.1
@@ -175,7 +175,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.2)
+stepsize_callback = StepsizeCallback(cfl=1.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

@@ -78,6 +78,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.004142508319267935])
   end
 
+  @testset "elixir_advection_basic_curved_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_curved_coupled.jl"),
+      l2   = [9.14468177884088e-6],
+      linf = [6.437440532947036e-5])
+  end
+
   @testset "elixir_advection_restart_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
       l2   = [6.398955192910044e-6],
@@ -165,6 +171,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic_curved.jl"),
       l2   = [2.3653424742684444e-6, 2.1388875095440695e-6, 2.1388875095548492e-6, 6.010896863397195e-6],
       linf = [1.4080465931654018e-5, 1.7579850587257084e-5, 1.7579850592586155e-5, 5.956893531156027e-5])
+  end
+
+  @testset "elixir_euler_source_terms_ring.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_ring.jl"),
+      l2   = [0.00042501870952235703, 0.00033999522089480847, 0.00033999522089480847, 0.000898573730078033],
+      linf = [0.0039937119484019235, 0.004340822615233053, 0.0014937420921830036, 0.008556182287533076])
   end
 end
 

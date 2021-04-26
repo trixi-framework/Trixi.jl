@@ -56,7 +56,7 @@ end; mapping = ring_mapping(1, 1, $direction)
 """
 
 
-mesh1 = CurvedMesh((16, 16), ring_mapping(1, 1, 1), 
+mesh1 = CurvedMesh((8, 4), ring_mapping(1, 1, 1), 
                    periodicity=false, mapping_as_string=mapping_as_string(1))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver,
@@ -67,7 +67,7 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver
     y_pos=boundary_condition_convergence_test,
   ))
 
-mesh2 = CurvedMesh((16, 16), ring_mapping(1, 1, 2), 
+mesh2 = CurvedMesh((8, 4), ring_mapping(1, 1, 2), 
                    periodicity=false, mapping_as_string=mapping_as_string(2))
 
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver,
@@ -78,7 +78,7 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver
     y_pos=boundary_condition_convergence_test,
   ))
 
-mesh3 = CurvedMesh((16, 16), ring_mapping(1, 1, 3), 
+mesh3 = CurvedMesh((8, 4), ring_mapping(1, 1, 3), 
                    periodicity=false, mapping_as_string=mapping_as_string(3))
 
 semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver,
@@ -89,7 +89,7 @@ semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver
     y_pos=boundary_condition_convergence_test,
   ))
 
-mesh4 = CurvedMesh((16, 16), ring_mapping(1, 1, 4), 
+mesh4 = CurvedMesh((8, 4), ring_mapping(1, 1, 4), 
                    periodicity=false, mapping_as_string=mapping_as_string(4))
 
 semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver,
@@ -105,7 +105,7 @@ semi = SemidiscretizationHyperbolicCoupled((semi1, semi2, semi3, semi4))
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

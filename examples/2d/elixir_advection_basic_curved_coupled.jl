@@ -13,9 +13,9 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_max = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (16, 16)
+cells_per_dimension = (8, 16)
 
 # Create curved mesh with 16 x 16 elements
 mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
@@ -27,10 +27,10 @@ semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_converge
                                        Trixi.BoundaryConditionCoupled(2, 1, (1, :i),  Float64),
                                        boundary_condition_periodic, boundary_condition_periodic))
 
-coordinates_min = (1.0, 1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (3.0, 3.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (0.0, -1.0) # minimum coordinates (min(x), min(y))
+coordinates_max = (1.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (16, 16)
+cells_per_dimension = (8, 16)
 
 # Create curved mesh with 16 x 16 elements
 mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
