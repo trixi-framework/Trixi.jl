@@ -53,7 +53,7 @@ end
 
 
 """
-    PlotData2D(u, semi;
+    PlotData2D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                slice=:xy, point=[0, 0, 0])
@@ -96,7 +96,12 @@ julia> plot(pd["scalar"]) # To plot only a single variable
 julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
-function PlotData2D(u, semi;
+
+PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi),
+                                                mesh_equations_solver_cache(semi)...;
+                                                kwargs...)
+
+function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                     slice_axis=:z, slice_axis_intercept=0)
@@ -110,7 +115,7 @@ function PlotData2D(u, semi;
   coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
   levels = mesh.tree.levels[leaf_cell_ids]
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
+  unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
   x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0, length_level_0,
                                                              leaf_cell_ids, coordinates, levels,
                                                              ndims(mesh), unstructured_data,
@@ -126,35 +131,19 @@ function PlotData2D(u, semi;
 end
 
 
-"""
-    PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:Union{CurvedMesh,UnstructuredQuadMesh}};
-               solution_variables=nothing, kwargs...)
-
-Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
-`u` with `Plots.jl` for the mesh type `CurvedMesh` or `UnstructuredQuadMesh`. All relevant
-geometrical information is extracted from the semidiscretization `semi`. By default, the
-conservative variables from the solution are used for plotting. This can be changed by passing an
-appropriate conversion function to `solution_variables`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
-"""
-function PlotData2D(u::AbstractArray{<:Any, 4},
-                    semi::SemidiscretizationHyperbolic{<:Union{CurvedMesh,UnstructuredQuadMesh}};
+function PlotData2D(u, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, solver, cache;
                     solution_variables=nothing, grid_lines=true, kwargs...)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack node_coordinates = cache.elements
 
   @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
+  unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
 
   x = vec(view(node_coordinates, 1, ..))
   y = vec(view(node_coordinates, 2, ..))
 
-  data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
+  data = [vec(unstructured_data[.., v]) for v in eachvariable(equations)]
 
   if grid_lines
     mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
@@ -173,18 +162,7 @@ end
 
 
 """
-    PlotData2D(u_ode::AbstractVector, semi; kwargs...)
-
-Create a `PlotData2D` object from a one-dimensional ODE solution `u_ode` and the semidiscretization
-`semi`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-PlotData2D(u_ode::AbstractVector, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi), semi; kwargs...)
-
-"""
-    PlotData2D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}; kwargs...)
+    PlotData2D(sol; kwargs...)
 
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
@@ -465,7 +443,8 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
 end
 
 """
-    PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing))
+    PlotData1D(u, semi [or mesh, equations, solver, cache];
+               solution_variables=nothing, nvisnodes=nothing)
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
@@ -508,7 +487,7 @@ end
 
 
 """
-    PlotData1D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution})
+    PlotData1D(sol; kwargs...)
 
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a

@@ -124,8 +124,7 @@ end
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function get_unstructured_data(u, semi, solution_variables)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+function get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
 
   if solution_variables === cons2cons
     raw_data = u
