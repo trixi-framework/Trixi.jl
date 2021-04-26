@@ -104,7 +104,7 @@ PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi),
 function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice_axis=:z, slice_axis_intercept=0)
+                    slice=:xy, point=[0, 0, 0])
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -456,6 +456,11 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes in the DG elements are used.
 
+When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
+`slice` specifies the axis stripped from the plane and may be `:x`, or `:y`.
+This axis can be shifted in any direction so that it sits a given `point`, which is [0, 0] by default.
+Both of these values are ignored when visualizing 1D data.
+
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
@@ -464,24 +469,26 @@ PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi),
                                                 kwargs...)
 
 function PlotData1D(u, mesh, equations, solver, cache;
-                    solution_variables=nothing, nvisnodes=nothing)
+                    solution_variables=nothing, nvisnodes=nothing,
+                    slice=:x, point=[0, 0])
 
-  @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
+  @assert ndims(mesh) in (1,2) "unsupported number of dimensions $ndims (must be 1 or 2)"
+
   solution_variables_ = digest_solution_variables(equations, solution_variables)
-
   variable_names = SVector(varnames(solution_variables_, equations))
-  original_nodes = cache.elements.node_coordinates
 
+  original_nodes = cache.elements.node_coordinates
   unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
-  x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
   if ndims(mesh) == 1
+    x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
   else
+    x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
     orientation_x = 0
   end
 
-  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]),
+  return PlotData1D(x, data, variable_names, mesh_vertices_x,
                     orientation_x)
 end
 
