@@ -12,14 +12,6 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-indices_left  = (1,     :i)
-indices_right = (:end,  :i)
-
-boundary_1_left   = Trixi.BoundaryConditionCoupled(2, 1, indices_right, 2, Float64)
-boundary_1_right  = Trixi.BoundaryConditionCoupled(2, 1, indices_left,  2, Float64)
-boundary_2_left   = Trixi.BoundaryConditionCoupled(1, 1, indices_right, 2, Float64)
-boundary_2_right  = Trixi.BoundaryConditionCoupled(1, 1, indices_left,  2, Float64)
-
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 
@@ -30,8 +22,10 @@ mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver, 
-                                     boundary_conditions=(boundary_1_left, boundary_1_right,
-                                                          boundary_condition_periodic, boundary_condition_periodic))
+                                     boundary_conditions=(
+                                       Trixi.BoundaryConditionCoupled(2, 1, (:end, :i), Float64),
+                                       Trixi.BoundaryConditionCoupled(2, 1, (1, :i),  Float64),
+                                       boundary_condition_periodic, boundary_condition_periodic))
 
 coordinates_min = (1.0, 1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (3.0, 3.0) # maximum coordinates (max(x), max(y))
@@ -42,8 +36,10 @@ cells_per_dimension = (16, 16)
 mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
-                                     boundary_conditions=(boundary_2_left, boundary_2_right,
-                                                          boundary_condition_periodic, boundary_condition_periodic))
+                                     boundary_conditions=(
+                                       Trixi.BoundaryConditionCoupled(1, 1, (:end, :i), Float64),
+                                       Trixi.BoundaryConditionCoupled(1, 1, (1, :i),  Float64), 
+                                       boundary_condition_periodic, boundary_condition_periodic))
 
 # mesh = CurvedMesh((4, 4), coordinates_min, coordinates_max)
 # semi3 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
