@@ -38,7 +38,7 @@ end
   # is reversed as well. The normal vector must be oriented in the direction 
   # from `left_element` to `right_element`, or the numerical flux will be computed
   # incorrectly (downwind direction).
-  sign_jacobian = sign(inverse_jacobian[1, node_indices..., element])
+  sign_jacobian = sign(inverse_jacobian[node_indices..., element])
 
   # Contravariant vector Ja^i is the normal vector
   normal = sign_jacobian * get_contravariant_vector(orientation, contravariant_vectors, 
