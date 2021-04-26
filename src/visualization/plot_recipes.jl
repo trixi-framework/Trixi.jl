@@ -99,7 +99,7 @@ julia> plot!(getmesh(pd)) # To add grid lines to the plot
 function PlotData2D(u, semi;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice=:xy, point=[0, 0, 0])
+                    slice_axis=:z, slice_axis_intercept=0)
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -480,6 +480,10 @@ exactly the number of nodes in the DG elements are used.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
+PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi),
+                                                mesh_equations_solver_cache(semi)...;
+                                                kwargs...)
+
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing)
 
@@ -501,15 +505,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
   return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]),
                     orientation_x)
 end
-"""
-    PlotData1D(u_ode::AbstractVector, semi)
 
-Create a `PlotData1D` object from a one-dimensional ODE solution `u_ode` and the semidiscretization
-`semi`.
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
 
 """
     PlotData1D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution})
