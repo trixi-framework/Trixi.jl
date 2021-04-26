@@ -13,74 +13,91 @@ source_terms = source_terms_convergence_test
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-function gnomonic_projection(inner_radius, thickness, offset)
-  R1 = inner_radius
-  R2 = R1 + thickness
+function gnomonic_projection(xi, eta, inner_radius, thickness, direction)
+  alpha = xi * pi/4
 
-  alpha(xi) = xi * pi/4 + offset
-  radius(eta) = R1 + R2 * (0.5 * (eta + 1))
+  x = tan(alpha)
 
-  mapping(eta, xi) = radius(eta) * SVector(cos(alpha(xi)), sin(alpha(xi)))
+  r = sqrt(1 + x^2)
+  R = inner_radius + thickness * (0.5 * (eta + 1))
+
+  # Cube coordinates per direction
+  cube_coordinates = [SVector(-1, x),
+                      SVector( 1, x),
+                      SVector(x, -1),
+                      SVector(x,  1)]
+
+  R / r * cube_coordinates[direction]
 end
 
-mapping_as_string(offset) = """
-  function gnomonic_projection(inner_radius, thickness, offset)
-    R1 = inner_radius;
-    R2 = R1 + thickness;
+function ring_mapping(inner_radius, thickness, direction)
+  mapping(xi, eta) = gnomonic_projection(xi, eta, inner_radius, thickness, direction)
+end
 
-    alpha(xi) = xi * pi/4 + offset;
-    radius(eta) = R1 + R2 * (0.5 * (eta + 1));
+mapping_as_string(direction) = """
+function gnomonic_projection(xi, eta, inner_radius, thickness, direction)
+  alpha = xi * pi/4
 
-    mapping(eta, xi) = radius(eta) * SVector(cos(alpha(xi)), sin(alpha(xi)));
-  end; mapping = gnomonic_projection(1, 1, $offset)
+  x = tan(alpha)
+
+  r = sqrt(1 + x^2)
+  R = inner_radius + thickness * (0.5 * (eta + 1))
+
+  # Cube coordinates per direction
+  cube_coordinates = [SVector(-1, x),
+                      SVector( 1, x),
+                      SVector(x, -1),
+                      SVector(x,  1)]
+
+  R / r * cube_coordinates[direction]
+end; function ring_mapping(inner_radius, thickness, direction)
+  mapping(xi, eta) = gnomonic_projection(xi, eta, inner_radius, thickness, direction)
+end; mapping = ring_mapping(1, 1, $direction)
 """
 
 
-indices_y_neg = (:i, 1)
-indices_y_pos = (:i, :end)
-
-mesh1 = CurvedMesh((16, 16), gnomonic_projection(1, 1, 0), 
-                   periodicity=false, mapping_as_string=mapping_as_string(0))
+mesh1 = CurvedMesh((16, 16), ring_mapping(1, 1, 1), 
+                   periodicity=false, mapping_as_string=mapping_as_string(1))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=boundary_condition_convergence_test,
-    x_pos=boundary_condition_convergence_test,
-    y_neg=Trixi.BoundaryConditionCoupled(4, 2, indices_y_pos, 2, Float64),
-    y_pos=Trixi.BoundaryConditionCoupled(2, 2, indices_y_neg, 2, Float64),
+    x_neg=Trixi.BoundaryConditionCoupled(3, 1, (1, :i), Float64),
+    x_pos=Trixi.BoundaryConditionCoupled(4, 1, (1, :i), Float64),
+    y_neg=boundary_condition_convergence_test,
+    y_pos=boundary_condition_convergence_test,
   ))
 
-mesh2 = CurvedMesh((16, 16), gnomonic_projection(1, 1, pi/2), 
-                   periodicity=false, mapping_as_string=mapping_as_string(pi/2))
+mesh2 = CurvedMesh((16, 16), ring_mapping(1, 1, 2), 
+                   periodicity=false, mapping_as_string=mapping_as_string(2))
 
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=boundary_condition_convergence_test,
-    x_pos=boundary_condition_convergence_test,
-    y_neg=Trixi.BoundaryConditionCoupled(1, 2, indices_y_pos, 2, Float64),
-    y_pos=Trixi.BoundaryConditionCoupled(3, 2, indices_y_neg, 2, Float64),
+    x_neg=Trixi.BoundaryConditionCoupled(3, 1, (:end, :i), Float64),
+    x_pos=Trixi.BoundaryConditionCoupled(4, 1, (:end, :i), Float64),
+    y_neg=boundary_condition_convergence_test,
+    y_pos=boundary_condition_convergence_test,
   ))
 
-mesh3 = CurvedMesh((16, 16), gnomonic_projection(1, 1, 2 * pi/2), 
-                   periodicity=false, mapping_as_string=mapping_as_string(pi))
+mesh3 = CurvedMesh((16, 16), ring_mapping(1, 1, 3), 
+                   periodicity=false, mapping_as_string=mapping_as_string(3))
 
 semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=boundary_condition_convergence_test,
-    x_pos=boundary_condition_convergence_test,
-    y_neg=Trixi.BoundaryConditionCoupled(2, 2, indices_y_pos, 2, Float64),
-    y_pos=Trixi.BoundaryConditionCoupled(4, 2, indices_y_neg, 2, Float64),
+    x_neg=Trixi.BoundaryConditionCoupled(1, 1, (1, :i), Float64),
+    x_pos=Trixi.BoundaryConditionCoupled(2, 1, (1, :i), Float64),
+    y_neg=boundary_condition_convergence_test,
+    y_pos=boundary_condition_convergence_test,
   ))
 
-mesh4 = CurvedMesh((16, 16), gnomonic_projection(1, 1, 3 * pi/2), 
-                   periodicity=false, mapping_as_string=mapping_as_string(3*pi/2))
+mesh4 = CurvedMesh((16, 16), ring_mapping(1, 1, 4), 
+                   periodicity=false, mapping_as_string=mapping_as_string(4))
 
 semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=boundary_condition_convergence_test,
-    x_pos=boundary_condition_convergence_test,
-    y_neg=Trixi.BoundaryConditionCoupled(3, 2, indices_y_pos, 2, Float64),
-    y_pos=Trixi.BoundaryConditionCoupled(1, 2, indices_y_neg, 2, Float64),
+    x_neg=Trixi.BoundaryConditionCoupled(1, 1, (:end, :i), Float64),
+    x_pos=Trixi.BoundaryConditionCoupled(2, 1, (:end, :i), Float64),
+    y_neg=boundary_condition_convergence_test,
+    y_pos=boundary_condition_convergence_test,
   ))
 
 semi = SemidiscretizationHyperbolicCoupled((semi1, semi2, semi3, semi4))

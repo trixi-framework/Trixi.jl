@@ -155,7 +155,8 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
   other_mesh_orientation::Int
   indices               ::I
 
-  function BoundaryConditionCoupled(other_mesh_id, other_mesh_orientation, indices, NDIMS, uEltype)
+  function BoundaryConditionCoupled(other_mesh_id, other_mesh_orientation, indices, uEltype)
+    NDIMS = length(indices)
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
 
     new{NDIMS*2-1, uEltype, typeof(indices)}(u_boundary, other_mesh_id, other_mesh_orientation, indices)
