@@ -472,7 +472,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
                     slice=:x, point=[0, 0])
 
-  @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
+  @assert ndims(mesh) in (1,2) "unsupported number of dimensions $ndims (must be 1 or 2)"
 
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
@@ -488,7 +488,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
     orientation_x = 0
   end
 
-  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]),
+  return PlotData1D(x, data, variable_names, mesh_vertices_x,
                     orientation_x)
 end
 
