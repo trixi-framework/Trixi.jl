@@ -1,4 +1,4 @@
-# Time integration methods
+# [Time integration methods](@id time-integration)
 
 Trixi is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
 In particular, explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)

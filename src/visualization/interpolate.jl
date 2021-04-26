@@ -52,36 +52,36 @@ function cell2node(cell_centered_data)
 end
 
 
-# Convert 3d unstructured data to 2d slice.
+# Convert 3d unstructured data to 2d data.
 # Additional to the new unstructured data updated coordinates, levels and
 # center coordinates are returned.
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
-                               length_level_0, center_level_0, slice_axis,
-                               slice_axis_intercept)
-
-  if slice_axis === :x
-    slice_axis_dimension = 1
+function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
+                               length_level_0, center_level_0, slice,
+                               point)
+  if slice === :yz
+    slice_dimension = 1
     other_dimensions = [2, 3]
-  elseif slice_axis === :y
-    slice_axis_dimension = 2
+  elseif slice === :xz
+    slice_dimension = 2
     other_dimensions = [1, 3]
-  elseif slice_axis === :z
-    slice_axis_dimension = 3
+  elseif slice === :xy
+    slice_dimension = 3
     other_dimensions = [1, 2]
   else
-    error("illegal dimension '$slice_axis', supported dimensions are :x, :y, and :z")
+    error("illegal dimension '$slice', supported dimensions are :yz, :xz, and :xy")
   end
 
-  # Limits of domain in slice_axis dimension
-  lower_limit = center_level_0[slice_axis_dimension] - length_level_0 / 2
-  upper_limit = center_level_0[slice_axis_dimension] + length_level_0 / 2
+  # Limits of domain in slice dimension
+  lower_limit = center_level_0[slice_dimension] - length_level_0 / 2
+  upper_limit = center_level_0[slice_dimension] + length_level_0 / 2
 
-  if slice_axis_intercept < lower_limit || slice_axis_intercept > upper_limit
-    error(string("Slice plane $slice_axis = $slice_axis_intercept outside of domain. ",
-        "$slice_axis must be between $lower_limit and $upper_limit"))
+  @assert length(point) == 3 "Point must be three-dimensional."
+  if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
+    error(string("Slice plane is outside of domain.",
+        " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
   end
 
   # Extract data shape information
@@ -104,12 +104,12 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   # Save vandermonde matrices in a Dict to prevent redundant generation
   vandermonde_to_2d = Dict()
 
-  # Permute dimensions such that the slice axis dimension is always the
+  # Permute dimensions such that the slice dimension is always the
   # third dimension of the array. Below we can always interpolate in the
   # third dimension.
-  if slice_axis === :x
+  if slice === :yz
     unstructured_data = permutedims(unstructured_data, [2, 3, 1, 4, 5])
-  elseif slice_axis === :y
+  elseif slice === :xz
     unstructured_data = permutedims(unstructured_data, [1, 3, 2, 4, 5])
   end
 
@@ -124,10 +124,10 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
     # slice plane lies between two cells.
     # The second check is needed if the slice plane is at the upper border of
     # the domain due to this.
-    if !((min_coordinate[slice_axis_dimension] <= slice_axis_intercept &&
-          max_coordinate[slice_axis_dimension] > slice_axis_intercept) ||
-        (slice_axis_intercept == upper_limit &&
-          max_coordinate[slice_axis_dimension] == upper_limit))
+    if !((min_coordinate[slice_dimension] <= point[slice_dimension] &&
+          max_coordinate[slice_dimension] > point[slice_dimension]) ||
+        (point[slice_dimension] == upper_limit &&
+          max_coordinate[slice_dimension] == upper_limit))
       # Continue for loop if they don't intersect
       continue
     end
@@ -141,7 +141,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
 
     # Construct vandermonde matrix (or load from Dict if possible)
     normalized_intercept =
-        (slice_axis_intercept - min_coordinate[slice_axis_dimension]) /
+        (point[slice_dimension] - min_coordinate[slice_dimension]) /
         element_length * 2 - 1
 
     if haskey(vandermonde_to_2d, normalized_intercept)
@@ -176,6 +176,79 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   return unstructured_data, new_coordinates, new_levels, center_level_0
 end
 
+# Convert 2d unstructured data to 1d stripe and interpolate them.
+function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+
+  if slice === :x
+    slice_dimension = 2
+    other_dimension = 1
+  elseif slice === :y
+    slice_dimension = 1
+    other_dimension = 2
+  else
+    error("illegal dimension '$slice', supported dimensions are :x and :y")
+  end
+
+  # Set up data structures to stroe new 1D data.
+  @views new_unstructured_data = similar(unstructured_data[1, ..])
+  @views new_nodes = similar(original_nodes[1, 1, ..])
+
+  n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  # Test if point lies in the domain.
+  lower_limit = original_nodes[1, 1, 1, 1]
+  upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_elements]
+
+  @assert length(point) == 2 "Point must be two-dimensional."
+  if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
+    error(string("Slice axis is outside of domain. ",
+        " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
+  end
+
+  # Count the amount of new elements.
+  new_id = 0
+
+  # Permute dimensions so that the stripe dimension is always correct place for later use.
+  if slice === :y
+    original_nodes = permutedims(original_nodes, [1, 3, 2, 4])
+    unstructured_data = permutedims(unstructured_data, [2, 1, 3, 4])
+  end
+
+  # Iterate over all elements to find the ones that lie on the stripe axis.
+  for element_id in 1:n_elements
+    min_coordinate = original_nodes[:, 1, 1, element_id]
+    max_coordinate = original_nodes[:, n_nodes_in, n_nodes_in, element_id]
+    element_length = max_coordinate - min_coordinate
+
+    # Test if the element is on the stripe axis. If not just continue with the next element.
+    if !((min_coordinate[slice_dimension] <= point[slice_dimension] &&
+        max_coordinate[slice_dimension] > point[slice_dimension]) ||
+        (point[slice_dimension] == upper_limit && max_coordinate[slice_dimension] == upper_limit))
+
+        continue
+    end
+
+    new_id += 1
+
+    # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
+    normalized_intercept =
+          (point[slice_dimension] - min_coordinate[slice_dimension]) /
+          element_length[1] * 2 - 1
+    vandermonde = polynomial_interpolation_matrix(nodes_in, normalized_intercept)
+
+    # Interpolate to each node of new 1D element.
+    for v in 1:n_variables
+      for node in 1:n_nodes_in
+        new_unstructured_data[node, new_id, v] = (vandermonde*unstructured_data[node, :, element_id, v])[1]
+      end
+    end
+
+    new_nodes[:, new_id] = original_nodes[other_dimension, :, 1, element_id]
+  end
+
+  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
+end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
 #

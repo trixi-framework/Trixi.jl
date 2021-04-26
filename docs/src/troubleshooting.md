@@ -1,4 +1,4 @@
-# Troubleshooting
+# Troubleshooting and FAQ
 
 ## [Installing Trixi as a package only provides an older release](@id old-release)
 Trixi requires fairly recent versions of several of its dependencies, which
