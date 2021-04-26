@@ -126,7 +126,7 @@ end
   end
 
   @unpack surface_flux = dg
-  @unpack contravariant_vectors = cache.elements
+  @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
