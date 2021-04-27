@@ -105,8 +105,8 @@ struct BoundaryConditionDirichlet{B}
   boundary_value_function::B
 end
 
-function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, direction,
-                                                          x, t, surface_flux_function, equation)
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, direction,
+                                                                  x, t, surface_flux_function, equation)
   u_boundary = boundary_condition.boundary_value_function(x, t, equation)
 
   # Calculate boundary flux
