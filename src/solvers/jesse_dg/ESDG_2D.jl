@@ -124,7 +124,7 @@ project_and_store!(y,x) = mul!(y,Ph,x) # can't use matmul! b/c its applied to a 
 
 ## workaround for matmul! with threads https://discourse.julialang.org/t/odd-benchmarktools-timings-using-threads-and-octavian/59838/5
 @inline function bmap!(f,out,x)
-    @batch for i = 1:length(x)
+    @batch for i in eachindex(x)
         @inbounds out[i] = f(x[i])
     end
 end
