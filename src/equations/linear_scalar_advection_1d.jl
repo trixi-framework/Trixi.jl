@@ -39,7 +39,7 @@ end
     initial_condition_convergence_test(x, t, equations::LinearScalarAdvectionEquation1D)
 
 A smooth initial condition used for convergence tests
-(in combination with [`boundary_condition_convergence_test`](@ref)
+(in combination with [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref)
 in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation1D)
@@ -53,29 +53,6 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
   return SVector(scalar)
-end
-
-"""
-    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equation::LinearScalarAdvectionEquation1D)
-
-Boundary conditions for
-[`initial_condition_convergence_test`](@ref).
-"""
-function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                             surface_flux_function,
-                                             equation::LinearScalarAdvectionEquation1D)
-  u_boundary = initial_condition_convergence_test(x, t, equation)
-
-  # Calculate boundary flux
-  if direction == 2  # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
-
-  return flux
 end
 
 

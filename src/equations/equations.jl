@@ -88,6 +88,38 @@ See also: [`rotate_to_x`](@ref)
 function rotate_from_x end
 
 
+"""
+    BoundaryConditionDirichlet(boundary_value_function)
+
+Create a Dirichlet boundary condition that uses the function `boundary_value_function`
+to specify the values at the boundary.
+This can be used to create a boundary condition that specifies exact boundary values
+by passing the exact solution of the equation.
+
+# Examples
+```julia
+julia> BoundaryConditionDirichlet(initial_condition_convergence_test)
+```
+"""
+struct BoundaryConditionDirichlet{B}
+  boundary_value_function::B
+end
+
+function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, direction,
+                                                          x, t, surface_flux_function, equation)
+  u_boundary = boundary_condition.boundary_value_function(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)

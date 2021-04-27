@@ -9,7 +9,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
-boundary_conditions = boundary_condition_convergence_test
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 ###############################################################################
 # Get the DG approximation space
