@@ -115,7 +115,7 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, 
 end
 
 @inline function tmap!(f,out,x)
-    Trixi.@threaded for i = 1:length(x)
+    Trixi.@threaded for i in eachindex(x)
         @inbounds out[i] = f(x[i])
     end
 end
