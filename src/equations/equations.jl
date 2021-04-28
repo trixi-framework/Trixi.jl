@@ -159,7 +159,16 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     NDIMS = length(indices)
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
 
-    new{NDIMS*2-1, uEltype, typeof(indices)}(u_boundary, other_mesh_id, other_mesh_orientation, indices)
+    function one_to_symbol(i)
+      if i == 1
+        return :one
+      else
+        return i
+      end
+    end
+    indices_ = one_to_symbol.(indices)
+
+    new{NDIMS*2-1, uEltype, typeof(indices_)}(u_boundary, other_mesh_id, other_mesh_orientation, indices_)
   end
 end
 

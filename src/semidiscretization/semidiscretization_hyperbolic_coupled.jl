@@ -203,9 +203,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicCoupled, t)
 
   time_start = time_ns()
 
-  @timeit_debug timer() "prolong to coupled boundaries" begin
+  @timeit_debug timer() "copy to coupled boundaries" begin
     for semi_ in semi.semis
-      prolong2boundary(semi_.boundary_conditions, u_ode, semi)
+      copy_to_coupled_boundary(semi_.boundary_conditions, u_ode, semi)
     end
   end
 
@@ -222,16 +222,16 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicCoupled, t)
   return nothing
 end
 
-function prolong2boundary(boundary_condition, u_ode, semi) end
+function copy_to_coupled_boundary(boundary_condition, u_ode, semi) end
 
-function prolong2boundary(boundary_conditions::Union{Tuple, NamedTuple}, u_ode, semi)
+function copy_to_coupled_boundary(boundary_conditions::Union{Tuple, NamedTuple}, u_ode, semi)
   for boundary_condition in boundary_conditions
-    prolong2boundary(boundary_condition, u_ode, semi)
+    copy_to_coupled_boundary(boundary_condition, u_ode, semi)
   end
 end
 
 # for 2D
-function prolong2boundary(boundary_condition::BoundaryConditionCoupled{3}, u_ode, semi)
+function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3}, u_ode, semi)
   @unpack u_indices = semi
   @unpack other_mesh_id, other_mesh_orientation, indices = boundary_condition
 
@@ -257,7 +257,7 @@ end
 
 
 # for 3D
-function prolong2boundary(boundary_condition::BoundaryConditionCoupled{5}, u_ode, semi)
+function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5}, u_ode, semi)
   @unpack u_indices = semi
   @unpack other_mesh_id, other_mesh_orientation, indices = boundary_condition
 
@@ -286,7 +286,6 @@ function prolong2boundary(boundary_condition::BoundaryConditionCoupled{5}, u_ode
 end
 
 
-
 function indexfunction(indices, size, dim, i, j=0)
   if indices[dim] === :i
     return i
@@ -296,9 +295,10 @@ function indexfunction(indices, size, dim, i, j=0)
     return j
   elseif indices[dim] === :mj
     return size[dim] - j + 1
-  elseif indices[dim] == 1
+  elseif indices[dim] === :one
     return 1
-  elseif indices[dim] == :end
+  elseif indices[dim] === :end
     return size[dim]
   end
+  error()
 end
