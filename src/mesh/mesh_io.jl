@@ -51,15 +51,23 @@ end
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
-                        mpi_parallel::Val{true})
+                        mpi_parallel::Val{true}; system="")
   # Create output directory (if it does not exist)
   mpi_isroot() && mkpath(output_directory)
 
   # Determine file name based on existence of meaningful time step
   if timestep >= 0
-    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    if isempty(system)
+      filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    else
+      filename = joinpath(output_directory, @sprintf("mesh_%s_%06d.h5", system, timestep))
+    end
   else
-    filename = joinpath(output_directory, "mesh.h5")
+    if isempty(system)
+      filename = joinpath(output_directory, "mesh.h5")
+    else
+      filename = joinpath(output_directory, "mesh_$(system).h5")
+    end
   end
 
   # Since the mesh is replicated on all ranks, only save from MPI root
