@@ -20,8 +20,8 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-# TODO Analyzer<:SolutionAnalyzer
-mutable struct AnalysisCallback{Analyzer<:Union{SolutionAnalyzer,Tuple}, AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer<:Union{SolutionAnalyzer,Tuple{Vararg{SolutionAnalyzer}}},
+                                AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -118,7 +118,7 @@ function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
                           extra_analysis_integrals=(),
                           analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
                           RealT=real(semi),
-                          uEltype=eltype(semi.semis[1].cache.elements), # TODO
+                          uEltype=eltype(semi),
                           kwargs...)
   # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
@@ -218,75 +218,6 @@ end
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack dt, t, iter = integrator
-  u = wrap_array(integrator.u, mesh, equations, solver, cache)
-
-  runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
-  runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
-
-  @timeit_debug timer() "analyze solution" begin
-    # General information
-    mpi_println()
-    mpi_println("─"^100)
-    # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(solver))
-    mpi_println("─"^100)
-    mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
-                "               " *
-                " run time:       " * @sprintf("%10.8e s", runtime_absolute))
-    mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
-                "               " *
-                " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
-    mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
-    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
-
-    # Level information (only show for AMR)
-    print_amr_information(integrator.opts.callback, mesh, solver, cache)
-    mpi_println()
-
-    # Open file for appending and store time step and time information
-    if mpi_isroot() && analysis_callback.save_analysis
-      io = open(joinpath(analysis_callback.output_directory, analysis_callback.analysis_filename), "a")
-      @printf(io, "% 9d", iter)
-      @printf(io, "  %10.8e", t)
-      @printf(io, "  %10.8e", dt)
-    else
-      io = devnull
-    end
-
-    # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
-    du_ode = first(get_tmp_cache(integrator))
-    @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
-    du = wrap_array(du_ode, mesh, equations, solver, cache)
-    l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
-
-    mpi_println("─"^100)
-    mpi_println()
-
-    # Add line break and close analysis file if it was opened
-    if mpi_isroot() && analysis_callback.save_analysis
-      # This resolves a possible type instability introduced above, since `io`
-      # can either be an `IOStream` or `devnull`, but we know that it must be
-      # an `IOStream here`.
-      println(io::IOStream)
-      close(io::IOStream)
-    end
-  end
-
-  # avoid re-evaluating possible FSAL stages
-  u_modified!(integrator, false)
-
-  # Return errors for EOC analysis
-  return l2_error, linf_error
-end
-
-
-# TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
-# AnalysisCallback with a Tuple of SolutionAnalyzers (SemidiscretizationCoupled)
-function (analysis_callback::AnalysisCallback{<:Tuple})(integrator)
-  semi = integrator.p
   _, equations, _, _ = mesh_equations_solver_cache(semi)
   @unpack dt, t, iter = integrator
 
@@ -308,10 +239,10 @@ function (analysis_callback::AnalysisCallback{<:Tuple})(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    mpi_println(" #elements:      " * @sprintf("% 14s", string(join(nelements(semi), "+"), "=", sum(nelements(semi)))))
+    mpi_println(" #elements:      " * @sprintf("% 14s", nelements(semi)))
 
-    # # Level information (only show for AMR)
-    # print_amr_information(integrator.opts.callback, mesh, solver, cache)
+    # Level information (only show for AMR)
+    print_amr_information(integrator.opts.callback, semi)
     mpi_println()
 
     # Open file for appending and store time step and time information
@@ -327,9 +258,7 @@ function (analysis_callback::AnalysisCallback{<:Tuple})(integrator)
     # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
     du_ode = first(get_tmp_cache(integrator))
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
-    # du needs to be accessed via du[v, ..]
-    du = reshape(du_ode, 2, :)
-    l2_error, linf_error = analysis_callback(io, du, integrator.u, integrator.u, t, semi)
+    l2_error, linf_error = analysis_callback(io, du_ode, integrator.u, t, semi)
 
     mpi_println("─"^100)
     mpi_println()
@@ -352,8 +281,26 @@ function (analysis_callback::AnalysisCallback{<:Tuple})(integrator)
 end
 
 
-# This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
-# and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
+# These methods are just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
+# and serve as a function barrier. Additionally, they make the code easier to profile and optimize.
+function (analysis_callback::AnalysisCallback)(io, du_ode::AbstractVector, u_ode::AbstractVector, t, 
+                                               semi)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+  analysis_callback(io, du, u, u_ode, t, semi)
+end
+
+function (analysis_callback::AnalysisCallback)(io, du_ode::AbstractVector, u_ode::AbstractVector, t, 
+                                               semi::SemidiscretizationCoupled)
+  # du needs to be accessed via du[v, ..]
+  du = reshape(du_ode, 2, :)
+
+  analysis_callback(io, du, u_ode, u_ode, t, semi)
+end
+
 function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
   cache_analysis = analysis_callback.cache
@@ -474,7 +421,8 @@ end
 
 
 # Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh, solver, cache)
+function print_amr_information(callbacks, semi)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   # Return early if there is nothing to print
   uses_amr(callbacks) || return nothing

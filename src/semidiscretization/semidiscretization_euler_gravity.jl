@@ -160,6 +160,13 @@ end
 
 @inline Base.real(semi::SemidiscretizationEulerGravity) = real(semi.semi_euler)
 
+@inline Base.eltype(semi::SemidiscretizationEulerGravity) = eltype(semi.semi_euler.cache.elements)
+
+# TODO: Taal refactor, polydeg is specific to DGSEM
+@inline polydeg(semi::SemidiscretizationEulerGravity) = polydeg(semi.semi_euler.solver)
+
+@inline nelements(semi::SemidiscretizationEulerGravity) = nelements(semi.semi_euler.solver, semi.semi_euler.cache)
+
 
 # computes the coefficients of the initial condition
 @inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)

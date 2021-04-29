@@ -160,6 +160,13 @@ end
 
 @inline Base.real(semi::SemidiscretizationHyperbolic) = real(semi.solver)
 
+@inline Base.eltype(semi::SemidiscretizationHyperbolic) = eltype(semi.cache.elements)
+
+# TODO: Taal refactor, polydeg is specific to DGSEM
+@inline polydeg(semi::SemidiscretizationHyperbolic) = polydeg(semi.solver)
+
+@inline nelements(semi::SemidiscretizationHyperbolic) = nelements(semi.solver, semi.cache)
+
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi

@@ -112,8 +112,12 @@ end
 
 
 @inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1].mesh)
+
 @inline nmeshes(semi::SemidiscretizationCoupled) = length(semi.semis)
+
 @inline Base.real(semi::SemidiscretizationCoupled) = real(semi.semis[1])
+
+@inline Base.eltype(semi::SemidiscretizationCoupled) = promote_type(eltype.(semi.semis)...)
 
 @inline function ndofs(semi::SemidiscretizationCoupled)
   sum(ndofs, semi.semis)
@@ -129,7 +133,7 @@ end
   solver_cache(semi_) = mesh_equations_solver_cache(semi_)[3:4]
   n_elements(solver_cache) = nelements(solver_cache...)
 
-  semi.semis .|> solver_cache .|> n_elements
+  semi.semis .|> solver_cache .|> n_elements |> sum
 end
 
 
@@ -319,5 +323,6 @@ function indexfunction(indices, size, dim, i, j=0)
   elseif indices[dim] === :end
     return size[dim]
   end
-  error()
+
+  error("InvalidIdentifier: Only 1, :end, :i, :j, :mi, :mj are valid index identifiers")
 end

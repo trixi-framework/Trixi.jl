@@ -17,7 +17,6 @@ coordinates_max = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
 
 cells_per_dimension = (8, 16)
 
-# Create curved mesh with 16 x 16 elements
 mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -32,7 +31,6 @@ coordinates_max = (1.0,  1.0) # maximum coordinates (max(x), max(y))
 
 cells_per_dimension = (8, 16)
 
-# Create curved mesh with 16 x 16 elements
 mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
@@ -41,9 +39,7 @@ semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_converge
                                        Trixi.BoundaryConditionCoupled(1, 1, (1, :i),  Float64), 
                                        boundary_condition_periodic, boundary_condition_periodic))
 
-# mesh = CurvedMesh((4, 4), coordinates_min, coordinates_max)
-# semi3 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
-
+# Create a semidiscretization that bundles semi1 and semi2
 semi = SemidiscretizationCoupled((semi1, semi2))
 
 ###############################################################################
@@ -59,9 +55,9 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100)
 
-# # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-# save_solution = SaveSolutionCallback(interval=100,
-#                                      solution_variables=cons2prim)
+# The SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval=100,
+                                     solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=1.6)
