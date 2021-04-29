@@ -158,7 +158,7 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
-export SemidiscretizationHyperbolicCoupled
+export SemidiscretizationCoupled
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, VisualizationCallback,

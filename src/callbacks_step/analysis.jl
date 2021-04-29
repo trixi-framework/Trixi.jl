@@ -102,13 +102,13 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
 end
 
 
-function AnalysisCallback(semi::SemidiscretizationHyperbolicCoupled; kwargs...)
+function AnalysisCallback(semi::SemidiscretizationCoupled; kwargs...)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
   AnalysisCallback(semi, equations; kwargs...)
 end
 
 
-function AnalysisCallback(semi::SemidiscretizationHyperbolicCoupled, equations;
+function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
                           interval=0,
                           save_analysis=false,
                           output_directory="out",
@@ -284,7 +284,7 @@ end
 
 
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
-# AnalysisCallback with a Tuple of SolutionAnalyzers (SemidiscretizationHyperbolicCoupled)
+# AnalysisCallback with a Tuple of SolutionAnalyzers (SemidiscretizationCoupled)
 function (analysis_callback::AnalysisCallback{<:Tuple})(integrator)
   semi = integrator.p
   _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -544,8 +544,8 @@ function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
 
-# In the AnalysisCallback for SemidiscretizationHyperbolicCoupled, u_ode is never wrapped
-function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationHyperbolicCoupled)
+# In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
+function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled)
   @unpack semis, u_indices = semi
 
   # We can't write `integral = 0` here, because we don't know which type of zero will be used

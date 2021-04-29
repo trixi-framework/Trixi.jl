@@ -100,7 +100,7 @@ semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver
     y_pos=boundary_condition_convergence_test,
   ))
 
-semi = SemidiscretizationHyperbolicCoupled((semi1, semi2, semi3, semi4))
+semi = SemidiscretizationCoupled((semi1, semi2, semi3, semi4))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -44,7 +44,7 @@ semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_converge
 # mesh = CurvedMesh((4, 4), coordinates_min, coordinates_max)
 # semi3 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
-semi = SemidiscretizationHyperbolicCoupled((semi1, semi2))
+semi = SemidiscretizationCoupled((semi1, semi2))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

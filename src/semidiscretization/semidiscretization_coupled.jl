@@ -1,10 +1,10 @@
-struct SemidiscretizationHyperbolicCoupled{S, I} <: AbstractSemidiscretization
+struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
   semis::S
   u_indices::I
   performance_counter::PerformanceCounter
 end
 
-function SemidiscretizationHyperbolicCoupled(semis)
+function SemidiscretizationCoupled(semis)
   # TODO check that equations are all equal
   n_coeffs = semis .|> mesh_equations_solver_cache .|> (x -> n_coefficients(x...)) |> collect
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
@@ -18,7 +18,7 @@ function SemidiscretizationHyperbolicCoupled(semis)
 
   performance_counter = PerformanceCounter()
 
-  SemidiscretizationHyperbolicCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices, performance_counter)
+  SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices, performance_counter)
 end
 
 function allocate_coupled_boundary_conditions(boundary_conditions, semi) end
@@ -56,10 +56,10 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
   boundary_condition.u_boundary = Array{Float64, 5}(undef, nvariables(equations), nnodes(dg), nnodes(dg), cell_size...)
 end
 
-function Base.show(io::IO, semi::SemidiscretizationHyperbolicCoupled)
+function Base.show(io::IO, semi::SemidiscretizationCoupled)
   @nospecialize semi # reduce precompilation time
 
-  print(io, "SemidiscretizationHyperbolicCoupled(")
+  print(io, "SemidiscretizationCoupled(")
   print(io,       semis)
   # print(io, ", ", semi.equations)
   # print(io, ", ", semi.initial_condition)
@@ -74,13 +74,13 @@ function Base.show(io::IO, semi::SemidiscretizationHyperbolicCoupled)
   # print(io, "))")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperbolicCoupled)
+function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
   @nospecialize semi # reduce precompilation time
 
   if get(io, :compact, false)
     show(io, semi)
   else
-    summary_header(io, "SemidiscretizationHyperbolicCoupled")
+    summary_header(io, "SemidiscretizationCoupled")
     summary_line(io, "#spatial dimensions", ndims(semi.semis[1].equations))
     summary_line(io, "#meshes", nmeshes(semi))
     summary_line(io, "equations", semi.semis[1].equations |> typeof |> nameof)
@@ -111,21 +111,21 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 end
 
 
-@inline Base.ndims(semi::SemidiscretizationHyperbolicCoupled) = ndims(semi.semis[1].mesh)
-@inline nmeshes(semi::SemidiscretizationHyperbolicCoupled) = length(semi.semis)
-@inline Base.real(semi::SemidiscretizationHyperbolicCoupled) = real(semi.semis[1])
+@inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1].mesh)
+@inline nmeshes(semi::SemidiscretizationCoupled) = length(semi.semis)
+@inline Base.real(semi::SemidiscretizationCoupled) = real(semi.semis[1])
 
-@inline function ndofs(semi::SemidiscretizationHyperbolicCoupled)
+@inline function ndofs(semi::SemidiscretizationCoupled)
   sum(ndofs, semi.semis)
 end
 
-@inline function polydeg(semi::SemidiscretizationHyperbolicCoupled)
+@inline function polydeg(semi::SemidiscretizationCoupled)
   solver(semi_) = mesh_equations_solver_cache(semi_)[3]
 
   semi.semis .|> solver .|> polydeg
 end
 
-@inline function nelements(semi::SemidiscretizationHyperbolicCoupled)
+@inline function nelements(semi::SemidiscretizationCoupled)
   solver_cache(semi_) = mesh_equations_solver_cache(semi_)[3:4]
   n_elements(solver_cache) = nelements(solver_cache...)
 
@@ -133,13 +133,13 @@ end
 end
 
 
-@inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicCoupled)
+@inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupled)
   @unpack equations = semi.semis[1]
   return nothing, equations, nothing, nothing
 end
 
 
-function compute_coefficients(t, semi::SemidiscretizationHyperbolicCoupled)
+function compute_coefficients(t, semi::SemidiscretizationCoupled)
   @unpack u_indices = semi
 
   u_ode = Vector{real(semi)}(undef, u_indices[end][end])
@@ -153,7 +153,7 @@ function compute_coefficients(t, semi::SemidiscretizationHyperbolicCoupled)
 end
 
 
-function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, semi::SemidiscretizationHyperbolicCoupled, caches_analysis)
+function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, semi::SemidiscretizationCoupled, caches_analysis)
   @unpack semis, u_indices = semi
 
   # TODO This is horrible
@@ -181,7 +181,7 @@ function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, semi::Semid
 end
 
 
-function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationHyperbolicCoupled; normalize=true) where {Func}
+function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true) where {Func}
   @unpack semis, u_indices = semi
   
   # We can't write `integral = 0` here, because we don't know which type of zero will be used
@@ -205,7 +205,7 @@ function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationHy
 end
 
 
-function total_volume(semi::SemidiscretizationHyperbolicCoupled)
+function total_volume(semi::SemidiscretizationCoupled)
   result = zero(real(semi.semis[1].mesh))
 
   for semi_ in semi.semis
@@ -217,7 +217,7 @@ function total_volume(semi::SemidiscretizationHyperbolicCoupled)
 end
 
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicCoupled, t)
+function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
   @unpack u_indices = semi
 
   time_start = time_ns()

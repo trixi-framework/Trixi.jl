@@ -87,7 +87,7 @@ function calculate_dt(u_ode, t, cfl_number, semi)
 end
 
 
-function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationHyperbolicCoupled)
+function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
   @unpack u_indices = semi
 
   dt = Inf

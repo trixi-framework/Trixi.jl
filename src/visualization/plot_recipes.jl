@@ -171,7 +171,7 @@ end
 
 
 function PlotData2D(u_ode::AbstractVector,
-                    semi::SemidiscretizationHyperbolicCoupled;
+                    semi::SemidiscretizationCoupled;
                     solution_variables=nothing, grid_lines=true, kwargs...)
 
   _, equations_, _, _ = mesh_equations_solver_cache(semi)

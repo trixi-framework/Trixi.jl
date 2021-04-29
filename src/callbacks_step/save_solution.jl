@@ -102,7 +102,7 @@ function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep=
 end
 
 
-function save_mesh(semi::SemidiscretizationHyperbolicCoupled, output_directory, timestep=0)
+function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep=0)
   for i in 1:nmeshes(semi)
     mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
     @timeit_debug timer() "I/O" begin
@@ -159,7 +159,7 @@ end
 end
 
 
-@inline function save_element_variables(semi::SemidiscretizationHyperbolicCoupled, u_ode, solution_callback, integrator)
+@inline function save_element_variables(semi::SemidiscretizationCoupled, u_ode, solution_callback, integrator)
   @unpack semis, u_indices = semi
 
   for i in 1:nmeshes(semi)

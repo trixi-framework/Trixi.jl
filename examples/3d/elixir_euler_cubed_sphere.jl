@@ -154,7 +154,7 @@ semi6 = SemidiscretizationHyperbolic(mesh6, equations, initial_condition, solver
                                      ))
 
 
-semi = SemidiscretizationHyperbolicCoupled((semi1, semi2, semi3, semi4, semi5, semi6))
+semi = SemidiscretizationCoupled((semi1, semi2, semi3, semi4, semi5, semi6))
 
 
 ###############################################################################
