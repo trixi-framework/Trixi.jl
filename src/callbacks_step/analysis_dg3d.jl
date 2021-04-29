@@ -197,9 +197,10 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache; normalize=true)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, k, element, equations, dg, du
+  integrate_via_indices(u, mesh, equations, dg, cache, du;
+      normalize=normalize) do u, i, j, k, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, k, element)
     du_node = get_node_vars(du, equations, dg, i, j, k, element)
     dot(cons2entropy(u_node, equations), du_node)
@@ -210,8 +211,9 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
-                 dg::DG, cache)
-  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, k, element, equations, dg, cache, derivative_matrix
+                 dg::DG, cache; normalize=true)
+  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix;
+      normalize=normalize) do u, i, j, k, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
     for l in eachnode(dg)
       divb += ( derivative_matrix[i, l] * u[6, l, j, k, element] +
@@ -225,7 +227,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
-                 dg::DG, cache)
+                 dg::DG, cache; normalize=true)
   @unpack derivative_matrix, weights = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors

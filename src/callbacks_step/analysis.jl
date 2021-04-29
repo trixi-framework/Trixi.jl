@@ -116,7 +116,7 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolicCoupled, equations;
                           extra_analysis_errors=Symbol[],
                           analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
                           extra_analysis_integrals=(),
-                          analysis_integrals=(), # TODO union(default_analysis_integrals(equations), extra_analysis_integrals),
+                          analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
                           RealT=real(semi),
                           uEltype=eltype(semi.semis[1].cache.elements), # TODO
                           kwargs...)
@@ -284,6 +284,7 @@ end
 
 
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
+# AnalysisCallback with a Tuple of SolutionAnalyzers (SemidiscretizationHyperbolicCoupled)
 function (analysis_callback::AnalysisCallback{<:Tuple})(integrator)
   semi = integrator.p
   _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -542,9 +543,36 @@ function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
-function analyze(quantity, du, u, t, mesh, equations, solver, cache)
-  integrate(quantity, u, mesh, equations, solver, cache, normalize=true)
+
+# In the AnalysisCallback for SemidiscretizationHyperbolicCoupled, u_ode is never wrapped
+function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationHyperbolicCoupled)
+  @unpack semis, u_indices = semi
+
+  # We can't write `integral = 0` here, because we don't know which type of zero will be used
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semis[1])
+  du = wrap_array(du_ode[u_indices[1]], mesh, equations, solver, cache)
+  u = wrap_array(u_ode[u_indices[1]], mesh, equations, solver, cache)
+  integral = analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
+
+  for i in 2:nmeshes(semi)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+    du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
+    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
+    integral += analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
+  end
+
+  # Normalize with total volume
+  total_volume_ = total_volume(semi)
+  integral = integral / total_volume_
+
+  return integral
 end
+
+function analyze(quantity, du, u, t, mesh, equations, solver, cache; normalize=true)
+  integrate(quantity, u, mesh, equations, solver, cache, normalize=normalize)
+end
+
+
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 

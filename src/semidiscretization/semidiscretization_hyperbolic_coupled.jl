@@ -183,18 +183,37 @@ end
 
 function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationHyperbolicCoupled; normalize=true) where {Func}
   @unpack semis, u_indices = semi
-  # TODO This is horrible
-  u_temp = wrap_array(u_ode[u_indices[1]], semis[1].mesh, semis[1].equations, semis[1].solver, semis[1].cache)
-  integral = zero(func(get_node_vars(u_temp, semis[1].equations, semis[1].solver, ntuple(_ -> 1, ndims(semi)+1)...), semis[1].equations))
+  
+  # We can't write `integral = 0` here, because we don't know which type of zero will be used
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semis[1])
+  u = wrap_array(u_ode[u_indices[1]], mesh, equations, solver, cache)
+  integral = integrate(func, u, mesh, equations, solver, cache, normalize=false)
 
-  for i in 1:nmeshes(semi)
+  for i in 2:nmeshes(semi)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-
     u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
-    integral += integrate(func, u, mesh, equations, solver, cache, normalize=normalize)
+    integral += integrate(func, u, mesh, equations, solver, cache, normalize=false)
+  end
+
+  # Normalize with total volume
+  if normalize
+    total_volume_ = total_volume(semi)
+    integral = integral / total_volume_
   end
 
   return integral
+end
+
+
+function total_volume(semi::SemidiscretizationHyperbolicCoupled)
+  result = zero(real(semi.semis[1].mesh))
+
+  for semi_ in semi.semis
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+    result += total_volume(mesh, solver, cache)
+  end
+
+  return result
 end
 
 
