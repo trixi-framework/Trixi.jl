@@ -36,7 +36,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::CurvedMesh{2},
+                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)

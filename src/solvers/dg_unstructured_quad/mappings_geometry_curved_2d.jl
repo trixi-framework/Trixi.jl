@@ -81,17 +81,23 @@ end
 
 
 # construct the metric terms for a curved sided element
-function calc_metric_terms!(X_xi, X_eta, Y_xi, Y_eta, element, nodes,
+function calc_metric_terms!(jacobian_matrix, element, nodes,
                             surface_curves::AbstractVector{<:CurvedSurface})
 
+  # storage format:
+  #   jacobian_matrix[1,1,:,:,:] <- X_xi
+  #   jacobian_matrix[2,1,:,:,:] <- Y_xi
+  #   jacobian_matrix[1,2,:,:,:] <- X_eta
+  #   jacobian_matrix[2,2,:,:,:] <- Y_eta
   for j in eachindex(nodes), i in eachindex(nodes)
-    (X_xi[i, j, element],
-     X_eta[i, j, element],
-     Y_xi[i, j, element],
-     Y_eta[i, j, element]) = transfinite_quad_map_metrics(nodes[i], nodes[j], surface_curves)
+    (jacobian_matrix[1, 1, i, j, element],
+     jacobian_matrix[1, 2, i, j, element],
+     jacobian_matrix[2, 1, i, j, element],
+     jacobian_matrix[2, 2, i, j, element]) = transfinite_quad_map_metrics(nodes[i], nodes[j],
+                                                                          surface_curves)
   end
 
-  return X_xi, X_eta, Y_xi, Y_eta
+  return jacobian_matrix
 end
 
 

@@ -1,6 +1,7 @@
 
 # 2D unstructured DG implementation
-include("dg_element_geometry_2d.jl")
+include("mappings_geometry_curved_2d.jl")
+include("mappings_geometry_straight_2d.jl")
 include("containers_2d.jl")
 include("dg_2d.jl")
 

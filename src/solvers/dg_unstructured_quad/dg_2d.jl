@@ -79,47 +79,6 @@ function rhs!(du, u, t,
 end
 
 
-# compute volume contribution of the DG approximation with the divergence of the contravariant fluxes
-function calc_volume_integral!(du, u,
-                               mesh::UnstructuredQuadMesh,
-                               nonconservative_terms::Val{false}, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-  @unpack derivative_dhat = dg.basis
-  # TODO: Meshes. This is basically the same as the version for the `CurvedMesh`;
-  #       the only difference is that `X_xi, X_eta, Y_xi, Y_eta` are stored in
-  #       separate arrays here and in one block array `contravariant_vectors`
-  #       for the `CurvedMesh`.
-  @unpack X_xi, X_eta, Y_xi, Y_eta = cache.elements
-
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, j, element)
-
-      # compute the physical fluxes in each Cartesian direction
-      x_flux = flux(u_node, 1, equations)
-      y_flux = flux(u_node, 2, equations)
-
-      # compute the contravariant flux in the x-direction
-      flux1  = Y_eta[i, j, element] * x_flux - X_eta[i, j, element] * y_flux
-      for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
-      end
-
-      # compute the contravariant flux in the y-direction
-      flux2  = -Y_xi[i, j, element] * x_flux + X_xi[i, j, element] * y_flux
-      for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
-      end
-    end
-  end
-
-  return nothing
-end
-
-
 # prolong the solution into the convenience array in the interior interface container
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
 function prolong2interfaces!(cache, u,

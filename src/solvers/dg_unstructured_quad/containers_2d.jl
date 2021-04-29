@@ -1,15 +1,13 @@
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
-  node_coordinates   ::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
-  X_xi               ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  X_eta              ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  Y_xi               ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  Y_eta              ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  inverse_jacobian   ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  normals            ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
-  scaling            ::Array{RealT, 3}   # [nnodes, local sides, nelement]
-  surface_flux_values::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
+  node_coordinates     ::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
+  jacobian_matrix      ::Array{RealT,5}    # [ndims, ndims, nnodes, nnodes, nelement]
+  inverse_jacobian     ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
+  contravariant_vectors::Array{RealT,5}    # [ndims, ndims, nnodes, nnodes, nelement]
+  normals              ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
+  scaling              ::Array{RealT, 3}   # [nnodes, local sides, nelement]
+  surface_flux_values  ::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
 end
 
 
@@ -21,19 +19,18 @@ function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
-  node_coordinates    = fill(nan_RealT, (2, nnodes, nnodes, capacity))
-  X_xi                = fill(nan_RealT, (nnodes, nnodes, capacity))
-  X_eta               = fill(nan_RealT, (nnodes, nnodes, capacity))
-  Y_xi                = fill(nan_RealT, (nnodes, nnodes, capacity))
-  Y_eta               = fill(nan_RealT, (nnodes, nnodes, capacity))
-  inverse_jacobian    = fill(nan_RealT, (nnodes, nnodes, capacity))
-  normals             = fill(nan_RealT, (2, nnodes, 4, capacity))
-  scaling             = fill(nan_RealT, (nnodes, 4, capacity))
-  surface_flux_values = fill(nan_uEltype, (NVARS, nnodes, 4, capacity))
+  node_coordinates      = fill(nan_RealT, (2, nnodes, nnodes, capacity))
+  jacobian_matrix       = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
+  inverse_jacobian      = fill(nan_RealT, (nnodes, nnodes, capacity))
+  contravariant_vectors = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
+  normals               = fill(nan_RealT, (2, nnodes, 4, capacity))
+  scaling               = fill(nan_RealT, (nnodes, 4, capacity))
+  surface_flux_values   = fill(nan_uEltype, (NVARS, nnodes, 4, capacity))
 
   return UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(node_coordinates,
-                                                                        X_xi, X_eta, Y_xi, Y_eta,
+                                                                        jacobian_matrix,
                                                                         inverse_jacobian,
+                                                                        contravariant_vectors,
                                                                         normals, scaling,
                                                                         surface_flux_values)
 end
@@ -83,11 +80,11 @@ function init_element!(elements, element, nodes, corners_or_surface_curves)
 
   calc_node_coordinates!(elements.node_coordinates, element, nodes, corners_or_surface_curves)
 
-  calc_metric_terms!(elements.X_xi, elements.X_eta, elements.Y_xi, elements.Y_eta, element,
-                     nodes, corners_or_surface_curves)
+  calc_metric_terms!(elements.jacobian_matrix, element, nodes, corners_or_surface_curves)
 
-  calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.X_xi, elements.X_eta,
-                         elements.Y_xi, elements.Y_eta)
+  calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.jacobian_matrix)
+
+  calc_contravariant_vectors!(elements.contravariant_vectors, element, elements.jacobian_matrix)
 
   calc_normals_and_scaling!(elements.normals, elements.scaling, element, nodes,
                             corners_or_surface_curves)
