@@ -150,7 +150,7 @@ function entropy2cons end
 
 
 mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
-  u_boundary            ::Array{uEltype, NDIMST2M1}
+  u_boundary            ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
   other_mesh_id         ::Int
   other_mesh_orientation::Int
   indices               ::I
@@ -159,6 +159,7 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     NDIMS = length(indices)
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
 
+    # This is needed to make indices a Tuple of Symbols and prevent type instabilities
     function one_to_symbol(i)
       if i == 1
         return :one
