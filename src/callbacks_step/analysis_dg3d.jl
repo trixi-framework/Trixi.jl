@@ -87,22 +87,8 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::CurvedMesh{3}, equations,
-                          initial_condition, dg::DGSEM, cache, cache_analysis)
+                          initial_condition, dg::DGSEM, cache, cache_analysis; normalize=true)
 
-  l2_integral, linf_error = calc_l2_integral_and_linf(
-    func, u, t, analyzer, mesh, equations, 
-    initial_condition, dg, cache, cache_analysis)
-  
-  # For L2 error, divide by total volume
-  l2_error = sqrt.(l2_integral ./ total_volume(mesh, dg, cache))
-
-  return l2_error, linf_error
-end
-
-
-function calc_l2_integral_and_linf(func, u::AbstractArray{<:Any,5}, t, analyzer,
-                                   mesh::CurvedMesh{3}, equations,
-                                   initial_condition, dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
   @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
@@ -127,6 +113,11 @@ function calc_l2_integral_and_linf(func, u::AbstractArray{<:Any,5}, t, analyzer,
       l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * jacobian_local[i, j, k])
       linf_error = @. max(linf_error, abs(diff))
     end
+  end
+  
+  if normalize
+    # For L2 error, divide by total volume
+    l2_error = sqrt.(l2_error ./ total_volume(mesh, dg, cache))
   end
 
   return l2_error, linf_error
