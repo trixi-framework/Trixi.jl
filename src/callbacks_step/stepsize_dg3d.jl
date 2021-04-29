@@ -93,7 +93,6 @@ function max_dt(u, t, mesh::CurvedMesh{3},
       λ3_transformed   = abs(Ja31 * max_λ1 + Ja32 * max_λ2 + Ja33 * max_λ3)
 
       inv_jacobian = cache.elements.inverse_jacobian[i, j, k, element]
-      
       max_scaled_speed = max(max_scaled_speed,
                              inv_jacobian * (λ1_transformed + λ2_transformed + λ3_transformed))
     end
