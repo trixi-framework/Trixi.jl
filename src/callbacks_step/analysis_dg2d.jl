@@ -83,7 +83,7 @@ function calc_error_norms(func, u, t, analyzer,
   @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
 
   # Set up data structures
-  l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
+  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations

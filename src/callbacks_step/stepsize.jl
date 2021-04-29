@@ -93,8 +93,7 @@ function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
   dt = Inf
   for i in 1:nmeshes(semi)
     dt_ = calculate_dt(u_ode[u_indices[i]], t, cfl_number, semi.semis[i])
-
-    dt = min(dt, dt_)
+    dt  = min(dt, dt_)
   end
 
   return dt

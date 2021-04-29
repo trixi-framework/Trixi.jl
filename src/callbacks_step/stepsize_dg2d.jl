@@ -89,7 +89,7 @@ function max_dt(u, t, mesh::CurvedMesh{2},
       Ja21, Ja22     = get_contravariant_vector(2, contravariant_vectors, i, j, element)
       λ2_transformed = abs(Ja21 * λ1 + Ja22 * λ2)
 
-      inv_jacobian = abs(inverse_jacobian[i, j, element])
+      inv_jacobian = inverse_jacobian[i, j, element]
 
       max_λ1 = max(max_λ1, λ1_transformed * inv_jacobian)
       max_λ2 = max(max_λ2, λ2_transformed * inv_jacobian)
@@ -120,7 +120,7 @@ function max_dt(u, t, mesh::CurvedMesh{2},
       Ja21, Ja22     = get_contravariant_vector(2, contravariant_vectors, i, j, element)
       λ2_transformed = abs(Ja21 * max_λ1 + Ja22 * max_λ2)
 
-      inv_jacobian = abs(inverse_jacobian[i, j, element])
+      inv_jacobian = inverse_jacobian[i, j, element]
       max_scaled_speed = max(max_scaled_speed, inv_jacobian * (λ1_transformed + λ2_transformed))
     end
   end
