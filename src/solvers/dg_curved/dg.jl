@@ -69,7 +69,7 @@ function get_boundary_indices(element, orientation, mesh::CurvedMesh{2})
   cartesian_indices = CartesianIndices(size(mesh))
   if orientation == 1
     cell_indices = (cartesian_indices[element][2],)
-  else
+  else # orientation == 2
     cell_indices = (cartesian_indices[element][1],)
   end
 end

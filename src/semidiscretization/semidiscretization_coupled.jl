@@ -160,26 +160,30 @@ end
 function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, semi::SemidiscretizationCoupled, caches_analysis)
   @unpack semis, u_indices = semi
 
-  # TODO This is horrible
-  u_temp = wrap_array(u_ode[u_indices[1]], semis[1].mesh, semis[1].equations, semis[1].solver, semis[1].cache)
-  l2_integral = zero(func(get_node_vars(u_temp, semis[1].equations, semis[1].solver, ntuple(_ -> 1, ndims(semi)+1)...), semis[1].equations))
-  linf_error = copy(l2_integral)
-  total_volume_ = zero(real(semi))
+  # We can't write `integral = 0` here, because we don't know which type of zero will be used
+  @unpack initial_condition = semis[1]
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semis[1])
+  u = wrap_array(u_ode[u_indices[1]], mesh, equations, solver, cache)
 
-  for i in 1:nmeshes(semi)
-    @unpack mesh, equations, initial_condition, solver, cache = semis[i]
+  l2_integral, linf_error = calc_error_norms(
+    func, u, t, analyzers[1], mesh, equations, initial_condition, 
+    solver, cache, caches_analysis[1]; normalize=false)
+
+  for i in 2:nmeshes(semi)
+    @unpack initial_condition = semis[i]
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
     u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
 
-    l2_integral_, linf_error_ = calc_l2_integral_and_linf(
-      func, u, t, analyzers[i], mesh, equations, initial_condition, solver, cache, caches_analysis[i])
+    l2_integral_, linf_error_ = calc_error_norms(
+      func, u, t, analyzers[i], mesh, equations, initial_condition, 
+      solver, cache, caches_analysis[i]; normalize=false)
 
     l2_integral += l2_integral_
-    total_volume_ += total_volume(mesh, solver, cache)
     linf_error = max(linf_error, linf_error_)
   end
 
   # For L2 error, divide by total volume
-  l2_error = @. sqrt(l2_integral / total_volume_)
+  l2_error = sqrt.(l2_integral ./ total_volume(semi))
 
   return l2_error, linf_error
 end
@@ -324,5 +328,5 @@ function indexfunction(indices, size, dim, i, j=0)
     return size[dim]
   end
 
-  error("InvalidIdentifier: Only 1, :end, :i, :j, :mi, :mj are valid index identifiers")
+  error("Invalid identifier: Only 1, :end, :i, :j, :mi, :mj are valid index identifiers")
 end
