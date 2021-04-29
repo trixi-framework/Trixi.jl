@@ -492,30 +492,6 @@ function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
 
-# In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
-function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled)
-  @unpack semis, u_indices = semi
-
-  # We can't write `integral = 0` here, because we don't know which type of zero will be used
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semis[1])
-  du = wrap_array(du_ode[u_indices[1]], mesh, equations, solver, cache)
-  u = wrap_array(u_ode[u_indices[1]], mesh, equations, solver, cache)
-  integral = analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
-
-  for i in 2:nmeshes(semi)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-    du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
-    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
-    integral += analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
-  end
-
-  # Normalize with total volume
-  total_volume_ = total_volume(semi)
-  integral = integral / total_volume_
-
-  return integral
-end
-
 function analyze(quantity, du, u, t, mesh, equations, solver, cache; normalize=true)
   integrate(quantity, u, mesh, equations, solver, cache, normalize=normalize)
 end

@@ -1,19 +1,27 @@
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0)
-  save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
+function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0; system="")
+  save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh); system=system)
 end
 
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
-                        mpi_parallel::Val{false})
+                        mpi_parallel::Val{false}; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
   # Determine file name based on existence of meaningful time step
   if timestep > 0
-    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    if isempty(system)
+      filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    else
+      filename = joinpath(output_directory, @sprintf("mesh_%s_%06d.h5", system, timestep))
+    end
   else
-    filename = joinpath(output_directory, "mesh.h5")
+    if isempty(system)
+      filename = joinpath(output_directory, "mesh.h5")
+    else
+      filename = joinpath(output_directory, "mesh_$(system).h5")
+    end
   end
 
   # Open file (clobber existing content)

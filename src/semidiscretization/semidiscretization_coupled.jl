@@ -1,11 +1,13 @@
 struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
   semis::S
-  u_indices::I
+  u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
 end
 
 function SemidiscretizationCoupled(semis)
-  # TODO check that equations are all equal
+  @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
+
+  # Number of coefficients as Vector
   n_coeffs = semis .|> mesh_equations_solver_cache .|> (x -> n_coefficients(x...)) |> collect
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
 
@@ -21,40 +23,6 @@ function SemidiscretizationCoupled(semis)
   SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices, performance_counter)
 end
 
-function allocate_coupled_boundary_conditions(boundary_conditions, semi) end
-
-function allocate_coupled_boundary_conditions(boundary_conditions::Union{Tuple, NamedTuple}, semi)
-  n_boundaries = 2 * ndims(semi)
-  mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
-
-  for direction in 1:n_boundaries
-    boundary_condition = semi.boundary_conditions[direction]
-
-    allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver)
-  end
-end
-
-function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, dg) end
-
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg)
-  if direction in (1, 2)
-    cell_size = size(mesh, 2)
-  else
-    cell_size = size(mesh, 1)
-  end
-  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), cell_size)
-end
-
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{5}, direction, mesh, equations, dg)
-  if direction in (1, 2)
-    cell_size = (size(mesh, 2), size(mesh, 3))
-  elseif direction in (3, 4)
-    cell_size = (size(mesh, 1), size(mesh, 3))
-  else # direction in (5, 6)
-    (size(mesh, 1), size(mesh, 2))
-  end
-  boundary_condition.u_boundary = Array{Float64, 5}(undef, nvariables(equations), nnodes(dg), nnodes(dg), cell_size...)
-end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)
   @nospecialize semi # reduce precompilation time
@@ -81,9 +49,9 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
     show(io, semi)
   else
     summary_header(io, "SemidiscretizationCoupled")
-    summary_line(io, "#spatial dimensions", ndims(semi.semis[1].equations))
+    summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
     summary_line(io, "#meshes", nmeshes(semi))
-    summary_line(io, "equations", semi.semis[1].equations |> typeof |> nameof)
+    summary_line(io, "equations", mesh_equations_solver_cache(semi.semis[1])[2] |> typeof |> nameof)
     summary_line(io, "initial condition", semi.semis[1].initial_condition)
     # summary_line(io, "boundary conditions", 2*ndims(semi))
     # if (semi.boundary_conditions isa Tuple ||
@@ -104,18 +72,18 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
     #   summary_line(increment_indent(io), "positive z", bcs[6])
     # end
     summary_line(io, "source terms", semi.semis[1].source_terms)
-    summary_line(io, "solver", semi.semis[1].solver |> typeof |> nameof)
+    summary_line(io, "solver", mesh_equations_solver_cache(semi.semis[1])[3] |> typeof |> nameof)
     summary_line(io, "total #DOFs", ndofs(semi))
     summary_footer(io)
   end
 end
 
 
-@inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1].mesh)
+@inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1])
 
 @inline nmeshes(semi::SemidiscretizationCoupled) = length(semi.semis)
 
-@inline Base.real(semi::SemidiscretizationCoupled) = real(semi.semis[1])
+@inline Base.real(semi::SemidiscretizationCoupled) = promote_type(real.(semi.semis)...)
 
 @inline Base.eltype(semi::SemidiscretizationCoupled) = promote_type(eltype.(semi.semis)...)
 
@@ -138,22 +106,8 @@ end
 
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupled)
-  @unpack equations = semi.semis[1]
+  _, equations, _, _ = mesh_equations_solver_cache(semi.semis[1])
   return nothing, equations, nothing, nothing
-end
-
-
-function compute_coefficients(t, semi::SemidiscretizationCoupled)
-  @unpack u_indices = semi
-
-  u_ode = Vector{real(semi)}(undef, u_indices[end][end])
-
-  for i in 1:nmeshes(semi)
-    # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
-    u_ode[u_indices[i]] .= compute_coefficients(semi.semis[i].initial_condition, t, semi.semis[i])
-  end
-  
-  return u_ode
 end
 
 
@@ -161,22 +115,12 @@ function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, semi::Semid
   @unpack semis, u_indices = semi
 
   # We can't write `integral = 0` here, because we don't know which type of zero will be used
-  @unpack initial_condition = semis[1]
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semis[1])
-  u = wrap_array(u_ode[u_indices[1]], mesh, equations, solver, cache)
-
-  l2_integral, linf_error = calc_error_norms(
-    func, u, t, analyzers[1], mesh, equations, initial_condition, 
-    solver, cache, caches_analysis[1]; normalize=false)
+  l2_integral, linf_error = calc_error_norms(func, u_ode[u_indices[1]], t, analyzers[1], 
+                                             semis[1], caches_analysis[1]; normalize=false)
 
   for i in 2:nmeshes(semi)
-    @unpack initial_condition = semis[i]
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
-
-    l2_integral_, linf_error_ = calc_error_norms(
-      func, u, t, analyzers[i], mesh, equations, initial_condition, 
-      solver, cache, caches_analysis[i]; normalize=false)
+    l2_integral_, linf_error_ = calc_error_norms(func, u_ode[u_indices[i]], t, analyzers[i], 
+                                                 semis[i], caches_analysis[i]; normalize=false)
 
     l2_integral += l2_integral_
     linf_error = max(linf_error, linf_error_)
@@ -186,6 +130,31 @@ function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, semi::Semid
   l2_error = sqrt.(l2_integral ./ total_volume(semi))
 
   return l2_error, linf_error
+end
+
+
+# In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
+function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled)
+  @unpack semis, u_indices = semi
+
+  # We can't write `integral = 0` here, because we don't know which type of zero will be used
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semis[1])
+  du = wrap_array(du_ode[u_indices[1]], mesh, equations, solver, cache)
+  u = wrap_array(u_ode[u_indices[1]], mesh, equations, solver, cache)
+  integral = analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
+
+  for i in 2:nmeshes(semi)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+    du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
+    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
+    integral += analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
+  end
+
+  # Normalize with total volume
+  total_volume_ = total_volume(semi)
+  integral = integral / total_volume_
+
+  return integral
 end
 
 
@@ -214,7 +183,7 @@ end
 
 
 function total_volume(semi::SemidiscretizationCoupled)
-  result = zero(real(semi.semis[1].mesh))
+  result = zero(real(semi))
 
   for semi_ in semi.semis
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
@@ -222,6 +191,56 @@ function total_volume(semi::SemidiscretizationCoupled)
   end
 
   return result
+end
+
+
+function compute_coefficients(t, semi::SemidiscretizationCoupled)
+  @unpack u_indices = semi
+
+  u_ode = Vector{real(semi)}(undef, u_indices[end][end])
+
+  for i in 1:nmeshes(semi)
+    # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
+    u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
+  end
+  
+  return u_ode
+end
+
+
+function allocate_coupled_boundary_conditions(boundary_conditions, semi) end
+
+function allocate_coupled_boundary_conditions(boundary_conditions::Union{Tuple, NamedTuple}, semi)
+  n_boundaries = 2 * ndims(semi)
+  mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+
+  for direction in 1:n_boundaries
+    boundary_condition = semi.boundary_conditions[direction]
+
+    allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver)
+  end
+end
+
+function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver) end
+
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg::DG)
+  if direction in (1, 2)
+    cell_size = size(mesh, 2)
+  else
+    cell_size = size(mesh, 1)
+  end
+  boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), cell_size)
+end
+
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{5}, direction, mesh, equations, dg::DG)
+  if direction in (1, 2)
+    cell_size = (size(mesh, 2), size(mesh, 3))
+  elseif direction in (3, 4)
+    cell_size = (size(mesh, 1), size(mesh, 3))
+  else # direction in (5, 6)
+    (size(mesh, 1), size(mesh, 2))
+  end
+  boundary_condition.u_boundary = Array{Float64, 5}(undef, nvariables(equations), nnodes(dg), nnodes(dg), cell_size...)
 end
 
 
@@ -249,6 +268,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
   return nothing
 end
 
+
 function copy_to_coupled_boundary(boundary_condition, u_ode, semi) end
 
 function copy_to_coupled_boundary(boundary_conditions::Union{Tuple, NamedTuple}, u_ode, semi)
@@ -257,7 +277,7 @@ function copy_to_coupled_boundary(boundary_conditions::Union{Tuple, NamedTuple},
   end
 end
 
-# for 2D
+# In 2D
 function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3}, u_ode, semi)
   @unpack u_indices = semi
   @unpack other_mesh_id, other_mesh_orientation, indices = boundary_condition
@@ -283,7 +303,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3
 end
 
 
-# for 3D
+# In 3D
 function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5}, u_ode, semi)
   @unpack u_indices = semi
   @unpack other_mesh_id, other_mesh_orientation, indices = boundary_condition

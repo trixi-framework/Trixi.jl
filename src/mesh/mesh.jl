@@ -200,6 +200,8 @@ function total_volume(mesh::TreeMesh)
   return mesh.tree.length_level_0^ndims(mesh)
 end
 
+total_volume(mesh::TreeMesh, solver, cache) = total_volume(mesh)
+
 
 include("parallel.jl")
 include("curved_mesh.jl")

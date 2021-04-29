@@ -174,11 +174,14 @@ end
 end
 
 
-function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic, cache_analysis)
+function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, 
+                          semi::SemidiscretizationHyperbolic, cache_analysis;
+                          normalize=true)
   @unpack mesh, equations, initial_condition, solver, cache = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
+  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, 
+                   solver, cache, cache_analysis; normalize=normalize)
 end
 
 
