@@ -28,7 +28,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::CurvedMesh{1}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          dg::DGSEM, cache, cache_analysis; normalize=true)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
   @unpack u_local, x_local, jacobian_local = cache_analysis
@@ -57,8 +57,10 @@ function calc_error_norms(func, u, t, analyzer,
     end
   end
 
-  # For L2 error, divide by total volume
-  l2_error = @. sqrt(l2_error / total_volume)
+  if normalize
+    # For L2 error, divide by total volume
+    l2_error = @. sqrt(l2_error / total_volume)
+  end
 
   return l2_error, linf_error
 end
@@ -66,7 +68,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{1}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          dg::DGSEM, cache, cache_analysis; normalize=true)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
   @unpack u_local, x_local = cache_analysis
@@ -92,9 +94,11 @@ function calc_error_norms(func, u, t, analyzer,
     end
   end
 
-  # For L2 error, divide by total volume
-  total_volume_ = total_volume(mesh)
-  l2_error = @. sqrt(l2_error / total_volume_)
+  if normalize
+    # For L2 error, divide by total volume
+    total_volume_ = total_volume(mesh)
+    l2_error = @. sqrt(l2_error / total_volume_)
+  end
 
   return l2_error, linf_error
 end

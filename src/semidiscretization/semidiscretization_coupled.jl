@@ -119,14 +119,15 @@ function calc_error_norms(func, u_ode::AbstractVector, t, analyzers,
   # Sum up L2 integrals, use max on Linf error
   op(x, y) = (x[1] + y[1], max(x[2], y[2]))
 
-  l2_integral, linf_error = mapreduce(op, 1:nmeshes(semi)) do i
+  l2_error, linf_error = mapreduce(op, 1:nmeshes(semi)) do i
     calc_error_norms(func, u_ode[u_indices[i]], t, analyzers[i], 
                      semis[i], caches_analysis[i]; normalize=false)
   end
 
   if normalize
     # For L2 error, divide by total volume
-    l2_error = sqrt.(l2_integral ./ total_volume(semi))
+    total_volume_ = total_volume(semi)
+    l2_error = @. sqrt(l2_error / total_volume_)
   end
 
   return l2_error, linf_error
@@ -134,7 +135,7 @@ end
 
 
 # In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
-function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled)
+function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled; normalize=true)
   @unpack semis, u_indices = semi
 
   integral = sum(1:nmeshes(semi)) do i
@@ -145,9 +146,11 @@ function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled)
     analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
   end
 
-  # Normalize with total volume
-  total_volume_ = total_volume(semi)
-  integral = integral / total_volume_
+  if normalize
+    # Normalize with total volume
+    total_volume_ = total_volume(semi)
+    integral = integral / total_volume_
+  end
 
   return integral
 end
@@ -174,14 +177,10 @@ end
 
 
 function total_volume(semi::SemidiscretizationCoupled)
-  result = zero(real(semi))
-
-  for semi_ in semi.semis
+  sum(semi.semis) do semi_
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
-    result += total_volume(mesh, solver, cache)
+    total_volume(mesh, solver, cache)
   end
-
-  return result
 end
 
 

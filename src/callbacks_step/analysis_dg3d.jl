@@ -51,7 +51,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{3}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          dg::DGSEM, cache, cache_analysis; normalize=true)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
   @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2 = cache_analysis
@@ -77,9 +77,11 @@ function calc_error_norms(func, u, t, analyzer,
     end
   end
 
-  # For L2 error, divide by total volume
-  total_volume_ = total_volume(mesh)
-  l2_error = @. sqrt(l2_error / total_volume_)
+  if normalize
+    # For L2 error, divide by total volume
+    total_volume_ = total_volume(mesh)
+    l2_error = @. sqrt(l2_error / total_volume_)
+  end
 
   return l2_error, linf_error
 end
@@ -117,7 +119,8 @@ function calc_error_norms(func, u, t, analyzer,
   
   if normalize
     # For L2 error, divide by total volume
-    l2_error = sqrt.(l2_error ./ total_volume(mesh, dg, cache))
+    total_volume_ = total_volume(mesh, dg, cache)
+    l2_error = @. sqrt(l2_error / total_volume_)
   end
 
   return l2_error, linf_error

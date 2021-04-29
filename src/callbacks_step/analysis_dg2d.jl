@@ -108,7 +108,8 @@ function calc_error_norms(func, u, t, analyzer,
   
   if normalize
     # For L2 error, divide by total volume
-    l2_error = sqrt.(l2_error ./ total_volume(mesh, dg, cache))
+    total_volume_ = total_volume(mesh, dg, cache)
+    l2_error = @. sqrt(l2_error / total_volume_)
   end
 
   return l2_error, linf_error
