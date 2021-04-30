@@ -68,42 +68,39 @@ function calc_metric_terms!(jacobian_matrix, element, nodes, corners)
 end
 
 
-# construct the normals, their normailzation scalings for a straight sided element
-function calc_normals_and_scaling!(normals, scaling, element, nodes, corners)
+# construct the normal direction vectors (but not actually normalized) for a straight sided element
+# normalization occurs on the fly during the surface flux computation
+function calc_normal_directions!(normal_directions, element, nodes, corners)
 
-  # normals and boundary information for the left (local side 4) and right (local side 2)
+  # normal directions on the boundary for the left (local side 4) and right (local side 2)
   for j in eachindex(nodes)
     # side 2
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(1.0, nodes[j], corners)
     Jtemp = X_xi * Y_eta - X_eta * Y_xi
-    scaling[j, 2, element]    = sqrt(Y_eta^2 + X_eta^2)
-    normals[1, j, 2, element] = sign(Jtemp) * ( Y_eta / scaling[j, 2, element])
-    normals[2, j, 2, element] = sign(Jtemp) * (-X_eta / scaling[j, 2, element])
+    normal_directions[1, j, 2, element] = sign(Jtemp) * ( Y_eta )
+    normal_directions[2, j, 2, element] = sign(Jtemp) * (-X_eta )
 
     # side 4
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(-1.0, nodes[j], corners)
     Jtemp =  X_xi * Y_eta - X_eta * Y_xi
-    scaling[j, 4, element]    =  sqrt(Y_eta^2 + X_eta^2)
-    normals[1, j, 4, element] = -sign(Jtemp) * ( Y_eta / scaling[j, 4, element])
-    normals[2, j, 4, element] = -sign(Jtemp) * (-X_eta / scaling[j, 4, element])
+    normal_directions[1, j, 4, element] = -sign(Jtemp) * ( Y_eta )
+    normal_directions[2, j, 4, element] = -sign(Jtemp) * (-X_eta )
   end
 
-  # normals and boundary information for the top (local side 3) and bottom (local side 1)
+  # normal directions on the boundary for the top (local side 3) and bottom (local side 1)
   for i in eachindex(nodes)
     # side 1
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(nodes[i], -1.0, corners)
     Jtemp =  X_xi * Y_eta - X_eta * Y_xi
-    scaling[i, 1, element]    =  sqrt(Y_xi^2 + X_xi^2)
-    normals[1, i, 1, element] = -sign(Jtemp) * (-Y_xi / scaling[i, 1, element])
-    normals[2, i, 1, element] = -sign(Jtemp) * ( X_xi / scaling[i, 1, element])
+    normal_directions[1, i, 1, element] = -sign(Jtemp) * (-Y_xi )
+    normal_directions[2, i, 1, element] = -sign(Jtemp) * ( X_xi )
 
     # side 3
     X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(nodes[i], 1.0, corners)
     Jtemp = X_xi * Y_eta - X_eta * Y_xi
-    scaling[i, 3, element]    = sqrt(Y_xi^2 + X_xi^2)
-    normals[1, i, 3, element] = sign(Jtemp) * (-Y_xi / scaling[i, 3, element])
-    normals[2, i, 3, element] = sign(Jtemp) * ( X_xi / scaling[i, 3, element])
+    normal_directions[1, i, 3, element] = sign(Jtemp) * (-Y_xi )
+    normal_directions[2, i, 3, element] = sign(Jtemp) * ( X_xi )
   end
 
-  return normals, scaling
+  return normal_directions
 end

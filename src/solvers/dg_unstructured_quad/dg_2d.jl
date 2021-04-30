@@ -134,13 +134,14 @@ function prolong2interfaces!(cache, u,
 end
 
 
-# compute the numerical flux interface coupling between two elements on an unstructured quadrilateral mesh
+# compute the numerical flux interface coupling between two elements on an unstructured
+# quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredQuadMesh,
                               nonconservative_terms::Val{false}, equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
-  @unpack normals, scaling = cache.elements
+  @unpack normal_directions = cache.elements
 
 
   @threaded for interface in eachinterface(dg, cache)
@@ -161,34 +162,20 @@ function calc_interface_flux!(surface_flux_values,
       u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, interface)
       u_rr = get_one_sided_surface_node_vars(u, equations, dg, 2, secondary_index, interface)
 
-      # TODO: Meshes, performance. The rotation shouldn't be hard-coded here
-      #       since it's not generally applicable to all equations. Thus, it
-      #       should be moved to the numerical flux, cf. `CurvedMesh`.
-      #       This will make this part strictly more general and allow additional
-      #       performance optimizations.
-
-      # pull the directional vectors and scaling factors
+      # pull the outward pointing (normal) directional vector
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         for hanging nodes and other non-conforming approximation spaces
-      normal_vector = get_surface_normal(normals, primary_index, primary_side, primary_element)
-      scaling_ll    = scaling[primary_index, primary_side, primary_element]
-      scaling_rr    = scaling[secondary_index, secondary_side, secondary_element]
+      outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
+                                             primary_element)
 
-      # rotate states
-      u_tilde_ll = rotate_to_x(u_ll, normal_vector, equations)
-      u_tilde_rr = rotate_to_x(u_rr, normal_vector, equations)
+      # Call pointwise numerical flux with rotation. Direction is normalized inside this function
+      flux = surface_flux(u_ll, u_rr, outward_direction, equations)
 
-      # Call pointwise Riemann solver in the rotated direction
-      flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
-
-      # backrotate the flux into the original direction
-      flux = rotate_from_x(flux_tilde, normal_vector, equations)
-
-      # Scale the flux appropriately and copy back to primary/secondary element storage
+      # Copy flux back to primary/secondary element storage
       # Note the sign change for the normal flux in the secondary element!
       for v in eachvariable(equations)
-        surface_flux_values[v, primary_index  , primary_side  , primary_element  ] =  flux[v] * scaling_ll
-        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -flux[v] * scaling_rr
+        surface_flux_values[v, primary_index  , primary_side  , primary_element  ] =  flux[v]
+        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -flux[v]
       end
 
       # increment the index of the coordinate system in the secondary element
@@ -248,7 +235,7 @@ function calc_boundary_flux!(cache, t, boundary_condition,
                              mesh::UnstructuredQuadMesh, equations, dg::DG,
                              initial_condition)
   @unpack surface_flux = dg
-  @unpack normals, scaling, surface_flux_values = cache.elements
+  @unpack normal_directions, surface_flux_values = cache.elements
   @unpack u, element_id, element_side_id, node_coordinates, name  = cache.boundaries
 
   @threaded for boundary in eachboundary(cache.boundaries)
@@ -263,28 +250,20 @@ function calc_boundary_flux!(cache, t, boundary_condition,
                                       node_coordinates[2, primary_index, boundary]),
                                       t, equations)
 
-      # pull the left state from the boundary u values on the primary element as well as the
-      # directional vectors and scaling
-      #   Note! this assumes a conforming approximation, more must be done in terms of the normals
-      #         for hanging nodes and other non-conforming approximation spaces
+      # pull the left state from the boundary u values on the primary element
       u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, boundary)
 
-      normal_vector  = get_surface_normal(normals, primary_index, primary_side, primary_element)
-      scaling_ll  = scaling[primary_index, primary_side, primary_element]
+      # pull the outward pointing (normal) directional vector
+      outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
+                                             primary_element)
 
-      # rotate states
-      u_tilde_ll       = rotate_to_x(u_ll, normal_vector, equations)
-      u_tilde_external = rotate_to_x(u_external, normal_vector, equations)
+      # Call pointwise numerical flux function in the rotated direction on the boundary
+      #    Note! the direction is normalized inside this function
+      flux = surface_flux(u_ll, u_external, outward_direction, equations)
 
-      # Call pointwise Riemann solver in the rotated direction
-      flux_tilde = surface_flux(u_tilde_ll, u_tilde_external, 1, equations)
-
-      # backrotate the flux into the original direction
-      flux = rotate_from_x(flux_tilde, normal_vector, equations)
-
-      # Scale the flux appropriately and copy back to primary element storage
+      # Copy flux back to primary element storage
       for v in eachvariable(equations)
-        surface_flux_values[v, primary_index, primary_side, primary_element] = flux[v] * scaling_ll
+        surface_flux_values[v, primary_index, primary_side, primary_element] = flux[v]
       end
     end
   end

@@ -15,7 +15,7 @@ boundary_conditions = boundary_condition_periodic
 # Get the DG approximation space
 
 polydeg = 6
-surface_flux = flux_hll
+surface_flux = FluxRotated(flux_hll)
 solver = DGSEM(polydeg, surface_flux)
 
 ###############################################################################

@@ -5,8 +5,7 @@ struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG
   jacobian_matrix      ::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
   inverse_jacobian     ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
   contravariant_vectors::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
-  normals              ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
-  scaling              ::Array{RealT, 3}   # [nnodes, local sides, nelement]
+  normal_directions    ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
   surface_flux_values  ::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
 end
 
@@ -23,15 +22,14 @@ function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity
   jacobian_matrix       = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
   inverse_jacobian      = fill(nan_RealT, (nnodes, nnodes, capacity))
   contravariant_vectors = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
-  normals               = fill(nan_RealT, (2, nnodes, 4, capacity))
-  scaling               = fill(nan_RealT, (nnodes, 4, capacity))
+  normal_directions     = fill(nan_RealT, (2, nnodes, 4, capacity))
   surface_flux_values   = fill(nan_uEltype, (NVARS, nnodes, 4, capacity))
 
   return UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(node_coordinates,
                                                                         jacobian_matrix,
                                                                         inverse_jacobian,
                                                                         contravariant_vectors,
-                                                                        normals, scaling,
+                                                                        normal_directions,
                                                                         surface_flux_values)
 end
 
@@ -86,8 +84,7 @@ function init_element!(elements, element, nodes, corners_or_surface_curves)
 
   calc_contravariant_vectors!(elements.contravariant_vectors, element, elements.jacobian_matrix)
 
-  calc_normals_and_scaling!(elements.normals, elements.scaling, element, nodes,
-                            corners_or_surface_curves)
+  calc_normal_directions!(elements.normal_directions, element, nodes, corners_or_surface_curves)
 
   return elements
 end

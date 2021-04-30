@@ -15,7 +15,7 @@ boundary_conditions = boundary_condition_convergence_test
 # Get the DG approximation space
 
 polydeg = 5
-surface_flux = flux_hll
+surface_flux = FluxRotated(flux_hll)
 solver = DGSEM(polydeg, surface_flux)
 
 ###############################################################################
