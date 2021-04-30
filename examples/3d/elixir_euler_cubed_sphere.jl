@@ -15,22 +15,26 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   alpha = xi * pi/4
   beta = eta * pi/4
-
+  
+  # Equiangular projection
   x = tan(alpha)
   y = tan(beta)
-
-  r = sqrt(1 + x^2 + y^2)
-
-  R = inner_radius + thickness * (0.5 * (zeta + 1))
-
-  # Cube coordinates per direction
+  
+  # Coordinates on unit cube per direction
   cube_coordinates = [SVector(-1, x, y),
                       SVector( 1, x, y),
                       SVector(x, -1, y),
                       SVector(x,  1, y),
                       SVector(x, y, -1),
                       SVector(x, y,  1)]
+  
+  # Radius on cube surface
+  r = sqrt(1 + x^2 + y^2) 
 
+  # Radius of the sphere
+  R = inner_radius + thickness * (0.5 * (zeta + 1))
+
+  # Projection onto the sphere
   R / r * cube_coordinates[direction]
 end
 
@@ -75,10 +79,10 @@ mesh1 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thick
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(
-                                       x_neg=Trixi.BoundaryConditionCoupled(3, 1, (1, :i, :j), Float64),
-                                       x_pos=Trixi.BoundaryConditionCoupled(4, 1, (1, :i, :j), Float64),
-                                       y_neg=Trixi.BoundaryConditionCoupled(5, 1, (1, :i, :j), Float64),
-                                       y_pos=Trixi.BoundaryConditionCoupled(6, 1, (1, :i, :j), Float64),
+                                       x_neg=BoundaryConditionCoupled(3, (1, :i, :j), Float64),
+                                       x_pos=BoundaryConditionCoupled(4, (1, :i, :j), Float64),
+                                       y_neg=BoundaryConditionCoupled(5, (1, :i, :j), Float64),
+                                       y_pos=BoundaryConditionCoupled(6, (1, :i, :j), Float64),
                                        z_neg=boundary_condition_convergence_test,
                                        z_pos=boundary_condition_convergence_test,
                                      ))
@@ -89,10 +93,10 @@ mesh2 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thick
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(
-                                       x_neg=Trixi.BoundaryConditionCoupled(3, 1, (:end, :i, :j), Float64),
-                                       x_pos=Trixi.BoundaryConditionCoupled(4, 1, (:end, :i, :j), Float64),
-                                       y_neg=Trixi.BoundaryConditionCoupled(5, 1, (:end, :i, :j), Float64),
-                                       y_pos=Trixi.BoundaryConditionCoupled(6, 1, (:end, :i, :j), Float64),
+                                       x_neg=BoundaryConditionCoupled(3, (:end, :i, :j), Float64),
+                                       x_pos=BoundaryConditionCoupled(4, (:end, :i, :j), Float64),
+                                       y_neg=BoundaryConditionCoupled(5, (:end, :i, :j), Float64),
+                                       y_pos=BoundaryConditionCoupled(6, (:end, :i, :j), Float64),
                                        z_neg=boundary_condition_convergence_test,
                                        z_pos=boundary_condition_convergence_test,
                                      ))
@@ -103,10 +107,10 @@ mesh3 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thick
 semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(
-                                       x_neg=Trixi.BoundaryConditionCoupled(1, 1, (1, :i, :j), Float64),
-                                       x_pos=Trixi.BoundaryConditionCoupled(2, 1, (1, :i, :j), Float64),
-                                       y_neg=Trixi.BoundaryConditionCoupled(5, 2, (:i, 1, :j), Float64),
-                                       y_pos=Trixi.BoundaryConditionCoupled(6, 2, (:i, 1, :j), Float64),
+                                       x_neg=BoundaryConditionCoupled(1, (1, :i, :j), Float64),
+                                       x_pos=BoundaryConditionCoupled(2, (1, :i, :j), Float64),
+                                       y_neg=BoundaryConditionCoupled(5, (:i, 1, :j), Float64),
+                                       y_pos=BoundaryConditionCoupled(6, (:i, 1, :j), Float64),
                                        z_neg=boundary_condition_convergence_test,
                                        z_pos=boundary_condition_convergence_test,
                                      ))
@@ -117,10 +121,10 @@ mesh4 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thick
 semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(
-                                       x_neg=Trixi.BoundaryConditionCoupled(1, 1, (:end, :i, :j), Float64),
-                                       x_pos=Trixi.BoundaryConditionCoupled(2, 1, (:end, :i, :j), Float64),
-                                       y_neg=Trixi.BoundaryConditionCoupled(5, 2, (:i, :end, :j), Float64),
-                                       y_pos=Trixi.BoundaryConditionCoupled(6, 2, (:i, :end, :j), Float64),
+                                       x_neg=BoundaryConditionCoupled(1, (:end, :i, :j), Float64),
+                                       x_pos=BoundaryConditionCoupled(2, (:end, :i, :j), Float64),
+                                       y_neg=BoundaryConditionCoupled(5, (:i, :end, :j), Float64),
+                                       y_pos=BoundaryConditionCoupled(6, (:i, :end, :j), Float64),
                                        z_neg=boundary_condition_convergence_test,
                                        z_pos=boundary_condition_convergence_test,
                                      ))
@@ -131,10 +135,10 @@ mesh5 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thick
 semi5 = SemidiscretizationHyperbolic(mesh5, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(
-                                       x_neg=Trixi.BoundaryConditionCoupled(1, 2, (:i, 1, :j), Float64),
-                                       x_pos=Trixi.BoundaryConditionCoupled(2, 2, (:i, 1, :j), Float64),
-                                       y_neg=Trixi.BoundaryConditionCoupled(3, 2, (:i, 1, :j), Float64),
-                                       y_pos=Trixi.BoundaryConditionCoupled(4, 2, (:i, 1, :j), Float64),
+                                       x_neg=BoundaryConditionCoupled(1, (:i, 1, :j), Float64),
+                                       x_pos=BoundaryConditionCoupled(2, (:i, 1, :j), Float64),
+                                       y_neg=BoundaryConditionCoupled(3, (:i, 1, :j), Float64),
+                                       y_pos=BoundaryConditionCoupled(4, (:i, 1, :j), Float64),
                                        z_neg=boundary_condition_convergence_test,
                                        z_pos=boundary_condition_convergence_test,
                                      ))
@@ -145,10 +149,10 @@ mesh6 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thick
 semi6 = SemidiscretizationHyperbolic(mesh6, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
                                      boundary_conditions=(
-                                       x_neg=Trixi.BoundaryConditionCoupled(1, 2, (:i, :end, :j), Float64),
-                                       x_pos=Trixi.BoundaryConditionCoupled(2, 2, (:i, :end, :j), Float64),
-                                       y_neg=Trixi.BoundaryConditionCoupled(3, 2, (:i, :end, :j), Float64),
-                                       y_pos=Trixi.BoundaryConditionCoupled(4, 2, (:i, :end, :j), Float64),
+                                       x_neg=BoundaryConditionCoupled(1, (:i, :end, :j), Float64),
+                                       x_pos=BoundaryConditionCoupled(2, (:i, :end, :j), Float64),
+                                       y_neg=BoundaryConditionCoupled(3, (:i, :end, :j), Float64),
+                                       y_pos=BoundaryConditionCoupled(4, (:i, :end, :j), Float64),
                                        z_neg=boundary_condition_convergence_test,
                                        z_pos=boundary_condition_convergence_test,
                                      ))

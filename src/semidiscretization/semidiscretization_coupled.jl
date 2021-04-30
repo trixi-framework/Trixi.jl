@@ -1,9 +1,23 @@
+"""
+    SemidiscretizationCoupled
+
+A struct used to bundle multiple semidiscretizations.
+'semidiscretize' will return an 'ODEproblem' that synchronizes time steps between the semidiscretizations.
+Each call of 'rhs!' will call 'rhs!' for each semidiscretization individually.
+The semidiscretizations can be coupled by gluing meshes together using 'BoundaryConditionCoupled'.
+"""
 struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
   semis::S
   u_indices::I # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
   performance_counter::PerformanceCounter
 end
 
+
+"""
+    function SemidiscretizationCoupled(semis)
+
+Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple 'semis'.
+"""
 function SemidiscretizationCoupled(semis)
   @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
@@ -102,7 +116,7 @@ end
   return nothing, equations, nothing, nothing
 end
 
-
+ 
 function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, 
                           semi::SemidiscretizationCoupled, caches_analysis;
                           normalize=true)
@@ -126,12 +140,12 @@ function calc_error_norms(func, u_ode::AbstractVector, t, analyzers,
 end
 
 
-# In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
 function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled; normalize=true)
   @unpack semis, u_indices = semi
 
   integral = sum(1:nmeshes(semi)) do i
     mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+    # In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
     du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
     u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
 
@@ -237,6 +251,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     end
   end
 
+  # Call rhs! for each semidiscretization
   for i in 1:nmeshes(semi)
     u_loc  = @view u_ode[u_indices[i]]
     du_loc = @view du_ode[u_indices[i]]
@@ -262,17 +277,17 @@ end
 # In 2D
 function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3}, u_ode, semi)
   @unpack u_indices = semi
-  @unpack other_mesh_id, other_mesh_orientation, indices = boundary_condition
+  @unpack other_semi_index, other_orientation, indices = boundary_condition
 
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_mesh_id])
-  @views u = wrap_array(u_ode[u_indices[other_mesh_id]], mesh, equations, solver, cache)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
 
   size_ = (nnodes(solver), nnodes(solver))
   linear_indices = LinearIndices(size(mesh))
 
-  if other_mesh_orientation == 1
+  if other_orientation == 1
     cells = axes(mesh, 2)
-  else # other_mesh_orientation == 2
+  else # other_orientation == 2
     cells = axes(mesh, 1)
   end
 
@@ -288,19 +303,19 @@ end
 # In 3D
 function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5}, u_ode, semi)
   @unpack u_indices = semi
-  @unpack other_mesh_id, other_mesh_orientation, indices = boundary_condition
+  @unpack other_semi_index, other_orientation, indices = boundary_condition
 
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_mesh_id])
-  @views u = wrap_array(u_ode[u_indices[other_mesh_id]], mesh, equations, solver, cache)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
+  @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
 
   size_ = (nnodes(solver), nnodes(solver), nnodes(solver))
   linear_indices = LinearIndices(size(mesh))
 
-  if other_mesh_orientation == 1
+  if other_orientation == 1
     cells = (axes(mesh, 2), axes(mesh, 3))
-  elseif other_mesh_orientation == 2
+  elseif other_orientation == 2
     cells = (axes(mesh, 1), axes(mesh, 3))
-  else # other_mesh_orientation == 3
+  else # other_orientation == 3
     cells = (axes(mesh, 1), axes(mesh, 2))
   end
 

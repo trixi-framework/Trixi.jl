@@ -149,14 +149,42 @@ performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 
+"""
+    BoundaryConditionCoupled(other_semi_index, indices, uEltype)
+
+Boundary condition to glue 2 meshes together. Solution values at the boundary
+of another mesh will be used as boundary values. This requires the use
+of ['SemidiscretizationCoupled'](@ref). The other mesh is specified by "other_semi_index"
+and is the index of it's mesh in the tuple of semidiscretizatios.
+
+# Arguments
+- 'other_semi_index': the index in 'SemidiscretizationCoupled' of the semidiscretization
+                      from which the values are copied
+- 'indices::Tuple': node/cell indices at the boundary of the mesh in the other
+                    semidiscretization. See examples below.
+- 'uEltype::Type': element type of solution
+
+# Examples
+'''julia
+# Connect the left boundary of mesh 2 to our boundary such that our positive
+# boundary direction will match the positive y direction of the other boundary
+BoundaryConditionCoupled(2, (1, :i), Float64)
+
+# Connect the same two boundaries oppositely oriented
+BoundaryConditionCoupled(2, (1, :mi), Float64)
+
+# Using this as y_neg boundary will connect 'our_cells[i, 1, j]' to 'other_cells[j, end-i, end]' 
+BoundaryConditionCoupled(2, (:j, :mi, :end), Float64)
+'''                 
+"""
 mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
   # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-  u_boundary            ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-  other_mesh_id         ::Int
-  other_mesh_orientation::Int
-  indices               ::I
+  u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+  other_semi_index ::Int
+  other_orientation::Int
+  indices          ::I
 
-  function BoundaryConditionCoupled(other_mesh_id, other_mesh_orientation, indices, uEltype)
+  function BoundaryConditionCoupled(other_semi_index, indices, uEltype)
     NDIMS = length(indices)
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
 
@@ -170,7 +198,15 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     end
     indices_ = one_to_symbol.(indices)
 
-    new{NDIMS*2-1, uEltype, typeof(indices_)}(u_boundary, other_mesh_id, other_mesh_orientation, indices_)
+    if indices[1] in (:one, :end)
+      other_orientation = 1
+    elseif indices[2] in (:one, :end)
+      other_orientation = 2
+    else
+      other_orientation = 3
+    end
+    
+    new{NDIMS*2-1, uEltype, typeof(indices_)}(u_boundary, other_semi_index, other_orientation, indices_)
   end
 end
 
