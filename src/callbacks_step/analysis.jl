@@ -124,21 +124,18 @@ function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
                                                      isfinished(integrator))
 
-  analyzers_ = []
-  caches_analysis_ = []
-
-  for semi_ in semi.semis
-    mesh, equations_, solver, cache = mesh_equations_solver_cache(semi_)
+  analyzers = map(semi.semis) do semi_
+    _, _, solver, _ = mesh_equations_solver_cache(semi_)
 
     analyzer = SolutionAnalyzer(solver; kwargs...)
-    cache_analysis = create_cache_analysis(analyzer, mesh, equations_, solver, cache, RealT, uEltype)
-
-    push!(analyzers_, analyzer)
-    push!(caches_analysis_, cache_analysis)
   end
 
-  analyzers = Tuple(analyzers_)
-  caches_analysis = Tuple(caches_analysis_)
+  caches_analysis = map(semi.semis) do semi_
+    mesh, equations_, solver, cache = mesh_equations_solver_cache(semi_)
+    
+    analyzer = SolutionAnalyzer(solver; kwargs...)
+    cache_analysis = create_cache_analysis(analyzer, mesh, equations_, solver, cache, RealT, uEltype)
+  end
 
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzers,
