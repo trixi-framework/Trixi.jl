@@ -106,7 +106,7 @@ function Trixi.allocate_coefficients(mesh::UnstructuredMesh,
                     equations, rd::RefElemData, cache)
     @unpack md = cache
     NVARS = nvariables(equations) # TODO: replace with static type info?
-    return StructArray([SVector{4}(zeros(4)) for i in axes(md.x,1), j in axes(md.x,2)])
+    return StructArray([SVector{NVARS}(zeros(NVARS)) for i in axes(md.x,1), j in axes(md.x,2)])
 end
 function Trixi.compute_coefficients!(u::StructArray, initial_condition, t, 
                                      mesh::UnstructuredMesh, equations, rd::RefElemData, cache) 
