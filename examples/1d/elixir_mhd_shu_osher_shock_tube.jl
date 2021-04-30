@@ -9,7 +9,7 @@ equations = IdealGlmMhdEquations1D(gamma)
 
 initial_condition = initial_condition_shu_osher_shock_tube
 
-boundary_conditions = boundary_condition_shu_osher_shock_tube
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 surface_flux = flux_hll
 volume_flux  = flux_derigs_etal

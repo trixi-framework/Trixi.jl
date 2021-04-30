@@ -95,7 +95,7 @@ end
 
 A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
-(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equations::CompressibleEulerMulticomponentEquations2D)
   c       = 2
@@ -127,7 +127,7 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
-(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 @inline function source_terms_convergence_test(u, x, t, equations::CompressibleEulerMulticomponentEquations2D)
   # Same settings as in `initial_condition`
