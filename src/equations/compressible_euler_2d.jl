@@ -33,7 +33,7 @@ end
 
 A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
-(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D)
   c = 2
@@ -56,7 +56,7 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
-(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 @inline function source_terms_convergence_test(u, x, t, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition`
@@ -91,29 +91,6 @@ Source terms used for convergence tests in combination with
   #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
 
   return SVector(du1, du2, du3, du4)
-end
-
-"""
-    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equations::CompressibleEulerEquations2D)
-
-Boundary conditions used for convergence tests in combination with
-[`initial_condition_convergence_test`](@ref) and [`source_terms_convergence_test`](@ref).
-"""
-function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equations::CompressibleEulerEquations2D)
-  u_boundary = initial_condition_convergence_test(x, t, equations)
-
-  # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
 end
 
 
