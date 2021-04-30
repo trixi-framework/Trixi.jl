@@ -86,8 +86,8 @@ function calc_metric_terms!(jacobian_matrix, element, nodes,
 
   # storage format:
   #   jacobian_matrix[1,1,:,:,:] <- X_xi
-  #   jacobian_matrix[2,1,:,:,:] <- Y_xi
   #   jacobian_matrix[1,2,:,:,:] <- X_eta
+  #   jacobian_matrix[2,1,:,:,:] <- Y_xi
   #   jacobian_matrix[2,2,:,:,:] <- Y_eta
   for j in eachindex(nodes), i in eachindex(nodes)
     (jacobian_matrix[1, 1, i, j, element],
