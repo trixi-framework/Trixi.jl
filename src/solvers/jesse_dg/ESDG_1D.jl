@@ -24,63 +24,60 @@ include("/Users/jessechan/.julia/dev/Trixi/src/solvers/jesse_dg/ESDG_utils.jl") 
 # semidiscretization 
 
 N = 3
-K1D = 8
-CFL = .1
-FinalTime = .250
+K1D = 32
+CFL = .01
+FinalTime = .7
 
-VX,VY,EToV = uniform_mesh(Tri(),K1D)
-rd = RefElemData(Tri(),N)
-md = MeshData(VX,VY,EToV,rd)
+VX,EToV = uniform_mesh(Line(),K1D)
+rd = RefElemData(Line(),N)
+md = MeshData(VX,EToV,rd)
 md = make_periodic(md,rd)
 
-function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
-    x,y = xyz
-    ρ = 1 + .5*exp(-25*(x^2+y^2))
-    # ρ = 1 + .5*sin(pi*x)*sin(pi*y)
-    u = 1.0
-    v = .5    
-    p = 2.
-    return prim2cons((ρ,u,v,p),equations)
+Qrhskew,VhP,Ph = build_hSBP_ops(rd)
+project_and_store!(y,x) = let Ph=Ph
+    mul!(y,Ph,x) # can't use matmul! b/c its applied to a subarray
 end
 
-eqn = CompressibleEulerEquations2D(1.4)
-F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations2D(1.4))
-Qrhskew,Qshskew,VhP,Ph = build_hSBP_ops(rd)
-QrhskewTr = Matrix(Qrhskew')
-QshskewTr = Matrix(Qshskew')
+
+function initial_condition(xyz,t,equations::CompressibleEulerEquations1D)
+    x, = xyz
+    # ρ = 1 + .5*exp(-25*(x^2+y^2))
+    ρ = 1 + .99*sin(pi*x)
+    u = 1.0
+    p = 2.
+    return prim2cons((ρ,u,p),equations)
+end
+
+eqn = CompressibleEulerEquations1D(1.4)
+F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations1D(1.4))
 
 # StructArray initialization - problem in entropy2cons
 
-function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, RealT, uEltype)
+function Trixi.create_cache(mesh::UnstructuredMesh, equations::CompressibleEulerEquations1D, 
+                            rd::RefElemData, RealT, uEltype)
 
     @unpack VXYZ,EToV = mesh
     md = MeshData(VXYZ...,EToV,rd)
     md = make_periodic(md,rd)
 
     # for flux differencing on general elements
-    Qrhskew,Qshskew,VhP,Ph = build_hSBP_ops(rd)
+    Qrhskew,VhP,Ph = build_hSBP_ops(rd)
     QrhskewTr = Matrix(Qrhskew')
-    QshskewTr = Matrix(Qshskew')
 
     # tmp variables for entropy projection
-    # Uq = StructArray(SVector{4}.(ntuple(_->similar(md.xq),4)))
-    Uq = StructArray{SVector{4,Float64}}(ntuple(_->similar(md.xq),4))
+    Uq = StructArray{SVector{3,Float64}}(ntuple(_->similar(md.xq),nvariables(equations)))
     VUq = similar(Uq)
-    VUh = StructArray{SVector{4,Float64}}(ntuple(_->similar([md.xq;md.xf]),4))
+    VUh = StructArray{SVector{3,Float64}}(ntuple(_->similar([md.xq;md.xf]),nvariables(equations)))
     Uh = similar(VUh)
 
     cache = (;md,
-            QrhskewTr,QshskewTr,VhP,Ph,
+            QrhskewTr,VhP,Ph,
             Uq,VUq,VUh,Uh)
 
     return cache
 end
 
-project_and_store!(y,x) = let Ph=Ph
-    mul!(y,Ph,x) # can't use matmul! b/c its applied to a subarray
-end
-
-@inline function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn) 
+@inline function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn::CompressibleEulerEquations1D) 
     @unpack Vq = rd    
     @unpack VhP,Ph = cache
     @unpack Uq, VUq, VUh, Uh = cache
@@ -104,23 +101,14 @@ end
     return Uh,Uf
 end
 
-@inline function max_abs_speed_normal(UL, UR, normal, equations::CompressibleEulerEquations2D) 
-    # Calculate primitive variables and speed of sound
-    ρu_n_L = UL[2]*normal[1] + UL[3]*normal[2]
-    ρu_n_R = UR[2]*normal[1] + UR[3]*normal[2]
-    uL = (UL[1],ρu_n_L,UL[4])
-    uR = (UR[1],ρu_n_R,UR[4])
-    return Trixi.max_abs_speed_naive(uL,uR,0,CompressibleEulerEquations1D(equations.gamma))
-end
-
 function Trixi.rhs!(dQ, Q::StructArray, t,
-                    mesh::UnstructuredMesh, equations::CompressibleEulerEquations2D,
+                    mesh::UnstructuredMesh, equations::CompressibleEulerEquations1D,
                     initial_condition, boundary_conditions, source_terms,
                     rd::RefElemData, cache)
 
     @unpack md = cache
-    @unpack QrhskewTr,QshskewTr,VhP,Ph = cache
-    @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
+    @unpack QrhskewTr,VhP,Ph = cache
+    @unpack rxJ,J,nxJ,sJ,mapP = md
     @unpack Vq,wf = rd
 
     Nh,Nq = size(VhP)
@@ -130,32 +118,29 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
 
     @inline F(orientation) = let equations = equations 
         # (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
-        (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations2D(1.4))
+        (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations1D(1.4))
     end
 
     Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
     
-    zero_vec = SVector{4}(zeros(4))
+    zero_vec = SVector{3}(zeros(nvariables(equations)))
+    rhse_threads = [SVector{3}.(Uh[:,1]) for _ in 1:Threads.nthreads()]
     # rhse = similar(Uh[:,1])
     # for e = 1:md.K
-    rhse_threads = [SVector{4}.(Uh[:,1]) for _ in 1:Threads.nthreads()]
     @batch for e = 1:md.K 
         rhse = rhse_threads[Threads.threadid()]
 
         fill!(rhse,zero_vec) # 40ns, (1 allocation: 48 bytes)
         Ue = view(Uh,:,e)    # 8ns (0 allocations: 0 bytes) after @inline in Base.view(StructArray)
-        QxTr = LazyArray(@~ @. 2 *(rxJ[1,e]*QrhskewTr + sxJ[1,e]*QshskewTr)) 
-        QyTr = LazyArray(@~ @. 2 *(ryJ[1,e]*QrhskewTr + syJ[1,e]*QshskewTr))
+        QxTr = LazyArray(@~ @. 2 * rxJ[1,e]*QrhskewTr )
 
         hadsum_ATr!(rhse, QxTr, F(1), Ue; skip_index=skip_index) # 8.274 μs (15 allocations: 720 bytes). Slower with skip_index?
-        hadsum_ATr!(rhse, QyTr, F(2), Ue; skip_index=skip_index) # 9.095 μs (15 allocations: 720 bytes)
         
         for (i,vol_id) = enumerate(Nq+1:Nh)
             UM, UP = Uf[i,e], Uf[mapP[i,e]]        
             Fx = F(1)(UP,UM)
-            Fy = F(2)(UP,UM)
-            λ = max_abs_speed_normal(UP, UM, SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e], equations) 
-            val = @. (Fx * nxJ[i,e] + Fy * nyJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) * wf[i]
+            λ = max_abs_speed_naive(UP, UM, SVector{1}(nxJ[i,e]), equations) 
+            val = @. (Fx * nxJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) 
             rhse[vol_id] = rhse[vol_id] + val
         end
 
@@ -166,12 +151,12 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
     return nothing
 end
 
-# A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(UnstructuredMesh((VX,VY),EToV), CompressibleEulerEquations2D(1.4), 
-                                    initial_condition, rd)
-
 ###############################################################################
 # ODE solvers, callbacks etc.
+
+# A semidiscretization collects data structures and functions for the spatial discretization
+semi = SemidiscretizationHyperbolic(UnstructuredMesh((VX,),EToV), CompressibleEulerEquations1D(1.4), 
+                                    initial_condition, rd)
 
 # Create ODE problem with time span from 0.0 to 1.0
 ode = semidiscretize(semi, (0.0, FinalTime));
@@ -180,7 +165,6 @@ ode = semidiscretize(semi, (0.0, FinalTime));
 # and resets the timers
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
-
 
 ###############################################################################
 # run the simulation
@@ -194,32 +178,13 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 # Print the timer summary
 summary_callback()
 
-# mesh = UnstructuredMesh((VX,VY),EToV)
-# eqns = CompressibleEulerEquations2D(1.4)
+# mesh = UnstructuredMesh((VX,),EToV)
+# eqns = CompressibleEulerEquations1D(1.4)
 # cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
 # Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
 # dQ = zero(Q)
 # Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
 
-# # dump internals
-# @unpack md = cache
-# @unpack QrhskewTr,QshskewTr,VhP,Ph = cache
-# @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
-# @unpack Vq,wf = rd
-# Nh,Nq = size(VhP)
-# @inline F(orientation) = let equations = equations 
-#     # (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
-#     (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations2D(1.4))
-# end
-# Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
-# rhse = similar(Uh[:,1])
-# e = 1
-# fill!(rhse,zero_vec) # 40ns, (1 allocation: 48 bytes)
-# Ue = view(Uh,:,e)    # 8ns (0 allocations: 0 bytes) after @inline in Base.view(StructArray)
-# QxTr = LazyArray(@~ 2 .*(rxJ[1,e].*QrhskewTr .+ sxJ[1,e].*QshskewTr)) 
-# QyTr = LazyArray(@~ 2 .*(ryJ[1,e].*QrhskewTr .+ syJ[1,e].*QshskewTr))
-# # Trixi.rhs!(dQ,Q,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
-
 Q = sol.u[end]
 zz = rd.Vp*StructArrays.component(Q,1)
-scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90),ratio=1)
+scatter(rd.Vp*md.x,zz,leg=false,msw=0,ms=2,ratio=1)
