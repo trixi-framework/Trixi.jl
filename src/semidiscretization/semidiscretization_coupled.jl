@@ -27,19 +27,15 @@ end
 function Base.show(io::IO, semi::SemidiscretizationCoupled)
   @nospecialize semi # reduce precompilation time
 
+  mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[1])
+
   print(io, "SemidiscretizationCoupled(")
-  print(io,       semis)
-  # print(io, ", ", semi.equations)
-  # print(io, ", ", semi.initial_condition)
-  # print(io, ", ", semi.boundary_conditions)
-  # print(io, ", ", semi.source_terms)
-  # print(io, ", ", semi.solver)
-  # print(io, ", cache(")
-  # for (idx,key) in enumerate(keys(semi.cache))
-  #   idx > 1 && print(io, " ")
-  #   print(io, key)
-  # end
-  # print(io, "))")
+  print(io, ", ", equations)
+  print(io, ", ", semi.semis[1].initial_condition)
+  # print(io, ", ", semi.boundary_conditions) TODO
+  print(io, ", ", semi.semis[1].source_terms)
+  print(io, ", ", solver)
+  print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
@@ -53,29 +49,25 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
     summary_line(io, "#meshes", nmeshes(semi))
     summary_line(io, "equations", mesh_equations_solver_cache(semi.semis[1])[2] |> typeof |> nameof)
     summary_line(io, "initial condition", semi.semis[1].initial_condition)
-    # summary_line(io, "boundary conditions", 2*ndims(semi))
-    # if (semi.boundary_conditions isa Tuple ||
-    #     semi.boundary_conditions isa NamedTuple ||
-    #     semi.boundary_conditions isa AbstractArray)
-    #   bcs = semi.boundary_conditions
-    # else
-    #   bcs = collect(semi.boundary_conditions for _ in 1:(2*ndims(semi)))
-    # end
-    # summary_line(increment_indent(io), "negative x", bcs[1])
-    # summary_line(increment_indent(io), "positive x", bcs[2])
-    # if ndims(semi) > 1
-    #   summary_line(increment_indent(io), "negative y", bcs[3])
-    #   summary_line(increment_indent(io), "positive y", bcs[4])
-    # end
-    # if ndims(semi) > 2
-    #   summary_line(increment_indent(io), "negative z", bcs[5])
-    #   summary_line(increment_indent(io), "positive z", bcs[6])
-    # end
+    # TODO boundary conditions?
     summary_line(io, "source terms", semi.semis[1].source_terms)
     summary_line(io, "solver", mesh_equations_solver_cache(semi.semis[1])[3] |> typeof |> nameof)
     summary_line(io, "total #DOFs", ndofs(semi))
     summary_footer(io)
   end
+end
+
+
+function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_context)
+  show(io_context, MIME"text/plain"(), semi)
+  println(io, "\n")
+  mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[1])
+  show(io_context, MIME"text/plain"(), mesh)
+  println(io, "\n")
+  show(io_context, MIME"text/plain"(), equations)
+  println(io, "\n")
+  show(io_context, MIME"text/plain"(), solver)
+  println(io, "\n")
 end
 
 
