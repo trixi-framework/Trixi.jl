@@ -78,28 +78,6 @@ function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquatio
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
 
-"""
-    boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
-                                         surface_flux_function,
-                                         equations::IdealGlmMhdEquations1D)
-
-Boundary conditions used for the Brio and Wu shock tube in combination with
-[`initial_condition_briowu_shock_tube`](@ref).
-"""
-function boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equations::IdealGlmMhdEquations1D)
-  u_boundary = initial_condition_briowu_shock_tube(x, t, equations)
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
 
 """
     initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
@@ -120,28 +98,6 @@ function initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEqua
   B2 = x[1] <= 0 ? 1.0 : cos(1.5)
   B3 = x[1] <= 0 ? 0.0 : sin(1.5)
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
-end
-
-"""
-    boundary_condition_torrilhon_shock_tube(u_inner, orientation, direction, x, t,
-                                            surface_flux_function,
-                                            equations::IdealGlmMhdEquations1D)
-
-Boundary conditions used for the Torrilhon shock tube in combination with
-[`initial_condition_torrilhon_shock_tube`](@ref).
-"""
-function boundary_condition_torrilhon_shock_tube(u_inner, orientation, direction, x, t,
-                                                 surface_flux_function,
-                                                 equations::IdealGlmMhdEquations1D)
-  u_boundary = initial_condition_torrilhon_shock_tube(x, t, equations)
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
 end
 
 
@@ -174,28 +130,6 @@ function initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquat
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
 
-"""
-    boundary_condition_ryujones_shock_tube(u_inner, orientation, direction, x, t,
-                                            surface_flux_function,
-                                            equations::IdealGlmMhdEquations1D)
-
-Boundary conditions used for the Ryu and Jones shock tube in combination with
-[`initial_condition_ryujones_shock_tube`](@ref).
-"""
-function boundary_condition_ryujones_shock_tube(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::IdealGlmMhdEquations1D)
-  u_boundary = initial_condition_ryujones_shock_tube(x, t, equations)
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
 
 """
     initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
@@ -222,28 +156,6 @@ function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEqua
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
 
-"""
-    boundary_condition_shu_osher_shock_tube(u_inner, orientation, direction, x, t,
-                                            surface_flux_function,
-                                            equations::IdealGlmMhdEquations1D)
-
-Boundary conditions used for the MHD extension of the Shu-Osher test case
-in combination with [`initial_condition_shu_osher_shock_tube`](@ref).
-"""
-function boundary_condition_shu_osher_shock_tube(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::IdealGlmMhdEquations1D)
-  u_boundary = initial_condition_shu_osher_shock_tube(x, t, equations)
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
 
 """
     initial_condition_shu_osher_shock_tube_flipped(x, t, equations::IdealGlmMhdEquations1D)
@@ -267,28 +179,6 @@ function initial_condition_shu_osher_shock_tube_flipped(x, t, equations::IdealGl
   B3 = 0.0
 
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
-end
-
-"""
-    boundary_condition_shu_osher_shock_tube_flipped(u_inner, orientation, direction, x, t,
-                                            surface_flux_function,
-                                            equations::IdealGlmMhdEquations1D)
-
-Boundary conditions used for the MHD extension of the Shu-Osher test case that travels
-from right to left. Use with [`initial_condition_shu_osher_shock_tube_flipped`](@ref).
-"""
-function boundary_condition_shu_osher_shock_tube_flipped(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::IdealGlmMhdEquations1D)
-  u_boundary = initial_condition_shu_osher_shock_tube_flipped(x, t, equations)
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
 end
 
 

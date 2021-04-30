@@ -8,7 +8,8 @@ using Trixi
 equations = HyperbolicDiffusionEquations2D()
 
 initial_condition = initial_condition_harmonic_nonperiodic
-boundary_conditions = boundary_condition_harmonic_nonperiodic
+
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=4, surface_flux=flux_godunov)
 

@@ -39,7 +39,7 @@ end
     initial_condition_convergence_test(x, t, equations::LinearScalarAdvectionEquation1D)
 
 A smooth initial condition used for convergence tests
-(in combination with [`boundary_condition_convergence_test`](@ref)
+(in combination with [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref)
 in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation1D)
@@ -55,35 +55,12 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   return SVector(scalar)
 end
 
-"""
-    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equation::LinearScalarAdvectionEquation1D)
-
-Boundary conditions for
-[`initial_condition_convergence_test`](@ref).
-"""
-function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                             surface_flux_function,
-                                             equation::LinearScalarAdvectionEquation1D)
-  u_boundary = initial_condition_convergence_test(x, t, equation)
-
-  # Calculate boundary flux
-  if direction == 2  # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
-
-  return flux
-end
-
 
 """
     initial_condition_gauss(x, t, equations::LinearScalarAdvectionEquation1D)
 
 A Gaussian pulse used together with
-[`boundary_condition_gauss`](@ref).
+[`BoundaryConditionDirichlet(initial_condition_gauss)`](@ref).
 """
 function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation1D)
   # Store translated coordinate for easy use of exact solution
@@ -91,29 +68,6 @@ function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation1D
 
   scalar = exp(-(x_trans[1]^2))
   return SVector(scalar)
-end
-
-"""
-    boundary_condition_gauss(u_inner, orientation, direction, x, t,
-                             surface_flux_function,
-                             equation::LinearScalarAdvectionEquation1D)
-
-Boundary conditions for
-[`initial_condition_gauss`](@ref).
-"""
-function boundary_condition_gauss(u_inner, orientation, direction, x, t,
-                                  surface_flux_function,
-                                  equation::LinearScalarAdvectionEquation1D)
-  u_boundary = initial_condition_gauss(x, t, equation)
-
-  # Calculate boundary flux
-  if direction == 2  # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
-
-  return flux
 end
 
 

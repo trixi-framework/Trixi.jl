@@ -163,7 +163,7 @@ than can increase your productivity in the Julia REPL.
 - Use `methodswith` to discover methods associated to a given type etc.
   ```julia
   julia> methodswith(CompressibleEulerEquations2D)
-  [1] boundary_condition_convergence_test(u_inner, orientation, direction, x, t, surface_flux_function, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:152
+  [1] initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:38
   [...]
   ```
 - Use `@which` (or `@edit`) for method calls.

@@ -13,7 +13,7 @@ initial_condition = initial_condition_gauss
 
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
-boundary_conditions = boundary_condition_gauss
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
