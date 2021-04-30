@@ -51,19 +51,15 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   # Create output directory (if it does not exist)
   mpi_isroot() && mkpath(output_directory)
 
+  if !isempty(system)
+    system = "_" * system
+  end
+
   # Determine file name based on existence of meaningful time step
   if timestep >= 0
-    if isempty(system)
-      filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-    else
-      filename = joinpath(output_directory, @sprintf("mesh_%s_%06d.h5", system, timestep))
-    end
+    filename = joinpath(output_directory, @sprintf("mesh%s_%06d.h5", system, timestep))
   else
-    if isempty(system)
-      filename = joinpath(output_directory, "mesh.h5")
-    else
-      filename = joinpath(output_directory, "mesh_$(system).h5")
-    end
+    filename = joinpath(output_directory, "mesh$(system).h5")
   end
 
   # Since the mesh is replicated on all ranks, only save from MPI root
