@@ -19,6 +19,7 @@ using CheapThreads
 using StartUpDG
 
 include("ESDG_utils.jl") # some setup utils
+include("temporary_structarrays_support.jl") # until https://github.com/JuliaArrays/StructArrays.jl/pull/186 is merged
 
 ###############################################################################
 # semidiscretization 
