@@ -104,6 +104,24 @@ function save_mesh_file(mesh::CurvedMesh, output_directory)
 end
 
 
+function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
+  # Create output directory (if it does not exist)
+  mkpath(output_directory)
+
+  filename = joinpath(output_directory, "mesh.h5")
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["size"] = length(mesh)
+  end
+
+  return filename
+end
+
+
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
 

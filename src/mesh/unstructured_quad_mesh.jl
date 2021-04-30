@@ -11,7 +11,7 @@ from a mesh file `filename`.
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-struct UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
+mutable struct UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
   filename             ::String
   n_corners            ::Int
   n_surfaces           ::Int # total number of surfaces
@@ -26,13 +26,15 @@ struct UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <
   element_node_ids     ::Array{Int, 2} # [node ids, n_elements]
   element_is_curved    ::Vector{Bool}
   surface_curves       ::Array{CurvedSurfaceT, 2} # [local sides, n_elements]
+  current_filename     ::String
+  unsaved_changes      ::Bool # if true, the mesh will be saved for plotting
 end
 
 
 # constructor for an unstructured mesh read in from a file
 # TODO: this mesh file parsing and construction of the mesh skeleton can likely be improved in terms
 #       of performance
-function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
+function UnstructuredQuadMesh(filename, periodic; RealT=Float64, unsaved_changes=true)
 
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
@@ -87,7 +89,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64)
     filename, n_corners, n_surfaces, n_interfaces, n_boundaries,
     n_elements, mesh_polydeg, corner_nodes,
     interface_info, bndy_names, periodic,
-    element_node_ids, element_is_curved, surface_curves)
+    element_node_ids, element_is_curved, surface_curves, "", unsaved_changes)
 end
 
 function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
