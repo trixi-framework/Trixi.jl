@@ -18,7 +18,7 @@ using CheapThreads
 
 using StartUpDG
 
-include("/Users/jessechan/.julia/dev/Trixi/src/solvers/jesse_dg/ESDG_utils.jl") # some setup utils
+include("ESDG_utils.jl") # some setup utils
 
 ###############################################################################
 # semidiscretization 
