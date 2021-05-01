@@ -139,7 +139,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
     zero_vec = SVector(ntuple(_ -> 0.0, Val(nvariables(equations))))
     # rhse = similar(Uh[:,1])
     # for e = 1:md.K
-    Trixi.@timeit_debug Trixi.timer() "rhse_threads" rhse_threads = [SVector{4}.(Uh[:,1]) for _ in 1:Threads.nthreads()]
+    Trixi.@timeit_debug Trixi.timer() "rhse_threads" rhse_threads = StructVector{SVector{nvariables(equations), Float64}, NTuple{nvariables(equations), Vector{Float64}}, Int}[SVector{4}.(Uh[:,1]) for _ in 1:Threads.nthreads()]
     @batch for e = 1:md.K
         rhse = rhse_threads[Threads.threadid()]
 
@@ -151,8 +151,6 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         end
 
         Trixi.@timeit_debug Trixi.timer() "hadsum_ATr!" begin
-            # hadsum_ATr!(rhse, QxTr, F(1), Ue; skip_index=skip_index) # 8.274 μs (15 allocations: 720 bytes). Slower with skip_index?
-            # hadsum_ATr!(rhse, QyTr, F(2), Ue; skip_index=skip_index) # 9.095 μs (15 allocations: 720 bytes)
             hadsum_ATr!(rhse, QxTr, F(1), Ue, skip_index)
             hadsum_ATr!(rhse, QyTr, F(2), Ue, skip_index)
         end
