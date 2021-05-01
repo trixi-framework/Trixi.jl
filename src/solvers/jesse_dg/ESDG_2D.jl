@@ -157,13 +157,11 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
 
         Trixi.@timeit_debug Trixi.timer() "loop" for (i,vol_id) = enumerate(Nq+1:Nh)
             UM, UP = Uf[i,e], Uf[mapP[i,e]]
-            Trixi.@timeit_debug Trixi.timer() "fluxes" begin
-                Fx = F(1)(UP,UM)
-                Fy = F(2)(UP,UM)
-            end
-            Trixi.@timeit_debug Trixi.timer() "max_abs_speed_normal" λ = max_abs_speed_normal(UP, UM, SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e], equations)
-            Trixi.@timeit_debug Trixi.timer() "val" val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) * wf[i]
-            Trixi.@timeit_debug Trixi.timer() "add" rhse[vol_id] = rhse[vol_id] + val
+            Fx = F(1)(UP,UM)
+            Fy = F(2)(UP,UM)
+            λ = max_abs_speed_normal(UP, UM, SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e], equations)
+            val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) * wf[i]
+            rhse[vol_id] += val
         end
 
         # project down and store
