@@ -151,8 +151,10 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         end
 
         Trixi.@timeit_debug Trixi.timer() "hadsum_ATr!" begin
-            hadsum_ATr!(rhse, QxTr, F(1), Ue; skip_index=skip_index) # 8.274 μs (15 allocations: 720 bytes). Slower with skip_index?
-            hadsum_ATr!(rhse, QyTr, F(2), Ue; skip_index=skip_index) # 9.095 μs (15 allocations: 720 bytes)
+            # hadsum_ATr!(rhse, QxTr, F(1), Ue; skip_index=skip_index) # 8.274 μs (15 allocations: 720 bytes). Slower with skip_index?
+            # hadsum_ATr!(rhse, QyTr, F(2), Ue; skip_index=skip_index) # 9.095 μs (15 allocations: 720 bytes)
+            hadsum_ATr!(rhse, QxTr, F(1), Ue, skip_index)
+            hadsum_ATr!(rhse, QyTr, F(2), Ue, skip_index)
         end
 
         Trixi.@timeit_debug Trixi.timer() "loop" for (i,vol_id) = enumerate(Nq+1:Nh)
@@ -165,7 +167,6 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         end
 
         # project down and store
-        # Trixi.@timeit_debug Trixi.timer() "project_and_store!" StructArrays.foreachfield(project_and_store!,view(dQ,:,e),-rhse/J[1,e]) # 2.997 μs
         Trixi.@timeit_debug Trixi.timer() "project_and_store!" begin
             @. rhse = -rhse / J[1,e]
             StructArrays.foreachfield(project_and_store!, view(dQ,:,e), rhse)

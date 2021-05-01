@@ -36,14 +36,14 @@ function build_hSBP_ops(rd::RefElemData{2})
 end
 
 # accumulate Q.*F into rhs
-function hadsum_ATr!(rhs,ATr,F,u; skip_index=(i,j)->false)
+function hadsum_ATr!(rhs, ATr, F, u, skip_index=(i,j)->false)
     rows,cols = axes(ATr)
     for i in cols
         ui = u[i]
         val_i = rhs[i]
         for j in rows
             if !skip_index(i,j)
-                val_i += ATr[j,i].*F(ui,u[j]) # breaks for tuples, OK for StaticArrays
+                val_i += ATr[j,i] * F(ui,u[j]) # breaks for tuples, OK for StaticArrays
             end
         end
         rhs[i] = val_i # why not .= here?
