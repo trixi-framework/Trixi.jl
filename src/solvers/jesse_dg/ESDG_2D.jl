@@ -162,7 +162,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
                 Fy = F(2)(UP,UM)
             end
             Trixi.@timeit_debug Trixi.timer() "max_abs_speed_normal" λ = max_abs_speed_normal(UP, UM, SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e], equations)
-            Trixi.@timeit_debug Trixi.timer() "val" val = @. (Fx * nxJ[i,e] + Fy * nyJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) * wf[i]
+            Trixi.@timeit_debug Trixi.timer() "val" val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) * wf[i]
             Trixi.@timeit_debug Trixi.timer() "add" rhse[vol_id] = rhse[vol_id] + val
         end
 
