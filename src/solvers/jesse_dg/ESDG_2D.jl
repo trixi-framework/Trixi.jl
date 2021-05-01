@@ -77,8 +77,8 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, 
     return cache
 end
 
-project_and_store!(y,x) = let Ph=Ph
-    mul!(y,Ph,x) # can't use matmul! b/c its applied to a subarray
+let Ph=Ph
+    global project_and_store!(y,x) = mul!(y,Ph,x)
 end
 
 @inline function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn)
@@ -165,7 +165,11 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         end
 
         # project down and store
-        Trixi.@timeit_debug Trixi.timer() "project_and_store!" StructArrays.foreachfield(project_and_store!,view(dQ,:,e),-rhse/J[1,e]) # 2.997 μs
+        # Trixi.@timeit_debug Trixi.timer() "project_and_store!" StructArrays.foreachfield(project_and_store!,view(dQ,:,e),-rhse/J[1,e]) # 2.997 μs
+        Trixi.@timeit_debug Trixi.timer() "project_and_store!" begin
+            @. rhse = -rhse / J[1,e]
+            StructArrays.foreachfield(project_and_store!, view(dQ,:,e), rhse)
+        end
     end
 
     return nothing
