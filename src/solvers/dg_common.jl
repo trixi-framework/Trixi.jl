@@ -46,6 +46,16 @@ end
   end
 end
 
+# Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
+# for writing solution files etc.
+@inline function wrap_array_plain(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+  @boundscheck begin
+    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+  end
+  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
+              (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+end
+
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG, cache)
 

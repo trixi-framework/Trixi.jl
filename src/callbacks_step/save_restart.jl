@@ -103,7 +103,7 @@ end
 @inline function save_restart_file(u_ode, t, dt, iter,
                                    semi::AbstractSemidiscretization, restart_callback)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  u = wrap_array_plain(u_ode, mesh, equations, solver, cache)
   save_restart_file(u, t, dt, iter, mesh, equations, solver, cache, restart_callback)
 end
 

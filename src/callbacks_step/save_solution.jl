@@ -114,24 +114,26 @@ function (solution_callback::SaveSolutionCallback)(integrator)
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
   @_timeit timer() "I/O" begin
-    if mesh.unsaved_changes
+    @_timeit timer() "save mesh" if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory, iter)
       mesh.unsaved_changes = false
     end
 
     element_variables = Dict{Symbol, Any}()
-    get_element_variables!(element_variables, u_ode, semi)
-    callbacks = integrator.opts.callback
-    if callbacks isa CallbackSet
-      for cb in callbacks.continuous_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
-      end
-      for cb in callbacks.discrete_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
+    @_timeit timer() "get element variables" begin
+      get_element_variables!(element_variables, u_ode, semi)
+      callbacks = integrator.opts.callback
+      if callbacks isa CallbackSet
+        for cb in callbacks.continuous_callbacks
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
+        end
+        for cb in callbacks.discrete_callbacks
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
+        end
       end
     end
 
-    save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
+    @_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
   end
 
   # avoid re-evaluating possible FSAL stages
@@ -144,7 +146,7 @@ end
                                     semi::AbstractSemidiscretization, solution_callback,
                                     element_variables=Dict{Symbol,Any}())
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  u = wrap_array_plain(u_ode, mesh, equations, solver, cache)
   save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback, element_variables)
 end
 
