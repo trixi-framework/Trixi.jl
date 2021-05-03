@@ -143,22 +143,6 @@ end
   return SVector(0, du2, du3)
 end
 
-@inline function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
-                                                         surface_flux_function,
-                                                         equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -ν Δϕ = 0 in Ω, u = g on ∂Ω
-  u_boundary = initial_condition_harmonic_nonperiodic(x, one(t), equations)
-
-  # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
 
 """
     initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations2D)

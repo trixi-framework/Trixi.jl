@@ -9,7 +9,7 @@ equations = IdealGlmMhdMulticomponentEquations1D(gammas           = (2.0, 2.0),
 
 initial_condition = initial_condition_briowu_shock_tube
 
-boundary_conditions = boundary_condition_briowu_shock_tube
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_derigs_etal

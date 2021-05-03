@@ -69,7 +69,7 @@ end
     initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
 
 A Gaussian pulse used together with
-[`boundary_condition_gauss`](@ref).
+[`BoundaryConditionDirichlet(initial_condition_gauss)`](@ref).
 """
 function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
@@ -77,29 +77,6 @@ function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D
 
   scalar = exp(-(x_trans[1]^2 + x_trans[2]^2))
   return SVector(scalar)
-end
-
-"""
-    boundary_condition_gauss(u_inner, orientation, direction, x, t,
-                             surface_flux_function,
-                             equation::LinearScalarAdvectionEquation2D)
-
-Boundary conditions for
-[`initial_condition_gauss`](@ref).
-"""
-function boundary_condition_gauss(u_inner, orientation, direction, x, t,
-                                  surface_flux_function,
-                                  equation::LinearScalarAdvectionEquation2D)
-  u_boundary = initial_condition_gauss(x, t, equation)
-
-  # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
-
-  return flux
 end
 
 

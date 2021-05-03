@@ -9,7 +9,7 @@ equations = HyperbolicDiffusionEquations1D(nu=1.25)
 
 initial_condition = initial_condition_harmonic_nonperiodic
 
-boundary_conditions = boundary_condition_harmonic_nonperiodic
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
