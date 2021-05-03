@@ -9,6 +9,8 @@ advectionvelocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5.0, -5.0, -5.0)
@@ -16,7 +18,7 @@ coordinates_max = ( 5.0,  5.0,  5.0)
 mesh = CurvedMesh((16, 16, 16), coordinates_min, coordinates_max, periodicity=false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_condition_gauss)
+                                    boundary_conditions=boundary_conditions)
 
 
 ###############################################################################

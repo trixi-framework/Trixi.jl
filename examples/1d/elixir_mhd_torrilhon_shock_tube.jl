@@ -9,7 +9,7 @@ equations = IdealGlmMhdEquations1D(gamma)
 
 initial_condition = initial_condition_torrilhon_shock_tube
 
-boundary_conditions = boundary_condition_torrilhon_shock_tube
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_central

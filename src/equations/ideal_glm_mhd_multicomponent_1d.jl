@@ -110,28 +110,6 @@ function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdMultico
   return prim2cons(vcat(prim_other, prim_rho), equations)
 end
 
-"""
-    boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
-                                         surface_flux_function,
-                                         equations::IdealGlmMhdEquations1D)
-
-Boundary conditions used for the Brio and Wu shock tube in combination with
-[`initial_condition_briowu_shock_tube`](@ref).
-"""
-function boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equations::IdealGlmMhdMulticomponentEquations1D)
-  u_boundary = initial_condition_briowu_shock_tube(x, t, equations)
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations1D)
