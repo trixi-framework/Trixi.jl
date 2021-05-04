@@ -49,8 +49,6 @@ Qrhskew,Qshskew,VhP,Ph = hybridized_SBP_operators(rd)
 QrhskewTr = Matrix(Qrhskew')
 QshskewTr = Matrix(Qshskew')
 
-# StructArray initialization - problem in entropy2cons
-
 function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, RealT, uEltype)
 
     @unpack VXYZ,EToV = mesh
