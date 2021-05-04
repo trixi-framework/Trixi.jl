@@ -116,6 +116,7 @@ function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
     attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = length(mesh)
+    attributes(file)["mesh_filename"] = mesh.filename
   end
 
   return filename

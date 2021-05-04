@@ -7,10 +7,6 @@ function create_cache(mesh::UnstructuredQuadMesh, equations,
   polydeg_ = polydeg(dg.basis)
   nvars = nvariables(equations)
 
-  if polydeg_ > mesh.polydeg && any(mesh.element_is_curved)
-    throw(ArgumentError("polynomial degree of DG (= $polydeg_) must be less than or equal to mesh polynomial degree (= $(mesh.polydeg))"))
-  end
-
   elements = init_elements(RealT, uEltype, mesh, dg.basis.nodes, nvars, polydeg_)
 
   interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
@@ -24,12 +20,19 @@ function create_cache(mesh::UnstructuredQuadMesh, equations,
 
   cache = (; elements, interfaces, boundaries)
 
+  # perform a check on the sufficient metric identities condition for free-stream preservation
+  # and halt computation if it fails
+
+# TODO: comment me back in once all the tests are updated accordingly
+
+  # if !isapprox(calc_discrete_metric_identities(dg, cache), 0, atol=1e-12)
+  #   throw("metric terms fail free-stream preservation check with maximum error $(calc_discrete_metric_identities(dg, cache))")
+  # end
+
   return cache
 end
 
 
-# Note! The mesh also passed to some functions, e.g., calc_volume_integral! to dispatch on the
-#       correct version and use the ::UnstructuredQuadMesh variable type below to keep track on it
 function rhs!(du, u, t,
               mesh::UnstructuredQuadMesh, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -306,4 +309,34 @@ function calc_surface_integral!(du, mesh::UnstructuredQuadMesh,
   end
 
   return nothing
+end
+
+
+# This routine computes the maximum value of the discrete metric identities necessary to ensure
+# that the approxmiation will be free-stream preserving (i.e. a constant solution remains constant)
+# on a curvilinear mesh.
+#   Note! Independent of the equation system and is only a check on the discrete mapping terms.
+#         Can be used for a metric identities check on CurvedMesh{2} or UnstructuredQuadMesh
+function calc_discrete_metric_identities(dg::DGSEM, cache)
+  @unpack derivative_matrix = dg.basis
+  @unpack contravariant_vectors = cache.elements
+
+  metric_id_dx = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
+  metric_id_dy = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
+  metric_ids_1 = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg), nelements(cache.elements))
+  metric_ids_2 = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg), nelements(cache.elements))
+
+  for element in eachelement(dg, cache)
+    # compute D*Ja_1^1 + Ja_1^2*D^T
+    @views mul!(metric_id_dx, derivative_matrix, contravariant_vectors[1, 1, :, :, element])
+    @views mul!(metric_id_dy, contravariant_vectors[1, 2, :, :, element], derivative_matrix')
+    metric_ids_1[:, :, element] .= abs.(metric_id_dx + metric_id_dy)
+
+    # compute D*Ja_2^1 + Ja_2^2*D^T
+    @views mul!(metric_id_dx, derivative_matrix, contravariant_vectors[2, 1, :, :, element])
+    @views mul!(metric_id_dy, contravariant_vectors[2, 2, :, :, element], derivative_matrix')
+    metric_ids_2[:, :, element] .= abs.(metric_id_dx + metric_id_dy)
+  end
+
+  return max( maximum(metric_ids_1), maximum(metric_ids_2) )
 end

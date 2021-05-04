@@ -69,7 +69,7 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
 end
 
 
-function max_dt(u, t, mesh::CurvedMesh{2},
+function max_dt(u, t, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
