@@ -11,8 +11,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 @testset "Unstructured Curve Mesh for Euler" begin
   @testset "elixir_euler_unstructured_quad.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_unstructured_quad.jl"),
-      l2   = [5.439149859993573e-5, 8.438158890695889e-5, 8.438164278782026e-5, 0.00019405355683092538],
-      linf = [0.010981453415713549, 0.017129631853193494, 0.017129625736353127, 0.03927168409120885],
+      l2   = [1.4806734911367684e-6, 1.2829088001471686e-6, 1.2829088234884487e-6, 3.1795661509866424e-6],
+      linf = [3.40332241308694e-5, 4.684462065029926e-5, 4.6844606649498743e-5, 0.00010606981344096766],
       tspan = (0.0, 0.5))
   end
 
