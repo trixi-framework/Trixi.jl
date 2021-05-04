@@ -18,8 +18,7 @@ using CheapThreads
 
 using StartUpDG
 
-include("ESDG_utils.jl") # some setup utils
-include("temporary_structarrays_support.jl") # until https://github.com/JuliaArrays/StructArrays.jl/pull/186 is merged
+include("trixi_interface.jl") # some setup utils
 
 ###############################################################################
 # semidiscretization
@@ -46,7 +45,7 @@ end
 
 eqn = CompressibleEulerEquations2D(1.4)
 F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations2D(1.4))
-Qrhskew,Qshskew,VhP,Ph = build_hSBP_ops(rd)
+Qrhskew,Qshskew,VhP,Ph = hybridized_SBP_operators(rd)
 QrhskewTr = Matrix(Qrhskew')
 QshskewTr = Matrix(Qshskew')
 
@@ -59,20 +58,25 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, 
     md = make_periodic(md,rd)
 
     # for flux differencing on general elements
-    Qrhskew,Qshskew,VhP,Ph = build_hSBP_ops(rd)
+    Qrhskew,Qshskew,VhP,Ph = hybridized_SBP_operators(rd)
     QrhskewTr = Matrix(Qrhskew')
     QshskewTr = Matrix(Qshskew')
 
     # tmp variables for entropy projection
     # Uq = StructArray(SVector{4}.(ntuple(_->similar(md.xq),4)))
-    Uq = StructArray{SVector{4,Float64}}(ntuple(_->similar(md.xq),4))
+    nvars = nvariables(equations)
+    Uq = StructArray{SVector{nvars,Float64}}(ntuple(_->similar(md.xq),4))
     VUq = similar(Uq)
-    VUh = StructArray{SVector{4,Float64}}(ntuple(_->similar([md.xq;md.xf]),4))
+    VUh = StructArray{SVector{nvars,Float64}}(ntuple(_->similar([md.xq;md.xf]),4))
     Uh = similar(VUh)
+
+    # tmp cache for threading
+    rhse_threads = [similar(Uh[:,1]) for _ in 1:Threads.nthreads()]
 
     cache = (;md,
             QrhskewTr,QshskewTr,VhP,Ph,
-            Uq,VUq,VUh,Uh)
+            Uq,VUq,VUh,Uh,
+            rhse_threads)
 
     return cache
 end
@@ -86,17 +90,12 @@ end
     @unpack VhP,Ph = cache
     @unpack Uq, VUq, VUh, Uh = cache
 
-    # # entropy projection - should be zero alloc
-    # StructArrays.foreachfield((uout,u)->mul!(uout,Vq,u),Uq,Q)
-    # tmap!(u->cons2entropy(u,eqn),VUq,Uq)
-    # StructArrays.foreachfield((uout,u)->mul!(uout,VhP,u),VUh,VUq)
-    # tmap!(v->entropy2cons(v,eqn),Uh,VUh)
-
-    # map((uout,u)->matmul!(uout,Vq,u),components(Uq),components(Q))
+    # if this freezes, try 
+    #     CheapThreads.reset_workers!()
+    #     ThreadingUtilities.reinitialize_tasks!()
     StructArrays.foreachfield((uout,u)->matmul!(uout,Vq,u),Uq,Q)
     bmap!(u->cons2entropy(u,eqn),VUq,Uq) # 77.5μs
     StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq)
-    # map((uout,u)->matmul!(uout,VhP,u),components(VUh),components(VUq))
     bmap!(v->entropy2cons(v,eqn),Uh,VUh) # 327.204 μs
 
     Nh,Nq = size(VhP)
@@ -130,32 +129,26 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
     end
 
     @inline F(orientation) = let equations = equations
-        # (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
-        (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations2D(1.4))
+        (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
     end
 
     Trixi.@timeit_debug Trixi.timer() "compute_entropy_projection!" Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
 
     zero_vec = SVector(ntuple(_ -> 0.0, Val(nvariables(equations))))
     # rhse = similar(Uh[:,1])
-    # for e = 1:md.K
-    Trixi.@timeit_debug Trixi.timer() "rhse_threads" rhse_threads = StructVector{SVector{nvariables(equations), Float64}, NTuple{nvariables(equations), Vector{Float64}}, Int}[SVector{4}.(Uh[:,1]) for _ in 1:Threads.nthreads()]
+    # for e = 1:md.K    
     @batch for e = 1:md.K
-        rhse = rhse_threads[Threads.threadid()]
+        rhse = cache.rhse_threads[Threads.threadid()]
 
-        fill!(rhse,zero_vec) # 40ns, (1 allocation: 48 bytes)
-        Ue = view(Uh,:,e)    # 8ns (0 allocations: 0 bytes) after @inline in Base.view(StructArray)
-        Trixi.@timeit_debug Trixi.timer() "QxTr, QyTr" begin
-            QxTr = LazyArray(@~ @. 2 *(rxJ[1,e]*QrhskewTr + sxJ[1,e]*QshskewTr))
-            QyTr = LazyArray(@~ @. 2 *(ryJ[1,e]*QrhskewTr + syJ[1,e]*QshskewTr))
-        end
+        fill!(rhse,zero_vec)
+        Ue = view(Uh,:,e)   
+        QxTr = LazyArray(@~ @. 2 *(rxJ[1,e]*QrhskewTr + sxJ[1,e]*QshskewTr))
+        QyTr = LazyArray(@~ @. 2 *(ryJ[1,e]*QrhskewTr + syJ[1,e]*QshskewTr))        
 
-        Trixi.@timeit_debug Trixi.timer() "hadsum_ATr!" begin
-            hadsum_ATr!(rhse, QxTr, F(1), Ue, skip_index)
-            hadsum_ATr!(rhse, QyTr, F(2), Ue, skip_index)
-        end
+        hadsum_ATr!(rhse, QxTr, F(1), Ue, skip_index)
+        hadsum_ATr!(rhse, QyTr, F(2), Ue, skip_index)
 
-        Trixi.@timeit_debug Trixi.timer() "loop" for (i,vol_id) = enumerate(Nq+1:Nh)
+        for (i,vol_id) = enumerate(Nq+1:Nh)
             UM, UP = Uf[i,e], Uf[mapP[i,e]]
             Fx = F(1)(UP,UM)
             Fy = F(2)(UP,UM)
@@ -165,10 +158,8 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         end
 
         # project down and store
-        Trixi.@timeit_debug Trixi.timer() "project_and_store!" begin
-            @. rhse = -rhse / J[1,e]
-            StructArrays.foreachfield(project_and_store!, view(dQ,:,e), rhse)
-        end
+        @. rhse = -rhse / J[1,e]
+        StructArrays.foreachfield(project_and_store!, view(dQ,:,e), rhse)
     end
 
     return nothing
@@ -202,12 +193,12 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 # Print the timer summary
 summary_callback()
 
-# mesh = UnstructuredMesh((VX,VY),EToV)
-# eqns = CompressibleEulerEquations2D(1.4)
-# cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
-# Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
+mesh = UnstructuredMesh((VX,VY),EToV)
+eqns = CompressibleEulerEquations2D(1.4)
+cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
+Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
+Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
 # dQ = zero(Q)
-# Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
 
 # # dump internals
 # @unpack md = cache

@@ -18,8 +18,8 @@ using CheapThreads
 
 using StartUpDG
 
-include("ESDG_utils.jl") # some setup utils
-include("temporary_structarrays_support.jl") # until https://github.com/JuliaArrays/StructArrays.jl/pull/186 is merged
+include("trixi_interface.jl") # some setup utils
+
 ###############################################################################
 # semidiscretization 
 
@@ -33,11 +33,10 @@ rd = RefElemData(Line(),N)
 md = MeshData(VX,EToV,rd)
 md = make_periodic(md,rd)
 
-Qrhskew,VhP,Ph = build_hSBP_ops(rd)
-project_and_store!(y,x) = let Ph=Ph
-    mul!(y,Ph,x) # can't use matmul! b/c its applied to a subarray
+Qrhskew,VhP,Ph = hybridized_SBP_operators(rd)
+let Ph=Ph
+    global project_and_store!(y,x) = mul!(y,Ph,x) # can't use matmul! b/c its applied to a subarray
 end
-
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations1D)
     x, = xyz
@@ -61,7 +60,7 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations::CompressibleEuler
     md = make_periodic(md,rd)
 
     # for flux differencing on general elements
-    Qrhskew,VhP,Ph = build_hSBP_ops(rd)
+    Qrhskew,VhP,Ph = hybridized_SBP_operators(rd)
     QrhskewTr = Matrix(Qrhskew')
 
     # tmp variables for entropy projection
@@ -70,9 +69,11 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations::CompressibleEuler
     VUh = StructArray{SVector{3,Float64}}(ntuple(_->similar([md.xq;md.xf]),nvariables(equations)))
     Uh = similar(VUh)
 
+    rhse_threads = [SVector{3}.(Uh[:,1]) for _ in 1:Threads.nthreads()]
+
     cache = (;md,
             QrhskewTr,VhP,Ph,
-            Uq,VUq,VUh,Uh)
+            Uq,VUq,VUh,Uh,rhse_threads)
 
     return cache
 end
@@ -117,30 +118,26 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
     end
 
     @inline F(orientation) = let equations = equations 
-        # (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
-        (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations1D(1.4))
+        (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
     end
 
     Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
-    
+        
     zero_vec = SVector{3}(zeros(nvariables(equations)))
-    rhse_threads = [SVector{3}.(Uh[:,1]) for _ in 1:Threads.nthreads()]
-    # rhse = similar(Uh[:,1])
-    # for e = 1:md.K
     @batch for e = 1:md.K 
-        rhse = rhse_threads[Threads.threadid()]
+        rhse = cache.rhse_threads[Threads.threadid()]
 
         fill!(rhse,zero_vec) # 40ns, (1 allocation: 48 bytes)
         Ue = view(Uh,:,e)    # 8ns (0 allocations: 0 bytes) after @inline in Base.view(StructArray)
         QxTr = LazyArray(@~ @. 2 * rxJ[1,e]*QrhskewTr )
 
-        hadsum_ATr!(rhse, QxTr, F(1), Ue; skip_index=skip_index) # 8.274 μs (15 allocations: 720 bytes). Slower with skip_index?
+        hadsum_ATr!(rhse, QxTr, F(1), Ue, skip_index) 
         
         for (i,vol_id) = enumerate(Nq+1:Nh)
             UM, UP = Uf[i,e], Uf[mapP[i,e]]        
             Fx = F(1)(UP,UM)
             λ = max_abs_speed_naive(UP, UM, SVector{1}(nxJ[i,e]), equations) 
-            val = @. (Fx * nxJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) 
+            val = (Fx * nxJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) 
             rhse[vol_id] = rhse[vol_id] + val
         end
 
@@ -178,12 +175,13 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 # Print the timer summary
 summary_callback()
 
-# mesh = UnstructuredMesh((VX,),EToV)
-# eqns = CompressibleEulerEquations1D(1.4)
-# cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
-# Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
-# dQ = zero(Q)
+mesh = UnstructuredMesh((VX,),EToV)
+eqns = CompressibleEulerEquations1D(1.4)
+cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
+Q = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
+dQ = zero(Q)
 # Trixi.compute_coefficients!(Q,initial_condition,0.0,mesh,eqns,rd,cache)
+Uh,Uf = compute_entropy_projection!(Q,rd,cache,eqns) # N=2, K=16: 670 μs
 
 Q = sol.u[end]
 zz = rd.Vp*StructArrays.component(Q,1)
