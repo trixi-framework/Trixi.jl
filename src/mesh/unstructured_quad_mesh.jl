@@ -40,7 +40,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64, unsaved_changes
   file_lines = readlines(open(filename))
 
   # readin the number of nodes, number of interfaces, number of elements and local polynomial degree
-  current_line = split(file_lines[1])
+  current_line = split(file_lines[2])
   n_corners    = parse(Int, current_line[1])
   n_surfaces   = parse(Int, current_line[2])
   n_elements   = parse(Int, current_line[3])
@@ -100,7 +100,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
   mesh_nnodes = length(cheby_nodes)
 
   # counter to step through the mesh file line by line
-  file_idx = 2
+  file_idx = 3
 
   # readin an store the nodes that dictate the corners of the elements needed to construct the
   # element geometry terms
