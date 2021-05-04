@@ -1,8 +1,4 @@
-```@meta
-EditURL = "<unknown>/docs/src/tutorials/src/files/index.jl"
-```
-
-Welcome to the tutorials of Trixi
+### [Welcome to the tutorials of Trixi](@id Intro)
 Dann teste ich mal LateX-Code:
 
 ```math
@@ -17,6 +13,11 @@ y = 4
 x + y
 ```
 
+```
+7
+```
+
+Reference [test](@ref)
 The end.
 Test for latex:
 ```math
@@ -29,6 +30,12 @@ u_1 = \delta \ &\text{on}\ \Gamma_{\rm B},\\
 \end{aligned}
 \right.
 ```
+
+Normal links like [this](https://github.com/bennibolm/Trixi.jl) are working.
+
+### [References](@id chapter-references)
+
+her should be a [link](@ref Intro).
 
 ---
 
