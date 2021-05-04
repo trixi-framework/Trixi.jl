@@ -43,7 +43,7 @@ function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  u = wrap_array_plain(u_ode, mesh, equations, dg, cache)
 
   h5open(restart_file, "r") do file
     # Read attributes to perform some sanity checks
@@ -144,7 +144,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  u = wrap_array_plain(u_ode, mesh, equations, dg, cache)
 
   # non-root ranks only receive data
   if !mpi_isroot()
