@@ -62,7 +62,7 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations::CompressibleEuler
 
     # for flux differencing on general elements
     Qrhskew,VhP,Ph = hybridized_SBP_operators(rd)
-    QrhskewTr = Matrix(Qrhskew')
+    QrhskewTr = typeof(Qrhskew)(Qrhskew')
 
     # tmp variables for entropy projection
     nvars = nvariables(equations)

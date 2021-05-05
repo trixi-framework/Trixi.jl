@@ -17,8 +17,8 @@
     end
     ```
 """
-struct ModalESDG{F1,F2,F3} 
-    rd::RefElemData
+struct ModalESDG{ElemType,F1,F2,F3} 
+    rd::RefElemData{DIM,ElemType} where {DIM}
     volume_flux::F1 
     interface_flux::F2
     interface_dissipation::F3

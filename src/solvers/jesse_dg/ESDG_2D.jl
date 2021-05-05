@@ -24,13 +24,14 @@ include("ModalESDG.jl")
 ###############################################################################
 # semidiscretization
 
-N = 2
-K1D = 16
+N = 4
+K1D = 4
 CFL = .1
 FinalTime = .250
 
-VX,VY,EToV = uniform_mesh(Tri(),K1D)
-rd = RefElemData(Tri(),N)
+element_type = Quad()
+VX,VY,EToV = uniform_mesh(element_type,K1D)
+rd = RefElemData(element_type,N)
 md = MeshData(VX,VY,EToV,rd)
 
 eqn = CompressibleEulerEquations2D(1.4)
@@ -65,8 +66,10 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, solver::ModalESDG
 
     # for flux differencing on general elements
     Qrhskew,Qshskew,VhP,Ph = hybridized_SBP_operators(rd)
-    QrhskewTr = Matrix(Qrhskew')
-    QshskewTr = Matrix(Qshskew')
+    # QrhskewTr = typeof(Qrhskew)(Qrhskew')
+    # QshskewTr = typeof(Qshskew)(Qshskew')
+    QrhskewTr = Matrix(Qrhskew') # punt to dense for now
+    QshskewTr = Matrix(Qshskew') 
 
     # tmp variables for entropy projection
     nvars = nvariables(equations)
@@ -120,7 +123,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         fill!(rhse,zero(eltype(rhse)))
         Ue = view(Uh,:,e)   
         QxTr = LazyArray(@~ @. 2 *(rxJ[1,e]*QrhskewTr + sxJ[1,e]*QshskewTr))
-        QyTr = LazyArray(@~ @. 2 *(ryJ[1,e]*QrhskewTr + syJ[1,e]*QshskewTr))        
+        QyTr = LazyArray(@~ @. 2 *(ryJ[1,e]*QrhskewTr + syJ[1,e]*QshskewTr))
 
         hadsum_ATr!(rhse, QxTr, volume_flux(1), Ue, skip_index) 
         hadsum_ATr!(rhse, QyTr, volume_flux(2), Ue, skip_index) 
