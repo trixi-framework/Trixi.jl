@@ -1,4 +1,4 @@
-# # Adding a new equation
+#src # Adding a new equation
 #
 # If you want to use Trixi for your own research, you might be interested in
 # a new physics model that's not already included in Trixi.jl. In this tutorial,
@@ -9,7 +9,7 @@
 # in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
 # is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
 
-# # Basic setup
+# ## Basic setup
   
 # Let's start by creating a module (in the REPL, in a file, in a Jupyter notebook, ...).
 # That ensures that we can re-create `struct`s defined therein without having to
@@ -22,7 +22,7 @@ module CubicConservationLaw
                                                   1 #= number of primary variables, i.e. scalar =#};
   end
   
-end # module
+end; # module
   
 # We create `CubicEquation` as an empty `struct` since we do not use any parameters
 # for this equation. Other models could bundle arbitrary parameters, e.g., the
@@ -36,6 +36,7 @@ using Trixi
 import .CubicConservationLaw
 
 Trixi.flux(u, orientation, equation::CubicConservationLaw.CubicEquation) = u.^3
+#src TODO: Is there a way to hide this but still use it in the code?
 Trixi.varnames(::typeof(cons2cons), ::CubicConservationLaw.CubicEquation) = ("u")
 Trixi.varnames(::typeof(cons2prim), ::CubicConservationLaw.CubicEquation) = ("u")
 
@@ -65,7 +66,6 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 ## Create ODE problem with given time span
 tspan = (0.0, 0.09)
 ode = semidiscretize(semi, tspan);
-
 # We wrap the return value of the `initial_condition_sine` inside an `SVector` since that's the approach
 # used in Trixi.jl also for systems of equations. We need to index the spatial coordinate `x[1]`,
 # since it is an `SVector` with one component. In multiple space dimensions, all spatial coordinates
@@ -75,15 +75,15 @@ ode = semidiscretize(semi, tspan);
 # Thus, we can solve this ODE numerically using any time integration method,
 # e.g., `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 # Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
-
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
   
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, SSPRK43(),
-            save_everystep=false, maxiters=1e5);
+            save_everystep=false, callback=callbacks, maxiters=1e5);
   
 ## Print the timer summary
+#src TODO Printing this in notebook/html?
 summary_callback()
 
 # That's it, you ran your first simulation using your new equation with Trixi! Now,
@@ -91,8 +91,7 @@ summary_callback()
 
 using Plots
 plot(sol)
-  
-#md ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
+#md # ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
   
 # You can already see that discontinuities will develop and oscillations start to
 # occur around steep parts of the wave. That's expected from our central discretization.
@@ -100,7 +99,7 @@ plot(sol)
 # Riemann solvers) at interfaces.
   
   
-# # Advanced setup
+# ## Advanced setup
   
 # Thus, we add a Godunov's flux for our cubic equation. That is easy for this equation
 # since the wave speed `f'(u) = 3u^2` is always non-negative.
@@ -119,7 +118,7 @@ sol = solve(ode, SSPRK43(),
 summary_callback()
 plot!(sol)
   
-#md ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
+#md # ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
   
 # You can see that there are fewer oscillations, in particular around steep edges.
 # Now let's increase the final time (and also the spatial resolution).
@@ -131,7 +130,7 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 
-#md ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
+#md # ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
   
 # You can observe that nonclassical shocks develop and are stable under grid refinement,
 # e.g. for `initial_refinement_level=12`. In this case, these nonclassical shocks
@@ -152,7 +151,7 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 
-#md ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
+#md # ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
   
 # Possible next steps could be
 # - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`
@@ -163,7 +162,7 @@ plot(sol)
 #   and adaptive mesh refinement [`AMRCallback`](@ref)
   
   
-# # Summary of the code
+# ## Summary of the code
   
 # To sum up, here is the complete code that we used (without the [`SummaryCallback`](@ref)
 # since that creates a lot of unnecessary output in the doctests of this tutorial).
@@ -234,7 +233,7 @@ semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing
 ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(), save_everystep=false);
 plot(sol);
-  
-# output
-# Plot{Plots.GRBackend() n=1}
+
+#src # output
+#src # Plot{Plots.GRBackend() n=1}
   

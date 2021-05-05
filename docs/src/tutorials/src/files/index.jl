@@ -11,9 +11,9 @@ y = 4
 x + y
 # 
 
+#md # Bild test: ![Bild](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
 
-# 
-# Reference [test](@ref)
+
 # The end.
 # Test for latex:
 # ```math
@@ -31,4 +31,8 @@ x + y
 
 # ### [References](@id chapter-references)
 # 
-# her should be a [link](@ref Intro).
+# here should be a [link](@ref Intro).
+
+# ### [References2](@id References2)
+# 
+# here should be a link to [Intro](@ref)

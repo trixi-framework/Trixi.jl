@@ -1,4 +1,4 @@
-# # Differentiable programming
+#src # Differentiable programming
 
 # [Julia and its ecosystem provide some tools for differentiable programming](https://sinews.siam.org/Details-Page/scientific-machine-learning-how-julia-employs-differentiable-programming-to-do-it-best).
 # Trixi.jl is designed to be flexible, extendable, and composable with Julia's growing ecosystem for
@@ -10,21 +10,22 @@
 # Trixi.jl.
 
 
-# # Forward mode automatic differentiation
+# ## Forward mode automatic differentiation
 
 # Trixi integrates well with [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
 # for forward mode AD.
 
 
-# ## Computing the Jacobian
-# TODO Most of (all) refenrences don't work, because there is `no doc found for reference '[`...`](@ref)' in src\Differentiable programming.md.
-# Same problem in `adding a new equation`
-# Another warning is `invalid local link: unresolved path in Differentiable programming.md`
+# ### Computing the Jacobian
+#src # TODO Most of (all) refenrences don't work, because there is `no doc found for reference '[`...`](@ref)' in src\Differentiable programming.md.
+#src # Same problem in `adding a new equation`
+#src # Another warning is `invalid local link: unresolved path in Differentiable programming.md`
 # The high-level interface to compute the Jacobian this way is [`jacobian_ad_forward`](@ref).
 
-## TODO How to split Julia parts?
-## TODO How to write this headline euler_eigenvalues? Or are they just notes for us?
-## euler_eigenvalues
+#src # TODO How to split Julia parts?
+#src # TODO How to write this headline euler_eigenvalues? Or are they just notes for us?
+
+#src # euler_eigenvalues
 using Trixi, LinearAlgebra, Plots
 # 
 equations = CompressibleEulerEquations2D(1.4);
@@ -38,22 +39,22 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_w
 J = jacobian_ad_forward(semi);
 # 
 size(J)
-#md (1024, 1024)
+#md ## (1024, 1024)
 # 
 λ = eigvals(J);
 
 scatter(real.(λ), imag.(λ));
 ## TODO Should all plots be in the output? Until now they're not.
 3.0e-10 < maximum(real, λ) / maximum(abs, λ) < 8.0e-10
-#md true
+#md ## true
 # 
 1.0e-7 < maximum(real, λ) < 5.0e-7
-#md true
+#md ## true
 
 # Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs` at the interfaces,
 # the maximal real part of the eigenvalues increases.
 
-## euler_eigenvalues
+#src # euler_eigenvalues
 solver = DGSEM(3, flux_lax_friedrichs);
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
@@ -65,23 +66,23 @@ J = jacobian_ad_forward(semi);
 scatter!(real.(λ), imag.(λ));
 # 
 λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
-#md 2.1e-5
+#md ## 2.1e-5
 # 
 round(maximum(real, λ), sigdigits=2)
-#md 0.0057
+#md ## 0.0057
 
 # However, we should be careful when using this analysis, since the eigenvectors are not necessarily
 # well-conditioned.
 
-## euler_eigenvalues
+#src # euler_eigenvalues
 λ, V = eigen(J);
 
 round(cond(V), sigdigits=2)
-#md 1.8e6
+#md ## 1.8e6
 
 # In one space dimension, the situation is a bit different.
 
-## euler_eigenvalues
+#src # euler_eigenvalues
 equations = CompressibleEulerEquations1D(1.4);
 
 solver = DGSEM(3, flux_central);
@@ -97,19 +98,19 @@ J = jacobian_ad_forward(semi);
 scatter(real.(λ), imag.(λ));
 # 
 1.0e-16 < maximum(real, λ) / maximum(abs, λ) < 6.0e-16
-#md true
+#md ## true
 # 
 1.0e-12 < maximum(real, λ) < 6.0e-12
-#md true
+#md ## true
 # 
 λ, V = eigen(J);
 
 200 < cond(V) < 300
-#md true
+#md ## true
 
 # If we add dissipation, the maximal real part is still approximately zero.
 
-## euler_eigenvalues
+#src # euler_eigenvalues
 solver = DGSEM(3, flux_lax_friedrichs);
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
@@ -123,21 +124,21 @@ scatter!(real.(λ), imag.(λ));
 λ = eigvals(J);
 
 1.0e-18 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
-#md true
+#md ## true
 # 
 5.0e-14 < maximum(real, λ) < 5.0e-13
-#md true
+#md ## true
 # 
 λ, V = eigen(J);
 
 90_000 < cond(V) < 100_000
-#md true
+#md ## true
 
 # Note that the condition number of the eigenvector matrix increases but is still smaller than for the
 # example in 2D.
 
 
-# ## Computing other derivatives
+# ### Computing other derivatives
 
 # It is also possible to compute derivatives of other dependencies using AD in Trixi. For example,
 # you can compute the gradient of an entropy-dissipative semidiscretization with respect to the
@@ -145,7 +146,7 @@ scatter!(real.(λ), imag.(λ));
 # is also available as the elixir
 # [examples/special\_elixirs/elixir\_euler\_ad.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
 
-## euler_gamma_gradient
+#src # euler_gamma_gradient
 using Trixi, LinearAlgebra, ForwardDiff
 # 
 equations = CompressibleEulerEquations2D(1.4);
@@ -158,7 +159,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropi
 # 
 u0_ode = compute_coefficients(0.0, semi);
 size(u0_ode)
-#md (1024,)
+#md ## (1024,)
 # 
 J = ForwardDiff.jacobian((du_ode, γ) -> begin
         equations_inner = CompressibleEulerEquations2D(first(γ))
@@ -167,7 +168,7 @@ J = ForwardDiff.jacobian((du_ode, γ) -> begin
     end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`
 
 round.(extrema(J), sigdigits=2)
-#md (-5.6, 5.6)
+#md ## (-5.6, 5.6)
 
 # Note that we create a semidiscretization `semi` at first to determine the state `u0_ode` around
 # which we want to perform the linearization. Next, we wrap the RHS evaluation inside a closure
@@ -178,9 +179,9 @@ round.(extrema(J), sigdigits=2)
 # Note that the ideal gas constant does not influence the semidiscrete rate of change of the
 # density, as demonstrated by
 
-## euler_gamma_gradient
+#src # euler_gamma_gradient
 norm(J[1:4:end])
-#md 0.0
+#md ## 0.0
 
 # Here, we used some knowledge about the internal memory layout of Trixi, an array of structs
 # with the conserved variables as fastest-varying index in memory.
@@ -192,7 +193,7 @@ norm(J[1:4:end])
 # the total energy of a simulation using the linear scalar advection equation with respect to the
 # wave number (frequency) of the initial data.
 
-## advection_differentiate_simulation
+#src # advection_differentiate_simulation
 using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
 
 function energy_at_final_time(k) # k is the wave number of the initial condition
@@ -209,10 +210,10 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     sol = solve(ode, BS3(), save_everystep=false)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
-#md energy_at_final_time (generic function with 1 method)
+#md ## energy_at_final_time (generic function with 1 method)
 
 k_values = range(0.9, 1.1, length=101)
-#md 0.9:0.002:1.1
+#md ## 0.9:0.002:1.1
 # 
 plot(k_values, energy_at_final_time.(k_values), label="Energy");
 
@@ -227,12 +228,12 @@ plot(k_values, energy_at_final_time.(k_values), label="Energy");
 # number `k` as follows.
 ## advection_differentiate_simulation
 round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
-#md 1.4e-5
+#md ## 1.4e-5
 
 # This is rather small and we can treat it as zero in comparison to the value of this derivative at
 # other wave numbers `k`.
 
-## advection_differentiate_simulation
+#src # advection_differentiate_simulation
 dk_values = ForwardDiff.derivative.((energy_at_final_time,), k_values);
 
 plot(k_values, dk_values, label="Derivative");
@@ -244,7 +245,7 @@ plot(k_values, dk_values, label="Derivative");
 round(ForwardDiff.derivative(
         k -> Trixi.ForwardDiff.derivative(energy_at_final_time, k), 1.0),
       sigdigits=2)
-#md -0.9
+#md ## -0.9
 
 # Having seen this application, let's break down what happens step by step.
 
@@ -263,10 +264,12 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
-round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
-#md 1.4e-5
+k = 1.0
+round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits=2)
+#md ## 1.4e-5
 
-# When calling `ForwardDiff.derivative(energy_at_final_time, 1.0)`, ForwardDiff.jl
+
+# When calling `ForwardDiff.derivative(energy_at_final_time, k)` with `k=1.0`, ForwardDiff.jl
 # will basically use the chain rule and known derivatives of existing basic functions
 # to calculate the derivative of the energy at the final time with respect to the
 # wave number `k` at `k0 = 1.0`. To do this, ForwardDiff.jl uses dual numbers, which
@@ -291,7 +294,6 @@ initial_condition = (x, t, equation) -> begin
     x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
     return SVector(sinpi(k * sum(x_trans)))
 end;
-
 # as a closure capturing the wave number `k` passed to `energy_at_final_time`.
 # If you call `energy_at_final_time(1.0)`, `k` will be a `Float64`. Thus, the
 # return values of `initial_condition` will be `SVector`s of `Float64`s. When
@@ -316,7 +318,7 @@ Trixi.integrate(energy_total, sol.u[end], semi)
 # has been spend to allow general types inside these calls).
 
 
-# # Propagating errors using Measurements.jl
+# ## Propagating errors using Measurements.jl
 
 # [![Error bars by Randall Munroe](https://imgs.xkcd.com/comics/error_bars.png)](https://xkcd.com/2110/)
 
@@ -327,7 +329,7 @@ Trixi.integrate(energy_total, sol.u[end], semi)
 # sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 # in the primitive variables.
 
-## output = false
+#src # output = false
 using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1);
@@ -344,10 +346,10 @@ ode = semidiscretize(semi, (0.0, 1.5));
 sol = solve(ode, BS3(), save_everystep=false);
 
 plot(sol)
+# 
 
-# ## output
-
-# Plot{Plots.GRBackend() n=1}
+#src # output
+#src # Plot{Plots.GRBackend() n=1}
 
 # You should see a plot like the following, where small error bars are shown around
 # the extrema and larger error bars are shown in the remaining parts. This result
@@ -364,7 +366,7 @@ plot(sol)
 
 
 
-# # Finite difference approximations
+# ## Finite difference approximations
 
 # Trixi provides the convenience function [`jacobian_fd`](@ref) to approximate the Jacobian
 # via central finite differences.
@@ -384,13 +386,13 @@ J_fd = jacobian_fd(semi);
 J_ad = jacobian_ad_forward(semi);
 
 round(norm(J_fd - J_ad) / size(J_fd, 1), sigdigits=2)
-#md 6.7e-7
+#md ## 6.7e-7
 
 # This discrepancy is of the expected order of magnitude for central finite difference approximations.
 
 
 
-# # Linear systems
+# ## Linear systems
 
 # When a linear PDE is discretized using a linear scheme such as a standard DG method,
 # the resulting semidiscretization yields an affine ODE of the form
@@ -419,11 +421,11 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 A, b = linear_structure(semi);
 
 size(A), size(b)
-#md ((256, 256), (256,))
+#md ## ((256, 256), (256,))
 # 
 λ = eigvals(Matrix(A));
 
 scatter(real.(λ), imag.(λ));
 
 λ = eigvals(Matrix(A)); maximum(real, λ) / maximum(abs, λ) < 1.0e-15
-#md true
+#md ## true
