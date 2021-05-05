@@ -48,3 +48,23 @@ function hadsum_ATr!(rhs, ATr, F, u, skip_index=(i,j)->false)
         rhs[i] = val_i # why not .= here?
     end
 end
+
+
+function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn)
+    @unpack Vq = rd
+    @unpack VhP,Ph = cache
+    @unpack Uq, VUq, VUh, Uh = cache
+
+    # if this freezes, try 
+    #=     CheapThreads.reset_workers!()
+           ThreadingUtilities.reinitialize_tasks!()  =#
+    StructArrays.foreachfield((uout,u)->matmul!(uout,Vq,u),Uq,Q)
+    bmap!(u->cons2entropy(u,eqn),VUq,Uq) # 77.5μs
+    StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq)
+    bmap!(v->entropy2cons(v,eqn),Uh,VUh) # 327.204 μs
+
+    Nh,Nq = size(VhP)
+    Uf = view(Uh,Nq+1:Nh,:) # 24.3 μs
+
+    return Uh,Uf
+end
