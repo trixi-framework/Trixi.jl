@@ -169,7 +169,6 @@ function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack dt, t, iter = integrator
-  u = wrap_array(integrator.u, mesh, equations, solver, cache)
 
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
@@ -208,7 +207,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
     du_ode = first(get_tmp_cache(integrator))
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
-    du = wrap_array(du_ode, mesh, equations, solver, cache)
+    u  = wrap_array_plain(integrator.u, mesh, equations, solver, cache)
+    du = wrap_array_plain(du_ode,       mesh, equations, solver, cache)
     l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
 
     mpi_println("─"^100)
