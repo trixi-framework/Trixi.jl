@@ -45,6 +45,15 @@ end
 
 eqn = CompressibleEulerEquations2D(1.4)
 F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations2D(1.4))
+@inline function max_abs_speed_normal(UL, UR, normal, equations::CompressibleEulerEquations2D)
+    # Calculate primitive variables and speed of sound
+    ρu_n_L = UL[2]*normal[1] + UL[3]*normal[2]
+    ρu_n_R = UR[2]*normal[1] + UR[3]*normal[2]
+    uL = (UL[1],ρu_n_L,UL[4])
+    uR = (UR[1],ρu_n_R,UR[4])
+    return Trixi.max_abs_speed_naive(uL,uR,0,CompressibleEulerEquations1D(equations.gamma))
+end
+
 Qrhskew,Qshskew,VhP,Ph = hybridized_SBP_operators(rd)
 QrhskewTr = Matrix(Qrhskew')
 QshskewTr = Matrix(Qshskew')
@@ -89,8 +98,8 @@ end
     @unpack Uq, VUq, VUh, Uh = cache
 
     # if this freezes, try 
-    #     CheapThreads.reset_workers!()
-    #     ThreadingUtilities.reinitialize_tasks!()
+    #=     CheapThreads.reset_workers!()
+         ThreadingUtilities.reinitialize_tasks!() =#
     StructArrays.foreachfield((uout,u)->matmul!(uout,Vq,u),Uq,Q)
     bmap!(u->cons2entropy(u,eqn),VUq,Uq) # 77.5μs
     StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq)
@@ -102,14 +111,6 @@ end
     return Uh,Uf
 end
 
-@inline function max_abs_speed_normal(UL, UR, normal, equations::CompressibleEulerEquations2D)
-    # Calculate primitive variables and speed of sound
-    ρu_n_L = UL[2]*normal[1] + UL[3]*normal[2]
-    ρu_n_R = UR[2]*normal[1] + UR[3]*normal[2]
-    uL = (UL[1],ρu_n_L,UL[4])
-    uR = (UR[1],ρu_n_R,UR[4])
-    return Trixi.max_abs_speed_naive(uL,uR,0,CompressibleEulerEquations1D(equations.gamma))
-end
 
 function Trixi.rhs!(dQ, Q::StructArray, t,
                     mesh::UnstructuredMesh, equations::CompressibleEulerEquations2D,
@@ -136,13 +137,10 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
 
     Trixi.@timeit_debug Trixi.timer() "compute_entropy_projection!" Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
 
-    zero_vec = SVector(ntuple(_ -> 0.0, Val(nvariables(equations))))
-    # rhse = similar(Uh[:,1])
-    # for e = 1:md.K    
     @batch for e = 1:md.K
         rhse = cache.rhse_threads[Threads.threadid()]
 
-        fill!(rhse,zero_vec)
+        fill!(rhse,zero(eltype(rhse)))
         Ue = view(Uh,:,e)   
         QxTr = LazyArray(@~ @. 2 *(rxJ[1,e]*QrhskewTr + sxJ[1,e]*QshskewTr))
         QyTr = LazyArray(@~ @. 2 *(ryJ[1,e]*QrhskewTr + syJ[1,e]*QshskewTr))        
