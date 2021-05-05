@@ -130,6 +130,10 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
     end
 
+    @inline dissipation(orientation) = let equations=equations        
+        (uM,uP)->.5*max_abs_speed_normal(uP, uM, orientation, equations)*(uP-uM)
+    end
+
     Trixi.@timeit_debug Trixi.timer() "compute_entropy_projection!" Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
 
     zero_vec = SVector(ntuple(_ -> 0.0, Val(nvariables(equations))))
@@ -150,8 +154,8 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
             UM, UP = Uf[i,e], Uf[mapP[i,e]]
             Fx = F(1)(UP,UM)
             Fy = F(2)(UP,UM)
-            λ = max_abs_speed_normal(UP, UM, SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e], equations)
-            val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) * wf[i]
+            diss = dissipation(SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e])(UM,UP)
+            val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] - diss*sJ[i,e]) * wf[i]
             rhse[vol_id] += val
         end
 

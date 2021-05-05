@@ -19,6 +19,7 @@ using CheapThreads
 using StartUpDG
 
 include("trixi_interface.jl") # some setup utils
+include("ModalESDG.jl")
 
 ###############################################################################
 # semidiscretization 
@@ -38,6 +39,14 @@ let Ph=Ph
     global project_and_store!(y,x) = mul!(y,Ph,x) # can't use matmul! b/c its applied to a subarray
 end
 
+eqn = CompressibleEulerEquations1D(1.4)
+F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations1D(1.4))
+
+function LxF_dissipation(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    return .5*max_abs_speed_naive(u_ll, u_rr, orientation, equations)*(u_ll-u_rr)
+end
+solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_dissipation,eqn)
+
 function initial_condition(xyz,t,equations::CompressibleEulerEquations1D)
     x, = xyz
     # ρ = 1 + .5*exp(-25*(x^2+y^2))
@@ -46,11 +55,6 @@ function initial_condition(xyz,t,equations::CompressibleEulerEquations1D)
     p = 2.
     return prim2cons((ρ,u,p),equations)
 end
-
-eqn = CompressibleEulerEquations1D(1.4)
-F(orientation) = (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,CompressibleEulerEquations1D(1.4))
-
-# StructArray initialization - problem in entropy2cons
 
 function Trixi.create_cache(mesh::UnstructuredMesh, equations::CompressibleEulerEquations1D, 
                             rd::RefElemData, RealT, uEltype)
@@ -83,17 +87,9 @@ end
     @unpack VhP,Ph = cache
     @unpack Uq, VUq, VUh, Uh = cache
 
-    # # entropy projection - should be zero alloc
-    # StructArrays.foreachfield((uout,u)->mul!(uout,Vq,u),Uq,Q) 
-    # tmap!(u->cons2entropy(u,eqn),VUq,Uq) 
-    # StructArrays.foreachfield((uout,u)->mul!(uout,VhP,u),VUh,VUq) 
-    # tmap!(v->entropy2cons(v,eqn),Uh,VUh) 
-
-    # map((uout,u)->matmul!(uout,Vq,u),components(Uq),components(Q))
     StructArrays.foreachfield((uout,u)->matmul!(uout,Vq,u),Uq,Q) 
     bmap!(u->cons2entropy(u,eqn),VUq,Uq) # 77.5μs
     StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq) 
-    # map((uout,u)->matmul!(uout,VhP,u),components(VUh),components(VUq))
     bmap!(v->entropy2cons(v,eqn),Uh,VUh) # 327.204 μs
 
     Nh,Nq = size(VhP)
@@ -121,6 +117,10 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         (uL,uR)->Trixi.flux_chandrashekar(uL,uR,orientation,equations)
     end
 
+    @inline dissipation(orientation) = let equations=equations        
+        return (uM,uP)->.5*max_abs_speed_naive(uP, uM, orientation, equations)*(uP-uM)
+    end
+
     Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
         
     zero_vec = SVector{3}(zeros(nvariables(equations)))
@@ -136,8 +136,8 @@ function Trixi.rhs!(dQ, Q::StructArray, t,
         for (i,vol_id) = enumerate(Nq+1:Nh)
             UM, UP = Uf[i,e], Uf[mapP[i,e]]        
             Fx = F(1)(UP,UM)
-            λ = max_abs_speed_naive(UP, UM, SVector{1}(nxJ[i,e]), equations) 
-            val = (Fx * nxJ[i,e] - .5*λ*(UP - UM)*sJ[i,e]) 
+            diss = dissipation(SVector{1}(nxJ[i,e]))(UM,UP)
+            val = (Fx * nxJ[i,e] - diss*sJ[i,e]) 
             rhse[vol_id] = rhse[vol_id] + val
         end
 
