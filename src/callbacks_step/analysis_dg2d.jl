@@ -4,14 +4,14 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{2},
                                RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = StrideArray(undef, uEltype,
-                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-  u_tmp1  = StrideArray(undef, uEltype,
-                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-  x_local = StrideArray(undef, RealT,
-                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-  x_tmp1  = StrideArray(undef, RealT,
-                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  u_local = Array{uEltype}(undef,
+                           identity(nvariables(equations)), identity(nnodes(analyzer)), identity(nnodes(analyzer)))
+  u_tmp1  = Array{uEltype}(undef,
+                           identity(nvariables(equations)), identity(nnodes(analyzer)), identity(nnodes(dg)))
+  x_local = Array{RealT}(undef,
+                         identity(ndims(equations)), identity(nnodes(analyzer)), identity(nnodes(analyzer)))
+  x_tmp1  = Array{RealT}(undef,
+                         identity(ndims(equations)), identity(nnodes(analyzer)), identity(nnodes(dg)))
 
   return (; u_local, u_tmp1, x_local, x_tmp1)
 end
@@ -21,18 +21,18 @@ function create_cache_analysis(analyzer, mesh::Union{CurvedMesh{2}, Unstructured
                                equations, dg::DG, cache,
                                RealT, uEltype)
   # pre-allocate buffers
-  u_local = StrideArray(undef, uEltype,
-                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-  u_tmp1  = StrideArray(undef, uEltype,
-                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-  x_local = StrideArray(undef, RealT,
-                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-  x_tmp1  = StrideArray(undef, RealT,
-                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-  jacobian_local = StrideArray(undef, RealT,
-                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-  jacobian_tmp1  = StrideArray(undef, RealT,
-                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  u_local = Array{uEltype}(undef,
+                           identity(nvariables(equations)), identity(nnodes(analyzer)), identity(nnodes(analyzer)))
+  u_tmp1  = Array{uEltype}(undef,
+                           identity(nvariables(equations)), identity(nnodes(analyzer)), identity(nnodes(dg)))
+  x_local = Array{RealT}(undef,
+                         identity(ndims(equations)), identity(nnodes(analyzer)), identity(nnodes(analyzer)))
+  x_tmp1  = Array{RealT}(undef,
+                         identity(ndims(equations)), identity(nnodes(analyzer)), identity(nnodes(dg)))
+  jacobian_local = Array{RealT}(undef,
+                                identity(nnodes(analyzer)), identity(nnodes(analyzer)))
+  jacobian_tmp1  = Array{RealT}(undef,
+                                identity(nnodes(analyzer)), identity(nnodes(dg)))
 
   return (; u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1)
 end
