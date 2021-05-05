@@ -1,5 +1,5 @@
 # Tutorial 3: Differentiable programming
-[![](https://mybinder.org/badge_logo.svg)](<unknown>/src/notebooks/t3_differentiable_programming.ipynb)
+[![](https://mybinder.org/badge_logo.svg)](<unknown>/notebooks/t3_differentiable_programming.ipynb)
 [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](<unknown>/notebooks/t3_differentiable_programming.ipynb)
 
 [Julia and its ecosystem provide some tools for differentiable programming](https://sinews.siam.org/Details-Page/scientific-machine-learning-how-julia-employs-differentiable-programming-to-do-it-best).

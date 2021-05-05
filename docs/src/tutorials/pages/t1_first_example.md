@@ -1,5 +1,5 @@
 # Tutorial 1: First Example
-[![](https://mybinder.org/badge_logo.svg)](<unknown>/src/notebooks/t1_first_example.ipynb)
+[![](https://mybinder.org/badge_logo.svg)](<unknown>/notebooks/t1_first_example.ipynb)
 [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](<unknown>/notebooks/t1_first_example.ipynb)
 
 # Rational numbers

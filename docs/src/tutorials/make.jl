@@ -8,18 +8,18 @@ files = [
     "Adding a new equation" => "adding_a_new_equation.jl",
     "Differentiable programming" => "differentiable_programming.jl"]
 
-pages_dir = joinpath(@__DIR__,"..")
-notebooks_dir = joinpath(@__DIR__,"notebooks")
+pages_dir       = joinpath(@__DIR__,"pages")
+notebooks_dir   = joinpath(@__DIR__,"notebooks")
 
-repo_src = joinpath(@__DIR__,"src","files")
+repo_src        = joinpath(@__DIR__,"files")
 
-# Sys.rm(pages_dir; recursive=true, force=true)
-Sys.rm(notebooks_dir; recursive=true, force=true)
+Sys.rm(pages_dir;       recursive=true, force=true)
+Sys.rm(notebooks_dir;   recursive=true, force=true)
 
 # Add index.md file as introduction to navigation menu
 pages = ["Introduction" => "t0_introduction.md"]
 
-Literate.markdown(joinpath(repo_src,"index.jl"), joinpath(@__DIR__,".."); name="t0_introduction", documenter=false, execute=true, codefence="```julia" => "```")
+Literate.markdown(joinpath(repo_src,"index.jl"), pages_dir; name="t0_introduction", documenter=false, execute=true, codefence="```julia" => "```")
 
 binder_logo = "https://mybinder.org/badge_logo.svg"
 nbviewer_logo = "https://img.shields.io/badge/show-nbviewer-579ACA.svg"
@@ -30,7 +30,7 @@ for (i, (title, filename)) in enumerate(files)
     tutorial_file = string(tutorial_prefix,splitext(filename)[1])
     notebook_filename = string(tutorial_file, ".ipynb")
 
-    binder_url = joinpath("@__BINDER_ROOT_URL__", "src", "notebooks", notebook_filename)# TODO das mit dem BINDER_ROOT_URL klappt noch nicht
+    binder_url = joinpath("@__BINDER_ROOT_URL__", "notebooks", notebook_filename)# TODO das mit dem BINDER_ROOT_URL klappt noch nicht
     binder_badge = string("# [![](",binder_logo,")](",binder_url,")")
     nbviewer_url = joinpath("@__NBVIEWER_ROOT_URL__","notebooks", notebook_filename)
     nbviewer_badge = string("# [![](",nbviewer_logo,")](",nbviewer_url,")")
