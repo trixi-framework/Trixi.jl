@@ -457,5 +457,15 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(trixi_include),String})
   end
 
+  # multiply_dimensionwise!
+  for RealT in (Float64,)
+    # 1D version
+    @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 2},Matrix{RealT},Array{RealT, 2}})
+    # 2D version
+    @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 3},Matrix{RealT},Array{RealT, 3},Array{RealT, 3}})
+    # 3D version
+    @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 4},Matrix{RealT},Array{RealT, 4},Array{RealT, 4},Array{RealT, 4}})
+  end
+
   return nothing
 end
