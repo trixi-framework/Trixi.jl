@@ -1,3 +1,5 @@
+using SparseArrays
+
 function hybridized_SBP_operators(rd::RefElemData{1})
     @unpack M,Dr,Vq,Pq,Vf,wf,nrJ = rd
     Qr = Pq'*M*Dr*Pq
@@ -34,6 +36,32 @@ function hybridized_SBP_operators(rd::RefElemData{2})
     return Qrhskew,Qshskew,VhP,Ph
 end
 
+function hybridized_SBP_operators(rd::RefElemData{2,Quad})
+    @unpack M,Dr,Ds,Vq,Pq,Vf,wf,nrJ,nsJ = rd
+    Qr = Pq'*M*Dr*Pq
+    Qs = Pq'*M*Ds*Pq
+    Ef = Vf*Pq
+    Br = diagm(wf.*nrJ)
+    Bs = diagm(wf.*nsJ)
+    Qrh = .5*[Qr-Qr' Ef'*Br;
+            -Br*Ef  Br]
+    Qsh = .5*[Qs-Qs' Ef'*Bs;
+            -Bs*Ef  Bs]
+    Vh = [Vq;Vf]
+    Ph = M\transpose(Vh)
+    VhP = Vh*Pq
+
+    # make skew symmetric versions of the operators"
+    Qrhskew = .5*(Qrh-transpose(Qrh))
+    Qshskew = .5*(Qsh-transpose(Qsh))
+
+    Qrhskew,Qshskew = sparse.((Qrhskew,Qshskew))
+    droptol!(Qrhskew,50*eps())
+    droptol!(Qshskew,50*eps())
+
+    return Qrhskew,Qshskew,VhP,Ph
+end
+
 # accumulate Q.*F into rhs
 function hadsum_ATr!(rhs, ATr, F, u, skip_index=(i,j)->false)
     rows,cols = axes(ATr)
@@ -46,6 +74,21 @@ function hadsum_ATr!(rhs, ATr, F, u, skip_index=(i,j)->false)
             end
         end
         rhs[i] = val_i # why not .= here?
+    end
+end
+
+# accumulate Q.*F into rhs
+function hadsum_ATr!(rhs, ATr::AbstractSparseMatrix, F, u)
+    rows = rowvals(ATr)
+    vals = nonzeros(ATr)
+    for i = 1:size(ATr,2) # all ops should be same length
+        ui = u[i]
+        val_i = rhs[i] # accumulate into existing rhs        
+        for row_id in nzrange(ATr,i)
+            j = rows[row_id]
+            val_i += vals[row_id]*F(ui,u[j])
+        end
+        rhs[i] = val_i
     end
 end
 
