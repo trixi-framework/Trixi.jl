@@ -81,6 +81,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64, unsaved_changes
   # get the number of internal interfaces in the mesh
   if periodic
     n_interfaces = n_surfaces
+    n_boundaries = 0
   else
     n_interfaces = n_surfaces - n_boundaries
   end

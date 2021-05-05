@@ -120,7 +120,6 @@ end
 
 @inline ninterfaces(interfaces::UnstructuredInterfaceContainer2D) = length(interfaces.start_index)
 
-@inline eachinterface(interfaces::UnstructuredInterfaceContainer2D) = Base.OneTo(ninterfaces(interfaces))
 
 Base.eltype(::UnstructuredInterfaceContainer2D{uEltype}) where {uEltype} = uEltype
 
@@ -255,15 +254,15 @@ end
 
 @inline nboundaries(boundaries::UnstructuredBoundaryContainer2D) = length(boundaries.name)
 
-@inline eachboundary(boundaries::UnstructuredBoundaryContainer2D) = Base.OneTo(nboundaries(boundaries))
-
 
 function init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg)
 
   boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg}(mesh.n_boundaries)
 
-  # extract and save the appropriate neighbour information
-  init_boundaries!(boundaries, mesh.neighbour_information, mesh.boundary_names, elements)
+  # extract and save the appropriate boundary information provided any physical boundaries exist
+  if mesh.n_boundaries > 0
+    init_boundaries!(boundaries, mesh.neighbour_information, mesh.boundary_names, elements)
+  end
   return boundaries
 end
 

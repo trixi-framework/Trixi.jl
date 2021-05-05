@@ -11,12 +11,7 @@ function create_cache(mesh::UnstructuredQuadMesh, equations,
 
   interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
 
-  # TODO: if the mesh is periodic we probably can avoid creating this "empty" boundary container
-  if isperiodic(mesh)
-    boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg_}(0)
-  else
-    boundaries = init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg_)
-  end
+  boundaries = init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg_)
 
   cache = (; elements, interfaces, boundaries)
 
@@ -58,9 +53,8 @@ function rhs!(du, u, t,
     cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  # TODO: Meshes, remove initial condition as an input argument here, only needed for hacky BCs
   @timeit_debug timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg, initial_condition)
+    cache, t, boundary_conditions, mesh, equations, dg)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(
@@ -193,8 +187,7 @@ function prolong2boundaries!(cache, u,
                              equations, dg::DG)
   @unpack boundaries = cache
 
-  # TODO: Meshes. Should this become `eachboundary(dg, cache)`?
-  @threaded for boundary in eachboundary(boundaries)
+  @threaded for boundary in eachboundary(dg, cache)
     element = boundaries.element_id[boundary]
     side    = boundaries.element_side_id[boundary]
 
@@ -223,32 +216,30 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG,
-                             initial_condition)
-  @assert isempty(eachboundary(cache.boundaries))
+                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+  @assert isempty(eachboundary(dg, cache))
 end
 
 
-# TODO: Meshes; `intial_condition` argument for convenience,
-#       cleanup later with better boundar condition handling
 function calc_boundary_flux!(cache, t, boundary_condition,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG,
-                             initial_condition)
+                             mesh::UnstructuredQuadMesh, equations, dg::DG)
   @unpack surface_flux = dg
   @unpack normal_directions, surface_flux_values = cache.elements
   @unpack u, element_id, element_side_id, node_coordinates, name  = cache.boundaries
 
-  @threaded for boundary in eachboundary(cache.boundaries)
+  @threaded for boundary in eachboundary(dg, cache)
     # Get the element and side IDs on the primary element
     primary_element = element_id[boundary]
     primary_side    = element_side_id[boundary]
 
+    # pull the external state function from the bounary condition dictionary
+    external_state = boundary_condition[ name[boundary] ]
+
     for primary_index in eachnode(dg)
-      # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
-      # for a mesh with flipped elements
-      u_external = initial_condition((node_coordinates[1, primary_index, boundary],
-                                      node_coordinates[2, primary_index, boundary]),
-                                      t, equations)
+      # get the external solution values from the prescribed external state
+      #  TODO: make this more general and able to also depend on the normal direction
+      u_external = external_state((node_coordinates[1, primary_index, boundary],
+                                   node_coordinates[2, primary_index, boundary]), t, equations)
 
       # pull the left state from the boundary u values on the primary element
       u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, boundary)
