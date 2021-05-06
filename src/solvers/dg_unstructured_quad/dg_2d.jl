@@ -215,8 +215,6 @@ end
 
 
 # TODO: Taal dimension agnostic
-# FIXME: With the Dictionary strategy of settings BCs this routine is never entered because
-#       typeof(boundary_condition) return a Dict instead of BoundaryConditionPeriodic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::UnstructuredQuadMesh, equations, dg::DG)
   @assert isempty(eachboundary(dg, cache))
@@ -230,33 +228,32 @@ function calc_boundary_flux!(cache, t, boundary_condition,
   @unpack u, element_id, element_side_id, node_coordinates, name  = cache.boundaries
 
   @threaded for boundary in eachboundary(dg, cache)
-    # Get the element and side IDs on the primary element
-    primary_element = element_id[boundary]
-    primary_side    = element_side_id[boundary]
+    # Get the element and side IDs on the boundary element
+    element = element_id[boundary]
+    side    = element_side_id[boundary]
 
     # pull the external state function from the bounary condition dictionary
     external_state = boundary_condition[ name[boundary] ]
 
-    for primary_index in eachnode(dg)
-      # get the external solution values from the prescribed external state
-      #  TODO: make this more general and able to also depend on the normal direction
-      u_external = external_state((node_coordinates[1, primary_index, boundary],
-                                   node_coordinates[2, primary_index, boundary]), t, equations)
-
-      # pull the left state from the boundary u values on the primary element
-      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, boundary)
+    for j in eachnode(dg)
+      # pull the left state from the boundary u values on the boundary element
+      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, j, boundary)
 
       # pull the outward pointing (normal) directional vector
-      outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
-                                             primary_element)
+      outward_direction = get_surface_normal(normal_directions, j, side, element)
+
+      # get the external solution values from the prescribed external state
+      #  TODO: make this more general and able to also depend on the normal direction
+      x = get_node_coords(node_coordinates, equations, dg, j, boundary)
+      u_external = external_state(x, t, equations)
 
       # Call pointwise numerical flux function in the rotated direction on the boundary
       #    Note! the direction is normalized inside this function
       flux = surface_flux(u_ll, u_external, outward_direction, equations)
 
-      # Copy flux back to primary element storage
+      # Copy flux back to boundary element storage
       for v in eachvariable(equations)
-        surface_flux_values[v, primary_index, primary_side, primary_element] = flux[v]
+        surface_flux_values[v, j, side, element] = flux[v]
       end
     end
   end
