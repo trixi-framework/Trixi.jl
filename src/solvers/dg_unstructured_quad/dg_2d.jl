@@ -311,23 +311,20 @@ function calc_discrete_metric_identities(dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
+  ndims_ = size(contravariant_vectors, 1)
+
   metric_id_dx = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
   metric_id_dy = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
 
   max_metric_ids = zero(dg.basis.nodes[1])
 
-  for element in eachelement(dg, cache)
-    # compute D*Ja_1^1 + Ja_1^2*D^T
-    @views mul!(metric_id_dx, derivative_matrix, contravariant_vectors[1, 1, :, :, element])
-    @views mul!(metric_id_dy, contravariant_vectors[1, 2, :, :, element], derivative_matrix')
-    local_max_metric_ids_1 = maximum( abs.(metric_id_dx + metric_id_dy) )
+  for i in 1:ndims_, element in eachelement(dg, cache)
+    # compute D*Ja_1^i + Ja_2^i*D^T
+    @views mul!(metric_id_dx, derivative_matrix, contravariant_vectors[i, 1, :, :, element])
+    @views mul!(metric_id_dy, contravariant_vectors[i, 2, :, :, element], derivative_matrix')
+    local_max_metric_ids = maximum( abs.(metric_id_dx + metric_id_dy) )
 
-    # compute D*Ja_2^1 + Ja_2^2*D^T
-    @views mul!(metric_id_dx, derivative_matrix, contravariant_vectors[2, 1, :, :, element])
-    @views mul!(metric_id_dy, contravariant_vectors[2, 2, :, :, element], derivative_matrix')
-    local_max_metric_ids_2 = maximum( abs.(metric_id_dx + metric_id_dy) )
-
-    max_metric_ids = max( max_metric_ids, local_max_metric_ids_1, local_max_metric_ids_2 )
+    max_metric_ids = max( max_metric_ids, local_max_metric_ids )
   end
 
   return max_metric_ids
