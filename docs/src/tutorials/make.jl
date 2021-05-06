@@ -17,9 +17,9 @@ Sys.rm(pages_dir;       recursive=true, force=true)
 Sys.rm(notebooks_dir;   recursive=true, force=true)
 
 # Add index.md file as introduction to navigation menu
-pages = ["Introduction" => "t0_introduction.md"]
+pages = ["Introduction" => "index.md"]
 
-Literate.markdown(joinpath(repo_src,"index.jl"), pages_dir; name="t0_introduction", documenter=false, execute=true, codefence="```julia" => "```")
+Literate.markdown(joinpath(repo_src,"index.jl"), pages_dir; name="index", documenter=false, execute=true, codefence="```julia" => "```")
 
 binder_logo = "https://mybinder.org/badge_logo.svg"
 nbviewer_logo = "https://img.shields.io/badge/show-nbviewer-579ACA.svg"
@@ -30,7 +30,7 @@ for (i, (title, filename)) in enumerate(files)
     tutorial_file = string(tutorial_prefix,splitext(filename)[1])
     notebook_filename = string(tutorial_file, ".ipynb")
 
-    binder_url = joinpath("@__BINDER_ROOT_URL__", "notebooks", notebook_filename)# TODO das mit dem BINDER_ROOT_URL klappt noch nicht
+    binder_url = joinpath("@__BINDER_ROOT_URL__", "notebooks", notebook_filename)
     binder_badge = string("# [![](",binder_logo,")](",binder_url,")")
     nbviewer_url = joinpath("@__NBVIEWER_ROOT_URL__","notebooks", notebook_filename)
     nbviewer_badge = string("# [![](",nbviewer_logo,")](",nbviewer_url,")")
@@ -52,20 +52,4 @@ for (i, (title, filename)) in enumerate(files)
     path_to_markdown_file = joinpath("pages",string(tutorial_file,".md"))
     push!(pages, (ordered_title=>path_to_markdown_file))
 end
-
-# makedocs(
-#     # root = "/home/benjamin/Dokumente/git/Trixi.jl/docs/src/tutorials",
-#     # repo = "https://github.com/bennibolm/Trixi.jl/docs/src/tutorials/src/files",
-#     # Specify modules for which docstrings should be shown
-#     # modules = [Trixi],#, Trixi2Vtk, Trixi2Img],
-#     # Set sitename to Trixi
-#     sitename = "Trixi.jl",
-#     format = Documenter.HTML(
-#         # Disable pretty URLs during manual testing
-#         prettyurls = get(ENV, "CI", nothing) == "true",
-#         # Set canonical URL to GitHub pages URL
-#         canonical = "https://github.com/bennibolm/Trixi.jl"
-#     ),
-#     pages = pages
-# )
 # Run notebook with `notebook(;dir=joinpath(@__DIR__, "docs/src/tutorials/src/notebooks"))`
