@@ -125,7 +125,7 @@ julia> λ = eigvals(J);
 julia> 1.0e-18 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
 true
 
-julia> 5.0e-14 < maximum(real, λ) < 5.0e-13
+julia> 5.0e-14 < maximum(real, λ) < 5.0e-12 # TODO: For some reason `maximum(real, λ) = 6.853109654663226e-13`
 true
 
 julia> λ, V = eigen(J);

@@ -40,12 +40,9 @@ makedocs(
             "Visualization" => "visualization.md",
         ],
         "Tutorials" => [
-            "Adding a new equation" => "adding_a_new_equation.md",
-            "Differentiable programming" => "differentiable_programming.md",
-            # "Introduction" => "t0_introduction.md",
-            # "First example" => "t1_first_example.md",
-            # "Adding a new equation" => "t2_adding_a_new_equation.md",
-            # "Differentiable programming" => "t3_differentiable_programming.md",
+            "Introduction" => "tutorials/pages/index.md",
+            "Adding a new equation" => "tutorials/pages/t1_adding_a_new_equation.md",
+            "Differentiable programming" => "tutorials/pages/t2_differentiable_programming.md",
         ],
         "Basic building blocks" => [
             "Meshes" => [

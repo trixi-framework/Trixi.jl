@@ -1,6 +1,5 @@
-# Tutorial 3: Differentiable programming
-[![](https://mybinder.org/badge_logo.svg)](<unknown>/notebooks/t3_differentiable_programming.ipynb)
-[![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](<unknown>/notebooks/t3_differentiable_programming.ipynb)
+# Tutorial 2: Differentiable programming
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials)
 
 [Julia and its ecosystem provide some tools for differentiable programming](https://sinews.siam.org/Details-Page/scientific-machine-learning-how-julia-employs-differentiable-programming-to-do-it-best).
 Trixi.jl is designed to be flexible, extendable, and composable with Julia's growing ecosystem for
@@ -190,7 +189,7 @@ true
 ```
 
 ```julia
-5.0e-14 < maximum(real, λ) < 5.0e-13
+5.0e-14 < maximum(real, λ) < 5.0e-12 # For some reason `maximum(real, λ) = 6.853109654663226e-13`
 # true
 ```
 

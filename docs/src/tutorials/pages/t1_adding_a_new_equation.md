@@ -1,6 +1,5 @@
-# Tutorial 2: Adding a new equation
-[![](https://mybinder.org/badge_logo.svg)](<unknown>/notebooks/t2_adding_a_new_equation.ipynb)
-[![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](<unknown>/notebooks/t2_adding_a_new_equation.ipynb)
+# Tutorial 1: Adding a new equation
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials)
 
 If you want to use Trixi for your own research, you might be interested in
 a new physics model that's not already included in Trixi.jl. In this tutorial,
@@ -74,6 +73,11 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 # Create ODE problem with given time span
 tspan = (0.0, 0.09)
 ode = semidiscretize(semi, tspan);
+```
+
+```
+[ Info: Precompiling OrdinaryDiffEq [1dea7af3-3e70-54e6-95c3-0bf5283fa5ed]
+
 ```
 
 We wrap the return value of the `initial_condition_sine` inside an `SVector` since that's the approach
@@ -159,21 +163,21 @@ summary_callback()
  ──────────────────────────────────────────────────────────────────────────────
             Trixi.jl                   Time                   Allocations      
                                ──────────────────────   ───────────────────────
-       Tot / % measured:            1.53s / 100%            7.79MiB / 100%     
+       Tot / % measured:            6.22s / 35.9%           46.3MiB / 16.8%    
 
  Section               ncalls     time   %tot     avg     alloc   %tot      avg
  ──────────────────────────────────────────────────────────────────────────────
- rhs!                      58    1.53s   100%  26.4ms   7.77MiB  100%    137KiB
-   ~rhs!~                  58    1.53s   100%  26.4ms   7.77MiB  100%    137KiB
-   volume integral         58   95.8μs  0.01%  1.65μs     0.00B  0.00%    0.00B
-   prolong2interfaces      58   42.1μs  0.00%   726ns     0.00B  0.00%    0.00B
-   interface flux          58   39.0μs  0.00%   672ns     0.00B  0.00%    0.00B
-   surface integral        58   32.2μs  0.00%   555ns     0.00B  0.00%    0.00B
-   Jacobian                58   30.2μs  0.00%   520ns     0.00B  0.00%    0.00B
-   reset ∂u/∂t             58   24.4μs  0.00%   420ns     0.00B  0.00%    0.00B
-   prolong2boundaries      58   23.6μs  0.00%   407ns     0.00B  0.00%    0.00B
-   boundary flux           58   19.2μs  0.00%   330ns     0.00B  0.00%    0.00B
-   source terms            58   10.8μs  0.00%   186ns     0.00B  0.00%    0.00B
+ rhs!                      58    2.23s   100%  38.5ms   7.77MiB  100%    137KiB
+   ~rhs!~                  58    2.23s   100%  38.5ms   7.77MiB  100%    137KiB
+   volume integral         58    166μs  0.01%  2.86μs     0.00B  0.00%    0.00B
+   prolong2interfaces      58   74.1μs  0.00%  1.28μs     0.00B  0.00%    0.00B
+   interface flux          58   67.3μs  0.00%  1.16μs     0.00B  0.00%    0.00B
+   surface integral        58   55.0μs  0.00%   948ns     0.00B  0.00%    0.00B
+   Jacobian                58   49.4μs  0.00%   852ns     0.00B  0.00%    0.00B
+   prolong2boundaries      58   43.0μs  0.00%   741ns     0.00B  0.00%    0.00B
+   reset ∂u/∂t             58   41.5μs  0.00%   716ns     0.00B  0.00%    0.00B
+   boundary flux           58   34.7μs  0.00%   598ns     0.00B  0.00%    0.00B
+   source terms            58   19.7μs  0.00%   340ns     0.00B  0.00%    0.00B
  ──────────────────────────────────────────────────────────────────────────────
 
 

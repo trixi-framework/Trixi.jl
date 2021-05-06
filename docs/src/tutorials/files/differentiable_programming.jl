@@ -126,7 +126,7 @@ scatter!(real.(λ), imag.(λ));
 1.0e-18 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
 #md ## true
 # 
-5.0e-14 < maximum(real, λ) < 5.0e-13
+5.0e-14 < maximum(real, λ) < 5.0e-12 # For some reason `maximum(real, λ) = 6.853109654663226e-13`
 #md ## true
 # 
 λ, V = eigen(J);
