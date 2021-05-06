@@ -19,16 +19,14 @@ boundary_conditions = Dict( "Body"    => initial_condition,
 ###############################################################################
 # Get the DG approximation space
 
-polydeg = 6
-surface_flux = flux_hll
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=6, surface_flux=flux_hll)
 
 ###############################################################################
 # Get the curved quad mesh from a file
 
 mesh_file = joinpath(@__DIR__, "mesh_gingerbread_man.mesh")
-periodicity = false
-mesh = UnstructuredQuadMesh(mesh_file, periodicity)
+
+mesh = UnstructuredQuadMesh(mesh_file)
 
 ###############################################################################
 # create the semi discretization object

@@ -18,16 +18,14 @@ boundary_conditions = Dict( "Bottom" => initial_condition,
 ###############################################################################
 # Get the DG approximation space
 
-polydeg = 5
-surface_flux = FluxRotated(flux_hll)
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=5, surface_flux=FluxRotated(flux_hll))
 
 ###############################################################################
 # Get the curved quad mesh from a file
 
 mesh_file = joinpath(@__DIR__, "mesh_box_around_circle.mesh")
-periodicity = false
-mesh = UnstructuredQuadMesh(mesh_file, periodicity)
+
+mesh = UnstructuredQuadMesh(mesh_file)
 
 ###############################################################################
 # create the semi discretization object

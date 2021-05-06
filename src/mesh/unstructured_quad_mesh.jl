@@ -3,7 +3,7 @@
 
 An unstructured (possibly curved) quadrilateral mesh.
 
-    UnstructuredQuadMesh(filename, periodic; RealT=Float64)
+    UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false)
 
 All mesh information, neighbour coupling, and boundary curve information is read in
 from a mesh file `filename`.
@@ -34,7 +34,7 @@ end
 # constructor for an unstructured mesh read in from a file
 # TODO: this mesh file parsing and construction of the mesh skeleton can likely be improved in terms
 #       of performance
-function UnstructuredQuadMesh(filename, periodic; RealT=Float64, unsaved_changes=true)
+function UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false, unsaved_changes=true)
 
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
@@ -79,7 +79,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64, unsaved_changes
   n_boundaries = parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
 
   # get the number of internal interfaces in the mesh
-  if periodic
+  if periodicity
     n_interfaces = n_surfaces
     n_boundaries = 0
   else
@@ -89,7 +89,7 @@ function UnstructuredQuadMesh(filename, periodic; RealT=Float64, unsaved_changes
   return UnstructuredQuadMesh{RealT, CurvedSurfaceT}(
     filename, n_corners, n_surfaces, n_interfaces, n_boundaries,
     n_elements, mesh_polydeg, corner_nodes,
-    interface_info, bndy_names, periodic,
+    interface_info, bndy_names, periodicity,
     element_node_ids, element_is_curved, surface_curves, "", unsaved_changes)
 end
 

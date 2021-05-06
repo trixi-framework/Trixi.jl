@@ -215,6 +215,8 @@ end
 
 
 # TODO: Taal dimension agnostic
+# FIXME: With the Dictionary strategy of settings BCs this routine is never entered because
+#       typeof(boundary_condition) return a Dict instead of BoundaryConditionPeriodic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::UnstructuredQuadMesh, equations, dg::DG)
   @assert isempty(eachboundary(dg, cache))
