@@ -17,8 +17,8 @@
     end
     ```
 """
-struct ModalESDG{ElemType,F1,F2,F3} 
-    rd::RefElemData{DIM,ElemType} where {DIM}
+struct ModalESDG{DIM,ElemType,F1,F2,F3} 
+    rd::RefElemData{DIM,ElemType} 
     volume_flux::F1 
     interface_flux::F2
     interface_dissipation::F3
@@ -43,8 +43,8 @@ end
 Base.real(solver::ModalESDG) = Float64 # is this for DiffEq.jl?
 Trixi.ndofs(mesh::UnstructuredMesh, solver::ModalESDG, cache) = length(solver.rd.r)*cache.md.K
 
-function Base.show(io::IO, solver::ModalESDG) 
-    println("Modal ESDG solver with ")
+function Base.show(io::IO, solver::ModalESDG{DIM}) where {DIM}
+    println("Modal ESDG solver in $DIM dimension with ")
     println("   volume flux           = $(solver.volume_flux.trixi_volume_flux)")
     println("   interface flux        = $(solver.interface_flux.trixi_interface_flux)")    
     println("   interface dissipation = $(solver.interface_dissipation.trixi_interface_dissipation)")        

@@ -19,6 +19,7 @@ using CheapThreads
 using StartUpDG
 
 include("trixi_interface.jl") # some setup utils
+include("flux_differencing.jl")
 include("ModalESDG.jl")
 
 ###############################################################################
@@ -60,9 +61,10 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations::CompressibleEuler
     md = MeshData(VXYZ...,EToV,rd)
     md = make_periodic(md,rd)
 
-    # for flux differencing on general elements
-    Qrhskew,VhP,Ph = hybridized_SBP_operators(rd)
-    QrhskewTr = typeof(Qrhskew)(Qrhskew')
+    # make skew symmetric versions of the operators"
+    Qrh,VhP,Ph = hybridized_SBP_operators(rd)
+    Qrhskew = .5*(Qrh-transpose(Qrh))
+    QrhskewTr = typeof(Qrh)(Qrhskew')
 
     # tmp variables for entropy projection
     nvars = nvariables(equations)
@@ -80,7 +82,6 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations::CompressibleEuler
 
     return cache
 end
-
 
 function Trixi.rhs!(dQ, Q::StructArray, t,
                     mesh::UnstructuredMesh, equations::CompressibleEulerEquations1D,

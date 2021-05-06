@@ -19,13 +19,14 @@ using CheapThreads
 using StartUpDG
 
 include("trixi_interface.jl") # some setup utils
+include("flux_differencing.jl")
 include("ModalESDG.jl")
 
 ###############################################################################
 # semidiscretization
 
-N = 4
-K1D = 4
+N = 3
+K1D = 8
 CFL = .1
 FinalTime = .250
 
@@ -65,10 +66,11 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, solver::ModalESDG
     md = make_periodic(md,rd)
 
     # for flux differencing on general elements
-    Qrhskew,Qshskew,VhP,Ph = hybridized_SBP_operators(rd)
-    # QrhskewTr = typeof(Qrhskew)(Qrhskew')
-    # QshskewTr = typeof(Qshskew)(Qshskew')
-    QrhskewTr = Matrix(Qrhskew') # punt to dense for now
+    Qrh,Qsh,VhP,Ph = hybridized_SBP_operators(rd)
+    # make skew symmetric versions of the operators"
+    Qrhskew = .5*(Qrh-transpose(Qrh))
+    Qshskew = .5*(Qsh-transpose(Qsh))
+    QrhskewTr = Matrix(Qrhskew') # punt to dense for now - need rotation?
     QshskewTr = Matrix(Qshskew') 
 
     # tmp variables for entropy projection

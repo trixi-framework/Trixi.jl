@@ -1,5 +1,6 @@
 using SparseArrays
 
+# move these out later!
 function hybridized_SBP_operators(rd::RefElemData{1})
     @unpack M,Dr,Vq,Pq,Vf,wf,nrJ = rd
     Qr = Pq'*M*Dr*Pq
@@ -10,9 +11,7 @@ function hybridized_SBP_operators(rd::RefElemData{1})
     Vh = [Vq;Vf]
     Ph = M\transpose(Vh)
     VhP = Vh*Pq
-    # make skew symmetric versions of the operators"
-    Qrhskew = .5*(Qrh-transpose(Qrh))
-    return Qrhskew,VhP,Ph
+    return Qrh,VhP,Ph
 end
 
 function hybridized_SBP_operators(rd::RefElemData{2})
@@ -29,37 +28,15 @@ function hybridized_SBP_operators(rd::RefElemData{2})
     Vh = [Vq;Vf]
     Ph = M\transpose(Vh)
     VhP = Vh*Pq
-
-    # make skew symmetric versions of the operators"
-    Qrhskew = .5*(Qrh-transpose(Qrh))
-    Qshskew = .5*(Qsh-transpose(Qsh))
-    return Qrhskew,Qshskew,VhP,Ph
+    return Qrh,Qsh,VhP,Ph
 end
 
 function hybridized_SBP_operators(rd::RefElemData{2,Quad})
-    @unpack M,Dr,Ds,Vq,Pq,Vf,wf,nrJ,nsJ = rd
-    Qr = Pq'*M*Dr*Pq
-    Qs = Pq'*M*Ds*Pq
-    Ef = Vf*Pq
-    Br = diagm(wf.*nrJ)
-    Bs = diagm(wf.*nsJ)
-    Qrh = .5*[Qr-Qr' Ef'*Br;
-            -Br*Ef  Br]
-    Qsh = .5*[Qs-Qs' Ef'*Bs;
-            -Bs*Ef  Bs]
-    Vh = [Vq;Vf]
-    Ph = M\transpose(Vh)
-    VhP = Vh*Pq
-
-    # make skew symmetric versions of the operators"
-    Qrhskew = .5*(Qrh-transpose(Qrh))
-    Qshskew = .5*(Qsh-transpose(Qsh))
-
-    Qrhskew,Qshskew = sparse.((Qrhskew,Qshskew))
-    droptol!(Qrhskew,50*eps())
-    droptol!(Qshskew,50*eps())
-
-    return Qrhskew,Qshskew,VhP,Ph
+    Qrh,Qsh,VhP,Ph = invoke(hybridized_SBP_operators,Tuple{RefElemData{2}},rd)
+    Qrh, Qsh = sparse.((Qrh,Qsh))
+    droptol!(Qrh,50*eps())
+    droptol!(Qsh,50*eps())
+    return Qrh,Qsh,VhP,Ph
 end
 
 # accumulate Q.*F into rhs
