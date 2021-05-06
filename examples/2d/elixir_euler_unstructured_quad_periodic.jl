@@ -1,5 +1,5 @@
 
-using Downloads: download
+#using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -10,10 +10,11 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
-boundary_conditions = Dict( "Bottom" => boundary_condition_periodic,
-                            "Top"    => boundary_condition_periodic,
-                            "Right"  => boundary_condition_periodic,
-                            "Left"   => boundary_condition_periodic )
+boundary_conditions = boundary_condition_periodic
+# boundary_conditions = Dict( "Bottom" => boundary_condition_periodic,
+#                             "Top"    => boundary_condition_periodic,
+#                             "Right"  => boundary_condition_periodic,
+#                             "Left"   => boundary_condition_periodic )
 
 ###############################################################################
 # Get the DG approximation space
