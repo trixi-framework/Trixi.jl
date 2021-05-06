@@ -1,4 +1,5 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -9,25 +10,25 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
-boundary_conditions = boundary_condition_periodic
- # boundary_conditions = Dict( "Bottom" => boundary_condition_periodic,
- #                             "Top"    => boundary_condition_periodic,
- #                             "Right"  => boundary_condition_periodic,
- #                             "Left"   => boundary_condition_periodic )
+boundary_conditions = Dict( "Bottom" => boundary_condition_periodic,
+                            "Top"    => boundary_condition_periodic,
+                            "Right"  => boundary_condition_periodic,
+                            "Left"   => boundary_condition_periodic )
 
 ###############################################################################
 # Get the DG approximation space
 
-polydeg = 6
-surface_flux = FluxRotated(flux_hll)
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=6, surface_flux=FluxRotated(flux_hll))
 
 ###############################################################################
-# Get the curved quad mesh from a file
+# Get the curved quad mesh from a file (downloads the file if not available locally)
 
-mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
-periodicity = true
-mesh = UnstructuredQuadMesh(mesh_file, periodicity)
+default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
+                                       default_mesh_file)
+mesh_file = default_mesh_file
+
+mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
 
 ###############################################################################
 # create the semi discretization object
