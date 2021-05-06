@@ -162,7 +162,7 @@ function solve!(integrator::SimpleIntegrator3Sstar)
     end
 
     # one time step
-    integrator.u_tmp1 .= zero(eltype(integrator.u_tmp1))
+    fill!(integrator.u_tmp1, zero(eltype(integrator.u_tmp1)))
     integrator.u_tmp2 .= integrator.u
     for stage in eachindex(alg.c)
       t_stage = integrator.t + integrator.dt * alg.c[stage]

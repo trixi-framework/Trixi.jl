@@ -281,7 +281,7 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
   grav_scale = -4.0*pi*G
 
   @unpack u_ode, du_ode, u_tmp1_ode = cache
-  u_tmp1_ode .= zero(eltype(u_tmp1_ode))
+  fill!(u_tmp1_ode, zero(eltype(u_tmp1_ode)))
   du_gravity = wrap_array(du_ode, semi_gravity)
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
@@ -331,7 +331,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
   grav_scale = -4 * G * pi
 
   @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
-  u_tmp1_ode .= zero(eltype(u_tmp1_ode))
+  fill!(u_tmp1_ode, zero(eltype(u_tmp1_ode)))
   u_tmp2_ode .= u_ode
   du_gravity = wrap_array(du_ode, semi_gravity)
   for stage in eachindex(c)

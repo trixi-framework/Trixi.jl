@@ -117,7 +117,7 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @timeit_debug timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
 
   # Calculate volume integral
   @timeit_debug timer() "volume integral" calc_volume_integral!(
