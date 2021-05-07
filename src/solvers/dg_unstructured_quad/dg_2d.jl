@@ -269,8 +269,6 @@ end
   for v in eachvariable(equations)
     surface_flux_values[v, node_index, side_index, element_index] = flux[v]
   end
-
-  return nothing
 end
 
 
