@@ -223,9 +223,8 @@ end
 
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::UnstructuredQuadMesh, equations, dg::DG)
-  @unpack surface_flux = dg
-  @unpack normal_directions, surface_flux_values = cache.elements
-  @unpack u, element_id, element_side_id, node_coordinates, name  = cache.boundaries
+  @unpack surface_flux_values = cache.elements
+  @unpack element_id, element_side_id, name  = cache.boundaries
 
   @threaded for boundary in eachboundary(dg, cache)
     # Get the element and side IDs on the boundary element
@@ -236,28 +235,44 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     boundary_condition = boundary_conditions[ name[boundary] ]
 
     for j in eachnode(dg)
-      # pull the left state from the boundary u values on the boundary element
-      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, j, boundary)
-
-      # pull the outward pointing (normal) directional vector
-      outward_direction = get_surface_normal(normal_directions, j, side, element)
-
-      # get the external solution values from the prescribed external state
-      x = get_node_coords(node_coordinates, equations, dg, j, boundary)
-
-      # Call pointwise numerical flux function in the rotated direction on the boundary
-      #    Note! the direction is normalized inside this function
-      flux = boundary_condition(u_ll, outward_direction, x, t, surface_flux, equations)
-
-      # Copy flux back to boundary element storage
-      for v in eachvariable(equations)
-        surface_flux_values[v, j, side, element] = flux[v]
-      end
+      calc_boundary_flux_unstructured!(surface_flux_values, t, boundary_condition,
+                                       mesh, equations, dg, cache,
+                                       j, side, element, boundary)
     end
   end
 
   return nothing
 end
+
+
+@inline function calc_boundary_flux_unstructured!(surface_flux_values, t, boundary_condition,
+                                                  mesh::UnstructuredQuadMesh, equations, dg::DG,
+                                                  cache, node_index, side_index, element_index,
+                                                  boundary_index)
+  @unpack normal_directions = cache.elements
+  @unpack u, node_coordinates = cache.boundaries
+  @unpack surface_flux = dg
+
+  # pull the inner solution state from the boundary u values on the boundary element
+  u_inner = get_one_sided_surface_node_vars(u, equations, dg, 1, node_index, boundary_index)
+
+  # pull the outward pointing (normal) directional vector
+  outward_direction = get_surface_normal(normal_directions, node_index, side_index, element_index)
+
+  # get the external solution values from the prescribed external state
+  x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
+
+  # Call pointwise numerical flux function in the rotated direction on the boundary
+  #    Note! the direction is normalized inside this function
+  flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
+
+  for v in eachvariable(equations)
+    surface_flux_values[v, node_index, side_index, element_index] = flux[v]
+  end
+
+  return nothing
+end
+
 
 # Note! The local side numbering for the unstructured quadrilateral element implementation differs
 #       from the structured TreeMesh or CurvedMesh local side numbering:
