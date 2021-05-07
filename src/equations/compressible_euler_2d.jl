@@ -575,6 +575,34 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
 end
 
 
+"""
+    boundary_state_free_slip_wall(u_internal, orientation, equations::CompressibleEulerEquations2D)
+
+Determine the external solution value for a no-slip wall condition. Sets the normal
+velocity of the the exterior fictitious element to the negative of the internal value.
+
+!!! warning "Experimental code"
+    This wall function can change any time.
+"""
+@inline function boundary_state_free_slip_wall(u_internal, orientation,
+                                               equations::CompressibleEulerEquations2D)
+
+  # normalize the outward pointing direction
+  normal = orientation / norm(orientation)
+
+  # compute the normal and tangential components of the velocity
+  u_tangent = zeros(eltype(normal), 2)
+  u_normal = normal[1] * u_internal[2] + normal[2] * u_internal[3]
+  u_tangent[1] = u_internal[2] - u_normal * normal[1]
+  u_tangent[2] = u_internal[3] - u_normal * normal[2]
+
+  return SVector(u_internal[1],
+                 u_tangent[1] - u_normal * normal[1],
+                 u_tangent[2] - u_normal * normal[2],
+                 u_internal[4])
+end
+
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u

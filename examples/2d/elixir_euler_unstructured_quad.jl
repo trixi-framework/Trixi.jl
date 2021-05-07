@@ -10,11 +10,13 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
-boundary_conditions = Dict( "Bottom" => initial_condition,
-                            "Top"    => initial_condition,
-                            "Right"  => initial_condition,
-                            "Left"   => initial_condition,
-                            "Circle" => initial_condition )
+
+boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = Dict( "Bottom" => boundary_condition_convergence_test,
+                            "Top"    => boundary_condition_convergence_test,
+                            "Right"  => boundary_condition_convergence_test,
+                            "Left"   => boundary_condition_convergence_test,
+                            "Circle" => boundary_condition_convergence_test )
 
 ###############################################################################
 # Get the DG approximation space

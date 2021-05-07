@@ -110,6 +110,7 @@ struct BoundaryConditionDirichlet{B}
   boundary_value_function::B
 end
 
+# Dirichlet-type boundary condition for use with TreeMesh or CurvedMesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, direction,
                                                                   x, t, surface_flux_function, equation)
   u_boundary = boundary_condition.boundary_value_function(x, t, equation)
@@ -120,6 +121,47 @@ end
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
   end
+
+  return flux
+end
+
+# Dirichlet-type boundary condition for use with UnstructuredQuadMesh
+#  Note: For unstructured we lose the concept of a "direction"
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, x, t,
+                                                                  surface_flux_function, equation)
+  # get the external value of the solution
+  u_boundary = boundary_condition.boundary_value_function(x, t, equation)
+
+  # Calculate boundary flux
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+
+  return flux
+end
+
+"""
+    BoundaryConditionWall(boundary_wall_function)
+
+Create a generic wall type boundary condition that uses the function `boundary_wall_function`
+to specify the external solution values based upon the solution internal values.
+
+# Example
+```julia
+julia> BoundaryConditionWall(free_slip_wall_state)
+```
+
+!!! warning "Experimental code"
+    This boundary condition can change any time and is currently only implemented for the
+    CompressibleEulerEquations2D
+"""
+struct BoundaryConditionWall{B}
+  boundary_wall_function::B
+end
+
+@inline function (boundary_condition::BoundaryConditionWall)(u_inner, orientation, x, t,
+                                                             surface_flux_function, equations)
+  u_boundary = boundary_condition.boundary_wall_function(u_inner, orientation, equations)
+
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
 
   return flux
 end

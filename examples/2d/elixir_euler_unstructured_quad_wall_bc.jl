@@ -8,27 +8,43 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_constant
+function uniform_flow_state(x, t, equations)
 
-boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict( "Body"    => boundary_condition_free_stream,
-                            "Button1" => boundary_condition_free_stream,
-                            "Button2" => boundary_condition_free_stream,
-                            "Eye1"    => boundary_condition_free_stream,
-                            "Eye2"    => boundary_condition_free_stream,
-                            "Smile"   => boundary_condition_free_stream,
-                            "Bowtie"  => boundary_condition_free_stream )
+  # set the freestream flow parameters
+  rho_freestream = 1.0
+  u_freestream = 0.3
+  p_freestream = inv(equations.gamma)
+
+  theta = pi / 90.0 # analogous with a two degree angle of attack
+  v1 = u_freestream * cos(theta)
+  v2 = u_freestream * sin(theta)
+
+  return SVector(rho_freestream,
+                 rho_freestream * v1,
+                 rho_freestream * v2,
+                 p_freestream * inv(equations.gamma - 1) + 0.5 * rho_freestream * (v1^2 + v2^2))
+end
+
+initial_condition = uniform_flow_state
+
+boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
+boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_free_slip_wall)
+boundary_conditions = Dict( "Bottom" => boundary_condition_uniform_flow,
+                            "Top"    => boundary_condition_uniform_flow,
+                            "Right"  => boundary_condition_uniform_flow,
+                            "Left"   => boundary_condition_uniform_flow,
+                            "Circle" => boundary_condition_slip_wall )
 
 ###############################################################################
 # Get the DG approximation space
 
-solver = DGSEM(polydeg=6, surface_flux=flux_hll)
+solver = DGSEM(polydeg=4, surface_flux=flux_hll)
 
 ###############################################################################
-# Get the curved quad mesh from a file (downloads the file if not available locally)
+# Get the curved quad mesh from a file
 
-default_mesh_file = joinpath(@__DIR__, "mesh_gingerbread_man.mesh")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/2c6440b5f8a57db131061ad7aa78ee2b/raw/1f89fdf2c874ff678c78afb6fe8dc784bdfd421f/mesh_gingerbread_man.mesh",
+default_mesh_file = joinpath(@__DIR__, "mesh_box_around_circle.mesh")
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/8b9b11a1eedfa54b215c122c3d17b271/raw/0d2b5d98c87e67a6f384693a8b8e54b4c9fcbf3d/mesh_box_around_circle.mesh",
                                        default_mesh_file)
 mesh_file = default_mesh_file
 
@@ -43,7 +59,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 0.5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -53,14 +69,13 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation

@@ -129,8 +129,8 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "initial condition", semi.initial_condition)
     if semi.boundary_conditions isa Dict
       summary_line(io, "boundary conditions", length(semi.boundary_conditions))
-      for (boundary_name, boundary_condition_type) in semi.boundary_conditions
-        summary_line(increment_indent(io), boundary_name, boundary_condition_type)
+      for (boundary_name, boundary_condition) in semi.boundary_conditions
+        summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
       end
     else # non dictionary boundary conditions container
       summary_line(io, "boundary conditions", 2*ndims(semi))

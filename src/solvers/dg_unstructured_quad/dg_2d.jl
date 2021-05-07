@@ -221,7 +221,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
 end
 
 
-function calc_boundary_flux!(cache, t, boundary_condition,
+function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::UnstructuredQuadMesh, equations, dg::DG)
   @unpack surface_flux = dg
   @unpack normal_directions, surface_flux_values = cache.elements
@@ -233,7 +233,7 @@ function calc_boundary_flux!(cache, t, boundary_condition,
     side    = element_side_id[boundary]
 
     # pull the external state function from the bounary condition dictionary
-    external_state = boundary_condition[ name[boundary] ]
+    boundary_condition = boundary_conditions[ name[boundary] ]
 
     for j in eachnode(dg)
       # pull the left state from the boundary u values on the boundary element
@@ -243,13 +243,11 @@ function calc_boundary_flux!(cache, t, boundary_condition,
       outward_direction = get_surface_normal(normal_directions, j, side, element)
 
       # get the external solution values from the prescribed external state
-      #  TODO: make this more general and able to also depend on the normal direction
       x = get_node_coords(node_coordinates, equations, dg, j, boundary)
-      u_external = external_state(x, t, equations)
 
       # Call pointwise numerical flux function in the rotated direction on the boundary
       #    Note! the direction is normalized inside this function
-      flux = surface_flux(u_ll, u_external, outward_direction, equations)
+      flux = boundary_condition(u_ll, outward_direction, x, t, surface_flux, equations)
 
       # Copy flux back to boundary element storage
       for v in eachvariable(equations)
