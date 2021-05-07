@@ -112,14 +112,14 @@ end
 
 # Dirichlet-type boundary condition for use with TreeMesh or CurvedMesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, direction,
-                                                                  x, t, surface_flux_function, equation)
-  u_boundary = boundary_condition.boundary_value_function(x, t, equation)
+                                                                  x, t, surface_flux_function, equations)
+  u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
   if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
@@ -128,12 +128,12 @@ end
 # Dirichlet-type boundary condition for use with UnstructuredQuadMesh
 #  Note: For unstructured we lose the concept of a "direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, x, t,
-                                                                  surface_flux_function, equation)
+                                                                  surface_flux_function, equations)
   # get the external value of the solution
-  u_boundary = boundary_condition.boundary_value_function(x, t, equation)
+  u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
-  flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
 
   return flux
 end
@@ -151,7 +151,7 @@ julia> BoundaryConditionWall(free_slip_wall_state)
 
 !!! warning "Experimental code"
     This boundary condition can change any time and is currently only implemented for the
-    CompressibleEulerEquations2D
+    [`CompressibleEulerEquations2D`](@ref).
 """
 struct BoundaryConditionWall{B}
   boundary_wall_function::B

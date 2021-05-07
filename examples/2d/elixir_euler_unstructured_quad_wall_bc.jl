@@ -19,10 +19,8 @@ function uniform_flow_state(x, t, equations)
   v1 = u_freestream * cos(theta)
   v2 = u_freestream * sin(theta)
 
-  return SVector(rho_freestream,
-                 rho_freestream * v1,
-                 rho_freestream * v2,
-                 p_freestream * inv(equations.gamma - 1) + 0.5 * rho_freestream * (v1^2 + v2^2))
+  prim = SVector(rho_freestream, v1, v2, p_freestream)
+  return prim2cons(prim, equations)
 end
 
 initial_condition = uniform_flow_state

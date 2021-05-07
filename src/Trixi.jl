@@ -166,7 +166,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 
 export PositivityPreservingLimiterZhangShu
 
-export trixi_include, examples_dir, get_examples, default_example
+export trixi_include, examples_dir, get_examples, default_example, default_example_unstructured
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
