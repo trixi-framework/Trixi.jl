@@ -128,7 +128,7 @@ end
 
 Source term that only includes the forcing from the hyperbolic diffusion system
 used with [`initial_condition_harmonic_nonperiodic`](@ref) and
-[`boundary_condition_harmonic_nonperiodic`](@ref).
+[`BoundaryConditionDirichlet(initial_condition_harmonic_nonperiodic)`](@ref).
 """
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
   # harmonic solution of the form ϕ = A + B * x, so f = 0
@@ -137,29 +137,6 @@ used with [`initial_condition_harmonic_nonperiodic`](@ref) and
   dq1 = -inv_Tr * u[2]
 
   return SVector(zero(dq1), dq1)
-end
-
-"""
-    boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equations::HyperbolicDiffusionEquations1D)
-
-Boundary conditions used for the harmonic function test case
-[`initial_condition_harmonic_nonperiodic`](@ref) and [`source_terms_harmonic`](@ref).
-"""
-function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
-                                                 surface_flux_function,
-                                                 equations::HyperbolicDiffusionEquations1D)
-  u_boundary =  initial_condition_harmonic_nonperiodic(x, t, equations)
-
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
 end
 
 
