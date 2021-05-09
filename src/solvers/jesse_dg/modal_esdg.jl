@@ -1,3 +1,4 @@
+
 """
     function hybridized_SBP_operators(rd::RefElemData{DIMS}) 
 
@@ -40,6 +41,22 @@ function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn)
     Uf = view(Uh,Nq+1:Nh,:) # 24.3 μs
 
     return Uh,Uf
+end
+
+function Trixi.allocate_coefficients(mesh::UnstructuredMesh,
+                                     equations, solver::ModalESDG, cache)
+    @unpack md = cache
+    nvars = nvariables(equations) 
+    return StructArray([SVector{nvars}(zeros(nvars)) for i in axes(md.x,1), j in axes(md.x,2)])
+end
+
+
+function Trixi.compute_coefficients!(u::StructArray, initial_condition, t,
+                                     mesh::UnstructuredMesh, equations, solver::ModalESDG, cache)
+    for i = 1:length(cache.md.x) # loop over nodes
+        xyz_i = getindex.(cache.md.xyz,i)
+        u[i] = initial_condition(xyz_i,t,equations) # interpolate - add projection later?
+    end
 end
 
 ## ======================== 1D rhs codes ==================================
