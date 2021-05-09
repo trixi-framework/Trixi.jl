@@ -1,11 +1,12 @@
-using MAT
-using Setfield
-using NodesAndModes
+using MAT # convert from .mat files
+using Setfield 
 using LinearAlgebra
 using UnPack
+using NodesAndModes
 using StartUpDG
 
-include("flux_differencing.jl")
+include("ModalESDG.jl")
+include("modal_esdg.jl")
 
 parsevec(type, str) = str |>
   (x -> split(x, ", ")) |>
@@ -38,65 +39,68 @@ function diagE_sbp_nodes(elem::Tri, N; quadrature_strength=2*N-1)
     return (r,s,w),quad_rule_face 
 end
 
-struct DiagESummationByParts{DIM,Tv,Ti}
-    points::NTuple{DIM,Vector{Tv}}
-    M::Diagonal{Tv,Vector{Tv}}
-    Mf::Diagonal{Tv,Vector{Tv}}
-    Qrst::NTuple{DIM,Matrix{Tv}}
-    E_face_extraction::Matrix{Tv}
-    Fmask::Matrix{Ti}
+struct DiagESummationByParts{T<:AbstractElemShape,DIM,Tv,Ti}
+    elementType::T
+    points::NTuple{DIM,Vector{Tv}} # sbp nodes
+    wq::Vector{Tv} # diagonal volume norm matrix
+    wf::Vector{Tv} # diagonal face norm matrix
+    Qrst::NTuple{DIM,Matrix{Tv}} # differentiation operators
+    Ef::Matrix{Tv} # face node extraction operator/"interpolation" to face nodes
+    Fmask::Vector{Ti} 
 end
 
-function DiagESummationByParts(elementType::Tri, N, quad_rule_vol, quad_rule_face)
-    
+function DiagESummationByParts(elementType::Tri, N; quadrature_strength = 2*N-1)
     # build polynomial reference element using quad rules
+    quad_rule_vol, quad_rule_face = diagE_sbp_nodes(elementType, N; quadrature_strength=quadrature_strength)
     rd_sbp = RefElemData(elementType, N; quad_rule_vol=quad_rule_vol, quad_rule_face=quad_rule_face)
-
+    return DiagESummationByParts(elementType, N, rd_sbp)
+end
+    
+function DiagESummationByParts(elementType::Tri, N, rd_sbp::RefElemData)
+    
     # determine Fmask = indices of face nodes among volume nodes
     @unpack wq,wf,rq,sq,rf,sf,Nfaces = rd_sbp   
     rf,sf = (x->reshape(x,length(rf)÷Nfaces,Nfaces)).((rf,sf))
     Fmask = zeros(Int,length(rf)÷Nfaces,Nfaces) # 
-    E_face_extraction = zeros(length(rf),length(rq)) # extraction matrix
+    Ef = zeros(length(rf),length(rq)) # extraction matrix
     for i in eachindex(rq)
         for f = 1:rd_sbp.Nfaces
             tol = 1e-14
             id = findall(@. abs(rq[i]-rf[:,f]) + abs(sq[i]-sf[:,f]) .< tol)
             Fmask[id,f] .= i
-            E_face_extraction[id .+ (f-1)*size(rf,1),i] .= 1
+            Ef[id .+ (f-1)*size(rf,1),i] .= 1
         end
     end
 
     # build traditional SBP operators from hybridized operators. 
     Qrh,Qsh,VhP,Ph = hybridized_SBP_operators(rd_sbp)
 
-    # Reference: "High-order entropy stable dG methods for the SWE: curved triangular meshes and GPU acceleration" 
-    # Section 3.2 of https://arxiv.org/pdf/2005.02516.pdf
-    # https://doi.org/10.1016/j.camwa.2020.11.006   
-    Vh_sbp = [I(length(rq)); E_face_extraction]
+    # See Section 3.2 of [High-order entropy stable dG methods for the SWE](https://arxiv.org/pdf/2005.02516.pdf) by Wu and Chan 2021.
+    # [DOI](https://doi.org/10.1016/j.camwa.2020.11.006)
+    Vh_sbp = [I(length(rq)); Ef]
     Qr_sbp = Vh_sbp'*Qrh*Vh_sbp
     Qs_sbp = Vh_sbp'*Qsh*Vh_sbp
 
-    M = Diagonal(wq)
-    Mf = Diagonal(wf)
-    DiagESummationByParts((rq,sq),M,Mf,(Qr_sbp,Qs_sbp),E_face_extraction,Fmask)
+    Br = Qr_sbp + Qr_sbp'
+    Bs = Qs_sbp + Qs_sbp'
+
+    return DiagESummationByParts(elementType,(rq,sq),wq,wf,(Qr_sbp,Qs_sbp),Ef,vec(Fmask))
 end
 
 "Entropy stable solver using nodal (collocated) DG methods"
-struct NodalESDG{DIM,ElemType,F1,F2,F3,Tv,Ti}
-    rd::RefElemData{DIM,ElemType} # polynomial base used to construct the SBP op
-    sbp_operators::DiagESummationByParts{DIM,Tv,Ti} # non-polynomial SBP operators
+struct NodalESDG{ElemType,DIM,F1,F2,F3,Tv,Ti}
+    sbp_operators::DiagESummationByParts{ElemType,DIM,Tv,Ti} # non-polynomial SBP operators
+    rd::RefElemData{DIM,ElemType}
     volume_flux::F1 
     interface_flux::F2
     interface_dissipation::F3
 end
 
-function NodalESDG(N,elementType,r,s,w,
+function NodalESDG(N,elementType,
                    trixi_volume_flux::F1,
                    trixi_interface_flux::F2,
                    trixi_interface_dissipation::F3,
-                   equations) where {F1,F2,F3}
-
-
+                   equations; quadrature_strength=2*N-1) where {F1,F2,F3}
     
     volume_flux, interface_flux, interface_dissipation = let equations=equations
         volume_flux(orientation) = (u_ll,u_rr)->trixi_volume_flux(u_ll,u_rr,orientation,equations)
@@ -105,7 +109,13 @@ function NodalESDG(N,elementType,r,s,w,
         volume_flux,interface_flux,interface_dissipation
     end
 
-    NodalESDG(rd_sbp,volume_flux,interface_flux,interface_dissipation)
+    quad_rule_vol,quad_rule_face = diagE_sbp_nodes(elementType, N; quadrature_strength=quadrature_strength)
+    rd_sbp = RefElemData(elementType,N; quad_rule_vol = quad_rule_vol, quad_rule_face = quad_rule_face)
+    sbp_ops = DiagESummationByParts(elementType, N, rd_sbp)
+
+    NodalESDG(sbp_ops,rd_sbp,volume_flux,interface_flux,interface_dissipation)
 end
 
+Base.real(solver::NodalESDG) = Float64 # is this for DiffEq.jl?
+Trixi.ndofs(mesh::UnstructuredMesh, solver::NodalESDG, cache) = length(solver.rd.rq)*cache.md.K
 
