@@ -126,7 +126,7 @@ end
   end
 
   @unpack surface_flux = dg
-  @unpack contravariant_vectors = cache.elements
+  @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -136,23 +136,40 @@ end
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, j, left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
 
+      # If the mapping is orientation-reversing, the contravariant vectors' orientation 
+      # is reversed as well. The normal vector must be oriented in the direction 
+      # from `left_element` to `right_element`, or the numerical flux will be computed
+      # incorrectly (downwind direction).
+      sign_jacobian = sign(inverse_jacobian[1, i, j, right_element])
+
       # First contravariant vector Ja^1 as SVector
-      normal = get_contravariant_vector(1, contravariant_vectors, 1, i, j, right_element)
+      normal = sign_jacobian * get_contravariant_vector(1, contravariant_vectors,
+                                                        1, i, j, right_element)
     elseif orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
 
+      # See above
+      sign_jacobian = sign(inverse_jacobian[i, 1, j, right_element])
+
       # Second contravariant vector Ja^2 as SVector
-      normal = get_contravariant_vector(2, contravariant_vectors, i, 1, j, right_element)
+      normal = sign_jacobian * get_contravariant_vector(2, contravariant_vectors,
+                                                        i, 1, j, right_element)
     else # orientation == 3
       u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
 
+      # See above
+      sign_jacobian = sign(inverse_jacobian[i, j, 1, right_element])
+
       # Third contravariant vector Ja^3 as SVector
-      normal = get_contravariant_vector(3, contravariant_vectors, i, j, 1, right_element)
+      normal = sign_jacobian * get_contravariant_vector(3, contravariant_vectors,
+                                                        i, j, 1, right_element)
     end
 
-    flux = surface_flux(u_ll, u_rr, normal, equations)
+    # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
+    # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
+    flux = sign_jacobian * surface_flux(u_ll, u_rr, normal, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, j, right_direction, left_element] = flux[v]

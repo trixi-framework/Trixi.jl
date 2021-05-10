@@ -87,7 +87,7 @@ end
       linf = [2.4858560899509996e-5],
       maxiters = 1,
       initial_condition = initial_condition_convergence_test,
-      boundary_conditions = boundary_condition_convergence_test,
+      boundary_conditions = BoundaryConditionDirichlet(initial_condition_convergence_test),
       periodicity=false)
   end
 end

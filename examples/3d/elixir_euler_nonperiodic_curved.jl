@@ -11,13 +11,13 @@ initial_condition = initial_condition_convergence_test
 
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
-# boundary_conditions = boundary_condition_convergence_test
-boundary_conditions = (x_neg=boundary_condition_convergence_test,
-                       x_pos=boundary_condition_convergence_test,
-                       y_neg=boundary_condition_convergence_test,
-                       y_pos=boundary_condition_convergence_test,
-                       z_neg=boundary_condition_convergence_test,
-                       z_pos=boundary_condition_convergence_test,)
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = (x_neg=boundary_condition,
+                       x_pos=boundary_condition,
+                       y_neg=boundary_condition,
+                       y_pos=boundary_condition,
+                       z_neg=boundary_condition,
+                       z_pos=boundary_condition,)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralWeakForm())
