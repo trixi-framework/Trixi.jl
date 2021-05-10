@@ -134,13 +134,14 @@ get_name(::Val{x}) where x = string(x)
 
 Semantically the same as `Threads.@threads` when iterating over a `AbstractUnitRange`
 but without guarantee that the underlying implementation uses `Threads.@threads`
-or works for more general for loops.
+or works for more general `for` loops.
 In particular, there may be an additional check whether only one thread is used
 to reduce the overhead of serial execution or the underlying threading capabilities
 might be provided by other packages such as [CheapThreads.jl](https://github.com/JuliaSIMD/CheapThreads.jl).
 
 !!! warn
-  This macro does not necessarily work for general `for` loops.
+    This macro does not necessarily work for general `for` loops. For example,
+    it does not necessarily support general iterables such as `eachline(filename)`.
 
 Some discussion can be found at https://discourse.julialang.org/t/overhead-of-threads-threads/53964
 and https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435.
