@@ -8,6 +8,7 @@ using Trixi
 equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
@@ -83,8 +84,8 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver
                                        x_pos=BoundaryConditionCoupled(4, (1, :i, :j), Float64),
                                        y_neg=BoundaryConditionCoupled(5, (1, :i, :j), Float64),
                                        y_pos=BoundaryConditionCoupled(6, (1, :i, :j), Float64),
-                                       z_neg=boundary_condition_convergence_test,
-                                       z_pos=boundary_condition_convergence_test,
+                                       z_neg=boundary_condition,
+                                       z_pos=boundary_condition,
                                      ))
 
 mesh2 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thickness, 2), periodicity=false, 
@@ -97,8 +98,8 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver
                                        x_pos=BoundaryConditionCoupled(4, (:end, :i, :j), Float64),
                                        y_neg=BoundaryConditionCoupled(5, (:end, :i, :j), Float64),
                                        y_pos=BoundaryConditionCoupled(6, (:end, :i, :j), Float64),
-                                       z_neg=boundary_condition_convergence_test,
-                                       z_pos=boundary_condition_convergence_test,
+                                       z_neg=boundary_condition,
+                                       z_pos=boundary_condition,
                                      ))
 
 mesh3 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thickness, 3), periodicity=false, 
@@ -111,8 +112,8 @@ semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver
                                        x_pos=BoundaryConditionCoupled(2, (1, :i, :j), Float64),
                                        y_neg=BoundaryConditionCoupled(5, (:i, 1, :j), Float64),
                                        y_pos=BoundaryConditionCoupled(6, (:i, 1, :j), Float64),
-                                       z_neg=boundary_condition_convergence_test,
-                                       z_pos=boundary_condition_convergence_test,
+                                       z_neg=boundary_condition,
+                                       z_pos=boundary_condition,
                                      ))
 
 mesh4 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thickness, 4), periodicity=false, 
@@ -125,8 +126,8 @@ semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver
                                        x_pos=BoundaryConditionCoupled(2, (:end, :i, :j), Float64),
                                        y_neg=BoundaryConditionCoupled(5, (:i, :end, :j), Float64),
                                        y_pos=BoundaryConditionCoupled(6, (:i, :end, :j), Float64),
-                                       z_neg=boundary_condition_convergence_test,
-                                       z_pos=boundary_condition_convergence_test,
+                                       z_neg=boundary_condition,
+                                       z_pos=boundary_condition,
                                      ))
 
 mesh5 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thickness, 5), periodicity=false, 
@@ -139,8 +140,8 @@ semi5 = SemidiscretizationHyperbolic(mesh5, equations, initial_condition, solver
                                        x_pos=BoundaryConditionCoupled(2, (:i, 1, :j), Float64),
                                        y_neg=BoundaryConditionCoupled(3, (:i, 1, :j), Float64),
                                        y_pos=BoundaryConditionCoupled(4, (:i, 1, :j), Float64),
-                                       z_neg=boundary_condition_convergence_test,
-                                       z_pos=boundary_condition_convergence_test,
+                                       z_neg=boundary_condition,
+                                       z_pos=boundary_condition,
                                      ))
 
 mesh6 = CurvedMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thickness, 6), periodicity=false, 
@@ -153,8 +154,8 @@ semi6 = SemidiscretizationHyperbolic(mesh6, equations, initial_condition, solver
                                        x_pos=BoundaryConditionCoupled(2, (:i, :end, :j), Float64),
                                        y_neg=BoundaryConditionCoupled(3, (:i, :end, :j), Float64),
                                        y_pos=BoundaryConditionCoupled(4, (:i, :end, :j), Float64),
-                                       z_neg=boundary_condition_convergence_test,
-                                       z_pos=boundary_condition_convergence_test,
+                                       z_neg=boundary_condition,
+                                       z_pos=boundary_condition,
                                      ))
 
 

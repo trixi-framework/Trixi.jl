@@ -235,9 +235,9 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     end
     indices_ = one_to_symbol.(indices)
 
-    if indices[1] in (:one, :end)
+    if indices_[1] in (:one, :end)
       other_orientation = 1
-    elseif indices[2] in (:one, :end)
+    elseif indices_[2] in (:one, :end)
       other_orientation = 2
     else
       other_orientation = 3

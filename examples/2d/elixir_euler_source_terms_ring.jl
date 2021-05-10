@@ -8,6 +8,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 source_terms = source_terms_convergence_test
 
@@ -68,8 +69,8 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver
   source_terms=source_terms, boundary_conditions=(
     x_neg=BoundaryConditionCoupled(3, (1, :i), Float64),
     x_pos=BoundaryConditionCoupled(4, (1, :i), Float64),
-    y_neg=boundary_condition_convergence_test,
-    y_pos=boundary_condition_convergence_test,
+    y_neg=boundary_condition,
+    y_pos=boundary_condition,
   ))
 
 mesh2 = CurvedMesh((8, 4), ring_mapping(1, 1, 2), 
@@ -79,8 +80,8 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver
   source_terms=source_terms, boundary_conditions=(
     x_neg=BoundaryConditionCoupled(3, (:end, :i), Float64),
     x_pos=BoundaryConditionCoupled(4, (:end, :i), Float64),
-    y_neg=boundary_condition_convergence_test,
-    y_pos=boundary_condition_convergence_test,
+    y_neg=boundary_condition,
+    y_pos=boundary_condition,
   ))
 
 mesh3 = CurvedMesh((8, 4), ring_mapping(1, 1, 3), 
@@ -90,8 +91,8 @@ semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver
   source_terms=source_terms, boundary_conditions=(
     x_neg=BoundaryConditionCoupled(1, (1, :i), Float64),
     x_pos=BoundaryConditionCoupled(2, (1, :i), Float64),
-    y_neg=boundary_condition_convergence_test,
-    y_pos=boundary_condition_convergence_test,
+    y_neg=boundary_condition,
+    y_pos=boundary_condition,
   ))
 
 mesh4 = CurvedMesh((8, 4), ring_mapping(1, 1, 4), 
@@ -101,8 +102,8 @@ semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver
   source_terms=source_terms, boundary_conditions=(
     x_neg=BoundaryConditionCoupled(1, (:end, :i), Float64),
     x_pos=BoundaryConditionCoupled(2, (:end, :i), Float64),
-    y_neg=boundary_condition_convergence_test,
-    y_pos=boundary_condition_convergence_test,
+    y_neg=boundary_condition,
+    y_pos=boundary_condition,
   ))
 
 semi = SemidiscretizationCoupled((semi1, semi2, semi3, semi4))

@@ -58,7 +58,7 @@ end
                                                   boundary_condition::BoundaryConditionCoupled, 
                                                   mesh::CurvedMesh, equations, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
-  @unpack node_coordinates, contravariant_vectors = cache.elements
+  @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
   @unpack surface_flux = dg
 
   cell_indices = get_boundary_indices(element, orientation, mesh)
