@@ -73,7 +73,7 @@ visualization, and if set to `0`, exactly the number of nodes in the DG elements
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
 `slice` specifies the plane that is beeing sliced and may be `:yz`, `xz:`, or `:xy`.
-This plane can be shifted in any direction so that it sits a given `point`, which is [0, 0, 0] by default.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
 
 !!! warning "Experimental implementation"
