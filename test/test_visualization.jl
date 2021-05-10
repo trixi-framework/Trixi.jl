@@ -79,8 +79,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      @test_nowarn_debug PlotData1D(sol, slice=:y, point=[-0.5,0]) isa PlotData1D
-      pd1D = PlotData1D(sol, slice=:y, point=[-0.5,0])
+      @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+      pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
       @test_nowarn_debug plot(pd1D)
     end
   end
