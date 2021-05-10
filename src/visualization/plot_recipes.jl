@@ -104,7 +104,7 @@ PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi),
 function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice=:xy, point=[0, 0, 0])
+                    slice=:xy, point=(0.0, 0.0, 0.0))
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
