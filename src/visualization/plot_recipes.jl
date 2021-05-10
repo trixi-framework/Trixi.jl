@@ -72,7 +72,7 @@ nodes to be used. If it is `nothing`, twice the number of solution DG nodes are 
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
-`slice` specifies the plane that is beeing sliced and may be `:yz`, `xz:`, or `:xy`.
+`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
 
