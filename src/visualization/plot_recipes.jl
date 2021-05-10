@@ -56,7 +56,7 @@ end
     PlotData2D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-               slice=:xy, point=[0, 0, 0])
+               slice=:xy, point=(0.0, 0.0, 0.0))
 
 Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
