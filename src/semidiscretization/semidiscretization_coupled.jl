@@ -14,7 +14,7 @@ end
 
 
 """
-    function SemidiscretizationCoupled(semis)
+    SemidiscretizationCoupled(semis)
 
 Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple 'semis'.
 """
