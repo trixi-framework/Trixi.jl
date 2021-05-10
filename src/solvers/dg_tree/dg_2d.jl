@@ -117,52 +117,52 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @_timeit timer() "volume integral" calc_volume_integral!(
+  @timed timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  @_timeit timer() "prolong2interfaces" prolong2interfaces!(
+  @timed timer() "prolong2interfaces" prolong2interfaces!(
     cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
-  @_timeit timer() "interface flux" calc_interface_flux!(
+  @timed timer() "interface flux" calc_interface_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg, cache)
 
   # Prolong solution to boundaries
-  @_timeit timer() "prolong2boundaries" prolong2boundaries!(
+  @timed timer() "prolong2boundaries" prolong2boundaries!(
     cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  @_timeit timer() "boundary flux" calc_boundary_flux!(
+  @timed timer() "boundary flux" calc_boundary_flux!(
     cache, t, boundary_conditions, mesh, equations, dg)
 
   # Prolong solution to mortars
-  @_timeit timer() "prolong2mortars" prolong2mortars!(
+  @timed timer() "prolong2mortars" prolong2mortars!(
     cache, u, mesh, equations, dg.mortar, dg)
 
   # Calculate mortar fluxes
-  @_timeit timer() "mortar flux" calc_mortar_flux!(
+  @timed timer() "mortar flux" calc_mortar_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg.mortar, dg, cache)
 
   # Calculate surface integrals
-  @_timeit timer() "surface integral" calc_surface_integral!(
+  @timed timer() "surface integral" calc_surface_integral!(
     du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @_timeit timer() "Jacobian" apply_jacobian!(
+  @timed timer() "Jacobian" apply_jacobian!(
     du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @_timeit timer() "source terms" calc_sources!(
+  @timed timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
   return nothing
@@ -344,19 +344,19 @@ function calc_volume_integral!(du, u,
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  alpha = @_timeit timer() "blending factors" indicator(u, equations, dg, cache)
+  alpha = @timed timer() "blending factors" indicator(u, equations, dg, cache)
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 
   # Loop over pure DG elements
-  @_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
+  @timed timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
     element = element_ids_dg[idx_element]
     split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element)
   end
 
   # Loop over blended DG-FV elements
-  @_timeit timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
+  @timed timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
     element = element_ids_dgfv[idx_element]
     alpha_element = alpha[element]
 

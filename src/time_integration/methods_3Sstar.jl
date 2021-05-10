@@ -150,7 +150,7 @@ function solve!(integrator::SimpleIntegrator3Sstar)
   callbacks = integrator.opts.callback
 
   integrator.finalstep = false
-  @_timeit timer() "main loop" while !integrator.finalstep
+  @timed timer() "main loop" while !integrator.finalstep
     if isnan(integrator.dt)
       error("time step size `dt` is NaN")
     end
@@ -173,7 +173,7 @@ function solve!(integrator::SimpleIntegrator3Sstar)
       gamma2_stage  = alg.gamma2[stage]
       gamma3_stage  = alg.gamma3[stage]
       beta_stage_dt = alg.beta[stage] * integrator.dt
-      @_timeit timer() "Runge-Kutta step" begin
+      @timed timer() "Runge-Kutta step" begin
         @threaded for i in eachindex(integrator.u)
           integrator.u_tmp1[i] += delta_stage * integrator.u[i]
           integrator.u[i]       = (gamma1_stage * integrator.u[i] +

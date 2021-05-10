@@ -111,7 +111,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   amr_callback = cb.affect!
   semi = integrator.p
 
-  @_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
+  @timed timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
     has_changed = amr_callback(integrator,
                                only_refine=amr_callback.adapt_initial_condition_only_refine)
@@ -132,7 +132,7 @@ end
 #   amr_callback = cb.affect!
 #   semi = ode.p
 
-#   @_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
+#   @timed timer() "initial condition AMR" if amr_callback.adapt_initial_condition
 #     # iterate until mesh does not change anymore
 #     has_changed = true
 #     while has_changed
@@ -150,7 +150,7 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
   u_ode = integrator.u
   semi = integrator.p
 
-  @_timeit timer() "AMR" begin
+  @timed timer() "AMR" begin
     has_changed = amr_callback(u_ode, semi,
                                integrator.t, integrator.iter; kwargs...)
     if has_changed
@@ -188,7 +188,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   @unpack controller, adaptor = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
-  lambda = @_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
+  lambda = @timed timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                         t=t, iter=iter)
 
   if mpi_isparallel()
@@ -218,14 +218,14 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   end
 
 
-  @_timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
+  @timed timer() "refine" if !only_coarsen && !isempty(to_refine)
     # refine mesh
-    refined_original_cells = @_timeit timer() "mesh" refine!(mesh.tree, to_refine)
+    refined_original_cells = @timed timer() "mesh" refine!(mesh.tree, to_refine)
 
     # refine solver
-    @_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    @timed timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-      @_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, refined_original_cells)
+      @timed timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, refined_original_cells)
     end
   else
     # If there is nothing to refine, create empty array for later use
@@ -233,7 +233,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   end
 
 
-  @_timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+  @timed timer() "coarsen" if !only_refine && !isempty(to_coarsen)
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
@@ -269,7 +269,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
     # Finally, coarsen mesh
-    coarsened_original_cells = @_timeit timer() "mesh" coarsen!(mesh.tree, to_coarsen)
+    coarsened_original_cells = @timed timer() "mesh" coarsen!(mesh.tree, to_coarsen)
 
     # Convert coarsened parent cell ids to the list of child cell ids that have
     # been removed, since this is the information that is expected by the solver
@@ -281,9 +281,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     end
 
     # coarsen solver
-    @_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    @timed timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-      @_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, removed_child_cells)
+      @timed timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, removed_child_cells)
     end
   else
     # If there is nothing to coarsen, create empty array for later use
@@ -299,7 +299,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
   # Dynamically balance computational load by first repartitioning the mesh and then redistributing the cells/elements
   if has_changed && mpi_isparallel() && amr_callback.dynamic_load_balancing
-    @_timeit timer() "dynamic load balancing" begin
+    @timed timer() "dynamic load balancing" begin
       old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
 
       partition!(mesh)

@@ -35,44 +35,44 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @_timeit timer() "volume integral" calc_volume_integral!(
+  @timed timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  @_timeit timer() "prolong2interfaces" prolong2interfaces!(
+  @timed timer() "prolong2interfaces" prolong2interfaces!(
     cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
-  @_timeit timer() "interface flux" calc_interface_flux!(
+  @timed timer() "interface flux" calc_interface_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg, cache)
 
   # Prolong solution to boundaries
-  @_timeit timer() "prolong2boundaries" prolong2boundaries!(
+  @timed timer() "prolong2boundaries" prolong2boundaries!(
     cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
   # TODO: Meshes, remove initial condition as an input argument here, only needed for hacky BCs
-  @_timeit timer() "boundary flux" calc_boundary_flux!(
+  @timed timer() "boundary flux" calc_boundary_flux!(
     cache, t, boundary_conditions, mesh, equations, dg, initial_condition)
 
   # Calculate surface integrals
-  @_timeit timer() "surface integral" calc_surface_integral!(
+  @timed timer() "surface integral" calc_surface_integral!(
     du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
   #  Note! this routine is reused from dg_curved/dg_2d.jl
-  @_timeit timer() "Jacobian" apply_jacobian!(
+  @timed timer() "Jacobian" apply_jacobian!(
     du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @_timeit timer() "source terms" calc_sources!(
+  @timed timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
   return nothing
