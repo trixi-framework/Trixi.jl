@@ -457,7 +457,7 @@ twice the number of solution DG nodes are used for visualization, and if set to 
 exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
-`slice` specifies the axis stripped from the plane and may be `:x`, or `:y`.
+`slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
 This axis can be shifted in any direction so that it sits a given `point`, which is [0, 0] by default.
 Both of these values are ignored when visualizing 1D data.
 
