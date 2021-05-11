@@ -29,6 +29,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       linf = [0.005554857853361295])
   end
 
+  @testset "elixir_advection_restart_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
+      l2   = [0.0281388160824776],
+      linf = [0.08740635193023694])
+  end
+
   @testset "elixir_euler_source_terms_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_curved.jl"),
       l2   = [0.01032310150257373, 0.009728768969448439, 0.009728768969448494, 0.009728768969448388, 0.015080412597559597],
