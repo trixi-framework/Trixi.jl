@@ -234,10 +234,10 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     # pull the external state function from the bounary condition dictionary
     boundary_condition = boundary_conditions[ name[boundary] ]
 
+    # calc boundary flux on the current boundary interface
     for j in eachnode(dg)
-      calc_boundary_flux_unstructured!(surface_flux_values, t, boundary_condition,
-                                       mesh, equations, dg, cache,
-                                       j, side, element, boundary)
+      calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+                          j, side, element, boundary)
     end
   end
 
@@ -245,10 +245,11 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
 end
 
 
-@inline function calc_boundary_flux_unstructured!(surface_flux_values, t, boundary_condition,
-                                                  mesh::UnstructuredQuadMesh, equations, dg::DG,
-                                                  cache, node_index, side_index, element_index,
-                                                  boundary_index)
+# inlined version of the boundary flux calculation along a physical interface where the
+# boundary flux values are set according to a particular `boundary_condition` function
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::UnstructuredQuadMesh, equations, dg::DG, cache,
+                                     node_index, side_index, element_index, boundary_index)
   @unpack normal_directions = cache.elements
   @unpack u, node_coordinates = cache.boundaries
   @unpack surface_flux = dg
