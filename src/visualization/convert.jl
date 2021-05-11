@@ -12,7 +12,7 @@
 function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
                      unstructured_data, n_nodes,
                      grid_lines=false, max_supported_level=11, nvisnodes=nothing,
-                     slice=:xy, point=[0.0, 0.0, 0.0])
+                     slice=:xy, point=(0.0, 0.0, 0.0))
   # Determine resolution for data interpolation
   max_level = maximum(levels)
   if max_level > max_supported_level

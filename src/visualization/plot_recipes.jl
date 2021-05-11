@@ -56,7 +56,7 @@ end
     PlotData2D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-               slice=:xy, point=[0, 0, 0])
+               slice=:xy, point=(0.0, 0.0, 0.0))
 
 Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
@@ -72,8 +72,8 @@ nodes to be used. If it is `nothing`, twice the number of solution DG nodes are 
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
-`slice` specifies the plane that is beeing sliced and may be `:yz`, `xz:`, or `:xy`.
-This plane can be shifted in any direction so that it sits a given `point`, which is [0, 0, 0] by default.
+`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
 
 !!! warning "Experimental implementation"
@@ -104,7 +104,7 @@ PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi),
 function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice=:xy, point=[0, 0, 0])
+                    slice=:xy, point=(0.0, 0.0, 0.0))
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -457,8 +457,8 @@ twice the number of solution DG nodes are used for visualization, and if set to 
 exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
-`slice` specifies the axis stripped from the plane and may be `:x`, or `:y`.
-This axis can be shifted in any direction so that it sits a given `point`, which is [0, 0] by default.
+`slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0)`.
 Both of these values are ignored when visualizing 1D data.
 
 !!! warning "Experimental implementation"
@@ -470,7 +470,7 @@ PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi),
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
-                    slice=:x, point=[0, 0])
+                    slice=:x, point=(0.0, 0.0))
 
   @assert ndims(mesh) in (1,2,3) "unsupported number of dimensions $ndims (must be 1, 2 or 3)"
 

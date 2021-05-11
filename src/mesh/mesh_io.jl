@@ -110,25 +110,27 @@ end
 Load the mesh from the `restart_file`.
 """
 function load_mesh(restart_file::AbstractString; n_cells_max, RealT=Float64)
+  # Determine mesh filename
+  mesh_file = get_restart_mesh_filename(restart_file, Val(mpi_isparallel()))
+
   if mpi_isparallel()
-    return load_mesh_parallel(restart_file; n_cells_max=n_cells_max, RealT=RealT)
+    return load_mesh_parallel(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
   end
 
-  load_mesh_serial(restart_file; n_cells_max=n_cells_max, RealT=RealT)
+  load_mesh_serial(mesh_file; n_cells_max=n_cells_max, RealT=RealT)
 end
 
-function load_mesh_serial(restart_file::AbstractString; n_cells_max, RealT)
-  ndims, mesh_type = h5open(restart_file, "r") do file
+function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
+  ndims, mesh_type = h5open(mesh_file, "r") do file
     return read(attributes(file)["ndims"]),
            read(attributes(file)["mesh_type"])
   end
 
   if mesh_type == "TreeMesh"
     mesh = TreeMesh(SerialTree{ndims}, n_cells_max)
-    load_mesh!(mesh, restart_file)
+    load_mesh!(mesh, mesh_file)
   elseif mesh_type == "CurvedMesh"
-    filename = get_restart_mesh_filename(restart_file, Val(false))
-    size_, mapping_as_string = h5open(filename, "r") do file
+    size_, mapping_as_string = h5open(mesh_file, "r") do file
       return read(attributes(file)["size"]),
              read(attributes(file)["mapping"])
     end
@@ -146,9 +148,21 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max, RealT)
       expr.head = :block
     end
 
-    mapping = @eval function(xi, eta)
-      $expr
-      mapping(xi, eta)
+    if ndims == 1
+      mapping = @eval function(xi)
+        $expr
+        mapping(xi)
+      end
+    elseif ndims == 2
+      mapping = @eval function(xi, eta)
+        $expr
+        mapping(xi, eta)
+      end
+    else # ndims == 3
+      mapping = @eval function(xi, eta, zeta)
+        $expr
+        mapping(xi, eta, zeta)
+      end
     end
 
     mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
@@ -159,14 +173,12 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max, RealT)
   return mesh
 end
 
-function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)
-  # Determine mesh filename
-  filename = get_restart_mesh_filename(restart_file, mpi_parallel(mesh))
-  mesh.current_filename = filename
+function load_mesh!(mesh::SerialTreeMesh, mesh_file::AbstractString)
+  mesh.current_filename = mesh_file
   mesh.unsaved_changes = false
 
   # Read mesh file
-  h5open(filename, "r") do file
+  h5open(mesh_file, "r") do file
     # Set domain information
     mesh.tree.center_level_0 = read(attributes(file)["center_level_0"])
     mesh.tree.length_level_0 = read(attributes(file)["length_level_0"])
@@ -188,9 +200,9 @@ function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)
 end
 
 
-function load_mesh_parallel(restart_file::AbstractString; n_cells_max, RealT)
+function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
   if mpi_isroot()
-    ndims_ = h5open(restart_file, "r") do file
+    ndims_ = h5open(mesh_file, "r") do file
       read(attributes(file)["ndims"])
     end
     MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
@@ -199,19 +211,17 @@ function load_mesh_parallel(restart_file::AbstractString; n_cells_max, RealT)
   end
 
   mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max)
-  load_mesh!(mesh, restart_file)
+  load_mesh!(mesh, mesh_file)
 
   return mesh
 end
 
-function load_mesh!(mesh::ParallelTreeMesh, restart_file::AbstractString)
-  # Determine mesh filename
-  filename = get_restart_mesh_filename(restart_file, mpi_parallel(mesh))
-  mesh.current_filename = filename
+function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
+  mesh.current_filename = mesh_file
   mesh.unsaved_changes = false
 
   if mpi_isroot()
-    h5open(filename, "r") do file
+    h5open(mesh_file, "r") do file
       # Set domain information
       mesh.tree.center_level_0 = read(attributes(file)["center_level_0"])
       mesh.tree.length_level_0 = read(attributes(file)["length_level_0"])
