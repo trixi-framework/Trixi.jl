@@ -19,7 +19,7 @@ We use the following unstructured mesh with three elements for this discussion:
 ![example-mesh](https://user-images.githubusercontent.com/25242486/117508011-2e2c4b80-af88-11eb-8b15-949fc2d43253.png)
 
 Further, a simulation using Trixi on this example unstructured mesh is provided in
-`elixir_euler_unstructured_quad_basic.jl`.
+[`examples/2d/elixir_euler_unstructured_quad_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_euler_unstructured_quad_basic.jl).
 
 
 ## Mesh file header
@@ -172,7 +172,8 @@ As an example, the complete information for element `1` in the example mesh woul
 ```
 where the curved boundary information is encoded "back to back". That is, the first nine `(x,y)`
 nodes in the list above correspond to the interior boundary curve along local side `3`
-in element `1` and the next nine `(x,y)` nodes denote the curved physical boundary named `Bezier`.
+in element `1` and the next nine `(x,y)` nodes denote the curved physical boundary named `Bezier`
+along local side `4`.
 
 We collect the complete set of element information for the example mesh
 ```

@@ -128,7 +128,7 @@ end
 end
 
 # Dirichlet-type boundary condition for use with UnstructuredQuadMesh
-#  Note: For unstructured we lose the concept of a "direction"
+# Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
                                                                   x, t,
@@ -143,20 +143,20 @@ end
 end
 
 """
-    BoundaryConditionWall(boundary_wall_function)
+    BoundaryConditionWall(boundary_value_function)
 
-Create a generic wall type boundary condition that uses the function `boundary_wall_function`
+Create a generic wall type boundary condition that uses the function `boundary_value_function`
 to specify the external solution values.
 The boundary wall function is called with arguments for an internal solution state from inside an
 element `u_inner`, an outward pointing `normal_direction` and a particular set of `equations`, e.g.,
 ```julia
-boundary_wall_function(u_inner, normal_direction, equations)
+boundary_value_function(u_inner, normal_direction, equations)
 ```
 which will return an external solution state.
 
 # Example
 ```julia
-julia> BoundaryConditionWall(free_slip_wall_state)
+julia> BoundaryConditionWall(boundary_state_slip_wall)
 ```
 
 !!! warning "Experimental code"
@@ -164,7 +164,7 @@ julia> BoundaryConditionWall(free_slip_wall_state)
     [`CompressibleEulerEquations2D`](@ref).
 """
 struct BoundaryConditionWall{B}
-  boundary_wall_function::B
+  boundary_value_function::B
 end
 
 @inline function (boundary_condition::BoundaryConditionWall)(u_inner,
@@ -172,7 +172,7 @@ end
                                                              x, t,
                                                              surface_flux_function, equations)
   # get the external value of the solution
-  u_boundary = boundary_condition.boundary_wall_function(u_inner, normal_direction, equations)
+  u_boundary = boundary_condition.boundary_value_function(u_inner, normal_direction, equations)
 
   flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 

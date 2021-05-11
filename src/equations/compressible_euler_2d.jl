@@ -576,17 +576,17 @@ end
 
 
 """
-    boundary_state_free_slip_wall(u_internal, normal_direction::AbstractVector,
-                                  equations::CompressibleEulerEquations2D)
+    boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
+                             equations::CompressibleEulerEquations2D)
 
-Determine the external solution value for a no-slip wall condition. Sets the normal
+Determine the external solution value for a slip wall condition. Sets the normal
 velocity of the the exterior fictitious element to the negative of the internal value.
 
 !!! warning "Experimental code"
     This wall function can change any time.
 """
-@inline function boundary_state_free_slip_wall(u_internal, normal_direction::AbstractVector,
-                                               equations::CompressibleEulerEquations2D)
+@inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquations2D)
 
   # normalize the outward pointing direction
   normal = normal_direction / norm(normal_direction)

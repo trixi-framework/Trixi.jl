@@ -85,7 +85,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 end
 
 
-# Does does not save the mesh itself to an HDF5 file. Instead saves important attributes
+# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the CurvedMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
@@ -108,8 +108,8 @@ function save_mesh_file(mesh::CurvedMesh, output_directory)
 end
 
 
-# Does does not save the mesh itself to an HDF5 file. Instead saves important attributes
-# of the mesh, like its size and the corresponding mesh file used to construct the mesh.
+# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
+# of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
 # Then, within Trixi2Vtk, the UnstructuredQuadMesh and its node coordinates are reconstructured
 # from these attributes for plotting purposes
 function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)

@@ -17,8 +17,8 @@ function create_cache(mesh::UnstructuredQuadMesh, equations,
 
   # perform a check on the sufficient metric identities condition for free-stream preservation
   # and halt computation if it fails
-  if !isapprox(calc_discrete_metric_identities(dg, cache), 0, atol=1e-12)
-    throw("metric terms fail free-stream preservation check with maximum error $(calc_discrete_metric_identities(dg, cache))")
+  if !isapprox(max_discrete_metric_identities(dg, cache), 0, atol=1e-12)
+    error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
   end
 
   return cache
@@ -315,7 +315,7 @@ end
 # on a curvilinear mesh.
 #   Note! Independent of the equation system and is only a check on the discrete mapping terms.
 #         Can be used for a metric identities check on CurvedMesh{2} or UnstructuredQuadMesh
-function calc_discrete_metric_identities(dg::DGSEM, cache)
+function max_discrete_metric_identities(dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
