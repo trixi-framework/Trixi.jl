@@ -97,7 +97,7 @@ This can be used to create a boundary condition that specifies exact boundary va
 by passing the exact solution of the equation.
 The passed boundary value function will be called with the same arguments as an initial condition function is called, i.e., as
 ```julia
-boundary_value_function(x, t, equation)
+boundary_value_function(x, t, equations)
 ```
 where `x` specifies the coordinates, `t` is the current time, and `equation` is the corresponding system of equations.
 
@@ -111,8 +111,10 @@ struct BoundaryConditionDirichlet{B}
 end
 
 # Dirichlet-type boundary condition for use with TreeMesh or CurvedMesh
-@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, direction,
-                                                                  x, t, surface_flux_function, equations)
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation::Integer,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_function, equations)
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
@@ -127,13 +129,15 @@ end
 
 # Dirichlet-type boundary condition for use with UnstructuredQuadMesh
 #  Note: For unstructured we lose the concept of a "direction"
-@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation, x, t,
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
                                                                   surface_flux_function, equations)
   # get the external value of the solution
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
-  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
   return flux
 end
@@ -142,7 +146,13 @@ end
     BoundaryConditionWall(boundary_wall_function)
 
 Create a generic wall type boundary condition that uses the function `boundary_wall_function`
-to specify the external solution values based upon the solution internal values.
+to specify the external solution values.
+The boundary wall function is called with arguments for an internal solution state from inside an
+element `u_inner`, an outward pointing `normal_direction` and a particular set of `equations`, e.g.,
+```julia
+boundary_wall_function(u_inner, normal_direction, equations)
+```
+which will return an external solution state.
 
 # Example
 ```julia
@@ -157,11 +167,14 @@ struct BoundaryConditionWall{B}
   boundary_wall_function::B
 end
 
-@inline function (boundary_condition::BoundaryConditionWall)(u_inner, orientation, x, t,
+@inline function (boundary_condition::BoundaryConditionWall)(u_inner,
+                                                             normal_direction::AbstractVector,
+                                                             x, t,
                                                              surface_flux_function, equations)
-  u_boundary = boundary_condition.boundary_wall_function(u_inner, orientation, equations)
+  # get the external value of the solution
+  u_boundary = boundary_condition.boundary_wall_function(u_inner, normal_direction, equations)
 
-  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
   return flux
 end

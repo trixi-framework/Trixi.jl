@@ -37,7 +37,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
   end
 
   @testset "elixir_euler_unstructured_quad_basic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_unstructured_quad_basic.jl"),
+    @test_trixi_include(default_example_unstructured(),
       l2   = [0.0007258658867098887, 0.000676268065087451, 0.0006316238024054346, 0.0014729738442086392],
       linf = [0.004476908674416524, 0.0052614635050272085, 0.004926298866533951, 0.018058026023565432],
       tspan = (0.0, 1.0))
