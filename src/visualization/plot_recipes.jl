@@ -472,7 +472,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
                     slice=:x, point=[0, 0])
 
-  @assert ndims(mesh) in (1,2) "unsupported number of dimensions $ndims (must be 1 or 2)"
+  @assert ndims(mesh) in (1,2,3) "unsupported number of dimensions $ndims (must be 1, 2 or 3)"
 
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
@@ -483,8 +483,11 @@ function PlotData1D(u, mesh, equations, solver, cache;
   if ndims(mesh) == 1
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
-  else
+  elseif ndims(mesh) == 2
     x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    orientation_x = 0
+  else
+    x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
     orientation_x = 0
   end
 
@@ -645,7 +648,7 @@ end
 @recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=nothing,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
-                   point=[0, 0, 0])
+                   point=(0.0, 0.0, 0.0))
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(semi) == 1
     return PlotData1D(u, semi; solution_variables, nvisnodes)

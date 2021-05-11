@@ -176,7 +176,7 @@ function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
   return unstructured_data, new_coordinates, new_levels, center_level_0
 end
 
-# Convert 2d unstructured data to 1d stripe and interpolate them.
+# Convert 2d unstructured data to 1d slice and interpolate them.
 function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
 
   if slice === :x
@@ -209,19 +209,19 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   # Count the amount of new elements.
   new_id = 0
 
-  # Permute dimensions so that the stripe dimension is always correct place for later use.
+  # Permute dimensions so that the slice dimension is always in the correct place for later use.
   if slice === :y
     original_nodes = permutedims(original_nodes, [1, 3, 2, 4])
     unstructured_data = permutedims(unstructured_data, [2, 1, 3, 4])
   end
 
-  # Iterate over all elements to find the ones that lie on the stripe axis.
+  # Iterate over all elements to find the ones that lie on the slice axis.
   for element_id in 1:n_elements
     min_coordinate = original_nodes[:, 1, 1, element_id]
     max_coordinate = original_nodes[:, n_nodes_in, n_nodes_in, element_id]
     element_length = max_coordinate - min_coordinate
 
-    # Test if the element is on the stripe axis. If not just continue with the next element.
+    # Test if the element is on the slice axis. If not just continue with the next element.
     if !((min_coordinate[slice_dimension] <= point[slice_dimension] &&
         max_coordinate[slice_dimension] > point[slice_dimension]) ||
         (point[slice_dimension] == upper_limit && max_coordinate[slice_dimension] == upper_limit))
@@ -245,6 +245,91 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     end
 
     new_nodes[:, new_id] = original_nodes[other_dimension, :, 1, element_id]
+  end
+
+  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
+end
+
+# Convert 3d unstructured data to 1d slice and interpolate them.
+function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+
+  if slice === :x
+    slice_dimension = 1
+    other_dimensions = [2,3]
+  elseif slice === :y
+    slice_dimension = 2
+    other_dimensions = [1,3]
+  elseif slice === :z
+    slice_dimension = 3
+    other_dimensions = [1,2]
+  else
+    error("illegal dimension '$slice', supported dimensions are :x, :y and :z")
+  end
+
+  # Set up data structures to stroe new 1D data.
+  @views new_unstructured_data = similar(unstructured_data[1, 1, ..])
+  @views temp_unstructured_data = similar(unstructured_data[1, ..])
+  @views new_nodes = similar(original_nodes[1, 1, 1,..])
+
+  n_nodes_in, _, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  # Test if point lies in the domain.
+  lower_limit = original_nodes[1, 1, 1, 1, 1]
+  upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_nodes_in, n_elements]
+
+  @assert length(point) == 3 "Point must be three-dimensional."
+  if prod(point[other_dimensions] .< lower_limit) || prod(point[other_dimensions] .> upper_limit)
+    error(string("Slice axis is outside of domain. ",
+        " point[$other_dimensions]=$(point[other_dimensions]) must be between $lower_limit and $upper_limit"))
+  end
+
+  # Count the amount of new elements.
+  new_id = 0
+
+  # Permute dimensions so that the slice dimensions are always the in correct places for later use.
+  if slice === :x
+    original_nodes = permutedims(original_nodes, [1, 3, 4, 2, 5])
+    unstructured_data = permutedims(unstructured_data, [2, 3, 1, 4, 5])
+  elseif slice === :y
+    original_nodes = permutedims(original_nodes, [1, 2, 4, 3, 5])
+    unstructured_data = permutedims(unstructured_data, [1, 3, 2, 4, 5])
+  end
+
+  # Iterate over all elements to find the ones that lie on the slice axis.
+  for element_id in 1:n_elements
+    min_coordinate = original_nodes[:, 1, 1, 1, element_id]
+    max_coordinate = original_nodes[:, n_nodes_in, n_nodes_in, n_nodes_in, element_id]
+    element_length = max_coordinate - min_coordinate
+
+    # Test if the element is on the slice axis. If not just continue with the next element.
+    if !((prod(min_coordinate[other_dimensions] .<= point[other_dimensions]) &&
+        prod(max_coordinate[other_dimensions] .> point[other_dimensions])) ||
+        (point[other_dimensions] == upper_limit && prod(max_coordinate[other_dimensions] .== upper_limit)))
+
+        continue
+    end
+
+    new_id += 1
+
+    # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
+    normalized_intercept =
+          (point[other_dimensions] - min_coordinate[other_dimensions]) /
+          element_length[1] * 2 .- 1
+    vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_intercept[1])
+    vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_intercept[2])
+
+    # Interpolate to each node of new 1D element.
+    for v in 1:n_variables
+      for i in 1:n_nodes_in
+        for ii in 1:n_nodes_in
+          temp_unstructured_data[i, ii, new_id, v] = (vandermonde_ii*unstructured_data[ii, :, i, element_id, v])[1]
+        end
+        new_unstructured_data[i, new_id, v] = (vandermonde_i*temp_unstructured_data[i, :, new_id, v])[1]
+      end
+    end
+
+    new_nodes[:, new_id] = original_nodes[slice_dimension, 1, 1, :, element_id]
   end
 
   return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
