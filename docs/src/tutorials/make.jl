@@ -29,7 +29,7 @@ for (i, (title, filename)) in enumerate(files)
     tutorial_file = string(tutorial_prefix,splitext(filename)[1])
     notebook_filename = string(tutorial_file, ".ipynb")
     
-    binder_url = "https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials"#@__BINDER_ROOT_URL__")#, "docs/src/tutorials", "notebooks", notebook_filename) # https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials
+    binder_url = string("https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=docs/src/tutorials/notebooks", notebook_filename)# @__BINDER_ROOT_URL__" 
     binder_badge = string("# [![](",binder_logo,")](",binder_url,")")
     # nbviewer_url = joinpath("@__NBVIEWER_ROOT_URL__", "docs/src/tutorials", "notebooks", notebook_filename)
     # nbviewer_badge = string("# [![](",nbviewer_logo,")](",nbviewer_url,")")

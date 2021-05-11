@@ -16,11 +16,11 @@
 # restart Julia.
 module CubicConservationLaw
   
-  using Trixi
-  
-  struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
-                                                  1 #= number of primary variables, i.e. scalar =#};
-  end
+using Trixi
+
+struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#};
+end
   
 end; # module
   
@@ -37,8 +37,7 @@ import .CubicConservationLaw
 
 Trixi.flux(u, orientation, equation::CubicConservationLaw.CubicEquation) = u.^3
 #src TODO: Is there a way to hide this but still use it in the code?
-Trixi.varnames(::typeof(cons2cons), ::CubicConservationLaw.CubicEquation) = ("u")
-Trixi.varnames(::typeof(cons2prim), ::CubicConservationLaw.CubicEquation) = ("u")
+Trixi.varnames(_, ::CubicConservationLaw.CubicEquation) = ("scalar",)
 
 # In Trixi.jl, the conserved variables `u` are usually passed as `SVector`s of variables
 # at a single physical location. Hence, we must use `u.^3` instead of the scalar
