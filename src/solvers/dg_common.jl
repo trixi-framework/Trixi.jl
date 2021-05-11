@@ -47,8 +47,9 @@ end
 end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
-# for writing solution files etc.
-@inline function wrap_array_plain(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+# for interfacing with external C libraries (MPI, HDF5, visualization),
+# writing solution files etc.
+@inline function wrap_array_native(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end

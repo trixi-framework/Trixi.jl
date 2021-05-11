@@ -417,12 +417,12 @@ end
                                     semi::SemidiscretizationEulerGravity, solution_callback,
                                     element_variables=Dict{Symbol,Any}())
 
-  u_euler = wrap_array_plain(u_ode, semi.semi_euler)
+  u_euler = wrap_array_native(u_ode, semi.semi_euler)
   filename_euler = save_solution_file(u_euler, t, dt, iter,
                                       mesh_equations_solver_cache(semi.semi_euler)...,
                                       solution_callback, element_variables, system="euler")
 
-  u_gravity = wrap_array_plain(semi.cache.u_ode, semi.semi_gravity)
+  u_gravity = wrap_array_native(semi.cache.u_ode, semi.semi_gravity)
   filename_gravity = save_solution_file(u_gravity, t, dt, iter,
                                         mesh_equations_solver_cache(semi.semi_gravity)...,
                                         solution_callback, element_variables, system="gravity")

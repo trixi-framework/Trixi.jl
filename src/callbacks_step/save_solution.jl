@@ -146,7 +146,7 @@ end
                                     semi::AbstractSemidiscretization, solution_callback,
                                     element_variables=Dict{Symbol,Any}())
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array_plain(u_ode, mesh, equations, solver, cache)
+  u = wrap_array_native(u_ode, mesh, equations, solver, cache)
   save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback, element_variables)
 end
 

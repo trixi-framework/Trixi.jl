@@ -97,7 +97,7 @@ julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
 
-PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_plain(u_ode, semi),
+PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 
@@ -459,7 +459,7 @@ exactly the number of nodes in the DG elements are used.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array_plain(u_ode, semi),
+PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 

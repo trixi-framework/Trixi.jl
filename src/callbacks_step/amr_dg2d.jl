@@ -12,14 +12,14 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
   old_cell_ids = copy(cache.elements.cell_ids)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
-    # Use `wrap_array_plain` instead of `wrap_array` since MPI might not interact
+    # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
     # nicely with non-base array types
-    old_u = wrap_array_plain(old_u_ode, mesh, equations, dg, cache)
+    old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
     @timed timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-    u = wrap_array_plain(u_ode, mesh, equations, dg, cache)
+    u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)

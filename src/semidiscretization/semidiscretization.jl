@@ -291,8 +291,8 @@ end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
 # for writing solution files etc.
-function wrap_array_plain(u_ode, semi::AbstractSemidiscretization)
-  wrap_array_plain(u_ode, mesh_equations_solver_cache(semi)...)
+function wrap_array_native(u_ode, semi::AbstractSemidiscretization)
+  wrap_array_native(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
 
