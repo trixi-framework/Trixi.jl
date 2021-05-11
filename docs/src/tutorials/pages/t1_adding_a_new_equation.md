@@ -1,5 +1,5 @@
 # Tutorial 1: Adding a new equation
-[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials)
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=bindert1_adding_a_new_equation.ipynb)
 
 If you want to use Trixi for your own research, you might be interested in
 a new physics model that's not already included in Trixi.jl. In this tutorial,
@@ -19,11 +19,11 @@ restart Julia.
 ```julia
 module CubicConservationLaw
 
-  using Trixi
+using Trixi
 
-  struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
-                                                  1 #= number of primary variables, i.e. scalar =#};
-  end
+struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#};
+end
 
 end; # module
 ```
@@ -42,8 +42,7 @@ using Trixi
 import .CubicConservationLaw
 
 Trixi.flux(u, orientation, equation::CubicConservationLaw.CubicEquation) = u.^3
-Trixi.varnames(::typeof(cons2cons), ::CubicConservationLaw.CubicEquation) = ("u")
-Trixi.varnames(::typeof(cons2prim), ::CubicConservationLaw.CubicEquation) = ("u")
+Trixi.varnames(_, ::CubicConservationLaw.CubicEquation) = ("scalar",)
 ```
 
 In Trixi.jl, the conserved variables `u` are usually passed as `SVector`s of variables
@@ -73,11 +72,6 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 # Create ODE problem with given time span
 tspan = (0.0, 0.09)
 ode = semidiscretize(semi, tspan);
-```
-
-```
-[ Info: Precompiling OrdinaryDiffEq [1dea7af3-3e70-54e6-95c3-0bf5283fa5ed]
-
 ```
 
 We wrap the return value of the `initial_condition_sine` inside an `SVector` since that's the approach
@@ -140,7 +134,7 @@ summary_callback()
 │ CubicEquation                                                                                    │
 │ ═════════════                                                                                    │
 │ #variables: ………………………………………………… 1                                                                │
-│ │ variable 1: …………………………………………… u                                                                │
+│ │ variable 1: …………………………………………… scalar                                                           │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -163,21 +157,21 @@ summary_callback()
  ──────────────────────────────────────────────────────────────────────────────
             Trixi.jl                   Time                   Allocations      
                                ──────────────────────   ───────────────────────
-       Tot / % measured:            6.22s / 35.9%           46.3MiB / 16.8%    
+       Tot / % measured:            752ms / 40.3%           41.0MiB / 19.0%    
 
  Section               ncalls     time   %tot     avg     alloc   %tot      avg
  ──────────────────────────────────────────────────────────────────────────────
- rhs!                      58    2.23s   100%  38.5ms   7.77MiB  100%    137KiB
-   ~rhs!~                  58    2.23s   100%  38.5ms   7.77MiB  100%    137KiB
-   volume integral         58    166μs  0.01%  2.86μs     0.00B  0.00%    0.00B
-   prolong2interfaces      58   74.1μs  0.00%  1.28μs     0.00B  0.00%    0.00B
-   interface flux          58   67.3μs  0.00%  1.16μs     0.00B  0.00%    0.00B
-   surface integral        58   55.0μs  0.00%   948ns     0.00B  0.00%    0.00B
-   Jacobian                58   49.4μs  0.00%   852ns     0.00B  0.00%    0.00B
-   prolong2boundaries      58   43.0μs  0.00%   741ns     0.00B  0.00%    0.00B
-   reset ∂u/∂t             58   41.5μs  0.00%   716ns     0.00B  0.00%    0.00B
-   boundary flux           58   34.7μs  0.00%   598ns     0.00B  0.00%    0.00B
-   source terms            58   19.7μs  0.00%   340ns     0.00B  0.00%    0.00B
+ rhs!                      58    303ms   100%  5.22ms   7.77MiB  100%    137KiB
+   ~rhs!~                  58    303ms   100%  5.22ms   7.77MiB  100%    137KiB
+   volume integral         58   22.6μs  0.01%   390ns     0.00B  0.00%    0.00B
+   interface flux          58   10.1μs  0.00%   174ns     0.00B  0.00%    0.00B
+   prolong2interfaces      58   9.50μs  0.00%   164ns     0.00B  0.00%    0.00B
+   surface integral        58   8.40μs  0.00%   145ns     0.00B  0.00%    0.00B
+   Jacobian                58   7.50μs  0.00%   129ns     0.00B  0.00%    0.00B
+   reset ∂u/∂t             58   7.10μs  0.00%   122ns     0.00B  0.00%    0.00B
+   prolong2boundaries      58   5.90μs  0.00%   102ns     0.00B  0.00%    0.00B
+   boundary flux           58   4.60μs  0.00%  79.3ns     0.00B  0.00%    0.00B
+   source terms            58   3.30μs  0.00%  56.9ns     0.00B  0.00%    0.00B
  ──────────────────────────────────────────────────────────────────────────────
 
 
