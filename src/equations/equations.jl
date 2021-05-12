@@ -192,7 +192,7 @@ function entropy2cons end
 Boundary condition to glue 2 meshes together. Solution values at the boundary
 of another mesh will be used as boundary values. This requires the use
 of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`
-and is the index of it's mesh in the tuple of semidiscretizatios.
+and is the index of its mesh in the tuple of semidiscretizatios.
 
 # Arguments
 - `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
