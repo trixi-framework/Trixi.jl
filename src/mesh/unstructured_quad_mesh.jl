@@ -21,7 +21,7 @@ mutable struct UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{R
   polydeg              ::Int
   corners              ::Array{RealT, 2}  # [ndims, n_corners]
   neighbour_information::Array{Int, 2}  # [neighbour node/element/edge ids, n_surfaces]
-  boundary_names       ::Array{String, 2} # [local sides, n_elements]
+  boundary_names       ::Array{Symbol, 2} # [local sides, n_elements]
   periodicity          ::Bool
   element_node_ids     ::Array{Int, 2} # [node ids, n_elements]
   element_is_curved    ::Vector{Bool}
@@ -62,7 +62,7 @@ function UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false, unsave
   element_is_curved = Array{Bool}(undef, n_elements)
   CurvedSurfaceT    = CurvedSurface{RealT}
   surface_curves    = Array{CurvedSurfaceT}(undef, (4, n_elements))
-  bndy_names        = Array{String}(undef, (4, n_elements))
+  boundary_names    = Array{Symbol}(undef, (4, n_elements))
 
   # create the Chebyshev-Gauss-Lobatto nodes used to represent any curved boundaries that are
   # required to construct the sides
@@ -73,7 +73,7 @@ function UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false, unsave
 
   arrays = (; corner_nodes, interface_info, element_node_ids, curved_check,
               cornerNodeVals, tempNodes, curve_vals,
-              element_is_curved, surface_curves, bndy_names)
+              element_is_curved, surface_curves, boundary_names)
   counters = (; n_corners, n_surfaces, n_elements)
 
   n_boundaries = parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
@@ -89,14 +89,14 @@ function UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false, unsave
   return UnstructuredQuadMesh{RealT, CurvedSurfaceT}(
     filename, n_corners, n_surfaces, n_interfaces, n_boundaries,
     n_elements, mesh_polydeg, corner_nodes,
-    interface_info, bndy_names, periodicity,
+    interface_info, boundary_names, periodicity,
     element_node_ids, element_is_curved, surface_curves, "", unsaved_changes)
 end
 
 function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
   @unpack ( corner_nodes, interface_info, element_node_ids, curved_check,
             cornerNodeVals, tempNodes, curve_vals,
-            element_is_curved, surface_curves, bndy_names ) = arrays
+            element_is_curved, surface_curves, boundary_names ) = arrays
   @unpack n_corners, n_surfaces, n_elements = counters
   mesh_nnodes = length(cheby_nodes)
 
@@ -166,7 +166,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
       element_is_curved[j] = false
       file_idx  += 1
       # read all the boundary names
-      bndy_names[:, j] = split(file_lines[file_idx])
+      boundary_names[:, j] = map(Symbol, split(file_lines[file_idx]))
     else
       # quadrilateral element has at least one curved side
       element_is_curved[j] = true
@@ -211,7 +211,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
       end
       # finally read in the boundary names where "---" means an internal connection
       file_idx  += 1
-      bndy_names[:, j] = split(file_lines[file_idx])
+      boundary_names[:, j] = map(Symbol, split(file_lines[file_idx]))
     end
     # one last increment to the global index to read the next piece of element information
     file_idx += 1
