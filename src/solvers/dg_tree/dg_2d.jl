@@ -97,14 +97,14 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
-  # TODO: Taal performance using different types
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}
-  fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
-  # A2d = Array{uEltype, 2}
-  # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-  # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
+  # Other array types such as
+  #   prototype = StrideArray(undef, uEltype, StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)))
+  #   prototype = Array{uEltype, 2}(undef, nvariables(equations), nnodes(mortar_l2))
+  # do not seem to be faster in some benchmark experiments.
+  prototype = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}(undef)
+  fstar_upper_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   (; fstar_upper_threaded, fstar_lower_threaded)
 end
