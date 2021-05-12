@@ -16,7 +16,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_basic_curved.jl"
 # appropriate setups in the elixir loading a restart file
 
 restart_filename = joinpath("out", "restart_000017.h5")
-mesh = load_mesh(restart_filename, n_cells_max=0)
+mesh = load_mesh(restart_filename)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
