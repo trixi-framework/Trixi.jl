@@ -93,6 +93,10 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 end
 
 
+# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
+# of the mesh, like its size and the type of boundary mapping function.
+# Then, within Trixi2Vtk, the CurvedMesh and its node coordinates are reconstructured from
+# these attributes for plotting purposes
 function save_mesh_file(mesh::CurvedMesh, output_directory, timestep=0; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
@@ -111,6 +115,29 @@ function save_mesh_file(mesh::CurvedMesh, output_directory, timestep=0; system="
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = collect(size(mesh))
     attributes(file)["mapping"] = mesh.mapping_as_string
+  end
+
+  return filename
+end
+
+
+# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
+# of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
+# Then, within Trixi2Vtk, the UnstructuredQuadMesh and its node coordinates are reconstructured
+# from these attributes for plotting purposes
+function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
+  # Create output directory (if it does not exist)
+  mkpath(output_directory)
+
+  filename = joinpath(output_directory, "mesh.h5")
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["size"] = length(mesh)
+    attributes(file)["mesh_filename"] = mesh.filename
   end
 
   return filename
