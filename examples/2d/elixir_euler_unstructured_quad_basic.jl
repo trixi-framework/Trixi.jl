@@ -12,7 +12,7 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict( "Slant" => boundary_condition_convergence_test,
+boundary_conditions = Dict( "Slant"  => boundary_condition_convergence_test,
                             "Bezier" => boundary_condition_convergence_test,
                             "Right"  => boundary_condition_convergence_test,
                             "Bottom" => boundary_condition_convergence_test,
