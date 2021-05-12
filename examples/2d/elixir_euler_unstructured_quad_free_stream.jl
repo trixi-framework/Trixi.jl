@@ -11,13 +11,13 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_constant
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict( "Body"    => boundary_condition_free_stream,
-                            "Button1" => boundary_condition_free_stream,
-                            "Button2" => boundary_condition_free_stream,
-                            "Eye1"    => boundary_condition_free_stream,
-                            "Eye2"    => boundary_condition_free_stream,
-                            "Smile"   => boundary_condition_free_stream,
-                            "Bowtie"  => boundary_condition_free_stream )
+boundary_conditions = Dict( :Body    => boundary_condition_free_stream,
+                            :Button1 => boundary_condition_free_stream,
+                            :Button2 => boundary_condition_free_stream,
+                            :Eye1    => boundary_condition_free_stream,
+                            :Eye2    => boundary_condition_free_stream,
+                            :Smile   => boundary_condition_free_stream,
+                            :Bowtie  => boundary_condition_free_stream )
 
 ###############################################################################
 # Get the DG approximation space

@@ -28,11 +28,11 @@ initial_condition = uniform_flow_state
 
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
 boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
-boundary_conditions = Dict( "Bottom" => boundary_condition_uniform_flow,
-                            "Top"    => boundary_condition_uniform_flow,
-                            "Right"  => boundary_condition_uniform_flow,
-                            "Left"   => boundary_condition_uniform_flow,
-                            "Circle" => boundary_condition_slip_wall )
+boundary_conditions = Dict( :Bottom => boundary_condition_uniform_flow,
+                            :Top    => boundary_condition_uniform_flow,
+                            :Right  => boundary_condition_uniform_flow,
+                            :Left   => boundary_condition_uniform_flow,
+                            :Circle => boundary_condition_slip_wall )
 
 ###############################################################################
 # Get the DG approximation space

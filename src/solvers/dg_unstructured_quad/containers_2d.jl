@@ -229,7 +229,7 @@ struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDE
   element_id      ::Vector{Int}       # [boundaries]
   element_side_id ::Vector{Int}       # [boundaries]
   node_coordinates::Array{RealT, 3}   # [ndims, nnodes, boundaries]
-  name            ::Vector{String}    # [boundaries]
+  name            ::Vector{Symbol}    # [boundaries]
 end
 
 
@@ -245,7 +245,7 @@ function UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacit
   element_id       = fill(typemin(Int), capacity)
   element_side_id  = fill(typemin(Int), capacity)
   node_coordinates = fill(nan_RealT, (2, n_nodes, capacity))
-  name             = fill("empty", capacity)
+  name             = fill(:empty, capacity)
 
   return UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(u, element_id, element_side_id,
                                                                          node_coordinates, name)
