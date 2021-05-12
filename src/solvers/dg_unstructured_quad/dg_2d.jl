@@ -235,15 +235,22 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     boundary_condition = boundary_conditions[ name[boundary] ]
 
     # calc boundary flux on the current boundary interface
-    for j in eachnode(dg)
-      calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
-                          j, side, element, boundary)
-    end
+    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+                        side, element, boundary)
   end
 
   return nothing
 end
 
+# use a function barrier for now to improve type stability
+@noinline function calc_boundary_flux!(surface_flux_values, t, boundary_condition::BC,
+                                       mesh::UnstructuredQuadMesh, equations, dg::DG, cache,
+                                       side, element, boundary) where {BC}
+  for node in eachnode(dg)
+    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+                        node, side, element, boundary)
+  end
+end
 
 # inlined version of the boundary flux calculation along a physical interface where the
 # boundary flux values are set according to a particular `boundary_condition` function

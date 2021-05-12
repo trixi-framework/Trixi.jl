@@ -8,7 +8,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-function uniform_flow_state(x, t, equations)
+@inline function uniform_flow_state(x, t, equations::CompressibleEulerEquations2D)
 
   # set the freestream flow parameters
   rho_freestream = 1.0
@@ -16,8 +16,9 @@ function uniform_flow_state(x, t, equations)
   p_freestream = inv(equations.gamma)
 
   theta = pi / 90.0 # analogous with a two degree angle of attack
-  v1 = u_freestream * cos(theta)
-  v2 = u_freestream * sin(theta)
+  si, co = sincos(theta)
+  v1 = u_freestream * co
+  v2 = u_freestream * si
 
   prim = SVector(rho_freestream, v1, v2, p_freestream)
   return prim2cons(prim, equations)
@@ -27,11 +28,11 @@ initial_condition = uniform_flow_state
 
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
 boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
-boundary_conditions = Dict( "Bottom" => boundary_condition_uniform_flow,
-                            "Top"    => boundary_condition_uniform_flow,
-                            "Right"  => boundary_condition_uniform_flow,
-                            "Left"   => boundary_condition_uniform_flow,
-                            "Circle" => boundary_condition_slip_wall )
+boundary_conditions = Dict( :Bottom => boundary_condition_uniform_flow,
+                            :Top    => boundary_condition_uniform_flow,
+                            :Right  => boundary_condition_uniform_flow,
+                            :Left   => boundary_condition_uniform_flow,
+                            :Circle => boundary_condition_slip_wall )
 
 ###############################################################################
 # Get the DG approximation space
