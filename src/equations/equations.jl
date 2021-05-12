@@ -191,15 +191,15 @@ function entropy2cons end
 
 Boundary condition to glue 2 meshes together. Solution values at the boundary
 of another mesh will be used as boundary values. This requires the use
-of ['SemidiscretizationCoupled'](@ref). The other mesh is specified by "other_semi_index"
+of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`
 and is the index of it's mesh in the tuple of semidiscretizatios.
 
 # Arguments
-- 'other_semi_index': the index in 'SemidiscretizationCoupled' of the semidiscretization
+- `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
                       from which the values are copied
-- 'indices::Tuple': node/cell indices at the boundary of the mesh in the other
+- `indices::Tuple`: node/cell indices at the boundary of the mesh in the other
                     semidiscretization. See examples below.
-- 'uEltype::Type': element type of solution
+- `uEltype::Type`: element type of solution
 
 # Examples
 '''julia
@@ -210,7 +210,7 @@ BoundaryConditionCoupled(2, (1, :i), Float64)
 # Connect the same two boundaries oppositely oriented
 BoundaryConditionCoupled(2, (1, :mi), Float64)
 
-# Using this as y_neg boundary will connect 'our_cells[i, 1, j]' to 'other_cells[j, end-i, end]' 
+# Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
 BoundaryConditionCoupled(2, (:j, :mi, :end), Float64)
 '''                 
 """

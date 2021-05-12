@@ -2,9 +2,9 @@
     SemidiscretizationCoupled
 
 A struct used to bundle multiple semidiscretizations.
-'semidiscretize' will return an 'ODEproblem' that synchronizes time steps between the semidiscretizations.
-Each call of 'rhs!' will call 'rhs!' for each semidiscretization individually.
-The semidiscretizations can be coupled by gluing meshes together using 'BoundaryConditionCoupled'.
+`semidiscretize` will return an `ODEproblem` that synchronizes time steps between the semidiscretizations.
+Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
+The semidiscretizations can be coupled by gluing meshes together using `BoundaryConditionCoupled`.
 """
 struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
   semis::S
@@ -16,7 +16,7 @@ end
 """
     SemidiscretizationCoupled(semis)
 
-Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple 'semis'.
+Create a coupled semidiscretization that consists of the semidiscretizations contained in the tuple `semis`.
 """
 function SemidiscretizationCoupled(semis)
   @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
