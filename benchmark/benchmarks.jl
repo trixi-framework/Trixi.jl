@@ -22,9 +22,9 @@ let dimension = "2d"
     SUITE[dimension][elixir] = BenchmarkGroup()
     for polydeg in [3, 7]
       trixi_include(elixir, tspan=(0.0, 1.0e-10); polydeg)
-      SUITE[dimension][elixir]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!(
+      SUITE[dimension][basename(elixir)]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!(
         $(similar(sol.u[end])), $(copy(sol.u[end])), $(semi), $(first(tspan)))
-      SUITE[dimension][elixir]["p$(polydeg)_analysis"] = @benchmarkable ($analysis_callback)($sol)
+      SUITE[dimension][basename(elixir)]["p$(polydeg)_analysis"] = @benchmarkable ($analysis_callback)($sol)
     end
   end
 end
@@ -41,9 +41,9 @@ let dimension = "3d"
     SUITE[dimension][elixir] = BenchmarkGroup()
     for polydeg in [3, 7]
       trixi_include(joinpath(EXAMPLES_DIR, elixir), tspan=(0.0, 1.0e-10); polydeg)
-      SUITE[dimension][elixir]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!(
+      SUITE[dimension][basename(elixir)]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!(
         $(similar(sol.u[end])), $(copy(sol.u[end])), $(semi), $(first(tspan)))
-      SUITE[dimension][elixir]["p$(polydeg)_analysis"] = @benchmarkable ($analysis_callback)($sol)
+      SUITE[dimension][basename(elixir)]["p$(polydeg)_analysis"] = @benchmarkable ($analysis_callback)($sol)
     end
   end
 end
