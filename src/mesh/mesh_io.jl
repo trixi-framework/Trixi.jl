@@ -125,11 +125,16 @@ end
 # of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
 # Then, within Trixi2Vtk, the UnstructuredQuadMesh and its node coordinates are reconstructured
 # from these attributes for plotting purposes
-function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
+function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory, timestep=0; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
-  filename = joinpath(output_directory, "mesh.h5")
+  # Filename without extension based on current time step
+  if isempty(system)
+    filename = joinpath(output_directory, "mesh.h5")
+  else
+    filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
+  end
 
   # Open file (clobber existing content)
   h5open(filename, "w") do file
