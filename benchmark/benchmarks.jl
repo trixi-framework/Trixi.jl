@@ -13,7 +13,8 @@ let dimension = "2d"
                  "elixir_advection_nonperiodic_curved.jl",
                  "elixir_euler_ec.jl",
                  "elixir_euler_nonperiodic_curved.jl",
-                 "elixir_euler_unstructured_quad.jl",
+                 "elixir_euler_unstructured_quad_free_stream.jl",
+                 "elixir_euler_unstructured_quad_periodic.jl",
                  "elixir_euler_vortex_mortar.jl",
                  "elixir_euler_vortex_mortar_shockcapturing.jl"]
     SUITE[dimension][elixir] = BenchmarkGroup()
