@@ -88,10 +88,20 @@ end
 """
     default_example()
 
-Return the path to an example elixir that can be used to quickly see Trixi in action.
+Return the path to an example elixir that can be used to quickly see Trixi in action on a
+[`TreeMesh`]@(ref).
 """
 default_example() = joinpath(examples_dir(), "2d", "elixir_advection_basic.jl")
 
+
+"""
+    default_example_unstructured()
+
+Return the path to an example elixir that can be used to quickly see Trixi in action on an
+[`UnstructuredQuadMesh`]@(ref). This simulation is run on the example curved, unstructured mesh
+given in the Trixi documentation regarding unstructured meshes.
+"""
+default_example_unstructured() = joinpath(examples_dir(), "2d", "elixir_euler_unstructured_quad_basic.jl")
 
 # Print informative message at startup
 function print_startup_message()

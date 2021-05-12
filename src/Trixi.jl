@@ -112,7 +112,9 @@ export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_wall_noslip,
        boundary_condition_wall,
-       boundary_condition_zero
+       boundary_condition_zero,
+       BoundaryConditionWall,
+       boundary_state_slip_wall
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
@@ -162,7 +164,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 
 export PositivityPreservingLimiterZhangShu
 
-export trixi_include, examples_dir, get_examples, default_example
+export trixi_include, examples_dir, get_examples, default_example, default_example_unstructured
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
