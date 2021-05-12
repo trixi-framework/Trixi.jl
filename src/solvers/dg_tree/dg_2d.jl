@@ -1033,23 +1033,6 @@ end
     end
   end
 
-  # TODO: Taal performance
-  # for v in eachvariable(equations)
-  #   # The code below is semantically equivalent to
-  #   # surface_flux_values[v, :, direction, large_element] .=
-  #   #   (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
-  #   # but faster and does not allocate.
-  #   # Note that `true * some_float == some_float` in Julia, i.e. `true` acts as
-  #   # a universal `one`. Hence, the second `mul!` means "add the matrix-vector
-  #   # product to the current value of the destination".
-  #   @views mul!(surface_flux_values[v, :, direction, large_element],
-  #               mortar_l2.reverse_upper, fstar_upper[v, :])
-  #   @views mul!(surface_flux_values[v, :, direction, large_element],
-  #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
-  # end
-  # The code above could be replaced by the following code. However, the relative efficiency
-  # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
-  # Using StaticArrays for both makes the code above faster for common test cases.
   multiply_dimensionwise!(
     view(surface_flux_values, :, :, direction, large_element), mortar_l2.reverse_upper, fstar_upper,
                                                                mortar_l2.reverse_lower, fstar_lower)
