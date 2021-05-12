@@ -567,11 +567,11 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations, dg::DG)
   @unpack interfaces = cache
-  @unpack orientations = interfaces
+  @unpack orientations, neighbor_ids = interfaces
 
   @threaded for interface in eachinterface(dg, cache)
-    left_element  = interfaces.neighbor_ids[1, interface]
-    right_element = interfaces.neighbor_ids[2, interface]
+    left_element  = neighbor_ids[1, interface]
+    right_element = neighbor_ids[2, interface]
 
     if orientations[interface] == 1
       # interface in x-direction
@@ -685,10 +685,10 @@ end
 function prolong2boundaries!(cache, u,
                              mesh::TreeMesh{2}, equations, dg::DG)
   @unpack boundaries = cache
-  @unpack orientations, neighbor_sides = boundaries
+  @unpack orientations, neighbor_ids, neighbor_sides = boundaries
 
   @threaded for boundary in eachboundary(dg, cache)
-    element = boundaries.neighbor_ids[boundary]
+    element = neighbor_ids[boundary]
 
     if orientations[boundary] == 1
       # boundary in x-direction
@@ -888,7 +888,7 @@ function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
-  @unpack neighbor_ids, u_lower, u_upper, orientations = cache.mortars
+  @unpack u_lower, u_upper, orientations = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
 
   @threaded for mortar in eachmortar(dg, cache)
@@ -912,7 +912,7 @@ function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            nonconservative_terms::Val{true}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
-  @unpack neighbor_ids, u_lower, u_upper, orientations, large_sides = cache.mortars
+  @unpack u_lower, u_upper, orientations, large_sides = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded,
           noncons_diamond_upper_threaded, noncons_diamond_lower_threaded = cache
 
@@ -1009,8 +1009,10 @@ end
       direction = 4
     end
   end
-  surface_flux_values[:, :, direction, upper_element] .= fstar_upper
-  surface_flux_values[:, :, direction, lower_element] .= fstar_lower
+  # surface_flux_values[:, :, direction, upper_element] .= fstar_upper
+  # surface_flux_values[:, :, direction, lower_element] .= fstar_lower
+  copyto!(@view(surface_flux_values[:, :, direction, upper_element]), fstar_upper)
+  copyto!(@view(surface_flux_values[:, :, direction, lower_element]), fstar_lower)
 
   # Project small fluxes to large element
   if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
