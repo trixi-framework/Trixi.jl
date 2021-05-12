@@ -103,23 +103,17 @@ function MortarL2(basis::LobattoLegendreBasis)
   reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss))
   reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss))
 
-  # type conversions to get the requested real type and enable possible
-  # optimizations of runtime performance and latency
-
-  # Usually as fast as `SMatrix` but better for latency
+  # Type conversions to get the requested real type and enable possible
+  # optimizations of runtime performance and latency.
   forward_upper = Matrix{RealT}(forward_upper_)
   forward_lower = Matrix{RealT}(forward_lower_)
-
-  # TODO: Taal performance
-  #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
-  #       with different types of the reverse matrices and different types of
-  #       `fstar_upper_threaded` etc. used in the cache.
-  #       Check whether `@avx` with `eachnode` in `multiply_dimensionwise!` can be faster than
-  #       `@tullio` when the matrix sizes are not necessarily static.
-  # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
-  # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
   reverse_upper = Matrix{RealT}(reverse_upper_)
   reverse_lower = Matrix{RealT}(reverse_lower_)
+  # TODO: Taal performance
+  # forward_upper = StrideArray(forward_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  # forward_lower = StrideArray(forward_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  # reverse_upper = StrideArray(reverse_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  # reverse_lower = StrideArray(reverse_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
 
   LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
     forward_upper, forward_lower,
