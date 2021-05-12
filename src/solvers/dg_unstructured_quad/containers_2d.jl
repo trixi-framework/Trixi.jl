@@ -195,16 +195,16 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
       primary_element = edge_information[3,j]
       # Note: This is a way to get the neighbour element number and local side from a square
       #       structured mesh where the element local surface numbering is right-handed
-      if boundary_names[primary_side, primary_element] == "Bottom"
+      if boundary_names[primary_side, primary_element] === :Bottom
         secondary_element = primary_element + (n_elements - convert(Int, sqrt(n_elements)))
         secondary_side    = 3
-      elseif boundary_names[primary_side, primary_element] == "Top"
+      elseif boundary_names[primary_side, primary_element] === :Top
         secondary_element = primary_element - (n_elements - convert(Int, sqrt(n_elements)))
         secondary_side    = 1
-      elseif boundary_names[primary_side, primary_element] == "Left"
+      elseif boundary_names[primary_side, primary_element] === :Left
         secondary_element = primary_element + (convert(Int, sqrt(n_elements)) - 1)
         secondary_side    = 2
-      elseif boundary_names[primary_side, primary_element] == "Right"
+      elseif boundary_names[primary_side, primary_element] === :Right
         secondary_element = primary_element - (convert(Int, sqrt(n_elements)) - 1)
         secondary_side    = 4
       end
