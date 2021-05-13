@@ -36,10 +36,10 @@ solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_diss
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations1D)
     x, = xyz
-    ρ = 1 + .98*sin(pi*x)
+    ϱ = 1 + .98*sin(pi*x)
     u = 1.0
     p = 2.
-    return prim2cons((ρ,u,p),equations)
+    return prim2cons((ϱ,u,p),equations)
 end
 
 ###############################################################################

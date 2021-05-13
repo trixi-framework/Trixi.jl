@@ -46,12 +46,11 @@ solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_diss
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
     x,y = xyz
-    ρ = 1 + .5*exp(-25*(x^2+y^2))
-    # ρ = 1 + .5*sin(pi*x)*sin(pi*y)
+    ϱ = 1 + .5*exp(-25*(x^2+y^2))    
     u = 1.0
     v = .5
     p = 2.
-    return prim2cons((ρ,u,v,p),equations)
+    return prim2cons((ϱ,u,v,p),equations)
 end
 
 # A semidiscretization collects data structures and functions for the spatial discretization
