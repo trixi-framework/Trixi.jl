@@ -1,7 +1,8 @@
 # Tutorial 3: Testing
-[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/t3_testing_repository.ipynb)
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/testing_repository.ipynb)
 This file is just for testing which packages are installed in the notebook (via binder).
-In Trixi Project.toml there is Printf
+
+In Trixi Project.toml the package Printf is installed
 
 ```julia
 using Printf

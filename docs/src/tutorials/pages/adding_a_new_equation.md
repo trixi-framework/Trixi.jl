@@ -1,5 +1,5 @@
 # Tutorial 1: Adding a new equation
-[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/t1_adding_a_new_equation.ipynb)
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/adding_a_new_equation.ipynb)
 
 If you want to use Trixi for your own research, you might be interested in
 a new physics model that's not already included in Trixi.jl. In this tutorial,
@@ -157,21 +157,21 @@ summary_callback()
  ──────────────────────────────────────────────────────────────────────────────
             Trixi.jl                   Time                   Allocations      
                                ──────────────────────   ───────────────────────
-       Tot / % measured:            739ms / 42.3%           41.0MiB / 19.0%    
+       Tot / % measured:            727ms / 40.9%           41.7MiB / 18.6%    
 
  Section               ncalls     time   %tot     avg     alloc   %tot      avg
  ──────────────────────────────────────────────────────────────────────────────
- rhs!                      58    313ms   100%  5.39ms   7.77MiB  100%    137KiB
-   ~rhs!~                  58    312ms   100%  5.39ms   7.77MiB  100%    137KiB
-   volume integral         58   23.1μs  0.01%   398ns     0.00B  0.00%    0.00B
-   interface flux          58   10.7μs  0.00%   184ns     0.00B  0.00%    0.00B
-   prolong2interfaces      58   9.60μs  0.00%   166ns     0.00B  0.00%    0.00B
-   surface integral        58   9.10μs  0.00%   157ns     0.00B  0.00%    0.00B
-   Jacobian                58   7.20μs  0.00%   124ns     0.00B  0.00%    0.00B
-   reset ∂u/∂t             58   7.20μs  0.00%   124ns     0.00B  0.00%    0.00B
-   boundary flux           58   5.70μs  0.00%  98.3ns     0.00B  0.00%    0.00B
-   prolong2boundaries      58   5.50μs  0.00%  94.8ns     0.00B  0.00%    0.00B
-   source terms            58   3.30μs  0.00%  56.9ns     0.00B  0.00%    0.00B
+ rhs!                      58    297ms   100%  5.13ms   7.77MiB  100%    137KiB
+   ~rhs!~                  58    297ms   100%  5.12ms   7.77MiB  100%    137KiB
+   volume integral         58   22.8μs  0.01%   393ns     0.00B  0.00%    0.00B
+   interface flux          58   11.3μs  0.00%   195ns     0.00B  0.00%    0.00B
+   prolong2interfaces      58   9.70μs  0.00%   167ns     0.00B  0.00%    0.00B
+   surface integral        58   8.00μs  0.00%   138ns     0.00B  0.00%    0.00B
+   Jacobian                58   7.40μs  0.00%   128ns     0.00B  0.00%    0.00B
+   reset ∂u/∂t             58   6.90μs  0.00%   119ns     0.00B  0.00%    0.00B
+   prolong2boundaries      58   5.80μs  0.00%   100ns     0.00B  0.00%    0.00B
+   boundary flux           58   5.10μs  0.00%  87.9ns     0.00B  0.00%    0.00B
+   source terms            58   3.80μs  0.00%  65.5ns     0.00B  0.00%    0.00B
  ──────────────────────────────────────────────────────────────────────────────
 
 

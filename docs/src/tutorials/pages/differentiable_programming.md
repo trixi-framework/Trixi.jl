@@ -1,5 +1,5 @@
 # Tutorial 2: Differentiable programming
-[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/t2_differentiable_programming.ipynb)
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/differentiable_programming.ipynb)
 
 [Julia and its ecosystem provide some tools for differentiable programming](https://sinews.siam.org/Details-Page/scientific-machine-learning-how-julia-employs-differentiable-programming-to-do-it-best).
 Trixi.jl is designed to be flexible, extendable, and composable with Julia's growing ecosystem for

@@ -18,6 +18,12 @@ Sys.rm(notebooks_dir;   recursive=true, force=true)
 # Add index.md file as introduction to navigation menu
 pages = ["Introduction" => "index.md"]
 
+# Generate markdown
+function preprocess_docs(content)
+    binder_url = "https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/"# @__BINDER_ROOT_URL__"
+    binder_badge = string("# [![](",binder_logo,")](",binder_url,")")
+    return string("Trixi tutorials", "\n", binder_badge, "\n", content)#nbviewer_badge, "\n\n", content)
+end
 Literate.markdown(joinpath(repo_src,"index.jl"), pages_dir; name="index", documenter=false, execute=true, codefence="```julia" => "```")
 # TODO: With `documenter=false` there is no `link to source` in html file. With `true` the link is not defined because of some `<unkown>`.
 
@@ -25,13 +31,12 @@ binder_logo = "https://mybinder.org/badge_logo.svg"
 nbviewer_logo = "https://img.shields.io/badge/show-nbviewer-579ACA.svg"
 
 for (i, (title, filename)) in enumerate(files)
-    tutorial_prefix = string("t$(i)_")
     tutorial_title = string("# # Tutorial ", i, ": ", title)
-    tutorial_file = string(tutorial_prefix,splitext(filename)[1])
+    tutorial_file = string(splitext(filename)[1])
     notebook_filename = string(tutorial_file, ".ipynb")
     
     binder_url = string("https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/", notebook_filename)# @__BINDER_ROOT_URL__"
-    binder_badge = string("# [![](",binder_logo,")](",binder_url,")")
+    binder_badge = string("# [![](", binder_logo, ")](", binder_url, ")")
     # nbviewer_url = joinpath("@__NBVIEWER_ROOT_URL__", "docs/src/tutorials", "notebooks", notebook_filename)
     # nbviewer_badge = string("# [![](",nbviewer_logo,")](",nbviewer_url,")")
 
@@ -53,4 +58,3 @@ for (i, (title, filename)) in enumerate(files)
     path_to_markdown_file = joinpath("pages",string(tutorial_file,".md"))
     push!(pages, (ordered_title=>path_to_markdown_file))
 end
-# Run notebook with `notebook(;dir=joinpath(@__DIR__, "docs/src/tutorials/src/notebooks"))`

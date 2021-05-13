@@ -44,9 +44,9 @@ makedocs(
         ],
         "Tutorials" => [
             "Introduction" => "tutorials/pages/index.md",
-            "Adding a new equation" => "tutorials/pages/t1_adding_a_new_equation.md",
-            "Differentiable programming" => "tutorials/pages/t2_differentiable_programming.md",
-            "Testing" => "tutorials/pages/t3_testing_repository.md",
+            "Adding a new equation" => "tutorials/pages/adding_a_new_equation.md",
+            "Differentiable programming" => "tutorials/pages/differentiable_programming.md",
+            "Testing" => "tutorials/pages/testing_repository.md",
         ],
         "Basic building blocks" => [
             "Meshes" => [
@@ -79,8 +79,9 @@ makedocs(
     strict = true # to make the GitHub action fail when doctests fail, see https://github.com/neuropsychology/Psycho.jl/issues/34
 )
 
-# Copy Project.toml to binder folder
+# Copy Project.toml and Manifest.toml to binder folder
 Sys.cp(joinpath(@__DIR__, "Project.toml"), joinpath(@__DIR__, "../binder/Project.toml"))
+Sys.cp(joinpath(@__DIR__, "Manifest.toml"), joinpath(@__DIR__, "../binder/Manifest.toml"))
 
 deploydocs(
     repo = "github.com/trixi-framework/Trixi.jl",
