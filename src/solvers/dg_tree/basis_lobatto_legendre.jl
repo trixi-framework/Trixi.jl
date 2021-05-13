@@ -105,15 +105,10 @@ function MortarL2(basis::LobattoLegendreBasis)
 
   # Type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency.
-  forward_upper = Matrix{RealT}(forward_upper_)
-  forward_lower = Matrix{RealT}(forward_lower_)
-  reverse_upper = Matrix{RealT}(reverse_upper_)
-  reverse_lower = Matrix{RealT}(reverse_lower_)
-  # TODO: Taal performance
-  # forward_upper = StrideArray(forward_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
-  # forward_lower = StrideArray(forward_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
-  # reverse_upper = StrideArray(reverse_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
-  # reverse_lower = StrideArray(reverse_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  forward_upper = StrideArray(forward_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  forward_lower = StrideArray(forward_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  reverse_upper = StrideArray(reverse_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  reverse_lower = StrideArray(reverse_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
 
   LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
     forward_upper, forward_lower,
