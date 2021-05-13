@@ -904,7 +904,7 @@ function calc_mortar_flux!(surface_flux_values,
                            nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack (u_lower_left, u_lower_right, u_upper_left, u_upper_right,
-           neighbor_ids, orientations) = cache.mortars
+           orientations) = cache.mortars
   @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
            fstar_lower_left_threaded, fstar_lower_right_threaded,
            fstar_tmp1_threaded) = cache
@@ -938,7 +938,7 @@ function calc_mortar_flux!(surface_flux_values,
                            nonconservative_terms::Val{true}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack (u_lower_left, u_lower_right, u_upper_left, u_upper_right,
-           neighbor_ids, orientations) = cache.mortars
+           orientations) = cache.mortars
   @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
            fstar_lower_left_threaded, fstar_lower_right_threaded,
            noncons_diamond_upper_left_threaded, noncons_diamond_upper_right_threaded,
@@ -1093,6 +1093,7 @@ end
       direction = 6
     end
   end
+  # TODO: mortars
   surface_flux_values[:, :, :, direction, upper_left_element]  .= fstar_upper_left
   surface_flux_values[:, :, :, direction, upper_right_element] .= fstar_upper_right
   surface_flux_values[:, :, :, direction, lower_left_element]  .= fstar_lower_left
