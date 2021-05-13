@@ -59,5 +59,5 @@ function Base.show(io::IO, solver::ModalESDG{DIM}) where {DIM}
 end
 
 Base.real(solver::ModalESDG) = Float64 # is this for DiffEq.jl?
-Trixi.ndofs(mesh::UnstructuredMesh, solver::ModalESDG, cache) = length(solver.rd.r)*cache.md.K
+Trixi.ndofs(md::MeshData, solver::ModalESDG, cache) = length(solver.rd.r)*md.K
 

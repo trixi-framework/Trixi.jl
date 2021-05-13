@@ -44,29 +44,23 @@ function compute_entropy_projection!(Q,solver::ModalESDG,cache,eqn)
     return Uh,Uf
 end
 
-function Trixi.allocate_coefficients(mesh::UnstructuredMesh,
-                                     equations, solver::ModalESDG, cache)
-    @unpack md = cache
+function Trixi.allocate_coefficients(md::MeshData,equations, solver::ModalESDG, cache)
     nvars = nvariables(equations) 
     return StructArray([SVector{nvars}(zeros(nvars)) for i in axes(md.x,1), j in axes(md.x,2)])
 end
 
 
 function Trixi.compute_coefficients!(u::StructArray, initial_condition, t,
-                                     mesh::UnstructuredMesh, equations, solver::ModalESDG, cache)
-    for i = 1:length(cache.md.x) # loop over nodes
-        xyz_i = getindex.(cache.md.xyz,i)
+                                     md::MeshData, equations, solver::ModalESDG, cache)
+    for i = 1:length(md.x) # loop over nodes
+        xyz_i = getindex.(md.xyz,i)
         u[i] = initial_condition(xyz_i,t,equations) # interpolate - add projection later?
     end
 end
 
 ## ======================== 1D rhs codes ==================================
 
-function Trixi.create_cache(mesh::UnstructuredMesh{1}, equations, solver::ModalESDG, RealT, uEltype)
-
-    @unpack VXYZ,EToV = mesh
-    md = MeshData(VXYZ...,EToV,rd)
-    md = make_periodic(md,rd)
+function Trixi.create_cache(md::MeshData{1}, equations, solver::ModalESDG, RealT, uEltype)
 
     # make skew symmetric versions of the operators"
     Qrh,VhP,Ph = hybridized_SBP_operators(rd)
@@ -86,8 +80,7 @@ function Trixi.create_cache(mesh::UnstructuredMesh{1}, equations, solver::ModalE
 
     rhse_threads = [similar(Uh[:,1]) for _ in 1:Threads.nthreads()]
 
-    cache = (;md,
-            QrhskewTr,VhP,Ph,
+    cache = (;QrhskewTr,VhP,Ph,
             Uq,VUq,VUh,Uh,
             rhse_threads,
             project_and_store!)
@@ -95,11 +88,10 @@ function Trixi.create_cache(mesh::UnstructuredMesh{1}, equations, solver::ModalE
     return cache
 end
 
-function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{1}, equations,
+function Trixi.rhs!(dQ, Q::StructArray, t, md::MeshData{1}, equations,
                     initial_condition, boundary_conditions, source_terms,
                     solver::ModalESDG, cache)
 
-    @unpack md = cache
     @unpack QrhskewTr,VhP,Ph = cache
     @unpack project_and_store! = cache
     @unpack rxJ,J,nxJ,sJ,mapP = md
@@ -135,7 +127,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{1}, equations,
         # project down and store
         @. rhse = -rhse/J[1,e]
 
-        calc_source_terms!(rhse,Ue,t,source_terms,equations,solver,cache,e)
+        calc_source_terms!(rhse,Ue,t,source_terms,equations,solver,md,e)
         
         StructArrays.foreachfield(project_and_store!,view(dQ,:,e),rhse) 
     end
@@ -145,11 +137,7 @@ end
 
 # ======================= 2D rhs codes =============================
 
-function Trixi.create_cache(mesh::UnstructuredMesh{2}, equations, solver::ModalESDG, RealT, uEltype)
-
-    @unpack VXYZ,EToV = mesh
-    md = MeshData(VXYZ...,EToV,rd)
-    md = make_periodic(md,rd)
+function Trixi.create_cache(md::MeshData{2}, equations, solver::ModalESDG, RealT, uEltype)
 
     # for flux differencing on general elements
     Qrh,Qsh,VhP,Ph = hybridized_SBP_operators(rd)
@@ -183,12 +171,12 @@ function Trixi.create_cache(mesh::UnstructuredMesh{2}, equations, solver::ModalE
 end
 
 
-function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{2}, equations,
+function Trixi.rhs!(dQ, Q::StructArray, t, md::MeshData{2}, equations,
                     initial_condition, boundary_conditions, source_terms,
                     solver::ModalESDG, cache)
 
-    @unpack md,project_and_store! = cache
-    @unpack QrhskewTr,QshskewTr,VhP,Ph = cache
+    @unpack project_and_store! = cache
+    @unpack QrhskewTr,QshskewTr,VhP = cache
     @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
     @unpack volume_flux, interface_flux, interface_dissipation = solver
     @unpack wf = solver.rd
@@ -226,7 +214,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{2}, equations,
         @. rhse = -rhse / J[1,e]
 
         # add source terms after scaling by J
-        calc_source_terms!(rhse,Ue,t,source_terms,equations,solver,cache,e)
+        calc_source_terms!(rhse,Ue,t,source_terms,equations,solver,md,e)
 
         # project down and store
         StructArrays.foreachfield(project_and_store!, view(dQ,:,e), rhse)
@@ -238,22 +226,20 @@ end
 ## ==============================================================================
 
 @inline function calc_source_terms!(du::StructArray,u,t,source_terms::Nothing,
-                                    equations,solver::ModalESDG,cache,element_index)
+                                    equations,solver::ModalESDG,md::MeshData,element_index)
     return nothing
 end
 
 """
     function calc_source_terms(du::StructArray,u,t,source_terms,
-                               equations,solver::ModalESDG,cache,element_index)
+                               equations,solver::ModalESDG,md::MeshData,element_index)
 
 Adds source terms on an element (weighted by quadrature weights) prior to projection. 
 Independent of dimension or equation.
 """
 @inline function calc_source_terms!(du::StructArray,u,t,source_terms,
-                                    equations,solver::ModalESDG,cache,element_index)
-    @unpack md = cache
+                                    equations,solver::ModalESDG,md::MeshData,element_index)
     @unpack rd = solver
-
     # add source terms to quadrature points
     for i = 1:length(rd.rq)
         du[i] += source_terms(u[i],getindex.(md.xyzq,i,element_index),t,equations)*rd.wq[i]

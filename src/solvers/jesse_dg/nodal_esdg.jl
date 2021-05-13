@@ -1,28 +1,22 @@
 include("flux_differencing.jl")
 
-function Trixi.allocate_coefficients(mesh::UnstructuredMesh,
+function Trixi.allocate_coefficients(md::MeshData,
                                      equations, solver::NodalESDG, cache)
-    @unpack md = cache
     nvars = nvariables(equations) 
     return StructArray([SVector{nvars}(zeros(nvars)) for i in axes(md.xq,1), j in axes(md.xq,2)])
 end
 
 function Trixi.compute_coefficients!(u::StructArray, initial_condition, t,
-                                     mesh::UnstructuredMesh, equations, solver::NodalESDG, cache)
+                                     md::MeshData, equations, solver::NodalESDG, cache)
     for i in eachindex(u) # loop over quadrature (sbp) nodes
-        xyz_i = getindex.(cache.md.xyzq,i)
+        xyz_i = getindex.(md.xyzq,i)
         u[i] = initial_condition(xyz_i,t,equations) # interpolate - add projection later?
     end
 end
 
 # ======================= 2D rhs codes =============================
 
-function Trixi.create_cache(mesh::UnstructuredMesh{2}, equations, solver::NodalESDG, RealT, uEltype)
-
-    @unpack VXYZ,EToV = mesh
-    @unpack rd = solver # TODO: recompute instead so solver doesn't carry a type unstable rd around?
-    md = MeshData(VXYZ...,EToV,rd)
-    md = make_periodic(md,rd)
+function Trixi.create_cache(md::MeshData{2}, equations, solver::NodalESDG, RealT, uEltype)
 
     @unpack sbp_operators = solver
     Qr,Qs = sbp_operators.Qrst
@@ -38,19 +32,17 @@ function Trixi.create_cache(mesh::UnstructuredMesh{2}, equations, solver::NodalE
     structarray_zeros = StructArray{SVector{nvars,Float64}}(ntuple(_->similar(md.xq[:,1]),nvars))
     rhse_threads = [structarray_zeros for _ in 1:Threads.nthreads()]
 
-    cache = (;md,
-             QrskewTr,QsskewTr,invm,Uf,
+    cache = (;QrskewTr,QsskewTr,invm,Uf,
              rhse_threads)
 
     return cache
 end
 
 
-function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{2}, equations,
+function Trixi.rhs!(dQ, Q::StructArray, t, md::MeshData{2}, equations,
                     initial_condition, boundary_conditions, source_terms,
                     solver::NodalESDG, cache)
 
-    @unpack md = cache
     @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
     @unpack volume_flux, interface_flux, interface_dissipation = solver
     @unpack sbp_operators = solver
@@ -97,7 +89,7 @@ end
 ## ==============================================================================
 
 function calc_source_terms!(du::StructArray,u,t,source_terms::Nothing,
-                           equations,solver::NodalESDG,cache)
+                           equations,solver::NodalESDG,md::MeshData)
     return nothing
 end
 
@@ -108,8 +100,7 @@ end
 Adds source terms on an element. Independent of dimension or equation.
 """
 function calc_source_terms!(du::StructArray,u,t,source_terms,
-                           equations,solver::NodalESDG,cache)
-    @unpack md = cache
+                           equations,solver::NodalESDG,md::MeshData)
     @unpack rd = solver
 
     # add source terms to quadrature points

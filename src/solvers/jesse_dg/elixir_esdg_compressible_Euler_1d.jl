@@ -24,12 +24,15 @@ FinalTime = .7
 
 rd = RefElemData(Line(),N)
 VX,EToV = uniform_mesh(Line(),K1D)
+md = MeshData(VX,EToV,rd)
+md = make_periodic(md,rd)
 
 eqn = CompressibleEulerEquations1D(1.4)
 function LxF_dissipation(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
     return .5 * max_abs_speed_naive(u_ll, u_rr, orientation, equations) * (u_ll-u_rr)
 end
-solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_dissipation,eqn)
+solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_dissipation,
+                   Trixi.cons2entropy,Trixi.entropy2cons,eqn)
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations1D)
     x, = xyz
@@ -43,9 +46,7 @@ end
 # ODE solvers, callbacks etc.
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(UnstructuredMesh((VX,),EToV), 
-                                    CompressibleEulerEquations1D(1.4), 
-                                    initial_condition, solver)
+semi = SemidiscretizationHyperbolic(md, eqn, initial_condition, solver)
 
 # Create ODE problem with time span from 0.0 to 1.0
 ode = semidiscretize(semi, (0.0, FinalTime));
@@ -67,7 +68,12 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 # Print the timer summary
 summary_callback()
 
-md = semi.cache.md
 Q = sol.u[end]
 zz = vec(rd.Vp*StructArrays.component(Q,1))
 scatter(vec(rd.Vp*md.x),zz,leg=false,msw=0,ms=2,ratio=1)
+
+# cache = semi.cache
+# Q = Trixi.allocate_coefficients(md, eqn, solver, cache)
+# dQ = similar(Q)
+# Trixi.compute_coefficients!(Q, initial_condition, 0.0, md, eqn, solver, cache)
+# Trixi.rhs!(dQ, Q, nothing, md, eqn, initial_condition, nothing, nothing, solver, cache)

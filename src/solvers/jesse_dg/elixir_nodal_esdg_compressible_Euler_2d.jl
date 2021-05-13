@@ -23,9 +23,6 @@ K1D = 8
 CFL = .1
 FinalTime = .25
 
-element_type = Tri()
-VX,VY,EToV = uniform_mesh(element_type,K1D)
-
 eqn = CompressibleEulerEquations2D(1.4)
 @inline function max_abs_speed_normal(UL, UR, normal, equations::CompressibleEulerEquations2D)
     # Calculate primitive variables and speed of sound
@@ -40,6 +37,11 @@ end
 end
 solver = NodalESDG(N,Tri(),Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_dissipation,eqn)
 
+element_type = Tri()
+VX,VY,EToV = uniform_mesh(element_type,K1D)
+md = MeshData(VX,VY,EToV,solver.rd)
+md = make_periodic(md,solver.rd)
+
 function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
     x,y = xyz
     ρ = 1 + .5*exp(-25*(x^2+y^2))
@@ -51,8 +53,7 @@ function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
 end
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(UnstructuredMesh((VX,VY),EToV), CompressibleEulerEquations2D(1.4),
-                                    initial_condition, solver)
+semi = SemidiscretizationHyperbolic(md, eqn, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -64,7 +65,6 @@ ode = semidiscretize(semi, (0.0, FinalTime));
 # and resets the timers
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
-
 
 ###############################################################################
 # run the simulation
@@ -79,10 +79,9 @@ sol = solve(ode,CarpenterKennedy2N54(williamson_condition=false), dt=dt0, save_e
 # Print the timer summary
 summary_callback()
 
-md = semi.cache.md
 Q = sol.u[end]
 zz = vec(StructArrays.component(Q,1))
 scatter(vec(md.xq),vec(md.yq),zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90),ratio=1)
 
-dQ = similar(Q)
-cache = semi.cache
+# dQ = similar(Q)
+# cache = semi.cache

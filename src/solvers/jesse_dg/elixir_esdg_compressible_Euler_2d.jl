@@ -21,11 +21,13 @@ include("modal_esdg.jl")
 N = 3
 K1D = 16
 CFL = .1
-FinalTime = .1
+FinalTime = .25
 
 element_type = Tri()
 VX,VY,EToV = uniform_mesh(element_type,K1D)
 rd = RefElemData(element_type,N)
+md = MeshData(VX,VY,EToV,rd)
+md = make_periodic(md,rd)
 
 eqn = CompressibleEulerEquations2D(1.4)
 @inline function max_abs_speed_normal(UL, UR, normal, equations::CompressibleEulerEquations2D)
@@ -53,7 +55,7 @@ function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
 end
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(UnstructuredMesh((VX,VY),EToV), CompressibleEulerEquations2D(1.4),
+semi = SemidiscretizationHyperbolic(md, CompressibleEulerEquations2D(1.4),
                                     initial_condition, solver)
 
 ###############################################################################
@@ -75,17 +77,16 @@ dt0 = CFL * 2 / (K1D*CN)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 # sol = solve(ode, SSPRK43(), dt=.01*dt0, save_everystep=false, callback=callbacks);
-# sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
-sol = solve(ode,CarpenterKennedy2N54(williamson_condition=false), dt=dt0, save_everystep=false, callback=callbacks)
+sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
+# sol = solve(ode,CarpenterKennedy2N54(williamson_condition=false), dt=dt0, save_everystep=false, callback=callbacks)
 
 # Print the timer summary
 summary_callback()
 
-md = semi.cache.md
 Q = sol.u[end]
 zz = vec(rd.Vp*StructArrays.component(Q,1))
 scatter(vec(rd.Vp*md.x),vec(rd.Vp*md.y),zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90),ratio=1)
 
-dQ = similar(Q)
-cache = semi.cache
-equations = CompressibleEulerEquations2D(1.4)
+# dQ = similar(Q)
+# cache = semi.cache
+# equations = CompressibleEulerEquations2D(1.4)

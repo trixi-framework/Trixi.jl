@@ -16,10 +16,10 @@ end
 # ==========================================================
 
 Base.real(rd::RefElemData) = Float64 # is this for DiffEq.jl?
-Trixi.ndofs(mesh::UnstructuredMesh, rd::RefElemData, cache) = length(rd.r)*cache.md.K
+Trixi.ndofs(md::MeshData, rd::RefElemData, cache) = length(rd.r)*md.K
 Trixi.wrap_array(u_ode::StructArray, semi::Trixi.AbstractSemidiscretization) = u_ode
-Trixi.wrap_array(u_ode::StructArray, mesh::UnstructuredMesh, equations, solver, cache) = u_ode
-Trixi.ndims(mesh::UnstructuredMesh{NDIMS}) where {NDIMS} = NDIMS
+Trixi.wrap_array(u_ode::StructArray, md::MeshData, equations, solver, cache) = u_ode
+Trixi.ndims(md::MeshData{NDIMS}) where {NDIMS} = NDIMS
 
 
 # Enable timings, see src/auxiliary/auxiliary.jl
