@@ -4,7 +4,8 @@ using Trixi
 # Creating tutorials for these files:
 files = [
     "Adding a new equation" => "adding_a_new_equation.jl",
-    "Differentiable programming" => "differentiable_programming.jl"]
+    "Differentiable programming" => "differentiable_programming.jl",
+    "Testing" => "testing_repository.jl"]
 
 pages_dir       = joinpath(@__DIR__,"pages")
 notebooks_dir   = joinpath(@__DIR__,"../../../binder")
@@ -38,6 +39,7 @@ for (i, (title, filename)) in enumerate(files)
     function preprocess_notebook(content)
         return string(tutorial_title, "\n\n", content)
     end
+    # TODO: With `documenter=true` no references are written to notebook file. With `documenter=false` there are existing but not working right now.
     Literate.notebook(joinpath(repo_src,filename), notebooks_dir; name=tutorial_file, documenter=false, execute=false, preprocess=preprocess_notebook)
 
     # Generate markdown
