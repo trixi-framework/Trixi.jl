@@ -28,10 +28,8 @@ md = MeshData(VX,EToV,rd)
 md = make_periodic(md,rd)
 
 eqn = CompressibleEulerEquations1D(1.4)
-function LxF_dissipation(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
-    return .5 * max_abs_speed_naive(u_ll, u_rr, orientation, equations) * (u_ll-u_rr)
-end
-solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_dissipation,
+solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,
+                   Trixi.DissipationLocalLaxFriedrichs(),
                    Trixi.cons2entropy,Trixi.entropy2cons,eqn)
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations1D)
