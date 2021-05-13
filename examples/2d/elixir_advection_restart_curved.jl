@@ -18,7 +18,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 # appropriate setups in the elixir loading a restart file
 
 restart_filename = joinpath("out", restart_file)
-mesh = load_mesh(restart_filename, n_cells_max=0)
+mesh = load_mesh(restart_filename)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 

@@ -1,15 +1,12 @@
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
-  node_coordinates   ::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
-  X_xi               ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  X_eta              ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  Y_xi               ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  Y_eta              ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  inverse_jacobian   ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-  normals            ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
-  scaling            ::Array{RealT, 3}   # [nnodes, local sides, nelement]
-  surface_flux_values::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
+  node_coordinates     ::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
+  jacobian_matrix      ::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
+  inverse_jacobian     ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
+  contravariant_vectors::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
+  normal_directions    ::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
+  surface_flux_values  ::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
 end
 
 
@@ -21,20 +18,18 @@ function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
-  node_coordinates    = fill(nan_RealT, (2, nnodes, nnodes, capacity))
-  X_xi                = fill(nan_RealT, (nnodes, nnodes, capacity))
-  X_eta               = fill(nan_RealT, (nnodes, nnodes, capacity))
-  Y_xi                = fill(nan_RealT, (nnodes, nnodes, capacity))
-  Y_eta               = fill(nan_RealT, (nnodes, nnodes, capacity))
-  inverse_jacobian    = fill(nan_RealT, (nnodes, nnodes, capacity))
-  normals             = fill(nan_RealT, (2, nnodes, 4, capacity))
-  scaling             = fill(nan_RealT, (nnodes, 4, capacity))
-  surface_flux_values = fill(nan_uEltype, (NVARS, nnodes, 4, capacity))
+  node_coordinates      = fill(nan_RealT, (2, nnodes, nnodes, capacity))
+  jacobian_matrix       = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
+  inverse_jacobian      = fill(nan_RealT, (nnodes, nnodes, capacity))
+  contravariant_vectors = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
+  normal_directions     = fill(nan_RealT, (2, nnodes, 4, capacity))
+  surface_flux_values   = fill(nan_uEltype, (NVARS, nnodes, 4, capacity))
 
   return UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(node_coordinates,
-                                                                        X_xi, X_eta, Y_xi, Y_eta,
+                                                                        jacobian_matrix,
                                                                         inverse_jacobian,
-                                                                        normals, scaling,
+                                                                        contravariant_vectors,
+                                                                        normal_directions,
                                                                         surface_flux_values)
 end
 
@@ -83,14 +78,13 @@ function init_element!(elements, element, nodes, corners_or_surface_curves)
 
   calc_node_coordinates!(elements.node_coordinates, element, nodes, corners_or_surface_curves)
 
-  calc_metric_terms!(elements.X_xi, elements.X_eta, elements.Y_xi, elements.Y_eta, element,
-                     nodes, corners_or_surface_curves)
+  calc_metric_terms!(elements.jacobian_matrix, element, nodes, corners_or_surface_curves)
 
-  calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.X_xi, elements.X_eta,
-                         elements.Y_xi, elements.Y_eta)
+  calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.jacobian_matrix)
 
-  calc_normals_and_scaling!(elements.normals, elements.scaling, element, nodes,
-                            corners_or_surface_curves)
+  calc_contravariant_vectors!(elements.contravariant_vectors, element, elements.jacobian_matrix)
+
+  calc_normal_directions!(elements.normal_directions, element, nodes, corners_or_surface_curves)
 
   return elements
 end
@@ -126,7 +120,6 @@ end
 
 @inline ninterfaces(interfaces::UnstructuredInterfaceContainer2D) = length(interfaces.start_index)
 
-@inline eachinterface(interfaces::UnstructuredInterfaceContainer2D) = Base.OneTo(ninterfaces(interfaces))
 
 Base.eltype(::UnstructuredInterfaceContainer2D{uEltype}) where {uEltype} = uEltype
 
@@ -202,16 +195,16 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
       primary_element = edge_information[3,j]
       # Note: This is a way to get the neighbour element number and local side from a square
       #       structured mesh where the element local surface numbering is right-handed
-      if boundary_names[primary_side, primary_element] == "Bottom"
+      if boundary_names[primary_side, primary_element] === :Bottom
         secondary_element = primary_element + (n_elements - convert(Int, sqrt(n_elements)))
         secondary_side    = 3
-      elseif boundary_names[primary_side, primary_element] == "Top"
+      elseif boundary_names[primary_side, primary_element] === :Top
         secondary_element = primary_element - (n_elements - convert(Int, sqrt(n_elements)))
         secondary_side    = 1
-      elseif boundary_names[primary_side, primary_element] == "Left"
+      elseif boundary_names[primary_side, primary_element] === :Left
         secondary_element = primary_element + (convert(Int, sqrt(n_elements)) - 1)
         secondary_side    = 2
-      elseif boundary_names[primary_side, primary_element] == "Right"
+      elseif boundary_names[primary_side, primary_element] === :Right
         secondary_element = primary_element - (convert(Int, sqrt(n_elements)) - 1)
         secondary_side    = 4
       end
@@ -236,7 +229,7 @@ struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDE
   element_id      ::Vector{Int}       # [boundaries]
   element_side_id ::Vector{Int}       # [boundaries]
   node_coordinates::Array{RealT, 3}   # [ndims, nnodes, boundaries]
-  name            ::Vector{String}    # [boundaries]
+  name            ::Vector{Symbol}    # [boundaries]
 end
 
 
@@ -252,7 +245,7 @@ function UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacit
   element_id       = fill(typemin(Int), capacity)
   element_side_id  = fill(typemin(Int), capacity)
   node_coordinates = fill(nan_RealT, (2, n_nodes, capacity))
-  name             = fill("empty", capacity)
+  name             = fill(:empty, capacity)
 
   return UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(u, element_id, element_side_id,
                                                                          node_coordinates, name)
@@ -261,15 +254,15 @@ end
 
 @inline nboundaries(boundaries::UnstructuredBoundaryContainer2D) = length(boundaries.name)
 
-@inline eachboundary(boundaries::UnstructuredBoundaryContainer2D) = Base.OneTo(nboundaries(boundaries))
-
 
 function init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg)
 
   boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg}(mesh.n_boundaries)
 
-  # extract and save the appropriate neighbour information
-  init_boundaries!(boundaries, mesh.neighbour_information, mesh.boundary_names, elements)
+  # extract and save the appropriate boundary information provided any physical boundaries exist
+  if mesh.n_boundaries > 0
+    init_boundaries!(boundaries, mesh.neighbour_information, mesh.boundary_names, elements)
+  end
   return boundaries
 end
 

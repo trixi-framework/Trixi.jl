@@ -20,7 +20,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   test_examples_2d = Dict(
     "TreeMesh" => "elixir_euler_blast_wave_amr.jl",
     "CurvedMesh" => "elixir_euler_source_terms_waving_flag.jl",
-    "UnstructuredQuadMesh" => "elixir_euler_unstructured_quad.jl"
+    "UnstructuredQuadMesh" => "elixir_euler_unstructured_quad_wall_bc.jl"
   )
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
