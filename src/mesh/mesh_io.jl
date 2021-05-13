@@ -196,6 +196,11 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
 
     mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
+  elseif mesh_type == "UnstructuredQuadMesh"
+    mesh_filename = h5open(mesh_file, "r") do file
+      return read(attributes(file)["mesh_filename"])
+    end
+    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=false, unsaved_changes=false)
   else
     error("Unknown mesh type!")
   end
