@@ -28,12 +28,15 @@ function Trixi.create_cache(md::MeshData{2}, equations, solver::NodalESDG, RealT
     nvars = nvariables(equations)
     Uf = StructArray{SVector{nvars,Float64}}(ntuple(_->similar(md.xq),nvars))
 
+    is_boundary_node = zeros(Int,size(md.xf))
+    is_boundary_node[md.mapB] .= 1 # change to boundary tag later
+
     # tmp cache for threading
     structarray_zeros = StructArray{SVector{nvars,Float64}}(ntuple(_->similar(md.xq[:,1]),nvars))
     rhse_threads = [structarray_zeros for _ in 1:Threads.nthreads()]
 
     cache = (;QrskewTr,QsskewTr,invm,Uf,
-             rhse_threads)
+             rhse_threads,is_boundary_node)
 
     return cache
 end
@@ -70,12 +73,31 @@ function Trixi.rhs!(dQ, Q::StructArray, t, md::MeshData{2}, equations,
         hadsum_ATr!(rhse, QyTr, volume_flux(2), Ue) 
 
         for (i,vol_id) = enumerate(Fmask)
-            UM, UP = Uf[i,e], Uf[mapP[i,e]]
-            Fx = interface_flux(1)(UP,UM)
-            Fy = interface_flux(2)(UP,UM)
-            normal = SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e]
-            diss = interface_dissipation(normal)(UM,UP)
-            val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] + diss*sJ[i,e]) * wf[i]
+            if cache.is_boundary_node[i,e] > 0
+                # tag = cache.is_boundary_node[i,e]
+                # bc_flux(UM,SVector{2}(nx,ny))
+                UM = Uf[i,e]
+                ϱ, ϱu, ϱv, E = UM
+                u, v = ϱu/ϱ, ϱv/ϱ
+                nx, ny = nxJ[i,e]/sJ[i,e], nyJ[i,e]/sJ[i,e]
+                u_n = u*nx + v*ny
+                uP = u - 2*u_n*nx
+                vP = v - 2*u_n*ny
+                UP = SVector{4}(ϱ,ϱ*uP,ϱ*vP,E) 
+
+                Fx = interface_flux(1)(UP,UM)
+                Fy = interface_flux(2)(UP,UM)
+                normal = SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e]
+                diss = interface_dissipation(normal)(UM,UP)
+                val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] + diss*sJ[i,e]) * wf[i]
+            else
+                UM, UP = Uf[i,e], Uf[mapP[i,e]]
+                Fx = interface_flux(1)(UP,UM)
+                Fy = interface_flux(2)(UP,UM)
+                normal = SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e]
+                diss = interface_dissipation(normal)(UM,UP)
+                val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] + diss*sJ[i,e]) * wf[i]
+            end
             rhse[vol_id] += val
         end
 

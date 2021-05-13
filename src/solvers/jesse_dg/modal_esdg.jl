@@ -82,7 +82,7 @@ function Trixi.create_cache(md::MeshData{1}, equations, solver::ModalESDG, RealT
 
     cache = (;QrhskewTr,VhP,Ph,
             Uq,VUq,VUh,Uh,
-            rhse_threads,
+            rhse_threads,            
             project_and_store!)
 
     return cache
@@ -98,7 +98,8 @@ function Trixi.rhs!(dQ, Q::StructArray, t, md::MeshData{1}, equations,
     rd = solver.rd
     @unpack wf = rd # careful - only wf, wq are inferrable from rd.
     @unpack volume_flux, interface_flux, interface_dissipation = solver
-
+    @unpack is_boundary_node = cache
+    
     Nh,Nq = size(VhP)
     skip_index = let Nq=Nq
         (i,j) -> i>Nq && j > Nq
@@ -110,19 +111,19 @@ function Trixi.rhs!(dQ, Q::StructArray, t, md::MeshData{1}, equations,
         rhse = cache.rhse_threads[Threads.threadid()]
 
         fill!(rhse,zero(eltype(rhse))) # 40ns, (1 allocation: 48 bytes)
-        Ue = view(Uh,:,e)    # 8ns (0 allocations: 0 bytes) after @inline in Base.view(StructArray)
+        Ue = view(Uh,:,e)              # 8ns (0 allocations: 0 bytes) after @inline in Base.view(StructArray)
         QxTr = LazyArray(@~ @. 2 * rxJ[1,e]*QrhskewTr )
 
         hadsum_ATr!(rhse, QxTr, volume_flux(1), Ue, skip_index) 
         
         # add in interface flux contributions
         for (i,vol_id) = enumerate(Nq+1:Nh)
-            UM, UP = Uf[i,e], Uf[mapP[i,e]]        
+            UM, UP = Uf[i,e], Uf[mapP[i,e]]
             Fx = interface_flux(1)(UP,UM)
             diss = interface_dissipation(SVector{1}(nxJ[i,e]))(UM,UP)
             val = (Fx * nxJ[i,e] + diss*sJ[i,e]) 
             rhse[vol_id] = rhse[vol_id] + val
-        end
+        end        
 
         # project down and store
         @. rhse = -rhse/J[1,e]
@@ -158,6 +159,9 @@ function Trixi.create_cache(md::MeshData{2}, equations, solver::ModalESDG, RealT
     VUh = StructArray{SVector{nvars,Float64}}(ntuple(_->similar([md.xq;md.xf]),nvars))
     Uh = similar(VUh)
 
+    is_boundary_node = zeros(Int,size(md.xf))
+    is_boundary_node[md.mapB] .= 1 # change to boundary tag later
+
     # tmp cache for threading
     rhse_threads = [similar(Uh[:,1]) for _ in 1:Threads.nthreads()]
 
@@ -165,6 +169,7 @@ function Trixi.create_cache(md::MeshData{2}, equations, solver::ModalESDG, RealT
             QrhskewTr,QshskewTr,VhP,Ph,
             Uq,VUq,VUh,Uh,
             rhse_threads,
+            is_boundary_node,
             project_and_store!)
 
     return cache
@@ -202,12 +207,31 @@ function Trixi.rhs!(dQ, Q::StructArray, t, md::MeshData{2}, equations,
         hadsum_ATr!(rhse, QyTr, volume_flux(2), Ue, skip_index) 
 
         for (i,vol_id) = enumerate(Nq+1:Nh)
-            UM, UP = Uf[i,e], Uf[mapP[i,e]]
-            Fx = interface_flux(1)(UP,UM)
-            Fy = interface_flux(2)(UP,UM)
-            normal = SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e]
-            diss = interface_dissipation(normal)(UM,UP)
-            val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] + diss*sJ[i,e]) * wf[i]
+            if cache.is_boundary_node[i,e] > 0
+                # tag = cache.is_boundary_node[i,e]
+                # bc_flux(UM,SVector{2}(nx,ny))
+                UM = Uf[i,e]
+                ϱ, ϱu, ϱv, E = UM
+                u, v = ϱu/ϱ, ϱv/ϱ
+                nx, ny = nxJ[i,e]/sJ[i,e], nyJ[i,e]/sJ[i,e]
+                u_n = u*nx + v*ny
+                uP = u - 2*u_n*nx
+                vP = v - 2*u_n*ny
+                UP = SVector{4}(ϱ,ϱ*uP,ϱ*vP,E) 
+
+                Fx = interface_flux(1)(UP,UM)
+                Fy = interface_flux(2)(UP,UM)
+                normal = SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e]
+                diss = interface_dissipation(normal)(UM,UP)
+                val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] + diss*sJ[i,e]) * wf[i]
+            else
+                UM, UP = Uf[i,e], Uf[mapP[i,e]]
+                Fx = interface_flux(1)(UP,UM)
+                Fy = interface_flux(2)(UP,UM)
+                normal = SVector{2}(nxJ[i,e],nyJ[i,e])/sJ[i,e]
+                diss = interface_dissipation(normal)(UM,UP)
+                val = (Fx * nxJ[i,e] + Fy * nyJ[i,e] + diss*sJ[i,e]) * wf[i]
+            end            
             rhse[vol_id] += val
         end
 
