@@ -19,7 +19,7 @@ include("modal_esdg.jl")
 # semidiscretization
 
 N = 3
-K1D = 32
+K1D = 16
 CFL = .1
 FinalTime = .1
 
@@ -39,7 +39,8 @@ end
 @inline function LxF_dissipation(u_ll, u_rr, normal, equations::CompressibleEulerEquations2D)
     return .5 * max_abs_speed_normal(u_ll, u_rr, normal, equations) * (u_ll-u_rr)
 end
-solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_dissipation,eqn)
+solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_dissipation,
+                   Trixi.cons2entropy,Trixi.entropy2cons,eqn)
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
     x,y = xyz
@@ -84,3 +85,7 @@ md = semi.cache.md
 Q = sol.u[end]
 zz = vec(rd.Vp*StructArrays.component(Q,1))
 scatter(vec(rd.Vp*md.x),vec(rd.Vp*md.y),zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90),ratio=1)
+
+dQ = similar(Q)
+cache = semi.cache
+equations = CompressibleEulerEquations2D(1.4)

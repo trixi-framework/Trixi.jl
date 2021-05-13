@@ -24,7 +24,8 @@ function hybridized_SBP_operators(rd::RefElemData{2,Quad})
     return Qrh,Qsh,VhP,Ph
 end
 
-function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn)
+function compute_entropy_projection!(Q,solver::ModalESDG,cache,eqn)
+    @unpack rd = solver    
     @unpack Vq = rd
     @unpack VhP,Ph = cache
     @unpack Uq, VUq, VUh, Uh = cache
@@ -33,9 +34,9 @@ function compute_entropy_projection!(Q,rd::RefElemData,cache,eqn)
     #=     CheapThreads.reset_workers!()
            ThreadingUtilities.reinitialize_tasks!()    =#
     StructArrays.foreachfield((uout,u)->matmul!(uout,Vq,u),Uq,Q)
-    bmap!(u->cons2entropy(u,eqn),VUq,Uq) # 77.5μs
+    bmap!(u->solver.cons2entropy(u,eqn),VUq,Uq) # 77.5μs
     StructArrays.foreachfield((uout,u)->matmul!(uout,VhP,u),VUh,VUq)
-    bmap!(v->entropy2cons(v,eqn),Uh,VUh) # 327.204 μs
+    bmap!(v->solver.entropy2cons(v,eqn),Uh,VUh) # 327.204 μs
 
     Nh,Nq = size(VhP)
     Uf = view(Uh,Nq+1:Nh,:) # 24.3 μs
@@ -103,7 +104,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{1}, equations,
     @unpack project_and_store! = cache
     @unpack rxJ,J,nxJ,sJ,mapP = md
     rd = solver.rd
-    @unpack Vq,wf = rd
+    @unpack wf = rd # careful - only wf, wq are inferrable from rd.
     @unpack volume_flux, interface_flux, interface_dissipation = solver
 
     Nh,Nq = size(VhP)
@@ -111,7 +112,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{1}, equations,
         (i,j) -> i>Nq && j > Nq
     end
 
-    Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
+    Uh,Uf = compute_entropy_projection!(Q,solver,cache,equations) # N=2, K=16: 670 μs
         
     @batch for e = 1:md.K 
         rhse = cache.rhse_threads[Threads.threadid()]
@@ -134,7 +135,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{1}, equations,
         # project down and store
         @. rhse = -rhse/J[1,e]
 
-        calc_source_terms(rhse,Ue,t,source_terms,equations,solver,cache,e)
+        calc_source_terms!(rhse,Ue,t,source_terms,equations,solver,cache,e)
         
         StructArrays.foreachfield(project_and_store!,view(dQ,:,e),rhse) 
     end
@@ -190,17 +191,16 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{2}, equations,
     @unpack QrhskewTr,QshskewTr,VhP,Ph = cache
     @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
     @unpack volume_flux, interface_flux, interface_dissipation = solver
-    @unpack rd = solver
-    @unpack Vq,wf = rd
+    @unpack wf = solver.rd
 
     Nh,Nq = size(VhP)
     skip_index = let Nq=Nq
         (i,j) -> i > Nq && j > Nq
     end
 
-    Trixi.@timeit_debug Trixi.timer() "compute_entropy_projection!" begin
-        Uh,Uf = compute_entropy_projection!(Q,rd,cache,equations) # N=2, K=16: 670 μs
-    end
+    # Trixi.@timeit_debug Trixi.timer() "compute_entropy_projection!" begin
+    Uh,Uf = compute_entropy_projection!(Q,solver,cache,equations) # N=2, K=16: 670 μs
+    # end
 
     @batch for e = 1:md.K
         rhse = cache.rhse_threads[Threads.threadid()]
@@ -226,7 +226,7 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{2}, equations,
         @. rhse = -rhse / J[1,e]
 
         # add source terms after scaling by J
-        calc_source_terms(rhse,Ue,t,source_terms,equations,solver,cache,e)
+        calc_source_terms!(rhse,Ue,t,source_terms,equations,solver,cache,e)
 
         # project down and store
         StructArrays.foreachfield(project_and_store!, view(dQ,:,e), rhse)
@@ -237,8 +237,8 @@ end
 
 ## ==============================================================================
 
-function calc_source_terms(du::StructArray,u,t,source_terms::Nothing,
-                           equations,solver::ModalESDG,cache,element_index)
+@inline function calc_source_terms!(du::StructArray,u,t,source_terms::Nothing,
+                                    equations,solver::ModalESDG,cache,element_index)
     return nothing
 end
 
@@ -249,8 +249,8 @@ end
 Adds source terms on an element (weighted by quadrature weights) prior to projection. 
 Independent of dimension or equation.
 """
-function calc_source_terms(du::StructArray,u,t,source_terms,
-                           equations,solver::ModalESDG,cache,element_index)
+@inline function calc_source_terms!(du::StructArray,u,t,source_terms,
+                                    equations,solver::ModalESDG,cache,element_index)
     @unpack md = cache
     @unpack rd = solver
 
