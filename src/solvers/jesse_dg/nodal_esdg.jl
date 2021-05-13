@@ -1,7 +1,6 @@
 include("flux_differencing.jl")
 
-function Trixi.allocate_coefficients(md::MeshData,
-                                     equations, solver::NodalESDG, cache)
+function Trixi.allocate_coefficients(md::MeshData, equations, solver::NodalESDG, cache)
     nvars = nvariables(equations) 
     return StructArray([SVector{nvars}(zeros(nvars)) for i in axes(md.xq,1), j in axes(md.xq,2)])
 end
@@ -26,7 +25,7 @@ function Trixi.create_cache(md::MeshData{2}, equations, solver::NodalESDG, RealT
 
     # face storage
     nvars = nvariables(equations)
-    Uf = StructArray{SVector{nvars,Float64}}(ntuple(_->similar(md.xq),nvars))
+    Uf = StructArray{SVector{nvars,Float64}}(ntuple(_->similar(md.xf),nvars))
 
     is_boundary_node = zeros(Int,size(md.xf))
     is_boundary_node[md.mapB] .= 1 # change to boundary tag later
