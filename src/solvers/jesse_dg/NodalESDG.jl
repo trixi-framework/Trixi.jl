@@ -108,6 +108,13 @@ struct NodalESDG{ElemType,DIM,F1,F2,F3,Tv,Ti}
     interface_dissipation::F3
 end
 
+function Base.show(io::IO, solver::NodalESDG{ElemType,DIM}) where {ElemType,DIM}
+    println("Nodal ESDG solver for element type $ElemType in $DIM dimension with ")
+    println("   volume flux           = $(solver.volume_flux.trixi_volume_flux)")
+    println("   interface flux        = $(solver.interface_flux.trixi_interface_flux)")    
+    println("   interface dissipation = $(solver.interface_dissipation.trixi_interface_dissipation)")        
+end
+
 function NodalESDG(N,elementType,
                    trixi_volume_flux::F1,
                    trixi_interface_flux::F2,
