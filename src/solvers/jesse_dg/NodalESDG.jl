@@ -102,7 +102,7 @@ Entropy stable solver using nodal (collocated) DG methods
 """
 struct NodalESDG{ElemType,DIM,F1,F2,F3,Tv,Ti}
     sbp_operators::DiagESummationByParts{ElemType,DIM,Tv,Ti} # non-polynomial SBP operators
-    rd::RefElemData{DIM,ElemType}
+    rd::RefElemData{DIM,ElemType,Tv} 
     volume_flux::F1 
     interface_flux::F2
     interface_dissipation::F3
