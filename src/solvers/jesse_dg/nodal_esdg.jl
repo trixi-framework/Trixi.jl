@@ -9,8 +9,6 @@ end
 
 function Trixi.compute_coefficients!(u::StructArray, initial_condition, t,
                                      mesh::UnstructuredMesh, equations, solver::NodalESDG, cache)
-    # @show typeof(u), size(u)
-    # @show length(cache.md.xq)
     for i in eachindex(u) # loop over quadrature (sbp) nodes
         xyz_i = getindex.(cache.md.xyzq,i)
         u[i] = initial_condition(xyz_i,t,equations) # interpolate - add projection later?
@@ -22,14 +20,14 @@ end
 function Trixi.create_cache(mesh::UnstructuredMesh{2}, equations, solver::NodalESDG, RealT, uEltype)
 
     @unpack VXYZ,EToV = mesh
-    @unpack rd = solver
+    @unpack rd = solver # TODO: recompute instead so solver doesn't carry a type unstable rd around?
     md = MeshData(VXYZ...,EToV,rd)
     md = make_periodic(md,rd)
 
     @unpack sbp_operators = solver
     Qr,Qs = sbp_operators.Qrst
-    QrskewTr = -Matrix(.5*(Qr-Qr'))
-    QsskewTr = -Matrix(.5*(Qs-Qs'))
+    QrskewTr = -.5*(Qr-Qr')
+    QsskewTr = -.5*(Qs-Qs')
     invm = 1 ./ sbp_operators.wq
 
     # face storage
@@ -59,14 +57,12 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{2}, equations,
     @unpack Fmask,wf = sbp_operators
     @unpack QrskewTr,QsskewTr,invm,Uf = cache
 
-    @timeit Trixi.timer() "extract Uf" begin
-        for e = 1:size(Q,2)
-            for (i,vol_id) in enumerate(Fmask)
-                Uf[i,e] = Q[vol_id,e]
-            end
+    for e = 1:size(Q,2)
+        for (i,vol_id) in enumerate(Fmask)
+            Uf[i,e] = Q[vol_id,e]
         end
-        #Uf .= Q[Fmask,:]
     end
+    # Uf .= @view Q[Fmask,:]
 
     #@batch 
     for e = 1:md.K
@@ -91,10 +87,8 @@ function Trixi.rhs!(dQ, Q::StructArray, t, mesh::UnstructuredMesh{2}, equations,
             rhse[vol_id] += val
         end
 
-        @timeit Trixi.timer() "broadcast + store" begin
-            @. rhse = -rhse / J[1,e] # split up broadcasts into short statements
-            @. dQ[:,e] = invm * rhse 
-        end
+        @. rhse = -rhse / J[1,e] # split up broadcasts into short statements
+        @. dQ[:,e] = invm * rhse 
     end
 
     return nothing
@@ -102,18 +96,18 @@ end
 
 ## ==============================================================================
 
-function calc_source_terms(du::StructArray,u,t,source_terms::Nothing,
+function calc_source_terms!(du::StructArray,u,t,source_terms::Nothing,
                            equations,solver::NodalESDG,cache)
     return nothing
 end
 
 """
-    function calc_source_terms(du::StructArray,u,t,source_terms,
+    function calc_source_terms!(du::StructArray,u,t,source_terms,
                                equations,solver::ModalESDG,cache,element_index)
 
 Adds source terms on an element. Independent of dimension or equation.
 """
-function calc_source_terms(du::StructArray,u,t,source_terms,
+function calc_source_terms!(du::StructArray,u,t,source_terms,
                            equations,solver::NodalESDG,cache)
     @unpack md = cache
     @unpack rd = solver
