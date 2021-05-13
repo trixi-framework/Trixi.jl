@@ -99,7 +99,7 @@ end
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
 
   # Other array types such as
-  #   prototype = StrideArray(undef, uEltype, StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)))
+    # prototype = StrideArray(undef, uEltype, StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)))
   #   prototype = Array{uEltype, 2}(undef, nvariables(equations), nnodes(mortar_l2))
   # do not seem to be faster in some benchmark experiments.
   prototype = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}(undef)
@@ -1009,8 +1009,6 @@ end
       direction = 4
     end
   end
-  # surface_flux_values[:, :, direction, upper_element] .= fstar_upper
-  # surface_flux_values[:, :, direction, lower_element] .= fstar_lower
   copyto!(@view(surface_flux_values[:, :, direction, upper_element]), fstar_upper)
   copyto!(@view(surface_flux_values[:, :, direction, lower_element]), fstar_lower)
 
