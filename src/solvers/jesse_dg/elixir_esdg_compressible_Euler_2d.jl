@@ -10,6 +10,7 @@ using LoopVectorization
 
 using StartUpDG
 
+include("triangulate_support.jl")
 include("trixi_interface.jl") # some setup utils
 include("flux_differencing.jl")
 include("ModalESDG.jl")
@@ -20,14 +21,32 @@ include("modal_esdg.jl")
 
 N = 3
 K1D = 16
-CFL = .1
-FinalTime = .25
+CFL = .25
+FinalTime = .75
 
 element_type = Tri()
-VX,VY,EToV = uniform_mesh(element_type,K1D)
+# VX,VY,EToV = uniform_mesh(element_type,K1D)
+
+h = .025
+triin=Triangulate.TriangulateIO()
+triin.pointlist=Matrix{Cdouble}([-1.0 -1.0;
+                                  1.0 -1.0;
+                                  1.0  1.0;
+                                 -1.0  1.0;
+                                 -0.1 -0.1;
+                                  0.1 -0.1;
+                                  0.1  0.1;
+                                 -0.1  0.1;
+                                 ]')
+triin.segmentlist=Matrix{Cint}([1 2; 2 3; 3 4; 4 1; 5 6; 6 7; 7 8; 8 5; ]')
+triin.segmentmarkerlist=Vector{Int32}([1, 1,1,1, 2,2,2,2])
+triin.holelist=[0. 0.]'
+triout = triangulate(triin,h^2)
+VX,VY,EToV = triangulateIO_to_VXYZEToV(triout)
+
 rd = RefElemData(element_type,N)
 md = MeshData(VX,VY,EToV,rd)
-md = make_periodic(md,rd)
+# md = make_periodic(md,rd)
 
 eqn = CompressibleEulerEquations2D(1.4)
 @inline function max_abs_speed_normal(UL, UR, normal, equations::CompressibleEulerEquations2D)
@@ -46,10 +65,16 @@ solver = ModalESDG(rd,Trixi.flux_chandrashekar,Trixi.flux_chandrashekar,LxF_diss
 
 function initial_condition(xyz,t,equations::CompressibleEulerEquations2D)
     x,y = xyz
-    ϱ = 1 + .5*exp(-25*(x^2+y^2))    
-    u = 1.0
-    v = .5
-    p = 2.
+    # ϱ = 1 + .5*exp(-25*(x^2+y^2))    
+    # u = 1.0
+    # v = .5
+    # p = 2.
+
+    ϱ = 1 + .5*exp(-200*((x-.5)^2+(y-.5)^2))    
+    u = 0.0
+    v = 0.0
+    p = ϱ^equations.gamma
+
     return prim2cons((ϱ,u,v,p),equations)
 end
 
@@ -84,7 +109,7 @@ summary_callback()
 
 Q = sol.u[end]
 zz = vec(rd.Vp*StructArrays.component(Q,1))
-scatter(vec(rd.Vp*md.x),vec(rd.Vp*md.y),zz,zcolor=zz,leg=false,msw=0,ms=2,cam=(0,90),ratio=1)
+scatter(vec(rd.Vp*md.x),vec(rd.Vp*md.y),zz,zcolor=zz,leg=false,msw=0,ms=1,cam=(0,90),ratio=1)
 
 # dQ = similar(Q)
 # cache = semi.cache
