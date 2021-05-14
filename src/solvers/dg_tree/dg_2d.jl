@@ -46,11 +46,12 @@ function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equat
   f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
 
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype, 2, nvariables(equations) * nnodes(dg)}
-  fstar_upper_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  # TODO: mortars. Consider using `StrideArray`s.
+  prototype = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype, 2, nvariables(equations) * nnodes(dg)}(undef)
+  fstar_upper_threaded           = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded           = [similar(prototype) for _ in 1:Threads.nthreads()]
+  noncons_diamond_upper_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded,
           fstar_upper_threaded, fstar_lower_threaded,
