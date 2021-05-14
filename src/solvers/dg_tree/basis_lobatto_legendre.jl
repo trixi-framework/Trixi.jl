@@ -109,6 +109,10 @@ function MortarL2(basis::LobattoLegendreBasis)
   forward_lower = StrideArray(forward_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
   reverse_upper = StrideArray(reverse_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
   reverse_lower = StrideArray(reverse_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  # TODO: mortars
+  #       The strides of these arrays are not static!
+  #       Solution: Create `StrideArray`s from scratch and fill them with the
+  #       given data.
 
   LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
     forward_upper, forward_lower,
