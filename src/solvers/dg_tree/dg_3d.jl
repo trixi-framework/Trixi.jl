@@ -121,18 +121,13 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
-  # TODO: Taal compare performance of different types
-  A3d = Array{uEltype, 3}
-  fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_upper_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_lower_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_lower_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_tmp1_threaded        = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                                   for _ in 1:Threads.nthreads()]
+  # TODO: mortars; compare performance of different types
+  prototype = Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
+  fstar_upper_left_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_upper_right_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_lower_left_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_lower_right_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_tmp1_threaded        = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   (; fstar_upper_left_threaded, fstar_upper_right_threaded,
      fstar_lower_left_threaded, fstar_lower_right_threaded,
