@@ -1,4 +1,10 @@
 
+function fast_copyto!(dest::AbstractArray, src::AbstractArray)
+  @avx for idx in indices((dest, src))
+      dest[idx] = src[idx]
+  end
+end
+
 # Naive implementations of multiply_dimensionwise used to demonstrate the functionality
 # without performance optimizations and for testing correctness of the optimized versions
 # implemented below.
