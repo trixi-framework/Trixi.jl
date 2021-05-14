@@ -1009,8 +1009,8 @@ end
       direction = 4
     end
   end
-  copyto!(@view(surface_flux_values[:, :, direction, upper_element]), fstar_upper)
-  copyto!(@view(surface_flux_values[:, :, direction, lower_element]), fstar_lower)
+  fast_copyto!(@view(surface_flux_values[:, :, direction, upper_element]), fstar_upper)
+  fast_copyto!(@view(surface_flux_values[:, :, direction, lower_element]), fstar_lower)
 
   # Project small fluxes to large element
   if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
