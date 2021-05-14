@@ -143,12 +143,12 @@ function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 1},
 end
 
 # 1D version, apply matrixJ to data_inJ
-function multiply_dimensionwise!(data_out::AbstractArray{T, 2}, matrix1::AbstractMatrix,
+function multiply_dimensionwise!(data_out::AbstractArray{T, 2},     matrix1::AbstractMatrix,
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
                                  data_in2::AbstractArray{<:Any, 2}) where {T}
   # @tullio threads=false data_out[v, i] = matrix1[i, ii] * data_in1[v, ii] + matrix2[i, ii] * data_in2[v, ii]
   # TODO: LoopVectorization upgrade
-  #   We would like to use `@avx` for the outermost loop possibly fuse both inner
+  #   We would like to use `@avx` for the outermost loop and fuse both inner
   #   loops, but that does currently not work because of limitations of
   #   LoopVectorizationjl. However, Chris Elrod is planning to address this in
   #   the future, cf. https://github.com/JuliaSIMD/LoopVectorization.jl/issues/230#issuecomment-810632972
@@ -258,7 +258,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
 
   # Interpolate in x-direction
   # @tullio threads=false tmp1[v, i, j]     = matrix1[i, ii] * data_in[v, ii, j]
-  @avx for j in indices((tmp1, data_in), (3, 3)), i in indices((tmp1, matrix1), (2, 1)), v in indices((tmp1, data_in1), (1, 1))
+  @avx for j in indices((tmp1, data_in), (3, 3)), i in indices((tmp1, matrix1), (2, 1)), v in indices((tmp1, data_in), (1, 1))
     res = zero(eltype(tmp1))
     for ii in indices((data_in, matrix1), (2, 2))
       res += matrix1[i, ii] * data_in[v, ii, j]
