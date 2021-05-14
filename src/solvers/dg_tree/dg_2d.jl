@@ -98,11 +98,7 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
 
-  # Other array types such as
-    # prototype = StrideArray(undef, uEltype, StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)))
-  #   prototype = Array{uEltype, 2}(undef, nvariables(equations), nnodes(mortar_l2))
-  # do not seem to be faster in some benchmark experiments.
-  prototype = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}(undef)
+  prototype = StrideArray(undef, uEltype, StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)))
   fstar_upper_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
