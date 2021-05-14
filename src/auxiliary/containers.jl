@@ -71,7 +71,7 @@ end
 # inheriting from AbstractContainer.
 # TODO: Shall we extend Base.copyto! ?
 function Trixi.copy!(target::AbstractContainer, source::AbstractContainer,
-               first::Int, last::Int, destination::Int)
+                     first::Int, last::Int, destination::Int)
   @assert 1 <= first <= length(source) "First cell out of range"
   @assert 1 <= last <= length(source) "Last cell out of range"
   @assert 1 <= destination <= length(target) "Destination out of range"
