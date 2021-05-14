@@ -159,9 +159,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{T, 2},     matrix1::Abs
   #   LoopVectorizationjl. However, Chris Elrod is planning to address this in
   #   the future, cf. https://github.com/JuliaSIMD/LoopVectorization.jl/issues/230#issuecomment-810632972
 
-  # TODO: mortars. Benchmark this!
-
-  # Optimize the heckout of this by telling LLVM that the output array will not
+  # Optimize the heck out of this by telling LLVM that the output array will not
   # alias with the input arrays
   # https://github.com/chriselrod/StrideArrays.jl/issues/29#issuecomment-840914970
   d1 = LoopVectorization.ArrayInterface.size(data_in1, StaticInt(1))
@@ -404,6 +402,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
   # Interpolate in x-direction
   # @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
   @avx for k in indices((tmp1, data_in), (4, 4)), j in indices((tmp1, data_in), (3, 3)), i in indices((tmp1, matrix1), (2, 1)), v in indices((tmp1, data_in), (1, 1))
+    res = zero(eltype(tmp1))
     for ii in indices((data_in, matrix1), (2, 2))
       res += matrix1[i, ii] * data_in[v, ii, j, k]
     end
@@ -443,6 +442,7 @@ function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
   # Interpolate in x-direction
   # @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
   @avx for k in indices((tmp1, data_in), (4, 4)), j in indices((tmp1, data_in), (3, 3)), i in indices((tmp1, matrix1), (2, 1)), v in indices((tmp1, data_in), (1, 1))
+    res = zero(eltype(tmp1))
     for ii in indices((data_in, matrix1), (2, 2))
       res += matrix1[i, ii] * data_in[v, ii, j, k]
     end
