@@ -105,14 +105,18 @@ function MortarL2(basis::LobattoLegendreBasis)
 
   # Type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency.
-  forward_upper = StrideArray(forward_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
-  forward_lower = StrideArray(forward_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
-  reverse_upper = StrideArray(reverse_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
-  reverse_lower = StrideArray(reverse_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
-  # TODO: mortars
-  #       The strides of these arrays are not static!
-  #       Solution: Create `StrideArray`s from scratch and fill them with the
-  #       given data.
+  # It might appear simpler to use something like
+  #   forward_upper = StrideArray(forward_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  #   forward_lower = StrideArray(forward_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  #   reverse_upper = StrideArray(reverse_upper_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  #   reverse_lower = StrideArray(reverse_lower_, (StaticInt(nnodes_), StaticInt(nnodes_)))
+  # However, the strides of these arrays are not static! Thus, we either need to
+  # pass additional arguments or create `StrideArray`s from scratch and fill
+  # them with the given data. That latter approach is used below.
+  forward_upper = StrideArray(undef, eltype(forward_upper_), StaticInt(nnodes_), StaticInt(nnodes_)); copyto!(forward_upper, forward_upper_)
+  forward_lower = StrideArray(undef, eltype(forward_lower_), StaticInt(nnodes_), StaticInt(nnodes_)); copyto!(forward_lower, forward_lower_)
+  reverse_upper = StrideArray(undef, eltype(reverse_upper_), StaticInt(nnodes_), StaticInt(nnodes_)); copyto!(reverse_upper, reverse_upper_)
+  reverse_lower = StrideArray(undef, eltype(reverse_lower_), StaticInt(nnodes_), StaticInt(nnodes_)); copyto!(reverse_lower, reverse_lower_)
 
   LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
     forward_upper, forward_lower,
