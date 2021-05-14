@@ -143,28 +143,49 @@ function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 1},
 end
 
 # 1D version, apply matrixJ to data_inJ
-function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::AbstractMatrix,
+function multiply_dimensionwise!(data_out::AbstractArray{T, 2}, matrix1::AbstractMatrix,
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
-                                 data_in2::AbstractArray{<:Any, 2})
+                                 data_in2::AbstractArray{<:Any, 2}) where {T}
   # @tullio threads=false data_out[v, i] = matrix1[i, ii] * data_in1[v, ii] + matrix2[i, ii] * data_in2[v, ii]
   # TODO: LoopVectorization upgrade
   #   We would like to use `@avx` for the outermost loop possibly fuse both inner
   #   loops, but that does currently not work because of limitations of
   #   LoopVectorizationjl. However, Chris Elrod is planning to address this in
   #   the future, cf. https://github.com/JuliaSIMD/LoopVectorization.jl/issues/230#issuecomment-810632972
-  @avx for i in indices((data_out, matrix1), (2, 1)), v in indices((data_out, data_in1), (1, 1))
-    res = zero(eltype(data_out))
+
+  # TODO: mortars. Benchmark this!
+
+  # Optimize the heckout of this by telling LLVM that the output array will not
+  # alias with the input arrays
+  # https://github.com/chriselrod/StrideArrays.jl/issues/29#issuecomment-840914970
+  d1 = LoopVectorization.ArrayInterface.size(data_in1, StaticInt(1))
+  d2 = LoopVectorization.ArrayInterface.size(matrix1,  StaticInt(1))
+  use_data_out_temp = (d1 isa StaticInt) & (d2 isa StaticInt)
+  if use_data_out_temp
+    _data_out = StrideArray{T}(undef, (d1, d2))
+  else
+    _data_out = data_out
+  end
+
+  @avx for i in indices((_data_out, matrix1), (2, 1)), v in indices((_data_out, data_in1), (1, 1))
+    res = zero(eltype(_data_out))
     for ii in indices((data_in1, matrix1), (2, 2))
       res += matrix1[i, ii] * data_in1[v, ii]
     end
-    data_out[v, i] = res
+    _data_out[v, i] = res
   end
-  @avx for i in indices((data_out, matrix2), (2, 1)), v in indices((data_out, data_in2), (1, 1))
-    res = zero(eltype(data_out))
+  @avx for i in indices((_data_out, matrix2), (2, 1)), v in indices((_data_out, data_in2), (1, 1))
+    res = zero(eltype(_data_out))
     for ii in indices((data_in2, matrix2), (2, 2))
       res += matrix2[i, ii] * data_in2[v, ii]
     end
-    data_out[v, i] += res
+    _data_out[v, i] += res
+  end
+
+  if use_data_out_temp
+    @avx for i in indices((_data_out, data_out), 2), v in indices((_data_out, data_out), 1)
+      data_out[v, i] = _data_out[v, i]
+    end
   end
 
   return nothing
