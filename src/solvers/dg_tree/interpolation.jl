@@ -293,7 +293,7 @@ function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
 
   # Interpolate in x-direction
   # @tullio threads=false tmp1[v, i, j]     = matrix1[i, ii] * data_in[v, ii, j]
-  @avx for j in indices((tmp1, data_in), (3, 3)), i in indices((tmp1, matrix1), (2, 1)), v in indices((tmp1, data_in1), (1, 1))
+  @avx for j in indices((tmp1, data_in), (3, 3)), i in indices((tmp1, matrix1), (2, 1)), v in indices((tmp1, data_in), (1, 1))
     res = zero(eltype(tmp1))
     for ii in indices((data_in, matrix1), (2, 2))
       res += matrix1[i, ii] * data_in[v, ii, j]
