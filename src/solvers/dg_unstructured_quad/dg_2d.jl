@@ -7,29 +7,24 @@ function create_cache(mesh::UnstructuredQuadMesh, equations,
   polydeg_ = polydeg(dg.basis)
   nvars = nvariables(equations)
 
-  if polydeg_ > mesh.polydeg && any(mesh.element_is_curved)
-    throw(ArgumentError("polynomial degree of DG (= $polydeg_) must be less than or equal to mesh polynomial degree (= $(mesh.polydeg))"))
-  end
-
   elements = init_elements(RealT, uEltype, mesh, dg.basis.nodes, nvars, polydeg_)
 
   interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
 
-  # TODO: if the mesh is periodic we probably can avoid creating this "empty" boundary container
-  if isperiodic(mesh)
-    boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg_}(0)
-  else
-    boundaries = init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg_)
-  end
+  boundaries = init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg_)
 
   cache = (; elements, interfaces, boundaries)
+
+  # perform a check on the sufficient metric identities condition for free-stream preservation
+  # and halt computation if it fails
+  if !isapprox(max_discrete_metric_identities(dg, cache), 0, atol=1e-12)
+    error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
+  end
 
   return cache
 end
 
 
-# Note! The mesh also passed to some functions, e.g., calc_volume_integral! to dispatch on the
-#       correct version and use the ::UnstructuredQuadMesh variable type below to keep track on it
 function rhs!(du, u, t,
               mesh::UnstructuredQuadMesh, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -58,9 +53,8 @@ function rhs!(du, u, t,
     cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  # TODO: Meshes, remove initial condition as an input argument here, only needed for hacky BCs
   @timeit_debug timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg, initial_condition)
+    cache, t, boundary_conditions, mesh, equations, dg)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(
@@ -74,47 +68,6 @@ function rhs!(du, u, t,
   # Calculate source terms
   @timeit_debug timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
-
-  return nothing
-end
-
-
-# compute volume contribution of the DG approximation with the divergence of the contravariant fluxes
-function calc_volume_integral!(du, u,
-                               mesh::UnstructuredQuadMesh,
-                               nonconservative_terms::Val{false}, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-  @unpack derivative_dhat = dg.basis
-  # TODO: Meshes. This is basically the same as the version for the `CurvedMesh`;
-  #       the only difference is that `X_xi, X_eta, Y_xi, Y_eta` are stored in
-  #       separate arrays here and in one block array `contravariant_vectors`
-  #       for the `CurvedMesh`.
-  @unpack X_xi, X_eta, Y_xi, Y_eta = cache.elements
-
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, j, element)
-
-      # compute the physical fluxes in each Cartesian direction
-      x_flux = flux(u_node, 1, equations)
-      y_flux = flux(u_node, 2, equations)
-
-      # compute the contravariant flux in the x-direction
-      flux1  = Y_eta[i, j, element] * x_flux - X_eta[i, j, element] * y_flux
-      for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
-      end
-
-      # compute the contravariant flux in the y-direction
-      flux2  = -Y_xi[i, j, element] * x_flux + X_xi[i, j, element] * y_flux
-      for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
-      end
-    end
-  end
 
   return nothing
 end
@@ -175,13 +128,14 @@ function prolong2interfaces!(cache, u,
 end
 
 
-# compute the numerical flux interface coupling between two elements on an unstructured quadrilateral mesh
+# compute the numerical flux interface coupling between two elements on an unstructured
+# quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredQuadMesh,
                               nonconservative_terms::Val{false}, equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
-  @unpack normals, scaling = cache.elements
+  @unpack normal_directions = cache.elements
 
 
   @threaded for interface in eachinterface(dg, cache)
@@ -202,34 +156,20 @@ function calc_interface_flux!(surface_flux_values,
       u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, interface)
       u_rr = get_one_sided_surface_node_vars(u, equations, dg, 2, secondary_index, interface)
 
-      # TODO: Meshes, performance. The rotation shouldn't be hard-coded here
-      #       since it's not generally applicable to all equations. Thus, it
-      #       should be moved to the numerical flux, cf. `CurvedMesh`.
-      #       This will make this part strictly more general and allow additional
-      #       performance optimizations.
-
-      # pull the directional vectors and scaling factors
+      # pull the outward pointing (normal) directional vector
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         for hanging nodes and other non-conforming approximation spaces
-      normal_vector = get_surface_normal(normals, primary_index, primary_side, primary_element)
-      scaling_ll    = scaling[primary_index, primary_side, primary_element]
-      scaling_rr    = scaling[secondary_index, secondary_side, secondary_element]
+      outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
+                                             primary_element)
 
-      # rotate states
-      u_tilde_ll = rotate_to_x(u_ll, normal_vector, equations)
-      u_tilde_rr = rotate_to_x(u_rr, normal_vector, equations)
+      # Call pointwise numerical flux with rotation. Direction is normalized inside this function
+      flux = surface_flux(u_ll, u_rr, outward_direction, equations)
 
-      # Call pointwise Riemann solver in the rotated direction
-      flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
-
-      # backrotate the flux into the original direction
-      flux = rotate_from_x(flux_tilde, normal_vector, equations)
-
-      # Scale the flux appropriately and copy back to primary/secondary element storage
+      # Copy flux back to primary/secondary element storage
       # Note the sign change for the normal flux in the secondary element!
       for v in eachvariable(equations)
-        surface_flux_values[v, primary_index  , primary_side  , primary_element  ] =  flux[v] * scaling_ll
-        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -flux[v] * scaling_rr
+        surface_flux_values[v, primary_index  , primary_side  , primary_element  ] =  flux[v]
+        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -flux[v]
       end
 
       # increment the index of the coordinate system in the secondary element
@@ -247,8 +187,7 @@ function prolong2boundaries!(cache, u,
                              equations, dg::DG)
   @unpack boundaries = cache
 
-  # TODO: Meshes. Should this become `eachboundary(dg, cache)`?
-  @threaded for boundary in eachboundary(boundaries)
+  @threaded for boundary in eachboundary(dg, cache)
     element = boundaries.element_id[boundary]
     side    = boundaries.element_side_id[boundary]
 
@@ -277,61 +216,69 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG,
-                             initial_condition)
-  @assert isempty(eachboundary(cache.boundaries))
+                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+  @assert isempty(eachboundary(dg, cache))
 end
 
 
-# TODO: Meshes; `intial_condition` argument for convenience,
-#       cleanup later with better boundar condition handling
-function calc_boundary_flux!(cache, t, boundary_condition,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG,
-                             initial_condition)
-  @unpack surface_flux = dg
-  @unpack normals, scaling, surface_flux_values = cache.elements
-  @unpack u, element_id, element_side_id, node_coordinates, name  = cache.boundaries
+function calc_boundary_flux!(cache, t, boundary_conditions,
+                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+  @unpack surface_flux_values = cache.elements
+  @unpack element_id, element_side_id, name  = cache.boundaries
 
-  @threaded for boundary in eachboundary(cache.boundaries)
-    # Get the element and side IDs on the primary element
-    primary_element = element_id[boundary]
-    primary_side    = element_side_id[boundary]
+  @threaded for boundary in eachboundary(dg, cache)
+    # Get the element and side IDs on the boundary element
+    element = element_id[boundary]
+    side    = element_side_id[boundary]
 
-    for primary_index in eachnode(dg)
-      # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
-      # for a mesh with flipped elements
-      u_external = initial_condition((node_coordinates[1, primary_index, boundary],
-                                      node_coordinates[2, primary_index, boundary]),
-                                      t, equations)
+    # pull the external state function from the bounary condition dictionary
+    boundary_condition = boundary_conditions[ name[boundary] ]
 
-      # pull the left state from the boundary u values on the primary element as well as the
-      # directional vectors and scaling
-      #   Note! this assumes a conforming approximation, more must be done in terms of the normals
-      #         for hanging nodes and other non-conforming approximation spaces
-      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, boundary)
-
-      normal_vector  = get_surface_normal(normals, primary_index, primary_side, primary_element)
-      scaling_ll  = scaling[primary_index, primary_side, primary_element]
-
-      # rotate states
-      u_tilde_ll       = rotate_to_x(u_ll, normal_vector, equations)
-      u_tilde_external = rotate_to_x(u_external, normal_vector, equations)
-
-      # Call pointwise Riemann solver in the rotated direction
-      flux_tilde = surface_flux(u_tilde_ll, u_tilde_external, 1, equations)
-
-      # backrotate the flux into the original direction
-      flux = rotate_from_x(flux_tilde, normal_vector, equations)
-
-      # Scale the flux appropriately and copy back to primary element storage
-      for v in eachvariable(equations)
-        surface_flux_values[v, primary_index, primary_side, primary_element] = flux[v] * scaling_ll
-      end
-    end
+    # calc boundary flux on the current boundary interface
+    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+                        side, element, boundary)
   end
 
   return nothing
 end
+
+# use a function barrier for now to improve type stability
+@noinline function calc_boundary_flux!(surface_flux_values, t, boundary_condition::BC,
+                                       mesh::UnstructuredQuadMesh, equations, dg::DG, cache,
+                                       side, element, boundary) where {BC}
+  for node in eachnode(dg)
+    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+                        node, side, element, boundary)
+  end
+end
+
+# inlined version of the boundary flux calculation along a physical interface where the
+# boundary flux values are set according to a particular `boundary_condition` function
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::UnstructuredQuadMesh, equations, dg::DG, cache,
+                                     node_index, side_index, element_index, boundary_index)
+  @unpack normal_directions = cache.elements
+  @unpack u, node_coordinates = cache.boundaries
+  @unpack surface_flux = dg
+
+  # pull the inner solution state from the boundary u values on the boundary element
+  u_inner = get_one_sided_surface_node_vars(u, equations, dg, 1, node_index, boundary_index)
+
+  # pull the outward pointing (normal) directional vector
+  outward_direction = get_surface_normal(normal_directions, node_index, side_index, element_index)
+
+  # get the external solution values from the prescribed external state
+  x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
+
+  # Call pointwise numerical flux function in the rotated direction on the boundary
+  #    Note! the direction is normalized inside this function
+  flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
+
+  for v in eachvariable(equations)
+    surface_flux_values[v, node_index, side_index, element_index] = flux[v]
+  end
+end
+
 
 # Note! The local side numbering for the unstructured quadrilateral element implementation differs
 #       from the structured TreeMesh or CurvedMesh local side numbering:
@@ -368,4 +315,33 @@ function calc_surface_integral!(du, mesh::UnstructuredQuadMesh,
   end
 
   return nothing
+end
+
+
+# This routine computes the maximum value of the discrete metric identities necessary to ensure
+# that the approxmiation will be free-stream preserving (i.e. a constant solution remains constant)
+# on a curvilinear mesh.
+#   Note! Independent of the equation system and is only a check on the discrete mapping terms.
+#         Can be used for a metric identities check on CurvedMesh{2} or UnstructuredQuadMesh
+function max_discrete_metric_identities(dg::DGSEM, cache)
+  @unpack derivative_matrix = dg.basis
+  @unpack contravariant_vectors = cache.elements
+
+  ndims_ = size(contravariant_vectors, 1)
+
+  metric_id_dx = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
+  metric_id_dy = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
+
+  max_metric_ids = zero(dg.basis.nodes[1])
+
+  for i in 1:ndims_, element in eachelement(dg, cache)
+    # compute D*Ja_1^i + Ja_2^i*D^T
+    @views mul!(metric_id_dx, derivative_matrix, contravariant_vectors[i, 1, :, :, element])
+    @views mul!(metric_id_dy, contravariant_vectors[i, 2, :, :, element], derivative_matrix')
+    local_max_metric_ids = maximum( abs.(metric_id_dx + metric_id_dy) )
+
+    max_metric_ids = max( max_metric_ids, local_max_metric_ids )
+  end
+
+  return max_metric_ids
 end

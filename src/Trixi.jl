@@ -104,9 +104,6 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
-       initial_condition_sod_shock_tube, boundary_condition_sod_shock_tube,
-       initial_condition_shock_tube,
-       initial_condition_knallgas_detonation, boundary_condition_knallgas_detonation, source_terms_knallgas_detonation,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
@@ -114,20 +111,19 @@ export initial_condition_constant,
        initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
-       boundary_condition_gauss,
+       BoundaryConditionDirichlet,
        boundary_condition_wall_noslip,
        boundary_condition_wall,
-       boundary_condition_zero
+       boundary_condition_zero,
+       BoundaryConditionWall,
+       boundary_state_slip_wall
 
-export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
-export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
+export initial_condition_convergence_test, source_terms_convergence_test
+export initial_condition_harmonic_nonperiodic, source_terms_harmonic
 export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
-export initial_condition_briowu_shock_tube,            boundary_condition_briowu_shock_tube,
-       initial_condition_torrilhon_shock_tube,         boundary_condition_torrilhon_shock_tube,
-       initial_condition_ryujones_shock_tube,          boundary_condition_ryujones_shock_tube,
-       initial_condition_shu_osher_shock_tube,         boundary_condition_shu_osher_shock_tube,
-       initial_condition_shu_osher_shock_tube_flipped, boundary_condition_shu_osher_shock_tube_flipped
+export initial_condition_briowu_shock_tube, initial_condition_torrilhon_shock_tube, initial_condition_ryujones_shock_tube,
+       initial_condition_shu_osher_shock_tube, initial_condition_shu_osher_shock_tube_flipped
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
@@ -170,7 +166,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 
 export PositivityPreservingLimiterZhangShu
 
-export trixi_include, examples_dir, get_examples, default_example
+export trixi_include, examples_dir, get_examples, default_example, default_example_unstructured
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
