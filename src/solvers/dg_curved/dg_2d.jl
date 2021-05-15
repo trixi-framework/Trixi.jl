@@ -36,7 +36,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -120,8 +120,8 @@ end
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          i, right_element)
 
-      # If the mapping is orientation-reversing, the contravariant vectors' orientation 
-      # is reversed as well. The normal vector must be oriented in the direction 
+      # If the mapping is orientation-reversing, the contravariant vectors' orientation
+      # is reversed as well. The normal vector must be oriented in the direction
       # from `left_element` to `right_element`, or the numerical flux will be computed
       # incorrectly (downwind direction).
       sign_jacobian = sign(inverse_jacobian[1, i, right_element])
@@ -228,7 +228,7 @@ end
 
 
 function apply_jacobian!(du,
-                         mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                         mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
                          equations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 
