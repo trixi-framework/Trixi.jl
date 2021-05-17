@@ -35,6 +35,7 @@ using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
+using P4est
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector

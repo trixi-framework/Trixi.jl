@@ -18,7 +18,7 @@ end
 function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
                        basis, ::Type{uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
 
-  nelements = prod(size(mesh))
+  nelements = mesh.p4est_mesh.local_num_quadrants
   node_coordinates      = Array{RealT, NDIMS+2}(undef, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements)
   jacobian_matrix       = Array{RealT, NDIMS+3}(undef, NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements)
   contravariant_vectors = similar(jacobian_matrix)
@@ -68,7 +68,7 @@ end
 # Return number of interfaces
 @inline ninterfaces(interfaces::InterfaceContainerP4est) = size(interfaces.element_ids, 2)
 
-count_required_interfaces(mesh::P4estMesh) = 2 * prod(size(mesh))
+count_required_interfaces(mesh::P4estMesh) = 2 * mesh.p4est_mesh.local_num_quadrants
 
 function indexfunction(indices, size, dim, i, j=0)
   if indices[dim] === :i

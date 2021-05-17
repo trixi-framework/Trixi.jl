@@ -3,9 +3,11 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasi
   @unpack node_coordinates, jacobian_matrix,
           contravariant_vectors, inverse_jacobian = elements
 
+  calc_node_coordinates!(node_coordinates, mesh, basis)
+
   # Calculate node coordinates, Jacobian matrix, and inverse Jacobian determinant
-  for element in 1:prod(size(mesh))
-    calc_node_coordinates!(node_coordinates, element, mesh, basis)
+  for element in 1:mesh.p4est_mesh.local_num_quadrants
+    # calc_node_coordinates!(node_coordinates, element, mesh, basis)
 
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
@@ -18,13 +20,49 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasi
 end
 
 
+function convert_sc_array(type, sc_array)
+  n_elements = sc_array.elem_count
+  element_size = sc_array.elem_size
+
+  @assert element_size == sizeof(type)
+
+  return [unsafe_wrap(type, sc_array.array + element_size * i) for i in 0:n_elements-1]
+end
+
+
 # Calculate physical coordinates to which every node of the reference element is mapped
-function calc_node_coordinates!(node_coordinates, element,
+function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 basis::LobattoLegendreBasis)
-  # TODO Interpolate for different bases and refined mesh
-  for j in eachnode(basis), i in eachnode(basis), dim in 1:2
-    node_coordinates[dim, i, j, element] = mesh.tree_node_coordinates[dim, i, j, element]
+  # u_tmp1 = Array{real(mesh), 3}(undef, 2, nnodes(dg), nnodes(dg))
+  # u_tmp2 = Array{real(mesh), 3}(undef, 2, nnodes(dg), nnodes(dg))
+
+  P4EST_ROOT_LEN = 1 << P4EST_MAXLEVEL
+  P4EST_QUADRANT_LEN(l) = 1 << (P4EST_MAXLEVEL - l)
+
+  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
+  for tree in eachindex(trees)
+    offset = trees[tree].quadrants_offset
+
+    quadrants = convert_sc_array(p4est_quadrant_t, trees[tree].quadrants)
+    for i in eachindex(quadrants)
+      element = offset + i
+      quad = quadrants[i]
+
+      quad_length = P4EST_QUADRANT_LEN(quad.level) / P4EST_ROOT_LEN
+
+      nodes_out_x = 2 * quad_length * (1/2 * (basis.nodes .+ 1) .+ quad.x) .- 1
+      nodes_out_y = 2 * quad_length * (1/2 * (basis.nodes .+ 1) .+ quad.y) .- 1
+
+      matrix1 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_x)
+      matrix2 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_y)
+
+      multiply_dimensionwise!(
+        view(node_coordinates, :, :, :, element),
+        matrix1, matrix2,
+        view(mesh.tree_node_coordinates, :, :, :, tree)
+      )
+    end
   end
 end
 
