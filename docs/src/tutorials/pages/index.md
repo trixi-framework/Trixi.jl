@@ -1,4 +1,6 @@
 ## Welcome to the tutorials of Trixi.jl
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/)
+[![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](https://nbviewer.jupyter.org/github/bennibolm/Trixi.jl/tree/tutorials/binder/)
 
 Working with somebody else's code often is hard in the beginning. To simplify the start looking into an example might help. It is even more helpful if you can run the example by yourself and see what single lines or some commands will do.
 So, in this tutorial section you have the possibility to do exactly this.

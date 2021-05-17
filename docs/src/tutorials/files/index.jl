@@ -1,4 +1,4 @@
-# ## Welcome to the tutorials of Trixi.jl
+#src # Welcome to the tutorials of Trixi.jl
 
 # Working with somebody else's code often is hard in the beginning. To simplify the start looking into an example might help. It is even more helpful if you can run the example by yourself and see what single lines or some commands will do.
 # So, in this tutorial section you have the possibility to do exactly this.
