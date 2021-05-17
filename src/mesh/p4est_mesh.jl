@@ -9,10 +9,10 @@ can be used as domain faces.
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-mutable struct P4estMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
-  cells_per_dimension::NTuple{NDIMS, Int}
-  mapping::Any # Not relevant for performance
-  mapping_as_string::String
+mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
+  trees_per_dimension::NTuple{NDIMS, Int}
+  tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree_id]
+  nodes::Vector{RealT}
   periodicity::NTuple{NDIMS, Bool}
   current_filename::String
   unsaved_changes::Bool
@@ -35,13 +35,8 @@ Create a P4estMesh of the given size and shape that uses `RealT` as coordinate t
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
-- `mapping_as_string::String`: the code that defines the `mapping`.
-                               If `CodeTracking` can't find the function definition, it can be passed directly here.
-                               The code string must define the mapping function with the name `mapping`.
-                               This will be changed in the future, see https://github.com/trixi-framework/Trixi.jl/issues/541.
 """
-function P4estMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true,
-                    mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
+function P4estMesh(cells_per_dimension, mapping, nodes::AbstractVector; RealT=Float64, periodicity=true, unsaved_changes=true)
   NDIMS = length(cells_per_dimension)
 
   # Convert periodicity to a Tuple of a Bool for every dimension
@@ -56,7 +51,18 @@ function P4estMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true
     periodicity = Tuple(periodicity)
   end
 
-  return P4estMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping, mapping_as_string, periodicity, "", unsaved_changes)
+  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS, ntuple(_ -> length(nodes), NDIMS)..., prod(cells_per_dimension))
+  calc_node_coordinates!(tree_node_coordinates, mapping, cells_per_dimension, nodes)
+
+  return P4estMesh{NDIMS, RealT, NDIMS+2}(Tuple(cells_per_dimension), tree_node_coordinates, nodes, periodicity, "", unsaved_changes)
+end
+
+
+function P4estMesh(cells_per_dimension, mapping, polydeg::Integer; RealT=Float64, periodicity=true, unsaved_changes=true)
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  nodes = basis.nodes
+
+  P4estMesh(cells_per_dimension, mapping, nodes; RealT=RealT, periodicity=periodicity, unsaved_changes=unsaved_changes)
 end
 
 
@@ -79,25 +85,13 @@ Create a P4estMesh of the given size and shape that uses `RealT` as coordinate t
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function P4estMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicity=true)
-  NDIMS = length(cells_per_dimension)
-
+function P4estMesh(cells_per_dimension, faces::Tuple, polydeg::Integer; RealT=Float64, periodicity=true)
   validate_faces(faces)
 
   # Use the transfinite mapping with the correct number of arguments
   mapping = transfinite_mapping(faces)
 
-  # Collect definitions of face functions in one string (separated by semicolons)
-  face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS-1))
-  join_semicolon(strings) = join(strings, "; ")
-
-  faces_definition = faces .|> face2substring .|> string |> join_semicolon
-
-  # Include faces definition in `mapping_as_string` to allow for evaluation
-  # without knowing the face functions
-  mapping_as_string = "$faces_definition; faces = $(string(faces)); mapping = transfinite_mapping(faces)"
-
-  return P4estMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
+  return P4estMesh(cells_per_dimension, mapping, polydeg; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
 
@@ -113,15 +107,11 @@ Create a P4estMesh that represents a uncurved structured mesh with a rectangular
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function P4estMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
-  NDIMS = length(cells_per_dimension)
+function P4estMesh(cells_per_dimension, coordinates_min, coordinates_max, polydeg; periodicity=true)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
-
   mapping = coordinates2mapping(coordinates_min, coordinates_max)
-  mapping_as_string = "coordinates_min = $coordinates_min; " *
-                      "coordinates_max = $coordinates_max; " *
-                      "mapping = coordinates2mapping(coordinates_min, coordinates_max)"
-  return P4estMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
+
+  return P4estMesh(cells_per_dimension, mapping, polydeg; RealT=RealT, periodicity=periodicity)
 end
 
 
@@ -131,10 +121,10 @@ isperiodic(mesh::P4estMesh, dimension) = mesh.periodicity[dimension]
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
-Base.size(mesh::P4estMesh) = mesh.cells_per_dimension
-Base.size(mesh::P4estMesh, i) = mesh.cells_per_dimension[i]
-Base.axes(mesh::P4estMesh) = map(Base.OneTo, mesh.cells_per_dimension)
-Base.axes(mesh::P4estMesh, i) = Base.OneTo(mesh.cells_per_dimension[i])
+Base.size(mesh::P4estMesh) = mesh.trees_per_dimension
+Base.size(mesh::P4estMesh, i) = mesh.trees_per_dimension[i]
+Base.axes(mesh::P4estMesh) = map(Base.OneTo, mesh.trees_per_dimension)
+Base.axes(mesh::P4estMesh, i) = Base.OneTo(mesh.trees_per_dimension[i])
 
 
 function Base.show(io::IO, ::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
@@ -142,19 +132,43 @@ function Base.show(io::IO, ::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
-  if get(io, :compact, false)
-    show(io, mesh)
-  else
-    summary_header(io, "P4estMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
-    summary_line(io, "size", size(mesh))
+# function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
+#   if get(io, :compact, false)
+#     show(io, mesh)
+#   else
+#     summary_header(io, "P4estMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
+#     summary_line(io, "size", size(mesh))
 
-    summary_line(io, "mapping", "")
-    # Print code lines of mapping_as_string
-    mapping_lines = split(mesh.mapping_as_string, ";")
-    for i in eachindex(mapping_lines)
-      summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
+#     summary_line(io, "mapping", "")
+#     # Print code lines of mapping_as_string
+#     mapping_lines = split(mesh.mapping_as_string, ";")
+#     for i in eachindex(mapping_lines)
+#       summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
+#     end
+#     summary_footer(io)
+#   end
+# end
+
+
+# Calculate physical coordinates to which every node of the reference element is mapped
+function calc_node_coordinates!(node_coordinates, mapping, cells_per_dimension, nodes::AbstractVector)
+  linear_indices = LinearIndices(cells_per_dimension)
+
+  # Get cell length in reference mesh
+  dx = 2 / cells_per_dimension[1]
+  dy = 2 / cells_per_dimension[2]
+
+  for cell_y in 1:cells_per_dimension[2], cell_x in 1:cells_per_dimension[1]
+    tree_id = linear_indices[cell_x, cell_y]
+
+    # Calculate node coordinates of reference mesh
+    cell_x_offset = -1 + (cell_x-1) * dx + dx/2
+    cell_y_offset = -1 + (cell_y-1) * dy + dy/2
+
+    for j in eachindex(nodes), i in eachindex(nodes)
+      # node_coordinates are the mapped reference node coordinates
+      node_coordinates[:, i, j, tree_id] .= mapping(cell_x_offset + dx/2 * nodes[i],
+                                                    cell_y_offset + dy/2 * nodes[j])
     end
-    summary_footer(io)
   end
 end
