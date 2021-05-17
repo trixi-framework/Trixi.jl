@@ -89,19 +89,10 @@ function indexfunction(indices, size, dim, i, j=0)
 end
 
 function indexfunction_reduced(indices, size, dim, i, j=0)
+  # TODO This is not type-stable
   indices_reduced = filter(x -> :one != x != :end, indices)
 
-  if indices_reduced[dim] === :i
-    return i
-  elseif indices_reduced[dim] === :mi
-    return size[dim] - i + 1
-  elseif indices_reduced[dim] === :j
-    return j
-  elseif indices_reduced[dim] === :mj
-    return size[dim] - j + 1
-  end
-
-  error("Invalid identifier: Only :one, :end, :i, :j, :mi, :mj are valid index identifiers")
+  indexfunction(indices_reduced, size, dim, i, j)
 end
 
 function indices2direction(indices)
