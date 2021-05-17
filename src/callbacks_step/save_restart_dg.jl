@@ -1,6 +1,7 @@
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg::DG, cache,
+                           mesh::Union{SerialTreeMesh, CurvedMesh, UnstructuredQuadMesh},
+                           equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
 
@@ -39,7 +40,8 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 
-function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg::DG, cache, restart_file)
+function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh,UnstructuredQuadMesh},
+                           equations, dg::DG, cache, restart_file)
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
@@ -69,7 +71,6 @@ function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg
       end
 
       # Read variable
-      println("Reading variables_$v ($name)...")
       u[v, .., :] = read(file["variables_$v"])
     end
   end
