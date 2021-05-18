@@ -102,10 +102,10 @@ function calc_interface_flux!(surface_flux_values,
 
       # Copy flux to left and right element storage
       for v in eachvariable(equations)
-        surface_index = indexfunction_reduced(primary_indices, size_, 1, i)
+        surface_index = indexfunction_surface(primary_indices, size_, 1, i)
         surface_flux_values[v, surface_index, primary_direction, primary_element] = flux[v]
 
-        surface_index = indexfunction_reduced(secondary_indices, size_, 1, i)
+        surface_index = indexfunction_surface(secondary_indices, size_, 1, i)
         surface_flux_values[v, surface_index, secondary_direction, secondary_element] = -flux[v]
       end
     end

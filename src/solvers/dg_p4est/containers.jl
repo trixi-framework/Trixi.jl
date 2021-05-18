@@ -88,11 +88,26 @@ function indexfunction(indices, size, dim, i, j=0)
   error("Invalid identifier: Only :one, :end, :i, :j, :mi, :mj are valid index identifiers")
 end
 
-function indexfunction_reduced(indices, size, dim, i, j=0)
-  # TODO This is not type-stable
-  indices_reduced = filter(x -> :one != x != :end, indices)
+function indexfunction_surface(indices::NTuple{2, Symbol}, size, dim, i)
+  if indices[1] in (:one, :end)
+    indices_surface = indices[2:2]
+  else # indices[2] in (:one, :end)
+    indices_surface = indices[1:1]
+  end
 
-  indexfunction(indices_reduced, size, dim, i, j)
+  indexfunction(indices_surface, size, dim, i)
+end
+
+function indexfunction_surface(indices::NTuple{3, Symbol}, size, dim, i, j=0)
+  if indices[1] in (:one, :end)
+    indices_surface = indices[2:3]
+  elseif indices[2] in (:one, :end)
+    indices_surface = (indices[1], indices[3])
+  else # indices[3] in (:one, :end)
+    indices_surface = indices[1:2]
+  end
+
+  indexfunction(indices_surface, size, dim, i)
 end
 
 function indices2direction(indices)
