@@ -60,7 +60,8 @@ function P4estMesh(cells_per_dimension, mapping, nodes::AbstractVector;
   calc_node_coordinates!(tree_node_coordinates, mapping, cells_per_dimension, nodes)
 
   initial_refinement_level = 0
-  conn = p4est_connectivity_new_brick(cells_per_dimension..., true, true)
+  # p4est_connectivity_new_brick has trees in Morton order
+  conn = connectivity_structured_periodic(cells_per_dimension...)
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, false, 0, C_NULL, C_NULL)
 
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
@@ -68,6 +69,44 @@ function P4estMesh(cells_per_dimension, mapping, nodes::AbstractVector;
 
   return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, Tuple(cells_per_dimension),
                                           tree_node_coordinates, nodes, periodicity, "", unsaved_changes)
+end
+
+
+function connectivity_structured_periodic(cells_x, cells_y)
+  linear_indices = LinearIndices((cells_x, cells_y))
+
+  num_vertices = 0
+  num_trees = cells_x * cells_y
+  num_corners = 0
+  vertices = C_NULL
+  tree_to_vertex = C_NULL
+
+  tree_to_tree = Matrix{Int32}(undef, 4, num_trees)
+  for cell_y in 1:cells_y, cell_x in 1:cells_x
+    tree = linear_indices[cell_x, cell_y]
+    tree_to_tree[1, tree] = linear_indices[mod(cell_x - 2, cells_x) + 1, cell_y] - 1
+    tree_to_tree[2, tree] = linear_indices[mod(cell_x, cells_x) + 1, cell_y] - 1
+    tree_to_tree[3, tree] = linear_indices[cell_x, mod(cell_y - 2, cells_y) + 1] - 1
+    tree_to_tree[4, tree] = linear_indices[cell_x, mod(cell_y, cells_y) + 1] - 1
+  end
+
+  tree_to_face = Matrix{Int8}(undef, 4, num_trees)
+  tree_to_face[1, :] .= 1
+  tree_to_face[2, :] .= 0
+  tree_to_face[3, :] .= 3
+  tree_to_face[4, :] .= 2
+
+  tree_to_corner = C_NULL
+  ctt_offset = Array{Int32}([0])
+
+  corner_to_tree = C_NULL
+  corner_to_corner = C_NULL
+
+  p4est_connectivity_new_copy(num_vertices, num_trees, num_corners,
+                              vertices, tree_to_vertex,
+                              tree_to_tree, tree_to_face,
+                              tree_to_corner, ctt_offset,
+                              corner_to_tree, corner_to_corner)
 end
 
 
