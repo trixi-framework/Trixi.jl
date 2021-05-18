@@ -52,8 +52,8 @@ function calc_node_coordinates!(node_coordinates,
 
       quad_length = P4EST_QUADRANT_LEN(quad.level) / P4EST_ROOT_LEN
 
-      nodes_out_x = 2 * quad_length * (1/2 * (basis.nodes .+ 1) .+ quad.x) .- 1
-      nodes_out_y = 2 * quad_length * (1/2 * (basis.nodes .+ 1) .+ quad.y) .- 1
+      nodes_out_x = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.x / P4EST_ROOT_LEN) .- 1
+      nodes_out_y = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.y / P4EST_ROOT_LEN) .- 1
 
       matrix1 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_x)
       matrix2 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_y)
