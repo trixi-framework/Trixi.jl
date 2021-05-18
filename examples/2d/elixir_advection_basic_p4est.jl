@@ -14,10 +14,10 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (16, 16)
+cells_per_dimension = (8, 8)
 
 # Create curved mesh with 16 x 16 elements
-mesh = P4estMesh(cells_per_dimension, coordinates_min, coordinates_max, 3)
+mesh = P4estMesh(cells_per_dimension, coordinates_min, coordinates_max, polydeg=3, initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)

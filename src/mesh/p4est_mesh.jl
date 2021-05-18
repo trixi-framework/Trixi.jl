@@ -39,7 +39,7 @@ Create a P4estMesh of the given size and shape that uses `RealT` as coordinate t
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
 function P4estMesh(cells_per_dimension, mapping, nodes::AbstractVector;
-                   RealT=Float64, periodicity=true, unsaved_changes=true)
+                   RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
   NDIMS = length(cells_per_dimension)
 
   # Convert periodicity to a Tuple of a Bool for every dimension
@@ -59,7 +59,6 @@ function P4estMesh(cells_per_dimension, mapping, nodes::AbstractVector;
                                                 prod(cells_per_dimension))
   calc_node_coordinates!(tree_node_coordinates, mapping, cells_per_dimension, nodes)
 
-  initial_refinement_level = 0
   # p4est_connectivity_new_brick has trees in Morton order
   conn = connectivity_structured_periodic(cells_per_dimension...)
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, false, 0, C_NULL, C_NULL)
@@ -110,12 +109,14 @@ function connectivity_structured_periodic(cells_x, cells_y)
 end
 
 
-function P4estMesh(cells_per_dimension, mapping, polydeg::Integer;
-                   RealT=Float64, periodicity=true, unsaved_changes=true)
+function P4estMesh(cells_per_dimension, mapping;
+                   polydeg, RealT=Float64, initial_refinement_level=0,
+                   periodicity=true, unsaved_changes=true)
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
 
   P4estMesh(cells_per_dimension, mapping, nodes; RealT=RealT,
+            initial_refinement_level=initial_refinement_level,
             periodicity=periodicity, unsaved_changes=unsaved_changes)
 end
 
@@ -139,13 +140,14 @@ Create a P4estMesh of the given size and shape that uses `RealT` as coordinate t
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function P4estMesh(cells_per_dimension, faces::Tuple, polydeg::Integer; RealT=Float64, periodicity=true)
+function P4estMesh(cells_per_dimension, faces::Tuple; polydeg, RealT=Float64, initial_refinement_level=0, periodicity=true)
   validate_faces(faces)
 
   # Use the transfinite mapping with the correct number of arguments
   mapping = transfinite_mapping(faces)
 
-  return P4estMesh(cells_per_dimension, mapping, polydeg; RealT=RealT,
+  return P4estMesh(cells_per_dimension, mapping; polydeg=polydeg, RealT=RealT,
+                   initial_refinement_level=initial_refinement_level,
                    periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
@@ -162,11 +164,13 @@ Create a P4estMesh that represents a uncurved structured mesh with a rectangular
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function P4estMesh(cells_per_dimension, coordinates_min, coordinates_max, polydeg; periodicity=true)
+function P4estMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                   polydeg, initial_refinement_level=0, periodicity=true)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
   mapping = coordinates2mapping(coordinates_min, coordinates_max)
 
-  return P4estMesh(cells_per_dimension, mapping, polydeg; RealT=RealT, periodicity=periodicity)
+  return P4estMesh(cells_per_dimension, mapping, polydeg=polydeg; RealT=RealT,
+                   initial_refinement_level=initial_refinement_level, periodicity=periodicity)
 end
 
 
