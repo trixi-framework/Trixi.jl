@@ -176,7 +176,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
   end
 end
 
-@inline Base.real(dg::DG{RealT}) where {RealT} = RealT
+@inline Base.real(dg::DG) = real(dg.basis) 
 
 # TODO: Taal refactor, use case?
 # Deprecate in favor of nnodes or order_of_accuracy?
