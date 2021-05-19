@@ -1,7 +1,7 @@
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::ParallelTreeMesh{2}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          dg::DGSEM, cache, cache_analysis; normalize=true)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -26,7 +26,9 @@ function calc_error_norms(func, u, t, analyzer,
     linf_error = convert(typeof(linf_error), NaN * global_linf_error)
   end
 
-  l2_error = @. sqrt(l2_error / total_volume)
+  if normalize
+    l2_error = @. sqrt(l2_error / total_volume)
+  end
 
   return l2_error, linf_error
 end

@@ -241,6 +241,86 @@ performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 
+"""
+    BoundaryConditionCoupled(other_semi_index, indices, uEltype)
+
+Boundary condition to glue 2 meshes together. Solution values at the boundary
+of another mesh will be used as boundary values. This requires the use
+of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`
+and is the index of its mesh in the tuple of semidiscretizatios.
+
+# Arguments
+- `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
+                      from which the values are copied
+- `indices::Tuple`: node/cell indices at the boundary of the mesh in the other
+                    semidiscretization. See examples below.
+- `uEltype::Type`: element type of solution
+
+# Examples
+'''julia
+# Connect the left boundary of mesh 2 to our boundary such that our positive
+# boundary direction will match the positive y direction of the other boundary
+BoundaryConditionCoupled(2, (1, :i), Float64)
+
+# Connect the same two boundaries oppositely oriented
+BoundaryConditionCoupled(2, (1, :mi), Float64)
+
+# Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
+BoundaryConditionCoupled(2, (:j, :mi, :end), Float64)
+'''                 
+"""
+mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
+  # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
+  u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+  other_semi_index ::Int
+  other_orientation::Int
+  indices          ::I
+
+  function BoundaryConditionCoupled(other_semi_index, indices, uEltype)
+    NDIMS = length(indices)
+    u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
+
+    # This is needed to make indices a Tuple of Symbols and prevent type instabilities
+    function one_to_symbol(i)
+      if i == 1
+        return :one
+      else
+        return i
+      end
+    end
+    indices_ = one_to_symbol.(indices)
+
+    if indices_[1] in (:one, :end)
+      other_orientation = 1
+    elseif indices_[2] in (:one, :end)
+      other_orientation = 2
+    else
+      other_orientation = 3
+    end
+    
+    new{NDIMS*2-1, uEltype, typeof(indices_)}(u_boundary, other_semi_index, other_orientation, indices_)
+  end
+end
+
+
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction, 
+                                                        cell_indices, surface_node_indices,
+                                                        surface_flux_function, equations)
+  # get_node_vars(), but we don't have a solver here
+  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...], 
+                              Val(nvariables(equations))))
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
+
+
 # FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
 @deprecate varnames_prim(equations) varnames(cons2prim, equations)

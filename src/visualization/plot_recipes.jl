@@ -133,12 +133,26 @@ end
 
 function PlotData2D(u, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, solver, cache;
                     solution_variables=nothing, grid_lines=true, kwargs...)
-  @unpack node_coordinates = cache.elements
 
   @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations))
 
-  unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
+  (x, y, data, mesh_vertices_x, mesh_vertices_y) = get_plot_data(u, solution_variables_, mesh, equations, solver, cache; 
+                                                                 grid_lines=grid_lines, kwargs...)
+
+  orientation_x, orientation_y = _get_orientations(mesh, nothing)
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+                    orientation_x, orientation_y)
+end
+
+
+function get_plot_data(u, solution_variables, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, solver, cache;
+                       grid_lines=true, kwargs...)
+  @unpack node_coordinates = cache.elements
+
+  unstructured_data = get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
 
   x = vec(view(node_coordinates, 1, ..))
   y = vec(view(node_coordinates, 2, ..))
@@ -152,11 +166,52 @@ function PlotData2D(u, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, 
     mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
   end
 
-  variable_names = SVector(varnames(solution_variables_, equations))
+  return x, y, data, mesh_vertices_x, mesh_vertices_y
+end
 
-  orientation_x, orientation_y = _get_orientations(mesh, nothing)
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+function PlotData2D(u_ode::AbstractVector,
+                    semi::SemidiscretizationCoupled;
+                    solution_variables=nothing, grid_lines=true, kwargs...)
+
+  _, equations_, _, _ = mesh_equations_solver_cache(semi)
+
+  @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
+  solution_variables_ = digest_solution_variables(equations_, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations_))
+
+  x_vec = []
+  y_vec = []
+  data_vec = []
+  mesh_vertices_x_vec = []
+  mesh_vertices_y_vec = []
+
+  @unpack semis, u_indices = semi
+  for i in 1:nmeshes(semi)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+
+    x_, y_, data_, mesh_vertices_x_, mesh_vertices_y_ = get_plot_data(
+      wrap_array(u_ode[u_indices[i]], semis[i]), solution_variables_, 
+      mesh, equations, solver, cache; grid_lines=grid_lines)
+
+    push!(x_vec, x_)
+    push!(y_vec, y_)
+    push!(data_vec, data_)
+    push!(mesh_vertices_x_vec, mesh_vertices_x_)
+    push!(mesh_vertices_y_vec, mesh_vertices_y_)
+  end
+
+  x = vcat(x_vec...)
+  y = vcat(y_vec...)
+  data = [vcat([data_vec[i][v] for i in 1:nmeshes(semi)]...) for v in 1:nvariables(equations_)]
+
+  mesh_vertices_x = hcat(mesh_vertices_x_vec...)
+  mesh_vertices_y = hcat(mesh_vertices_y_vec...)
+
+  # TODO why pass mesh when we only need ndims?
+  orientation_x, orientation_y = _get_orientations(semis[1].mesh, nothing)
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y, 
                     orientation_x, orientation_y)
 end
 

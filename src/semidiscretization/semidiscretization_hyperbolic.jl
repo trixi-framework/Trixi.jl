@@ -169,6 +169,13 @@ end
 
 @inline Base.real(semi::SemidiscretizationHyperbolic) = real(semi.solver)
 
+@inline Base.eltype(semi::SemidiscretizationHyperbolic) = eltype(semi.cache.elements)
+
+# TODO: Taal refactor, polydeg is specific to DGSEM
+@inline polydeg(semi::SemidiscretizationHyperbolic) = polydeg(semi.solver)
+
+@inline nelements(semi::SemidiscretizationHyperbolic) = nelements(semi.solver, semi.cache)
+
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
@@ -176,11 +183,14 @@ end
 end
 
 
-function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic, cache_analysis)
+function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, 
+                          semi::SemidiscretizationHyperbolic, cache_analysis;
+                          normalize=true)
   @unpack mesh, equations, initial_condition, solver, cache = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
+  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, 
+                   solver, cache, cache_analysis; normalize=normalize)
 end
 
 
