@@ -139,7 +139,7 @@ Create a discontinuous Galerkin method.
 If [`basis isa LobattoLegendreBasis`](@ref LobattoLegendreBasis),
 this creates a [`DGSEM`](@ref).
 """
-struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+struct DG{Basis, Mortar, SurfaceFlux, VolumeIntegral}
   basis::Basis
   mortar::Mortar
   surface_flux::SurfaceFlux
@@ -176,7 +176,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
   end
 end
 
-@inline Base.real(dg::DG{RealT}) where {RealT} = RealT
+@inline Base.real(dg::DG) = real(dg.basis) 
 
 # TODO: Taal refactor, use case?
 # Deprecate in favor of nnodes or order_of_accuracy?
@@ -272,14 +272,14 @@ include("basis_lobatto_legendre.jl")
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
 [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
-const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+const DGSEM = DG{Basis, Mortar, SurfaceFlux, VolumeIntegral} where {Basis<:LobattoLegendreBasis, Mortar, SurfaceFlux, VolumeIntegral}
 
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux=flux_central,
                volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
                mortar=MortarL2(basis))
 
-  return DG{real(basis), typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
+  return DG{typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
     basis, mortar, surface_flux, volume_integral)
 end
 
