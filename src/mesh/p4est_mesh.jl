@@ -65,6 +65,15 @@ function P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
   p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
+  function destroy_p4est_structs()
+    p4est_mesh_destroy(p4est_mesh)
+    p4est_ghost_destroy(ghost)
+    p4est_destroy(p4est)
+    p4est_connectivity_destroy(conn)
+  end
+
+  atexit(destroy_p4est_structs)
+
   return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates,
                                           nodes, periodicity, "", unsaved_changes)
 end
