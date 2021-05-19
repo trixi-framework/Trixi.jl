@@ -222,22 +222,19 @@ function Base.show(io::IO, ::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
 end
 
 
-# function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
-#   if get(io, :compact, false)
-#     show(io, mesh)
-#   else
-#     summary_header(io, "P4estMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
-#     summary_line(io, "size", size(mesh))
-
-#     summary_line(io, "mapping", "")
-#     # Print code lines of mapping_as_string
-#     mapping_lines = split(mesh.mapping_as_string, ";")
-#     for i in eachindex(mapping_lines)
-#       summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
-#     end
-#     summary_footer(io)
-#   end
-# end
+function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
+  if get(io, :compact, false)
+    show(io, mesh)
+  else
+    setup = [
+             "#trees" => mesh.p4est.trees.elem_count,
+             "current #cells" => mesh.p4est.local_num_quadrants,
+             "periodicity" => mesh.periodicity,
+             "polydeg" => length(mesh.nodes),
+            ]
+    summary_box(io, "P4estMesh{" * string(NDIMS) * ", " * string(RealT) * "}", setup)
+  end
+end
 
 
 # Calculate physical coordinates to which every node of the reference element is mapped
