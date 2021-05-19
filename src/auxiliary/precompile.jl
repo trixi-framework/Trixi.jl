@@ -410,8 +410,8 @@ function _precompile_manual_()
       @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",adaptor_type})
 
       # we could also use more numerical fluxes and volume integral types here
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
     end
 
     # semidiscretizations

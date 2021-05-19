@@ -274,7 +274,7 @@ function DGSEM(basis::LobattoLegendreBasis,
                volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
                mortar=MortarL2(basis))
 
-  return DG{real(basis), typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
+  return DG{typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
     basis, mortar, surface_flux, volume_integral)
 end
 
