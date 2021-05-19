@@ -1,7 +1,7 @@
 """
     P4estMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
 
-An structured curved mesh based on trees, which uses the C library p4est
+An unstructured curved mesh based on trees, which uses the C library p4est
 to manage trees and mesh refinement.
 
 !!! warning "Experimental code"
@@ -10,7 +10,6 @@ to manage trees and mesh refinement.
 mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
   p4est                 ::Ptr{p4est_t}
   p4est_mesh            ::Ptr{p4est_mesh_t}
-  trees_per_dimension   ::NTuple{NDIMS, Int}
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree_id]
   nodes                 ::Vector{RealT}
   periodicity           ::NTuple{NDIMS, Bool}
@@ -66,8 +65,8 @@ function P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
   p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
-  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, Tuple(trees_per_dimension),
-                                          tree_node_coordinates, nodes, periodicity, "", unsaved_changes)
+  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates,
+                                          nodes, periodicity, "", unsaved_changes)
 end
 
 
@@ -216,10 +215,6 @@ isperiodic(mesh::P4estMesh, dimension) = mesh.periodicity[dimension]
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
-Base.size(mesh::P4estMesh) = mesh.trees_per_dimension
-Base.size(mesh::P4estMesh, i) = mesh.trees_per_dimension[i]
-Base.axes(mesh::P4estMesh) = map(Base.OneTo, mesh.trees_per_dimension)
-Base.axes(mesh::P4estMesh, i) = Base.OneTo(mesh.trees_per_dimension[i])
 
 
 function Base.show(io::IO, ::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
