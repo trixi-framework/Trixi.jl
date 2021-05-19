@@ -259,7 +259,7 @@ include("l2projection.jl")
 include("basis_lobatto_legendre.jl")
 
 """
-    DGSEM(polydeg::Integer,
+    DGSEM([RealT=Float64,] polydeg::Integer,
           surface_flux=flux_central,
           volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
           mortar=MortarL2(basis))
@@ -267,18 +267,18 @@ include("basis_lobatto_legendre.jl")
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
 [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
-const DGSEM = DG{Basis, Mortar, SurfaceFlux, VolumeIntegral} where {Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
 
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux=flux_central,
                volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
                mortar=MortarL2(basis))
 
-  return DG{typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
+  return DG{real(basis), typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
     basis, mortar, surface_flux, volume_integral)
 end
 
-function DGSEM(polydeg::Integer,
+function DGSEM(RealT, polydeg::Integer,
                surface_flux=flux_central,
                volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
                mortar=MortarL2(LobattoLegendreBasis(RealT, polydeg)))
@@ -287,12 +287,13 @@ function DGSEM(polydeg::Integer,
   return DGSEM(basis, surface_flux, volume_integral, mortar)
 end
 
-DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(polydeg, surface_flux, volume_integral)
+DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
 # The constructor using only keyword arguments is convenient for elixirs since
 # it allows to modify the polynomial degree and other parameters via
 # `trixi_include`.
-function DGSEM(; polydeg::Integer,
+function DGSEM(; RealT=Float64,
+                 polydeg::Integer,
                  surface_flux=flux_central,
                  volume_integral=VolumeIntegralWeakForm())
   basis = LobattoLegendreBasis(RealT, polydeg)
