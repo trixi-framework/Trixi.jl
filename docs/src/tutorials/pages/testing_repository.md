@@ -1,6 +1,6 @@
 # Tutorial 3: Testing
-[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/testing_repository.ipynb)
-[![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](https://nbviewer.jupyter.org/github/bennibolm/Trixi.jl/tree/tutorials/binder/testing_repository.ipynb)
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=docs/src/tutorials/notebooks/testing_repository.ipynb)
+[![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](https://nbviewer.jupyter.org/github/bennibolm/Trixi.jl/tree/tutorials/docs/src/tutorials/notebooks/testing_repository.ipynb)
 
 This file is just for testing which packages are installed in the notebook (via binder).
 

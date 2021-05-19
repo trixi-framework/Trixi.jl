@@ -12,6 +12,7 @@
 out*/
 docs/build
 docs/src/authors.md
+docs/src/tutorials/notebooks/
 public/
 coverage/
 coverage_report/

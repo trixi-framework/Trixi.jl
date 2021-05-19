@@ -1,6 +1,6 @@
 # Tutorial 2: Differentiable programming
-[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=binder/differentiable_programming.ipynb)
-[![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](https://nbviewer.jupyter.org/github/bennibolm/Trixi.jl/tree/tutorials/binder/differentiable_programming.ipynb)
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bennibolm/Trixi.jl/tutorials?filepath=docs/src/tutorials/notebooks/differentiable_programming.ipynb)
+[![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](https://nbviewer.jupyter.org/github/bennibolm/Trixi.jl/tree/tutorials/docs/src/tutorials/notebooks/differentiable_programming.ipynb)
 
 [Julia and its ecosystem provide some tools for differentiable programming](https://sinews.siam.org/Details-Page/scientific-machine-learning-how-julia-employs-differentiable-programming-to-do-it-best).
 Trixi.jl is designed to be flexible, extendable, and composable with Julia's growing ecosystem for
