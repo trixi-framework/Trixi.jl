@@ -139,7 +139,7 @@ Create a discontinuous Galerkin method.
 If [`basis isa LobattoLegendreBasis`](@ref LobattoLegendreBasis),
 this creates a [`DGSEM`](@ref).
 """
-struct DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral}
+struct DG{Basis, Mortar, SurfaceFlux, VolumeIntegral}
   basis::Basis
   mortar::Mortar
   surface_flux::SurfaceFlux
