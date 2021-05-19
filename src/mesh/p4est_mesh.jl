@@ -178,7 +178,7 @@ end
 function connectivity_structured_periodic(cells_x, cells_y)
   linear_indices = LinearIndices((cells_x, cells_y))
 
-  # Vertices represent the coordinates of the forest. This is used by p4set
+  # Vertices represent the coordinates of the forest. This is used by p4est
   # to write VTK files.
   # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
   num_vertices = 0
