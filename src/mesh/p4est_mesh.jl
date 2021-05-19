@@ -213,8 +213,11 @@ end
 isperiodic(mesh::P4estMesh) = all(mesh.periodicity)
 isperiodic(mesh::P4estMesh, dimension) = mesh.periodicity[dimension]
 
-@inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
+@inline Base.ndims(::P4estMesh{NDIMS}) where NDIMS = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+
+@inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count
+@inline ncells(mesh::P4estMesh) = mesh.p4est_mesh.local_num_quadrants
 
 
 function Base.show(io::IO, ::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
@@ -227,8 +230,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh{NDIMS, RealT}) wh
     show(io, mesh)
   else
     setup = [
-             "#trees" => mesh.p4est.trees.elem_count,
-             "current #cells" => mesh.p4est.local_num_quadrants,
+             "#trees" => ntrees(mesh),
+             "current #cells" => ncells(mesh),
              "periodicity" => mesh.periodicity,
              "polydeg" => length(mesh.nodes),
             ]

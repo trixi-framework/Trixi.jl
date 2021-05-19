@@ -18,7 +18,7 @@ end
 function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
                        basis, ::Type{uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
 
-  nelements = mesh.p4est_mesh.local_num_quadrants
+  nelements = ncells(mesh)
   node_coordinates      = Array{RealT, NDIMS+2}(undef, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements)
   jacobian_matrix       = Array{RealT, NDIMS+3}(undef, NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements)
   contravariant_vectors = similar(jacobian_matrix)
@@ -48,7 +48,8 @@ end
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(mesh::P4estMesh, equations, basis,
-                         elements::ElementContainerP4est{NDIMS, RealT, uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
+                         elements::ElementContainerP4est{NDIMS, RealT, uEltype}
+                         ) where {NDIMS, RealT<:Real, uEltype<:Real}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh)
 
@@ -68,8 +69,12 @@ end
 # Return number of interfaces
 @inline ninterfaces(interfaces::InterfaceContainerP4est) = size(interfaces.element_ids, 2)
 
-count_required_interfaces(mesh::P4estMesh) = 2 * mesh.p4est_mesh.local_num_quadrants
+count_required_interfaces(mesh::P4estMesh) = 2 * ncells(mesh)
 
+
+# Convert Tuple node_indices to actual indices.
+# E.g., (:one, :i, :j) will be (1, i, j) for some i and j,
+# (:i, :end) will be (i, size[2]).
 function indexfunction(indices, size, dim, i, j=0)
   if indices[dim] === :i
     return i
@@ -88,6 +93,8 @@ function indexfunction(indices, size, dim, i, j=0)
   error("Invalid identifier: Only :one, :end, :i, :j, :mi, :mj are valid index identifiers")
 end
 
+# Remove :one and :end to index surface_flux_values properly
+# Dispatch by dimension to ensure type stability
 function indexfunction_surface(indices::NTuple{2, Symbol}, size, dim, i)
   if indices[1] in (:one, :end)
     indices_surface = indices[2:2]
@@ -98,6 +105,8 @@ function indexfunction_surface(indices::NTuple{2, Symbol}, size, dim, i)
   indexfunction(indices_surface, size, dim, i)
 end
 
+# Remove :one and :end to index surface_flux_values properly
+# Dispatch by dimension to ensure type stability
 function indexfunction_surface(indices::NTuple{3, Symbol}, size, dim, i, j=0)
   if indices[1] in (:one, :end)
     indices_surface = indices[2:3]
@@ -110,17 +119,16 @@ function indexfunction_surface(indices::NTuple{3, Symbol}, size, dim, i, j=0)
   indexfunction(indices_surface, size, dim, i)
 end
 
+# Return direction of the face, which is indexed by node_indices
 function indices2direction(indices)
   orientation = findfirst(x -> x in (:one, :end), indices)
   negative_direction = orientation * 2 - 1
 
   if indices[orientation] === :one
     return negative_direction
-  elseif indices[orientation] === :end
+  else # indices[orientation] === :end
     return negative_direction + 1
   end
-
-  error("Something went wrong")
 end
 
 

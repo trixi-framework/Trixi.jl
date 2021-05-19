@@ -54,8 +54,8 @@ function prolong2interfaces!(cache, u,
 
     size_ = (nnodes(dg), nnodes(dg))
 
-    # Use `indices` tuple and `indexfunction` to copy values
-    # at the correct face and in the correct orientation
+    # Use Tuple `node_indices` and `indexfunction` to copy values
+    # from the correct face and in the correct orientation
     for i in eachnode(dg), v in eachvariable(equations)
       interfaces.u[1, v, i, interface] = u[v, indexfunction(primary_indices, size_, 1, i),
                                               indexfunction(primary_indices, size_, 2, i),
@@ -90,6 +90,8 @@ function calc_interface_flux!(surface_flux_values,
 
     size_ = (nnodes(dg), nnodes(dg))
 
+    # Use Tuple `node_indices` and `indexfunction` to access node indices
+    # at the correct face and in the correct orientation to get normal vectors
     for i in eachnode(dg)
       u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
@@ -98,15 +100,16 @@ function calc_interface_flux!(surface_flux_values,
                                         indexfunction(primary_indices, size_, 2, i),
                                         primary_element)
 
-      flux = surface_flux(u_ll, u_rr, normal_vector, equations)
+      flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
 
-      # Copy flux to left and right element storage
+      # Use Tuple `node_indices` and `indexfunction_surface` to copy flux
+      # to left and right element storage in the correct orientation
       for v in eachvariable(equations)
         surface_index = indexfunction_surface(primary_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, primary_direction, primary_element] = flux[v]
+        surface_flux_values[v, surface_index, primary_direction, primary_element] = flux_[v]
 
         surface_index = indexfunction_surface(secondary_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, secondary_direction, secondary_element] = -flux[v]
+        surface_flux_values[v, surface_index, secondary_direction, secondary_element] = -flux_[v]
       end
     end
   end
@@ -127,17 +130,22 @@ function calc_surface_integral!(du, mesh::P4estMesh,
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
+  # Note that all fluxes have been computed with outward-pointing normal vectors
   @threaded for element in eachelement(dg, cache)
     for l in eachnode(dg)
       for v in eachvariable(equations)
         # surface at -x
-        du[v, 1,          l, element] += surface_flux_values[v, l, 1, element] * boundary_interpolation[1,          1]
+        du[v, 1,          l, element] += (surface_flux_values[v, l, 1, element]
+                                          * boundary_interpolation[1, 1])
         # surface at +x
-        du[v, nnodes(dg), l, element] += surface_flux_values[v, l, 2, element] * boundary_interpolation[nnodes(dg), 2]
+        du[v, nnodes(dg), l, element] += (surface_flux_values[v, l, 2, element]
+                                          * boundary_interpolation[nnodes(dg), 2])
         # surface at -y
-        du[v, l, 1,          element] += surface_flux_values[v, l, 3, element] * boundary_interpolation[1,          1]
+        du[v, l, 1,          element] += (surface_flux_values[v, l, 3, element]
+                                          * boundary_interpolation[1, 1])
         # surface at +y
-        du[v, l, nnodes(dg), element] += surface_flux_values[v, l, 4, element] * boundary_interpolation[nnodes(dg), 2]
+        du[v, l, nnodes(dg), element] += (surface_flux_values[v, l, 4, element]
+                                          * boundary_interpolation[nnodes(dg), 2])
       end
     end
   end
