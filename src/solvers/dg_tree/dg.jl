@@ -208,7 +208,7 @@ end
 
 
 @inline function get_node_coords(x, equations, solver::DG, indices...)
-  SVector(ntuple(idx -> x[idx, indices...], ndims(equations)))
+  SVector(ntuple(@inline(idx -> x[idx, indices...]), Val(ndims(equations))))
 end
 
 @inline function get_node_vars(u, equations, solver::DG, indices...)
@@ -217,7 +217,12 @@ end
   # in Julia `v1.5`, leading to type instabilities if
   # more than ten variables are used. That's why we use
   # `Val(...)` below.
-  SVector(ntuple(v -> u[v, indices...], Val(nvariables(equations))))
+  # We use `@inline` to make sure that the `getindex` calls are
+  # really inlined, which might be the default choice of the Julia
+  # compiler for standard `Array`s but not necessarily for more
+  # advanced array types such as `PtrArray`s, cf.
+  # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
+  SVector(ntuple(@inline(v -> u[v, indices...]), Val(nvariables(equations))))
 end
 
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
@@ -226,8 +231,8 @@ end
   # in Julia `v1.5`, leading to type instabilities if
   # more than ten variables are used. That's why we use
   # `Val(...)` below.
-  u_ll = SVector(ntuple(v -> u[1, v, indices...], Val(nvariables(equations))))
-  u_rr = SVector(ntuple(v -> u[2, v, indices...], Val(nvariables(equations))))
+  u_ll = SVector(ntuple(@inline(v -> u[1, v, indices...]), Val(nvariables(equations))))
+  u_rr = SVector(ntuple(@inline(v -> u[2, v, indices...]), Val(nvariables(equations))))
   return u_ll, u_rr
 end
 
