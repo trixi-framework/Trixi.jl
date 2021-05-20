@@ -121,7 +121,7 @@ appropriate keyword arguments to `PlotData2D`:
 * `slice` specifies the plane which is being sliced and can be `:xy`, `:xz`,
   or `:yz` (default: `:xy`)
 * `point` specifies a three dimensional point. The sliced plane is then created
-  in such a way, that it lies on the point. (default: `(0.0, 0.0, 0.0)`)
+  in such a way, that it lies on the point. (default: `(0.0, 0.0, 0.0)`).
 
 Alls other attributes for `PlotData2D` objects apply here as well.
 
