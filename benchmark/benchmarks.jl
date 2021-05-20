@@ -19,7 +19,7 @@ let dimension = "2d"
                  joinpath(@__DIR__, "elixir_2d_euler_vortex_tree.jl"),
                  joinpath(@__DIR__, "elixir_2d_euler_vortex_structured.jl"),
                  joinpath(@__DIR__, "elixir_2d_euler_vortex_unstructured.jl")]
-    SUITE[dimension][elixir] = BenchmarkGroup()
+    SUITE[dimension][basename(elixir)] = BenchmarkGroup()
     for polydeg in [3, 7]
       trixi_include(elixir, tspan=(0.0, 1.0e-10); polydeg)
       SUITE[dimension][basename(elixir)]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!(
@@ -38,7 +38,7 @@ let dimension = "3d"
                  "elixir_euler_nonperiodic_curved.jl",
                  "elixir_euler_mortar.jl",
                  "elixir_euler_shockcapturing.jl"]
-    SUITE[dimension][elixir] = BenchmarkGroup()
+    SUITE[dimension][basename(elixir)] = BenchmarkGroup()
     for polydeg in [3, 7]
       trixi_include(joinpath(EXAMPLES_DIR, elixir), tspan=(0.0, 1.0e-10); polydeg)
       SUITE[dimension][basename(elixir)]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!(
