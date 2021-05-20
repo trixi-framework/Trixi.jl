@@ -5,7 +5,7 @@ PkgBenchmark = "32113eaa-f34f-5b0d-bd6c-c81e245fc73d"
 Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 
 [compat]
-BenchmarkTools = "0.5, 0.7"
+BenchmarkTools = "0.5, 0.7, 1.0"
 OrdinaryDiffEq = "5.51.1"
 PkgBenchmark = "0.2.10"
 Trixi = "0.3"
