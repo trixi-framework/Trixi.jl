@@ -24,6 +24,7 @@ using Printf: @printf, @sprintf, println
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
+using CheapThreads: @batch
 import DiffEqBase: CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
@@ -33,20 +34,17 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
+using LoopVectorization: LoopVectorization, @avx
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
-using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
+using StrideArrays: PtrArray, StrideArray, StaticInt
+using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack
 using UnPack: @pack!
-
-# Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
-# Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.
-using Tullio: @tullio
-using LoopVectorization
 
 
 # Define the entry points of our type hierarchy, e.g.
@@ -114,7 +112,9 @@ export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_wall_noslip,
        boundary_condition_wall,
-       boundary_condition_zero
+       boundary_condition_zero,
+       BoundaryConditionWall,
+       boundary_state_slip_wall
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
@@ -164,7 +164,7 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 
 export PositivityPreservingLimiterZhangShu
 
-export trixi_include, examples_dir, get_examples, default_example
+export trixi_include, examples_dir, get_examples, default_example, default_example_unstructured
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 

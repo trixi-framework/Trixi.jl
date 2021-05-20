@@ -16,17 +16,20 @@ with possibly curved boundaries.
 
 We use the following unstructured mesh with three elements for this discussion:
 
-![example-mesh](https://user-images.githubusercontent.com/25242486/114917530-552eac00-9e26-11eb-9d79-baed4d4c4c66.png)
+![example-mesh](https://user-images.githubusercontent.com/25242486/117508011-2e2c4b80-af88-11eb-8b15-949fc2d43253.png)
 
-Further, we provide a complete mesh file below in the format that could be read into Trixi.
+Further, a simulation using Trixi on this example unstructured mesh is provided in
+[`examples/2d/elixir_euler_unstructured_quad_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_euler_unstructured_quad_basic.jl).
 
 
 ## Mesh file header
 
-The first line of the mesh file lists the total number of *corners*, *surfaces*, *elements*, and
+The first two lines of the mesh file lists the mesh file type as well as the
+total number of *corners*, *surfaces*, *elements*, and
 the *polynomial degree* that the mesh will use to represent any curved sides. For the example mesh
 these quantities are
 ```
+ISM-V2
     7    9    3    8
 ```
 corresponding to seven corners, nine surfaces, and three elements. The mesh polynomial degree of
@@ -146,7 +149,7 @@ condition is required.
 As an example, the complete information for element `1` in the example mesh would be
 ```
     5    1    4    3
-    0    0    1    0
+    0    0    1    1
  1.000000000000000   1.000000000000000
  1.024948365654583   0.934461926834452
  1.116583018200151   0.777350964621867
@@ -155,14 +158,27 @@ As an example, the complete information for element `1` in the example mesh woul
  1.768263070247418   0.329729152118310
  1.920916981799849   0.185149035378133
  1.986035130050921   0.054554577460044
- 2.000000000000000                   0
- Slant1 --- --- Slant2
+ 2.000000000000000                 0.0
+               0.0                 0.0
+ 0.035513826946206   0.105291711848750
+ 0.148591270347399   0.317731556850611
+ 0.340010713990041   0.452219430075470
+ 0.575000000000000   0.462500000000000
+ 0.788022294598950   0.483764065630034
+ 0.926408729652601   0.644768443149389
+ 0.986453164464803   0.883724792445746
+ 1.000000000000000   1.000000000000000
+ Slant --- --- Bezier
 ```
+where the curved boundary information is encoded "back to back". That is, the first nine `(x,y)`
+nodes in the list above correspond to the interior boundary curve along local side `3`
+in element `1` and the next nine `(x,y)` nodes denote the curved physical boundary named `Bezier`
+along local side `4`.
 
 We collect the complete set of element information for the example mesh
 ```
     5    1    4    3
-    0    0    1    0
+    0    0    1    1
  1.000000000000000   1.000000000000000
  1.024948365654583   0.934461926834452
  1.116583018200151   0.777350964621867
@@ -171,11 +187,20 @@ We collect the complete set of element information for the example mesh
  1.768263070247418   0.329729152118310
  1.920916981799849   0.185149035378133
  1.986035130050921   0.054554577460044
- 2.000000000000000                   0
- Slant1 --- --- Slant2
+ 2.000000000000000                 0.0
+               0.0                 0.0
+ 0.035513826946206   0.105291711848750
+ 0.148591270347399   0.317731556850611
+ 0.340010713990041   0.452219430075470
+ 0.575000000000000   0.462500000000000
+ 0.788022294598950   0.483764065630034
+ 0.926408729652601   0.644768443149389
+ 0.986453164464803   0.883724792445746
+ 1.000000000000000   1.000000000000000
+ Slant --- --- Bezier
     4    2    6    3
     0    0    0    1
- 2.000000000000000                   0
+ 2.000000000000000                 0.0
  1.986035130050921   0.054554577460044
  1.920916981799849   0.185149035378133
  1.768263070247418   0.329729152118310
@@ -188,4 +213,26 @@ We collect the complete set of element information for the example mesh
     7    2    4    1
     0    0    0    0
  Right --- --- Bottom
+```
+
+## Trixi.jl on an unstructured quadrilateral mesh
+
+We provide an example simulation on an unstructured quadrilateral mesh by executing
+```julia
+julia> trixi_include(default_example_unstructured())
+```
+Note this may download a copy of the mesh file described above for the three element
+unstructured mesh. This elixir provides the solution for the compressible Euler equations in
+two spatial dimensions for a smooth propagating wave solution. Below we provide the time evolution
+of the pressure wave for this example created with the `Trixi2Vtk` tool and visualized
+using ParaView.
+```@raw html
+  <!--
+  Video creation details
+  * Set up terminal size and position appropriately
+  * Record video as MP4 with SimpleScreenRecorder (https://en.wikipedia.org/wiki/SimpleScreenRecorder)
+  * Upload to YouTube
+  * Obtain responsive code by inserting link on https://embedresponsively.com
+  -->
+  <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/lS8GjuctXAY' frameborder='0' allowfullscreen></iframe></div>
 ```
