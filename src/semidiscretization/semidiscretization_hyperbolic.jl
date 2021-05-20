@@ -115,9 +115,10 @@ function digest_boundary_conditions(boundary_conditions::Dict, cache)
     boundary_indices[j] = sort(temp_all)
   end
 
-  # put everything together into tuples that have the boundary type and associated indices for each
-  # boundary of that type. Save a copy of the original dictionary at the end for printing
-  tuple(tuple(zip(boundary_types, boundary_indices)...), boundary_conditions)
+  # put everything together into a NamedTuple that has tuples with the (sorted) boundary type and
+  # its associated indices. Save a copy of the original dictionary for printing
+  ( sorted_boundary_information = tuple(zip(boundary_types, boundary_indices)...),
+    boundary_dictionary = boundary_conditions, )
 end
 
 function digest_boundary_conditions(boundary_conditions::AbstractArray, cache)
@@ -154,9 +155,11 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", semi.equations |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
-    if semi.boundary_conditions isa Tuple && semi.boundary_conditions[2] isa Dict
-      summary_line(io, "boundary conditions", length(semi.boundary_conditions[2]))
-      for (boundary_name, boundary_condition) in semi.boundary_conditions[2]
+    if semi.boundary_conditions isa NamedTuple &&
+       semi.boundary_conditions[2] isa Dict
+      @unpack boundary_dictionary = semi.boundary_conditions
+      summary_line(io, "boundary conditions", length(boundary_dictionary))
+      for (boundary_name, boundary_condition) in boundary_dictionary
         summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
       end
     else # non dictionary boundary conditions container

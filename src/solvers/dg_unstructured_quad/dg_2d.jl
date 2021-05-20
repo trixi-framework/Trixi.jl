@@ -221,14 +221,16 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
 end
 
 
-function calc_boundary_flux!(cache, t, boundary_conditions::Tuple,
+function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::UnstructuredQuadMesh, equations, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack element_id, element_side_id = cache.boundaries
+  @unpack sorted_boundary_information = boundary_conditions
 
   # Loop through each boundary type and associated index vector from the tuples
   # made in `digest_boundary_conditions`
-  @threaded for (boundary_condition, boundary_condition_indices) in boundary_conditions[1]
+#  @threaded for (boundary_condition, boundary_condition_indices) in boundary_conditions[1]
+  for (boundary_condition, boundary_condition_indices) in sorted_boundary_information
     for boundary in boundary_condition_indices
         #Get the element and side IDs on the boundary element
         element = element_id[boundary]
