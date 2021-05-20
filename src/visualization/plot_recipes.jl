@@ -472,8 +472,6 @@ function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
                     slice=:x, point=(0.0, 0.0))
 
-  @assert ndims(mesh) in (1,2,3) "unsupported number of dimensions $ndims (must be 1, 2 or 3)"
-
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
 
