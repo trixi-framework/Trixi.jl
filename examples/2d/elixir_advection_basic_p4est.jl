@@ -14,10 +14,10 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (8, 8)
+trees_per_dimension = (8, 8)
 
-# Create curved mesh with 16 x 16 elements
-mesh = P4estMesh(cells_per_dimension, coordinates_min, coordinates_max, polydeg=3, initial_refinement_level=1)
+# Create P4estMesh with 8 x 8 trees and 16 x 16 elements
+mesh = P4estMesh(trees_per_dimension, coordinates_min, coordinates_max, polydeg=3, initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
@@ -37,6 +37,7 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval=100)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
+# TODO P4EST
 # save_solution = SaveSolutionCallback(interval=100,
 #                                      solution_variables=cons2prim)
 

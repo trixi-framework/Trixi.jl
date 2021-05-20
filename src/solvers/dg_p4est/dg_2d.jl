@@ -20,10 +20,6 @@ function rhs!(du, u, t,
     cache.elements.surface_flux_values, mesh,
     equations, dg, cache)
 
-  # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
-
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(
     du, mesh, equations, dg, cache)
@@ -115,13 +111,6 @@ function calc_interface_flux!(surface_flux_values,
   end
 
   return nothing
-end
-
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::P4estMesh{2}, equations, dg::DG)
-  # @assert isempty(eachboundary(dg, cache))
 end
 
 

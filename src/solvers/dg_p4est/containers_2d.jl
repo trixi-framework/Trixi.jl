@@ -17,25 +17,15 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasi
 end
 
 
-# Convert sc_array to Julia array of the specified type
-function convert_sc_array(type, sc_array)
-  element_count = sc_array.elem_count
-  element_size = sc_array.elem_size
-
-  @assert element_size == sizeof(type)
-
-  return [unsafe_wrap(type, sc_array.array + element_size * i) for i in 0:element_count-1]
-end
-
-
 # Interpolate tree_node_coordinates to each quadrant
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
-                                basis::LobattoLegendreBasis)
+                                basis)
   tmp1 = zeros(real(mesh), 2, nnodes(basis), nnodes(basis))
 
-  P4EST_ROOT_LEN = 1 << P4EST_MAXLEVEL
-  P4EST_QUADRANT_LEN(l) = 1 << (P4EST_MAXLEVEL - l)
+  # Macros from p4est
+  p4est_root_len = 1 << P4EST_MAXLEVEL
+  p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
   trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
 
@@ -47,10 +37,10 @@ function calc_node_coordinates!(node_coordinates,
       element = offset + i
       quad = quadrants[i]
 
-      quad_length = P4EST_QUADRANT_LEN(quad.level) / P4EST_ROOT_LEN
+      quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
 
-      nodes_out_x = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.x / P4EST_ROOT_LEN) .- 1
-      nodes_out_y = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.y / P4EST_ROOT_LEN) .- 1
+      nodes_out_x = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
+      nodes_out_y = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
       matrix1 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_x)
       matrix2 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_y)
 
@@ -65,6 +55,8 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 
+# Iterate over all interfaces and extract interface data to interface container
+# This function will be passed to p4est in init_interfaces! below
 function init_interfaces_iter_face(info, user_data)
   # Unpack user_data = [interfaces, interface_id, mesh] and increment interface_id
   ptr = Ptr{Any}(user_data)
@@ -78,7 +70,9 @@ function init_interfaces_iter_face(info, user_data)
 
   # Extract interface data
   sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+  # Global trees array
   trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
+  # Quadrant numbering offsets of the quadrants at this interface
   offsets = [trees[sides[1].treeid + 1].quadrants_offset,
              trees[sides[2].treeid + 1].quadrants_offset]
 
@@ -87,21 +81,32 @@ function init_interfaces_iter_face(info, user_data)
   end
 
   local_quad_ids = [sides[1].is.full.quadid, sides[2].is.full.quadid]
+  # Global IDs of the neighboring quads
   quad_ids = offsets + local_quad_ids
+  # Face at which the interface lies
   faces = [sides[1].face, sides[2].face]
 
   quad_to_face = unsafe_wrap(Array, mesh.p4est_mesh.quad_to_face, 4 * ncells(mesh))
-  orientations = [quad_to_face[quad_ids[2] * 4 + faces[2] + 1],
-                  quad_to_face[quad_ids[1] * 4 + faces[1] + 1]] - faces
+  # Relative orientation of the two cell faces,
+  # 0 for aligned coordinates, 1 for reversed coordinates.
+  # `quad_to_face` has one entry for each quadrant's face, +1 for one-based indexing.
+  # The value in quad_to_face is `orientation * 4 + face`.
+  orientation = (quad_to_face[quad_ids[1] * 4 + faces[1] + 1] - faces[2]) / 4
 
   # Write data to interfaces container
   interfaces.element_ids[1, interface_id] = quad_ids[1] + 1
   interfaces.element_ids[2, interface_id] = quad_ids[2] + 1
 
+  # Iterate over primary and secondary element
   for side in 1:2
-    if orientations[side] == 0
+    # Align interface in positive coordinate direction of primary element.
+    # For orientation == 1, the secondary element needs to be indexed backwards
+    # relative to the interface.
+    if side == 1 || orientation == 0
+      # Forward indexing
       i = :i
     else
+      # Backward indexing
       i = :mi
     end
 
@@ -130,7 +135,7 @@ function init_interfaces!(interfaces, mesh::P4estMesh{2})
   p4est_iterate(mesh.p4est,
                 C_NULL, # ghost layer
                 # user data [interfaces, interface_id, mesh]
-                Base.unsafe_convert(Ptr{Nothing}, [interfaces, 1, mesh]),
+                Base.unsafe_convert(Ptr{Cvoid}, [interfaces, 1, mesh]),
                 C_NULL, # iter_volume
                 iter_face_c, # iter_face
                 C_NULL) # iter_corner

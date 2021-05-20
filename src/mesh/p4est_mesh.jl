@@ -1,7 +1,7 @@
 """
-    P4estMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
+    P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
 
-An unstructured curved mesh based on trees, which uses the C library p4est
+An unstructured curved mesh based on trees that uses the C library p4est
 to manage trees and mesh refinement.
 
 !!! warning "Experimental code"
@@ -26,9 +26,9 @@ Create a P4estMesh that is a structured curved hypercube of the specified size.
 
 # Arguments
 - `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
-- `mapping`: a function of `NDIMS` variables to describe the mapping, which transforms
+- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the reference mesh (`[-1, 1]^n`) to the physical domain.
-- `nodes::AbstractVector`: nodes which should be used to store the geometry of the mesh.
+- `nodes::AbstractVector`: nodes that should be used to store the geometry of the mesh.
                            The mapping will be evaluated at the tensor product of the specified nodes
                            for each tree and will then be interpolated for refined cells.
 - `RealT::Type`: the type that should be used for coordinates.
@@ -65,6 +65,7 @@ function P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
   p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
+  # Destroy p4est structs at exit of Julia
   function destroy_p4est_structs()
     p4est_mesh_destroy(p4est_mesh)
     p4est_ghost_destroy(ghost)
@@ -87,9 +88,9 @@ Create a P4estMesh that is a structured curved hypercube of the specified size.
 
 # Arguments
 - `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
-- `mapping`: a function of `NDIMS` variables to describe the mapping, which transforms
+- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the reference mesh (`[-1, 1]^n`) to the physical domain.
-- `polydeg::Integer`: polynomial degree to used to store the geometry of the mesh.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
 - `RealT::Type`: the type that should be used for coordinates.
@@ -111,7 +112,7 @@ end
 
 
 """
-P4estMesh(trees_per_dimension, faces; polydeg, RealT=Float64, initial_refinement_level=0, periodicity=true)
+    P4estMesh(trees_per_dimension, faces; polydeg, RealT=Float64, initial_refinement_level=0, periodicity=true)
 
 Create a P4estMesh that is a structured curved hypercube of the specified size.
 
@@ -125,7 +126,7 @@ Create a P4estMesh that is a structured curved hypercube of the specified size.
                             `faces[3:4]` describe the faces in positive and negative y-direction respectively
                             (in 2D and 3D).
                             `faces[5:6]` describe the faces in positive and negative z-direction respectively (in 3D).
-- `polydeg::Integer`: polynomial degree to used to store the geometry of the mesh.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
 - `RealT::Type`: the type that should be used for coordinates.
@@ -155,7 +156,7 @@ Create a P4estMesh that represents an uncurved structured mesh with a rectangula
 - `trees_per_dimension::NTuple{NDIMS, Int}`: the number of trees in each dimension.
 - `coordinates_min::NTuple{NDIMS, RealT}`: coordinate of the corner in the negative direction of each dimension.
 - `coordinates_max::NTuple{NDIMS, RealT}`: coordinate of the corner in the positive direction of each dimension.
-- `polydeg::Integer`: polynomial degree to used to store the geometry of the mesh.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
@@ -172,9 +173,9 @@ function P4estMesh(trees_per_dimension, coordinates_min, coordinates_max;
 end
 
 
-# Create a new p4est_connectivity, which represents a structured rectangle with periodic boundaries.
+# Create a new p4est_connectivity that represents a structured rectangle with periodic boundaries.
 # Similar to p4est_connectivity_new_brick, but doesn't use Morton ordering
-# TODO non-periodic
+# TODO P4EST non-periodic
 function connectivity_structured_periodic(cells_x, cells_y)
   linear_indices = LinearIndices((cells_x, cells_y))
 
@@ -189,9 +190,10 @@ function connectivity_structured_periodic(cells_x, cells_y)
   tree_to_vertex = C_NULL
 
   # Periodic boundaries
-  tree_to_tree = Matrix{Int32}(undef, 4, num_trees)
+  tree_to_tree = Matrix{p4est_topidx_t}(undef, 4, num_trees)
   for cell_y in 1:cells_y, cell_x in 1:cells_x
     tree = linear_indices[cell_x, cell_y]
+    # Subtract 1 because p4est uses zero-based indexing
     tree_to_tree[1, tree] = linear_indices[mod(cell_x - 2, cells_x) + 1, cell_y] - 1
     tree_to_tree[2, tree] = linear_indices[mod(cell_x, cells_x) + 1, cell_y] - 1
     tree_to_tree[3, tree] = linear_indices[cell_x, mod(cell_y - 2, cells_y) + 1] - 1
@@ -205,7 +207,7 @@ function connectivity_structured_periodic(cells_x, cells_y)
   tree_to_face[4, :] .= 2
 
   tree_to_corner = C_NULL
-  ctt_offset = Array{Int32}([0])
+  ctt_offset = Array{p4est_topidx_t}([0])
 
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
@@ -229,12 +231,12 @@ isperiodic(mesh::P4estMesh, dimension) = mesh.periodicity[dimension]
 @inline ncells(mesh::P4estMesh) = mesh.p4est_mesh.local_num_quadrants
 
 
-function Base.show(io::IO, ::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
-  print(io, "P4estMesh{", NDIMS, ", ", RealT, "}")
+function Base.show(io::IO, mesh::P4estMesh)
+  print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
+function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
   if get(io, :compact, false)
     show(io, mesh)
   else
@@ -244,7 +246,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh{NDIMS, RealT}) wh
              "periodicity" => mesh.periodicity,
              "polydeg" => length(mesh.nodes),
             ]
-    summary_box(io, "P4estMesh{" * string(NDIMS) * ", " * string(RealT) * "}", setup)
+    summary_box(io, "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}", setup)
   end
 end
 
