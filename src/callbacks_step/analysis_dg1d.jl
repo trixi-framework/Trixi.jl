@@ -5,7 +5,7 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{1},
 
   # pre-allocate buffers
   # We use `StrideArray`s here since these buffers are used in performance-critical
-  # places andthe additional information passed to the compiler makes them faster
+  # places and the additional information passed to the compiler makes them faster
   # than native `Array`s.
   u_local = StrideArray(undef, uEltype,
                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
@@ -22,7 +22,7 @@ function create_cache_analysis(analyzer, mesh::CurvedMesh{1},
 
   # pre-allocate buffers
   # We use `StrideArray`s here since these buffers are used in performance-critical
-  # places andthe additional information passed to the compiler makes them faster
+  # places and the additional information passed to the compiler makes them faster
   # than native `Array`s.
   u_local = StrideArray(undef, uEltype,
                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
