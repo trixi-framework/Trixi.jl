@@ -229,16 +229,18 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
 
   # Loop through each boundary type and associated index vector from the tuples
   # made in `digest_boundary_conditions`
-#  @threaded for (boundary_condition, boundary_condition_indices) in boundary_conditions[1]
   for (boundary_condition, boundary_condition_indices) in sorted_boundary_information
-    for boundary in boundary_condition_indices
-        #Get the element and side IDs on the boundary element
-        element = element_id[boundary]
-        side    = element_side_id[boundary]
+    @threaded for local_index in eachindex(boundary_condition_indices)
+      # use the local index to get the global boundary index from the pre-sorted list
+      boundary = boundary_condition_indices[local_index]
 
-        #calc boundary flux on the current boundary interface
-        calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
-                            side, element, boundary)
+      # get the element and side IDs on the boundary element
+      element = element_id[boundary]
+      side    = element_side_id[boundary]
+
+      # calc boundary flux on the current boundary interface
+      calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+                          side, element, boundary)
     end
   end
 
