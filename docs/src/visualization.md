@@ -155,8 +155,7 @@ In a very similar fashion to [`PlotData2D`](@ref), you can customize your plot:
 * `plot(pd)` creates a plot as on default.
 * `plot(pd["rho", "p"])` only plot specific variables. In this case `rho` and `p`.
 * `plot!(getmesh(pd))` adds mesh lines after creating a plot.
-* Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used.
-  (ex. `plot(pd, yguide=:temperature)`)
+* Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used, e.g., `plot(pd, yguide=:temperature)`.
 * `pd = PlotData2D(adapt_to_mesh_level(sol, 4)...)` refines the mesh before plotting;
   (in this example to a mesh with level 4)
 
