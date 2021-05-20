@@ -56,7 +56,7 @@ end
     PlotData2D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-               slice_axis=:z, slice_axis_intercept=0)
+               slice=:xy, point=(0.0, 0.0, 0.0))
 
 Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
@@ -72,8 +72,8 @@ nodes to be used. If it is `nothing`, twice the number of solution DG nodes are 
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
-`slice_axis` specifies the axis orthogonal to the slice plane and may be `:x`, `:y`, or `:z`. The
-point on the slice axis where it intersects with the slice plane is given in `slice_axis_intercept`.
+`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
 
 !!! warning "Experimental implementation"
@@ -104,7 +104,7 @@ PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_native(u_ode, semi),
 function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice_axis=:z, slice_axis_intercept=0)
+                    slice=:xy, point=(0.0, 0.0, 0.0))
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -121,10 +121,10 @@ function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                                                              ndims(mesh), unstructured_data,
                                                              nnodes(solver), grid_lines,
                                                              max_supported_level, nvisnodes,
-                                                             slice_axis, slice_axis_intercept)
+                                                             slice, point)
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  orientation_x, orientation_y = _get_orientations(mesh, slice_axis)
+  orientation_x, orientation_y = _get_orientations(mesh, slice)
 
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
                     orientation_x, orientation_y)
@@ -173,15 +173,15 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
-# Convert `slice_axis` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
-function _get_orientations(mesh, slice_axis)
-  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
+# Convert `slice` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
+function _get_orientations(mesh, slice)
+  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice === :xy)
     orientation_x = 1
     orientation_y = 2
-  elseif ndims(mesh) == 3 && slice_axis === :y
+  elseif ndims(mesh) == 3 && slice === :xz
     orientation_x = 1
     orientation_y = 3
-  elseif ndims(mesh) == 3 && slice_axis === :x
+  elseif ndims(mesh) == 3 && slice === :yz
     orientation_x = 2
     orientation_y = 3
   else
@@ -456,6 +456,11 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes in the DG elements are used.
 
+When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
+`slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0)`.
+Both of these values are ignored when visualizing 1D data.
+
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
@@ -464,24 +469,27 @@ PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array_native(u_ode, semi),
                                                 kwargs...)
 
 function PlotData1D(u, mesh, equations, solver, cache;
-                    solution_variables=nothing, nvisnodes=nothing)
+                    solution_variables=nothing, nvisnodes=nothing,
+                    slice=:x, point=(0.0, 0.0, 0.0))
 
-  @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
-
   variable_names = SVector(varnames(solution_variables_, equations))
-  original_nodes = cache.elements.node_coordinates
 
+  original_nodes = cache.elements.node_coordinates
   unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
-  x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
   if ndims(mesh) == 1
+    x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
-  else
+  elseif ndims(mesh) == 2
+    x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    orientation_x = 0
+  else # ndims(mesh) == 3
+    x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
     orientation_x = 0
   end
 
-  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]),
+  return PlotData1D(x, data, variable_names, mesh_vertices_x,
                     orientation_x)
 end
 
@@ -637,14 +645,14 @@ end
 #       constructor.
 @recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=nothing,
-                   grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
-                   slice_axis_intercept=0)
+                   grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
+                   point=(0.0, 0.0, 0.0))
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(semi) == 1
     return PlotData1D(u, semi; solution_variables, nvisnodes)
   else
     return PlotData2D(u, semi;
                       solution_variables, grid_lines, max_supported_level,
-                      nvisnodes, slice_axis, slice_axis_intercept)
+                      nvisnodes, slice, point)
   end
 end
