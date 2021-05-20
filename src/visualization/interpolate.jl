@@ -78,7 +78,7 @@ function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
   lower_limit = center_level_0[slice_dimension] - length_level_0 / 2
   upper_limit = center_level_0[slice_dimension] + length_level_0 / 2
 
-  @assert length(point) == 3 "Point must be three-dimensional."
+  @assert length(point) >= 3 "Point must be three-dimensional."
   if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
     error(string("Slice plane is outside of domain.",
         " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
@@ -200,7 +200,7 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   lower_limit = original_nodes[1, 1, 1, 1]
   upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_elements]
 
-  @assert length(point) == 2 "Point must be two-dimensional."
+  @assert length(point) >= 2 "Point must be two-dimensional."
   if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
     error(string("Slice axis is outside of domain. ",
         " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
@@ -278,7 +278,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   lower_limit = original_nodes[1, 1, 1, 1, 1]
   upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_nodes_in, n_elements]
 
-  @assert length(point) == 3 "Point must be three-dimensional."
+  @assert length(point) >= 3 "Point must be three-dimensional."
   if prod(point[other_dimensions] .< lower_limit) || prod(point[other_dimensions] .> upper_limit)
     error(string("Slice axis is outside of domain. ",
         " point[$other_dimensions]=$(point[other_dimensions]) must be between $lower_limit and $upper_limit"))
