@@ -132,13 +132,17 @@ end
 function init_interfaces!(interfaces, mesh::P4estMesh{2})
   # Let p4est iterate over all interfaces and extract interface data to interface container
   iter_face_c = @cfunction(init_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  p4est_iterate(mesh.p4est,
-                C_NULL, # ghost layer
-                # user data [interfaces, interface_id, mesh]
-                Base.unsafe_convert(Ptr{Cvoid}, [interfaces, 1, mesh]),
-                C_NULL, # iter_volume
-                iter_face_c, # iter_face
-                C_NULL) # iter_corner
+  user_data = [interfaces, 1, mesh]
+
+  GC.@preserve user_data begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  # user data [interfaces, interface_id, mesh]
+                  pointer(user_data),
+                  C_NULL, # iter_volume
+                  iter_face_c, # iter_face
+                  C_NULL) # iter_corner
+  end
 
   return interfaces
 end

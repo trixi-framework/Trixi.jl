@@ -22,7 +22,7 @@ end
     P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
 
-Create a P4estMesh that is a structured curved hypercube of the specified size.
+Create a structured curved P4estMesh of the specified size.
 
 # Arguments
 - `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
@@ -84,7 +84,7 @@ end
     P4estMesh(trees_per_dimension, mapping; polydeg
               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
 
-Create a P4estMesh that is a structured curved hypercube of the specified size.
+Create a structured curved P4estMesh of the specified size.
 
 # Arguments
 - `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
@@ -114,7 +114,7 @@ end
 """
     P4estMesh(trees_per_dimension, faces; polydeg, RealT=Float64, initial_refinement_level=0, periodicity=true)
 
-Create a P4estMesh that is a structured curved hypercube of the specified size.
+Create a structured curved P4estMesh of the specified size.
 
 # Arguments
 - `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
@@ -150,7 +150,7 @@ end
     P4estMesh(trees_per_dimension, coordinates_min, coordinates_max;
               polydeg, initial_refinement_level=0, periodicity=true)
 
-Create a P4estMesh that represents an uncurved structured mesh with a rectangular domain.
+Create an structured uncurved rectangular P4estMesh of the specified size.
 
 # Arguments
 - `trees_per_dimension::NTuple{NDIMS, Int}`: the number of trees in each dimension.
@@ -174,7 +174,8 @@ end
 
 
 # Create a new p4est_connectivity that represents a structured rectangle with periodic boundaries.
-# Similar to p4est_connectivity_new_brick, but doesn't use Morton ordering
+# Similar to p4est_connectivity_new_brick, but doesn't use Morton ordering.
+# This ordering makes `calc_node_coordinates!` below easier but is irrelevant otherwise.
 # TODO P4EST non-periodic
 function connectivity_structured_periodic(cells_x, cells_y)
   linear_indices = LinearIndices((cells_x, cells_y))
@@ -252,6 +253,7 @@ end
 
 
 # Calculate physical coordinates to which every node of the reference element is mapped
+# This function assumes a structured mesh with trees in row order.
 function calc_node_coordinates!(node_coordinates, mapping, trees_per_dimension, nodes::AbstractVector)
   linear_indices = LinearIndices(trees_per_dimension)
 
