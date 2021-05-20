@@ -645,7 +645,7 @@ end
 @recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=nothing,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
-                   point=[0, 0, 0])
+                   point=(0.0, 0.0, 0.0))
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(semi) == 1
     return PlotData1D(u, semi; solution_variables, nvisnodes)
