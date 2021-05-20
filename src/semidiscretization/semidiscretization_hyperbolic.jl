@@ -52,7 +52,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       initial_cache=NamedTuple())
 
   cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
-  _boundary_conditions = digest_boundary_conditions(boundary_conditions)
+  _boundary_conditions = digest_boundary_conditions(boundary_conditions, cache)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
@@ -81,22 +81,46 @@ end
 
 
 # allow passing named tuples of BCs constructed in an arbitrary order
-digest_boundary_conditions(boundary_conditions) = boundary_conditions
+digest_boundary_conditions(boundary_conditions, cache) = boundary_conditions
 
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
   @unpack x_neg, x_pos = boundary_conditions
   (; x_neg, x_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
   @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
   @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
-function digest_boundary_conditions(boundary_conditions::AbstractArray)
+# peel apart the boundary condition dictionary for the UnstructuredQuadMesh solver and sort the
+# boundary types and their associated boundary indices into tuples for use later
+function digest_boundary_conditions(boundary_conditions::Dict, cache)
+  # extract the unique boundary function routines from the dictionary
+  boundary_types = Tuple(unique(collect(values(boundary_conditions))))
+
+  # pull and sort the indexing for each boundary type
+  boundary_indices = Vector{Any}(nothing, length(boundary_types))
+  for j in 1:length(boundary_types)
+    temp_all = Int[]
+    for (test_name, test_condition) in boundary_conditions
+      temp = findall(x->x===test_name, cache.boundaries.name)
+      if test_condition === boundary_types[j]
+        temp_all = vcat(temp_all, temp)
+      end
+    end
+    boundary_indices[j] = sort(temp_all)
+  end
+
+  # put everything together into tuples that have the boundary type and associated indices for each
+  # boundary of that type. Save a copy of the original dictionary at the end for printing
+  tuple(tuple(zip(boundary_types, boundary_indices)...), boundary_conditions)
+end
+
+function digest_boundary_conditions(boundary_conditions::AbstractArray, cache)
   throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
@@ -130,9 +154,9 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", semi.equations |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
-    if semi.boundary_conditions isa Dict
-      summary_line(io, "boundary conditions", length(semi.boundary_conditions))
-      for (boundary_name, boundary_condition) in semi.boundary_conditions
+    if semi.boundary_conditions isa Tuple && semi.boundary_conditions[2] isa Dict
+      summary_line(io, "boundary conditions", length(semi.boundary_conditions[2]))
+      for (boundary_name, boundary_condition) in semi.boundary_conditions[2]
         summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
       end
     else # non dictionary boundary conditions container
