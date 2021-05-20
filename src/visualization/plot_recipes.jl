@@ -486,7 +486,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
   elseif ndims(mesh) == 2
     x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
     orientation_x = 0
-  else
+  else # ndims(mesh) == 3
     x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
     orientation_x = 0
   end
