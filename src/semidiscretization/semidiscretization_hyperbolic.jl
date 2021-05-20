@@ -105,14 +105,14 @@ function digest_boundary_conditions(boundary_conditions::Dict, cache)
   # pull and sort the indexing for each boundary type
   boundary_indices = Vector{Any}(nothing, length(boundary_types))
   for j in 1:length(boundary_types)
-    temp_all = Int[]
+    indices_for_current_type = Int[]
     for (test_name, test_condition) in boundary_conditions
-      temp = findall(x->x===test_name, cache.boundaries.name)
+      temp_indices = findall(x->x===test_name, cache.boundaries.name)
       if test_condition === boundary_types[j]
-        temp_all = vcat(temp_all, temp)
+        indices_for_current_type = vcat(indices_for_current_type, temp_indices)
       end
     end
-    boundary_indices[j] = sort(temp_all)
+    boundary_indices[j] = sort(indices_for_current_type)
   end
 
   # put everything together into a NamedTuple that has tuples with the (sorted) boundary type and
