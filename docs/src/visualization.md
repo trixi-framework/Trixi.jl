@@ -42,9 +42,9 @@ with an output file name that ends in `.png`, e.g.,
 julia> savefig("solution-overview.png")
 ```
 
-In Trixi there are two different types of plots: 2D heatmap plots and 1D line plots.
-If you use `plot(sol)` Trixi will automatically choose the plot type, that fits the dimensions
-of the `sol` input.
+In Trixi, two plot types are available: 2D heatmap plots and 1D line plots.
+If you use `plot(sol)`, Trixi will automatically choose the plot type that fits the dimensions
+of the `sol` input: 2D/3D data will be visualized as a heatmap, 1D data as a line plot.
 For more fine-grained control over what to plot, you can create such an object
 yourself, which can either be a [`PlotData2D`](@ref) or a [`PlotData1D`](@ref) object.
 For further details on both of these see below:
@@ -121,7 +121,7 @@ appropriate keyword arguments to `PlotData2D`:
 * `slice` specifies the plane which is being sliced and can be `:xy`, `:xz`,
   or `:yz` (default: `:xy`)
 * `point` specifies a three dimensional point. The sliced plane is then created
-  in such a way, that it lies on the point. (default: `(0.0, 0.0, 0.0)`)
+  in such a way, that it lies on the point. (default: `(0.0, 0.0, 0.0)`).
 
 Alls other attributes for `PlotData2D` objects apply here as well.
 
@@ -155,8 +155,7 @@ In a very similar fashion to [`PlotData2D`](@ref), you can customize your plot:
 * `plot(pd)` creates a plot as on default.
 * `plot(pd["rho", "p"])` only plot specific variables. In this case `rho` and `p`.
 * `plot!(getmesh(pd))` adds mesh lines after creating a plot.
-* Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used.
-  (ex. `plot(pd, yguide=:temperature)`)
+* Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used, e.g., `plot(pd, yguide=:temperature)`.
 * `pd = PlotData2D(adapt_to_mesh_level(sol, 4)...)` refines the mesh before plotting;
   (in this example to a mesh with level 4)
 
