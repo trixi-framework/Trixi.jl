@@ -470,7 +470,7 @@ PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi),
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
-                    slice=:x, point=(0.0, 0.0))
+                    slice=:x, point=(0.0, 0.0, 0.0))
 
   @assert ndims(mesh) in (1,2,3) "unsupported number of dimensions $ndims (must be 1, 2 or 3)"
 

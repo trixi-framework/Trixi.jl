@@ -165,9 +165,9 @@ to the [`PlotData1D`](@ref) constructor:
 * `solution_variables` specifies the variables to be plotted.
 * `nvisnodes` sets the amount of nodes per element which the solution then is interpolated on.
 
-### Plotting a 2D solutions as a 1D plot
-A 1D axis can be extracted from a 2D solution and be plotted as a 1D plot.
-This is done by creating a `PlotData1D` object with a 2D `sol` as input.
+### Plotting a 2D or 3D solutions as a 1D plot
+A 1D axis can be extracted from a 2D or 3D solution and be plotted as a 1D plot.
+This is done by creating a `PlotData1D` object with a 2D/3D `sol` as input.
 ```julia
 julia> pd = PlotData1D(sol)
 ```
@@ -177,11 +177,13 @@ julia> plot(pd)
 ```
 
 By default the x-axis is extracted, which can be changed with following attributes:
-* `slice` specifies the axis which is being extracted and can be `:x` or `:y` (default: `:x`)
-* `point` specifies a two dimensional point. The sliced axis is then created
-  in such a way, that it lies on the point. (default: `(0.0, 0.0)`)
+* `slice` specifies the axis which is being extracted and can be `:x`, `:y` or `:z`
+  (`:z` is only for 3D input and default is `:x`)
+* `point` specifies a two or three dimensional point. The sliced axis is then
+  created in such a way, that it lies on the point.
+  (default: `(0.0, 0.0)` or `(0.0, 0.0, 0.0)`)
 
-Alls other attributes for `PlotData1D` objects apply here as well.
+Alls other attributes for [`PlotData1D`](@ref) objects apply here as well.
 
 Below is an example for a 2D solution of a basic advection equation.
 First the regular 2D heatmap plot:
