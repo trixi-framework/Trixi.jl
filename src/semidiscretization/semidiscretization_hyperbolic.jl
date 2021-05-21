@@ -112,7 +112,7 @@ function digest_boundary_conditions(boundary_conditions::Dict, cache)
         indices_for_current_type = vcat(indices_for_current_type, temp_indices)
       end
     end
-    boundary_indices[j] = sort(indices_for_current_type)
+    boundary_indices[j] = sort!(indices_for_current_type)
   end
 
   # put everything together into a NamedTuple that has tuples with the (sorted) boundary type and

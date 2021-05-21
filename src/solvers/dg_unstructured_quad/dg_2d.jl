@@ -221,7 +221,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
 end
 
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::UnstructuredQuadMesh, equations, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack element_id, element_side_id = cache.boundaries
