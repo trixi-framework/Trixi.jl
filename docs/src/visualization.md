@@ -168,7 +168,7 @@ julia> plot(sol) # `sol` is from a 1D simulation
 ```
 Trixi automatically creates a [`PlotData1D`](@ref) object and visualizes it as a
 line plot:
-![1d-plot](https://user-images.githubusercontent.com/3637659/119084739-a2440600-ba02-11eb-818f-c45d20697104.png)
+![1d-plot](https://user-images.githubusercontent.com/3637659/119086020-1e3f4d80-ba05-11eb-873e-1b586a81e7fe.png)
 
 To customize your 1D plot, you can create a `PlotData1D` object manually as follows:
 ```julia
