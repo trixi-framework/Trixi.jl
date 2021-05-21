@@ -107,7 +107,7 @@ function init_interfaces_iter_face(info, user_data)
       i = :i
     else
       # Backward indexing
-      i = :mi
+      i = :i_backwards
     end
 
     if faces[side] == 0

@@ -41,6 +41,8 @@ function prolong2interfaces!(cache, u,
                              equations, dg::DG)
   @unpack interfaces = cache
 
+  size_ = (nnodes(dg), nnodes(dg))
+
   @threaded for interface in eachinterface(dg, cache)
     primary_element   = interfaces.element_ids[1, interface]
     secondary_element = interfaces.element_ids[2, interface]
@@ -48,17 +50,15 @@ function prolong2interfaces!(cache, u,
     primary_indices   = interfaces.node_indices[1, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
-    size_ = (nnodes(dg), nnodes(dg))
-
-    # Use Tuple `node_indices` and `indexfunction` to copy values
+    # Use Tuple `node_indices` and `evaluate_index` to copy values
     # from the correct face and in the correct orientation
     for i in eachnode(dg), v in eachvariable(equations)
-      interfaces.u[1, v, i, interface] = u[v, indexfunction(primary_indices, size_, 1, i),
-                                              indexfunction(primary_indices, size_, 2, i),
+      interfaces.u[1, v, i, interface] = u[v, evaluate_index(primary_indices, size_, 1, i),
+                                              evaluate_index(primary_indices, size_, 2, i),
                                               primary_element]
 
-      interfaces.u[2, v, i, interface] = u[v, indexfunction(secondary_indices, size_, 1, i),
-                                              indexfunction(secondary_indices, size_, 2, i),
+      interfaces.u[2, v, i, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i),
+                                              evaluate_index(secondary_indices, size_, 2, i),
                                               secondary_element]
     end
   end
@@ -73,6 +73,8 @@ function calc_interface_flux!(surface_flux_values,
   @unpack surface_flux = dg
   @unpack u, element_ids, node_indices = cache.interfaces
 
+  size_ = (nnodes(dg), nnodes(dg))
+
   @threaded for interface in eachinterface(dg, cache)
     # Get neighboring elements
     primary_element   = element_ids[1, interface]
@@ -84,27 +86,25 @@ function calc_interface_flux!(surface_flux_values,
     primary_direction   = indices2direction(primary_indices)
     secondary_direction = indices2direction(secondary_indices)
 
-    size_ = (nnodes(dg), nnodes(dg))
-
-    # Use Tuple `node_indices` and `indexfunction` to access node indices
+    # Use Tuple `node_indices` and `evaluate_index` to access node indices
     # at the correct face and in the correct orientation to get normal vectors
     for i in eachnode(dg)
       u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
       normal_vector = get_normal_vector(primary_direction, cache,
-                                        indexfunction(primary_indices, size_, 1, i),
-                                        indexfunction(primary_indices, size_, 2, i),
+                                        evaluate_index(primary_indices, size_, 1, i),
+                                        evaluate_index(primary_indices, size_, 2, i),
                                         primary_element)
 
       flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
 
-      # Use Tuple `node_indices` and `indexfunction_surface` to copy flux
+      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
       # to left and right element storage in the correct orientation
       for v in eachvariable(equations)
-        surface_index = indexfunction_surface(primary_indices, size_, 1, i)
+        surface_index = evaluate_index_surface(primary_indices, size_, 1, i)
         surface_flux_values[v, surface_index, primary_direction, primary_element] = flux_[v]
 
-        surface_index = indexfunction_surface(secondary_indices, size_, 1, i)
+        surface_index = evaluate_index_surface(secondary_indices, size_, 1, i)
         surface_flux_values[v, surface_index, secondary_direction, secondary_element] = -flux_[v]
       end
     end
