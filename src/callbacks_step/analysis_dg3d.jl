@@ -4,18 +4,21 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{3},
                                RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  u_tmp1 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  u_tmp2 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  x_tmp1 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  x_tmp2 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  u_tmp1  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  u_tmp2  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  x_tmp1  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  x_tmp2  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
 
   return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2)
 end
@@ -26,24 +29,27 @@ function create_cache_analysis(analyzer, mesh::CurvedMesh{3},
                                RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  u_tmp1 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  u_tmp2 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  x_tmp1 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  x_tmp2 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
-  jacobian_local = zeros(RealT,
-                         nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  jacobian_tmp1 = similar(jacobian_local,
-                          nnodes(analyzer), nnodes(dg), nnodes(dg))
-  jacobian_tmp2 = similar(jacobian_local,
-                          nnodes(analyzer), nnodes(analyzer), nnodes(dg))
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  u_tmp1  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  u_tmp2  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  x_tmp1  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  x_tmp2  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  jacobian_local = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  jacobian_tmp1  = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  jacobian_tmp2  = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
 
   return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2)
 end
@@ -141,8 +147,7 @@ function integrate_via_indices(func::Func, u,
 
   # Normalize with total volume
   if normalize
-    total_volume_ = total_volume(mesh)
-    integral = integral / total_volume_
+    integral = integral / total_volume(mesh)
   end
 
   return integral
