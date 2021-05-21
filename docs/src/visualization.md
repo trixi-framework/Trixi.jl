@@ -209,11 +209,12 @@ By default the `x`-axis is extracted, which can be changed with following attrib
 
 All other attributes for [`PlotData1D`](@ref) objects apply here as well.
 
-Below is an example for a 2D solution of a basic advection equation.
-First the regular 2D heatmap plot:
+In the following, is an example for a 2D simulation of the linear scalar advection equation.
+First, we have the regular 2D heatmap plot:
 ![2d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614302-0f033d80-a93a-11eb-91a1-e44de41e0795.PNG)
 
-Now a plot of only the `y`-axis at `(1.0, 0.0)`, which can be created with:
+From this, we can extract a line plot parallel to the `y`-axis going through the
+point `(1.0, 0.0)` with the following commands:
 ```julia
 julia> pd = PlotData1D(sol, slice=:y, point=(1.0, 0.0))
 julia> plot(pd)
