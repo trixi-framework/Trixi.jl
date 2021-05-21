@@ -1,7 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>"]
-version = "0.3.34"
+version = "0.3.35-pre"
 
 [deps]
 CheapThreads = "b630d9fa-e28e-4980-896d-83ce5e2106b2"
