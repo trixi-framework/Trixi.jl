@@ -21,7 +21,7 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 basis)
-  tmp1 = zeros(real(mesh), 2, nnodes(basis), nnodes(basis))
+  tmp1 = zeros(real(mesh), 2, nnodes(basis), length(mesh.nodes))
 
   # Macros from p4est
   p4est_root_len = 1 << P4EST_MAXLEVEL
