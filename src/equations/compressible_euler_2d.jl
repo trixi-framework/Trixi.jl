@@ -33,7 +33,7 @@ end
 
 A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
-(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D)
   c = 2
@@ -56,7 +56,7 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
-(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+(and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 @inline function source_terms_convergence_test(u, x, t, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition`
@@ -91,29 +91,6 @@ Source terms used for convergence tests in combination with
   #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
 
   return SVector(du1, du2, du3, du4)
-end
-
-"""
-    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equations::CompressibleEulerEquations2D)
-
-Boundary conditions used for convergence tests in combination with
-[`initial_condition_convergence_test`](@ref) and [`source_terms_convergence_test`](@ref).
-"""
-function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equations::CompressibleEulerEquations2D)
-  u_boundary = initial_condition_convergence_test(x, t, equations)
-
-  # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
 end
 
 
@@ -598,6 +575,34 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
 end
 
 
+"""
+    boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
+                             equations::CompressibleEulerEquations2D)
+
+Determine the external solution value for a slip wall condition. Sets the normal
+velocity of the the exterior fictitious element to the negative of the internal value.
+
+!!! warning "Experimental code"
+    This wall function can change any time.
+"""
+@inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquations2D)
+
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal and tangential components of the velocity
+  u_tangent = zeros(eltype(normal), 2)
+  u_normal  = normal[1] * u_internal[2] + normal[2] * u_internal[3]
+  u_tangent = (u_internal[2] - u_normal * normal[1], u_internal[3] - u_normal * normal[2])
+
+  return SVector(u_internal[1],
+                 u_tangent[1] - u_normal * normal[1],
+                 u_tangent[2] - u_normal * normal[2],
+                 u_internal[4])
+end
+
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
@@ -880,6 +885,29 @@ end
     λ_min = v2_ll - sqrt(equations.gamma * p_ll / rho_ll)
     λ_max = v2_rr + sqrt(equations.gamma * p_rr / rho_rr)
   end
+
+  return λ_min, λ_max
+end
+
+
+@inline function min_max_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  # Calculate primitive variables and speed of sound
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+  v_normal_ll = v1_ll * normal[1] + v2_ll * normal[2]
+  v_normal_rr = v1_rr * normal[1] + v2_rr * normal[2]
+
+  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm(normal)
+  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm(normal)
 
   return λ_min, λ_max
 end

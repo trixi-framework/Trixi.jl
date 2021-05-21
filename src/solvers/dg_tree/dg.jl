@@ -139,7 +139,7 @@ Create a discontinuous Galerkin method.
 If [`basis isa LobattoLegendreBasis`](@ref LobattoLegendreBasis),
 this creates a [`DGSEM`](@ref).
 """
-struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+struct DG{Basis, Mortar, SurfaceFlux, VolumeIntegral}
   basis::Basis
   mortar::Mortar
   surface_flux::SurfaceFlux
@@ -176,7 +176,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
   end
 end
 
-@inline Base.real(dg::DG{RealT}) where {RealT} = RealT
+@inline Base.real(dg::DG) = real(dg.basis) 
 
 # TODO: Taal refactor, use case?
 # Deprecate in favor of nnodes or order_of_accuracy?
@@ -208,7 +208,7 @@ end
 
 
 @inline function get_node_coords(x, equations, solver::DG, indices...)
-  SVector(ntuple(idx -> x[idx, indices...], ndims(equations)))
+  SVector(ntuple(@inline(idx -> x[idx, indices...]), Val(ndims(equations))))
 end
 
 @inline function get_node_vars(u, equations, solver::DG, indices...)
@@ -217,7 +217,12 @@ end
   # in Julia `v1.5`, leading to type instabilities if
   # more than ten variables are used. That's why we use
   # `Val(...)` below.
-  SVector(ntuple(v -> u[v, indices...], Val(nvariables(equations))))
+  # We use `@inline` to make sure that the `getindex` calls are
+  # really inlined, which might be the default choice of the Julia
+  # compiler for standard `Array`s but not necessarily for more
+  # advanced array types such as `PtrArray`s, cf.
+  # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
+  SVector(ntuple(@inline(v -> u[v, indices...]), Val(nvariables(equations))))
 end
 
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
@@ -226,8 +231,8 @@ end
   # in Julia `v1.5`, leading to type instabilities if
   # more than ten variables are used. That's why we use
   # `Val(...)` below.
-  u_ll = SVector(ntuple(v -> u[1, v, indices...], Val(nvariables(equations))))
-  u_rr = SVector(ntuple(v -> u[2, v, indices...], Val(nvariables(equations))))
+  u_ll = SVector(ntuple(@inline(v -> u[1, v, indices...]), Val(nvariables(equations))))
+  u_rr = SVector(ntuple(@inline(v -> u[2, v, indices...]), Val(nvariables(equations))))
   return u_ll, u_rr
 end
 
@@ -267,14 +272,14 @@ include("basis_lobatto_legendre.jl")
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
 [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
-const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+const DGSEM = DG{Basis, Mortar, SurfaceFlux, VolumeIntegral} where {Basis<:LobattoLegendreBasis, Mortar, SurfaceFlux, VolumeIntegral}
 
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux=flux_central,
                volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
                mortar=MortarL2(basis))
 
-  return DG{real(basis), typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
+  return DG{typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
     basis, mortar, surface_flux, volume_integral)
 end
 

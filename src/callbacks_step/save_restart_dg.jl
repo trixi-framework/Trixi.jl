@@ -1,6 +1,7 @@
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg::DG, cache,
+                           mesh::Union{SerialTreeMesh, CurvedMesh, UnstructuredQuadMesh},
+                           equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
 
@@ -39,11 +40,12 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 
-function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg::DG, cache, restart_file)
+function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh,UnstructuredQuadMesh},
+                           equations, dg::DG, cache, restart_file)
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
   h5open(restart_file, "r") do file
     # Read attributes to perform some sanity checks
@@ -69,7 +71,6 @@ function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg
       end
 
       # Read variable
-      println("Reading variables_$v ($name)...")
       u[v, .., :] = read(file["variables_$v"])
     end
   end
@@ -144,7 +145,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
   # non-root ranks only receive data
   if !mpi_isroot()

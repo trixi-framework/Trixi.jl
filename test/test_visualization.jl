@@ -20,7 +20,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   test_examples_2d = Dict(
     "TreeMesh" => "elixir_euler_blast_wave_amr.jl",
     "CurvedMesh" => "elixir_euler_source_terms_waving_flag.jl",
-    "UnstructuredQuadMesh" => "elixir_euler_unstructured_quad.jl"
+    "UnstructuredQuadMesh" => "elixir_euler_unstructured_quad_wall_bc.jl"
   )
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
@@ -76,6 +76,12 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug plot(pd)
       @test_nowarn_debug plot(pd["p"])
       @test_nowarn_debug plot(getmesh(pd))
+    end
+
+    @testset "1D plot from 2D solution" begin
+      @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+      pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+      @test_nowarn_debug plot(pd1D)
     end
   end
 

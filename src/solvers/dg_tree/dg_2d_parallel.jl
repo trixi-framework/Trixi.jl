@@ -265,78 +265,78 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Start to receive MPI data
-  @timeit_debug timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
+  @timed timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
 
   # Prolong solution to MPI interfaces
-  @timeit_debug timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(
+  @timed timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(
     cache, u, mesh, equations, dg)
 
   # Start to send MPI data
-  @timeit_debug timer() "start MPI send" start_mpi_send!(
+  @timed timer() "start MPI send" start_mpi_send!(
     cache.mpi_cache, mesh, equations, dg, cache)
 
   # Reset du
-  @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(
+  @timed timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
   # TODO: Taal decide order of arguments, consistent vs. modified cache first?
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(
+  @timed timer() "prolong2interfaces" prolong2interfaces!(
     cache, u, mesh, equations, dg)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(
+  @timed timer() "interface flux" calc_interface_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg, cache)
 
   # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(
+  @timed timer() "prolong2boundaries" prolong2boundaries!(
     cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(
+  @timed timer() "boundary flux" calc_boundary_flux!(
     cache, t, boundary_conditions, mesh, equations, dg)
 
   # Prolong solution to mortars
-  @timeit_debug timer() "prolong2mortars" prolong2mortars!(
+  @timed timer() "prolong2mortars" prolong2mortars!(
     cache, u, mesh, equations, dg.mortar, dg)
 
   # Calculate mortar fluxes
-  @timeit_debug timer() "mortar flux" calc_mortar_flux!(
+  @timed timer() "mortar flux" calc_mortar_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg.mortar, dg, cache)
 
   # Finish to receive MPI data
-  @timeit_debug timer() "finish MPI receive" finish_mpi_receive!(
+  @timed timer() "finish MPI receive" finish_mpi_receive!(
     cache.mpi_cache, mesh, equations, dg, cache)
 
   # Calculate MPI interface fluxes
-  @timeit_debug timer() "MPI interface flux" calc_mpi_interface_flux!(
+  @timed timer() "MPI interface flux" calc_mpi_interface_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg, cache)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral!(
+  @timed timer() "surface integral" calc_surface_integral!(
     du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @timeit_debug timer() "Jacobian" apply_jacobian!(
+  @timed timer() "Jacobian" apply_jacobian!(
     du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(
+  @timed timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
   # Finish to send MPI data
-  @timeit_debug timer() "finish MPI send" finish_mpi_send!(cache.mpi_cache)
+  @timed timer() "finish MPI send" finish_mpi_send!(cache.mpi_cache)
 
   return nothing
 end

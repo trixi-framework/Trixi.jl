@@ -37,7 +37,9 @@ end
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms=nothing,
                                  boundary_conditions=boundary_condition_periodic,
-                                 RealT=real(solver))
+                                 RealT=real(solver),
+                                 uEltype=RealT,
+                                 initial_cache=NamedTuple())
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
@@ -46,9 +48,10 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       boundary_conditions=boundary_condition_periodic,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
-                                      RealT=real(solver), uEltype=RealT)
+                                      RealT=real(solver), uEltype=RealT,
+                                      initial_cache=NamedTuple())
 
-  cache = create_cache(mesh, equations, solver, RealT, uEltype)
+  cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
   _boundary_conditions = digest_boundary_conditions(boundary_conditions)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
@@ -98,7 +101,6 @@ function digest_boundary_conditions(boundary_conditions::AbstractArray)
 end
 
 
-
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
   @nospecialize semi # reduce precompilation time
 
@@ -128,23 +130,30 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", semi.equations |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
-    summary_line(io, "boundary conditions", 2*ndims(semi))
-    if (semi.boundary_conditions isa Tuple ||
-        semi.boundary_conditions isa NamedTuple ||
-        semi.boundary_conditions isa AbstractArray)
-      bcs = semi.boundary_conditions
-    else
-      bcs = collect(semi.boundary_conditions for _ in 1:(2*ndims(semi)))
-    end
-    summary_line(increment_indent(io), "negative x", bcs[1])
-    summary_line(increment_indent(io), "positive x", bcs[2])
-    if ndims(semi) > 1
-      summary_line(increment_indent(io), "negative y", bcs[3])
-      summary_line(increment_indent(io), "positive y", bcs[4])
-    end
-    if ndims(semi) > 2
-      summary_line(increment_indent(io), "negative z", bcs[5])
-      summary_line(increment_indent(io), "positive z", bcs[6])
+    if semi.boundary_conditions isa Dict
+      summary_line(io, "boundary conditions", length(semi.boundary_conditions))
+      for (boundary_name, boundary_condition) in semi.boundary_conditions
+        summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
+      end
+    else # non dictionary boundary conditions container
+      summary_line(io, "boundary conditions", 2*ndims(semi))
+      if (semi.boundary_conditions isa Tuple ||
+          semi.boundary_conditions isa NamedTuple ||
+          semi.boundary_conditions isa AbstractArray)
+        bcs = semi.boundary_conditions
+      else
+        bcs = collect(semi.boundary_conditions for _ in 1:(2*ndims(semi)))
+      end
+      summary_line(increment_indent(io), "negative x", bcs[1])
+      summary_line(increment_indent(io), "positive x", bcs[2])
+      if ndims(semi) > 1
+        summary_line(increment_indent(io), "negative y", bcs[3])
+        summary_line(increment_indent(io), "positive y", bcs[4])
+      end
+      if ndims(semi) > 2
+        summary_line(increment_indent(io), "negative z", bcs[5])
+        summary_line(increment_indent(io), "positive z", bcs[6])
+      end
     end
     summary_line(io, "source terms", semi.source_terms)
     summary_line(io, "solver", semi.solver |> typeof |> nameof)
@@ -193,7 +202,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @timeit_debug timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
+  @timed timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 

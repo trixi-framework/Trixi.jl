@@ -1,4 +1,5 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -14,16 +15,17 @@ boundary_conditions = boundary_condition_periodic
 ###############################################################################
 # Get the DG approximation space
 
-polydeg = 6
-surface_flux = flux_hll
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=6, surface_flux=FluxRotated(flux_hll))
 
 ###############################################################################
-# Get the curved quad mesh from a file
+# Get the curved quad mesh from a file (downloads the file if not available locally)
 
-mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
-periodicity = true
-mesh = UnstructuredQuadMesh(mesh_file, periodicity)
+default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
+                                       default_mesh_file)
+mesh_file = default_mesh_file
+
+mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
 
 ###############################################################################
 # create the semi discretization object

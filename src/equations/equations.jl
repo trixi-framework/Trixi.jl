@@ -88,6 +88,98 @@ See also: [`rotate_to_x`](@ref)
 function rotate_from_x end
 
 
+"""
+    BoundaryConditionDirichlet(boundary_value_function)
+
+Create a Dirichlet boundary condition that uses the function `boundary_value_function`
+to specify the values at the boundary.
+This can be used to create a boundary condition that specifies exact boundary values
+by passing the exact solution of the equation.
+The passed boundary value function will be called with the same arguments as an initial condition function is called, i.e., as
+```julia
+boundary_value_function(x, t, equations)
+```
+where `x` specifies the coordinates, `t` is the current time, and `equation` is the corresponding system of equations.
+
+# Examples
+```julia
+julia> BoundaryConditionDirichlet(initial_condition_convergence_test)
+```
+"""
+struct BoundaryConditionDirichlet{B}
+  boundary_value_function::B
+end
+
+# Dirichlet-type boundary condition for use with TreeMesh or CurvedMesh
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation_or_normal,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_function, equations)
+  u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
+  end
+
+  return flux
+end
+
+# Dirichlet-type boundary condition for use with UnstructuredQuadMesh
+# Note: For unstructured we lose the concept of an "absolute direction"
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_function, equations)
+  # get the external value of the solution
+  u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+  # Calculate boundary flux
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+  return flux
+end
+
+"""
+    BoundaryConditionWall(boundary_value_function)
+
+Create a generic wall type boundary condition that uses the function `boundary_value_function`
+to specify the external solution values.
+The boundary wall function is called with arguments for an internal solution state from inside an
+element `u_inner`, an outward pointing `normal_direction` and a particular set of `equations`, e.g.,
+```julia
+boundary_value_function(u_inner, normal_direction, equations)
+```
+which will return an external solution state.
+
+# Example
+```julia
+julia> BoundaryConditionWall(boundary_state_slip_wall)
+```
+
+!!! warning "Experimental code"
+    This boundary condition can change any time and is currently only implemented for the
+    [`CompressibleEulerEquations2D`](@ref).
+"""
+struct BoundaryConditionWall{B}
+  boundary_value_function::B
+end
+
+@inline function (boundary_condition::BoundaryConditionWall)(u_inner,
+                                                             normal_direction::AbstractVector,
+                                                             x, t,
+                                                             surface_flux_function, equations)
+  # get the external value of the solution
+  u_boundary = boundary_condition.boundary_value_function(u_inner, normal_direction, equations)
+
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+  return flux
+end
+
+
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)

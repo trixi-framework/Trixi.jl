@@ -9,7 +9,7 @@ advectionvelocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
-boundary_conditions = boundary_condition_gauss
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 

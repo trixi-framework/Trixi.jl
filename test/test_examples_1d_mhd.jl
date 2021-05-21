@@ -61,7 +61,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       l2   = [1.0150653343383023, 8.293796006442639, 1.2953342215936525, 0.0, 52.34290101591115, 3.352946970627566e-16, 1.0046607148062305, 0.0],
       linf = [2.9091039190988806, 22.734543670960285, 4.124890055211936, 0.0, 136.89057030285923, 1.5543122344752192e-15, 2.806658251289774, 0.0],
       initial_condition = initial_condition_shu_osher_shock_tube_flipped,
-      boundary_conditions=boundary_condition_shu_osher_shock_tube_flipped,
+      boundary_conditions=BoundaryConditionDirichlet(initial_condition_shu_osher_shock_tube_flipped),
       tspan = (0.0, 0.2))
   end
 end

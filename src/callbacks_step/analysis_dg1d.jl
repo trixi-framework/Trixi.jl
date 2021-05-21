@@ -1,27 +1,36 @@
 
-function create_cache_analysis(analyzer, mesh::TreeMesh,
-                               equations::AbstractEquations{1}, dg::DG, cache,
+function create_cache_analysis(analyzer, mesh::TreeMesh{1},
+                               equations, dg::DG, cache,
                                RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer))
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)))
 
   return (; u_local, x_local)
 end
 
 
-function create_cache_analysis(analyzer, mesh::CurvedMesh, equations::AbstractEquations{1},
-                               dg::DG, cache, RealT, uEltype)
+function create_cache_analysis(analyzer, mesh::CurvedMesh{1},
+                               equations, dg::DG, cache,
+                               RealT, uEltype)
+
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer))
-  jacobian_local = zeros(RealT,
-                         nnodes(analyzer))
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)))
+  jacobian_local = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)))
+
   return (; u_local, x_local, jacobian_local)
 end
 
@@ -144,8 +153,7 @@ function integrate_via_indices(func::Func, u,
 
   # Normalize with total volume
   if normalize
-    total_volume_ = total_volume(mesh)
-    integral = integral / total_volume_
+    integral = integral / total_volume(mesh)
   end
 
   return integral
