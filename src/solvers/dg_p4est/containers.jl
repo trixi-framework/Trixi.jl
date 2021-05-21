@@ -140,8 +140,14 @@ function indexfunction_surface(indices::NTuple{3, Symbol}, size, dim, i, j=0)
 end
 
 # Return direction of the face, which is indexed by node_indices
-function indices2direction(indices)
-  orientation = findfirst(x -> x in (:one, :end), indices)
+@inline function indices2direction(indices)
+  if indices[1] in (:one, :end)
+    orientation = 1
+  elseif indices[2] in (:one, :end)
+    orientation = 2
+  else # indices[3] in (:one, :end)
+    orientation = 3
+  end
   negative_direction = orientation * 2 - 1
 
   if indices[orientation] === :one
