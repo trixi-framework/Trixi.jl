@@ -17,7 +17,9 @@ coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (8, 8)
 
 # Create P4estMesh with 8 x 8 trees and 16 x 16 elements
-mesh = P4estMesh(trees_per_dimension, coordinates_min, coordinates_max, polydeg=3, initial_refinement_level=1)
+mesh = P4estMesh(trees_per_dimension, polydeg=3,
+                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                 initial_refinement_level=1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)

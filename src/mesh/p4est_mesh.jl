@@ -19,26 +19,66 @@ end
 
 
 """
-    P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
+    P4estMesh(trees_per_dimension; polydeg,
+              mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
 
 Create a structured curved P4estMesh of the specified size.
 
+There are three ways to map the mesh to the physical domain.
+1. Define a `mapping` that maps the hypercube `[-1, 1]^n`.
+2. Specify a `Tuple` `faces` of functions that parametrize each face.
+3. Create a rectangular mesh by specifying `coordinates_min` and `coordinates_max`.
+
 # Arguments
 - `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the reference mesh (`[-1, 1]^n`) to the physical domain.
-- `nodes::AbstractVector`: nodes that should be used to store the geometry of the mesh.
-                           The mapping will be evaluated at the tensor product of the specified nodes
-                           for each tree and will then be interpolated for refined cells.
+             Use only one of `mapping`, `faces` and `coordinates_min`/`coordinates_max`.
+- `faces::NTuple{2*NDIMS}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
+                            Each function must take `NDIMS-1` arguments.
+                            `faces[1]` describes the face onto which the face in negative x-direction
+                            of the unit hypercube is mapped. The face in positive x-direction of
+                            the unit hypercube will be mapped onto the face described by `faces[2]`.
+                            `faces[3:4]` describe the faces in positive and negative y-direction respectively
+                            (in 2D and 3D).
+                            `faces[5:6]` describe the faces in positive and negative z-direction respectively (in 3D).
+                            Use only one of `mapping`, `faces` and `coordinates_min`/`coordinates_max`.
+- `coordinates_min`: vector or tuple of the coordinates of the corner in the negative direction of each dimension
+                     to create a rectangular mesh.
+                     Use only one of `mapping`, `faces` and `coordinates_min`/`coordinates_max`.
+- `coordinates_max`: vector or tuple of the coordinates of the corner in the positive direction of each dimension
+                     to create a rectangular mesh.
+                     Use only one of `mapping`, `faces` and `coordinates_min`/`coordinates_max`.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
-function P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
+function P4estMesh(trees_per_dimension; polydeg,
+                   mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
                    RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
+
+  @assert (
+    (coordinates_min === nothing) === (coordinates_max === nothing)
+  ) "Either both or none of coordinates_min and coordinates_max must be specified"
+
+  @assert count(i -> i !== nothing,
+    (mapping, faces, coordinates_min)
+  ) == 1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
+
+  # Extract mapping
+  if faces !== nothing
+    validate_faces(faces)
+    mapping = transfinite_mapping(faces)
+  elseif coordinates_min !== nothing
+    mapping = coordinates2mapping(coordinates_min, coordinates_max)
+  end
+
   NDIMS = length(trees_per_dimension)
 
   # Convert periodicity to a Tuple of a Bool for every dimension
@@ -53,6 +93,8 @@ function P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
     periodicity = Tuple(periodicity)
   end
 
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  nodes = basis.nodes
   tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
                                                 ntuple(_ -> length(nodes), NDIMS)...,
                                                 prod(trees_per_dimension))
@@ -77,99 +119,6 @@ function P4estMesh(trees_per_dimension, mapping, nodes::AbstractVector;
 
   return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates,
                                           nodes, periodicity, "", unsaved_changes)
-end
-
-
-"""
-    P4estMesh(trees_per_dimension, mapping; polydeg
-              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
-
-Create a structured curved P4estMesh of the specified size.
-
-# Arguments
-- `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
-- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
-             the reference mesh (`[-1, 1]^n`) to the physical domain.
-- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
-                      The mapping will be approximated by an interpolation polynomial
-                      of the specified degree for each tree.
-- `RealT::Type`: the type that should be used for coordinates.
-- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
-                 deciding for each dimension if the boundaries in this dimension are periodic.
-- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
-"""
-function P4estMesh(trees_per_dimension, mapping;
-                   polydeg, RealT=Float64, initial_refinement_level=0,
-                   periodicity=true, unsaved_changes=true)
-  basis = LobattoLegendreBasis(RealT, polydeg)
-  nodes = basis.nodes
-
-  P4estMesh(trees_per_dimension, mapping, nodes; RealT=RealT,
-            initial_refinement_level=initial_refinement_level,
-            periodicity=periodicity, unsaved_changes=unsaved_changes)
-end
-
-
-"""
-    P4estMesh(trees_per_dimension, faces; polydeg, RealT=Float64, initial_refinement_level=0, periodicity=true)
-
-Create a structured curved P4estMesh of the specified size.
-
-# Arguments
-- `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
-- `faces::NTuple{2*NDIMS}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
-                            Each function must take `NDIMS-1` arguments.
-                            `faces[1]` describes the face onto which the face in negative x-direction
-                            of the unit hypercube is mapped. The face in positive x-direction of
-                            the unit hypercube will be mapped onto the face described by `faces[2]`.
-                            `faces[3:4]` describe the faces in positive and negative y-direction respectively
-                            (in 2D and 3D).
-                            `faces[5:6]` describe the faces in positive and negative z-direction respectively (in 3D).
-- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
-                      The mapping will be approximated by an interpolation polynomial
-                      of the specified degree for each tree.
-- `RealT::Type`: the type that should be used for coordinates.
-- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
-                 each dimension if the boundaries in this dimension are periodic.
-"""
-function P4estMesh(trees_per_dimension, faces::Tuple; polydeg, RealT=Float64, initial_refinement_level=0, periodicity=true)
-  validate_faces(faces)
-
-  # Use the transfinite mapping with the correct number of arguments
-  mapping = transfinite_mapping(faces)
-
-  return P4estMesh(trees_per_dimension, mapping; polydeg=polydeg, RealT=RealT,
-                   initial_refinement_level=initial_refinement_level,
-                   periodicity=periodicity, mapping_as_string=mapping_as_string)
-end
-
-
-"""
-    P4estMesh(trees_per_dimension, coordinates_min, coordinates_max;
-              polydeg, initial_refinement_level=0, periodicity=true)
-
-Create an structured uncurved rectangular P4estMesh of the specified size.
-
-# Arguments
-- `trees_per_dimension::NTuple{NDIMS, Int}`: the number of trees in each dimension.
-- `coordinates_min::NTuple{NDIMS, RealT}`: coordinate of the corner in the negative direction of each dimension.
-- `coordinates_max::NTuple{NDIMS, RealT}`: coordinate of the corner in the positive direction of each dimension.
-- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
-                      The mapping will be approximated by an interpolation polynomial
-                      of the specified degree for each tree.
-- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
-                 each dimension if the boundaries in this dimension are periodic.
-"""
-function P4estMesh(trees_per_dimension, coordinates_min, coordinates_max;
-                   polydeg, initial_refinement_level=0, periodicity=true)
-  RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
-  mapping = coordinates2mapping(coordinates_min, coordinates_max)
-
-  return P4estMesh(trees_per_dimension, mapping, polydeg=polydeg; RealT=RealT,
-                   initial_refinement_level=initial_refinement_level, periodicity=periodicity)
 end
 
 
