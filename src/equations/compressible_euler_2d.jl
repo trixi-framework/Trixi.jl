@@ -592,7 +592,6 @@ velocity of the the exterior fictitious element to the negative of the internal 
   normal = normal_direction / norm(normal_direction)
 
   # compute the normal and tangential components of the velocity
-  u_tangent = zeros(eltype(normal), 2)
   u_normal  = normal[1] * u_internal[2] + normal[2] * u_internal[3]
   u_tangent = (u_internal[2] - u_normal * normal[1], u_internal[3] - u_normal * normal[2])
 

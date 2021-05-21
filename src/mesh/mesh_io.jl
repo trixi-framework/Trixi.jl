@@ -125,6 +125,7 @@ function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = length(mesh)
     attributes(file)["mesh_filename"] = mesh.filename
+    attributes(file)["periodicity"] = collect(mesh.periodicity)
   end
 
   return filename
@@ -197,12 +198,11 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
   elseif mesh_type == "UnstructuredQuadMesh"
-    # FIXME: This works for visualization purposes via Trixi2Vtk however one currently cannot
-    #        restrat an unstructured and periodic simulation
-    mesh_filename = h5open(mesh_file, "r") do file
-      return read(attributes(file)["mesh_filename"])
+    mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
+      return read(attributes(file)["mesh_filename"]),
+             read(attributes(file)["periodicity"])
     end
-    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=false, unsaved_changes=false)
+    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_, unsaved_changes=false)
   else
     error("Unknown mesh type!")
   end

@@ -223,34 +223,64 @@ end
 
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::UnstructuredQuadMesh, equations, dg::DG)
-  @unpack surface_flux_values = cache.elements
-  @unpack element_id, element_side_id, name  = cache.boundaries
+  @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
-  @threaded for boundary in eachboundary(dg, cache)
-    # Get the element and side IDs on the boundary element
-    element = element_id[boundary]
-    side    = element_side_id[boundary]
+  calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
+                              mesh, equations, dg)
+  return nothing
+end
 
-    # pull the external state function from the bounary condition dictionary
-    boundary_condition = boundary_conditions[ name[boundary] ]
 
-    # calc boundary flux on the current boundary interface
-    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
-                        side, element, boundary)
-  end
+# Iterate over tuples of boundary condition types and associated indices
+# in a type-stable way using "lispy tuple programming".
+function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N,Any},
+                                     BC_indices::NTuple{N,Vector{Int}},
+                                     mesh::UnstructuredQuadMesh, equations, dg::DG) where {N}
+  # Extract the boundary condition type and index vector
+  boundary_condition = first(BCs)
+  boundary_condition_indices = first(BC_indices)
+  # Extract the remaining types and indices to be processed later
+  remaining_boundary_conditions = Base.tail(BCs)
+  remaining_boundary_condition_indices = Base.tail(BC_indices)
+
+  # process the first boundary condition type
+  calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices, mesh, equations, dg)
+
+  # recursively call this method with the unprocessed boundary types
+  calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
+                              remaining_boundary_condition_indices, mesh, equations, dg)
 
   return nothing
 end
 
-# use a function barrier for now to improve type stability
-@noinline function calc_boundary_flux!(surface_flux_values, t, boundary_condition::BC,
-                                       mesh::UnstructuredQuadMesh, equations, dg::DG, cache,
-                                       side, element, boundary) where {BC}
-  for node in eachnode(dg)
-    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
-                        node, side, element, boundary)
+# terminate the type-stable iteration over tuples
+function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
+                                     mesh::UnstructuredQuadMesh, equations, dg::DG)
+  nothing
+end
+
+
+function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
+                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+  @unpack surface_flux_values = cache.elements
+  @unpack element_id, element_side_id = cache.boundaries
+
+  @threaded for local_index in eachindex(boundary_indexing)
+    # use the local index to get the global boundary index from the pre-sorted list
+    boundary = boundary_indexing[local_index]
+
+    # get the element and side IDs on the boundary element
+    element = element_id[boundary]
+    side    = element_side_id[boundary]
+
+    # calc boundary flux on the current boundary interface
+    for node in eachnode(dg)
+      calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+                          node, side, element, boundary)
+    end
   end
 end
+
 
 # inlined version of the boundary flux calculation along a physical interface where the
 # boundary flux values are set according to a particular `boundary_condition` function
