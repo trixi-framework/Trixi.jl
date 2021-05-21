@@ -15,7 +15,7 @@ By far the easiest and most convenient plotting approach is to use the powerful
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package to directly visualize
 Trixi's results from the REPL.
 In the following, you will find more information on a number of topics for how
-to use `Plots.jl` together with Trixi:
+to use Plots.jl together with Trixi:
 1. [Getting started](@ref getting-started-plots-jl)
 2. [Customizing plot results via a PlotData2D object](@ref)
 3. [Plotting a 3D solution as a 2D plot](@ref)
