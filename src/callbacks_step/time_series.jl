@@ -6,8 +6,10 @@
                        RealT=real(solver), uEltype=eltype(cache.elements))
 
 Create a callback that records point-wise data at points given in `point_coordinates` every
-`interval` time steps. By default, the conservative variables are recorded, but this can be
-controlled by passing a different conversion function to `solution_variables`.
+`interval` time steps. The point coordinates are to be specified either as a vector of coordinate
+tuples or as a two-dimensional array where the first dimension is the point number and the second
+dimension is the coordinate dimension. By default, the conservative variables are recorded, but this
+can be controlled by passing a different conversion function to `solution_variables`.
 
 After the last time step, the results are stored in an HDF5 file `filename` in directory
 `output_directory`.
@@ -84,6 +86,14 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
   end
 
+  if ndims(point_coordinates) != 2 || size(point_coordinates, 2) != ndims(mesh)
+    throw(ArgumentError("`point_coordinates` must be a matrix of size n_points × ndims"))
+  end
+
+  # Transpose point_coordinates to our usual format [ndims, n_points]
+  # Note: They are accepted in a different format to allow direct input from `readdlm`
+  point_coordinates_ = permutedims(point_coordinates)
+
   # Invoke callback every `interval` time steps or after final step (for storing the data on disk)
   if interval > 0
     condition = (u, t, integrator) -> (integrator.iter % interval == 0 || isfinished(integrator))
@@ -93,18 +103,18 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
 
   # Create data structures that are to be filled by the callback
   variable_names = varnames(solution_variables, equations)
-  n_points = size(point_coordinates, 2)
+  n_points = size(point_coordinates_, 2)
   point_data = Vector{uEltype}[Vector{uEltype}() for _ in 1:n_points]
   time = Vector{RealT}()
   step = Vector{Int}()
-  time_series_cache = create_cache_time_series(point_coordinates, mesh, solver, cache)
+  time_series_cache = create_cache_time_series(point_coordinates_, mesh, solver, cache)
 
   time_series_callback = TimeSeriesCallback(interval,
                                            solution_variables,
                                            variable_names,
                                            output_directory,
                                            filename,
-                                           point_coordinates,
+                                           point_coordinates_,
                                            point_data,
                                            time,
                                            step,
@@ -125,13 +135,13 @@ end
 # Convenience constructor that converts a vector of points into a Trixi-style coordinate array
 function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
                             kwargs...)
-  # Coordinates are always stored in [ndims, n_points]
+  # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims] 
   n_points = length(point_coordinates)
   point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, ndims(mesh), n_points)
 
   for p in 1:n_points
     for d in 1:ndims(mesh)
-      point_coordinates_[d, p] = point_coordinates[p][d]
+      point_coordinates_[p, d] = point_coordinates[p][d]
     end
   end
 
