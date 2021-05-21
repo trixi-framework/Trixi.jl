@@ -96,29 +96,9 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTy
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
-# peel apart the boundary condition dictionary for the UnstructuredQuadMesh solver and sort the
-# boundary types and their associated boundary indices into tuples for use later
+# sort the boundary conditions from a dictionary and into tuples
 function digest_boundary_conditions(boundary_conditions::Dict, cache)
-  # extract the unique boundary function routines from the dictionary
-  boundary_types = Tuple(unique(collect(values(boundary_conditions))))
-
-  # pull and sort the indexing for each boundary type
-  boundary_indices = Vector{Any}(nothing, length(boundary_types))
-  for j in 1:length(boundary_types)
-    indices_for_current_type = Int[]
-    for (test_name, test_condition) in boundary_conditions
-      temp_indices = findall(x->x===test_name, cache.boundaries.name)
-      if test_condition === boundary_types[j]
-        indices_for_current_type = vcat(indices_for_current_type, temp_indices)
-      end
-    end
-    boundary_indices[j] = sort!(indices_for_current_type)
-  end
-
-  # put everything together into a NamedTuple that has tuples with the (sorted) boundary type and
-  # its associated indices. Save a copy of the original dictionary for printing
-  ( sorted_boundary_information = tuple(zip(boundary_types, boundary_indices)...),
-    boundary_dictionary = boundary_conditions, )
+  UnstructuredQuadSortedBoundaryTypes(boundary_conditions, cache)
 end
 
 function digest_boundary_conditions(boundary_conditions::AbstractArray, cache)
@@ -155,8 +135,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", semi.equations |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
-    if semi.boundary_conditions isa NamedTuple &&
-       semi.boundary_conditions[2] isa Dict
+    if semi.boundary_conditions isa UnstructuredQuadSortedBoundaryTypes
       @unpack boundary_dictionary = semi.boundary_conditions
       summary_line(io, "boundary conditions", length(boundary_dictionary))
       for (boundary_name, boundary_condition) in boundary_dictionary
