@@ -32,12 +32,15 @@ errors or user-specified integrals, and print the results to the screen. The res
 saved in a file. An example can be found at [examples/2d/elixir\_euler\_vortex.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_euler_vortex.jl).
 
 ### I/O
+
+#### Solution and restart files
 To save the solution in regular intervals you can use a [`SaveSolutionCallback`](@ref). It is also
 possible to create restart files using the [`SaveRestartCallback`](@ref). An example making use
 of these can be found at [examples/2d/elixir\_advection\_extended.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_extended.jl).
 An example showing how to restart a simulation from a restart file can be found at
 [examples/2d/elixir\_advection\_restart.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_restart.jl).
 
+#### Time series
 Sometimes it is useful to record the evoluation of state variables over time at
 a given set of points. This can be achieved by the [`TimeSeriesCallback`](@ref), which is used,
 e.g., in
@@ -90,6 +93,7 @@ julia> pd2 = PlotData1D(time_series, 2)
 julia> plot(pd1["p_prime"]); plot!(pd2["p_prime"], xguide="t")
 ```
 will yield the following plot:
+
 ![image](https://user-images.githubusercontent.com/3637659/115822874-9108d900-a405-11eb-9960-4ca3d535e3c6.png)
 
 
