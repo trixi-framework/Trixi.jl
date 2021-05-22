@@ -52,6 +52,8 @@ function calc_node_coordinates!(node_coordinates,
       )
     end
   end
+
+  return node_coordinates
 end
 
 
