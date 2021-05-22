@@ -3,32 +3,32 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(
+  @timed timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
   # Calculate interface and boundary fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(
+  @timed timer() "interface flux" calc_interface_flux!(
     cache, u, mesh, equations, dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(
+  @timed timer() "boundary flux" calc_boundary_flux!(
     cache, u, t, boundary_conditions, mesh, equations, dg)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral!(
+  @timed timer() "surface integral" calc_surface_integral!(
     du, mesh, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @timeit_debug timer() "Jacobian" apply_jacobian!(
+  @timed timer() "Jacobian" apply_jacobian!(
     du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(
+  @timed timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
   return nothing

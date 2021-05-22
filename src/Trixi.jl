@@ -24,6 +24,7 @@ using Printf: @printf, @sprintf, println
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
+using CheapThreads: @batch
 import DiffEqBase: CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
@@ -33,6 +34,7 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
+using LoopVectorization: LoopVectorization, @avx
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
@@ -40,14 +42,10 @@ using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
-using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
+using StrideArrays: PtrArray, StrideArray, StaticInt
+using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack
 using UnPack: @pack!
-
-# Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
-# Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.
-using Tullio: @tullio
-using LoopVectorization
 
 
 # Define the entry points of our type hierarchy, e.g.
