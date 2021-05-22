@@ -132,6 +132,36 @@ function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
 end
 
 
+# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
+# of the mesh, like its size and the type of boundary mapping function.
+# Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
+# these attributes for plotting purposes
+function save_mesh_file(mesh::P4estMesh, output_directory)
+  # Create output directory (if it does not exist)
+  mkpath(output_directory)
+
+  filename = joinpath(output_directory, "mesh.h5")
+  p4est_filename = joinpath(output_directory, "p4est_file")
+
+  # Save the complete connectivity/p4est data to disk.
+  p4est_save(p4est_filename, mesh.p4est, false)
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["p4est_file"] = p4est_filename
+    attributes(file)["periodicity"] = collect(mesh.periodicity)
+
+    file["tree_node_coordinates"] = mesh.tree_node_coordinates
+    file["nodes"] = mesh.nodes
+  end
+
+  return filename
+end
+
+
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
 
@@ -203,6 +233,24 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
              read(attributes(file)["periodicity"])
     end
     mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_, unsaved_changes=false)
+  elseif mesh_type == "P4estMesh"
+    p4est_file, periodicity_, tree_node_coordinates, nodes = h5open(mesh_file, "r") do file
+      return read(attributes(file)["p4est_file"]),
+             read(attributes(file)["periodicity"]),
+             read(file["tree_node_coordinates"]),
+             read(file["nodes"])
+    end
+
+    periodicity = Tuple(periodicity_)
+
+    conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
+    p4est = p4est_load(p4est_file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+    # conn = unsafe_wrap(conn_vec[1])
+    ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
+    p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
+
+    mesh = P4estMesh{ndims, RealT, ndims+2}(p4est, p4est_mesh, tree_node_coordinates,
+                                            nodes, periodicity, "", false)
   else
     error("Unknown mesh type!")
   end
