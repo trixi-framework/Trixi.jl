@@ -3,7 +3,7 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasi
   @unpack node_coordinates, jacobian_matrix,
           contravariant_vectors, inverse_jacobian = elements
 
-  calc_node_coordinates!(node_coordinates, mesh, basis)
+  calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 
   for element in 1:ncells(mesh)
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
@@ -20,8 +20,8 @@ end
 # Interpolate tree_node_coordinates to each quadrant
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
-                                basis)
-  tmp1 = zeros(real(mesh), 2, nnodes(basis), length(mesh.nodes))
+                                nodes)
+  tmp1 = zeros(real(mesh), 2, length(nodes), length(mesh.nodes))
 
   # Macros from p4est
   p4est_root_len = 1 << P4EST_MAXLEVEL
@@ -39,8 +39,8 @@ function calc_node_coordinates!(node_coordinates,
 
       quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
 
-      nodes_out_x = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
-      nodes_out_y = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
+      nodes_out_x = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
+      nodes_out_y = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
       matrix1 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_x)
       matrix2 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_y)
 
