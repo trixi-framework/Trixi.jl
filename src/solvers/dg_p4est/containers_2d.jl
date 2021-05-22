@@ -86,12 +86,9 @@ function init_interfaces_iter_face(info, user_data)
   # Face at which the interface lies
   faces = [sides[1].face, sides[2].face]
 
-  quad_to_face = unsafe_wrap(Array, mesh.p4est_mesh.quad_to_face, 4 * ncells(mesh))
   # Relative orientation of the two cell faces,
   # 0 for aligned coordinates, 1 for reversed coordinates.
-  # `quad_to_face` has one entry for each quadrant's face, +1 for one-based indexing.
-  # The value in quad_to_face is `orientation * 4 + face`.
-  orientation = (quad_to_face[quad_ids[1] * 4 + faces[1] + 1] - faces[2]) / 4
+  orientation = info.orientation
 
   # Write data to interfaces container
   interfaces.element_ids[1, interface_id] = quad_ids[1] + 1
