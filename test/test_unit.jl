@@ -5,6 +5,8 @@ using Cassette
 using Documenter
 using Trixi
 
+include("test_trixi.jl")
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
@@ -510,6 +512,21 @@ Cassette.@context Ctx
       entropy_vars = cons2entropy(cons_vars, equations)
       @test cons_vars ≈ entropy2cons(entropy_vars, equations)      
     end
+  end
+
+  @testset "TimeSeriesCallback" begin
+    @test_nowarn_debug trixi_include(@__MODULE__,
+                                     joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
+                                     tspan=(0, 0.05))
+
+    point_data_1 = time_series.affect!.point_data[1]
+    @test all(isapprox.(point_data_1[1:7], [-2.4417734981719132e-5, -3.4296207289200194e-5,
+                                            0.0018130846385739788, -0.5, 0.25, 1.0, 1.0]))
+    @test_throws DimensionMismatch Trixi.get_elements_by_coordinates!([1, 2], rand(2, 4), mesh,
+                                                                      solver, nothing)
+    @test_nowarn show(stdout, time_series)
+    @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
+    @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
   end
 
   # Test docstrings
