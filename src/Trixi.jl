@@ -35,6 +35,7 @@ using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
+using P4est
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
@@ -136,7 +137,7 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh, CurvedMesh, UnstructuredQuadMesh
+export TreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,

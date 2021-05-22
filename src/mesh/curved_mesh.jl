@@ -1,9 +1,9 @@
 """
-    CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
+    CurvedMesh{NDIMS} <: AbstractMesh{NDIMS}
 
 A structured curved mesh.
 
-Different numbers of cells per dimension are possible and arbitrary functions 
+Different numbers of cells per dimension are possible and arbitrary functions
 can be used as domain faces.
 
 !!! warning "Experimental code"
@@ -26,13 +26,13 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
-- `mapping`: a function of `NDIMS` variables to describe the mapping, which transforms 
-             the reference mesh to the physical domain. 
-             If no `mapping_as_string` is defined, this function must be defined with the name `mapping` 
+- `mapping`: a function of `NDIMS` variables to describe the mapping, which transforms
+             the reference mesh to the physical domain.
+             If no `mapping_as_string` is defined, this function must be defined with the name `mapping`
              to allow for restarts.
              This will be changed in the future, see https://github.com/trixi-framework/Trixi.jl/issues/541.
 - `RealT::Type`: the type that should be used for coordinates.
-- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` 
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 - `mapping_as_string::String`: the code that defines the `mapping`.
@@ -40,7 +40,7 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
                                The code string must define the mapping function with the name `mapping`.
                                This will be changed in the future, see https://github.com/trixi-framework/Trixi.jl/issues/541.
 """
-function CurvedMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true, 
+function CurvedMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true,
                     mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
   NDIMS = length(cells_per_dimension)
 
@@ -69,10 +69,10 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
 - `faces::NTuple{2*NDIMS}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
                             Each function must take `NDIMS-1` arguments.
-                            `faces[1]` describes the face onto which the face in negative x-direction 
+                            `faces[1]` describes the face onto which the face in negative x-direction
                             of the unit hypercube is mapped. The face in positive x-direction of
                             the unit hypercube will be mapped onto the face described by `faces[2]`.
-                            `faces[3:4]` describe the faces in positive and negative y-direction respectively 
+                            `faces[3:4]` describe the faces in positive and negative y-direction respectively
                             (in 2D and 3D).
                             `faces[5:6]` describe the faces in positive and negative z-direction respectively (in 3D).
 - `RealT::Type`: the type that should be used for coordinates.
@@ -93,7 +93,7 @@ function CurvedMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicit
 
   faces_definition = faces .|> face2substring .|> string |> join_semicolon
 
-  # Include faces definition in `mapping_as_string` to allow for evaluation 
+  # Include faces definition in `mapping_as_string` to allow for evaluation
   # without knowing the face functions
   mapping_as_string = "$faces_definition; faces = $(string(faces)); mapping = transfinite_mapping(faces)"
 
@@ -201,8 +201,8 @@ transfinite_mapping(faces::NTuple{2, Any}) = x -> linear_mapping(x, faces)
 # In 2D
 # Transfinite mapping from the reference element to the domain described by the faces
 function transfinite_mapping(faces::NTuple{4, Any})
-  mapping(x, y) = (linear_interpolate(x, faces[1](y), faces[2](y)) + 
-                   linear_interpolate(y, faces[3](x), faces[4](x)) - 
+  mapping(x, y) = (linear_interpolate(x, faces[1](y), faces[2](y)) +
+                   linear_interpolate(y, faces[3](x), faces[4](x)) -
                    bilinear_mapping(x, y, faces))
 end
 
@@ -212,19 +212,19 @@ end
 function correction_term_3d(x, y, z, faces)
   # Correction for x-terms
   c_x = linear_interpolate(x, linear_interpolate(y, faces[3](-1, z), faces[4](-1, z)) +
-                              linear_interpolate(z, faces[5](-1, y), faces[6](-1, y)), 
+                              linear_interpolate(z, faces[5](-1, y), faces[6](-1, y)),
                               linear_interpolate(y, faces[3]( 1, z), faces[4]( 1, z)) +
                               linear_interpolate(z, faces[5]( 1, y), faces[6]( 1, y)) )
 
   # Correction for y-terms
   c_y = linear_interpolate(y, linear_interpolate(x, faces[1](-1,  z), faces[2](-1,  z)) +
-                              linear_interpolate(z, faces[5]( x, -1), faces[6]( x, -1)), 
+                              linear_interpolate(z, faces[5]( x, -1), faces[6]( x, -1)),
                               linear_interpolate(x, faces[1]( 1,  z), faces[2]( 1,  z)) +
                               linear_interpolate(z, faces[5]( x,  1), faces[6]( x,  1)) )
 
   # Correction for x-terms
   c_z = linear_interpolate(z, linear_interpolate(x, faces[1](y, -1), faces[2](y, -1)) +
-                              linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)), 
+                              linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)),
                               linear_interpolate(x, faces[1](y,  1), faces[2](y,  1)) +
                               linear_interpolate(y, faces[3](x,  1), faces[4](x,  1)) )
 
@@ -235,10 +235,10 @@ end
 # In 3D
 # Transfinite mapping from the reference element to the domain described by the faces
 function transfinite_mapping(faces::NTuple{6, Any})
-  mapping(x, y, z) =  (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) + 
+  mapping(x, y, z) =  (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) +
                        linear_interpolate(y, faces[3](x, z), faces[4](x, z)) +
                        linear_interpolate(z, faces[5](x, y), faces[6](x, y)) -
-                       correction_term_3d(x, y, z, faces) + 
+                       correction_term_3d(x, y, z, faces) +
                        trilinear_mapping(x, y, z, faces))
 end
 
@@ -253,36 +253,36 @@ function validate_faces(faces::NTuple{4, Any})
 end
 
 function validate_faces(faces::NTuple{6, Any})
-  @assert (faces[1](-1, -1) ≈ 
-           faces[3](-1, -1) ≈ 
+  @assert (faces[1](-1, -1) ≈
+           faces[3](-1, -1) ≈
            faces[5](-1, -1)) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1, -1, -1) corner"
 
-  @assert (faces[2](-1, -1) ≈ 
-           faces[3]( 1, -1) ≈ 
+  @assert (faces[2](-1, -1) ≈
+           faces[3]( 1, -1) ≈
            faces[5]( 1, -1)) "faces[2](-1, -1), faces[3](1, -1) and faces[5](1, -1) need to match at (1, -1, -1) corner"
-  
-  @assert (faces[1]( 1, -1) ≈ 
-           faces[4](-1, -1) ≈ 
+
+  @assert (faces[1]( 1, -1) ≈
+           faces[4](-1, -1) ≈
            faces[5](-1,  1)) "faces[1](1, -1), faces[4](-1, -1) and faces[5](-1, 1) need to match at (-1, 1, -1) corner"
-  
-  @assert (faces[2]( 1, -1) ≈ 
-           faces[4]( 1, -1) ≈ 
+
+  @assert (faces[2]( 1, -1) ≈
+           faces[4]( 1, -1) ≈
            faces[5]( 1,  1)) "faces[2](1, -1), faces[4](1, -1) and faces[5](1, 1) need to match at (1, 1, -1) corner"
-  
-  @assert (faces[1](-1,  1) ≈ 
-           faces[3](-1,  1) ≈ 
+
+  @assert (faces[1](-1,  1) ≈
+           faces[3](-1,  1) ≈
            faces[6](-1, -1)) "faces[1](-1, 1), faces[3](-1, 1) and faces[6](-1, -1) need to match at (-1, -1, 1) corner"
 
-  @assert (faces[2](-1,  1) ≈ 
-           faces[3]( 1,  1) ≈ 
+  @assert (faces[2](-1,  1) ≈
+           faces[3]( 1,  1) ≈
            faces[6]( 1, -1)) "faces[2](-1, 1), faces[3](1, 1) and faces[6](1, -1) need to match at (1, -1, 1) corner"
-  
-  @assert (faces[1]( 1,  1) ≈ 
-           faces[4](-1,  1) ≈ 
+
+  @assert (faces[1]( 1,  1) ≈
+           faces[4](-1,  1) ≈
            faces[6](-1,  1)) "faces[1](1, 1), faces[4](-1, 1) and faces[6](-1, 1) need to match at (-1, 1, 1) corner"
-  
-  @assert (faces[2]( 1,  1) ≈ 
-           faces[4]( 1,  1) ≈ 
+
+  @assert (faces[2]( 1,  1) ≈
+           faces[4]( 1,  1) ≈
            faces[6]( 1,  1)) "faces[2](1, 1), faces[4](1, 1) and faces[6](1, 1) need to match at (1, 1, 1) corner"
 end
 
@@ -299,16 +299,16 @@ Base.axes(mesh::CurvedMesh) = map(Base.OneTo, mesh.cells_per_dimension)
 Base.axes(mesh::CurvedMesh, i) = Base.OneTo(mesh.cells_per_dimension[i])
 
 
-function Base.show(io::IO, ::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT}
-  print(io, "CurvedMesh{", NDIMS, ", ", RealT, "}")
+function Base.show(io::IO, mesh::CurvedMesh)
+  print(io, "CurvedMesh{", ndims(mesh), ", ", real(mesh), "}")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT}
+function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh)
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "CurvedMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
+    summary_header(io, "CurvedMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
     summary_line(io, "size", size(mesh))
 
     summary_line(io, "mapping", "")
