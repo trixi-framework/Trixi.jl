@@ -153,9 +153,8 @@ and generate a heatmap plot of the results with
 julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
-<p align="center">
-  <img width="300px" src="https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png">
-</p>
+
+![image](https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
