@@ -137,7 +137,7 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::A
                             kwargs...)
   # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims] 
   n_points = length(point_coordinates)
-  point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, ndims(mesh), n_points)
+  point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, n_points, ndims(mesh))
 
   for p in 1:n_points
     for d in 1:ndims(mesh)

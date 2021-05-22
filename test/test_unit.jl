@@ -526,7 +526,7 @@ Cassette.@context Ctx
                                                                       solver, nothing)
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
-    @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0; 2.0 2.0])
+    @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
   end
 
   # Test docstrings
