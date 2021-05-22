@@ -150,7 +150,7 @@ end
 
 
 # This method is called as callback during the time integration.
-@inline function (time_series_callback::TimeSeriesCallback)(integrator)
+function (time_series_callback::TimeSeriesCallback)(integrator)
   # Ensure this is not accidentally used with AMR enabled
   if uses_amr(integrator.opts.callback)
     error("the TimeSeriesCallback does not work with AMR enabled")

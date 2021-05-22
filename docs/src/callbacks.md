@@ -79,7 +79,7 @@ using DelimitedFiles: readdlm
 time_series = TimeSeriesCallback(semi, readdlm("points.dat"))
 ```
 To plot the individual point data series over time, you can create a
-[`PlotData1D`](@ref) from the `TimeSeriesCallback` and a given point id. For
+[`PlotData1D`](@ref) from the `TimeSeriesCallback` and a given point ID. For
 example, executing
 ```julia
 julia> using Trixi, Plots
