@@ -141,7 +141,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory)
   mkpath(output_directory)
 
   filename = joinpath(output_directory, "mesh.h5")
-  p4est_filename = joinpath(output_directory, "p4est_file")
+  p4est_filename = joinpath(output_directory, "p4est_data")
 
   # Save the complete connectivity/p4est data to disk.
   p4est_save(p4est_filename, mesh.p4est, false)

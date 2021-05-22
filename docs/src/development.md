@@ -273,12 +273,11 @@ arbitrary stuff to the Trixi website, including malicious code).
 
 ## Developing Trixi2Vtk (@id trixi2vtk-dev)
 
-Trixi2Vtk uses Trixi as dependency to use Trixi's code e.g. to load meshes from files.
-When developing Trixi2Vtk, one may wants to change functions in Trixi to allow them to be reused
+Trixi2Vtk has Trixi as dependency and uses Trixi's implementation to, e.g., load mesh files.
+When developing Trixi2Vtk, one may want to change functions in Trixi to allow them to be reused
 in Trixi2Vtk.
-To use locally modified Trixi code without waiting for a new release of Trixi, one can tell Pkg
+To use a locally modified Trixi clone instead of a Trixi release, one can tell Pkg
 to use the local source code of Trixi instead of a registered version by running
 ```julia-repl
-(@v1.6) pkg> develop ../Trixi.jl
+(@v1.6) pkg> develop path/to/Trixi.jl
 ```
-if Trixi has been cloned next to Trixi2Vtk.
