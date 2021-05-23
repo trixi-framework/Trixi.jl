@@ -154,9 +154,10 @@ function P4estMesh(meshfile::String;
   NDIMS = 2
 
   conn = p4est_connectivity_read_inp(meshfile)
-  n_trees = conn.num_trees
+  n_trees::Int = conn.num_trees
+  n_vertices::Int = conn.num_vertices
 
-  vertices        = unsafe_wrap(Array, conn.vertices, (3, conn.num_vertices))
+  vertices        = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
   tree_to_vertex  = unsafe_wrap(Array, conn.tree_to_vertex, (4, n_trees))
 
   # Uncurved geometry, only save corner coordinates
@@ -170,7 +171,7 @@ function P4estMesh(meshfile::String;
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
   p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
-  boundary_names = fill(:all, 4, prod(trees_per_dimension))
+  boundary_names = fill(:all, 4, n_trees)
 
   return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates, nodes,
                                           boundary_names, "", unsaved_changes)
@@ -323,10 +324,10 @@ end
 function calc_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
                                 vertices::AbstractArray, tree_to_vertex) where RealT
   for tree in 1:size(tree_to_vertex, 2)
-    # Tree vertices are stored in Z-order, ignore z-coordinate in 2D
-    tree_node_coordinates[:, 1, 1, tree] = vertices[1:2, tree_to_vertex[1, tree]]
-    tree_node_coordinates[:, 2, 1, tree] = vertices[1:2, tree_to_vertex[2, tree]]
-    tree_node_coordinates[:, 1, 2, tree] = vertices[1:2, tree_to_vertex[3, tree]]
-    tree_node_coordinates[:, 2, 2, tree] = vertices[1:2, tree_to_vertex[4, tree]]
+    # Tree vertices are stored in Z-order, ignore z-coordinate in 2D, zero-based indexing
+    node_coordinates[:, 1, 1, tree] = vertices[1:2, tree_to_vertex[1, tree] + 1]
+    node_coordinates[:, 2, 1, tree] = vertices[1:2, tree_to_vertex[2, tree] + 1]
+    node_coordinates[:, 1, 2, tree] = vertices[1:2, tree_to_vertex[3, tree] + 1]
+    node_coordinates[:, 2, 2, tree] = vertices[1:2, tree_to_vertex[4, tree] + 1]
   end
 end
