@@ -141,10 +141,11 @@ function save_mesh_file(mesh::P4estMesh, output_directory)
   mkpath(output_directory)
 
   filename = joinpath(output_directory, "mesh.h5")
-  p4est_filename = joinpath(output_directory, "p4est_data")
+  p4est_filename = "p4est_data"
+  p4est_file = joinpath(output_directory, p4est_filename)
 
   # Save the complete connectivity/p4est data to disk.
-  p4est_save(p4est_filename, mesh.p4est, false)
+  p4est_save(p4est_file, mesh.p4est, false)
 
   # Open file (clobber existing content)
   h5open(filename, "w") do file
@@ -234,7 +235,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
     mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_, unsaved_changes=false)
   elseif mesh_type == "P4estMesh"
-    p4est_file, tree_node_coordinates,
+    p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
       return read(attributes(file)["p4est_file"]),
              read(file["tree_node_coordinates"]),
@@ -243,6 +244,10 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
 
     boundary_names = boundary_names_ .|> Symbol
+
+    p4est_file = joinpath(dirname(mesh_file), p4est_filename)
+    # Prevent Julia crashes when p4est can't find the file
+    @assert isfile(p4est_file)
 
     conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
     p4est = p4est_load(p4est_file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
