@@ -119,7 +119,7 @@ function P4estMesh(trees_per_dimension; polydeg,
   atexit(destroy_p4est_structs)
 
   # Non-periodic boundaries
-  boundary_names = Array{Symbol, 2}(undef, 4, prod(trees_per_dimension))
+  boundary_names = fill(Symbol("---"), 4, prod(trees_per_dimension))
   linear_indices = LinearIndices(trees_per_dimension)
 
   # Boundaries in x-direction
