@@ -20,6 +20,14 @@ function rhs!(du, u, t,
     cache.elements.surface_flux_values, mesh,
     equations, dg, cache)
 
+  # Prolong solution to boundaries
+  @timed timer() "prolong2boundaries" prolong2boundaries!(
+    cache, u, mesh, equations, dg)
+
+  # Calculate boundary fluxes
+  @timed timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg)
+
   # Calculate surface integrals
   @timed timer() "surface integral" calc_surface_integral!(
     du, mesh, equations, dg, cache)
@@ -111,6 +119,73 @@ function calc_interface_flux!(surface_flux_values,
   end
 
   return nothing
+end
+
+
+function prolong2boundaries!(cache, u,
+                             mesh::P4estMesh{2}, equations, dg::DG)
+  @unpack boundaries = cache
+
+  size_ = (nnodes(dg), nnodes(dg))
+
+  @threaded for boundary in eachboundary(dg, cache)
+    element       = boundaries.element_ids[boundary]
+    node_indices  = boundaries.node_indices[boundary]
+
+    # Use Tuple `node_indices` and `evaluate_index` to copy values
+    # from the correct face and in the correct orientation
+    for i in eachnode(dg), v in eachvariable(equations)
+      boundaries.u[v, i, boundary] = u[v, evaluate_index(node_indices, size_, 1, i),
+                                          evaluate_index(node_indices, size_, 2, i),
+                                          element]
+    end
+  end
+
+  return nothing
+end
+
+
+function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
+                             mesh::P4estMesh, equations, dg::DG)
+  @unpack boundaries = cache
+  @unpack surface_flux_values, node_coordinates = cache.elements
+  @unpack surface_flux = dg
+
+  size_ = (nnodes(dg), nnodes(dg))
+
+  @threaded for local_index in eachindex(boundary_indexing)
+    # Use the local index to get the global boundary index from the pre-sorted list
+    boundary = boundary_indexing[local_index]
+
+    element       = boundaries.element_ids[boundary]
+    node_indices  = boundaries.node_indices[boundary]
+    direction     = indices2direction(node_indices)
+
+    # Use Tuple `node_indices` and `evaluate_index` to access node indices
+    # at the correct face and in the correct orientation to get normal vectors
+    for i in eachnode(dg)
+      node_i = evaluate_index(node_indices, size_, 1, i)
+      node_j = evaluate_index(node_indices, size_, 2, i)
+
+      # Extract solution data from boundary container
+      u_inner = get_node_vars(boundaries.u, equations, dg, i, boundary)
+
+      # Outward-pointing normal vector
+      normal_vector = get_normal_vector(direction, cache, node_i, node_j, element)
+
+      # Coordinates at boundary node
+      x = get_node_coords(node_coordinates, equations, dg, node_i, node_j, element)
+
+      flux_ = boundary_condition(u_inner, normal_vector, x, t, surface_flux, equations)
+
+      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+      # to left and right element storage in the correct orientation
+      for v in eachvariable(equations)
+        surface_index = evaluate_index_surface(node_indices, size_, 1, i)
+        surface_flux_values[v, surface_index, direction, element] = flux_[v]
+      end
+    end
+  end
 end
 
 

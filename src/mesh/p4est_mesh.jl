@@ -10,9 +10,10 @@ to manage trees and mesh refinement.
 mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
   p4est                 ::Ptr{p4est_t}
   p4est_mesh            ::Ptr{p4est_mesh_t}
-  tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree_id]
+  tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, n_tree]
   nodes                 ::Vector{RealT}
   periodicity           ::NTuple{NDIMS, Bool}
+  boundary_names        ::Array{Symbol, 2}      # [face direction, n_tree]
   current_filename      ::String
   unsaved_changes       ::Bool
 end
@@ -101,7 +102,7 @@ function P4estMesh(trees_per_dimension; polydeg,
   calc_node_coordinates!(tree_node_coordinates, mapping, trees_per_dimension, nodes)
 
   # p4est_connectivity_new_brick has trees in Morton order, so use our own function for this
-  conn = connectivity_structured_periodic(trees_per_dimension...)
+  conn = connectivity_structured(trees_per_dimension..., periodicity)
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, false, 0, C_NULL, C_NULL)
 
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
@@ -117,16 +118,43 @@ function P4estMesh(trees_per_dimension; polydeg,
 
   atexit(destroy_p4est_structs)
 
-  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates,
-                                          nodes, periodicity, "", unsaved_changes)
+  # Non-periodic boundaries
+  boundary_names = Array{Symbol, 2}(undef, 4, prod(trees_per_dimension))
+  linear_indices = LinearIndices(trees_per_dimension)
+
+  # Boundaries in x-direction
+  if !periodicity[1]
+    for cell_y in 1:trees_per_dimension[2]
+      tree = linear_indices[1, cell_y]
+      boundary_names[1, tree] = :x_neg
+
+      tree = linear_indices[end, cell_y]
+      boundary_names[2, tree] = :x_pos
+    end
+  end
+
+  # Boundaries in y-direction
+  if !periodicity[2]
+    for cell_x in 1:trees_per_dimension[1]
+      tree = linear_indices[cell_x, 1]
+      boundary_names[3, tree] = :y_neg
+
+      tree = linear_indices[cell_x, end]
+      boundary_names[4, tree] = :y_pos
+    end
+  end
+
+  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates, nodes,
+                                          periodicity, boundary_names, "", unsaved_changes)
 end
 
 
-# Create a new p4est_connectivity that represents a structured rectangle with periodic boundaries.
-# Similar to p4est_connectivity_new_brick, but doesn't use Morton ordering.
-# This ordering makes `calc_node_coordinates!` below easier but is irrelevant otherwise.
+# Create a new p4est_connectivity that represents a structured rectangle.
+# Similar to p4est_connectivity_new_brick, but doesn't use Morton order.
+# This order makes `calc_node_coordinates!` below and the calculation
+# of `boundary_names` above easier but is irrelevant otherwise.
 # TODO P4EST non-periodic
-function connectivity_structured_periodic(cells_x, cells_y)
+function connectivity_structured(cells_x, cells_y, periodicity)
   linear_indices = LinearIndices((cells_x, cells_y))
 
   # Vertices represent the coordinates of the forest. This is used by p4est
@@ -139,22 +167,61 @@ function connectivity_structured_periodic(cells_x, cells_y)
   vertices = C_NULL
   tree_to_vertex = C_NULL
 
-  # Periodic boundaries
   tree_to_tree = Matrix{p4est_topidx_t}(undef, 4, num_trees)
+  tree_to_face = Matrix{Int8}(undef, 4, num_trees)
+
   for cell_y in 1:cells_y, cell_x in 1:cells_x
     tree = linear_indices[cell_x, cell_y]
-    # Subtract 1 because p4est uses zero-based indexing
-    tree_to_tree[1, tree] = linear_indices[mod(cell_x - 2, cells_x) + 1, cell_y] - 1
-    tree_to_tree[2, tree] = linear_indices[mod(cell_x, cells_x) + 1, cell_y] - 1
-    tree_to_tree[3, tree] = linear_indices[cell_x, mod(cell_y - 2, cells_y) + 1] - 1
-    tree_to_tree[4, tree] = linear_indices[cell_x, mod(cell_y, cells_y) + 1] - 1
-  end
 
-  tree_to_face = Matrix{Int8}(undef, 4, num_trees)
-  tree_to_face[1, :] .= 1
-  tree_to_face[2, :] .= 0
-  tree_to_face[3, :] .= 3
-  tree_to_face[4, :] .= 2
+    # Subtract 1 because p4est uses zero-based indexing
+    # Negative x-direction
+    if cell_x > 1
+      tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y] - 1
+      tree_to_face[1, tree] = 1
+    elseif periodicity[1]
+      tree_to_tree[1, tree] = linear_indices[cells_x, cell_y] - 1
+      tree_to_face[1, tree] = 1
+    else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
+      tree_to_tree[1, tree] = tree - 1
+      tree_to_face[1, tree] = 0
+    end
+
+    # Positive x-direction
+    if cell_x < cells_x
+      tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y] - 1
+      tree_to_face[2, tree] = 0
+    elseif periodicity[1]
+      tree_to_tree[2, tree] = linear_indices[1, cell_y] - 1
+      tree_to_face[2, tree] = 0
+    else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
+      tree_to_tree[2, tree] = tree - 1
+      tree_to_face[2, tree] = 1
+    end
+
+    # Negative x-direction
+    if cell_y > 1
+      tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1] - 1
+      tree_to_face[3, tree] = 3
+    elseif periodicity[2]
+      tree_to_tree[3, tree] = linear_indices[cell_x, cells_y] - 1
+      tree_to_face[3, tree] = 3
+    else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
+      tree_to_tree[3, tree] = tree - 1
+      tree_to_face[3, tree] = 2
+    end
+
+    # Positive x-direction
+    if cell_y < cells_y
+      tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1] - 1
+      tree_to_face[4, tree] = 2
+    elseif periodicity[2]
+      tree_to_tree[4, tree] = linear_indices[cell_x, 1] - 1
+      tree_to_face[4, tree] = 2
+    else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
+      tree_to_tree[4, tree] = tree - 1
+      tree_to_face[4, tree] = 3
+    end
+  end
 
   tree_to_corner = C_NULL
   ctt_offset = Array{p4est_topidx_t}([0])

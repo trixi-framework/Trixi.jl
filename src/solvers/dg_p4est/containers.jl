@@ -41,9 +41,9 @@ Base.eltype(::ElementContainerP4est{NDIMS, RealT, uEltype}) where {NDIMS, RealT,
 
 
 struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
-  u::Array{uEltype, NDIMSP2}                  # [primary/secondary, variables, i, j, interface]
-  element_ids::Matrix{Int}                    # [primary/secondary, interfaces]
-  node_indices::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interfaces]
+  u::Array{uEltype, NDIMSP2}                  # [primary/secondary, variables, i, j, n_interface]
+  element_ids::Matrix{Int}                    # [primary/secondary, n_interface]
+  node_indices::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, n_interface]
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -66,10 +66,99 @@ function init_interfaces(mesh::P4estMesh, equations, basis,
   return interfaces
 end
 
-# Return number of interfaces
 @inline ninterfaces(interfaces::InterfaceContainerP4est) = size(interfaces.element_ids, 2)
 
-count_required_interfaces(mesh::P4estMesh) = ndims(mesh) * ncells(mesh)
+
+struct BoundaryContainerP4est{NDIMS, uEltype<:Real, NDIMSP1} <: AbstractContainer
+  u::Array{uEltype, NDIMSP1}                  # [variables, i, j, n_boundary]
+  element_ids::Vector{Int}                    # [n_boundary]
+  node_indices::Vector{NTuple{NDIMS, Symbol}} # [n_boundary]
+  name::Vector{Symbol}                        # [n_boundary]
+end
+
+# Create interface container and initialize interface data in `elements`.
+function init_boundaries(mesh::P4estMesh, equations, basis,
+                         elements::ElementContainerP4est{NDIMS, RealT, uEltype}
+                         ) where {NDIMS, RealT<:Real, uEltype<:Real}
+  # Initialize container
+  n_boundaries = count_required_boundaries(mesh)
+
+  u = Array{uEltype, NDIMS+1}(undef, nvariables(equations),
+                              ntuple(_ -> nnodes(basis), NDIMS-1)...,
+                              n_boundaries)
+  element_ids = Vector{Int}(undef, n_boundaries)
+  node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
+  names = Vector{Symbol}(undef, n_boundaries)
+
+  boundaries = BoundaryContainerP4est{NDIMS, uEltype, NDIMS+1}(u, element_ids, node_indices, names)
+
+  init_boundaries!(boundaries, mesh)
+
+  return boundaries
+end
+
+@inline nboundaries(boundaries::BoundaryContainerP4est) = length(boundaries.element_ids)
+
+
+# Iterate over all interfaces and count inner interfaces
+function count_interfaces_iter_face(info, user_data)
+  if info.sides.elem_count == 2
+    # Unpack user_data = [interface_count] and increment interface_count
+    ptr = Ptr{Int}(user_data)
+    data_array = unsafe_wrap(Array, ptr, 1)
+    data_array[1] += 1
+  end
+
+  return nothing
+end
+
+# Iterate over all interfaces and count boundaries
+function count_boundaries_iter_face(info, user_data)
+  if info.sides.elem_count == 1
+    # Unpack user_data = [boundary_count] and increment boundary_count
+    ptr = Ptr{Int}(user_data)
+    data_array = unsafe_wrap(Array, ptr, 1)
+    data_array[1] += 1
+  end
+
+  return nothing
+end
+
+function count_required_interfaces(mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and count inner interfaces
+  iter_face_c = @cfunction(count_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = [0]
+
+  GC.@preserve user_data begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  # user data [interface_count]
+                  pointer(user_data),
+                  C_NULL, # iter_volume
+                  iter_face_c, # iter_face
+                  C_NULL) # iter_corner
+  end
+
+  return user_data[1]
+end
+
+function count_required_boundaries(mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and count boundaries
+  iter_face_c = @cfunction(count_boundaries_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = [0]
+
+  GC.@preserve user_data begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  # user data [boundary_count]
+                  pointer(user_data),
+                  C_NULL, # iter_volume
+                  iter_face_c, # iter_face
+                  C_NULL) # iter_corner
+  end
+
+  return user_data[1]
+end
 
 
 # Convert sc_array to Julia array of the specified type
