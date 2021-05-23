@@ -12,7 +12,6 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
   p4est_mesh            ::Ptr{p4est_mesh_t}
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, n_tree]
   nodes                 ::Vector{RealT}
-  periodicity           ::NTuple{NDIMS, Bool}
   boundary_names        ::Array{Symbol, 2}      # [face direction, n_tree]
   current_filename      ::String
   unsaved_changes       ::Bool
@@ -145,7 +144,36 @@ function P4estMesh(trees_per_dimension; polydeg,
   end
 
   return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates, nodes,
-                                          periodicity, boundary_names, "", unsaved_changes)
+                                          boundary_names, "", unsaved_changes)
+end
+
+
+function P4estMesh(meshfile::String;
+                   RealT=Float64, initial_refinement_level=0, unsaved_changes=true)
+  # TODO P4EST
+  NDIMS = 2
+
+  conn = p4est_connectivity_read_inp(meshfile)
+  n_trees = conn.num_trees
+
+  vertices        = unsafe_wrap(Array, conn.vertices, (3, conn.num_vertices))
+  tree_to_vertex  = unsafe_wrap(Array, conn.tree_to_vertex, (4, n_trees))
+
+  # Uncurved geometry, only save corner coordinates
+  nodes = [-1.0, 1.0]
+  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
+                                                ntuple(_ -> length(nodes), NDIMS)...,
+                                                n_trees)
+  calc_node_coordinates!(tree_node_coordinates, vertices, tree_to_vertex)
+
+  p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, false, 0, C_NULL, C_NULL)
+  ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
+  p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
+
+  boundary_names = fill(:all, 4, prod(trees_per_dimension))
+
+  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates, nodes,
+                                          boundary_names, "", unsaved_changes)
 end
 
 
@@ -236,11 +264,6 @@ function connectivity_structured(cells_x, cells_y, periodicity)
                               corner_to_tree, corner_to_corner)
 end
 
-
-# Check if mesh is periodic
-isperiodic(mesh::P4estMesh) = all(mesh.periodicity)
-isperiodic(mesh::P4estMesh, dimension) = mesh.periodicity[dimension]
-
 @inline Base.ndims(::P4estMesh{NDIMS}) where NDIMS = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
@@ -260,7 +283,6 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
     setup = [
              "#trees" => ntrees(mesh),
              "current #cells" => ncells(mesh),
-             "periodicity" => mesh.periodicity,
              "polydeg" => length(mesh.nodes),
             ]
     summary_box(io, "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}", setup)
@@ -270,7 +292,9 @@ end
 
 # Calculate physical coordinates to which every node of the reference element is mapped
 # This function assumes a structured mesh with trees in row order.
-function calc_node_coordinates!(node_coordinates, mapping, trees_per_dimension, nodes::AbstractVector)
+# 2D version
+function calc_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
+                                mapping, trees_per_dimension, nodes) where RealT
   linear_indices = LinearIndices(trees_per_dimension)
 
   # Get cell length in reference mesh
@@ -289,5 +313,20 @@ function calc_node_coordinates!(node_coordinates, mapping, trees_per_dimension, 
       node_coordinates[:, i, j, tree_id] .= mapping(cell_x_offset + dx/2 * nodes[i],
                                                     cell_y_offset + dy/2 * nodes[j])
     end
+  end
+end
+
+
+# Calculate physical coordinates to which every node of the reference element is mapped
+# This function assumes a structured mesh with trees in row order.
+# 2D version
+function calc_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
+                                vertices::AbstractArray, tree_to_vertex) where RealT
+  for tree in 1:size(tree_to_vertex, 2)
+    # Tree vertices are stored in Z-order, ignore z-coordinate in 2D
+    tree_node_coordinates[:, 1, 1, tree] = vertices[1:2, tree_to_vertex[1, tree]]
+    tree_node_coordinates[:, 2, 1, tree] = vertices[1:2, tree_to_vertex[2, tree]]
+    tree_node_coordinates[:, 1, 2, tree] = vertices[1:2, tree_to_vertex[3, tree]]
+    tree_node_coordinates[:, 2, 2, tree] = vertices[1:2, tree_to_vertex[4, tree]]
   end
 end
