@@ -179,7 +179,7 @@ In a very similar fashion to [`PlotData2D`](@ref), you can customize your plot:
 * `plot(pd["rho", "p"])` only plots specific variables. In this case `rho` and `p`.
 * `plot!(getmesh(pd))` adds mesh lines after creating a plot.
 * Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used, e.g., `plot(pd, yguide=:temperature)`.
-* `pd = PlotData1D(adapt_to_mesh_level(sol, 4)...)` adapts the mesh before plotting 
+* `pd = PlotData1D(adapt_to_mesh_level(sol, 4)...)` adapts the mesh before plotting
   (in this example to a mesh with refinement level 4).
 
 You can also customize the [`PlotData1D`](@ref) object itself by passing attributes
@@ -316,6 +316,9 @@ When multiple solution/restart files are provided, Trixi2Vtk will also generate 
 uses the `time` attribute in solution/restart files to inform ParaView about the
 solution time. A comprehensive list of all possible arguments for
 `trixi2vtk` can be found in the [Trixi2Vtk.jl API](@ref).
+
+Further information regarding the development of Trixi2Vtk can be found in the
+[development section](@id trixi2vtk-dev).
 
 
 ## Trixi2Img
