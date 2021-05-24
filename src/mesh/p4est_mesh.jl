@@ -23,7 +23,7 @@ end
               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true)
 
-Create a structured curved P4estMesh of the specified size.
+Create a structured curved `P4estMesh` of the specified size.
 
 There are three ways to map the mesh to the physical domain.
 1. Define a `mapping` that maps the hypercube `[-1, 1]^n`.
@@ -148,23 +148,50 @@ function P4estMesh(trees_per_dimension; polydeg,
 end
 
 
+"""
+    P4estMesh(meshfile::String;
+              mapping=nothing, polydeg=1, RealT=Float64,
+              initial_refinement_level=0, unsaved_changes=true)
+
+Import an uncurved, unstructured, conforming mesh from an ABAQUS mesh file (`.inp`),
+map the mesh with the specified mapping, and create a `P4estMesh` from the curved mesh.
+
+Cells in the mesh file will be imported as trees in the `P4estMesh`.
+
+# Arguments
+- `meshfile::String`: an uncurved ABAQUS mesh file that can be imported by p4est.
+- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+"""
 function P4estMesh(meshfile::String;
-                   mapping=nothing, polydeg=2, RealT=Float64,
+                   mapping=nothing, polydeg=1, RealT=Float64,
                    initial_refinement_level=0, unsaved_changes=true)
   # TODO P4EST
   NDIMS = 2
 
+  # Prevent p4est from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
+
   conn = p4est_connectivity_read_inp(meshfile)
+
+  # These need to be of the type Int for unsafe_wrap below to work
   n_trees::Int = conn.num_trees
   n_vertices::Int = conn.num_vertices
 
   vertices        = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
   tree_to_vertex  = unsafe_wrap(Array, conn.tree_to_vertex, (4, n_trees))
 
-  # Uncurved geometry, only save corner coordinates
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
+
   tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
                                                 ntuple(_ -> length(nodes), NDIMS)...,
                                                 n_trees)
@@ -174,6 +201,7 @@ function P4estMesh(meshfile::String;
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
   p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
+  # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 4, n_trees)
 
   return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates, nodes,
@@ -185,7 +213,6 @@ end
 # Similar to p4est_connectivity_new_brick, but doesn't use Morton order.
 # This order makes `calc_tree_node_coordinates!` below and the calculation
 # of `boundary_names` above easier but is irrelevant otherwise.
-# TODO P4EST non-periodic
 function connectivity_structured(cells_x, cells_y, periodicity)
   linear_indices = LinearIndices((cells_x, cells_y))
 
