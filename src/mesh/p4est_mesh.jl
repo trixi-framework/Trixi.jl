@@ -98,7 +98,7 @@ function P4estMesh(trees_per_dimension; polydeg,
   tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
                                                 ntuple(_ -> length(nodes), NDIMS)...,
                                                 prod(trees_per_dimension))
-  calc_node_coordinates!(tree_node_coordinates, nodes, mapping, trees_per_dimension)
+  calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, trees_per_dimension)
 
   # p4est_connectivity_new_brick has trees in Morton order, so use our own function for this
   conn = connectivity_structured(trees_per_dimension..., periodicity)
@@ -168,7 +168,7 @@ function P4estMesh(meshfile::String;
   tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
                                                 ntuple(_ -> length(nodes), NDIMS)...,
                                                 n_trees)
-  calc_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
+  calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
 
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 0, C_NULL, C_NULL)
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
@@ -183,7 +183,7 @@ end
 
 # Create a new p4est_connectivity that represents a structured rectangle.
 # Similar to p4est_connectivity_new_brick, but doesn't use Morton order.
-# This order makes `calc_node_coordinates!` below and the calculation
+# This order makes `calc_tree_node_coordinates!` below and the calculation
 # of `boundary_names` above easier but is irrelevant otherwise.
 # TODO P4EST non-periodic
 function connectivity_structured(cells_x, cells_y, periodicity)
@@ -297,8 +297,8 @@ end
 # Calculate physical coordinates to which every node of the reference element is mapped
 # This function assumes a structured mesh with trees in row order.
 # 2D version
-function calc_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
-                                nodes, mapping, trees_per_dimension) where RealT
+function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
+                                     nodes, mapping, trees_per_dimension) where RealT
   linear_indices = LinearIndices(trees_per_dimension)
 
   # Get cell length in reference mesh
@@ -324,10 +324,9 @@ end
 # Calculate physical coordinates to which every node of the reference element is mapped
 # This function assumes a structured mesh with trees in row order.
 # 2D version
-function calc_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
-                                nodes, mapping,
-                                vertices::AbstractArray,
-                                tree_to_vertex) where RealT
+function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
+                                     nodes, mapping,
+                                     vertices, tree_to_vertex) where RealT
   nodes_in = [-1.0, 1.0]
   matrix = polynomial_interpolation_matrix(nodes_in, nodes)
   data_in = Array{RealT, 3}(undef, 2, 2, 2)
