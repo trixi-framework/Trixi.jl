@@ -50,4 +50,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       tspan = (0.0, 1.0))
   end
 end
+
 end # module
