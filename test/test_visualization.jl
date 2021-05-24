@@ -163,6 +163,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @testset "plot time series" begin
+    @test_nowarn_debug trixi_include(@__MODULE__,
+                                     joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
+                                     tspan=(0, 0.05))
+
+    @test_nowarn_debug plot(time_series, 1)
+    @test PlotData1D(time_series, 1) isa PlotData1D
+  end
+
   @testset "adapt_to_mesh_level" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
