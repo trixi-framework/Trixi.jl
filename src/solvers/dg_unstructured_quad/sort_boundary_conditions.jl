@@ -20,6 +20,21 @@ end
 # from the `UnstructuredBoundaryContainer2D` in cache.boundaries according to the boundary types
 # and stores the associated global boundary indexing in NTuple
 function UnstructuredQuadSortedBoundaryTypes(boundary_conditions::Dict, cache)
+  unique_names = unique(cache.boundaries.name)
+
+  # Verify that each Dict key is a valid boundary name
+  for key in keys(boundary_conditions)
+    if !(key in unique_names)
+      error("Key $(repr(key)) is not a valid boundary name")
+    end
+  end
+
+  # Verify that each boundary has a boundary condition
+  for name in unique_names
+    if name !== Symbol("---") && !haskey(boundary_conditions, name)
+      error("No boundary condition specified for boundary $(repr(name))")
+    end
+  end
 
   # extract the unique boundary function routines from the dictionary
   boundary_condition_types = Tuple(unique(collect(values(boundary_conditions))))
@@ -44,7 +59,7 @@ function UnstructuredQuadSortedBoundaryTypes(boundary_conditions::Dict, cache)
   boundary_dictionary = boundary_conditions
 
   return UnstructuredQuadSortedBoundaryTypes{n_boundary_types, typeof(boundary_condition_types)}(
-                                                                         boundary_condition_types,
-                                                                         boundary_indices,
-                                                                         boundary_dictionary)
+                                                                      boundary_condition_types,
+                                                                      boundary_indices,
+                                                                      boundary_dictionary)
 end
