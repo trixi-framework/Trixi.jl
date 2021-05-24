@@ -110,6 +110,7 @@ end
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
+  @unpack contravariant_vectors = cache.elements
 
   # Calculate volume integral in one element
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

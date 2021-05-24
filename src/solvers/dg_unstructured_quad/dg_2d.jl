@@ -95,6 +95,7 @@ end
                                     mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
                                     dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
+  @unpack contravariant_vectors = cache.elements
 
   # Calculate volume integral in one element
   for j in eachnode(dg), i in eachnode(dg)
