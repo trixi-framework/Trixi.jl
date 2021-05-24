@@ -98,7 +98,7 @@ function P4estMesh(trees_per_dimension; polydeg,
   tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
                                                 ntuple(_ -> length(nodes), NDIMS)...,
                                                 prod(trees_per_dimension))
-  calc_node_coordinates!(tree_node_coordinates, mapping, trees_per_dimension, nodes)
+  calc_node_coordinates!(tree_node_coordinates, nodes, mapping, trees_per_dimension)
 
   # p4est_connectivity_new_brick has trees in Morton order, so use our own function for this
   conn = connectivity_structured(trees_per_dimension..., periodicity)
@@ -149,10 +149,12 @@ end
 
 
 function P4estMesh(meshfile::String;
-                   RealT=Float64, initial_refinement_level=0, unsaved_changes=true)
+                   mapping=nothing, polydeg=2, RealT=Float64,
+                   initial_refinement_level=0, unsaved_changes=true)
   # TODO P4EST
   NDIMS = 2
 
+  @assert isfile(meshfile)
   conn = p4est_connectivity_read_inp(meshfile)
   n_trees::Int = conn.num_trees
   n_vertices::Int = conn.num_vertices
@@ -161,13 +163,14 @@ function P4estMesh(meshfile::String;
   tree_to_vertex  = unsafe_wrap(Array, conn.tree_to_vertex, (4, n_trees))
 
   # Uncurved geometry, only save corner coordinates
-  nodes = [-1.0, 1.0]
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  nodes = basis.nodes
   tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
                                                 ntuple(_ -> length(nodes), NDIMS)...,
                                                 n_trees)
-  calc_node_coordinates!(tree_node_coordinates, vertices, tree_to_vertex)
+  calc_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
 
-  p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, false, 0, C_NULL, C_NULL)
+  p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 0, C_NULL, C_NULL)
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
   p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
@@ -295,7 +298,7 @@ end
 # This function assumes a structured mesh with trees in row order.
 # 2D version
 function calc_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
-                                mapping, trees_per_dimension, nodes) where RealT
+                                nodes, mapping, trees_per_dimension) where RealT
   linear_indices = LinearIndices(trees_per_dimension)
 
   # Get cell length in reference mesh
@@ -322,12 +325,44 @@ end
 # This function assumes a structured mesh with trees in row order.
 # 2D version
 function calc_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
-                                vertices::AbstractArray, tree_to_vertex) where RealT
+                                nodes, mapping,
+                                vertices::AbstractArray,
+                                tree_to_vertex) where RealT
+  nodes_in = [-1.0, 1.0]
+  matrix = polynomial_interpolation_matrix(nodes_in, nodes)
+  data_in = Array{RealT, 3}(undef, 2, 2, 2)
+  tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
+
   for tree in 1:size(tree_to_vertex, 2)
     # Tree vertices are stored in Z-order, ignore z-coordinate in 2D, zero-based indexing
-    node_coordinates[:, 1, 1, tree] = vertices[1:2, tree_to_vertex[1, tree] + 1]
-    node_coordinates[:, 2, 1, tree] = vertices[1:2, tree_to_vertex[2, tree] + 1]
-    node_coordinates[:, 1, 2, tree] = vertices[1:2, tree_to_vertex[3, tree] + 1]
-    node_coordinates[:, 2, 2, tree] = vertices[1:2, tree_to_vertex[4, tree] + 1]
+    data_in[:, 1, 1] .= vertices[1:2, tree_to_vertex[1, tree] + 1]
+    data_in[:, 2, 1] .= vertices[1:2, tree_to_vertex[2, tree] + 1]
+    data_in[:, 1, 2] .= vertices[1:2, tree_to_vertex[3, tree] + 1]
+    data_in[:, 2, 2] .= vertices[1:2, tree_to_vertex[4, tree] + 1]
+
+    multiply_dimensionwise!(
+      view(node_coordinates, :, :, :, tree),
+      matrix, matrix,
+      data_in,
+      tmp1
+    )
   end
+
+  map_node_coordinates!(node_coordinates, mapping)
+end
+
+function map_node_coordinates!(node_coordinates::AbstractArray{RealT, 4}, mapping) where RealT
+  for n_tree in axes(node_coordinates, 4),
+      j in axes(node_coordinates, 3),
+      i in axes(node_coordinates, 2)
+
+    node_coordinates[:, i, j, n_tree] .= mapping(node_coordinates[1, i, j, n_tree],
+                                                 node_coordinates[2, i, j, n_tree])
+  end
+
+  return node_coordinates
+end
+
+function map_node_coordinates!(node_coordinates::AbstractArray{RealT, 4}, mapping::Nothing) where RealT
+  return node_coordinates
 end
