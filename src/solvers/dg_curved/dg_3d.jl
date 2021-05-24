@@ -87,10 +87,9 @@ function calc_volume_integral!(du, u,
 end
 
 
-######
-# 3D variant of curvilinear flux differencing
-# TODO: better comments
-######
+# flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
+# mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
+# the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
                                mesh::CurvedMesh{3},
                                nonconservative_terms, equations,
@@ -116,7 +115,7 @@ end
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-    # compute the fluxes in the x and y directions
+    # compute the fluxes in the x, y and z directions
     flux1 = flux(u_node, 1, equations)
     flux2 = flux(u_node, 2, equations)
     flux3 = flux(u_node, 3, equations)

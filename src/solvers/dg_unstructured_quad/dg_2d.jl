@@ -73,11 +73,9 @@ function rhs!(du, u, t,
 end
 
 
-#####
-# 2d variant of flux differencing volume integral
-# TODO: improve comments. should work immediately with CurvedMesh{2} as well structure is preserved
-#       to incorperate the nonconservative terms for the mhd equations later
-#####
+# flux differencing volume integral on curvilinear quadrilateral elements. Averaging of the
+# mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
+# the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
                                mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
                                nonconservative_terms, equations,
