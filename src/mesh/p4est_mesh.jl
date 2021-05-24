@@ -388,7 +388,7 @@ function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, mappin
       i in axes(node_coordinates, 2)
 
     node_coordinates[:, i, j, tree] .= mapping(node_coordinates[1, i, j, tree],
-                                                 node_coordinates[2, i, j, tree])
+                                               node_coordinates[2, i, j, tree])
   end
 
   return node_coordinates
