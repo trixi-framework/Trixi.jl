@@ -221,15 +221,15 @@ function connectivity_structured(cells_x, cells_y, periodicity)
   # Vertices represent the coordinates of the forest. This is used by p4est
   # to write VTK files.
   # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
-  num_vertices = 0
-  num_trees = cells_x * cells_y
+  n_vertices = 0
+  n_trees = cells_x * cells_y
   # No corner connectivity is needed
-  num_corners = 0
+  n_corners = 0
   vertices = C_NULL
   tree_to_vertex = C_NULL
 
-  tree_to_tree = Matrix{p4est_topidx_t}(undef, 4, num_trees)
-  tree_to_face = Matrix{Int8}(undef, 4, num_trees)
+  tree_to_tree = Matrix{p4est_topidx_t}(undef, 4, n_trees)
+  tree_to_face = Matrix{Int8}(undef, 4, n_trees)
 
   for cell_y in 1:cells_y, cell_x in 1:cells_x
     tree = linear_indices[cell_x, cell_y]
@@ -285,12 +285,14 @@ function connectivity_structured(cells_x, cells_y, periodicity)
   end
 
   tree_to_corner = C_NULL
+  # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
+  # We don't need corner connectivity, so this is a trivial case.
   ctt_offset = Array{p4est_topidx_t}([0])
 
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
 
-  p4est_connectivity_new_copy(num_vertices, num_trees, num_corners,
+  p4est_connectivity_new_copy(n_vertices, n_trees, n_corners,
                               vertices, tree_to_vertex,
                               tree_to_tree, tree_to_face,
                               tree_to_corner, ctt_offset,
