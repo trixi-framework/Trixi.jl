@@ -102,7 +102,7 @@ function P4estMesh(trees_per_dimension; polydeg,
 
   # p4est_connectivity_new_brick has trees in Morton order, so use our own function for this
   conn = connectivity_structured(trees_per_dimension..., periodicity)
-  p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, false, 0, C_NULL, C_NULL)
+  p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 0, C_NULL, C_NULL)
 
   ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
   p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
