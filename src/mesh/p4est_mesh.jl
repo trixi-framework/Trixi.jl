@@ -10,9 +10,9 @@ to manage trees and mesh refinement.
 mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
   p4est                 ::Ptr{p4est_t}
   p4est_mesh            ::Ptr{p4est_mesh_t}
-  tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, n_tree]
+  tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
   nodes                 ::Vector{RealT}
-  boundary_names        ::Array{Symbol, 2}      # [face direction, n_tree]
+  boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
   current_filename      ::String
   unsaved_changes       ::Bool
 end
@@ -153,13 +153,13 @@ end
               mapping=nothing, polydeg=1, RealT=Float64,
               initial_refinement_level=0, unsaved_changes=true)
 
-Import an uncurved, unstructured, conforming mesh from an ABAQUS mesh file (`.inp`),
+Import an uncurved, unstructured, conforming mesh from an Abaqus mesh file (`.inp`),
 map the mesh with the specified mapping, and create a `P4estMesh` from the curved mesh.
 
 Cells in the mesh file will be imported as trees in the `P4estMesh`.
 
 # Arguments
-- `meshfile::String`: an uncurved ABAQUS mesh file that can be imported by p4est.
+- `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
@@ -321,7 +321,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
 end
 
 
-# Calculate physical coordinates to which every node of the reference element is mapped
+# Calculate physical coordinates of each node.
 # This function assumes a structured mesh with trees in row order.
 # 2D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
@@ -348,8 +348,9 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
 end
 
 
-# Calculate physical coordinates to which every node of the reference element is mapped
-# This function assumes a structured mesh with trees in row order.
+# Calculate physical coordinates of each node.
+# Extract corners of each tree, interpolate to requested interpolation nodes,
+# map the resulting coordinates with the specified mapping.
 # 2D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
                                      nodes, mapping,

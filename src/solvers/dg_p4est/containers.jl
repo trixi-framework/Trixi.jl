@@ -41,9 +41,9 @@ Base.eltype(::ElementContainerP4est{NDIMS, RealT, uEltype}) where {NDIMS, RealT,
 
 
 struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
-  u::Array{uEltype, NDIMSP2}                  # [primary/secondary, variables, i, j, n_interface]
-  element_ids::Matrix{Int}                    # [primary/secondary, n_interface]
-  node_indices::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, n_interface]
+  u::Array{uEltype, NDIMSP2}                  # [primary/secondary, variable, i, j, interface]
+  element_ids::Matrix{Int}                    # [primary/secondary, interface]
+  node_indices::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interface]
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -70,10 +70,10 @@ end
 
 
 struct BoundaryContainerP4est{NDIMS, uEltype<:Real, NDIMSP1} <: AbstractContainer
-  u::Array{uEltype, NDIMSP1}                  # [variables, i, j, n_boundary]
-  element_ids::Vector{Int}                    # [n_boundary]
-  node_indices::Vector{NTuple{NDIMS, Symbol}} # [n_boundary]
-  name::Vector{Symbol}                        # [n_boundary]
+  u::Array{uEltype, NDIMSP1}                  # [variables, i, j, boundary]
+  element_ids::Vector{Int}                    # [boundary]
+  node_indices::Vector{NTuple{NDIMS, Symbol}} # [boundary]
+  name::Vector{Symbol}                        # [boundary]
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -132,8 +132,7 @@ function count_required_interfaces(mesh::P4estMesh)
   GC.@preserve user_data begin
     p4est_iterate(mesh.p4est,
                   C_NULL, # ghost layer
-                  # user data [interface_count]
-                  pointer(user_data),
+                  pointer(user_data), # user data [interface_count]
                   C_NULL, # iter_volume
                   iter_face_c, # iter_face
                   C_NULL) # iter_corner
@@ -150,8 +149,7 @@ function count_required_boundaries(mesh::P4estMesh)
   GC.@preserve user_data begin
     p4est_iterate(mesh.p4est,
                   C_NULL, # ghost layer
-                  # user data [boundary_count]
-                  pointer(user_data),
+                  pointer(user_data), # user data [boundary_count]
                   C_NULL, # iter_volume
                   iter_face_c, # iter_face
                   C_NULL) # iter_corner
