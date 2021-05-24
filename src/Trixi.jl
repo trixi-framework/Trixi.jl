@@ -33,7 +33,7 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
-using LoopVectorization: LoopVectorization, @avx
+using LoopVectorization: LoopVectorization, @turbo
 import MPI
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
