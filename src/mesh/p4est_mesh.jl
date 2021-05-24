@@ -10,6 +10,8 @@ to manage trees and mesh refinement.
 mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
   p4est                 ::Ptr{p4est_t}
   p4est_mesh            ::Ptr{p4est_mesh_t}
+  # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
+  # This specifies the geometry interpolation for each tree.
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
   nodes                 ::Vector{RealT}
   boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
@@ -379,12 +381,12 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
 end
 
 function map_node_coordinates!(node_coordinates::AbstractArray{RealT, 4}, mapping) where RealT
-  for n_tree in axes(node_coordinates, 4),
+  for tree in axes(node_coordinates, 4),
       j in axes(node_coordinates, 3),
       i in axes(node_coordinates, 2)
 
-    node_coordinates[:, i, j, n_tree] .= mapping(node_coordinates[1, i, j, n_tree],
-                                                 node_coordinates[2, i, j, n_tree])
+    node_coordinates[:, i, j, tree] .= mapping(node_coordinates[1, i, j, tree],
+                                                 node_coordinates[2, i, j, tree])
   end
 
   return node_coordinates
