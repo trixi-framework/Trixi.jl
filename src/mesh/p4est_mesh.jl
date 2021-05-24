@@ -328,8 +328,8 @@ end
 # Calculate physical coordinates of each node.
 # This function assumes a structured mesh with trees in row order.
 # 2D version
-function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
-                                     nodes, mapping, trees_per_dimension) where RealT
+function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
+                                     nodes, mapping, trees_per_dimension)
   linear_indices = LinearIndices(trees_per_dimension)
 
   # Get cell length in reference mesh
@@ -382,7 +382,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
   map_node_coordinates!(node_coordinates, mapping)
 end
 
-function map_node_coordinates!(node_coordinates::AbstractArray{RealT, 4}, mapping) where RealT
+function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, mapping)
   for tree in axes(node_coordinates, 4),
       j in axes(node_coordinates, 3),
       i in axes(node_coordinates, 2)
@@ -394,6 +394,6 @@ function map_node_coordinates!(node_coordinates::AbstractArray{RealT, 4}, mappin
   return node_coordinates
 end
 
-function map_node_coordinates!(node_coordinates::AbstractArray{RealT, 4}, mapping::Nothing) where RealT
+function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, mapping::Nothing)
   return node_coordinates
 end
