@@ -32,11 +32,70 @@ errors or user-specified integrals, and print the results to the screen. The res
 saved in a file. An example can be found at [examples/2d/elixir\_euler\_vortex.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_euler_vortex.jl).
 
 ### I/O
+
+#### Solution and restart files
 To save the solution in regular intervals you can use a [`SaveSolutionCallback`](@ref). It is also
 possible to create restart files using the [`SaveRestartCallback`](@ref). An example making use
 of these can be found at [examples/2d/elixir\_advection\_extended.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_extended.jl).
 An example showing how to restart a simulation from a restart file can be found at
 [examples/2d/elixir\_advection\_restart.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_restart.jl).
+
+#### Time series
+Sometimes it is useful to record the evoluation of state variables over time at
+a given set of points. This can be achieved by the [`TimeSeriesCallback`](@ref), which is used,
+e.g., in
+[examples/2d/elixir\_ape\_gaussian\_source.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_ape_gaussian_source.jl).
+The `TimeSeriesCallback` constructor expects a semidiscretization and a list of points at
+which the solution should be recorded in regular time step intervals. After the
+last time step, the entire record is stored in an HDF5 file.
+
+For the points, two different input formats are supported: You can either provide
+them as a list of tuples, which is handy if you specify them by hand on the
+REPL. Alternatively, you can provide them as a two-dimensional array, where the
+first dimension is the point number and the second dimension is the
+coordinate dimension. This is especially useful when reading them from a file.
+
+For example, to record the primitive variables at the points `(0.0, 0.0)` and
+`(-1.0, 0.5)` every five timesteps and storing the collected data in the file
+`tseries.h5`, you can create the `TimeSeriesCallback` as
+```julia
+time_series = TimeSeriesCallback(semi, [(0.0, 0.0), (-1.0, 0.5)];
+                                 interval=5,
+                                 solution_variables=cons2prim,
+                                 filename="tseries.h5")
+```
+For a full list of possible arguments, please check the documentation for the
+[`TimeSeriesCallback`](@ref).
+As an alternative to specifying the point coordinates directly in the elixir or
+on the REPL, you can read them from a file. For instance, with a text file
+`points.dat` with content
+```
+ 0.0 0.0
+-1.0 0.5
+```
+you can create a time series callback with
+```julia
+using DelimitedFiles: readdlm
+time_series = TimeSeriesCallback(semi, readdlm("points.dat"))
+```
+To plot the individual point data series over time, you can create a
+[`PlotData1D`](@ref) from the `TimeSeriesCallback` and a given point ID. For
+example, executing
+```julia
+julia> using Trixi, Plots
+
+julia> trixi_include("examples/2d/elixir_ape_gaussian_source.jl")
+
+julia> pd1 = PlotData1D(time_series, 1)
+
+julia> pd2 = PlotData1D(time_series, 2)
+
+julia> plot(pd1["p_prime"]); plot!(pd2["p_prime"], xguide="t")
+```
+will yield the following plot:
+
+![image](https://user-images.githubusercontent.com/3637659/115822874-9108d900-a405-11eb-9960-4ca3d535e3c6.png)
+
 
 ### Miscellaneous
 * The [`AliveCallback`](@ref) prints some information to the screen to show that a simulation is

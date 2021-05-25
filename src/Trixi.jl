@@ -33,20 +33,18 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
+using LoopVectorization: LoopVectorization, @turbo
 import MPI
+using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
-using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
+using StrideArrays: PtrArray, StrideArray, StaticInt
+using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack
 using UnPack: @pack!
-
-# Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
-# Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.
-using Tullio: @tullio
-using LoopVectorization
 
 
 # Define the entry points of our type hierarchy, e.g.
@@ -154,7 +152,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
-       SaveRestartCallback, SaveSolutionCallback, VisualizationCallback,
+       SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback,
        TrivialCallback

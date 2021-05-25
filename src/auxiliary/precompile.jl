@@ -457,5 +457,16 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(trixi_include),String})
   end
 
+  # The following precompile statements do not seem to be taken
+  # # `multiply_dimensionwise!` as used in the analysis callback
+  # for RealT in (Float64,)
+  #   # 1D version
+  #   @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 2},Matrix{RealT},SubArray{RealT, 2, Array{RealT, 3}, Tuple{Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Int}, true}})
+  #   # 2D version
+  #   @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 3},Matrix{RealT},SubArray{RealT, 3, Array{RealT, 4}, Tuple{Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Int}, true},Array{RealT, 3}})
+  #   # 3D version
+  #   @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 4},Matrix{RealT},SubArray{RealT, 4, Array{RealT, 5}, Tuple{Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Int}, true},Array{RealT, 4},Array{RealT, 4}})
+  # end
+
   return nothing
 end

@@ -30,8 +30,8 @@ end
 # * `SteadyStateCallback` may mark a time step as the last step, which is needed by other callbacks
 # * `AnalysisCallback` may also do some checks that mark a step as the last one
 # * `AliveCallback` belongs to `AnalysisCallback` and should thus be nearby
-# * `SaveRestartCallback`/`SaveSolutionCallback` should save the current solution state before it is
-#   potentially degraded by AMR
+# * `SaveRestartCallback`, `SaveSolutionCallback`, and `TimeSeriesCallback` should save the current
+#    solution state before it is potentially degraded by AMR
 # * `VisualizationCallback` similarly should be called before the mesh is adapted
 #
 # From here on, the remaining callbacks essentially already belong to the next time step iteration:
@@ -48,6 +48,7 @@ include("analysis.jl")
 include("alive.jl")
 include("save_restart.jl")
 include("save_solution.jl")
+include("time_series.jl")
 include("visualization.jl")
 
 include("amr.jl")
