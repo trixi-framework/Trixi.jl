@@ -166,6 +166,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       l2   = [2.3653424742684444e-6, 2.1388875095440695e-6, 2.1388875095548492e-6, 6.010896863397195e-6],
       linf = [1.4080465931654018e-5, 1.7579850587257084e-5, 1.7579850592586155e-5, 5.956893531156027e-5])
   end
+
+  @testset "elixir_euler_ec_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec_curved.jl"),
+      l2   = [0.03774170146315357, 0.028439692043402822, 0.028270724308772303, 0.13784229328899064],
+      linf = [0.33571598859050134, 0.27831002252333553, 0.295995432205428, 1.2178776811996832],
+      tspan = (0.0, 0.3))
+  end
+
 end
 
 end # module
