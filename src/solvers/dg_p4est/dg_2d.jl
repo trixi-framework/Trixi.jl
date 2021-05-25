@@ -147,76 +147,41 @@ end
 function prolong2mortars!(cache, u,
                           mesh::P4estMesh{2}, equations,
                           mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
+  @unpack element_ids, node_indices = cache.mortars
+
+  size_ = (nnodes(dg), nnodes(dg))
 
   @threaded for mortar in eachmortar(dg, cache)
-
-    large_element = cache.mortars.neighbor_ids[3, mortar]
-    upper_element = cache.mortars.neighbor_ids[2, mortar]
-    lower_element = cache.mortars.neighbor_ids[1, mortar]
+    small_node_indices  = node_indices[1, mortar]
+    large_node_indices  = node_indices[2, mortar]
 
     # Copy solution small to small
-    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-      if cache.mortars.orientations[mortar] == 1
-        # L2 mortars in x-direction
-        for l in eachnode(dg)
-          for v in eachvariable(equations)
-            cache.mortars.u_upper[2, v, l, mortar] = u[v, 1, l, upper_element]
-            cache.mortars.u_lower[2, v, l, mortar] = u[v, 1, l, lower_element]
-          end
-        end
-      else
-        # L2 mortars in y-direction
-        for l in eachnode(dg)
-          for v in eachvariable(equations)
-            cache.mortars.u_upper[2, v, l, mortar] = u[v, l, 1, upper_element]
-            cache.mortars.u_lower[2, v, l, mortar] = u[v, l, 1, lower_element]
-          end
-        end
-      end
-    else # large_sides[mortar] == 2 -> small elements on left side
-      if cache.mortars.orientations[mortar] == 1
-        # L2 mortars in x-direction
-        for l in eachnode(dg)
-          for v in eachvariable(equations)
-            cache.mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, upper_element]
-            cache.mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, lower_element]
-          end
-        end
-      else
-        # L2 mortars in y-direction
-        for l in eachnode(dg)
-          for v in eachvariable(equations)
-            cache.mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), upper_element]
-            cache.mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), lower_element]
-          end
-        end
-      end
+    for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)
+      # Use Tuple `node_indices` and `evaluate_index` to copy values
+      # from the correct face and in the correct orientation
+      mortars.u[1, pos, v, i, mortar] = u[v, evaluate_index(small_node_indices, size_, 1, i),
+                                             evaluate_index(small_node_indices, size_, 2, i),
+                                             element_ids[pos, mortar]]
     end
 
-    # Interpolate large element face data to small interface locations
-    if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
-      leftright = 1
-      if cache.mortars.orientations[mortar] == 1
-        # L2 mortars in x-direction
-        u_large = view(u, :, nnodes(dg), :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-      else
-        # L2 mortars in y-direction
-        u_large = view(u, :, :, nnodes(dg), large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-      end
-    else # large_sides[mortar] == 2 -> large element on right side
-      leftright = 2
-      if cache.mortars.orientations[mortar] == 1
-        # L2 mortars in x-direction
-        u_large = view(u, :, 1, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-      else
-        # L2 mortars in y-direction
-        u_large = view(u, :, :, 1, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-      end
+    # Copy solution large to large
+    for i in eachnode(dg), v in eachvariable(equations)
+      # Use Tuple `node_indices` and `evaluate_index` to copy values
+      # from the correct face and in the correct orientation
+      mortars.u_large[v, i, mortar] = u[v, evaluate_index(large_node_indices, size_, 1, i),
+                                           evaluate_index(large_node_indices, size_, 2, i),
+                                           element_ids[3, mortar]]
     end
+
+    # Interpolate large element face data to small face locations
+    u_large = view(cache.mortars.u_large, :, :, mortar)
+
+    multiply_dimensionwise!(view(cache.mortars.u, 2, 1, :, :, mortar),
+                            mortar_l2.forward_lower,
+                            u_large)
+    multiply_dimensionwise!(view(cache.mortars.u, 2, 2, :, :, mortar),
+                            mortar_l2.forward_upper,
+                            u_large)
   end
 
   return nothing

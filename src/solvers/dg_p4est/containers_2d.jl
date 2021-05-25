@@ -246,6 +246,9 @@ function init_mortars_iter_face(info, user_data)
              trees[sides[2].treeid + 1].quadrants_offset]
 
   if sides[1].is_hanging == true
+    # Left is small, right is large
+    small_large = [1, 2]
+
     local_small_quad_ids = unsafe_wrap(Array, sides[1].is.hanging.quadid, 2)
     # Global IDs of the two small quads
     small_quad_ids = offsets[1] .+ local_small_quad_ids
@@ -254,6 +257,9 @@ function init_mortars_iter_face(info, user_data)
     @assert sides[2].is_hanging == false
     large_quad_id = offsets[2] + sides[2].is.full.quadid
   else # sides[2].is_hanging == true
+    # Left is large, right is small
+    small_large = [2, 1]
+
     local_small_quad_ids = unsafe_wrap(Array, sides[2].is.hanging.quadid, 2)
     # Global IDs of the two small quads
     small_quad_ids = offsets[2] .+ local_small_quad_ids
@@ -278,10 +284,10 @@ function init_mortars_iter_face(info, user_data)
   orientation = info.orientation
 
   for side in 1:2
-    # Align interface in positive coordinate direction of primary element.
-    # For orientation == 1, the secondary element needs to be indexed backwards
-    # relative to the interface.
-    if side == 1 || orientation == 0
+    # Align mortar in positive coordinate direction of small side.
+    # For orientation == 1, the large side needs to be indexed backwards
+    # relative to the mortar.
+    if small_large[side] == 1 || orientation == 0
       # Forward indexing
       i = :i
     else
@@ -291,16 +297,16 @@ function init_mortars_iter_face(info, user_data)
 
     if faces[side] == 0
       # Index face in negative x-direction
-      mortars.node_indices[side, mortar_id] = (:one, i)
+      mortars.node_indices[small_large[side], mortar_id] = (:one, i)
     elseif faces[side] == 1
       # Index face in positive x-direction
-      mortars.node_indices[side, mortar_id] = (:end, i)
+      mortars.node_indices[small_large[side], mortar_id] = (:end, i)
     elseif faces[side] == 2
       # Index face in negative y-direction
-      mortars.node_indices[side, mortar_id] = (i, :one)
+      mortars.node_indices[small_large[side], mortar_id] = (i, :one)
     else # faces[side] == 3
       # Index face in positive y-direction
-      mortars.node_indices[side, mortar_id] = (i, :end)
+      mortars.node_indices[small_large[side], mortar_id] = (i, :end)
     end
   end
 
