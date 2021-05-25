@@ -46,7 +46,7 @@ struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContain
   node_indices::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interface]
 end
 
-# Create interface container and initialize interface data in `elements`.
+# Create interface container and initialize interface data.
 function init_interfaces(mesh::P4estMesh, equations, basis,
                          elements::ElementContainerP4est{NDIMS, RealT, uEltype}
                          ) where {NDIMS, RealT<:Real, uEltype<:Real}
@@ -100,13 +100,49 @@ end
 @inline nboundaries(boundaries::BoundaryContainerP4est) = length(boundaries.element_ids)
 
 
+struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP3} <: AbstractContainer
+  u::Array{uEltype, NDIMSP3}  # [small/large side, position, variable, i, j, mortar]
+  element_ids::Matrix{Int}    # [position, mortar]
+  node_indices::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+end
+
+# Create mortar container and initialize mortar data.
+function init_mortars(mesh::P4estMesh, equations, basis,
+                      elements::ElementContainerP4est{NDIMS, RealT, uEltype}
+                      ) where {NDIMS, RealT<:Real, uEltype<:Real}
+  # Initialize container
+  n_mortars = count_required_mortars(mesh)
+
+  u = Array{uEltype, NDIMS+3}(undef, 3, 2^(NDIMS-1),
+                              nvariables(equations),
+                              ntuple(_ -> nnodes(basis), NDIMS-1)...,
+                              n_mortars)
+  element_ids = Matrix{Int}(undef, 2^(NDIMS-1), n_mortars)
+  node_indices = Matrix{NTuple{NDIMS, Symbol}}(undef, 2, n_mortars)
+
+  mortars = MortarContainerP4est{NDIMS, uEltype, NDIMS+3}(u, element_ids, node_indices)
+
+  init_mortars!(mortars, mesh)
+
+  return mortars
+end
+
+@inline nmortars(mortars::MortarContainerP4est) = size(mortars.element_ids, 2)
+
+
 # Iterate over all interfaces and count inner interfaces
 function count_interfaces_iter_face(info, user_data)
   if info.sides.elem_count == 2
-    # Unpack user_data = [interface_count] and increment interface_count
-    ptr = Ptr{Int}(user_data)
-    data_array = unsafe_wrap(Array, ptr, 1)
-    data_array[1] += 1
+    # Extract interface data
+    sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+
+    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+      # No hanging nodes => normal interface
+      # Unpack user_data = [interface_count] and increment interface_count
+      ptr = Ptr{Int}(user_data)
+      data_array = unsafe_wrap(Array, ptr, 1)
+      data_array[1] += 1
+    end
   end
 
   return nothing
@@ -124,38 +160,67 @@ function count_boundaries_iter_face(info, user_data)
   return nothing
 end
 
-function count_required_interfaces(mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and count inner interfaces
-  iter_face_c = @cfunction(count_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [0]
+# Iterate over all interfaces and count mortars
+function count_mortars_iter_face(info, user_data)
+  if info.sides.elem_count == 2
+    # Extract interface data
+    sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
 
-  GC.@preserve user_data begin
-    p4est_iterate(mesh.p4est,
-                  C_NULL, # ghost layer
-                  pointer(user_data), # user data [interface_count]
-                  C_NULL, # iter_volume
-                  iter_face_c, # iter_face
-                  C_NULL) # iter_corner
+    if sides[1].is_hanging != 0 || sides[2].is_hanging != 0
+      # Hanging nodes => mortar
+      # Unpack user_data = [mortar_count] and increment mortar_count
+      ptr = Ptr{Int}(user_data)
+      data_array = unsafe_wrap(Array, ptr, 1)
+      data_array[1] += 1
+    end
   end
 
-  return user_data[1]
+  return nothing
+end
+
+function count_required_interfaces(mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call count_interfaces_iter_face
+  iter_face_c = @cfunction(count_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+
+  return count_required(mesh, iter_face_c)
 end
 
 function count_required_boundaries(mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and count boundaries
+  # Let p4est iterate over all interfaces and call count_boundaries_iter_face
   iter_face_c = @cfunction(count_boundaries_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+
+  return count_required(mesh, iter_face_c)
+end
+
+function count_required_mortars(mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call count_mortars_iter_face
+  iter_face_c = @cfunction(count_mortars_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+
+  return count_required(mesh, iter_face_c)
+end
+
+function count_required(mesh::P4estMesh, iter_face_c)
+  # Counter
   user_data = [0]
 
+  iterate_faces(mesh, iter_face_c, user_data)
+
+  # Return counter
+  return user_data[1]
+end
+
+# Let p4est iterate over all interfaces and execute the C function iter_face_c
+function iterate_faces(mesh::P4estMesh, iter_face_c, user_data)
   GC.@preserve user_data begin
     p4est_iterate(mesh.p4est,
                   C_NULL, # ghost layer
-                  pointer(user_data), # user data [boundary_count]
+                  pointer(user_data),
                   C_NULL, # iter_volume
                   iter_face_c, # iter_face
                   C_NULL) # iter_corner
   end
 
-  return user_data[1]
+  return nothing
 end
 
 

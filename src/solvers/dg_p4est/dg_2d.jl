@@ -1,49 +1,3 @@
-function rhs!(du, u, t,
-              mesh::P4estMesh{2}, equations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache)
-  # Reset du
-  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
-
-  # Calculate volume integral
-  @timed timer() "volume integral" calc_volume_integral!(
-    du, u, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
-
-  # Prolong solution to interfaces
-  @timed timer() "prolong2interfaces" prolong2interfaces!(
-    cache, u, mesh, equations, dg)
-
-  # Calculate interface fluxes
-  @timed timer() "interface flux" calc_interface_flux!(
-    cache.elements.surface_flux_values, mesh,
-    equations, dg, cache)
-
-  # Prolong solution to boundaries
-  @timed timer() "prolong2boundaries" prolong2boundaries!(
-    cache, u, mesh, equations, dg)
-
-  # Calculate boundary fluxes
-  @timed timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
-
-  # Calculate surface integrals
-  @timed timer() "surface integral" calc_surface_integral!(
-    du, mesh, equations, dg, cache)
-
-  # Apply Jacobian from mapping to reference element
-  @timed timer() "Jacobian" apply_jacobian!(
-    du, mesh, equations, dg, cache)
-
-  # Calculate source terms
-  @timed timer() "source terms" calc_sources!(
-    du, u, t, source_terms, equations, dg, cache)
-
-  return nothing
-end
-
-
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{2},
                              equations, dg::DG)
@@ -77,6 +31,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
+                              nonconservative_terms::Val{false},
                               equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack u, element_ids, node_indices = cache.interfaces
@@ -186,6 +141,110 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
       end
     end
   end
+end
+
+
+function prolong2mortars!(cache, u,
+                          mesh::P4estMesh{2}, equations,
+                          mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
+
+  @threaded for mortar in eachmortar(dg, cache)
+
+    large_element = cache.mortars.neighbor_ids[3, mortar]
+    upper_element = cache.mortars.neighbor_ids[2, mortar]
+    lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+    # Copy solution small to small
+    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+      if cache.mortars.orientations[mortar] == 1
+        # L2 mortars in x-direction
+        for l in eachnode(dg)
+          for v in eachvariable(equations)
+            cache.mortars.u_upper[2, v, l, mortar] = u[v, 1, l, upper_element]
+            cache.mortars.u_lower[2, v, l, mortar] = u[v, 1, l, lower_element]
+          end
+        end
+      else
+        # L2 mortars in y-direction
+        for l in eachnode(dg)
+          for v in eachvariable(equations)
+            cache.mortars.u_upper[2, v, l, mortar] = u[v, l, 1, upper_element]
+            cache.mortars.u_lower[2, v, l, mortar] = u[v, l, 1, lower_element]
+          end
+        end
+      end
+    else # large_sides[mortar] == 2 -> small elements on left side
+      if cache.mortars.orientations[mortar] == 1
+        # L2 mortars in x-direction
+        for l in eachnode(dg)
+          for v in eachvariable(equations)
+            cache.mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, upper_element]
+            cache.mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, lower_element]
+          end
+        end
+      else
+        # L2 mortars in y-direction
+        for l in eachnode(dg)
+          for v in eachvariable(equations)
+            cache.mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), upper_element]
+            cache.mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), lower_element]
+          end
+        end
+      end
+    end
+
+    # Interpolate large element face data to small interface locations
+    if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
+      leftright = 1
+      if cache.mortars.orientations[mortar] == 1
+        # L2 mortars in x-direction
+        u_large = view(u, :, nnodes(dg), :, large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+      else
+        # L2 mortars in y-direction
+        u_large = view(u, :, :, nnodes(dg), large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+      end
+    else # large_sides[mortar] == 2 -> large element on right side
+      leftright = 2
+      if cache.mortars.orientations[mortar] == 1
+        # L2 mortars in x-direction
+        u_large = view(u, :, 1, :, large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+      else
+        # L2 mortars in y-direction
+        u_large = view(u, :, :, 1, large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::P4estMesh{2},
+                           nonconservative_terms::Val{false}, equations,
+                           mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
+  # @unpack neighbor_ids, u_lower, u_upper, orientations = cache.mortars
+  # @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+
+  @threaded for mortar in eachmortar(dg, cache)
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
+
+    # Calculate fluxes
+    orientation = orientations[mortar]
+    calc_fstar!(fstar_upper, equations, dg, u_upper, mortar, orientation)
+    calc_fstar!(fstar_lower, equations, dg, u_lower, mortar, orientation)
+
+    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache,
+                               mortar, fstar_upper, fstar_lower)
+  end
+
+  return nothing
 end
 
 

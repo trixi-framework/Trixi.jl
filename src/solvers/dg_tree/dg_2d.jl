@@ -113,7 +113,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::TreeMesh{2}, equations,
+              mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
