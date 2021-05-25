@@ -901,7 +901,8 @@ function calc_mortar_flux!(surface_flux_values,
     calc_fstar!(fstar_upper, equations, dg, u_upper, mortar, orientation)
     calc_fstar!(fstar_lower, equations, dg, u_lower, mortar, orientation)
 
-    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache,
+    mortar_fluxes_to_elements!(surface_flux_values, mortar_l2,
+                               mesh, equations, dg, cache,
                                mortar, fstar_upper, fstar_lower)
   end
 
@@ -961,7 +962,8 @@ function calc_mortar_flux!(surface_flux_values,
 
     @. fstar_upper += noncons_diamond_upper
     @. fstar_lower += noncons_diamond_lower
-    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache,
+    mortar_fluxes_to_elements!(surface_flux_values, mortar_l2,
+                               mesh, equations, dg, cache,
                                mortar, fstar_upper, fstar_lower)
   end
 
@@ -984,8 +986,9 @@ end
   return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values::AbstractArray{<:Any,4}, equations,
-                                            mortar_l2::LobattoLegendreMortarL2, dg::DGSEM, cache,
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                             mortar, fstar_upper, fstar_lower)
   large_element = cache.mortars.neighbor_ids[3, mortar]
   upper_element = cache.mortars.neighbor_ids[2, mortar]

@@ -101,8 +101,7 @@ end
 
 
 struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
-  u::Array{uEltype, NDIMSP3}       # [small/large side, position, variable, i, j, mortar]
-  u_large::Array{uEltype, NDIMSP1} # [variable, i, j, mortar]
+  u::Array{uEltype, NDIMSP3}       # [small/large side, variable, position, i, j, mortar]
   element_ids::Matrix{Int}         # [position, mortar]
   node_indices::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
 end
@@ -114,19 +113,15 @@ function init_mortars(mesh::P4estMesh, equations, basis,
   # Initialize container
   n_mortars = count_required_mortars(mesh)
 
-  u = Array{uEltype, NDIMS+3}(undef, 3, 2^(NDIMS-1),
+  u = Array{uEltype, NDIMS+3}(undef, 2,
                               nvariables(equations),
+                              2^(NDIMS-1),
                               ntuple(_ -> nnodes(basis), NDIMS-1)...,
                               n_mortars)
-  u_large = Array{uEltype, NDIMS+1}(undef,
-                                    nvariables(equations),
-                                    ntuple(_ -> nnodes(basis), NDIMS-1)...,
-                                    n_mortars)
-  element_ids = Matrix{Int}(undef, 2^(NDIMS-1), n_mortars)
+  element_ids = Matrix{Int}(undef, 2^(NDIMS-1) + 1, n_mortars)
   node_indices = Matrix{NTuple{NDIMS, Symbol}}(undef, 2, n_mortars)
 
-  mortars = MortarContainerP4est{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, u_large,
-                                                                      element_ids,
+  mortars = MortarContainerP4est{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, element_ids,
                                                                       node_indices)
 
   init_mortars!(mortars, mesh)

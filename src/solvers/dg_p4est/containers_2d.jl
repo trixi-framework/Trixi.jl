@@ -249,7 +249,7 @@ function init_mortars_iter_face(info, user_data)
     # Left is small, right is large
     small_large = [1, 2]
 
-    local_small_quad_ids = unsafe_wrap(Array, sides[1].is.hanging.quadid, 2)
+    local_small_quad_ids = sides[1].is.hanging.quadid
     # Global IDs of the two small quads
     small_quad_ids = offsets[1] .+ local_small_quad_ids
 
@@ -260,7 +260,7 @@ function init_mortars_iter_face(info, user_data)
     # Left is large, right is small
     small_large = [2, 1]
 
-    local_small_quad_ids = unsafe_wrap(Array, sides[2].is.hanging.quadid, 2)
+    local_small_quad_ids = sides[2].is.hanging.quadid
     # Global IDs of the two small quads
     small_quad_ids = offsets[2] .+ local_small_quad_ids
 
