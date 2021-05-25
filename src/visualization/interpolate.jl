@@ -359,7 +359,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
 
     # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
     normalized_intercept =
-          (point[other_dimensions] - min_coordinate[other_dimensions]) /
+          (collect(point[other_dimensions]) - min_coordinate[other_dimensions]) /
           element_length[1] * 2 .- 1
     vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_intercept[1])
     vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_intercept[2])
