@@ -55,9 +55,11 @@ jobs:
           - 1d
           - 2d_part1
           - 2d_part2
+          - 2d_part3
           - 2d_mpi
           - 2d_threaded
-          - 3d
+          - 3d_part1
+          - 3d_part2
           - paper-self-gravitating-gas-dynamics
           - misc
         include:
@@ -69,6 +71,10 @@ jobs:
             os: macOS-latest
             arch: x64
             trixi_test: 2d_part2
+          - version: '1.6'
+            os: macOS-latest
+            arch: x64
+            trixi_test: 2d_part3
           - version: '1.6'
             os: macOS-latest
             arch: x64
@@ -85,6 +91,10 @@ jobs:
             os: windows-latest
             arch: x64
             trixi_test: 2d_part2
+          - version: '1.6'
+            os: windows-latest
+            arch: x64
+            trixi_test: 2d_part3
           - version: '1.6'
             os: windows-latest
             arch: x64

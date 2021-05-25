@@ -27,9 +27,6 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Lattice-Boltzmann
   include("test_examples_2d_lbm.jl")
-
-  # Acoustic perturbation
-  include("test_examples_2d_ape.jl")
 end
 
 # Coverage test for all initial conditions
