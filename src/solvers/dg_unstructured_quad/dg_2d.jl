@@ -73,6 +73,88 @@ function rhs!(du, u, t,
 end
 
 
+# flux differencing volume integral on curvilinear quadrilateral elements. Averaging of the
+# mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
+# the physical fluxes in each Cartesian direction
+function calc_volume_integral!(du, u,
+                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGSEM, cache)
+  @threaded for element in eachelement(dg, cache)
+    split_form_kernel!(du, u, nonconservative_terms, volume_integral.volume_flux, element,
+                       mesh, equations, dg, cache)
+  end
+end
+
+
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                    nonconservative_terms::Val{false}, volume_flux, element,
+                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
+                                    dg::DGSEM, cache, alpha=true)
+  @unpack derivative_split = dg.basis
+  @unpack contravariant_vectors = cache.elements
+
+  # Calculate volume integral in one element
+  for j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+
+    # compute the fluxes in the x and y directions
+    flux1 = flux(u_node, 1, equations)
+    flux2 = flux(u_node, 2, equations)
+
+    # first direction: use consistency of the volume flux to make this evaluation cheaper
+    # pull the contravariant vector
+    Ja11_node, Ja12_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    # compute the two contravariant fluxes
+    fluxtilde1 = Ja11_node * flux1 + Ja12_node * flux2
+    integral_contribution = alpha * derivative_split[i, i] * fluxtilde1
+    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
+
+    # second direction: use consistency of the volume flux to make this evaluation cheaper
+    # pull the contravariant vector
+    Ja21_node, Ja22_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    fluxtilde2 = Ja21_node * flux1 + Ja22_node * flux2
+    integral_contribution = alpha * derivative_split[j, j] * fluxtilde2
+    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
+
+    # use symmetry of the volume flux for the remaining terms in the first direction
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+      flux2 = volume_flux(u_node, u_node_ii, 2, equations)
+      # pull the contravariant vectors and compute the average
+      Ja11_node_ii, Ja12_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+      Ja11_avg = 0.5 * (Ja11_node + Ja11_node_ii)
+      Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
+      # compute the contravariant sharp flux
+      fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2
+      integral_contribution = alpha * derivative_split[i, ii] * fluxtilde1
+      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
+      integral_contribution = alpha * derivative_split[ii, i] * fluxtilde1
+      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+    end
+
+    # use symmetry of the volume flux for the remaining terms in the second direction
+    for jj in (j+1):nnodes(dg)
+      u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+      flux1 = volume_flux(u_node, u_node_jj, 1, equations)
+      flux2 = volume_flux(u_node, u_node_jj, 2, equations)
+      # pull the contravariant vectors and compute the average
+      Ja21_node_jj, Ja22_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, element)
+      Ja21_avg = 0.5 * (Ja21_node + Ja21_node_jj)
+      Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
+      # compute the contravariant sharp flux
+      fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2
+      integral_contribution = alpha * derivative_split[j, jj] * fluxtilde2
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
+      integral_contribution = alpha * derivative_split[jj, j] * fluxtilde2
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+    end
+  end
+end
+
+
 # prolong the solution into the convenience array in the interior interface container
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
 function prolong2interfaces!(cache, u,

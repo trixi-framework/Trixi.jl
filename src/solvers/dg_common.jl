@@ -33,7 +33,7 @@ end
     #     In fact, everything can be fast and fine for many cases but some parts
     #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
     #     Hence, this version should only be used when `@threaded` is based on
-    #     `@batch` from CheapThreads.jl or something similar. Using CheapThreads.jl
+    #     `@batch` from Polyester.jl or something similar. Using Polyester.jl
     #     is probably the best option since everything will be handed over to
     #     Chris Elrod, one of the best performance software engineers for Julia.
     PtrArray(pointer(u_ode),
