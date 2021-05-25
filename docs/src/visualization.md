@@ -221,6 +221,37 @@ julia> plot(pd)
 ```
 ![1d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614340-1b879600-a93a-11eb-9a80-f46311da16b1.PNG)
 
+This easy method of slicing is limited to axis only, but for 2D solutions it is also
+possible to create a plot along any curve you want. To do so you first need to
+create a list of 2D points on which you want your curve to sit on. Then you can
+create a [`PlotData1D`](@ref) with the attribute `along_curve` set as your list.
+
+Lets do an example of this on the basic advection equation from above and try to create
+a plot along the circle marked in green:
+![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/118874452-38850880-b8eb-11eb-9ccf-ae734f3d1bd4.PNG)
+
+We can write a function like this, that outputs a list of points on a circle:
+```julia
+function circle(radius, center, n_points)
+    coordinates = zeros(2, n_points)
+    for i in 1:n_points
+        coordinates[:,i] = radius*[cospi(2*(i-1)/n_points), sinpi(2*(i-1)/n_points)] + center
+    end
+    return coordinates
+end
+```
+
+Then create and plot a [`PlotData1D`](@ref) object along a circle with radius=1, center=[1,1] and 100 points:
+```julia
+pd = PlotData1D(sol, along_curve=circle(1, [1,1], 100))
+plot(pd)
+```
+This give you following plot:
+![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
+
+Creating a plot like this has it´s downside. For one it is unclear, what to put on the x-axis
+of the plot. To still be able to create a plot properly a range form 0 to 1 is used.
+Also with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
 
 ### Visualizing results during a simulation
 To visualize solutions while a simulation is still running (also known as *in-situ visualization*),

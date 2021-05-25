@@ -470,7 +470,7 @@ PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array_native(u_ode, semi),
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
-                    slice=:x, point=(0.0, 0.0, 0.0))
+                    slice=:x, point=(0.0, 0.0, 0.0), along_curve=nothing)
 
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
@@ -482,7 +482,11 @@ function PlotData1D(u, mesh, equations, solver, cache;
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
   elseif ndims(mesh) == 2
-    x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    if along_curve != nothing
+      x, data, mesh_vertices_x = unstructured_2d_to_1d_along_curve(original_nodes, unstructured_data, nvisnodes, along_curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
     orientation_x = 0
   else # ndims(mesh) == 3
     x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
