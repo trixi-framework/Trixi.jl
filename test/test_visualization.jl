@@ -77,6 +77,12 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug plot(pd["p"])
       @test_nowarn_debug plot(getmesh(pd))
     end
+
+    @testset "1D plot from 2D solution" begin
+      @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+      pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+      @test_nowarn_debug plot(pd1D)
+    end
   end
 
   @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
@@ -155,6 +161,15 @@ isdir(outdir) && rm(outdir, recursive=true)
       fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
       @test_nowarn_debug plot(fake2d)
     end
+  end
+
+  @testset "plot time series" begin
+    @test_nowarn_debug trixi_include(@__MODULE__,
+                                     joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
+                                     tspan=(0, 0.05))
+
+    @test_nowarn_debug plot(time_series, 1)
+    @test PlotData1D(time_series, 1) isa PlotData1D
   end
 
   @testset "adapt_to_mesh_level" begin

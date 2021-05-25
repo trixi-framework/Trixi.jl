@@ -24,7 +24,6 @@ using Printf: @printf, @sprintf, println
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-using CheapThreads: @batch
 import DiffEqBase: CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
@@ -34,8 +33,9 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
-using LoopVectorization: LoopVectorization, @avx, indices
+using LoopVectorization: LoopVectorization, @turbo, indices
 import MPI
+using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
@@ -152,7 +152,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
-       SaveRestartCallback, SaveSolutionCallback, VisualizationCallback,
+       SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback,
        TrivialCallback

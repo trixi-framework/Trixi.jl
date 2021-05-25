@@ -147,7 +147,7 @@ but without guarantee that the underlying implementation uses `Threads.@threads`
 or works for more general `for` loops.
 In particular, there may be an additional check whether only one thread is used
 to reduce the overhead of serial execution or the underlying threading capabilities
-might be provided by other packages such as [CheapThreads.jl](https://github.com/JuliaSIMD/CheapThreads.jl).
+might be provided by other packages such as [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl).
 
 !!! warn
     This macro does not necessarily work for general `for` loops. For example,
@@ -174,7 +174,7 @@ macro threaded(expr)
   #   end
   # end)
   #
-  # However, the code below using `@batch` from CheapThreads.jl is more efficient,
+  # However, the code below using `@batch` from Polyester.jl is more efficient,
   # since this packages provides threads with less overhead. Since it is written
   # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
   # to provide the most efficient and useful implementation of threads (as we use
