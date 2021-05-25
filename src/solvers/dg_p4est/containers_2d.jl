@@ -21,6 +21,10 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 nodes)
+  # Hanging nodes will cause holes in the mesh if its polydeg is higher
+  # than the polydeg of the solver.
+  @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+
   tmp1 = zeros(real(mesh), 2, length(nodes), length(mesh.nodes))
 
   # Macros from p4est
@@ -57,9 +61,14 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 
-# Iterate over all interfaces and extract interface data to interface container
+# Iterate over all interfaces and extract inner interface data to interface container
 # This function will be passed to p4est in init_interfaces! below
 function init_interfaces_iter_face(info, user_data)
+  if info.sides.elem_count != 2
+    # Not an inner interface
+    return nothing
+  end
+
   # Unpack user_data = [interfaces, interface_id, mesh] and increment interface_id
   ptr = Ptr{Any}(user_data)
   data_array = unsafe_wrap(Array, ptr, 3)
@@ -68,13 +77,11 @@ function init_interfaces_iter_face(info, user_data)
   data_array[2] += 1
   mesh = data_array[3]
 
-  @assert info.sides.elem_count == 2 "Boundaries are not supported yet"
-
   # Extract interface data
   sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
   # Global trees array
   trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
-  # Quadrant numbering offsets of the quadrants at this interface
+  # Quadrant numbering offsets of the quadrants at this interface, one-based indexing
   offsets = [trees[sides[1].treeid + 1].quadrants_offset,
              trees[sides[2].treeid + 1].quadrants_offset]
 
@@ -88,14 +95,12 @@ function init_interfaces_iter_face(info, user_data)
   # Face at which the interface lies
   faces = [sides[1].face, sides[2].face]
 
-  quad_to_face = unsafe_wrap(Array, mesh.p4est_mesh.quad_to_face, 4 * ncells(mesh))
   # Relative orientation of the two cell faces,
   # 0 for aligned coordinates, 1 for reversed coordinates.
-  # `quad_to_face` has one entry for each quadrant's face, +1 for one-based indexing.
-  # The value in quad_to_face is `orientation * 4 + face`.
-  orientation = (quad_to_face[quad_ids[1] * 4 + faces[1] + 1] - faces[2]) / 4
+  orientation = info.orientation
 
   # Write data to interfaces container
+  # p4est uses zero-based indexing; convert to one-based indexing
   interfaces.element_ids[1, interface_id] = quad_ids[1] + 1
   interfaces.element_ids[2, interface_id] = quad_ids[2] + 1
 
@@ -113,16 +118,16 @@ function init_interfaces_iter_face(info, user_data)
     end
 
     if faces[side] == 0
-      # Copy to left interface
+      # Index face in negative x-direction
       interfaces.node_indices[side, interface_id] = (:one, i)
     elseif faces[side] == 1
-      # Copy to right interface
+      # Index face in positive x-direction
       interfaces.node_indices[side, interface_id] = (:end, i)
     elseif faces[side] == 2
-      # Copy to bottom interface
+      # Index face in negative y-direction
       interfaces.node_indices[side, interface_id] = (i, :one)
     else # faces[side] == 3
-      # Copy to top interface
+      # Index face in positive y-direction
       interfaces.node_indices[side, interface_id] = (i, :end)
     end
   end
@@ -147,4 +152,80 @@ function init_interfaces!(interfaces, mesh::P4estMesh{2})
   end
 
   return interfaces
+end
+
+
+# Iterate over all interfaces and extract boundary data to boundary container
+# This function will be passed to p4est in init_boundaries! below
+function init_boundaries_iter_face(info, user_data)
+  if info.sides.elem_count == 2
+    # Not a boundary
+    return nothing
+  end
+
+  # Unpack user_data = [boundaries, boundary_id, mesh] and increment boundary_id
+  ptr = Ptr{Any}(user_data)
+  data_array = unsafe_wrap(Array, ptr, 3)
+  boundaries = data_array[1]
+  boundary_id = data_array[2]
+  data_array[2] += 1
+  mesh = data_array[3]
+
+  # Extract boundary data
+  sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+  # Global trees array
+  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
+  # Quadrant numbering offset of this quadrant, one-based indexing
+  offset = trees[sides[1].treeid + 1].quadrants_offset
+
+  # Verify before accessing is.full, but this should never happen
+  @assert sides[1].is_hanging == 0
+
+  local_quad_id = sides[1].is.full.quadid
+  # Global ID of this quad
+  quad_id = offset + local_quad_id
+  # Face at which the boundary lies
+  face = sides[1].face
+
+  # Write data to boundaries container
+  # p4est uses zero-based indexing; convert to one-based indexing
+  boundaries.element_ids[boundary_id] = quad_id + 1
+
+  if face == 0
+    # Index face in negative x-direction
+    boundaries.node_indices[boundary_id] = (:one, :i)
+  elseif face == 1
+    # Index face in positive x-direction
+    boundaries.node_indices[boundary_id] = (:end, :i)
+  elseif face == 2
+    # Index face in negative y-direction
+    boundaries.node_indices[boundary_id] = (:i, :one)
+  else # face == 3
+    # Index face in positive y-direction
+    boundaries.node_indices[boundary_id] = (:i, :end)
+  end
+
+  # One-based indexing
+  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, sides[1].treeid + 1]
+
+  return nothing
+end
+
+
+function init_boundaries!(boundaries, mesh::P4estMesh{2})
+  # Let p4est iterate over all interfaces and extract boundary data to boundary container
+  iter_face_c = @cfunction(init_boundaries_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = [boundaries, 1, mesh]
+
+  GC.@preserve user_data begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  # user data [interfaces, boundary_id, mesh]
+                  pointer(user_data),
+                  C_NULL, # iter_volume
+                  iter_face_c, # iter_face
+                  C_NULL) # iter_corner
+  end
+
+  return boundaries
 end

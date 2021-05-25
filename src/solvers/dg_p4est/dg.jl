@@ -4,8 +4,9 @@
 function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any, ::Type{uEltype}) where {uEltype<:Real}
   elements = init_elements(mesh, equations, dg.basis, uEltype)
   interfaces = init_interfaces(mesh, equations, dg.basis, elements)
+  boundaries = init_boundaries(mesh, equations, dg.basis, elements)
 
-  cache = (; elements, interfaces)
+  cache = (; elements, interfaces, boundaries)
 
   return cache
 end
