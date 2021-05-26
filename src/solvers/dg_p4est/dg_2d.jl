@@ -223,8 +223,8 @@ function calc_mortar_flux!(surface_flux_values,
     fstar = (fstar_lower_threaded[Threads.threadid()],
              fstar_upper_threaded[Threads.threadid()])
 
-    small_node_indices = node_indices[1, mortar]
-    small_direction = indices2direction(small_node_indices)
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
 
     # Use Tuple `node_indices` and `evaluate_index` to access node indices
     # at the correct face and in the correct orientation to get normal vectors
@@ -232,8 +232,8 @@ function calc_mortar_flux!(surface_flux_values,
       u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
 
       normal_vector = get_normal_vector(small_direction, cache,
-                                        evaluate_index(small_node_indices, size_, 1, i),
-                                        evaluate_index(small_node_indices, size_, 2, i),
+                                        evaluate_index(small_indices, size_, 1, i),
+                                        evaluate_index(small_indices, size_, 2, i),
                                         element_ids[pos, mortar])
 
       flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
@@ -257,11 +257,11 @@ end
                                             mortar, fstar)
   @unpack element_ids, node_indices = cache.mortars
 
-  small_node_indices  = node_indices[1, mortar]
-  large_node_indices  = node_indices[2, mortar]
+  small_indices  = node_indices[1, mortar]
+  large_indices  = node_indices[2, mortar]
 
-  small_direction = indices2direction(small_node_indices)
-  large_direction = indices2direction(large_node_indices)
+  small_direction = indices2direction(small_indices)
+  large_direction = indices2direction(large_indices)
 
   size_ = (nnodes(dg), nnodes(dg))
 
@@ -272,17 +272,24 @@ end
     surface_index = evaluate_index_surface(node_indices[pos, mortar], size_, 1, i)
     surface_flux_values[v, surface_index,
                         small_direction,
-                        element_ids[pos, mortar]] = fstar[pos][v]
+                        element_ids[pos, mortar]] = fstar[pos][v, i]
   end
 
   large_element = element_ids[3, mortar]
 
-  # Project small fluxes to large element
+  # Project small fluxes to large element.
+  # The flux is calculated in the outward direction of the small elements,
+  # so the sign must be switched to get the flux in outward direction
+  # of the large element.
+  # The contravariant vectors of the large element (and therefore the normal vectors
+  # of the large element as well) are twice as large as the contravariant vectors
+  # of the small elements. Therefore, the flux need to be scaled by a factor of 2
+  # to obtain the flux of the large element.
   #
   # TODO: Taal performance, see comment in dg_tree/dg_2d.jl
   multiply_dimensionwise!(view(surface_flux_values, :, :, large_direction, large_element),
-                          mortar_l2.reverse_upper, fstar[2],
-                          mortar_l2.reverse_lower, fstar[1])
+                          mortar_l2.reverse_upper, -2 * fstar[2],
+                          mortar_l2.reverse_lower, -2 * fstar[1])
 
   return nothing
 end
