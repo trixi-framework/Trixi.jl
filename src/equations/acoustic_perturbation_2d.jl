@@ -348,8 +348,8 @@ end
 
   f1 = normal_vector[1] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
   f2 = normal_vector[2] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
-  f3 = c_mean^2 * rho_mean * (  normal_vector[1] * (v1_prime + v1_mean * p_prime)
-                              + normal_vector[2] * (v2_prime + v2_mean * p_prime) )
+  f3 = ( normal_vector[1] * (c_mean^2 * rho_mean * v1_prime + v1_mean * p_prime)
+       + normal_vector[2] * (c_mean^2 * rho_mean * v2_prime + v2_mean * p_prime) )
 
   # The rest of the state variables are actually variable coefficients, hence the flux should be
   # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
