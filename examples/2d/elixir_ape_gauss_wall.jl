@@ -13,7 +13,7 @@ solver = DGSEM(polydeg=5, surface_flux=flux_lax_friedrichs)
 coordinates_min = (-100.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (100.0, 200.0) # maximum coordinates (max(x), max(y))
 
-# Create a uniformely refined mesh with periodic boundaries
+# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=100_000,
