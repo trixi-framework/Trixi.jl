@@ -377,6 +377,9 @@ function print_amr_information(callbacks, mesh::TreeMesh, solver, cache)
   return nothing
 end
 
+function print_amr_information(callbacks, mesh::CurvedMesh, solver, cache)
+  return nothing
+end
 
 # Print level information only if AMR is enabled
 function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
