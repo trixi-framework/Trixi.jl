@@ -354,7 +354,7 @@ end
 
 
 # Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh, solver, cache)
+function print_amr_information(callbacks, mesh::TreeMesh, solver, cache)
 
   # Return early if there is nothing to print
   uses_amr(callbacks) || return nothing
@@ -373,6 +373,30 @@ function print_amr_information(callbacks, mesh, solver, cache)
     mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
   end
   mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+
+  return nothing
+end
+
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
+
+  # Return early if there is nothing to print
+  uses_amr(callbacks) || return nothing
+
+  elements_per_level = zeros(P4EST_MAXLEVEL + 1)
+
+  for tree in convert_sc_array(p4est_tree_t, mesh.p4est.trees)
+    @. elements_per_level += tree.quadrants_per_level
+  end
+
+  min_level = findfirst(i -> i > 0, elements_per_level)
+  max_level = findlast(i -> i > 0, elements_per_level)
+
+  for level = max_level:-1:min_level+1
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level]))
+  end
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level]))
 
   return nothing
 end

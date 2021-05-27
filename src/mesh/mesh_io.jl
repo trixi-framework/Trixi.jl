@@ -136,12 +136,19 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::P4estMesh, output_directory)
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
-  filename = joinpath(output_directory, "mesh.h5")
-  p4est_filename = "p4est_data"
+  # Determine file name based on existence of meaningful time step
+  if timestep > 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    p4est_filename = @sprintf("p4est_data_%06d", timestep)
+  else
+    filename = joinpath(output_directory, "mesh.h5")
+    p4est_filename = "p4est_data"
+  end
+
   p4est_file = joinpath(output_directory, p4est_filename)
 
   # Save the complete connectivity/p4est data to disk.

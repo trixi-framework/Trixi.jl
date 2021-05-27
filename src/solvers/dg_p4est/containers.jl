@@ -1,5 +1,5 @@
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct ElementContainerP4est{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3}
+mutable struct ElementContainerP4est{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
   # Physical coordinates at each node
   node_coordinates      ::Array{RealT, NDIMSP2}   # [orientation, node_i, node_j, node_k, element]
   # Jacobian matrix of the transformation
@@ -11,93 +11,215 @@ struct ElementContainerP4est{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2
   inverse_jacobian      ::Array{RealT, NDIMSP1}   # [node_i, node_j, node_k, element]
   # Buffer for calculated surface flux
   surface_flux_values   ::Array{uEltype, NDIMSP2} # [variable, i, j, direction, element]
+
+  # internal `resize!`able storage
+  _node_coordinates     ::Vector{RealT}
+  _jacobian_matrix      ::Vector{RealT}
+  _contravariant_vectors::Vector{RealT}
+  _inverse_jacobian     ::Vector{RealT}
+  _surface_flux_values  ::Vector{uEltype}
+end
+
+@inline nelements(elements::ElementContainerP4est) = size(elements.node_coordinates, ndims(elements) + 2)
+@inline Base.ndims(::ElementContainerP4est{NDIMS}) where NDIMS = NDIMS
+@inline Base.eltype(::ElementContainerP4est{NDIMS, RealT, uEltype}) where {NDIMS, RealT, uEltype} = uEltype
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(elements::ElementContainerP4est, capacity)
+  @unpack _node_coordinates, _jacobian_matrix, _contravariant_vectors,
+    _inverse_jacobian, _surface_flux_values = elements
+
+  n_dims = ndims(elements)
+  n_nodes = size(elements.node_coordinates, 2)
+  n_variables = size(elements.surface_flux_values, 1)
+
+  resize!(_node_coordinates, n_dims * n_nodes^n_dims * capacity)
+  elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+    (n_dims, ntuple(_ -> n_nodes, n_dims)..., capacity))
+
+  resize!(_jacobian_matrix, n_dims^2 * n_nodes^n_dims * capacity)
+  elements.jacobian_matrix = unsafe_wrap(Array, pointer(_jacobian_matrix),
+    (n_dims, n_dims, ntuple(_ -> n_nodes, n_dims)..., capacity))
+
+  resize!(_contravariant_vectors, length(_jacobian_matrix))
+  elements.contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
+    size(elements.jacobian_matrix))
+
+  resize!(_inverse_jacobian, n_nodes^n_dims * capacity)
+  elements.inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
+    (ntuple(_ -> n_nodes, n_dims)..., capacity))
+
+  resize!(_surface_flux_values,
+    n_variables * n_nodes^(n_dims-1) * (n_dims*2) * capacity)
+  elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+    (n_variables, ntuple(_ -> n_nodes, n_dims-1)..., n_dims*2, capacity))
+
+  return nothing
 end
 
 
 # Create element container and initialize element data
 function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
                        basis, ::Type{uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
-
   nelements = ncells(mesh)
-  node_coordinates      = Array{RealT, NDIMS+2}(undef, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements)
-  jacobian_matrix       = Array{RealT, NDIMS+3}(undef, NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements)
-  contravariant_vectors = similar(jacobian_matrix)
-  inverse_jacobian      = Array{RealT, NDIMS+1}(undef, ntuple(_ -> nnodes(basis), NDIMS)..., nelements)
-  surface_flux_values   = Array{uEltype, NDIMS+2}(undef, nvariables(equations),
-                                                  ntuple(_ -> nnodes(basis), NDIMS-1)..., NDIMS*2, nelements)
+
+  _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
+  node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
+
+  _jacobian_matrix = Vector{RealT}(undef, NDIMS^2 * nnodes(basis)^NDIMS * nelements)
+  jacobian_matrix = unsafe_wrap(Array, pointer(_jacobian_matrix),
+    (NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
+
+  _contravariant_vectors = similar(_jacobian_matrix)
+  contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
+    size(jacobian_matrix))
+
+  _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
+  inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
+    (ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
+
+  _surface_flux_values = Vector{uEltype}(undef,
+    nvariables(equations) * nnodes(basis)^(NDIMS-1) * (NDIMS*2) * nelements)
+  surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+    (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., NDIMS*2, nelements))
 
   elements = ElementContainerP4est{NDIMS, RealT, uEltype, NDIMS+1, NDIMS+2, NDIMS+3}(
-      node_coordinates, jacobian_matrix, contravariant_vectors,
-      inverse_jacobian, surface_flux_values)
+    node_coordinates, jacobian_matrix, contravariant_vectors,
+    inverse_jacobian, surface_flux_values,
+    _node_coordinates, _jacobian_matrix, _contravariant_vectors,
+    _inverse_jacobian, _surface_flux_values)
 
   init_elements!(elements, mesh, basis)
   return elements
 end
 
-@inline nelements(elements::ElementContainerP4est) = size(elements.node_coordinates, ndims(elements) + 2)
-@inline Base.ndims(::ElementContainerP4est{NDIMS}) where NDIMS = NDIMS
 
-Base.eltype(::ElementContainerP4est{NDIMS, RealT, uEltype}) where {NDIMS, RealT, uEltype} = uEltype
+mutable struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
+  u             ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
+  element_ids   ::Matrix{Int}                   # [primary/secondary, interface]
+  node_indices  ::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interface]
 
-
-struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
-  u::Array{uEltype, NDIMSP2}                    # [primary/secondary, variable, i, j, interface]
-  element_ids::Array{Int, 2}                    # [primary/secondary, interface]
-  node_indices::Array{NTuple{NDIMS, Symbol}, 2} # [primary/secondary, interface]
+  # internal `resize!`able storage
+  _u            ::Vector{uEltype}
+  _element_ids  ::Vector{Int}
+  _node_indices ::Vector{NTuple{NDIMS, Symbol}}
 end
 
+@inline ninterfaces(interfaces::InterfaceContainerP4est) = size(interfaces.element_ids, 2)
+@inline Base.ndims(::InterfaceContainerP4est{NDIMS}) where NDIMS = NDIMS
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(interfaces::InterfaceContainerP4est, capacity)
+  @unpack _u, _element_ids, _node_indices = interfaces
+
+  n_dims = ndims(interfaces)
+  n_nodes = size(interfaces.u, 3)
+  n_variables = size(interfaces.u, 2)
+
+  resize!(_u, 2 * n_variables * n_nodes^(n_dims-1) * capacity)
+  interfaces.u = unsafe_wrap(Array, pointer(_u),
+    (2, n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
+
+  resize!(_element_ids, 2 * capacity)
+  interfaces.element_ids = unsafe_wrap(Array, pointer(_element_ids), (2, capacity))
+
+  resize!(_node_indices, 2 * capacity)
+  interfaces.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
+
+  return nothing
+end
+
+
 # Create interface container and initialize interface data.
-function init_interfaces(mesh::P4estMesh, equations, basis,
-                         elements::ElementContainerP4est{NDIMS, RealT, uEltype}
-                         ) where {NDIMS, RealT<:Real, uEltype<:Real}
+function init_interfaces(mesh::P4estMesh, equations, basis, elements)
+  NDIMS = ndims(elements)
+  uEltype = eltype(elements)
+
   # Initialize container
   n_interfaces = count_required_interfaces(mesh)
 
-  u = Array{uEltype, NDIMS+2}(undef, 2, nvariables(equations),
-                              ntuple(_ -> nnodes(basis), NDIMS-1)...,
-                              n_interfaces)
-  element_ids = Array{Int, 2}(undef, 2, n_interfaces)
-  node_indices = Array{NTuple{NDIMS, Symbol}, 2}(undef, 2, n_interfaces)
+  _u = Vector{uEltype}(undef, 2 * nvariables(equations) * nnodes(basis)^(NDIMS-1) * n_interfaces)
+  u = unsafe_wrap(Array, pointer(_u),
+    (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_interfaces))
 
-  interfaces = InterfaceContainerP4est{NDIMS, uEltype, NDIMS+2}(u, element_ids, node_indices)
+  _element_ids = Vector{Int}(undef, 2 * n_interfaces)
+  element_ids = unsafe_wrap(Array, pointer(_element_ids), (2, n_interfaces))
+
+  _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
+  node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
+
+  interfaces = InterfaceContainerP4est{NDIMS, uEltype, NDIMS+2}(u, element_ids, node_indices,
+                                                                _u, _element_ids, _node_indices)
 
   init_interfaces!(interfaces, mesh)
 
   return interfaces
 end
 
-@inline ninterfaces(interfaces::InterfaceContainerP4est) = size(interfaces.element_ids, 2)
 
-
-struct BoundaryContainerP4est{NDIMS, uEltype<:Real, NDIMSP1} <: AbstractContainer
-  u::Array{uEltype, NDIMSP1}                  # [variables, i, j, boundary]
-  element_ids::Vector{Int}                    # [boundary]
+mutable struct BoundaryContainerP4est{NDIMS, uEltype<:Real, NDIMSP1} <: AbstractContainer
+  u           ::Array{uEltype, NDIMSP1}       # [variables, i, j, boundary]
+  element_ids ::Vector{Int}                   # [boundary]
   node_indices::Vector{NTuple{NDIMS, Symbol}} # [boundary]
-  name::Vector{Symbol}                        # [boundary]
+  name        ::Vector{Symbol}                # [boundary]
+
+  # internal `resize!`able storage
+  _u          ::Vector{uEltype}
 end
 
+@inline nboundaries(boundaries::BoundaryContainerP4est) = length(boundaries.element_ids)
+@inline Base.ndims(::BoundaryContainerP4est{NDIMS}) where NDIMS = NDIMS
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(boundaries::BoundaryContainerP4est, capacity)
+  @unpack _u, element_ids, node_indices, name = boundaries
+
+  n_dims = ndims(boundaries)
+  n_nodes = size(boundaries.u, 2)
+  n_variables = size(boundaries.u, 1)
+
+  resize!(_u, n_variables * n_nodes^(n_dims-1) * capacity)
+  boundaries.u = unsafe_wrap(Array, pointer(_u),
+    (n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
+
+  resize!(element_ids, capacity)
+
+  resize!(node_indices, capacity)
+
+  resize!(name, capacity)
+
+  return nothing
+end
+
+
 # Create interface container and initialize interface data in `elements`.
-function init_boundaries(mesh::P4estMesh, equations, basis,
-                         elements::ElementContainerP4est{NDIMS, RealT, uEltype}
-                         ) where {NDIMS, RealT<:Real, uEltype<:Real}
+function init_boundaries(mesh::P4estMesh, equations, basis, elements)
+  NDIMS = ndims(elements)
+  uEltype = eltype(elements)
+
   # Initialize container
   n_boundaries = count_required_boundaries(mesh)
 
-  u = Array{uEltype, NDIMS+1}(undef, nvariables(equations),
-                              ntuple(_ -> nnodes(basis), NDIMS-1)...,
-                              n_boundaries)
-  element_ids = Vector{Int}(undef, n_boundaries)
-  node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
-  names = Vector{Symbol}(undef, n_boundaries)
+  _u = Vector{uEltype}(undef, nvariables(equations) * nnodes(basis)^(NDIMS-1) * n_boundaries)
+  u = unsafe_wrap(Array, pointer(_u),
+    (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_boundaries))
 
-  boundaries = BoundaryContainerP4est{NDIMS, uEltype, NDIMS+1}(u, element_ids, node_indices, names)
+  element_ids  = Vector{Int}(undef, n_boundaries)
+  node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
+  names        = Vector{Symbol}(undef, n_boundaries)
+
+  boundaries = BoundaryContainerP4est{NDIMS, uEltype, NDIMS+1}(u, element_ids,
+                                                               node_indices, names, _u)
 
   init_boundaries!(boundaries, mesh)
 
   return boundaries
 end
-
-@inline nboundaries(boundaries::BoundaryContainerP4est) = length(boundaries.element_ids)
 
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
@@ -125,36 +247,92 @@ end
 # | \---------------------------/  \----------------------------/
 # |
 # ⋅----> ξ
-struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
-  u::Array{uEltype, NDIMSP3}       # [small/large side, variable, position, i, j, mortar]
-  element_ids::Array{Int, 2}       # [position, mortar]
-  node_indices::Array{NTuple{NDIMS, Symbol}, 2} # [small/large, mortar]
+mutable struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
+  u             ::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
+  element_ids   ::Matrix{Int}             # [position, mortar]
+  node_indices  ::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+
+  # internal `resize!`able storage
+  _u            ::Vector{uEltype}
+  _element_ids  ::Vector{Int}
+  _node_indices ::Vector{NTuple{NDIMS, Symbol}}
 end
 
+@inline nmortars(mortars::MortarContainerP4est) = size(mortars.element_ids, 2)
+@inline Base.ndims(::MortarContainerP4est{NDIMS}) where NDIMS = NDIMS
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(mortars::MortarContainerP4est, capacity)
+  @unpack _u, _element_ids, _node_indices = mortars
+
+  n_dims = ndims(mortars)
+  n_nodes = size(mortars.u, 4)
+  n_variables = size(mortars.u, 2)
+
+  resize!(_u, 2 * n_variables * 2^(n_dims-1) * n_nodes^(n_dims-1) * capacity)
+  mortars.u = unsafe_wrap(Array, pointer(_u),
+    (2, n_variables, 2^(n_dims-1), ntuple(_ -> n_nodes, n_dims-1)..., capacity))
+
+  resize!(_element_ids, (2^(n_dims-1) + 1) * capacity)
+  mortars.element_ids = unsafe_wrap(Array, pointer(_element_ids),
+    (2^(n_dims-1) + 1, capacity))
+
+  resize!(_node_indices, 2 * capacity)
+  mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
+
+  return nothing
+end
+
+
 # Create mortar container and initialize mortar data.
-function init_mortars(mesh::P4estMesh, equations, basis,
-                      elements::ElementContainerP4est{NDIMS, RealT, uEltype}
-                      ) where {NDIMS, RealT<:Real, uEltype<:Real}
+function init_mortars(mesh::P4estMesh, equations, basis, elements)
+  NDIMS = ndims(elements)
+  uEltype = eltype(elements)
+
   # Initialize container
   n_mortars = count_required_mortars(mesh)
 
-  u = Array{uEltype, NDIMS+3}(undef, 2,
-                              nvariables(equations),
-                              2^(NDIMS-1),
-                              ntuple(_ -> nnodes(basis), NDIMS-1)...,
-                              n_mortars)
-  element_ids = Array{Int, 2}(undef, 2^(NDIMS-1) + 1, n_mortars)
-  node_indices = Array{NTuple{NDIMS, Symbol}, 2}(undef, 2, n_mortars)
+  _u = Vector{uEltype}(undef,
+    2 * nvariables(equations) * 2^(NDIMS-1) * nnodes(basis)^(NDIMS-1) * n_mortars)
+  u = unsafe_wrap(Array, pointer(_u),
+    (2, nvariables(equations), 2^(NDIMS-1), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mortars))
 
-  mortars = MortarContainerP4est{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, element_ids,
-                                                                      node_indices)
+  _element_ids = Vector{Int}(undef, (2^(NDIMS-1) + 1) * n_mortars)
+  element_ids = unsafe_wrap(Array, pointer(_element_ids), (2^(NDIMS-1) + 1, n_mortars))
+
+  _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
+  node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
+
+  mortars = MortarContainerP4est{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, element_ids, node_indices,
+                                                                   _u, _element_ids, _node_indices)
 
   init_mortars!(mortars, mesh)
 
   return mortars
 end
 
-@inline nmortars(mortars::MortarContainerP4est) = size(mortars.element_ids, 2)
+
+function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+  # Re-initialize elements container
+  @unpack elements = cache
+  resize!(elements, ncells(mesh))
+  init_elements!(elements, mesh, dg.basis)
+
+  # re-initialize interfaces container
+  @unpack interfaces = cache
+  resize!(interfaces, count_required_interfaces(mesh))
+  init_interfaces!(interfaces, mesh)
+
+  # re-initialize boundaries container
+  @unpack boundaries = cache
+  resize!(boundaries, count_required_boundaries(mesh))
+  init_boundaries!(boundaries, mesh)
+
+  # re-initialize mortars container
+  @unpack mortars = cache
+  resize!(mortars, count_required_mortars(mesh))
+  init_mortars!(mortars, mesh)
+end
 
 
 # Iterate over all interfaces and count inner interfaces

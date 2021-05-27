@@ -177,7 +177,7 @@ end
 # `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
 # passively without querying its indicator, based on the assumption that both solvers use
 # the same mesh. That's a hack and should be improved in the future once we have more examples
-# and a better understandin of such a coupling.
+# and a better understanding of such a coupling.
 # `passive_args` is expected to be an iterable of `Tuple`s of the form
 # `(p_u_ode, p_mesh, p_equations, p_dg, p_cache)`.
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
@@ -189,7 +189,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
   lambda = @timed timer() "indicator" controller(u, mesh, equations, dg, cache,
-                                                        t=t, iter=iter)
+                                                 t=t, iter=iter)
 
   if mpi_isparallel()
     # Collect lambda for all elements
@@ -222,10 +222,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     # refine mesh
     refined_original_cells = @timed timer() "mesh" refine!(mesh.tree, to_refine)
 
+    # Find all indices of elements whose cell ids are in cells_to_refine
+    elements_to_refine = findall(cell_id -> cell_id in cells_to_refine, cache.elements.cell_ids)
+
     # refine solver
-    @timed timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    @timed timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-      @timed timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, refined_original_cells)
+      @timed timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, elements_to_refine)
     end
   else
     # If there is nothing to refine, create empty array for later use
@@ -280,10 +283,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
       end
     end
 
+    # Find all indices of elements whose cell ids are in child_cells_to_coarsen
+    elements_to_remove = findall(cell_id -> cell_id in child_cells_to_coarsen, cache.elements.cell_ids)
+
     # coarsen solver
-    @timed timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    @timed timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-      @timed timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, removed_child_cells)
+      @timed timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, elements_to_remove)
     end
   else
     # If there is nothing to coarsen, create empty array for later use
@@ -306,6 +312,99 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
       rebalance_solver!(u_ode, mesh, equations, dg, cache, old_mpi_ranks_per_cell)
     end
+  end
+
+  # Return true if there were any cells coarsened or refined, otherwise false
+  return has_changed
+end
+
+
+# Copy controller values to quad user data storage, will be called below
+function copy_to_quad_iter_volume(info, user_data)
+  # Global trees array
+  trees = convert_sc_array(p4est_tree_t, info.p4est.trees)
+  # Quadrant numbering offset of this quadrant, one-based indexing
+  offset = trees[info.treeid + 1].quadrants_offset
+  # Global quad ID
+  quad_id = offset + info.quadid
+
+  # Access user_data = lambda
+  user_data_ptr = Ptr{Int}(user_data)
+  # Load controller_value = lambda[quad_id + 1]
+  controller_value = unsafe_load(user_data_ptr, quad_id + 1)
+
+  # Access quadrant's user data ([global quad ID, controller_value])
+  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  # Save controller value to quadrant's user data.
+  unsafe_store!(quad_data_ptr, controller_value, 2)
+
+  return nothing
+end
+
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
+                                     equations, dg::DG, cache,
+                                     t, iter;
+                                     only_refine=false, only_coarsen=false,
+                                     passive_args=())
+  @unpack controller, adaptor = amr_callback
+
+  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  lambda = @timed timer() "indicator" controller(u, mesh, equations, dg, cache,
+                                                 t=t, iter=iter)
+
+  @boundscheck begin
+    @assert axes(lambda) == (Base.OneTo(ncells(mesh)),) (
+      "Indicator array (axes = $(axes(lambda))) and mesh cells (axes = $(Base.OneTo(ncells(mesh)))) have different axes"
+    )
+  end
+
+  # Copy controller value of each quad to the quad's user data storage
+  iter_volume_c = @cfunction(copy_to_quad_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+
+  # TODO P4EST Is lambda always a Vector{Int}?
+  GC.@preserve lambda begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  pointer(lambda),
+                  iter_volume_c, # iter_volume
+                  C_NULL, # iter_face
+                  C_NULL) # iter_corner
+  end
+
+  @timed timer() "refine" if !only_coarsen
+    # Refine mesh
+    refined_original_cells = @timed timer() "mesh" refine!(mesh)
+
+    # Refine solver
+    @timed timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+      @timed timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, refined_original_cells)
+    end
+  else
+    # If there is nothing to refine, create empty array for later use
+    refined_original_cells = Int[]
+  end
+
+  @timed timer() "coarsen" if !only_refine
+    # Coarsen mesh
+    coarsened_original_cells = @timed timer() "mesh" coarsen!(mesh)
+
+    # coarsen solver
+    @timed timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, coarsened_original_cells)
+    for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+      @timed timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations,
+                                               p_dg, p_cache, coarsened_original_cells)
+    end
+  else
+    # If there is nothing to coarsen, create empty array for later use
+    coarsened_original_cells = Int[]
+  end
+
+  # Store whether there were any cells coarsened or refined
+  has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+  if has_changed # TODO: Taal decide, where shall we set this?
+    # don't set it to has_changed since there can be changes from earlier calls
+    mesh.unsaved_changes = true
   end
 
   # Return true if there were any cells coarsened or refined, otherwise false
@@ -458,6 +557,79 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
     else
       controller_value[element] = 0 # we're good
     end
+  end
+
+  return controller_value
+end
+
+
+# Loop above (as for TreeMesh) but executed by p4est
+function controller_three_level_iter_volume(info, user_data)
+  # Unpack user_data = [controller, alpha]
+  ptr = Ptr{Any}(user_data)
+  data_array = unsafe_wrap(Array, ptr, 2)
+  controller = data_array[1]
+  alpha = data_array[2]
+
+  @unpack controller_value = controller.cache
+
+  # Global trees array
+  trees = convert_sc_array(p4est_tree_t, info.p4est.trees)
+  # Quadrant numbering offset of this quadrant, one-based indexing
+  offset = trees[info.treeid + 1].quadrants_offset
+  # Global quad ID
+  quad_id = offset + info.quadid
+  # Julia element ID
+  element = quad_id + 1
+
+  current_level = info.quad.level
+
+  # set target level
+  target_level = current_level
+  if alpha[element] > controller.max_threshold
+    target_level = controller.max_level
+  elseif alpha[element] > controller.med_threshold
+    if controller.med_level > 0
+      target_level = controller.med_level
+      # otherwise, target_level = current_level
+      # set med_level = -1 to implicitly use med_level = current_level
+    end
+  else
+    target_level = controller.base_level
+  end
+
+  # compare target level with actual level to set controller
+  if current_level < target_level
+    controller_value[element] = 1 # refine!
+  elseif current_level > target_level
+    controller_value[element] = -1 # coarsen!
+  else
+    controller_value[element] = 0 # we're good
+  end
+
+  return nothing
+end
+
+function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
+                                            mesh::P4estMesh, equations, dg::DG, cache;
+                                            kwargs...)
+
+  @unpack controller_value = controller.cache
+  resize!(controller_value, nelements(dg, cache))
+
+  alpha = controller.indicator(u, equations, dg, cache; kwargs...)
+
+  # Let p4est do the same iteration as with TreeMesh above
+  user_data = [controller, alpha]
+  iter_volume_c = @cfunction(controller_three_level_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+
+  GC.@preserve user_data begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  pointer(user_data),
+                  iter_volume_c, # iter_volume
+                  C_NULL, # iter_face
+                  C_NULL) # iter_corner
   end
 
   return controller_value
