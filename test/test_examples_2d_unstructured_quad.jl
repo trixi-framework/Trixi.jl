@@ -55,6 +55,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       l2   = [0.00023219572238346008],
       linf = [0.0017401556568237275])
   end
+
+  @testset "elixir_ape_unstructured_quad_gauss_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_ape_unstructured_quad_gauss_wall.jl"),
+      l2   = [0.028478721740084537, 0.028283869218625128, 0.06602783645566432, 0.0,
+              7.465932985352019e-16, 1.4931865970704038e-15, 1.4931865970704038e-15],
+      linf = [0.264595205647784, 0.2618426663784852, 1.1513244355909877, 0.0,
+              8.881784197001252e-16, 1.7763568394002505e-15, 1.7763568394002505e-15],
+      tspan = (0.0, 10.0))
+  end
 end
 
 end # module

@@ -340,6 +340,71 @@ end
 end
 
 
+# Calculate 1D flux for a single point in the normal direction
+# TODO: Better comment, here this is really a normal vector
+@inline function flux(u, normal_vector::AbstractVector, equations::AcousticPerturbationEquations2D)
+  v1_prime, v2_prime, p_prime = cons2state(u, equations)
+  v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
+
+  f1 = normal_vector[1] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
+  f2 = normal_vector[2] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
+  f3 = c_mean^2 * rho_mean * (  normal_vector[1] * (v1_prime + v1_mean * p_prime)
+                              + normal_vector[2] * (v2_prime + v2_mean * p_prime) )
+
+  # The rest of the state variables are actually variable coefficients, hence the flux should be
+  # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
+  # for details.
+  f4 = f5 = f6 = f7 = zero(eltype(u))
+
+  return SVector(f1, f2, f3, f4, f5, f6, f7)
+end
+
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+# TODO: Better comment, here this is NOT really a normal vector
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::AbstractVector, equations::AcousticPerturbationEquations2D)
+  # Calculate v = v_prime + v_mean
+  v_prime_ll = normal_vector[1]*u_ll[1] + normal_vector[2]*u_ll[2]
+  v_prime_rr = normal_vector[1]*u_rr[1] + normal_vector[2]*u_rr[2]
+  v_mean_ll = normal_vector[1]*u_ll[4] + normal_vector[2]*u_ll[5]
+  v_mean_rr = normal_vector[1]*u_rr[4] + normal_vector[2]*u_rr[5]
+
+  v_ll = v_prime_ll + v_mean_ll
+  v_rr = v_prime_rr + v_mean_rr
+
+  c_mean_ll = u_ll[6]
+  c_mean_rr = u_rr[6]
+
+  λ_max = (max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)) * norm(normal_vector)
+end
+
+
+# This routine was adapted from the compressible EUler equations.
+# TODO: Verify that this wall boundary condition is correct for the APE equations.
+#       In the limit where normal_direction = (±1, 0) or (0, ±1) it is consistent to
+#       `boundary_condition_wall` above
+function boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
+                                  equations::AcousticPerturbationEquations2D)
+  # Boundary state is equal to the inner state except for the perturbed velocity. For boundaries
+  # in the -x/+x direction, we multiply the perturbed velocity in the x direction by -1.
+  # Similarly, for boundaries in the -y/+y direction, we multiply the perturbed velocity in the
+  # y direction by -1
+
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal and tangential components of the velocity
+  u_normal  = normal[1] * u_inner[1] + normal[2] * u_inner[2]
+  u_tangent = (u_inner[1] - u_normal * normal[1], u_inner[2] - u_normal * normal[2])
+
+  return SVector(u_tangent[1] - u_normal * normal[1],
+                 u_tangent[2] - u_normal * normal[2],
+                 u_inner[3],
+                 cons2mean(u_inner, equations)...)
+end
+
+
+
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = Val(false)
 
 @inline function max_abs_speeds(u, equations::AcousticPerturbationEquations2D)
