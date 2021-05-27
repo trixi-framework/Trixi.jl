@@ -622,6 +622,8 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
+
+# TODO: Better comment, here this is really a normal vector
 @inline function flux(u, normal::AbstractVector, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho
@@ -858,6 +860,7 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
+# TODO: Better comment, here this is NOT really a normal vector
 @inline function max_abs_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations2D)
   return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal)
 end
@@ -889,6 +892,7 @@ end
 end
 
 
+# TODO: Better comment, here this is NOT really a normal vector
 @inline function min_max_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -913,6 +917,7 @@ end
 
 
 # Rotate normal vector to x-axis; normal vector `normal` needs to be normalized
+# TODO: Better comment, this is already a normal vector so when is it normalized??
 @inline function rotate_to_x(u, normal, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
@@ -933,6 +938,7 @@ end
 end
 
 
+# TODO: Better comment, here this is really a normal vector
 @inline function rotate_from_x(u, normal, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).

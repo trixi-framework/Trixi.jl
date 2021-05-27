@@ -49,6 +49,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.31880214280781305, 0.3468488554333352, 0.34592958184413264, 0.784555926860546],
       tspan = (0.0, 1.0))
   end
+
+  @testset "elixir_advection_unstructured_quad_basic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_quad_basic.jl"),
+      l2   = [0.00023219572238346008],
+      linf = [0.0017401556568237275])
+  end
 end
 
 end # module
