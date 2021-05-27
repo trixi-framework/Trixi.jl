@@ -765,6 +765,8 @@ end
 
 
 # Rotate normal vector to x-axis; normal, tangent1 and tangent2 need to be orthonormal
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions
+# has been normalized prior to this rotation of the state vector
 @inline function rotate_to_x(u, normal, tangent1, tangent2, equations::CompressibleEulerEquations3D)
   # Multiply with [ 1   0      0       0   0;
   #                 0   ―    normal    ―   0;
@@ -780,6 +782,8 @@ end
 
 
 # Rotate x-axis to normal vector; normal, tangent1 and tangent2 need to be orthonormal
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions
+# has been normalized prior to this back-rotation of the state vector
 @inline function rotate_from_x(u, normal, tangent1, tangent2, equations::CompressibleEulerEquations3D)
   # Multiply with [ 1    0       0        0      0;
   #                 0    |       |        |      0;
