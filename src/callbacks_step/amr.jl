@@ -222,8 +222,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     # refine mesh
     refined_original_cells = @timed timer() "mesh" refine!(mesh.tree, to_refine)
 
-    # Find all indices of elements whose cell ids are in cells_to_refine
-    elements_to_refine = findall(cell_id -> cell_id in cells_to_refine, cache.elements.cell_ids)
+    # Find all indices of elements whose cell ids are in refined_original_cells
+    elements_to_refine = findall(cell_id -> cell_id in refined_original_cells, cache.elements.cell_ids)
 
     # refine solver
     @timed timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
@@ -283,8 +283,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
       end
     end
 
-    # Find all indices of elements whose cell ids are in child_cells_to_coarsen
-    elements_to_remove = findall(cell_id -> cell_id in child_cells_to_coarsen, cache.elements.cell_ids)
+    # Find all indices of elements whose cell ids are in removed_child_cells
+    elements_to_remove = findall(cell_id -> cell_id in removed_child_cells, cache.elements.cell_ids)
 
     # coarsen solver
     @timed timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
