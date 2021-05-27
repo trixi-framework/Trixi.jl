@@ -242,6 +242,29 @@ end
 end
 
 
+# Calculate 1D flux in for a single point in the normal direction
+# TODO: Better comment, here this is really a normal vector
+@inline function flux(u, normal_vector::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  phi, q1, q2 = u
+  @unpack inv_Tr = equations
+
+  f1 = -equations.nu * (normal_vector[1] * q1 + normal_vector[2] * q2)
+  f2 = -phi * inv_Tr * normal_vector[1]
+  f3 = -phi * inv_Tr * normal_vector[2]
+
+  return SVector(f1, f2, f3)
+end
+
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+# TODO: Better comment, here this is NOT really a normal vector
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  λ_max = sqrt(equations.nu * equations.inv_Tr) * norm(normal_vector)
+end
+
+
+# TODO: Could add a `rotate_to_x` and `rotate_from_x` in order to use this numerical surface flux
+#       in the FluxRotated functionality
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll

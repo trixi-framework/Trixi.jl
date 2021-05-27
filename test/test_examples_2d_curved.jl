@@ -174,6 +174,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       tspan = (0.0, 0.3))
   end
 
+  @testset "elixir_hypdiff_nonperiodic_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic_curved.jl"),
+      l2   = [0.8799784202842884, 0.8538496716674346, 0.7861306028768382],
+      linf = [1.0772194937514343, 1.9152049495265542, 2.1515261806766617],
+      tspan = (0.0, 0.1))
+  end
+
 end
 
 end # module
