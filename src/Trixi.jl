@@ -138,9 +138,11 @@ export TreeMesh, CurvedMesh, UnstructuredQuadMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
-       VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
+       VolumeIntegralWeakForm, VolumeIntegralStrongForm,
+       VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        MortarL2
 
 export nelements, nnodes, nvariables,

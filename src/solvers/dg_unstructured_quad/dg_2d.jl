@@ -40,25 +40,25 @@ function rhs!(du, u, t,
 
   # Prolong solution to interfaces
   @timed timer() "prolong2interfaces" prolong2interfaces!(
-    cache, u, mesh, equations, dg)
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
   # Calculate interface fluxes
   @timed timer() "interface flux" calc_interface_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
-    dg, cache)
+    dg.surface_integral, dg, cache)
 
   # Prolong solution to boundaries
   @timed timer() "prolong2boundaries" prolong2boundaries!(
-    cache, u, mesh, equations, dg)
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
   # Calculate boundary fluxes
   @timed timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
+    cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
 
   # Calculate surface integrals
   @timed timer() "surface integral" calc_surface_integral!(
-    du, mesh, equations, dg, cache)
+    du, mesh, equations, dg.surface_integral, dg, cache)
 
   # Apply Jacobian from mapping to reference element
   #  Note! this routine is reused from dg_curved/dg_2d.jl
@@ -159,7 +159,7 @@ end
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
 function prolong2interfaces!(cache, u,
                              mesh::UnstructuredQuadMesh,
-                             equations, dg::DG)
+                             equations, surface_integral, dg::DG)
   @unpack interfaces = cache
 
   @threaded for interface in eachinterface(dg, cache)
@@ -214,8 +214,9 @@ end
 # quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredQuadMesh,
-                              nonconservative_terms::Val{false}, equations, dg::DG, cache)
-  @unpack surface_flux = dg
+                              nonconservative_terms::Val{false}, equations,
+                              surface_integral, dg::DG, cache)
+  @unpack surface_flux = surface_integral
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
   @unpack normal_directions = cache.elements
 
@@ -266,7 +267,7 @@ end
 # move the approximate solution onto physical boundaries within a "right-handed" element
 function prolong2boundaries!(cache, u,
                              mesh::UnstructuredQuadMesh,
-                             equations, dg::DG)
+                             equations, surface_integral, dg::DG)
   @unpack boundaries = cache
 
   @threaded for boundary in eachboundary(dg, cache)
@@ -298,17 +299,17 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+                             mesh::UnstructuredQuadMesh, equations, surface_integral, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
 
 
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+                             mesh::UnstructuredQuadMesh, equations, surface_integral, dg::DG)
   @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
   calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
-                              mesh, equations, dg)
+                              mesh, equations, surface_integral, dg)
   return nothing
 end
 
@@ -317,7 +318,8 @@ end
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N,Any},
                                      BC_indices::NTuple{N,Vector{Int}},
-                                     mesh::UnstructuredQuadMesh, equations, dg::DG) where {N}
+                                     mesh::UnstructuredQuadMesh, equations,
+                                     surface_integral, dg::DG) where {N}
   # Extract the boundary condition type and index vector
   boundary_condition = first(BCs)
   boundary_condition_indices = first(BC_indices)
@@ -326,24 +328,28 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N,Any},
   remaining_boundary_condition_indices = Base.tail(BC_indices)
 
   # process the first boundary condition type
-  calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices, mesh, equations, dg)
+  calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
+                      mesh, equations, surface_integral, dg)
 
   # recursively call this method with the unprocessed boundary types
   calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
-                              remaining_boundary_condition_indices, mesh, equations, dg)
+                              remaining_boundary_condition_indices,
+                              mesh, equations, surface_integral, dg)
 
   return nothing
 end
 
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     mesh::UnstructuredQuadMesh, equations, dg::DG)
+                                     mesh::UnstructuredQuadMesh, equations,
+                                     surface_integral, dg::DG)
   nothing
 end
 
 
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+                             mesh::UnstructuredQuadMesh, equations,
+                             surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack element_id, element_side_id = cache.boundaries
 
@@ -357,7 +363,8 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
 
     # calc boundary flux on the current boundary interface
     for node in eachnode(dg)
-      calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, equations, dg, cache,
+      calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                          mesh, equations, surface_integral, dg, cache,
                           node, side, element, boundary)
     end
   end
@@ -367,11 +374,12 @@ end
 # inlined version of the boundary flux calculation along a physical interface where the
 # boundary flux values are set according to a particular `boundary_condition` function
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::UnstructuredQuadMesh, equations, dg::DG, cache,
+                                     mesh::UnstructuredQuadMesh, equations,
+                                     surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index, boundary_index)
   @unpack normal_directions = cache.elements
   @unpack u, node_coordinates = cache.boundaries
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
 
   # pull the inner solution state from the boundary u values on the boundary element
   u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
@@ -407,7 +415,7 @@ end
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
 function calc_surface_integral!(du, mesh::UnstructuredQuadMesh,
-                                equations, dg::DGSEM, cache)
+                                equations, surface_integral, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
