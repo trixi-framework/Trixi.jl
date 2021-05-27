@@ -530,7 +530,7 @@ function save_original_id_iter_volume(info, user_data)
   # Unpack quadrant's user data ([global quad ID, controller_value])
   ptr = Ptr{Int}(info.quad.p.user_data)
   # Save global quad ID
-  unsafe_store!(ptr, quad_id, 2)
+  unsafe_store!(ptr, quad_id, 1)
 
   return nothing
 end
