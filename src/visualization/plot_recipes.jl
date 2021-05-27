@@ -489,7 +489,11 @@ function PlotData1D(u, mesh, equations, solver, cache;
     end
     orientation_x = 0
   else # ndims(mesh) == 3
-    x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    if along_curve != nothing
+      x, data, mesh_vertices_x = unstructured_3d_to_1d_along_curve(original_nodes, unstructured_data, nvisnodes, along_curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
     orientation_x = 0
   end
 

@@ -295,6 +295,55 @@ function unstructured_2d_to_1d_along_curve(original_nodes, unstructured_data, nv
   return nodes_on_curve, data_on_curve, nothing
 end
 
+# Convert 2d unstructured data to 1d data at given coordinates.
+function unstructured_3d_to_1d_along_curve(original_nodes, unstructured_data, nvisnodes, coordinates, mesh, solver, cache)
+
+  n_elements_curve = size(coordinates)[2]
+  n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  @assert size(coordinates) == (3, n_elements_curve) "Coordinates along curve must be 3xn dimensional."
+
+  # Setup data structures.
+  nodes_on_curve = collect(range(0, 1, length = n_elements_curve))
+  data_on_curve = Array{Float64}(undef, n_elements_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_nodes+1, n_elements_curve, n_variables)
+
+  # For each coordinate find the corresponding element with its id.
+  element_ids = get_elements_by_coordinates(coordinates, mesh, solver, cache)
+
+  min = original_nodes[:, 1, 1, 1, 1]
+  max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, n_elements]
+
+  # Iterate over all found elements.
+  for element in 1:n_elements_curve
+    @assert (prod(vcat(coordinates[:, n_elements_curve] .>= min, coordinates[:, n_elements_curve]
+            .<= max))) "Some coordinates from `along_curve` are outside of the domain.."
+
+    min_coordinate = original_nodes[:, 1, 1, 1, element_ids[element]]
+    max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, element_ids[element]]
+    element_length = max_coordinate - min_coordinate
+
+    normalized_coordinates = (coordinates[:, element] - min_coordinate)/element_length[1]*2 .-1
+
+    # Interpolate to a single point in each element.
+    vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
+    vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
+    vandermonde_iii = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[3])
+    for v in 1:n_variables
+      for i in 1:n_nodes
+        for ii in 1:n_nodes
+          temp_data[i, ii, element, v] = (vandermonde_iii*unstructured_data[i, ii, :, element_ids[element], v])[1]
+        end
+        temp_data[i, n_nodes+1, element, v] = (vandermonde_ii*temp_data[i, 1:n_nodes, element, v])[1]
+      end
+      data_on_curve[element, v] = (vandermonde_i*temp_data[:, n_nodes+1, element, v])[1]
+    end
+  end
+
+  return nodes_on_curve, data_on_curve, nothing
+end
+
 # Convert 3d unstructured data to 1d slice and interpolate them.
 function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
 
@@ -359,7 +408,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
 
     # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
     normalized_intercept =
-          (collect(point[other_dimensions]) - min_coordinate[other_dimensions]) /
+          (point[other_dimensions] .- min_coordinate[other_dimensions]) /
           element_length[1] * 2 .- 1
     vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_intercept[1])
     vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_intercept[2])
