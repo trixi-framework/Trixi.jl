@@ -202,9 +202,18 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test PlotData2D(sol) isa PlotData2D
 
     @testset "1D plot from 3D solution" begin
-      @test_nowarn_debug PlotData1D(sol) isa PlotData1D
-      pd1D = PlotData1D(sol)
-      @test_nowarn_debug plot(pd1D)
+      @testset "Create 1D plot as slice" begin
+        @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+        pd1D = PlotData1D(sol)
+        @test_nowarn_debug plot(pd1D)
+      end
+
+      @testset "Create 1D plot along curve" begin
+        curve = zeros(3,10)
+        @test_nowarn_debug PlotData1D(sol, along_curve=curve) isa PlotData1D
+        pd1D = PlotData1D(sol, along_curve=curve)
+        @test_nowarn_debug plot(pd1D)
+      end
     end
   end
 

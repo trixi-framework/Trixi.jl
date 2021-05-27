@@ -179,7 +179,7 @@ In a very similar fashion to [`PlotData2D`](@ref), you can customize your plot:
 * `plot(pd["rho", "p"])` only plots specific variables. In this case `rho` and `p`.
 * `plot!(getmesh(pd))` adds mesh lines after creating a plot.
 * Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used, e.g., `plot(pd, yguide=:temperature)`.
-* `pd = PlotData1D(adapt_to_mesh_level(sol, 4)...)` adapts the mesh before plotting 
+* `pd = PlotData1D(adapt_to_mesh_level(sol, 4)...)` adapts the mesh before plotting
   (in this example to a mesh with refinement level 4).
 
 You can also customize the [`PlotData1D`](@ref) object itself by passing attributes
@@ -221,9 +221,9 @@ julia> plot(pd)
 ```
 ![1d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614340-1b879600-a93a-11eb-9a80-f46311da16b1.PNG)
 
-This easy method of slicing is limited to axis only, but for 2D solutions it is also
+This easy method of slicing is limited to axis only, but for 2D/3D solutions it is also
 possible to create a plot along any curve you want. To do so you first need to
-create a list of 2D points on which you want your curve to sit on. Then you can
+create a list of 2D/3D points on which you want your curve to sit on. Then you can
 create a [`PlotData1D`](@ref) with the attribute `along_curve` set as your list.
 
 Lets do an example of this on the basic advection equation from above and try to create
