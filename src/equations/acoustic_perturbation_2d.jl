@@ -41,13 +41,9 @@ more flexible. These values are ignored if the mean values are defined internall
 condition.
 
 The equations are based on the APE-4 system introduced in the following paper:
-
-R. Ewert, W. Schröder
-"Acoustic perturbation equations based on flow decomposition via source filtering",
-Journal of Computational Physics,
-Volume 188, Issue 2,
-2003,
-[DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2)
+- Roland Ewert and Wolfgang Schröder (2003)
+  Acoustic perturbation equations based on flow decomposition via source filtering
+  [DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2)
 """
 struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbationEquations{2, 7}
   v_mean_global::SVector{2, RealT}
@@ -380,20 +376,15 @@ end
 
 
 """
-   boundary_state_slip_wall(u_inner, normal_direction, equations)
+    boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
+                             equations::AcousticPertubationEquations2D)
 
 Idea behind this boundary condition is to use an orthogonal projection of the perturbed velocities
 to zero out the normal velocity while reataining the possibility of a tangential velocity
-in the boundary state.
-
-Further details are available in the paper:
-
-Bauer, M., Dierke, J., and Ewert, R.,
-"Application of a discontinuous Galerkin method to discretize acoustic perturbation equations",
-AIAA journal,
-Volume 49, Issue 5, 898-908
-2011,
-[DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
+in the boundary state. Further details are available in the paper:
+- Marcus Bauer, Jürgen Dierke and Roland Ewert (2011)
+  Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
+  [DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
 """
 function boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
                                   equations::AcousticPerturbationEquations2D)
