@@ -38,6 +38,17 @@ function plotting_triangulation(rst_plot,tol=50*eps())
     return t[:,findall(has_volume)]
 end
 
+"""
+    function trixi_pcolor(sol,variable)
+    function trixi_pcolor!(sol,variable)    
+
+Plots a pseudocolor plot. Here, sol::TrixiODESolution and variable::Int 
+is the index of the solution field to plot.
+
+Other keywords:
+- solution_scaling=1.0, # scales the z-values of the solution by this factor
+- plot_polydeg = 10     # number of equispaced points used for plotting in each direction 
+"""
 @Makie.recipe(Trixi_Pcolor, sol, variable) do scene
     # default_theme(scene)...,
     # colormap = theme(scene, :colormap),
@@ -101,6 +112,20 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
     trixi_plot
 end
 
+"""
+    function trixi_wireframe(sol,variable)
+    function trixi_wireframe!(sol,variable)    
+
+Plots a wireframe plot of the mesh edges. Here, sol::TrixiODESolution and 
+variable::Int is the index of the solution field to plot.
+
+Other keywords:
+- solution_scaling=1.0,     # scales the z-values of the solution by this factor
+- plot_polydeg = 10         # number of equispaced points used for plotting in each direction 
+- color = :black.           # set color = :solution to color by solution
+- z_translate_plot = 1.e-3  # translates the wireframe up and down relative to scene axes.
+
+"""
 @Makie.recipe(Trixi_Wireframe, sol, variable) do scene
     # default_theme(scene)...,
     # linewidth = theme(scene, :linewidth),
