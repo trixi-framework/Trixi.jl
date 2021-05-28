@@ -329,13 +329,9 @@ include("l2projection.jl")
 include("basis_lobatto_legendre.jl")
 
 """
-    DGSEM([RealT=Float64,] polydeg::Integer,
-          surface_flux=flux_central,
-          volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
-          mortar=MortarL2(basis))
     DGSEM(; RealT=Float64, polydeg::Integer,
             surface_flux=flux_central,
-            volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
+            volume_integral=VolumeIntegralWeakForm(),
             mortar=MortarL2(basis))
 
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
@@ -346,7 +342,7 @@ const DGSEM = DG{Basis, Mortar, SurfaceIntegralWeakForm{SurfaceFlux}, VolumeInte
 
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux=flux_central,
-               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
+               volume_integral=VolumeIntegralWeakForm(),
                mortar=MortarL2(basis))
 
   surface_integral = SurfaceIntegralWeakForm(surface_flux)
@@ -356,14 +352,14 @@ end
 
 function DGSEM(RealT, polydeg::Integer,
                surface_flux=flux_central,
-               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
+               volume_integral=VolumeIntegralWeakForm(),
                mortar=MortarL2(LobattoLegendreBasis(RealT, polydeg)))
   basis = LobattoLegendreBasis(RealT, polydeg)
 
   return DGSEM(basis, surface_flux, volume_integral, mortar)
 end
 
-DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
+DGSEM(polydeg, surface_flux=flux_central, volume_integral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
 # The constructor using only keyword arguments is convenient for elixirs since
 # it allows to modify the polynomial degree and other parameters via
