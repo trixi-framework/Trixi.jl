@@ -342,7 +342,6 @@ Create a discontinuous Galerkin spectral element method (DGSEM) using a
 [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
 const DGSEM = DG{Basis, Mortar, SurfaceIntegralWeakForm{SurfaceFlux}, VolumeIntegral} where {Basis<:LobattoLegendreBasis, Mortar, SurfaceFlux, VolumeIntegral}
-# const DGSEM = DG{Basis, Mortar, SurfaceIntegral, VolumeIntegral} where {Basis<:LobattoLegendreBasis, Mortar, SurfaceIntegral<:SurfaceIntegralWeakForm, VolumeIntegral}
 
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux=flux_central,
