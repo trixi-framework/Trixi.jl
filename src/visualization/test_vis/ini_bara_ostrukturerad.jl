@@ -75,12 +75,13 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 summary_callback() # print the timer summary
 
 
-# visualization 
-using NodesAndModes, GLMakie, Triangulate, GeometryBasics
-include("../makie_support.jl")
+# # visualization 
+# using NodesAndModes, GLMakie, Triangulate, GeometryBasics
+# include("../makie_visualization.jl")
 
+using GLMakie
 trixi_pcolor(sol,1)
-trixi_wireframe!(sol,1,color=:white, solution_scaling=0.,z_translate_plot=-5.) 
+trixi_wireframe!(sol,1,color=:white) 
 Makie.current_figure()
 
 
