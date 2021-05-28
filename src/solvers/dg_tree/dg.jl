@@ -142,7 +142,7 @@ end
 abstract type AbstractSurfaceIntegral end
 
 """
-    SurfaceIntegralWeakForm
+    SurfaceIntegralWeakForm(surface_flux=flux_central)
 
 The classical weak form surface integral type for DG methods as explained in standard
 textbooks such as
@@ -156,6 +156,8 @@ See also [`VolumeIntegralWeakForm`](@ref).
 struct SurfaceIntegralWeakForm{SurfaceFlux} <: AbstractSurfaceIntegral
   surface_flux::SurfaceFlux
 end
+
+SurfaceIntegralWeakForm() = SurfaceIntegralWeakForm(flux_central)
 
 function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm)
   @nospecialize integral # reduce precompilation time
@@ -171,7 +173,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm
 end
 
 """
-    SurfaceIntegralStrongForm
+    SurfaceIntegralStrongForm(surface_flux=flux_central)
 
 The classical strong form surface integral type for FD/DG methods.
 
@@ -180,6 +182,8 @@ See also [`VolumeIntegralStrongForm`](@ref).
 struct SurfaceIntegralStrongForm{SurfaceFlux} <: AbstractSurfaceIntegral
   surface_flux::SurfaceFlux
 end
+
+SurfaceIntegralStrongForm() = SurfaceIntegralStrongForm(flux_central)
 
 function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongForm)
   @nospecialize integral # reduce precompilation time
