@@ -34,7 +34,10 @@ import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo
+using NodesAndModes: Line, vandermonde
 import MPI
+using Makie 
+using GeometryBasics: GeometryBasics, Mesh, normal_mesh 
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
@@ -43,9 +46,9 @@ using Requires
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+using Triangulate: Triangulate, TriangulateIO, triangulate
 @reexport using UnPack: @unpack
 using UnPack: @pack!
-
 
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
@@ -72,6 +75,7 @@ include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
+include("visualization/makie_visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
@@ -170,7 +174,7 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
-
+export trixi_pcolor, trixi_pcolor!, trixi_wireframe, trixi_wireframe!
 
 function __init__()
   init_mpi()
