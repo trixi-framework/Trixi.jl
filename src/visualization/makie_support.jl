@@ -49,22 +49,110 @@ function plotting_triangulation(rst_plot,tol=50*eps())
     return t[:,findall(has_volume)]
 end
 
-# inputs = plotting points only. This should be the most general version
-# call example: mesh(Vp*u,(x->Vp*x).(rd.rst),(x->Vp*x).(md.xyz))
-function Makie.convert_arguments(P::Type{<:Makie.Mesh},uplot,rst_plot,xyz_plot)
+@Makie.recipe(Trixi_Pcolor, sol, variable) do scene
+    Attributes(;
+        plot_polydeg = 10
+    )
+end
 
-    t = permutedims(plotting_triangulation(rst_plot))
+function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}})
+    variable = trixi_plot[:variable][]
+    sol = trixi_plot[:sol][]
+    semi = sol.prob.p
+    @unpack solver, mesh = semi
+
+    N = Trixi.polydeg(solver)
+    n_nodes_1D = length(solver.basis.nodes)
+    n_nodes = n_nodes_1D^2
+    n_elements = mesh.n_elements
+    pd = PlotData2D(sol) # replace eventually?
+    
+    Nplot = trixi_plot[:plot_polydeg][]
+    Vdm1D = vandermonde(Line(),N,solver.basis.nodes)
+    Vp1D = vandermonde(Line(),N,LinRange(-1,1,Nplot+1))/Vdm1D
+    Vp = kron(Vp1D,Vp1D) 
+    n_plot_nodes = size(Vp,1)
+
+    # build nodes on reference element: seems to be the right ordering?
+    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+
+    sol_to_plot = reshape(pd.data[variable],n_nodes,n_elements)
+    x = reshape(pd.x,n_nodes,n_elements)
+    y = reshape(pd.y,n_nodes,n_elements)
+
+    rp,sp = (x->Vp*x).((r,s)) # interpolate
+    t = permutedims(plotting_triangulation((rp,sp)))
     makie_triangles = Makie.to_triangles(t)
 
-    num_elements = size(u_plot,2)
-    trimesh = Vector{GeometryBasics.Mesh{3,Float32}}(undef,num_elements)
-    coordinates = zeros(length(first(rst_plot)),3)
-    for e = 1:num_elements       
-        for i = 1:2
-            coordinates[:,i] .= view(xyz_plot[i],:,e)
-        end
-        coordinates[:,3] .= view(uplot,:,e)
-        trimesh[e] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates),makie_triangles) # speed this up?
+    coordinates = zeros(Float32,n_plot_nodes,3)
+    trimesh = Vector{GeometryBasics.Mesh{3,Float32}}(undef,n_elements)
+    for element in 1:n_elements    
+        xe,ye,ue = view.((x,y,sol_to_plot),:,element)    
+        mul!(view(coordinates,:,1),Vp,xe)
+        mul!(view(coordinates,:,2),Vp,ye)
+        mul!(view(coordinates,:,3),Vp,ue)
+        trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates),makie_triangles)
     end
-    return tuple(merge([trimesh...]))
+    plotting_mesh = merge([trimesh...])
+    solution_color = vec(Vp*reshape(pd.data[variable],n_nodes,n_elements))
+    Makie.mesh!(trixi_plot,plotting_mesh, color = solution_color)
+    trixi_plot
+end
+
+@Makie.recipe(Trixi_Wireframe, sol, variable) do scene
+    Attributes(;
+        color=:black,
+        linewidth=1,
+        plot_polydeg=10
+    )
+end
+
+
+function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:Int}})
+    variable = trixi_plot[:variable][]
+    sol = trixi_plot[:sol][]
+    semi = sol.prob.p
+    @unpack solver, mesh = semi
+
+    N = Trixi.polydeg(solver)
+    n_nodes_1D = length(solver.basis.nodes)
+    n_nodes = n_nodes_1D^2
+    n_elements = mesh.n_elements
+    pd = PlotData2D(sol) # replace eventually?
+
+    Nplot = trixi_plot[:plot_polydeg][]
+    Vdm1D = vandermonde(Line(),N,solver.basis.nodes)
+    Vp1D = vandermonde(Line(),N,LinRange(-1,1,Nplot+1))/Vdm1D
+
+    # seems to be the right ordering?
+    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+
+    sol_to_plot = reshape(pd.data[variable],n_nodes,n_elements)
+    x = reshape(pd.x,n_nodes,n_elements)
+    y = reshape(pd.y,n_nodes,n_elements)
+
+    tol = 50*eps()
+    e1 = findall(@. abs(s+1)<tol)
+    e2 = findall(@. abs(r-1)<tol)
+    e3 = findall(@. abs(s-1)<tol)
+    e4 = findall(@. abs(r+1)<tol)
+    Fmask = hcat(e1,e2,e3,e4)
+    function face_first_reshape(x,n_nodes_1D,n_nodes,n_elements)
+        n_reference_faces = 4 # hardcoded for quads
+        xf = view(reshape(x,n_nodes,n_elements),vec(Fmask),:)
+        return reshape(xf,n_nodes_1D,n_elements * n_reference_faces)
+    end
+    xf,yf,sol_f = face_first_reshape.((x,y,sol_to_plot),n_nodes_1D,n_nodes,n_elements)
+    xfp,yfp,ufp = map(xf->vec(vcat(Vp1D*xf,fill(NaN,1,size(xf,2)))),(xf,yf,sol_f))
+    lw = trixi_plot[:linewidth][]
+    wire_color=trixi_plot[:color][]
+    if wire_color==:solution
+        lines!(trixi_plot,xfp,yfp,ufp,color=ufp,linewidth=lw)
+    else
+        Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp,color=wire_color,linewidth=lw),0,0,1.e-3) # tol = relative
+        Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp,color=wire_color,linewidth=lw),0,0,-1.e-3)
+    end
+    trixi_plot
 end
