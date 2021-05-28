@@ -1,15 +1,4 @@
 """
-function plotting_interpolation_matrix(Nplot,rd)
-
-Computes matrix which interpolates from reference interpolation points to equispaced points of degree `Nplot`.
-"""
-function plotting_interpolation_matrix(Nplot,rd)
-    rp,sp = NodesAndModes.equi_nodes(rd.elemShape,Nplot)
-    Vp = NodesAndModes.vandermonde(rd.elemShape,rd.N,rp,sp) / rd.VDM
-    return Vp
-end
-
-"""
 function compute_triangle_area(tri)
 
 Computes the area of a triangle given `tri`, which is a tuple of three points (vectors). 
@@ -32,7 +21,7 @@ function plotting_triangulation(rst_plot,tol=50*eps())
     # on-the-fly triangulation of plotting nodes on the reference element
     triin = Triangulate.TriangulateIO()
     triin.pointlist = permutedims(hcat(rst_plot...))
-    triout,_ = triangulate("Q", triin)
+    triout,_ = Triangulate.triangulate("Q", triin)
     t = triout.trianglelist
 
     # filter out sliver triangles
@@ -85,6 +74,7 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
     n_plot_nodes = size(Vp,1)
 
     # build nodes on reference element: seems to be the right ordering?
+    r1D = solver.basis.nodes
     r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
     s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
     
@@ -145,6 +135,7 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
     Vp1D = vandermonde(Line(),N,LinRange(-1,1,Nplot+1))/Vdm1D
 
     # seems to be the right ordering?
+    r1D = solver.basis.nodes
     r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
     s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
 
