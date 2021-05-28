@@ -9,7 +9,6 @@ to manage trees and mesh refinement.
 """
 mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
   p4est                 ::Ptr{p4est_t}
-  p4est_mesh            ::Ptr{p4est_mesh_t}
   # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
   # This specifies the geometry interpolation for each tree.
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
@@ -107,12 +106,8 @@ function P4estMesh(trees_per_dimension; polydeg,
   # Use Int-Vector of size 2 as quadrant user data
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 
-  ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
-  p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
-
   # Destroy p4est structs at exit of Julia
   function destroy_p4est_structs()
-    p4est_mesh_destroy(p4est_mesh)
     p4est_ghost_destroy(ghost)
     p4est_destroy(p4est)
     p4est_connectivity_destroy(conn)
@@ -146,7 +141,7 @@ function P4estMesh(trees_per_dimension; polydeg,
     end
   end
 
-  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates, nodes,
+  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
                                           boundary_names, "", unsaved_changes)
 end
 
@@ -202,13 +197,11 @@ function P4estMesh(meshfile::String;
 
   # Use Int-Vector of size 2 as quadrant user data
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
-  ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
-  p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 4, n_trees)
 
-  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, p4est_mesh, tree_node_coordinates, nodes,
+  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
                                           boundary_names, "", unsaved_changes)
 end
 
@@ -440,7 +433,7 @@ function refine!(mesh::P4estMesh)
 
   # Refine marked cells
   refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
-  @timed timer() "refine_unbalanced" p4est_refine(mesh.p4est, true, refine_fn_c, init_fn_c)
+  @timed timer() "refine_unbalanced" p4est_refine(mesh.p4est, false, refine_fn_c, init_fn_c)
 
   @timed timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
   # Due to a bug in p4est, the forest needs to be rebalanced twice sometimes
@@ -451,30 +444,6 @@ function refine!(mesh::P4estMesh)
 end
 
 
-function check_balanced_iter_volume(info, user_data)
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, info.p4est.trees)
-  # Quadrant numbering offset of this quadrant, one-based indexing
-  offset = trees[info.treeid + 1].quadrants_offset
-  # Global quad ID
-  quad_id = offset + info.quadid
-
-  p4est_mesh = Ptr{p4est_mesh_t}(info.p4est.user_pointer)
-
-  quad_to_face = unsafe_wrap(Array, p4est_mesh.quad_to_face, (4, quad_id + 1))
-
-  # quad_to_face will be negative if there are two half-size neighbors in this direction.
-  # Therefore, coarsening this cell will make the forest unbalanced.
-  if any(i -> i < 0, quad_to_face[:, quad_id + 1])
-    # Unpack quadrant's user data ([global quad ID, controller_value])
-    ptr = Ptr{Int}(info.quad.p.user_data)
-    # Set controller value to 0, don't coarsen!
-    unsafe_store!(ptr, 0, 2)
-  end
-
-  return nothing
-end
-
 function coarsen_fn(p4est, which_tree, quadrants_ptr)
   quadrants = unsafe_wrap(Array, quadrants_ptr, 4)
 
@@ -482,7 +451,7 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
   # Unpack quadrant's user data ([global quad ID, controller_value])
   if all(i -> unsafe_load(Ptr{Int}(quadrants[i].p.user_data), 2) < 0, eachindex(quadrants))
     # return true (coarsen)
-    return Cint(0)
+    return Cint(1)
   else
     # return false (don't coarsen)
     return Cint(0)
@@ -492,29 +461,49 @@ end
 # Coarsen marked cells if the forest will stay balanced
 # Return a list of all cells that have been coarsened
 function coarsen!(mesh::P4estMesh)
-  original_n_cells = ncells(mesh)
-
   # Copy original element IDs to quad user data storage
+  original_n_cells = ncells(mesh)
   save_original_ids(mesh)
 
-  # Mark cells whose coarsening will make the forest unbalanced as "don't coarsen"
-  # TODO P4EST recursive. A cell could be coarsenable after coarsening another cell first.
-  mesh.p4est.user_pointer = mesh.p4est_mesh
-  iter_volume_c = @cfunction(check_balanced_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
-
-  p4est_iterate(mesh.p4est,
-                C_NULL, # ghost layer
-                C_NULL, # user data
-                iter_volume_c, # iter_volume
-                C_NULL, # iter_face
-                C_NULL) # iter_corner
-
   # Coarsen marked cells
-  coarsen_fn_c = @cfunction(coarsen_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p4est_quadrant_t}}))
-  init_fn_c    = @cfunction(init_fn, Cvoid, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
-  @timed timer() "coarsen!" p4est_coarsen(mesh.p4est, true, coarsen_fn_c, init_fn_c)
+  coarsen_fn_c = @cfunction(coarsen_fn, Cint,
+    (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p4est_quadrant_t}}))
+  init_fn_c = @cfunction(init_fn, Cvoid,
+    (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
 
-  return collect_changed_cells(mesh, original_n_cells)
+  @timed timer() "coarsen!" p4est_coarsen(mesh.p4est, false, coarsen_fn_c, init_fn_c)
+
+  new_cells = collect_new_cells(mesh)
+  coarsened_cells_vec = collect_changed_cells(mesh, original_n_cells)
+  # 2^NDIMS changed cells should have been coarsened to one new cell.
+  # This matrix will store the IDs of all cells that have been coarsened to cell new_cells[i]
+  # in the i-th column.
+  coarsened_cells = reshape(coarsened_cells_vec, 2^ndims(mesh), length(new_cells))
+
+  # Save new original IDs to find out what changed after balancing
+  intermediate_n_cells = ncells(mesh)
+  save_original_ids(mesh)
+
+  @timed timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
+  # Due to a bug in p4est, the forest needs to be rebalanced twice sometimes
+  # See https://github.com/cburstedde/p4est/issues/112
+  @timed timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
+
+  refined_cells = collect_changed_cells(mesh, intermediate_n_cells)
+
+  # Some cells may have been coarsened even though they unbalanced the forest.
+  # These cells have now been refined again by p4est_balance.
+  # Find intermediate ID (ID of coarse cell between coarsening and balancing)
+  # of each cell that have been coarsened and then refined again.
+  for refined_cell in refined_cells
+    # i-th cell of the ones that have created by coarsening has been refined again
+    i = findfirst(isequal(refined_cell), new_cells)
+
+    # Remove IDs of the 2^NDIMS cells that have been coarsened to this cell
+    coarsened_cells[:, i] .= -1
+  end
+
+  return coarsened_cells_vec[coarsened_cells_vec .>= 0]
 end
 
 
@@ -587,4 +576,52 @@ function collect_changed_cells(mesh, original_n_cells)
   changed_original_cells = original_cells[original_cells .> 0]
 
   return changed_original_cells
+end
+
+
+# Extract newly created cells
+function collect_new_iter_volume(info, user_data)
+  # The original element ID has been saved to user_data before
+  # Unpack quadrant's user data ([global quad ID, controller_value])
+  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  original_id = unsafe_load(quad_data_ptr, 1)
+
+  # original_id of cells that have been newly created during refinement is -1
+  if original_id < 0
+    # Global trees array
+    trees = convert_sc_array(p4est_tree_t, info.p4est.trees)
+    # Quadrant numbering offset of this quadrant, one-based indexing
+    offset = trees[info.treeid + 1].quadrants_offset
+    # Global quad ID
+    quad_id = offset + info.quadid
+
+    # Unpack user_data = original_cells
+    user_data_ptr = Ptr{Int}(user_data)
+
+    # Mark cell as "newly created during refinement/coarsening/balancing"
+    unsafe_store!(user_data_ptr, 1, quad_id + 1)
+  end
+
+  return nothing
+end
+
+function collect_new_cells(mesh)
+  cell_is_new = zeros(Int, ncells(mesh))
+
+  # Iterate over all quads and set original cells that haven't been changed to zero
+  iter_volume_c = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+
+  GC.@preserve cell_is_new begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  pointer(cell_is_new),
+                  iter_volume_c, # iter_volume
+                  C_NULL, # iter_face
+                  C_NULL) # iter_corner
+  end
+
+  # Changed cells are all that haven't been set to zero above
+  new_cells = findall(isequal(1), cell_is_new)
+
+  return new_cells
 end
