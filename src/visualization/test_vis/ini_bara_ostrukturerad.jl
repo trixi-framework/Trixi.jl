@@ -8,6 +8,14 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
+function sine_IC(xyz,t,equations::CompressibleEulerEquations2D)
+    x,y = xyz
+    rho = 2 + sin(.1*pi*x)*sin(.1*pi*y)
+    u,v = 1.0,1.0
+    p = 1.0
+    return prim2cons(SVector{4}(rho,u,v,p),equations)
+end
+initial_condition = sine_IC
 source_terms = source_terms_convergence_test
 
 boundary_condition_initial_condition = BoundaryConditionDirichlet(initial_condition)
@@ -25,8 +33,8 @@ solver = DGSEM(polydeg=4, surface_flux=flux_hll)
 ###############################################################################
 # Get the curved quad mesh from a file
 
-mesh_file = joinpath(@__DIR__, "mesh_box_around_circle.mesh")
-# mesh_file = joinpath(@__DIR__, "Trixi_hexe.mesh")
+# mesh_file = joinpath(@__DIR__, "mesh_box_around_circle.mesh")
+mesh_file = joinpath(@__DIR__, "Trixi_hexe.mesh")
 
 mesh = UnstructuredQuadMesh(mesh_file)
 
@@ -40,7 +48,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.50)
+tspan = (0.0, 0.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -72,5 +80,7 @@ using NodesAndModes, GLMakie, Triangulate, GeometryBasics
 include("../makie_support.jl")
 
 trixi_pcolor(sol,1)
-trixi_wireframe!(sol,1) 
+trixi_wireframe!(sol,1,color=:white, solution_scaling=0.,z_translate_plot=-5.) 
 Makie.current_figure()
+
+

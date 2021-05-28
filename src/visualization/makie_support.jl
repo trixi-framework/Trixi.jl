@@ -50,14 +50,25 @@ function plotting_triangulation(rst_plot,tol=50*eps())
 end
 
 @Makie.recipe(Trixi_Pcolor, sol, variable) do scene
+    # default_theme(scene)...,
+    # colormap = theme(scene, :colormap),
+    # inspectable = theme(scene, :inspectable), # currently broken
+    # colorrange = automatic,
     Attributes(;
-        plot_polydeg = 10
+        interpolate = false,
+        shading = true,
+        fxaa = true,
+        cycle = [:color => :patchcolor],
+        solution_scaling=1.0, # scales the z-values of the solution by this factor
+        plot_polydeg = 10     # number of equispaced points used for plotting in each direction 
     )
 end
 
 function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}})
     variable = trixi_plot[:variable][]
     sol = trixi_plot[:sol][]
+    solution_scaling = trixi_plot[:solution_scaling][]
+
     semi = sol.prob.p
     @unpack solver, mesh = semi
 
@@ -76,7 +87,7 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
     # build nodes on reference element: seems to be the right ordering?
     r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
     s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
-
+    
     sol_to_plot = reshape(pd.data[variable],n_nodes,n_elements)
     x = reshape(pd.x,n_nodes,n_elements)
     y = reshape(pd.y,n_nodes,n_elements)
@@ -91,7 +102,7 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
         xe,ye,ue = view.((x,y,sol_to_plot),:,element)    
         mul!(view(coordinates,:,1),Vp,xe)
         mul!(view(coordinates,:,2),Vp,ye)
-        mul!(view(coordinates,:,3),Vp,ue)
+        mul!(view(coordinates,:,3),Vp,ue * solution_scaling)
         trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates),makie_triangles)
     end
     plotting_mesh = merge([trimesh...])
@@ -101,13 +112,21 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
 end
 
 @Makie.recipe(Trixi_Wireframe, sol, variable) do scene
+    # default_theme(scene)...,
+    # linewidth = theme(scene, :linewidth),
+    # colormap = theme(scene, :colormap), # currently broken?
+    # inspectable = theme(scene, :inspectable),
     Attributes(;
-        color=:black,
-        linewidth=1,
-        plot_polydeg=10
+        linestyle = nothing,
+        fxaa = false,
+        cycle = [:color],
+        color = :black, # set color = :solution to color by solution
+        linewidth = 1.0,
+        solution_scaling=1.0, # scales the z-values of the solution by this factor
+        plot_polydeg = 10,     # number of equispaced points used for plotting in each direction 
+        z_translate_plot = 1.e-3
     )
 end
-
 
 function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:Int}})
     variable = trixi_plot[:variable][]
@@ -146,13 +165,21 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
     end
     xf,yf,sol_f = face_first_reshape.((x,y,sol_to_plot),n_nodes_1D,n_nodes,n_elements)
     xfp,yfp,ufp = map(xf->vec(vcat(Vp1D*xf,fill(NaN,1,size(xf,2)))),(xf,yf,sol_f))
-    lw = trixi_plot[:linewidth][]
-    wire_color=trixi_plot[:color][]
-    if wire_color==:solution
-        lines!(trixi_plot,xfp,yfp,ufp,color=ufp,linewidth=lw)
+
+    lw               = trixi_plot[:linewidth][]
+    wire_color       = trixi_plot[:color][]
+    linestyle        = trixi_plot[:linestyle][]
+    solution_scaling = trixi_plot[:solution_scaling][]
+    z_translate_plot = trixi_plot[:z_translate_plot][]
+
+    if wire_color==:solution # plot solution 
+        Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp*solution_scaling,color=ufp,linewidth=lw,linestyle=linestyle),0,0,z_translate_plot)
     else
-        Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp,color=wire_color,linewidth=lw),0,0,1.e-3) # tol = relative
-        Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp,color=wire_color,linewidth=lw),0,0,-1.e-3)
+        # translate!'s tolerance should be relative...
+        Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp*solution_scaling,color=wire_color,linewidth=lw,linestyle=linestyle),0,0,z_translate_plot) 
+
+        # if you want to draw a wireframe under surface as well?
+        # Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp,color=wire_color,linewidth=lw,linestyle=linestyle),0,0,-1.e-3) 
     end
     trixi_plot
 end
