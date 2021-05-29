@@ -1,4 +1,4 @@
-module TestExamples2DCurved
+module TestExamples2dP4est
 
 using Test
 using Trixi
@@ -13,6 +13,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_p4est.jl"),
       l2   = [9.14468177884088e-6],
       linf = [6.437440532947036e-5])
+  end
+
+  @testset "elixir_advection_p4est_non_conforming.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_p4est_non_conforming.jl"),
+      l2   = [4.634288969205318e-4],
+      linf = [4.740692055057893e-3])
   end
 
   @testset "elixir_advection_restart_p4est.jl" begin
