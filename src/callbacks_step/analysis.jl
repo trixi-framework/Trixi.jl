@@ -354,7 +354,7 @@ end
 
 
 # Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh::TreeMesh, solver, cache)
+function print_amr_information(callbacks, mesh, solver, cache)
 
   # Return early if there is nothing to print
   uses_amr(callbacks) || return nothing
@@ -374,10 +374,6 @@ function print_amr_information(callbacks, mesh::TreeMesh, solver, cache)
   end
   mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
 
-  return nothing
-end
-
-function print_amr_information(callbacks, mesh::CurvedMesh, solver, cache)
   return nothing
 end
 
