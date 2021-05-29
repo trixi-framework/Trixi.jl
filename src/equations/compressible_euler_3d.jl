@@ -765,14 +765,16 @@ end
 
 
 # Rotate normal vector to x-axis; normal, tangent1 and tangent2 need to be orthonormal
-@inline function rotate_to_x(u, normal, tangent1, tangent2, equations::CompressibleEulerEquations3D)
-  # Multiply with [ 1   0      0       0   0;
-  #                 0   ―    normal    ―   0;
-  #                 0   ―   tangent1   ―   0;
-  #                 0   ―   tangent2   ―   0;
-  #                 0   0      0       0   1 ]
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions
+# has been normalized prior to this rotation of the state vector
+@inline function rotate_to_x(u, normal_vector, tangent1, tangent2, equations::CompressibleEulerEquations3D)
+  # Multiply with [ 1   0        0       0   0;
+  #                 0   ―  normal_vector ―   0;
+  #                 0   ―    tangent1    ―   0;
+  #                 0   ―    tangent2    ―   0;
+  #                 0   0        0       0   1 ]
   return SVector(u[1],
-                 normal[1]   * u[2] + normal[2]   * u[3] + normal[3]   * u[4],
+                 normal_vector[1] * u[2] + normal_vector[2] * u[3] + normal_vector[3] * u[4],
                  tangent1[1] * u[2] + tangent1[2] * u[3] + tangent1[3] * u[4],
                  tangent2[1] * u[2] + tangent2[2] * u[3] + tangent2[3] * u[4],
                  u[5])
@@ -780,16 +782,18 @@ end
 
 
 # Rotate x-axis to normal vector; normal, tangent1 and tangent2 need to be orthonormal
-@inline function rotate_from_x(u, normal, tangent1, tangent2, equations::CompressibleEulerEquations3D)
-  # Multiply with [ 1    0       0        0      0;
-  #                 0    |       |        |      0;
-  #                 0  normal tangent1 tangent2  0;
-  #                 0    |       |        |      0;
-  #                 0    0       0        0      1 ]
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions
+# has been normalized prior to this back-rotation of the state vector
+@inline function rotate_from_x(u, normal_vector, tangent1, tangent2, equations::CompressibleEulerEquations3D)
+  # Multiply with [ 1        0          0        0      0;
+  #                 0        |          |        |      0;
+  #                 0  normal_vector tangent1 tangent2  0;
+  #                 0        |          |        |      0;
+  #                 0        0          0        0      1 ]
   return SVector(u[1],
-                 normal[1] * u[2] + tangent1[1] * u[3] + tangent2[1] * u[4],
-                 normal[2] * u[2] + tangent1[2] * u[3] + tangent2[2] * u[4],
-                 normal[3] * u[2] + tangent1[3] * u[3] + tangent2[3] * u[4],
+                 normal_vector[1] * u[2] + tangent1[1] * u[3] + tangent2[1] * u[4],
+                 normal_vector[2] * u[2] + tangent1[2] * u[3] + tangent2[2] * u[4],
+                 normal_vector[3] * u[2] + tangent1[3] * u[3] + tangent2[3] * u[4],
                  u[5])
 end
 
