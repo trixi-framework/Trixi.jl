@@ -1061,8 +1061,9 @@ end
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::TreeMesh{3}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
+                                            dg::DGSEM, cache,
                                             mortar,
                                             fstar_upper_left, fstar_upper_right,
                                             fstar_lower_left, fstar_lower_right,

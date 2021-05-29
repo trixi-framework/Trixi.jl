@@ -41,9 +41,9 @@ Base.eltype(::ElementContainerP4est{NDIMS, RealT, uEltype}) where {NDIMS, RealT,
 
 
 struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
-  u::Array{uEltype, NDIMSP2}                  # [primary/secondary, variable, i, j, interface]
-  element_ids::Matrix{Int}                    # [primary/secondary, interface]
-  node_indices::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interface]
+  u::Array{uEltype, NDIMSP2}                    # [primary/secondary, variable, i, j, interface]
+  element_ids::Array{Int, 2}                    # [primary/secondary, interface]
+  node_indices::Array{NTuple{NDIMS, Symbol}, 2} # [primary/secondary, interface]
 end
 
 # Create interface container and initialize interface data.
@@ -56,8 +56,8 @@ function init_interfaces(mesh::P4estMesh, equations, basis,
   u = Array{uEltype, NDIMS+2}(undef, 2, nvariables(equations),
                               ntuple(_ -> nnodes(basis), NDIMS-1)...,
                               n_interfaces)
-  element_ids = Matrix{Int}(undef, 2, n_interfaces)
-  node_indices = Matrix{NTuple{NDIMS, Symbol}}(undef, 2, n_interfaces)
+  element_ids = Array{Int, 2}(undef, 2, n_interfaces)
+  node_indices = Array{NTuple{NDIMS, Symbol}, 2}(undef, 2, n_interfaces)
 
   interfaces = InterfaceContainerP4est{NDIMS, uEltype, NDIMS+2}(u, element_ids, node_indices)
 
@@ -102,8 +102,8 @@ end
 
 struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
   u::Array{uEltype, NDIMSP3}       # [small/large side, variable, position, i, j, mortar]
-  element_ids::Matrix{Int}         # [position, mortar]
-  node_indices::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+  element_ids::Array{Int, 2}       # [position, mortar]
+  node_indices::Array{NTuple{NDIMS, Symbol}, 2} # [small/large, mortar]
 end
 
 # Create mortar container and initialize mortar data.
@@ -118,8 +118,8 @@ function init_mortars(mesh::P4estMesh, equations, basis,
                               2^(NDIMS-1),
                               ntuple(_ -> nnodes(basis), NDIMS-1)...,
                               n_mortars)
-  element_ids = Matrix{Int}(undef, 2^(NDIMS-1) + 1, n_mortars)
-  node_indices = Matrix{NTuple{NDIMS, Symbol}}(undef, 2, n_mortars)
+  element_ids = Array{Int, 2}(undef, 2^(NDIMS-1) + 1, n_mortars)
+  node_indices = Array{NTuple{NDIMS, Symbol}, 2}(undef, 2, n_mortars)
 
   mortars = MortarContainerP4est{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, element_ids,
                                                                       node_indices)

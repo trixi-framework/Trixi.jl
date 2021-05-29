@@ -7,10 +7,6 @@ function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreM
   fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   u_threaded =           MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
-  # A2d = Array{uEltype, 2}
-  # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-  # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-
   (; fstar_upper_threaded, fstar_lower_threaded, u_threaded)
 end
 
@@ -211,7 +207,6 @@ function calc_mortar_flux!(surface_flux_values,
                            mesh::P4estMesh{2},
                            nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
-  # @unpack neighbor_ids, u_lower, u_upper, orientations = cache.mortars
   @unpack u, element_ids, node_indices = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
   @unpack surface_flux = dg

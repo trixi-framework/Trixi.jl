@@ -987,8 +987,9 @@ end
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::TreeMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
+                                            dg::DGSEM, cache,
                                             mortar, fstar_upper, fstar_lower)
   large_element = cache.mortars.neighbor_ids[3, mortar]
   upper_element = cache.mortars.neighbor_ids[2, mortar]
