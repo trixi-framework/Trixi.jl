@@ -307,6 +307,12 @@ end
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::Union{UnstructuredQuadMesh, P4estMesh},
                              equations, dg::DG)
+  if nboundaries(cache.boundaries) != nboundaries(boundary_conditions)
+    # When using AMR, the boundary container may have been resized.
+    # In this case, the boundary types container must be reinitialized as well.
+    initialize!(boundary_conditions, cache)
+  end
+
   @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
   calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
