@@ -380,7 +380,7 @@ end
                              equations::AcousticPertubationEquations2D)
 
 Idea behind this boundary condition is to use an orthogonal projection of the perturbed velocities
-to zero out the normal velocity while reataining the possibility of a tangential velocity
+to zero out the normal velocity while retaining the possibility of a tangential velocity
 in the boundary state. Further details are available in the paper:
 - Marcus Bauer, Jürgen Dierke and Roland Ewert (2011)
   Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
