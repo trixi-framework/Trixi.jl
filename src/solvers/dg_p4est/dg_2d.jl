@@ -247,9 +247,9 @@ end
 
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::P4estMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            mesh::P4estMesh{2}, equations, dg::DGSEM, cache,
-                                            mortar, fstar)
+                                            dg::DGSEM, cache, mortar, fstar)
   @unpack element_ids, node_indices = cache.mortars
 
   small_indices  = node_indices[1, mortar]
