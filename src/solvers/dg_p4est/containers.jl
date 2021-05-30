@@ -100,6 +100,31 @@ end
 @inline nboundaries(boundaries::BoundaryContainerP4est) = length(boundaries.element_ids)
 
 
+# Container data structure (structure-of-arrays style) for DG L2 mortars
+#
+# The positions used in `element_ids` are 1:3 (in 2D) or 1:5 (in 3D), where 1:2 (in 2D)
+# or 1:4 (in 3D) are the small elements numbered in z-order and 3 or 5 is the large element.
+# The solution values on the mortar element are saved in `u`, where `position` is the number
+# of the small element that corresponds to the respective part of the mortar element.
+# The first dimension `small/large side` takes 1 for small side and 2 for large side.
+#
+# Illustration of the positions in `element_ids` in 3D, where ξ and η are the local coordinates
+# of the mortar element, which are precisely the local coordinates that span
+# the surface of the smaller side.
+# Note that the orientation in the physical space is completely irrelevant here.
+#   /---------------------------\  /----------------------------\
+#   |             |             |  |                            |
+#   |    small    |    small    |  |                            |
+#   |      3      |      4      |  |                            |
+#   |             |             |  |           large            |
+#   |-------------|-------------|  |             5              |
+# η |             |             |  |                            |
+#   |    small    |    small    |  |                            |
+# ^ |      1      |      2      |  |                            |
+# | |             |             |  |                            |
+# | \---------------------------/  \----------------------------/
+# |
+# ⋅----> ξ
 struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
   u::Array{uEltype, NDIMSP3}       # [small/large side, variable, position, i, j, mortar]
   element_ids::Array{Int, 2}       # [position, mortar]

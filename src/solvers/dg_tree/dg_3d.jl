@@ -924,8 +924,8 @@ function calc_mortar_flux!(surface_flux_values,
     calc_fstar!(fstar_lower_left,  equations, dg, u_lower_left,  mortar, orientation)
     calc_fstar!(fstar_lower_right, equations, dg, u_lower_right, mortar, orientation)
 
-    mortar_fluxes_to_elements!(surface_flux_values, mortar_l2,
-                               mesh, equations, dg, cache, mortar,
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache, mortar,
                                fstar_upper_left, fstar_upper_right,
                                fstar_lower_left, fstar_lower_right,
                                fstar_tmp1)
@@ -1034,8 +1034,8 @@ function calc_mortar_flux!(surface_flux_values,
     for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
       fstar_lower_right[v, i, j] += noncons_diamond_lower_right[v, i, j]
     end
-    mortar_fluxes_to_elements!(surface_flux_values, mortar_l2,
-                               mesh, equations, dg, cache, mortar,
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache, mortar,
                                fstar_upper_left, fstar_upper_right,
                                fstar_lower_left, fstar_lower_right,
                                fstar_tmp1)

@@ -237,8 +237,8 @@ function calc_mortar_flux!(surface_flux_values,
       set_node_vars!(fstar[pos], flux_, equations, dg, i)
     end
 
-    mortar_fluxes_to_elements!(surface_flux_values, mortar_l2,
-                               mesh, equations, dg, cache,
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache,
                                mortar, fstar)
   end
 
