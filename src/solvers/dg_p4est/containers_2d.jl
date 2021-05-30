@@ -246,7 +246,7 @@ function init_mortars_iter_face(info, user_data)
              trees[sides[2].treeid + 1].quadrants_offset]
 
   if sides[1].is_hanging == true
-    # Left is small, right is large
+    # Left is small (1), right is large (2)
     small_large = [1, 2]
 
     local_small_quad_ids = sides[1].is.hanging.quadid
@@ -257,7 +257,7 @@ function init_mortars_iter_face(info, user_data)
     @assert sides[2].is_hanging == false
     large_quad_id = offsets[2] + sides[2].is.full.quadid
   else # sides[2].is_hanging == true
-    # Left is large, right is small
+    # Left is large (2), right is small (1)
     small_large = [2, 1]
 
     local_small_quad_ids = sides[2].is.hanging.quadid
@@ -288,10 +288,10 @@ function init_mortars_iter_face(info, user_data)
     # For orientation == 1, the large side needs to be indexed backwards
     # relative to the mortar.
     if small_large[side] == 1 || orientation == 0
-      # Forward indexing
+      # Forward indexing for small side or orientation == 0
       i = :i
     else
-      # Backward indexing
+      # Backward indexing for large side with reversed orientation
       i = :i_backwards
     end
 
