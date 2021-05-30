@@ -7,7 +7,7 @@ function create_cache(mesh::UnstructuredQuadMesh, equations,
   polydeg_ = polydeg(dg.basis)
   nvars = nvariables(equations)
 
-  elements = init_elements(RealT, uEltype, mesh, dg.basis.nodes, nvars, polydeg_)
+  elements = init_elements(RealT, uEltype, mesh, get_nodes(dg.basis), nvars, polydeg_)
 
   interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
 
@@ -58,7 +58,7 @@ function rhs!(du, u, t,
 
   # Calculate surface integrals
   @timed timer() "surface integral" calc_surface_integral!(
-    du, mesh, equations, dg.surface_integral, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   # Apply Jacobian from mapping to reference element
   #  Note! this routine is reused from dg_curved/dg_2d.jl
@@ -414,7 +414,7 @@ end
 #          -----------------                  -----------------
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
-function calc_surface_integral!(du, mesh::UnstructuredQuadMesh,
+function calc_surface_integral!(du, u, mesh::UnstructuredQuadMesh,
                                 equations, surface_integral, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
@@ -452,7 +452,7 @@ function max_discrete_metric_identities(dg::DGSEM, cache)
   metric_id_dx = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
   metric_id_dy = zeros(eltype(contravariant_vectors), nnodes(dg), nnodes(dg))
 
-  max_metric_ids = zero(dg.basis.nodes[1])
+  max_metric_ids = zero(eltype(contravariant_vectors))
 
   for i in 1:ndims_, element in eachelement(dg, cache)
     # compute D*Ja_1^i + Ja_2^i*D^T

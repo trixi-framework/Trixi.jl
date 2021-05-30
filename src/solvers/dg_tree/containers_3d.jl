@@ -81,7 +81,7 @@ function init_elements(cell_ids, mesh::TreeMesh3D,
   n_elements = length(cell_ids)
   elements = ElementContainer3D{RealT, uEltype, NVARS, NNODES-1}(n_elements)
 
-  init_elements!(elements, cell_ids, mesh, basis.nodes)
+  init_elements!(elements, cell_ids, mesh, get_nodes(basis))
   return elements
 end
 

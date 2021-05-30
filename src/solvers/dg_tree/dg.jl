@@ -232,7 +232,6 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
     show(io, dg)
   else
     summary_header(io, "DG{" * string(real(dg)) * "}")
-    summary_line(io, "polynomial degree", polydeg(dg))
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar", dg.mortar)
     summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
@@ -245,11 +244,9 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
   end
 end
 
-@inline Base.real(dg::DG) = real(dg.basis)
+Base.summary(dg::DG) = "DG(" * summary(dg.basis) * ")"
 
-# TODO: Taal refactor, use case?
-# Deprecate in favor of nnodes or order_of_accuracy?
-@inline polydeg(dg::DG) = polydeg(dg.basis)
+@inline Base.real(dg::DG) = real(dg.basis)
 
 @inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
@@ -375,6 +372,10 @@ function DGSEM(; RealT=Float64,
   return DGSEM(basis, surface_flux, volume_integral)
 end
 
+@inline polydeg(dg::DGSEM) = polydeg(dg.basis)
+
+Base.summary(dg::DGSEM) = "DGSEM(polydeg=$(polydeg(dg)))"
+
 
 
 """
@@ -426,3 +427,4 @@ include("dg_2d_parallel.jl")
 # 3D DG implementation
 include("containers_3d.jl")
 include("dg_3d.jl")
+

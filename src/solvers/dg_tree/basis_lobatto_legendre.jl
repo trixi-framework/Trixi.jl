@@ -84,6 +84,21 @@ end
 
 @inline polydeg(basis::LobattoLegendreBasis) = nnodes(basis) - 1
 
+get_nodes(basis::LobattoLegendreBasis) = basis.nodes
+
+function integrate(f, u, basis::LobattoLegendreBasis)
+  @unpack weights = basis
+
+  res = zero(f(first(u)))
+  for i in eachindex(u, weights)
+    res += f(u[i]) * weights[i]
+  end
+  return res
+end
+
+left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
+right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
+
 
 
 struct LobattoLegendreMortarL2{RealT<:Real, NNODES, ForwardMatrix<:AbstractMatrix{RealT}, ReverseMatrix<:AbstractMatrix{RealT}} <: AbstractMortarL2{RealT}
@@ -193,7 +208,7 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis; analysis_polydeg=2*polyde
 
   # compute everything using `Float64` by default
   nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_)
-  vandermonde_ = polynomial_interpolation_matrix(basis.nodes, nodes_)
+  vandermonde_ = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
   # type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency

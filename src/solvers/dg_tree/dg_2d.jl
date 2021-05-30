@@ -155,7 +155,7 @@ function rhs!(du, u, t,
 
   # Calculate surface integrals
   @timed timer() "surface integral" calc_surface_integral!(
-    du, mesh, equations, dg.surface_integral, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   # Apply Jacobian from mapping to reference element
   @timed timer() "Jacobian" apply_jacobian!(
@@ -1064,7 +1064,7 @@ end
 end
 
 
-function calc_surface_integral!(du, mesh::Union{TreeMesh{2}, CurvedMesh{2}},
+function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, CurvedMesh{2}},
                                 equations, surface_integral, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
