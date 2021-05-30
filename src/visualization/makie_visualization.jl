@@ -70,45 +70,56 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
     solution_scaling = trixi_plot[:solution_scaling][]
 
     semi = sol.prob.p
-    @unpack solver, mesh = semi
+    dg = semi.solver
+    @unpack equations, cache, mesh = semi
 
-    N = Trixi.polydeg(solver)
-    n_nodes_1D = length(solver.basis.nodes)
+    # make solution
+    u = sol.u[end]
+    u = Trixi.wrap_array(u,mesh,equations,dg,cache)
+
+    N = Trixi.polydeg(dg)
+    n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
-    n_elements = mesh.n_elements
-    pd = PlotData2D(sol) # replace eventually?
+    n_elements = nelements(dg,cache)
+    # pd = PlotData2D(sol) # replace eventually?
     
+    # build nodes on reference element (seems to be the right ordering)
+    r1D = dg.basis.nodes
+    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+
+    # reference plotting nodes
     Nplot = trixi_plot[:plot_polydeg][]
-    Vdm1D = vandermonde(Line(),N,solver.basis.nodes)
+    Vdm1D = vandermonde(Line(),N,dg.basis.nodes)
     Vp1D = vandermonde(Line(),N,LinRange(-1,1,Nplot+1))/Vdm1D
     Vp = kron(Vp1D,Vp1D) 
     n_plot_nodes = size(Vp,1)
 
-    # build nodes on reference element: seems to be the right ordering?
-    r1D = solver.basis.nodes
-    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
-    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
-    
-    sol_to_plot = reshape(pd.data[variable],n_nodes,n_elements)
-    x = reshape(pd.x,n_nodes,n_elements)
-    y = reshape(pd.y,n_nodes,n_elements)
-
+    # create triangulation for plotting nodes
     rp,sp = (x->Vp*x).((r,s)) # interpolate
     t = permutedims(plotting_triangulation((rp,sp)))
     makie_triangles = Makie.to_triangles(t)
 
+    coordinates_tmp = zeros(Float32,n_nodes,3)
     coordinates = zeros(Float32,n_plot_nodes,3)
+    solution_color = zeros(Float32,n_plot_nodes,n_elements)
     trimesh = Vector{GeometryBasics.Mesh{3,Float32}}(undef,n_elements)
-    for element in 1:n_elements    
-        xe,ye,ue = view.((x,y,sol_to_plot),:,element)    
-        mul!(view(coordinates,:,1),Vp,xe)
-        mul!(view(coordinates,:,2),Vp,ye)
-        mul!(view(coordinates,:,3),Vp,ue * solution_scaling)
+    for element in Trixi.eachelement(dg, cache)
+        sk = 1
+        for j in Trixi.eachnode(dg), i in Trixi.eachnode(dg)
+            u_node = Trixi.get_node_vars(u,semi.equations,dg,i,j,element)
+            xy_node = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
+            coordinates_tmp[sk,1:2] .= xy_node
+            coordinates_tmp[sk,3] = u_node[variable]
+            sk += 1
+        end    
+        mul!(coordinates,Vp,coordinates_tmp)
+        solution_color[:,element] .= @view coordinates[:,3]
+
         trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates),makie_triangles)
     end
     plotting_mesh = merge([trimesh...])
-    solution_color = vec(Vp*reshape(pd.data[variable],n_nodes,n_elements))
-    Makie.mesh!(trixi_plot,plotting_mesh, color = solution_color)
+    Makie.mesh!(trixi_plot, plotting_mesh, color = vec(solution_color))
     trixi_plot
 end
 
@@ -144,41 +155,61 @@ Other keywords:
 end
 
 function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:Int}})
+
     variable = trixi_plot[:variable][]
     sol = trixi_plot[:sol][]
     semi = sol.prob.p
-    @unpack solver, mesh = semi
+    @unpack equations, mesh, cache = semi
+    dg = semi.solver
 
-    N = Trixi.polydeg(solver)
-    n_nodes_1D = length(solver.basis.nodes)
+    # wrap solution
+    u = Trixi.wrap_array(sol.u[end],mesh,equations,dg,cache)
+    
+    N = Trixi.polydeg(dg)
+    n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
-    n_elements = mesh.n_elements
-    pd = PlotData2D(sol) # replace eventually?
+    n_elements = nelements(dg,cache)
+    # pd = PlotData2D(sol) # replace eventually?
 
+    # reference interpolation operators
     Nplot = trixi_plot[:plot_polydeg][]
-    Vdm1D = vandermonde(Line(),N,solver.basis.nodes)
+    Vdm1D = vandermonde(Line(),N,dg.basis.nodes)
     Vp1D = vandermonde(Line(),N,LinRange(-1,1,Nplot+1))/Vdm1D
 
     # seems to be the right ordering?
-    r1D = solver.basis.nodes
+    r1D = dg.basis.nodes
     r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
     s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
 
-    sol_to_plot = reshape(pd.data[variable],n_nodes,n_elements)
-    x = reshape(pd.x,n_nodes,n_elements)
-    y = reshape(pd.y,n_nodes,n_elements)
-
+    # extract local face nodes
     tol = 50*eps()
     e1 = findall(@. abs(s+1)<tol)
     e2 = findall(@. abs(r-1)<tol)
     e3 = findall(@. abs(s-1)<tol)
     e4 = findall(@. abs(r+1)<tol)
     Fmask = hcat(e1,e2,e3,e4)
+
+    x,y,sol_to_plot = ntuple(_->zeros(Float32,n_nodes,n_elements),3)
+    for element in Trixi.eachelement(dg, cache)
+        sk = 1
+        for j in Trixi.eachnode(dg), i in Trixi.eachnode(dg)
+            u_node = Trixi.get_node_vars(u,semi.equations,dg,i,j,element)
+            xy_node = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
+            x[sk,element] = xy_node[1]
+            y[sk,element] = xy_node[2]
+            sol_to_plot[sk,element] = u_node[variable]
+            sk += 1
+        end    
+    end
+
     function face_first_reshape(x,n_nodes_1D,n_nodes,n_elements)
         n_reference_faces = 4 # hardcoded for quads
         xf = view(reshape(x,n_nodes,n_elements),vec(Fmask),:)
         return reshape(xf,n_nodes_1D,n_elements * n_reference_faces)
     end
+    # sol_to_plot = reshape(pd.data[variable],n_nodes,n_elements)
+    # x = reshape(pd.x,n_nodes,n_elements)
+    # y = reshape(pd.y,n_nodes,n_elements)
     xf,yf,sol_f = face_first_reshape.((x,y,sol_to_plot),n_nodes_1D,n_nodes,n_elements)
     xfp,yfp,ufp = map(xf->vec(vcat(Vp1D*xf,fill(NaN,1,size(xf,2)))),(xf,yf,sol_f))
 
@@ -199,3 +230,6 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
     end
     trixi_plot
 end
+
+
+
