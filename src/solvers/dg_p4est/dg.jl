@@ -2,11 +2,22 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any, ::Type{uEltype}) where {uEltype<:Real}
-  elements = init_elements(mesh, equations, dg.basis, uEltype)
+  # Make sure to balance the p4est before creating any containers
+  # in case someone has tampered with the p4est after creating the mesh
+  p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, C_NULL)
+  # Due to a bug in p4est, the forest needs to be rebalanced twice sometimes
+  # See https://github.com/cburstedde/p4est/issues/112
+  p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, C_NULL)
+
+  elements   = init_elements(mesh, equations, dg.basis, uEltype)
   interfaces = init_interfaces(mesh, equations, dg.basis, elements)
   boundaries = init_boundaries(mesh, equations, dg.basis, elements)
+  mortars    = init_mortars(mesh, equations, dg.basis, elements)
 
-  cache = (; elements, interfaces, boundaries)
+  cache = (; elements, interfaces, boundaries, mortars)
+
+  # Add specialized parts of the cache required to compute the volume integral etc.
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
   return cache
 end

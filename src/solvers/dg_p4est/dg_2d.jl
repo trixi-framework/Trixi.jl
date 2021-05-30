@@ -1,46 +1,13 @@
-function rhs!(du, u, t,
-              mesh::P4estMesh{2}, equations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache)
-  # Reset du
-  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
+# The methods below are specialized on the mortar type
+# and called from the basic `create_cache` method at the top.
+function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+  # TODO: Taal performance using different types
+  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2}
+  fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  u_threaded =           MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
-  # Calculate volume integral
-  @timed timer() "volume integral" calc_volume_integral!(
-    du, u, mesh,
-    have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
-
-  # Prolong solution to interfaces
-  @timed timer() "prolong2interfaces" prolong2interfaces!(
-    cache, u, mesh, equations, dg)
-
-  # Calculate interface fluxes
-  @timed timer() "interface flux" calc_interface_flux!(
-    cache.elements.surface_flux_values, mesh,
-    equations, dg, cache)
-
-  # Prolong solution to boundaries
-  @timed timer() "prolong2boundaries" prolong2boundaries!(
-    cache, u, mesh, equations, dg)
-
-  # Calculate boundary fluxes
-  @timed timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
-
-  # Calculate surface integrals
-  @timed timer() "surface integral" calc_surface_integral!(
-    du, mesh, equations, dg, cache)
-
-  # Apply Jacobian from mapping to reference element
-  @timed timer() "Jacobian" apply_jacobian!(
-    du, mesh, equations, dg, cache)
-
-  # Calculate source terms
-  @timed timer() "source terms" calc_sources!(
-    du, u, t, source_terms, equations, dg, cache)
-
-  return nothing
+  (; fstar_upper_threaded, fstar_lower_threaded, u_threaded)
 end
 
 
@@ -77,6 +44,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
+                              nonconservative_terms::Val{false},
                               equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack u, element_ids, node_indices = cache.interfaces
@@ -186,6 +154,139 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
       end
     end
   end
+end
+
+
+function prolong2mortars!(cache, u,
+                          mesh::P4estMesh{2}, equations,
+                          mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
+  @unpack element_ids, node_indices = cache.mortars
+
+  size_ = (nnodes(dg), nnodes(dg))
+
+  @threaded for mortar in eachmortar(dg, cache)
+    small_node_indices  = node_indices[1, mortar]
+    large_node_indices  = node_indices[2, mortar]
+
+    # Copy solution small to small
+    for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)
+      # Use Tuple `node_indices` and `evaluate_index` to copy values
+      # from the correct face and in the correct orientation
+      cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_node_indices, size_, 1, i),
+                                                   evaluate_index(small_node_indices, size_, 2, i),
+                                                   element_ids[pos, mortar]]
+    end
+
+    # Buffer to copy solution values of the large element in the correct orientation
+    # before interpolating
+    u_buffer = cache.u_threaded[Threads.threadid()]
+
+    # Copy solution of large element face to buffer in the correct orientation
+    for i in eachnode(dg), v in eachvariable(equations)
+      # Use Tuple `node_indices` and `evaluate_index` to copy values
+      # from the correct face and in the correct orientation
+      u_buffer[v, i] = u[v, evaluate_index(large_node_indices, size_, 1, i),
+                            evaluate_index(large_node_indices, size_, 2, i),
+                            element_ids[3, mortar]]
+    end
+
+    # Interpolate large element face data from buffer to small face locations
+    multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, mortar),
+                            mortar_l2.forward_lower,
+                            u_buffer)
+    multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, mortar),
+                            mortar_l2.forward_upper,
+                            u_buffer)
+  end
+
+  return nothing
+end
+
+
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::P4estMesh{2},
+                           nonconservative_terms::Val{false}, equations,
+                           mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
+  @unpack u, element_ids, node_indices = cache.mortars
+  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+  @unpack surface_flux = dg
+
+  size_ = (nnodes(dg), nnodes(dg))
+
+  @threaded for mortar in eachmortar(dg, cache)
+    # Choose thread-specific pre-allocated container
+    fstar = (fstar_lower_threaded[Threads.threadid()],
+             fstar_upper_threaded[Threads.threadid()])
+
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    # Use Tuple `node_indices` and `evaluate_index` to access node indices
+    # at the correct face and in the correct orientation to get normal vectors
+    for pos in 1:2, i in eachnode(dg)
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
+
+      normal_vector = get_normal_vector(small_direction, cache,
+                                        evaluate_index(small_indices, size_, 1, i),
+                                        evaluate_index(small_indices, size_, 2, i),
+                                        element_ids[pos, mortar])
+
+      flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
+
+      # Copy flux to buffer
+      set_node_vars!(fstar[pos], flux_, equations, dg, i)
+    end
+
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache,
+                               mortar, fstar)
+  end
+
+  return nothing
+end
+
+
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::P4estMesh{2}, equations,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DGSEM, cache, mortar, fstar)
+  @unpack element_ids, node_indices = cache.mortars
+
+  small_indices  = node_indices[1, mortar]
+  large_indices  = node_indices[2, mortar]
+
+  small_direction = indices2direction(small_indices)
+  large_direction = indices2direction(large_indices)
+
+  size_ = (nnodes(dg), nnodes(dg))
+
+  # Copy solution small to small
+  for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)
+    # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+    # to left and right element storage in the correct orientation
+    surface_index = evaluate_index_surface(node_indices[pos, mortar], size_, 1, i)
+    surface_flux_values[v, surface_index,
+                        small_direction,
+                        element_ids[pos, mortar]] = fstar[pos][v, i]
+  end
+
+  large_element = element_ids[3, mortar]
+
+  # Project small fluxes to large element.
+  # The flux is calculated in the outward direction of the small elements,
+  # so the sign must be switched to get the flux in outward direction
+  # of the large element.
+  # The contravariant vectors of the large element (and therefore the normal vectors
+  # of the large element as well) are twice as large as the contravariant vectors
+  # of the small elements. Therefore, the flux need to be scaled by a factor of 2
+  # to obtain the flux of the large element.
+  #
+  # TODO: Taal performance, see comment in dg_tree/dg_2d.jl
+  multiply_dimensionwise!(view(surface_flux_values, :, :, large_direction, large_element),
+                          mortar_l2.reverse_upper, -2 * fstar[2],
+                          mortar_l2.reverse_lower, -2 * fstar[1])
+
+  return nothing
 end
 
 
