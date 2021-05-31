@@ -65,6 +65,7 @@ Other keywords:
 end
 
 function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}})
+
     variable = trixi_plot[:variable][]
     sol = trixi_plot[:sol][]
     solution_scaling = trixi_plot[:solution_scaling][]
@@ -81,7 +82,6 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
     n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
     n_elements = nelements(dg,cache)
-    # pd = PlotData2D(sol) # replace eventually?
     
     # build nodes on reference element (seems to be the right ordering)
     r1D = dg.basis.nodes
@@ -110,7 +110,7 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
             u_node = Trixi.get_node_vars(u,semi.equations,dg,i,j,element)
             xy_node = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
             coordinates_tmp[sk,1:2] .= xy_node
-            coordinates_tmp[sk,3] = u_node[variable]
+            coordinates_tmp[sk,3] = u_node[variable]*solution_scaling
             sk += 1
         end    
         mul!(coordinates,Vp,coordinates_tmp)
@@ -169,7 +169,6 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
     n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
     n_elements = nelements(dg,cache)
-    # pd = PlotData2D(sol) # replace eventually?
 
     # reference interpolation operators
     Nplot = trixi_plot[:plot_polydeg][]
@@ -207,9 +206,6 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
         xf = view(reshape(x,n_nodes,n_elements),vec(Fmask),:)
         return reshape(xf,n_nodes_1D,n_elements * n_reference_faces)
     end
-    # sol_to_plot = reshape(pd.data[variable],n_nodes,n_elements)
-    # x = reshape(pd.x,n_nodes,n_elements)
-    # y = reshape(pd.y,n_nodes,n_elements)
     xf,yf,sol_f = face_first_reshape.((x,y,sol_to_plot),n_nodes_1D,n_nodes,n_elements)
     xfp,yfp,ufp = map(xf->vec(vcat(Vp1D*xf,fill(NaN,1,size(xf,2)))),(xf,yf,sol_f))
 
