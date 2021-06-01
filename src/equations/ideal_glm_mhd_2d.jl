@@ -226,7 +226,35 @@ end
 end
 
 
-# Calculate the nonconservative terms from Powell and Galilean invariance
+# Calculate the normal flux for a single point
+@inline function flux(u, normal_vector::AbstractVector, equations::IdealGlmMhdEquations2D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  v3 = rho_v3/rho
+  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
+  mag_en = 0.5*(B1^2 + B2^2 + B3^2)
+  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
+
+  v_normal = v1 * normal_vector[1] + v2 * normal_vector[2]
+  B_normal = B1 * normal_vector[1] + B2 * normal_vector[2]
+  rho_v_normal = rho * v_normal
+  f1 = rho_v_normal
+  f2 = rho_v_normal * v1 - B1 * B_normal + (p + mag_en) * normal_vector[1]
+  f3 = rho_v_normal * v2 - B2 * B_normal + (p + mag_en) * normal_vector[2]
+  f4 = rho_v_normal * v3 - B3 * B_normal
+  f5 = ( (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en) * v_normal
+        - B_normal * (v1*B1 + v2*B2 + v3*B3) + equations.c_h * psi * B_normal )
+  f6 = equations.c_h * psi * normal_vector[1] + (v2 * B1 - v1 * B2) * normal_vector[2]
+  f7 = (v1 * B2 - v2 * B1) * normal_vector[1] + equations.c_h * psi * normal_vector[2]
+  f8 = v_normal * B3 - v3 * B_normal
+  f9 = equations.c_h * B_normal
+
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
+end
+
+
+# Calculate the nonconservative terms from Powell and Galilean invariance for the TreeMesh{2}
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element,
                                                     equations::IdealGlmMhdEquations2D, dg, cache)
@@ -254,6 +282,50 @@ end
       _, _, _, _, _, _, B2, _, psi = get_node_vars(u, equations, dg, i, l, element)
       for v in eachvariable(equations)
         f2[v, l, i, j] += phi_pow[v] * B2 + phi_gal_y[v] * psi
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+# Calculate the nonconservative terms from Powell and Galilean invariance for UnstructuredQuadMesh
+# OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
+@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element, contravariant_vectors,
+                                                    equations::IdealGlmMhdEquations2D, dg, cache)
+  for j in eachnode(dg), i in eachnode(dg)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+
+    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
+
+    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    # first direction
+    Ja11_ij, Ja12_ij = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    phi_gal_x = 0.5 * (Ja11_ij * v1 + Ja12_ij * v2) .* SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
+    # second direction
+    Ja21_ij, Ja22_ij = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    phi_gal_y = 0.5 * (Ja21_ij * v1 + Ja22_ij * v2) .* SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
+
+    # add both nonconservative terms into the volume
+    for l in eachnode(dg)
+      _, _, _, _, _, B1, B2, _, psi = get_node_vars(u, equations, dg, l, j, element)
+      Ja11_lj, Ja12_lj = get_contravariant_vector(1, contravariant_vectors, l, j, element)
+      Ja11_avg = 0.5 * (Ja11_ij + Ja11_lj)
+      Ja12_avg = 0.5 * (Ja12_ij + Ja12_lj)
+      for v in eachvariable(equations)
+        f1[v, l, i, j] += phi_pow[v] * ( Ja11_avg * B1 + Ja12_avg * B2) + phi_gal_x[v] * psi
+      end
+      _, _, _, _, _, B1, B2, _, psi = get_node_vars(u, equations, dg, i, l, element)
+      Ja21_il, Ja22_il = get_contravariant_vector(2, contravariant_vectors, i, l, element)
+      Ja21_avg = 0.5 * (Ja21_ij + Ja21_il)
+      Ja22_avg = 0.5 * (Ja22_ij + Ja22_il)
+      for v in eachvariable(equations)
+        f2[v, l, i, j] += phi_pow[v] * ( Ja21_avg * B1 + Ja22_avg * B2) + phi_gal_y[v] * psi
       end
     end
   end
@@ -371,6 +443,11 @@ end
 end
 
 
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations2D)
+  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
+end
+
+
 """
     min_max_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
@@ -417,6 +494,72 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 end
 
 
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
+# has been normalized prior to this rotation of the state vector
+@inline function rotate_to_x(u, normal_vector, equations::IdealGlmMhdEquations2D)
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal_vector[1]
+  s = normal_vector[2]
+
+  # Apply the 2D rotation matrix with normal and tangent directions of the form
+  # [ 1   0    0   0   0   0    0   0   0;
+  #   0  n_1  n_2  0   0   0    0   0   0;
+  #   0  t_1  t_2  0   0   0    0   0   0;
+  #   0   0    0   1   0   0    0   0   0;
+  #   0   0    0   0   1   0    0   0   0;
+  #   0   0    0   0   0  n_1  n_2  0   0;
+  #   0   0    0   0   0  t_1  t_2  0   0;
+  #   0   0    0   0   0   0    0   1   0;
+  #   0   0    0   0   0   0    0   0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1.
+  # Note for IdealGlmMhdEquations2D only the velocities and magnetic field variables rotate
+
+  return SVector(u[1],
+                  c * u[2] + s * u[3],
+                 -s * u[2] + c * u[3],
+                 u[4],
+                 u[5],
+                  c * u[6] + s * u[7],
+                 -s * u[6] + c * u[7],
+                 u[8],
+                 u[9])
+end
+
+
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
+# has been normalized prior to this back-rotation of the state vector
+@inline function rotate_from_x(u, normal_vector, equations::IdealGlmMhdEquations2D)
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal_vector[1]
+  s = normal_vector[2]
+
+  # Apply the 2D back-rotation matrix with normal and tangent directions of the form
+  # [ 1   0    0   0   0   0    0   0   0;
+  #   0  n_1  t_1  0   0   0    0   0   0;
+  #   0  n_2  t_2  0   0   0    0   0   0;
+  #   0   0    0   1   0   0    0   0   0;
+  #   0   0    0   0   1   0    0   0   0;
+  #   0   0    0   0   0  n_1  t_1  0   0;
+  #   0   0    0   0   0  n_2  t_2  0   0;
+  #   0   0    0   0   0   0    0   1   0;
+  #   0   0    0   0   0   0    0   0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1.
+  # Note for IdealGlmMhdEquations2D the velocities and magnetic field variables back-rotate
+
+  return SVector(u[1],
+                 c * u[2] - s * u[3],
+                 s * u[2] + c * u[3],
+                 u[4],
+                 u[5],
+                 c * u[6] - s * u[7],
+                 s * u[6] + c * u[7],
+                 u[8],
+                 u[9])
+end
+
+
 """
     noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
 
@@ -434,8 +577,15 @@ phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{nor
       ``(2)-(1) - 1/2 (phi^L B^L)``
 !!! warning
     This is non-unique along an interface! The normal direction is super important.
+
+For details see Section 4 of the paper
+- Bohm et al. (2018)
+  An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+  Part I: Theory and numerical verification
+  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
 """
-@inline function noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
+@inline function noncons_interface_flux(u_left, u_right, orientation, mode,
+                                        equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
 
@@ -486,6 +636,41 @@ phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{nor
   noncons9 = 0.5 * v_normal * psi_norm
 
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
+end
+
+
+# Compute surface nonconservative "flux" computation in the normal direction (2D version)
+# Note, due to the non-uniqueness of this term we cannot use any fancy rotation tricks.
+# Also, this currently only performs the :weak version from the TreeMesh{2} version of the
+# routine above
+@inline function noncons_interface_flux(u_left, u_right, normal_direction::AbstractVector,
+                                        equations::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
+  _, _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal_vector = normal_direction / norm_
+
+  # extract velocites from the left
+  v1_ll  = rho_v1_ll / rho_ll
+  v2_ll  = rho_v2_ll / rho_ll
+  v3_ll  = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
+  # extract magnetic field variable from the right and set the normal velocity
+  v_normal = normal_vector[1] * v1_ll + normal_vector[2] * v2_ll
+  B_normal = normal_vector[1] * B1_rr + normal_vector[2] * B2_rr
+  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
+  noncons2 = 0.5 * B_normal * B1_ll
+  noncons3 = 0.5 * B_normal * B2_ll
+  noncons4 = 0.5 * B_normal * B3_ll
+  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_rr
+  noncons6 = 0.5 * B_normal * v1_ll
+  noncons7 = 0.5 * B_normal * v2_ll
+  noncons8 = 0.5 * B_normal * v3_ll
+  noncons9 = 0.5 * v_normal * psi_rr
+
+  return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9) * norm_
 end
 
 

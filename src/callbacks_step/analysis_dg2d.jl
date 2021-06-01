@@ -195,7 +195,7 @@ end
 
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{2}, equations::IdealGlmMhdEquations2D,
+                 mesh::Union{TreeMesh{2},UnstructuredQuadMesh}, equations::IdealGlmMhdEquations2D,
                  dg::DG, cache)
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
@@ -224,7 +224,7 @@ end
 
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{2}, equations::IdealGlmMhdEquations2D,
+                 mesh::Union{TreeMesh{2},UnstructuredQuadMesh}, equations::IdealGlmMhdEquations2D,
                  dg::DG, cache)
   @unpack derivative_matrix, weights = dg.basis
 
