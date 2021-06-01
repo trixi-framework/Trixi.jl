@@ -631,7 +631,7 @@ function collect_new_cells(mesh)
   end
 
   # Changed cells are all that haven't been set to zero above
-  new_cells = cell_is_new[cell_is_new .> 0]
+  new_cells = findall(isequal(1), cell_is_new)
 
   return new_cells
 end
