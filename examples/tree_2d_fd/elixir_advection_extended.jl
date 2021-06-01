@@ -18,7 +18,7 @@ D_SBP = derivative_operator(MattssonNordström2004(),
                             # https://github.com/JuliaArrays/ArrayInterface.jl/issues/157
                             # https://github.com/JuliaArrays/ArrayInterface.jl/issues/158
                             # are fixed
-                            parallel=Val(:plain))
+                            mode=SummationByPartsOperators.SafeMode())
 solver = DG(D_SBP, nothing #= mortar =#,
             SurfaceIntegralStrongForm(flux_lax_friedrichs),
             VolumeIntegralStrongForm())

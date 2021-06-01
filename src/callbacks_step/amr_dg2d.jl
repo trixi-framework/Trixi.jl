@@ -69,7 +69,7 @@ function reinitialize_containers!(mesh::TreeMesh{2}, equations, dg::DGSEM, cache
   # re-initialize elements container
   @unpack elements = cache
   resize!(elements, length(leaf_cell_ids))
-  init_elements!(elements, leaf_cell_ids, mesh, get_nodes(dg.basis))
+  init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
 
   # re-initialize interfaces container
   @unpack interfaces = cache
