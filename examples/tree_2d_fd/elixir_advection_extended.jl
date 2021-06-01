@@ -15,9 +15,9 @@ D_SBP = derivative_operator(MattssonNordström2004(),
                             xmin=0.0, xmax=1.0,
                             N=100,
                             # TOOD: FD. Can be removed once
-                            # https://github.com/JuliaArrays/ArrayInterface.jl/pull/156
-                            # is merged and the other issue
-                            # mentioned there is fixed
+                            # https://github.com/JuliaArrays/ArrayInterface.jl/issues/157
+                            # https://github.com/JuliaArrays/ArrayInterface.jl/issues/158
+                            # are fixed
                             parallel=Val(:plain))
 solver = DG(D_SBP, nothing #= mortar =#,
             SurfaceIntegralStrongForm(flux_lax_friedrichs),
