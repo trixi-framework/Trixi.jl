@@ -78,7 +78,6 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
     u = sol.u[end]
     u = Trixi.wrap_array(u,mesh,equations,dg,cache)
 
-    N = Trixi.polydeg(dg)
     n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
     n_elements = nelements(dg,cache)
@@ -90,8 +89,7 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
 
     # reference plotting nodes
     Nplot = trixi_plot[:plot_polydeg][]
-    Vdm1D = vandermonde(Line(),N,dg.basis.nodes)
-    Vp1D = vandermonde(Line(),N,LinRange(-1,1,Nplot+1))/Vdm1D
+    Vp1D = Trixi.polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1,1,Nplot+1))
     Vp = kron(Vp1D,Vp1D) 
     n_plot_nodes = size(Vp,1)
 
@@ -165,16 +163,13 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
     # wrap solution
     u = Trixi.wrap_array(sol.u[end],mesh,equations,dg,cache)
     
-    N = Trixi.polydeg(dg)
     n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
     n_elements = nelements(dg,cache)
 
     # reference interpolation operators
     Nplot = trixi_plot[:plot_polydeg][]
-    Vdm1D = vandermonde(Line(),N,dg.basis.nodes)
-    Vp1D = vandermonde(Line(),N,LinRange(-1,1,Nplot+1))/Vdm1D
-
+    Vp1D = Trixi.polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1,1,Nplot+1))
     # seems to be the right ordering?
     r1D = dg.basis.nodes
     r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 

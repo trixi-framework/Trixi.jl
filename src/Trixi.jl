@@ -34,7 +34,6 @@ import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo
-using NodesAndModes: Line, vandermonde
 import MPI
 using Makie 
 using GeometryBasics: GeometryBasics, Mesh, normal_mesh 
