@@ -21,7 +21,7 @@ f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
 
 trees_per_dimension = (3, 2)
 
-# Create P4estMesh with 8 x 8 trees and 16 x 16 elements
+# Create P4estMesh with 3 x 2 trees and 6 x 4 elements
 mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  faces=(f1, f2, f3, f4),
                  initial_refinement_level=1)
