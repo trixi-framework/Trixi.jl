@@ -6,7 +6,6 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-#gamma = 5/3
 equations = IdealGlmMhdEquations2D(5/3)
 
 initial_condition = initial_condition_weak_blast_wave
@@ -47,9 +46,9 @@ mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
 #   return SVector(x, y)
 # end
 #
-# cells_per_dimension = (16, 16)
+# cells_per_dimension = (8, 8)
 #
-# # Create curved mesh with 16 x 16 elements
+# # Create curved mesh with 8 x 8 elements
 # mesh = CurvedMesh(cells_per_dimension, mapping)
 
 ###############################################################################
