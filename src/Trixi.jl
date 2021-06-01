@@ -35,7 +35,6 @@ using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo
 import MPI
-using Makie 
 using GeometryBasics: GeometryBasics, Mesh, normal_mesh 
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
@@ -74,8 +73,6 @@ include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
-include("visualization/makie_visualization.jl")
-
 
 # export types/functions that define the public API of Trixi
 
@@ -173,7 +170,6 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
-export trixi_pcolor, trixi_pcolor!, trixi_wireframe, trixi_wireframe!
 
 function __init__()
   init_mpi()
@@ -181,6 +177,12 @@ function __init__()
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
+  end
+
+  @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
+    include("visualization/makie_visualization.jl")
+    using .Makie: Makie, Attributes, to_triangles, to_vertices, mesh, mesh!, translate!, plot!, @recipe, lines!
+    export trixi_pcolor, trixi_pcolor!, trixi_wireframe, trixi_wireframe!
   end
 end
 
