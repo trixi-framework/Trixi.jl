@@ -50,10 +50,6 @@ Other keywords:
 - plot_polydeg = 10     # number of equispaced points used for plotting in each direction 
 """
 @Makie.recipe(Trixi_Pcolor, sol, variable) do scene
-    # default_theme(scene)...,
-    # colormap = theme(scene, :colormap),
-    # inspectable = theme(scene, :inspectable), # currently broken
-    # colorrange = automatic,
     Attributes(;
         interpolate = false,
         shading = true,
@@ -62,6 +58,12 @@ Other keywords:
         solution_scaling=1.0, # scales the z-values of the solution by this factor
         plot_polydeg = 10     # number of equispaced points used for plotting in each direction 
     )
+end
+
+plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes)) # is this the right thing for FD-SBP?
+
+function plotting_interpolation_matrix(dg::DGSEM; plot_polydeg = 5)
+    return Trixi.polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1,1,plot_polydeg+1))
 end
 
 function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}})
@@ -89,7 +91,7 @@ function Makie.plot!(trixi_plot::Trixi_Pcolor{<:Tuple{<:TrixiODESolution, <:Int}
 
     # reference plotting nodes
     Nplot = trixi_plot[:plot_polydeg][]
-    Vp1D = Trixi.polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1,1,Nplot+1))
+    Vp1D = plotting_interpolation_matrix(dg; plot_polydeg=Nplot)
     Vp = kron(Vp1D,Vp1D) 
     n_plot_nodes = size(Vp,1)
 
@@ -136,10 +138,6 @@ Other keywords:
 
 """
 @Makie.recipe(Trixi_Wireframe, sol, variable) do scene
-    # default_theme(scene)...,
-    # linewidth = theme(scene, :linewidth),
-    # colormap = theme(scene, :colormap), # currently broken?
-    # inspectable = theme(scene, :inspectable),
     Attributes(;
         linestyle = nothing,
         fxaa = false,
@@ -169,7 +167,8 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
 
     # reference interpolation operators
     Nplot = trixi_plot[:plot_polydeg][]
-    Vp1D = Trixi.polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1,1,Nplot+1))
+    Vp1D = plotting_interpolation_matrix(dg)   
+    
     # seems to be the right ordering?
     r1D = dg.basis.nodes
     r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
@@ -216,7 +215,7 @@ function Makie.plot!(trixi_plot::Trixi_Wireframe{<:Tuple{<:TrixiODESolution, <:I
         # translate!'s tolerance should be relative...
         Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp*solution_scaling,color=wire_color,linewidth=lw,linestyle=linestyle),0,0,z_translate_plot) 
 
-        # if you want to draw a wireframe under surface as well?
+        # if you want to draw a wireframe under surface as well.
         # Makie.translate!(lines!(trixi_plot,xfp,yfp,ufp,color=wire_color,linewidth=lw,linestyle=linestyle),0,0,-1.e-3) 
     end
     trixi_plot
