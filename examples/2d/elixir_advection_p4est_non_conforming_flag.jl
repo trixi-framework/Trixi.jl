@@ -26,7 +26,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  faces=(f1, f2, f3, f4),
                  initial_refinement_level=1)
 
-# Refine bottom left quadrant of each forest to level 4
+# Refine bottom left quadrant of each tree to level 4
 function refine_fn(p4est, which_tree, quadrant)
   if quadrant.x == 0 && quadrant.y == 0 && quadrant.level < 4
     # return true (refine)
@@ -37,7 +37,7 @@ function refine_fn(p4est, which_tree, quadrant)
   end
 end
 
-# Refine recursively until each bottom left quadrant of a forest has level 4
+# Refine recursively until each bottom left quadrant of a tree has level 4
 # The mesh will be rebalanced before the simulation starts
 refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p4est_quadrant_t}))
 Trixi.p4est_refine(mesh.p4est, true, refine_fn_c, C_NULL)

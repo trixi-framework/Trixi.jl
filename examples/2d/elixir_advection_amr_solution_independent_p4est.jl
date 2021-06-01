@@ -10,15 +10,17 @@ using Trixi
 struct IndicatorSolutionIndependent{Cache<:NamedTuple} <: Trixi.AbstractIndicator
   cache::Cache
 end
+
 function IndicatorSolutionIndependent(semi)
   basis = semi.solver.basis
   alpha = Vector{real(basis)}()
   cache = (; semi.mesh, alpha)
   return IndicatorSolutionIndependent{typeof(cache)}(cache)
 end
+
 function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
-                                             equations, dg, cache;
-                                             t, kwargs...)
+                                                   equations, dg, cache;
+                                                   t, kwargs...)
 
   mesh = indicator.cache.mesh
   alpha = indicator.cache.alpha

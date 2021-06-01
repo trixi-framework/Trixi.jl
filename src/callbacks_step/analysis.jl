@@ -386,7 +386,7 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
   elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
   for tree in convert_sc_array(p4est_tree_t, mesh.p4est.trees)
-    @. elements_per_level += tree.quadrants_per_level
+    elements_per_level .+= tree.quadrants_per_level
   end
 
   min_level = findfirst(i -> i > 0, elements_per_level) - 1

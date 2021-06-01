@@ -167,8 +167,8 @@ function prolong2mortars!(cache, u,
   size_ = (nnodes(dg), nnodes(dg))
 
   @threaded for mortar in eachmortar(dg, cache)
-    small_indices  = node_indices[1, mortar]
-    large_indices  = node_indices[2, mortar]
+    small_indices = node_indices[1, mortar]
+    large_indices = node_indices[2, mortar]
 
     # Copy solution small to small
     for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)

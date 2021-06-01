@@ -321,14 +321,15 @@ end
 
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, info.p4est.trees)
-  # Quadrant numbering offset of this quadrant, one-based indexing
-  offset = trees[info.treeid + 1].quadrants_offset
+  # Global trees array, one-based indexing
+  tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
   # Global quad ID
   quad_id = offset + info.quadid
 
   # Access user_data = lambda
+  # TODO P4EST Is lambda always a Vector{Int}?
   user_data_ptr = Ptr{Int}(user_data)
   # Load controller_value = lambda[quad_id + 1]
   controller_value = unsafe_load(user_data_ptr, quad_id + 1)
@@ -361,7 +362,6 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
   # Copy controller value of each quad to the quad's user data storage
   iter_volume_c = @cfunction(copy_to_quad_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
 
-  # TODO P4EST Is lambda always a Vector{Int}?
   GC.@preserve lambda begin
     p4est_iterate(mesh.p4est,
                   C_NULL, # ghost layer
@@ -376,9 +376,11 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     refined_original_cells = @timed timer() "mesh" refine!(mesh)
 
     # Refine solver
-    @timed timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    @timed timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache,
+                                    refined_original_cells)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-      @timed timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, refined_original_cells)
+      @timed timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations,
+                                              p_dg, p_cache, refined_original_cells)
     end
   else
     # If there is nothing to refine, create empty array for later use
@@ -390,7 +392,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     coarsened_original_cells = @timed timer() "mesh" coarsen!(mesh)
 
     # coarsen solver
-    @timed timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, coarsened_original_cells)
+    @timed timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache,
+                                     coarsened_original_cells)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
       @timed timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations,
                                                p_dg, p_cache, coarsened_original_cells)
@@ -573,10 +576,10 @@ function controller_three_level_iter_volume(info, user_data)
 
   @unpack controller_value = controller.cache
 
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, info.p4est.trees)
-  # Quadrant numbering offset of this quadrant, one-based indexing
-  offset = trees[info.treeid + 1].quadrants_offset
+  # Global trees array, one-based indexing
+  tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
   # Global quad ID
   quad_id = offset + info.quadid
   # Julia element ID
