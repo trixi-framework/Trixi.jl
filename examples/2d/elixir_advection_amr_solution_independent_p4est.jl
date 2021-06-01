@@ -35,10 +35,10 @@ function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
   for element in 1:length(alpha)
     # Calculate periodic distance between cell and center.
     # This requires an uncurved mesh!
-    coordinates = [0.5 * (cache.elements.node_coordinates[1, 1, 1, element] +
-                          cache.elements.node_coordinates[1, end, 1, element]),
-                   0.5 * (cache.elements.node_coordinates[2, 1, 1, element] +
-                          cache.elements.node_coordinates[2, 1, end, element])]
+    coordinates = SVector(0.5 * (cache.elements.node_coordinates[1, 1, 1, element] +
+                                 cache.elements.node_coordinates[1, end, 1, element]),
+                          0.5 * (cache.elements.node_coordinates[2, 1, 1, element] +
+                                 cache.elements.node_coordinates[2, 1, end, element]))
 
     #The geometric shape of the amr should be preserved when the base_level is increased.
     #This is done by looking at the original coordinates of each cell.

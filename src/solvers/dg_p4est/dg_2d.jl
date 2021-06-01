@@ -2,7 +2,9 @@
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal performance using different types
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2}
+  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
+                uEltype, 2,
+                nvariables(equations) * nnodes(mortar_l2)}
   fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   u_threaded =           MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -277,6 +279,11 @@ end
   large_element = element_ids[3, mortar]
 
   # Project small fluxes to large element.
+  # TODO: Taal performance, see comment in dg_tree/dg_2d.jl
+  multiply_dimensionwise!(u_buffer,
+                          mortar_l2.reverse_upper, fstar[2],
+                          mortar_l2.reverse_lower, fstar[1])
+
   # The flux is calculated in the outward direction of the small elements,
   # so the sign must be switched to get the flux in outward direction
   # of the large element.
@@ -284,11 +291,7 @@ end
   # of the large element as well) are twice as large as the contravariant vectors
   # of the small elements. Therefore, the flux need to be scaled by a factor of 2
   # to obtain the flux of the large element.
-  #
-  # TODO: Taal performance, see comment in dg_tree/dg_2d.jl
-  multiply_dimensionwise!(u_buffer,
-                          mortar_l2.reverse_upper, -2 * fstar[2],
-                          mortar_l2.reverse_lower, -2 * fstar[1])
+  u_buffer .*= -2
 
   # Copy interpolated flux values from buffer to large element face in the correct orientation
   for i in eachnode(dg), v in eachvariable(equations)

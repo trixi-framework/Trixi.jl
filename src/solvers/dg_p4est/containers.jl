@@ -440,6 +440,15 @@ function convert_sc_array(::Type{T}, sc_array) where T
 end
 
 
+function load_sc_array(::Type{T}, sc_array, i=1) where T
+  element_size = sc_array.elem_size
+
+  @assert element_size == sizeof(T)
+
+  return unsafe_wrap(T, sc_array.array + element_size * (i - 1))
+end
+
+
 # Convert Tuple node_indices to actual indices.
 # E.g., (:one, :i, :j) will be (1, i, j) for some i and j,
 # (:i, :end) will be (i, size[2]),
