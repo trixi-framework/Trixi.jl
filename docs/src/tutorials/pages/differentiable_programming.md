@@ -190,7 +190,7 @@ true
 ```
 
 ```julia
-5.0e-14 < maximum(real, λ) < 5.0e-12 # For some reason `maximum(real, λ) = 6.853109654663226e-13`
+5.0e-14 < maximum(real, λ) < 7.0e-13
 # true
 ```
 

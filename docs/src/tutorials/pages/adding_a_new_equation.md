@@ -158,21 +158,21 @@ summary_callback()
  ──────────────────────────────────────────────────────────────────────────────
             Trixi.jl                   Time                   Allocations      
                                ──────────────────────   ───────────────────────
-       Tot / % measured:            300ms / 100%            7.79MiB / 100%     
+       Tot / % measured:            162ms / 100%            4.72MiB / 100%     
 
  Section               ncalls     time   %tot     avg     alloc   %tot      avg
  ──────────────────────────────────────────────────────────────────────────────
- rhs!                      58    300ms   100%  5.17ms   7.77MiB  100%    137KiB
-   ~rhs!~                  58    300ms   100%  5.17ms   7.77MiB  100%    137KiB
-   volume integral         58   22.6μs  0.01%   390ns     0.00B  0.00%    0.00B
-   interface flux          58   11.3μs  0.00%   195ns     0.00B  0.00%    0.00B
-   prolong2interfaces      58   10.2μs  0.00%   176ns     0.00B  0.00%    0.00B
-   surface integral        58   7.80μs  0.00%   134ns     0.00B  0.00%    0.00B
-   prolong2boundaries      58   7.20μs  0.00%   124ns     0.00B  0.00%    0.00B
-   Jacobian                58   6.80μs  0.00%   117ns     0.00B  0.00%    0.00B
-   reset ∂u/∂t             58   6.70μs  0.00%   116ns     0.00B  0.00%    0.00B
-   boundary flux           58   4.50μs  0.00%  77.6ns     0.00B  0.00%    0.00B
-   source terms            58   3.30μs  0.00%  56.9ns     0.00B  0.00%    0.00B
+ rhs!                      58    162ms   100%  2.79ms   4.72MiB  100%   83.3KiB
+   ~rhs!~                  58    162ms   100%  2.79ms   4.72MiB  100%   83.3KiB
+   volume integral         58   12.6μs  0.01%   217ns     0.00B  0.00%    0.00B
+   interface flux          58   5.60μs  0.00%  96.6ns     0.00B  0.00%    0.00B
+   prolong2interfaces      58   5.50μs  0.00%  94.8ns     0.00B  0.00%    0.00B
+   surface integral        58   3.60μs  0.00%  62.1ns     0.00B  0.00%    0.00B
+   Jacobian                58   2.60μs  0.00%  44.8ns     0.00B  0.00%    0.00B
+   reset ∂u/∂t             58   2.50μs  0.00%  43.1ns     0.00B  0.00%    0.00B
+   prolong2boundaries      58   1.90μs  0.00%  32.8ns     0.00B  0.00%    0.00B
+   source terms            58   1.70μs  0.00%  29.3ns     0.00B  0.00%    0.00B
+   boundary flux           58   1.30μs  0.00%  22.4ns     0.00B  0.00%    0.00B
  ──────────────────────────────────────────────────────────────────────────────
 
 

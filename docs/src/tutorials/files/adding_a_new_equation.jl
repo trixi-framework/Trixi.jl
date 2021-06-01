@@ -36,7 +36,6 @@ using Trixi
 import .CubicConservationLaw
 
 Trixi.flux(u, orientation, equation::CubicConservationLaw.CubicEquation) = u.^3
-#src TODO: Is there a way to hide this but still use it in the code?
 Trixi.varnames(_, ::CubicConservationLaw.CubicEquation) = ("scalar",)
 
 # In Trixi.jl, the conserved variables `u` are usually passed as `SVector`s of variables

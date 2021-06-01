@@ -4,7 +4,7 @@
 
 This file is just for testing which packages are installed in the notebook (via binder).
 
-In Trixi Project.toml the package Printf is installed
+In the root Project.toml the package Printf is installed
 
 ```julia
 using Printf
