@@ -60,6 +60,13 @@ Other keywords:
     )
 end
 
+"""
+plotting_interpolation_matrix(dg; kwargs...)
+
+Interpolation matrix which maps discretization nodes to a set of plotting nodes. 
+Defaults to the identity matrix of size `length(solver.basis.nodes)`, and interpolates 
+to equispaced nodes for DGSEM (set by kwarg `plot_polydeg` in the plotting function). 
+"""
 plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes)) # is this the right thing for FD-SBP?
 
 function plotting_interpolation_matrix(dg::DGSEM; plot_polydeg = 5)
