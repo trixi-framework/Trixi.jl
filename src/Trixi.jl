@@ -178,13 +178,18 @@ function __init__()
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
   end
-
+                
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/makie_visualization.jl")
-    using .Makie: Makie, Attributes, to_triangles, to_vertices, mesh, mesh!, translate!, plot!, @recipe, lines!, @lift
+    using .Makie: Makie, Attributes, mesh, mesh!, plot!, @recipe, lines!, @lift
     export trixi_pcolor, trixi_pcolor!, trixi_wireframe, trixi_wireframe!, trixi_plot
   end
 end
+
+# using Makie: Makie, Attributes, to_triangles, to_vertices, mesh, mesh!, translate!, plot!, @recipe, lines!, @lift
+# include("visualization/makie_visualization.jl")
+# # using .Makie: Makie, Attributes, to_triangles, to_vertices, mesh, mesh!, translate!, plot!, @recipe, lines!, @lift
+# export trixi_pcolor, trixi_pcolor!, trixi_wireframe, trixi_wireframe!, trixi_plot
 
 
 include("auxiliary/precompile.jl")
