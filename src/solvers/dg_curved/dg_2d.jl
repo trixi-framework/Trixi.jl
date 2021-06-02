@@ -206,10 +206,11 @@ end
     # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
     flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
 
-    # Call pointwise nonconservative term; Done twice because left/right orientation matters så
+    # Call pointwise nonconservative term; Done twice because left/right orientation matters
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    noncons_primary   = noncons_interface_flux(u_ll, u_rr, normal_direction, :weak, equations)
-    noncons_secondary = noncons_interface_flux(u_rr, u_ll, normal_direction, :weak, equations)
+    # Scale with sign_jacobian to ensure that the normal_direction matches that from the flux above
+    noncons_primary   = sign_jacobian * noncons_interface_flux(u_ll, u_rr, normal_direction, :weak, equations)
+    noncons_secondary = sign_jacobian * noncons_interface_flux(u_rr, u_ll, normal_direction, :weak, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, right_direction, left_element] = flux[v] + noncons_primary[v]
