@@ -488,8 +488,6 @@ end
 
 
 # Very naive way to approximate the edges of the Riemann fan in the normal direction
-# because the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
-# If the run fails for `flux_hll` one can try the `FluxRotated(flux_hll)` version
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, _, _, _, _, _, _ = u_ll
@@ -506,24 +504,22 @@ end
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
-  # Compute wave speed estimates in each direction
-  c1_f_ll = calc_fast_wavespeed(u_ll, 1, equations)
-  c1_f_rr = calc_fast_wavespeed(u_rr, 1, equations)
-  v1_roe, c1_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, 1, equations)
+  # Compute wave speed estimates in each direction. Requires rotation because
+  # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal_vector = normal_direction / norm_
 
-  c2_f_ll = calc_fast_wavespeed(u_ll, 2, equations)
-  c2_f_rr = calc_fast_wavespeed(u_rr, 2, equations)
-  v2_roe, c2_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, 2, equations)
+  u_ll_rotated = rotate_to_x(u_ll, normal_vector, equations)
+  u_rr_rotated = rotate_to_x(u_rr, normal_vector, equations)
 
-  # Compute the wave speed estimates in the normal direction
-  c_f_normal_ll  = c1_f_ll  * normal_direction[1] + c2_f_ll  * normal_direction[2]
-  c_f_normal_rr  = c1_f_rr  * normal_direction[1] + c2_f_rr  * normal_direction[2]
-  v_normal_roe   = v1_roe   * normal_direction[1] + v2_roe   * normal_direction[2]
-  c_f_normal_roe = c1_f_roe * normal_direction[1] + c2_f_roe * normal_direction[2]
+  c_f_ll_rotated = calc_fast_wavespeed(u_ll_rotated, 1, equations)
+  c_f_rr_rotated = calc_fast_wavespeed(u_rr_rotated, 1, equations)
+  v_roe_rotated, c_f_roe_rotated = calc_fast_wavespeed_roe(u_ll_rotated, u_rr_rotated, 1, equations)
 
   # Estimate the min/max eigenvalues in the normal direction
-  λ_min = min(v_normal_ll - c_f_normal_ll, v_normal_roe - c_f_normal_roe) * norm(normal_direction)
-  λ_max = max(v_normal_rr + c_f_normal_rr, v_normal_roe + c_f_normal_roe) * norm(normal_direction)
+  λ_min = min(v_normal_ll - c_f_ll_rotated, v_roe_rotated - c_f_roe_rotated) * norm_
+  λ_max = max(v_normal_rr + c_f_rr_rotated, v_roe_rotated + c_f_roe_rotated) * norm_
 
   return λ_min, λ_max
 end

@@ -5,30 +5,24 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
+gamma = 5/3
+equations = IdealGlmMhdEquations2D(gamma)
 
-equations = IdealGlmMhdEquations2D(5/3)
+initial_condition = initial_condition_convergence_test
 
-initial_condition = initial_condition_weak_blast_wave
-
-###############################################################################
-# Get the DG approximation space
-
-volume_flux = flux_derigs_etal
-solver = DGSEM(polydeg=6, surface_flux=FluxRotated(flux_derigs_etal),
+volume_flux = flux_central
+solver = DGSEM(polydeg=5, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# Get the curved quad mesh from a file
+# Get the unstructured quad mesh from a file (downloads the file if not available locally)
 
-default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
-                                       default_mesh_file)
+default_mesh_file = joinpath(@__DIR__, "mesh_alfven_wave.mesh")
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/b293c0be1e4c6180dc169ff6a9bf256f/raw/bf5a5c8d5b57b40f4a94c15267b5153551235eeb/mesh_alfven_wave.mesh",
+                                      default_mesh_file)
+
 mesh_file = default_mesh_file
-
 mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
-
-###############################################################################
-# create the semi discretization object
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -52,7 +46,7 @@ save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
-cfl = 1.0
+cfl = 0.9
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
@@ -64,10 +58,11 @@ callbacks = CallbackSet(summary_callback,
                         stepsize_callback,
                         glm_speed_callback)
 
+
 ###############################################################################
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary

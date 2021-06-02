@@ -1,31 +1,60 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-equations = IdealGlmMhdEquations2D(5/3)
+equations = IdealGlmMhdEquations2D(1.4)
 
-initial_condition = initial_condition_weak_blast_wave
+function initial_condition_shifted_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
+  # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Same discontinuity in the velocities but with magnetic fields
+  # Set up polar coordinates
+  inicenter = (1.5, 1.5)
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(SVector(rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0), equations)
+end
+
+initial_condition = initial_condition_shifted_weak_blast_wave
 
 ###############################################################################
 # Get the DG approximation space
 
 volume_flux = flux_derigs_etal
-solver = DGSEM(polydeg=6, surface_flux=FluxRotated(flux_derigs_etal),
+solver = DGSEM(polydeg=5, surface_flux=FluxRotated(flux_derigs_etal),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# Get the curved quad mesh from a file
+# Get the curved quad mesh from a mapping function
+# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+function mapping(xi_, eta_)
+  # Transform input variables between -1 and 1 onto [0,3]
+  xi = 1.5 * xi_ + 1.5
+  eta = 1.5 * eta_ + 1.5
 
-default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
-                                       default_mesh_file)
-mesh_file = default_mesh_file
+  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) *
+                   cos(0.5 * pi * (2 * eta - 3)/3))
 
-mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
+  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) *
+                  cos(2 * pi * (2 * y - 3)/3))
+
+  return SVector(x, y)
+end
+
+cells_per_dimension = (8, 8)
+# Create curved mesh with 8 x 8 elements
+mesh = CurvedMesh(cells_per_dimension, mapping)
 
 ###############################################################################
 # create the semi discretization object

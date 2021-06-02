@@ -1,31 +1,44 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-equations = IdealGlmMhdEquations2D(5/3)
+gamma = 5/3
+equations = IdealGlmMhdEquations2D(gamma)
 
-initial_condition = initial_condition_weak_blast_wave
+initial_condition = initial_condition_convergence_test
 
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = flux_derigs_etal
-solver = DGSEM(polydeg=6, surface_flux=FluxRotated(flux_derigs_etal),
+volume_flux = flux_central
+solver = DGSEM(polydeg=3, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# Get the curved quad mesh from a file
+# Get the curved quad mesh from a mapping function
 
-default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
-                                       default_mesh_file)
-mesh_file = default_mesh_file
+# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+function mapping(xi_, eta_)
+  # Transform input variables between -1 and 1 onto [0, sqrt(2)]^2
+  xi = 0.5 * sqrt(2) * xi_ + 0.5 * sqrt(2)
+  eta = 0.5 * sqrt(2) * eta_ + 0.5 * sqrt(2)
 
-mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
+  y = eta + sqrt(2)/8 * (cos(1.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
+                         cos(0.5 * pi * (2 * eta - sqrt(2))/sqrt(2)))
+
+  x = xi + sqrt(2)/8 * (cos(0.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
+                        cos(2 * pi * (2 * y - sqrt(2))/sqrt(2)))
+
+  return SVector(x, y)
+end
+
+cells_per_dimension = (10, 10)
+
+# Create curved mesh with 10 x 10 elements
+mesh = CurvedMesh(cells_per_dimension, mapping)
 
 ###############################################################################
 # create the semi discretization object

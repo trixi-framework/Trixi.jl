@@ -78,7 +78,7 @@ end
 
 # Calculate 2D twopoint contravariant flux (element version)
 @inline function calcflux_twopoint!(ftilde1, ftilde2, u::AbstractArray{<:Any,4}, element,
-                                    volume_flux, mesh::UnstructuredQuadMesh,
+                                    volume_flux, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
                                     equations, dg::DG, cache)
   @unpack contravariant_vectors = cache.elements
 
@@ -138,7 +138,7 @@ end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{true},
-                                            mesh::UnstructuredQuadMesh,
+                                            mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
                                             equations, dg::DG, cache)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations

@@ -75,6 +75,17 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
               0.019064430991064814],
       tspan = (0.0, 0.5))
   end
+
+  @testset "elixir_mhd_unstructured_quad_alfven_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_unstructured_quad_alfven_wave.jl"),
+      l2   = [1.6738236636473298e-7, 0.09999999977396377, 0.09999999977396452, 0.1414213559176529,
+              4.955266570218213e-9, 0.099999999773963, 0.09999999977396301, 0.1414213559176485,
+              5.105459279427352e-9],
+      linf = [5.909745411925016e-7, 0.14142140711178625, 0.14142140708860684, 0.20000005821711386,
+              4.427140509744021e-8, 0.1414213867847378, 0.14142138669844195, 0.2000000616334987,
+              2.113214762235837e-8],
+      tspan = (0.0, 0.5))
+  end
 end
 
 end # module

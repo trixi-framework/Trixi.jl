@@ -30,15 +30,15 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, UnstructuredQuadMesh}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMesh}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, UnstructuredQuadMesh}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMesh}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, UnstructuredQuadMesh}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMesh}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
 
   A = Array{uEltype, 4}
   f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -310,7 +310,7 @@ end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{true}, volume_flux, element,
-                                    mesh::Union{TreeMesh{2}, UnstructuredQuadMesh},
+                                    mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMesh},
                                     equations, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split_transpose = dg.basis
   @unpack f1_threaded, f2_threaded = cache

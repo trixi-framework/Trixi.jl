@@ -6,6 +6,9 @@ function create_cache(mesh::CurvedMesh, equations::AbstractEquations, dg::DG, ::
 
   cache = (; elements)
 
+  # Add specialized parts of the cache required to compute the volume integral etc.
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+
   return cache
 end
 
@@ -33,14 +36,14 @@ end
   u_inner = get_node_vars(u, equations, dg, node_indices..., element)
   x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
-  # If the mapping is orientation-reversing, the contravariant vectors' orientation 
-  # is reversed as well. The normal vector must be oriented in the direction 
+  # If the mapping is orientation-reversing, the contravariant vectors' orientation
+  # is reversed as well. The normal vector must be oriented in the direction
   # from `left_element` to `right_element`, or the numerical flux will be computed
   # incorrectly (downwind direction).
   sign_jacobian = sign(inverse_jacobian[node_indices..., element])
 
   # Contravariant vector Ja^i is the normal vector
-  normal = sign_jacobian * get_contravariant_vector(orientation, contravariant_vectors, 
+  normal = sign_jacobian * get_contravariant_vector(orientation, contravariant_vectors,
                                                     node_indices..., element)
 
   # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
