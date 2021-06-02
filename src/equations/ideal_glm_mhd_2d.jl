@@ -226,8 +226,9 @@ end
 end
 
 
-# Calculate the normal flux for a single point
-@inline function flux(u, normal_vector::AbstractVector, equations::IdealGlmMhdEquations2D)
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equations::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -236,17 +237,17 @@ end
   mag_en = 0.5*(B1^2 + B2^2 + B3^2)
   p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
 
-  v_normal = v1 * normal_vector[1] + v2 * normal_vector[2]
-  B_normal = B1 * normal_vector[1] + B2 * normal_vector[2]
+  v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+  B_normal = B1 * normal_direction[1] + B2 * normal_direction[2]
   rho_v_normal = rho * v_normal
   f1 = rho_v_normal
-  f2 = rho_v_normal * v1 - B1 * B_normal + (p + mag_en) * normal_vector[1]
-  f3 = rho_v_normal * v2 - B2 * B_normal + (p + mag_en) * normal_vector[2]
+  f2 = rho_v_normal * v1 - B1 * B_normal + (p + mag_en) * normal_direction[1]
+  f3 = rho_v_normal * v2 - B2 * B_normal + (p + mag_en) * normal_direction[2]
   f4 = rho_v_normal * v3 - B3 * B_normal
   f5 = ( (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en) * v_normal
         - B_normal * (v1*B1 + v2*B2 + v3*B3) + equations.c_h * psi * B_normal )
-  f6 = equations.c_h * psi * normal_vector[1] + (v2 * B1 - v1 * B2) * normal_vector[2]
-  f7 = (v1 * B2 - v2 * B1) * normal_vector[1] + equations.c_h * psi * normal_vector[2]
+  f6 = equations.c_h * psi * normal_direction[1] + (v2 * B1 - v1 * B2) * normal_direction[2]
+  f7 = (v1 * B2 - v2 * B1) * normal_direction[1] + equations.c_h * psi * normal_direction[2]
   f8 = v_normal * B3 - v3 * B_normal
   f9 = equations.c_h * B_normal
 
@@ -457,23 +458,15 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
   [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, _, _, _, _, _, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, _, _, _, _, _, _ = u_rr
 
-  # Calculate primitive variables and speed of sound
+  # Calculate primitive velocity variables
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
-  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
 
   v1_rr = rho_v1_rr/rho_rr
   v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
-  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
-  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
 
   # Approximate the left-most and right-most eigenvalues in the Riemann fan
   if orientation == 1 # x-direction
@@ -492,6 +485,40 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 
   return λ_min, λ_max
 end
+
+
+# @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+#                                      equations::IdealGlmMhdEquations2D)
+#   rho_ll, rho_v1_ll, rho_v2_ll, _, _, _, _, _, _ = u_ll
+#   rho_rr, rho_v1_rr, rho_v2_rr, _, _, _, _, _, _ = u_rr
+#
+#   # Calculate primitive velocity variables
+#   v1_ll = rho_v1_ll/rho_ll
+#   v2_ll = rho_v2_ll/rho_ll
+#
+#   v1_rr = rho_v1_rr/rho_rr
+#   v2_rr = rho_v2_rr/rho_rr
+#
+#   # Compute the normal velocities
+# #  v_normal_ll =
+#
+#   # Approximate the left-most and right-most eigenvalues in the Riemann fan
+#   if orientation == 1 # x-direction
+#     c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+#     c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+#     vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
+#     λ_min = min(v1_ll - c_f_ll, vel_roe - c_f_roe)
+#     λ_max = max(v1_rr + c_f_rr, vel_roe + c_f_roe)
+#   else # y-direction
+#     c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+#     c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+#     vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
+#     λ_min = min(v2_ll - c_f_ll, vel_roe - c_f_roe)
+#     λ_max = max(v2_rr + c_f_rr, vel_roe + c_f_roe)
+#   end
+#
+#   return λ_min * norm(normal_direction), λ_max * norm(normal_direction)
+# end
 
 
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
