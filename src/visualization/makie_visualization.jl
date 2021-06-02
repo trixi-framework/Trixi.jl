@@ -248,7 +248,7 @@ end
     )
 end
 
-function trixi_plot(sol::TrixiODESolution; plot_polydeg=5)
+function trixi_plot(sol::TrixiODESolution; variable_in=1, plot_polydeg=5)
 
     semi = sol.prob.p
     dg = semi.solver
@@ -256,6 +256,7 @@ function trixi_plot(sol::TrixiODESolution; plot_polydeg=5)
 
     fig = Makie.Figure()
 
+    # set up menu and toggle switch
     variable_names = Trixi.varnames(cons2cons,equations)
     options = [zip(variable_names,1:length(variable_names))...]
     menu = Makie.Menu(fig, options = options)
@@ -266,27 +267,29 @@ function trixi_plot(sol::TrixiODESolution; plot_polydeg=5)
         tellheight=false,width = 200
     )
 
-    scene = Makie.Axis3(fig[1, 2])
+    scene = Makie.Axis3(fig[1, 2]) # is there a way to set limits for LScene?
 
-    # interactive variable
-    variable = Makie.Node{Int}(1)
+    # interactive menu variable 
+    variable = Makie.Node{Int}(variable_in)
     
     # these lines get re-run whenever variable[] is updated
     plotting_mesh = @lift Trixi.generate_plotting_triangulation(sol, $variable, plot_polydeg = plot_polydeg)
     wire_points = @lift Trixi.generate_plotting_wireframe(sol, $variable, plot_polydeg = plot_polydeg)
-    Makie.mesh!(scene,plotting_mesh,color=getindex.(plotting_mesh[].position,3),plot_polydeg=plot_polydeg)
+    solution_z = getindex.(plotting_mesh[].position,3)
+    Makie.mesh!(scene,plotting_mesh,color=solution_z,plot_polydeg=plot_polydeg)
     wire_mesh_top = Makie.lines!(scene,wire_points,color=:white) 
     wire_mesh_bottom = Makie.lines!(scene,wire_points,color=:white) 
     Makie.translate!(wire_mesh_top,0,0,1e-3)
     Makie.translate!(wire_mesh_bottom,0,0,-1e-3)
     
+    # interactive menu selection
     Makie.on(menu.selection) do s
         println("Todo: plot solution field $(variable_names[s])")
         variable[] = s
-        Makie.autolimits!(scene)
+        Makie.autolimits!(scene)        
     end
 
-    menu.selection = 1
+    menu.selection = variable_in # doesn't work - how do you initialize a menu to the right option?
     menu.is_open = false 
 
     # syncs the toggle to the mesh
