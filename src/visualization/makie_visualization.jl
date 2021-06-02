@@ -248,7 +248,7 @@ end
     )
 end
 
-function trixi_plot(sol::TrixiODESolution; variable_in=1, plot_polydeg=5)
+function trixi_plot(sol::TrixiODESolution; variable_in = 1, plot_polydeg=5)
 
     semi = sol.prob.p
     dg = semi.solver
@@ -270,11 +270,12 @@ function trixi_plot(sol::TrixiODESolution; variable_in=1, plot_polydeg=5)
     scene = Makie.Axis3(fig[1, 2]) # is there a way to set limits for LScene?
 
     # interactive menu variable 
-    variable = Makie.Node{Int}(variable_in)
-    
+    menu.selection[] = variable_in 
+    menu.i_selected[] = variable_in # initialize a menu 
+
     # these lines get re-run whenever variable[] is updated
-    plotting_mesh = @lift Trixi.generate_plotting_triangulation(sol, $variable, plot_polydeg = plot_polydeg)
-    wire_points = @lift Trixi.generate_plotting_wireframe(sol, $variable, plot_polydeg = plot_polydeg)
+    plotting_mesh = Makie.@lift(Trixi.generate_plotting_triangulation(sol, $(menu.selection), plot_polydeg = plot_polydeg))
+    wire_points = Makie.@lift(Trixi.generate_plotting_wireframe(sol, $(menu.selection), plot_polydeg = plot_polydeg))
     solution_z = getindex.(plotting_mesh[].position,3)
     Makie.mesh!(scene,plotting_mesh,color=solution_z,plot_polydeg=plot_polydeg)
     wire_mesh_top = Makie.lines!(scene,wire_points,color=:white) 
@@ -284,12 +285,9 @@ function trixi_plot(sol::TrixiODESolution; variable_in=1, plot_polydeg=5)
     
     # interactive menu selection
     Makie.on(menu.selection) do s
-        variable[] = s
         Makie.autolimits!(scene)        
-        # println("Plotting solution field $(variable_names[s])")
     end
 
-    menu.selection = variable_in # doesn't work - how do you initialize a menu to the right option?
     menu.is_open = false 
 
     # syncs the toggle to the mesh
