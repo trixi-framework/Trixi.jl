@@ -339,14 +339,15 @@ end
 function count_interfaces_iter_face(info, user_data)
   if info.sides.elem_count == 2
     # Extract interface data
-    sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+    sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
+             load_sc_array(p4est_iter_face_side_t, info.sides, 2))
 
     if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
       # No hanging nodes => normal interface
       # Unpack user_data = [interface_count] and increment interface_count
       ptr = Ptr{Int}(user_data)
-      data_array = unsafe_wrap(Array, ptr, 1)
-      data_array[1] += 1
+      id = unsafe_load(ptr)
+      unsafe_store!(ptr, id + 1)
     end
   end
 
@@ -358,8 +359,8 @@ function count_boundaries_iter_face(info, user_data)
   if info.sides.elem_count == 1
     # Unpack user_data = [boundary_count] and increment boundary_count
     ptr = Ptr{Int}(user_data)
-    data_array = unsafe_wrap(Array, ptr, 1)
-    data_array[1] += 1
+    id = unsafe_load(ptr)
+    unsafe_store!(ptr, id + 1)
   end
 
   return nothing
@@ -369,14 +370,15 @@ end
 function count_mortars_iter_face(info, user_data)
   if info.sides.elem_count == 2
     # Extract interface data
-    sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+    sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
+             load_sc_array(p4est_iter_face_side_t, info.sides, 2))
 
     if sides[1].is_hanging != 0 || sides[2].is_hanging != 0
       # Hanging nodes => mortar
       # Unpack user_data = [mortar_count] and increment mortar_count
       ptr = Ptr{Int}(user_data)
-      data_array = unsafe_wrap(Array, ptr, 1)
-      data_array[1] += 1
+      id = unsafe_load(ptr)
+      unsafe_store!(ptr, id + 1)
     end
   end
 
