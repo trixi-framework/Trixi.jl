@@ -256,7 +256,7 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance for the TreeMesh{2}
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element, mesh::TreeMesh{2},
+@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element,
                                                     equations::IdealGlmMhdEquations2D, dg, cache)
   for j in eachnode(dg), i in eachnode(dg)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)
@@ -292,11 +292,9 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance for UnstructuredQuadMesh
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element, mesh::UnstructuredQuadMesh,
+@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element, contravariant_vectors,
                                                     equations::IdealGlmMhdEquations2D, dg, cache)
-  @unpack contravariant_vectors = cache.elements
-  
-  for j in eachnode(dg), i in eachnode(dg)
+   for j in eachnode(dg), i in eachnode(dg)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -643,9 +641,8 @@ end
 
 # Compute surface nonconservative "flux" computation in the normal direction (2D version)
 # Note, due to the non-uniqueness of this term we cannot use any fancy rotation tricks.
-# Also, this currently only performs the :weak version from the TreeMesh{2} version of the
-# routine above
-@inline function noncons_interface_flux(u_left, u_right, normal_direction::AbstractVector,
+# Also, this currently only performs the mode = :weak version
+@inline function noncons_interface_flux(u_left, u_right, normal_direction::AbstractVector, mode,
                                         equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right

@@ -136,6 +136,17 @@ end
 end
 
 
+function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
+                                            nonconservative_terms::Val{true},
+                                            mesh::UnstructuredQuadMesh,
+                                            equations, dg::DG, cache)
+  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
+  #      For now, just dispatch to an existing function for the IdealMhdEquations
+  @unpack contravariant_vectors = cache.elements
+  calcflux_twopoint_nonconservative!(f1, f2, u, element, contravariant_vectors, equations, dg, cache)
+end
+
+
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{false}, volume_flux, element,
                                     mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
@@ -360,8 +371,8 @@ function calc_interface_flux!(surface_flux_values,
       # Call pointwise numerical flux with rotation. Direction is normalized inside this function
       flux = surface_flux(u_ll, u_rr, outward_direction, equations)
 
-      noncons_primary   = noncons_interface_flux(u_ll, u_rr, outward_direction, equations)
-      noncons_secondary = noncons_interface_flux(u_rr, u_ll, outward_direction, equations)
+      noncons_primary   = noncons_interface_flux(u_ll, u_rr, outward_direction, :weak, equations)
+      noncons_secondary = noncons_interface_flux(u_rr, u_ll, outward_direction, :weak, equations)
 
       # Copy flux back to primary/secondary element storage
       # Note the sign change for the components in the secondary element!

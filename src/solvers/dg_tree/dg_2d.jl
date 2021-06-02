@@ -243,11 +243,11 @@ end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{true},
-                                            mesh::Union{TreeMesh{2}, UnstructuredQuadMesh},
+                                            mesh::TreeMesh{2},
                                             equations, dg::DG, cache)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, u, element, mesh, equations, dg, cache)
+  calcflux_twopoint_nonconservative!(f1, f2, u, element, equations, dg, cache)
 end
 
 
