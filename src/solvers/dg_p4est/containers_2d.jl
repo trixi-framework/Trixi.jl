@@ -91,10 +91,10 @@ end
 
 # Function barrier for type stability
 function init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
-  # Global trees array
+  # Global trees array, one-based indexing
   trees = (load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
            load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
-  # Quadrant numbering offsets of the quadrants at this interface, one-based indexing
+  # Quadrant numbering offsets of the quadrants at this interface
   offsets = SVector(trees[1].quadrants_offset,
                     trees[2].quadrants_offset)
 
@@ -179,16 +179,16 @@ end
 # Function barrier for type stability
 function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   # Extract boundary data
-  sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
-  # Quadrant numbering offset of this quadrant, one-based indexing
-  offset = trees[sides[1].treeid + 1].quadrants_offset
+  side = load_sc_array(p4est_iter_face_side_t, info.sides)
+  # Global trees array, one-based indexing
+  tree = load_sc_array(p4est_tree_t, mesh.p4est.trees, side.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
 
   # Verify before accessing is.full, but this should never happen
-  @assert sides[1].is_hanging == false
+  @assert side.is_hanging == false
 
-  local_quad_id = sides[1].is.full.quadid
+  local_quad_id = side.is.full.quadid
   # Global ID of this quad
   quad_id = offset + local_quad_id
 
@@ -197,7 +197,7 @@ function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   boundaries.element_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
-  face = sides[1].face
+  face = side.face
 
   if face == 0
     # Index face in negative x-direction
@@ -214,7 +214,7 @@ function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   end
 
   # One-based indexing
-  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, sides[1].treeid + 1]
+  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, side.treeid + 1]
 
   return nothing
 end
@@ -238,7 +238,8 @@ function init_mortars_iter_face(info, user_data)
     return nothing
   end
 
-  sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+  sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
+           load_sc_array(p4est_iter_face_side_t, info.sides, 2))
 
   if sides[1].is_hanging == false && sides[2].is_hanging == false
     # Normal interface, no mortar
@@ -259,11 +260,12 @@ end
 
 # Function barrier for type stability
 function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
-  # Quadrant numbering offsets of the quadrants at this interface, one-based indexing
-  offsets = [trees[sides[1].treeid + 1].quadrants_offset,
-             trees[sides[2].treeid + 1].quadrants_offset]
+  # Global trees array, one-based indexing
+  trees = (load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
+           load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
+  # Quadrant numbering offsets of the quadrants at this interface
+  offsets = SVector(trees[1].quadrants_offset,
+                    trees[2].quadrants_offset)
 
   if sides[1].is_hanging == true
     # Left is small (1), right is large (2)
