@@ -5,40 +5,32 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-gamma = 5/3
-equations = IdealGlmMhdEquations2D(gamma)
+equations = IdealGlmMhdEquations3D(5/3)
 
 initial_condition = initial_condition_convergence_test
 
-###############################################################################
-# Get the DG approximation space
-
 volume_flux = flux_central
-solver = DGSEM(polydeg=3, surface_flux=flux_hll,
+solver = DGSEM(polydeg=5, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-###############################################################################
-# Get the curved quad mesh from a mapping function
+##############################################################################
+# Create the mesh
 
-# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
-function mapping(xi_, eta_)
-  # Transform input variables between -1 and 1 onto [0, sqrt(2)]
-  # Note, we use the domain [0, sqrt(2)]^2 for the Alfvén wave convergence test case
-  xi = 0.5 * sqrt(2) * xi_ + 0.5 * sqrt(2)
-  eta = 0.5 * sqrt(2) * eta_ + 0.5 * sqrt(2)
+# Note, we use the domain [-1, 1]^3 for the Alfvén wave convergence test case so the
+# warped mapping simplifies (quite a bit)
 
-  y = eta + sqrt(2)/8 * (cos(1.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
-                         cos(0.5 * pi * (2 * eta - sqrt(2))/sqrt(2)))
+# Mapping as described in https://arxiv.org/abs/2012.12040
+function mapping(xi, eta, zeta)
+  y = eta + 0.25 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
 
-  x = xi + sqrt(2)/8 * (cos(0.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
-                        cos(2 * pi * (2 * y - sqrt(2))/sqrt(2)))
+  x = xi + 0.25 * (cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta))
 
-  return SVector(x, y)
+  z = zeta + 0.25 * (cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta))
+
+  return SVector(x, y, z)
 end
 
-cells_per_dimension = (10, 10)
-
-# Create curved mesh with 10 x 10 elements
+cells_per_dimension = (4, 4, 4)
 mesh = CurvedMesh(cells_per_dimension, mapping)
 
 ###############################################################################
@@ -46,37 +38,35 @@ mesh = CurvedMesh(cells_per_dimension, mapping)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
+
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=false,
-                                     extra_analysis_integrals=(entropy, energy_total,
-                                                               energy_kinetic, energy_internal,
-                                                               energy_magnetic, cross_helicity))
-
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
-cfl = 1.0
+
+cfl = 1.2
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback,
                         glm_speed_callback)
+
 
 ###############################################################################
 # run the simulation

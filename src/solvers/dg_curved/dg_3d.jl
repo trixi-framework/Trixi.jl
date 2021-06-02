@@ -13,7 +13,8 @@ function rhs!(du, u, t,
 
   # Calculate interface fluxes
   @timed timer() "interface flux" calc_interface_flux!(
-    cache, u, mesh, equations, dg)
+    cache, u, mesh,
+    have_nonconservative_terms(equations), equations, dg)
 
   # Calculate boundary fluxes
   @timed timer() "boundary flux" calc_boundary_flux!(
@@ -87,21 +88,113 @@ function calc_volume_integral!(du, u,
 end
 
 
-# flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
-# mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
-# the physical fluxes in each Cartesian direction
-function calc_volume_integral!(du, u,
-                               mesh::CurvedMesh{3},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache)
-  @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, volume_integral.volume_flux, element,
-                       mesh, equations, dg, cache)
+# Calculate 3D twopoint contravariant flux (element version)
+@inline function calcflux_twopoint!(ftilde1, ftilde2, ftilde3, u::AbstractArray{<:Any,5}, element,
+                                    volume_flux, mesh::CurvedMesh{3},
+                                    equations, dg::DG, cache)
+  @unpack contravariant_vectors = cache.elements
+
+  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    # Set diagonal entries (= regular volume fluxes due to consistency)
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    # compute the fluxes in the x and y directions
+    flux1 = flux(u_node, 1, equations)
+    flux2 = flux(u_node, 2, equations)
+    flux3 = flux(u_node, 3, equations)
+    # pull the two contravariant vectors
+    Ja11_node, Ja12_node, Ja13_node = get_contravariant_vector(1, contravariant_vectors,
+                                                               i, j, k, element)
+    Ja21_node, Ja22_node, Ja23_node = get_contravariant_vector(2, contravariant_vectors,
+                                                               i, j, k, element)
+    Ja31_node, Ja32_node, Ja33_node = get_contravariant_vector(3, contravariant_vectors,
+                                                               i, j, k, element)
+    # compute the two contravariant fluxes
+    fluxtilde1 = Ja11_node * flux1 + Ja12_node * flux2 + Ja13_node * flux3
+    fluxtilde2 = Ja21_node * flux1 + Ja22_node * flux2 + Ja23_node * flux3
+    fluxtilde3 = Ja31_node * flux1 + Ja32_node * flux2 + Ja33_node * flux3
+    set_node_vars!(ftilde1, fluxtilde1, equations, dg, i, i, j, k)
+    set_node_vars!(ftilde2, fluxtilde2, equations, dg, j, i, j, k)
+    set_node_vars!(ftilde3, fluxtilde3, equations, dg, k, i, j, k)
+
+    # contravariant fluxes in the first direction
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+      flux2 = volume_flux(u_node, u_node_ii, 2, equations)
+      flux3 = volume_flux(u_node, u_node_ii, 3, equations)
+      # pull the contravariant vectors and compute their average
+      Ja11_node_ii, Ja12_node_ii, Ja13_node_ii = get_contravariant_vector(1, contravariant_vectors,
+                                                                          ii, j, k, element)
+      Ja11_avg = 0.5 * (Ja11_node + Ja11_node_ii)
+      Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
+      Ja13_avg = 0.5 * (Ja13_node + Ja13_node_ii)
+      # compute the contravariant sharp flux
+      fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2 + Ja13_avg * flux3
+      # save and exploit symmetry
+      set_node_vars!(ftilde1, fluxtilde1, equations, dg, i, ii, j, k)
+      set_node_vars!(ftilde1, fluxtilde1, equations, dg, ii, i, j, k)
+    end
+
+    # contravariant fluxes in the second direction
+    for jj in (j+1):nnodes(dg)
+      u_node_jj  = get_node_vars(u, equations, dg, i, jj, k, element)
+      flux1 = volume_flux(u_node, u_node_jj, 1, equations)
+      flux2 = volume_flux(u_node, u_node_jj, 2, equations)
+      flux3 = volume_flux(u_node, u_node_jj, 3, equations)
+      # pull the contravariant vectors and compute their average
+      Ja21_node_jj, Ja22_node_jj, Ja23_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                                                          i, jj, k, element)
+      Ja21_avg = 0.5 * (Ja21_node + Ja21_node_jj)
+      Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
+      Ja23_avg = 0.5 * (Ja23_node + Ja23_node_jj)
+      # compute the contravariant sharp flux
+      fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2 + Ja23_avg * flux3
+      # save and exploit symmetry
+      set_node_vars!(ftilde2, fluxtilde2, equations, dg, j,  i, jj, k)
+      set_node_vars!(ftilde2, fluxtilde2, equations, dg, jj, i, j , k)
+    end
+
+    # contravariant fluxes in the third direction
+    for kk in (k+1):nnodes(dg)
+      u_node_kk  = get_node_vars(u, equations, dg, i, j, kk, element)
+      flux1 = volume_flux(u_node, u_node_kk, 1, equations)
+      flux2 = volume_flux(u_node, u_node_kk, 2, equations)
+      flux3 = volume_flux(u_node, u_node_kk, 3, equations)
+      # pull the contravariant vectors and compute their average
+      Ja31_node_kk, Ja32_node_kk, Ja33_node_kk = get_contravariant_vector(3, contravariant_vectors,
+                                                                          i, j, kk, element)
+      Ja31_avg = 0.5 * (Ja31_node + Ja31_node_kk)
+      Ja32_avg = 0.5 * (Ja32_node + Ja32_node_kk)
+      Ja33_avg = 0.5 * (Ja33_node + Ja33_node_kk)
+      # compute the contravariant sharp flux
+      fluxtilde3 = Ja31_avg * flux1 + Ja32_avg * flux2 + Ja33_avg * flux3
+      # save and exploit symmetry
+      set_node_vars!(ftilde3, fluxtilde3, equations, dg, k,  i, j, kk)
+      set_node_vars!(ftilde3, fluxtilde3, equations, dg, kk, i, j , k)
+    end
   end
+
+  calcflux_twopoint_nonconservative!(ftilde1, ftilde2, ftilde3, u, element,
+                                     have_nonconservative_terms(equations),
+                                     mesh, equations, dg, cache)
 end
 
 
+function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
+                                            nonconservative_terms::Val{true},
+                                            mesh::CurvedMesh{3},
+                                            equations, dg::DG, cache)
+  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
+  #      For now, just dispatch to an existing function for the IdealMhdEquations
+  @unpack contravariant_vectors = cache.elements
+  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, contravariant_vectors,
+                                     equations, dg, cache)
+end
+
+
+# flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
+# mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
+# the physical fluxes in each Cartesian direction
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
                                     nonconservative_terms::Val{false}, volume_flux, element,
                                     mesh::CurvedMesh{3}, equations,
@@ -209,6 +302,7 @@ end
 
 
 function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
+                              nonconservative_terms, # can be true/false
                               equations, dg::DG)
   @unpack elements = cache
   @unpack surface_flux = dg
@@ -220,17 +314,20 @@ function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
     # Interfaces in x-direction (`orientation` = 1)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
-                         element, 1, u, mesh, equations, dg, cache)
+                         element, 1, u, mesh,
+                         nonconservative_terms, equations, dg, cache)
 
     # Interfaces in y-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
-                         element, 2, u, mesh, equations, dg, cache)
+                         element, 2, u, mesh,
+                         nonconservative_terms, equations, dg, cache)
 
     # Interfaces in z-direction (`orientation` = 3)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[3, element],
-                         element, 3, u, mesh, equations, dg, cache)
+                         element, 3, u, mesh,
+                         nonconservative_terms, equations, dg, cache)
   end
 
   return nothing
@@ -239,7 +336,8 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::CurvedMesh{3}, equations,
+                                      mesh::CurvedMesh{3},
+                                      nonconservative_terms::Val{false}, equations,
                                       dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
   if left_element <= 0 # left_element = 0 at boundaries
@@ -264,8 +362,8 @@ end
       sign_jacobian = sign(inverse_jacobian[1, i, j, right_element])
 
       # First contravariant vector Ja^1 as SVector
-      normal = sign_jacobian * get_contravariant_vector(1, contravariant_vectors,
-                                                        1, i, j, right_element)
+      normal_direction = sign_jacobian * get_contravariant_vector(1, contravariant_vectors,
+                                                                  1, i, j, right_element)
     elseif orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
@@ -274,8 +372,8 @@ end
       sign_jacobian = sign(inverse_jacobian[i, 1, j, right_element])
 
       # Second contravariant vector Ja^2 as SVector
-      normal = sign_jacobian * get_contravariant_vector(2, contravariant_vectors,
-                                                        i, 1, j, right_element)
+      normal_direction = sign_jacobian * get_contravariant_vector(2, contravariant_vectors,
+                                                                  i, 1, j, right_element)
     else # orientation == 3
       u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
@@ -284,17 +382,89 @@ end
       sign_jacobian = sign(inverse_jacobian[i, j, 1, right_element])
 
       # Third contravariant vector Ja^3 as SVector
-      normal = sign_jacobian * get_contravariant_vector(3, contravariant_vectors,
-                                                        i, j, 1, right_element)
+      normal_direction = sign_jacobian * get_contravariant_vector(3, contravariant_vectors,
+                                                                  i, j, 1, right_element)
     end
 
     # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
     # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
-    flux = sign_jacobian * surface_flux(u_ll, u_rr, normal, equations)
+    flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, j, right_direction, left_element] = flux[v]
       surface_flux_values[v, i, j, left_direction, right_element] = flux[v]
+    end
+  end
+
+  return nothing
+end
+
+
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
+                                      orientation, u,
+                                      mesh::CurvedMesh{3},
+                                      nonconservative_terms::Val{true}, equations,
+                                      dg::DG, cache)
+  # This is slow for LSA, but for some reason faster for Euler (see #519)
+  if left_element <= 0 # left_element = 0 at boundaries
+    return surface_flux_values
+  end
+
+  @unpack surface_flux = dg
+  @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+  right_direction = 2 * orientation
+  left_direction = right_direction - 1
+
+  for j in eachnode(dg), i in eachnode(dg)
+    if orientation == 1
+      u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, j, left_element)
+      u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
+
+      # If the mapping is orientation-reversing, the contravariant vectors' orientation
+      # is reversed as well. The normal vector must be oriented in the direction
+      # from `left_element` to `right_element`, or the numerical flux will be computed
+      # incorrectly (downwind direction).
+      sign_jacobian = sign(inverse_jacobian[1, i, j, right_element])
+
+      # First contravariant vector Ja^1 as SVector
+      normal_direction = sign_jacobian * get_contravariant_vector(1, contravariant_vectors,
+                                                                  1, i, j, right_element)
+    elseif orientation == 2
+      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
+      u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
+
+      # See above
+      sign_jacobian = sign(inverse_jacobian[i, 1, j, right_element])
+
+      # Second contravariant vector Ja^2 as SVector
+      normal_direction = sign_jacobian * get_contravariant_vector(2, contravariant_vectors,
+                                                                  i, 1, j, right_element)
+    else # orientation == 3
+      u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
+      u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
+
+      # See above
+      sign_jacobian = sign(inverse_jacobian[i, j, 1, right_element])
+
+      # Third contravariant vector Ja^3 as SVector
+      normal_direction = sign_jacobian * get_contravariant_vector(3, contravariant_vectors,
+                                                                  i, j, 1, right_element)
+    end
+
+    # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
+    # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
+    flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
+
+    # Call pointwise nonconservative term; Done twice because left/right orientation matters
+    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
+    # Scale with sign_jacobian to ensure that the normal_direction matches that from the flux above
+    noncons_primary   = sign_jacobian * noncons_interface_flux(u_ll, u_rr, normal_direction, :weak, equations)
+    noncons_secondary = sign_jacobian * noncons_interface_flux(u_rr, u_ll, normal_direction, :weak, equations)
+
+    for v in eachvariable(equations)
+      surface_flux_values[v, i, j, right_direction, left_element] = flux[v] + noncons_primary[v]
+      surface_flux_values[v, i, j, left_direction, right_element] = flux[v] + noncons_secondary[v]
     end
   end
 

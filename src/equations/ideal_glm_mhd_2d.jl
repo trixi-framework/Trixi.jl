@@ -234,12 +234,13 @@ end
   v2 = rho_v2/rho
   v3 = rho_v3/rho
   kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-  mag_en = 0.5*(B1^2 + B2^2 + B3^2)
+  mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
   p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   B_normal = B1 * normal_direction[1] + B2 * normal_direction[2]
   rho_v_normal = rho * v_normal
+
   f1 = rho_v_normal
   f2 = rho_v_normal * v1 - B1 * B_normal + (p + mag_en) * normal_direction[1]
   f3 = rho_v_normal * v2 - B2 * B_normal + (p + mag_en) * normal_direction[2]

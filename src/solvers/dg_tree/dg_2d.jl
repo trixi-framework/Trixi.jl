@@ -236,7 +236,7 @@ end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{false},
-                                            mesh::Union{TreeMesh{2}, UnstructuredQuadMesh},
+                                            mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMesh},
                                             equations, dg::DG, cache)
   return nothing
 end
