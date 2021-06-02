@@ -136,38 +136,6 @@ end
 end
 
 
-# TODO: could possibly dispatch with existing routine for TreeMesh{2}
-function calcflux_twopoint_nonconservative!(ftilde1, ftilde2, u::AbstractArray{<:Any,4},
-                                            element, nonconservative_terms::Val{false},
-                                            mesh::UnstructuredQuadMesh, equations, dg::DG, cache)
-  return nothing
-end
-
-
-function calcflux_twopoint_nonconservative!(ftilde1, ftilde2, u::AbstractArray{<:Any,4},
-                                            element, nonconservative_terms::Val{true},
-                                            mesh::UnstructuredQuadMesh, equations, dg::DG, cache)
-  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-  #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(ftilde1, ftilde2, u, element, mesh, equations, dg, cache)
-end
-
-
-# flux differencing volume integral on curvilinear quadrilateral elements. Averaging of the
-# mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
-# the physical fluxes in each Cartesian direction
-function calc_volume_integral!(du, u,
-                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache)
-  @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, volume_integral.volume_flux, element,
-                       mesh, equations, dg, cache)
-  end
-end
-
-
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{false}, volume_flux, element,
                                     mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
@@ -232,40 +200,6 @@ end
       add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
     end
   end
-end
-
-
-# TODO: possibly reuse existing `split_form_kernel!` from TreeMesh{2} just need to dispatch
-#       on the correct mesh variable in `calcflux_twopoint!`
-@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{true}, volume_flux, element,
-                                    mesh::UnstructuredQuadMesh, equations,
-                                    dg::DGSEM, cache, alpha=true)
-
-  @unpack derivative_split_transpose = dg.basis
-  @unpack f1_threaded, f2_threaded = cache
-
-  # Choose thread-specific pre-allocated container
-  ftilde1 = f1_threaded[Threads.threadid()]
-  ftilde2 = f2_threaded[Threads.threadid()]
-
-  # Calculate volume fluxes (one more dimension than weak form)
-  calcflux_twopoint!(ftilde1, ftilde2, u, element, volume_flux, mesh, equations, dg, cache)
-
-  # Calculate volume integral in one element
-  for j in eachnode(dg), i in eachnode(dg)
-    for v in eachvariable(equations)
-      # Use local accumulator to improve performance
-      acc = zero(eltype(du))
-      for l in eachnode(dg)
-        acc += (derivative_split_transpose[l, i] * ftilde1[v, l, i, j] +
-                derivative_split_transpose[l, j] * ftilde2[v, l, i, j] )
-      end
-      du[v, i, j, element] += alpha * acc
-    end
-  end
-
-  return nothing
 end
 
 

@@ -236,21 +236,26 @@ end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{false},
-                                            mesh::TreeMesh{2}, equations, dg::DG, cache)
+                                            mesh::Union{TreeMesh{2}, UnstructuredQuadMesh},
+                                            equations, dg::DG, cache)
   return nothing
 end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{true},
-                                            mesh::TreeMesh{2}, equations, dg::DG, cache)
+                                            mesh::Union{TreeMesh{2}, UnstructuredQuadMesh},
+                                            equations, dg::DG, cache)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
   calcflux_twopoint_nonconservative!(f1, f2, u, element, mesh, equations, dg, cache)
 end
 
 
+# flux differencing volume integral. For curved meshes averaging of the
+# mapping terms, stored in `cache.elements.contravariant_vectors`, is peeled apart
+# from the evaluation of the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
+                               mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMesh},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -305,7 +310,8 @@ end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{true}, volume_flux, element,
-                                    mesh::TreeMesh{2}, equations, dg::DGSEM, cache, alpha=true)
+                                    mesh::Union{TreeMesh{2}, UnstructuredQuadMesh},
+                                    equations, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split_transpose = dg.basis
   @unpack f1_threaded, f2_threaded = cache
 
