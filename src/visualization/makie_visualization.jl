@@ -284,9 +284,9 @@ function trixi_plot(sol::TrixiODESolution; variable_in=1, plot_polydeg=5)
     
     # interactive menu selection
     Makie.on(menu.selection) do s
-        println("Todo: plot solution field $(variable_names[s])")
         variable[] = s
         Makie.autolimits!(scene)        
+        # println("Plotting solution field $(variable_names[s])")
     end
 
     menu.selection = variable_in # doesn't work - how do you initialize a menu to the right option?
