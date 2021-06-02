@@ -200,7 +200,7 @@ end
 
 # Calculate 2D twopoint flux (element version)
 @inline function calcflux_twopoint!(f1, f2, u::AbstractArray{<:Any,4}, element,
-                                    volume_flux, equations, dg::DG, cache)
+                                    volume_flux, mesh::TreeMesh{2}, equations, dg::DG, cache)
 
   for j in eachnode(dg), i in eachnode(dg)
     # Set diagonal entries (= regular volume fluxes due to consistency)
@@ -231,21 +231,21 @@ end
 
   calcflux_twopoint_nonconservative!(f1, f2, u, element,
                                      have_nonconservative_terms(equations),
-                                     equations, dg, cache)
+                                     mesh, equations, dg, cache)
 end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{false},
-                                            equations, dg::DG, cache)
+                                            mesh::TreeMesh{2}, equations, dg::DG, cache)
   return nothing
 end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{true},
-                                            equations, dg::DG, cache)
+                                            mesh::TreeMesh{2}, equations, dg::DG, cache)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, u, element, equations, dg, cache)
+  calcflux_twopoint_nonconservative!(f1, f2, u, element, mesh, equations, dg, cache)
 end
 
 
@@ -255,14 +255,14 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
   @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
+    split_form_kernel!(du, u, nonconservative_terms, volume_integral.volume_flux, element,
+                       mesh, equations, dg, cache)
   end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{false}, equations,
-                                    volume_flux, dg::DGSEM, cache,
-                                    element, alpha=true)
+                                    nonconservative_terms::Val{false}, volume_flux, element,
+                                    mesh::TreeMesh{2}, equations, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -304,9 +304,8 @@ end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{true}, equations,
-                                    volume_flux, dg::DGSEM, cache,
-                                    element, alpha=true)
+                                    nonconservative_terms::Val{true}, volume_flux, element,
+                                    mesh::TreeMesh{2}, equations, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split_transpose = dg.basis
   @unpack f1_threaded, f2_threaded = cache
 
@@ -315,7 +314,7 @@ end
   f2 = f2_threaded[Threads.threadid()]
 
   # Calculate volume fluxes (one more dimension than weak form)
-  calcflux_twopoint!(f1, f2, u, element, volume_flux, equations, dg, cache)
+  calcflux_twopoint!(f1, f2, u, element, volume_flux, mesh, equations, dg, cache)
 
   # Calculate volume integral in one element
   for j in eachnode(dg), i in eachnode(dg)
@@ -352,7 +351,8 @@ function calc_volume_integral!(du, u,
   # Loop over pure DG elements
   @timed timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
     element = element_ids_dg[idx_element]
-    split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element)
+    split_form_kernel!(du, u, nonconservative_terms, volume_flux_dg, element,
+                       mesh, equations, dg, cache)
   end
 
   # Loop over blended DG-FV elements
@@ -361,7 +361,8 @@ function calc_volume_integral!(du, u,
     alpha_element = alpha[element]
 
     # Calculate DG volume integral contribution
-    split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element, 1 - alpha_element)
+    split_form_kernel!(du, u, nonconservative_terms, volume_flux_dg, element,
+                       mesh, equations, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
     fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, alpha_element)
