@@ -6,7 +6,7 @@ get_nodes(D::AbstractDerivativeOperator) = grid(D)
 
 
 # For dispatch
-const DGFD = DG{Basis} where {Basis<:AbstractDerivativeOperator}
+const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
 
 
 # 2D containers
@@ -33,9 +33,13 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{2},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralStrongForm,
-                               dg::DGFD, cache)
+                               dg::FDSBP, cache)
   D = dg.basis # SBP derivative operator
   @unpack f_threaded = cache
+
+  # SBP operators from SummationByPartsOperators.jl implement the basic interface
+  # of matrix-vector multiplication. Thus, we pass an "array of structures",
+  # packing all variables per node in an `SVector`.
   if nvariables(equations) == 1
     # `reinterpret(reshape, ...)` removes the leading dimension only if more
     # than one variable is used.
@@ -48,6 +52,8 @@ function calc_volume_integral!(du, u,
     du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
   end
 
+  # Use the tensor product structure to compute the discrete derivatives of
+  # the fluxes line-by-line and add them to `du` for each element.
   @threaded for element in eachelement(dg, cache)
     f_element = f_threaded[Threads.threadid()]
     u_element = view(u_vectors,  :, :, element)
@@ -59,8 +65,6 @@ function calc_volume_integral!(du, u,
            one(eltype(du)), one(eltype(du)))
     end
 
-    # TODO: FD. Doesn't work until https://github.com/JuliaArrays/ArrayInterface.jl/pull/156
-    #           is merged and the other issue mentioned there is fixed.
     # y direction
     @. f_element = flux(u_element, 2, equations)
     for i in eachnode(dg)
@@ -134,7 +138,7 @@ SolutionAnalyzer(D::AbstractDerivativeOperator) = D
 
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations,
-                               dg::DGFD, cache, args...; normalize=true) where {Func}
+                               dg::FDSBP, cache, args...; normalize=true) where {Func}
   # TODO: FD. This is rather inefficient right now and allocates...
   weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
 
@@ -159,7 +163,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{2}, equations, initial_condition,
-                          dg::DGFD, cache, cache_analysis)
+                          dg::FDSBP, cache, cache_analysis)
   # TODO: FD. This is rather inefficient right now and allocates...
   weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
   @unpack node_coordinates = cache.elements

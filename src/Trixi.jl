@@ -49,8 +49,8 @@ using UnPack: @pack!
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
 import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
-@reexport using SummationByPartsOperators: SummationByPartsOperators,
-  MattssonNordström2004, derivative_operator
+@reexport using SummationByPartsOperators:
+  SummationByPartsOperators, derivative_operator
 
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.

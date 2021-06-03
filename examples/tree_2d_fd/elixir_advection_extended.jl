@@ -10,14 +10,13 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 initial_condition = initial_condition_convergence_test
 
-D_SBP = derivative_operator(MattssonNordström2004(),
+D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                             derivative_order=1, accuracy_order=4,
                             xmin=0.0, xmax=1.0,
                             N=100,
                             # TOOD: FD. Can be removed once
-                            # https://github.com/JuliaArrays/ArrayInterface.jl/issues/157
-                            # https://github.com/JuliaArrays/ArrayInterface.jl/issues/158
-                            # are fixed
+                            # https://github.com/JuliaArrays/ArrayInterface.jl/pull/161
+                            # is merged
                             mode=SummationByPartsOperators.SafeMode())
 solver = DG(D_SBP, nothing #= mortar =#,
             SurfaceIntegralStrongForm(flux_lax_friedrichs),

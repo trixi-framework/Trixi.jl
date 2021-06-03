@@ -244,7 +244,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
   end
 end
 
-Base.summary(dg::DG) = "DG(" * summary(dg.basis) * ")"
+Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 
 @inline Base.real(dg::DG) = real(dg.basis)
 
@@ -374,7 +374,7 @@ end
 
 @inline polydeg(dg::DGSEM) = polydeg(dg.basis)
 
-Base.summary(dg::DGSEM) = "DGSEM(polydeg=$(polydeg(dg)))"
+Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
 
 
 

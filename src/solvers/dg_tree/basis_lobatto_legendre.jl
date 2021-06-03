@@ -84,8 +84,15 @@ end
 
 @inline polydeg(basis::LobattoLegendreBasis) = nnodes(basis) - 1
 
-get_nodes(basis::LobattoLegendreBasis) = basis.nodes
+@inline get_nodes(basis::LobattoLegendreBasis) = basis.nodes
 
+
+"""
+    integrate(f, u, basis::LobattoLegendreBasis)
+
+Map the function `f` to the coefficients `u` and integrate with respect to the
+quadrature rule given by `basis`.
+"""
 function integrate(f, u, basis::LobattoLegendreBasis)
   @unpack weights = basis
 
@@ -96,6 +103,10 @@ function integrate(f, u, basis::LobattoLegendreBasis)
   return res
 end
 
+# Return the first/last weight of the quadrature associated with `basis`.
+# Since the mass matrix for nodal Lobatto-Legendre bases is diagonal,
+# these weights are the only coefficients necessary for the scaling of
+# surface terms/integrals in DGSEM.
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
