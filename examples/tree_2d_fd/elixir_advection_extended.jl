@@ -1,3 +1,6 @@
+# TODO: FD
+# !!! warning "Experimental feature"
+#     This is an experimental feature and may change in any future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -12,12 +15,7 @@ initial_condition = initial_condition_convergence_test
 
 D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                             derivative_order=1, accuracy_order=4,
-                            xmin=0.0, xmax=1.0,
-                            N=100,
-                            # TOOD: FD. Can be removed once
-                            # https://github.com/JuliaArrays/ArrayInterface.jl/pull/161
-                            # is merged
-                            mode=SummationByPartsOperators.SafeMode())
+                            xmin=0.0, xmax=1.0, N=100)
 solver = DG(D_SBP, nothing #= mortar =#,
             SurfaceIntegralStrongForm(flux_lax_friedrichs),
             VolumeIntegralStrongForm())
@@ -54,8 +52,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# TODO: FD.
 sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-# sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
             save_everystep=false, callback=callbacks, maxiters=1e5)
 summary_callback()
