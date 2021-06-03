@@ -341,8 +341,8 @@ function calc_interface_flux!(surface_flux_values,
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Get the primary element index and local side index
-    primary_element   = element_ids[1, interface]
-    primary_side   = element_side_ids[1, interface]
+    primary_element = element_ids[1, interface]
+    primary_side = element_side_ids[1, interface]
 
     # Get initial index for the coordinate system on the secondary element and its
     # index increment

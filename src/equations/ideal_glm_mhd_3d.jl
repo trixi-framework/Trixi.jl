@@ -438,7 +438,21 @@ end
 end
 
 
+# FIXME: wave speeds depend on rotation
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
+    # Compute wave speed estimates in each direction. Requires rotation because
+    # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
+    norm_ = norm(normal_direction)
+    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+    normal_vector = normal_direction / norm_
+    # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
+    tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
+    # Orthogonal projection
+    tangent1 -= dot(normal_vector, tangent1) * normal_vector
+    tangent1 = normalize(tangent1)
+
+    # Third orthogonal vector
+    tangent2 = normalize(cross(normal_direction, tangent1))
   return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
 end
 
@@ -510,10 +524,6 @@ end
   v2_rr = rho_v2_rr/rho_rr
   v3_rr = rho_v3_rr/rho_rr
 
-  # Compute the velocities in the normal direction
-  v_normal_ll = v1_ll*normal_direction[1] + v2_ll*normal_direction[2] + v3_ll*normal_direction[3]
-  v_normal_rr = v1_rr*normal_direction[1] + v2_rr*normal_direction[2] + v3_rr*normal_direction[3]
-
   # Compute wave speed estimates in each direction. Requires rotation because
   # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
   norm_ = norm(normal_direction)
@@ -527,6 +537,10 @@ end
 
   # Third orthogonal vector
   tangent2 = normalize(cross(normal_direction, tangent1))
+
+  # Compute the rotated velocities and wave speeds
+  v_normal_ll = v1_ll*normal_vector[1] + v2_ll*normal_vector[2] + v3_ll*normal_vector[3]
+  v_normal_rr = v1_rr*normal_vector[1] + v2_rr*normal_vector[2] + v3_rr*normal_vector[3]
 
   u_ll_rotated = rotate_to_x(u_ll, normal_vector, tangent1, tangent2, equations)
   u_rr_rotated = rotate_to_x(u_rr, normal_vector, tangent1, tangent2, equations)

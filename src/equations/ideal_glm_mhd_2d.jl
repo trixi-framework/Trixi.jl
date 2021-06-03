@@ -446,7 +446,14 @@ end
 
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations2D)
-  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal_vector = normal_direction / norm_
+  u_ll_rotated = rotate_to_x(u_ll, normal_vector, equations)
+  u_rr_rotated = rotate_to_x(u_rr, normal_vector, equations)
+
+  return max_abs_speed_naive(u_ll_rotated, u_rr_rotated, 1, equations) * norm_
 end
 
 
@@ -501,15 +508,15 @@ end
   v1_rr = rho_v1_rr/rho_rr
   v2_rr = rho_v2_rr/rho_rr
 
-  # Compute the velocities in the normal direction
-  v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
-  v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
-
   # Compute wave speed estimates in each direction. Requires rotation because
   # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
   normal_vector = normal_direction / norm_
+
+  # Rotate the velocities
+  v_normal_ll = v1_ll * normal_vector[1] + v2_ll * normal_vector[2]
+  v_normal_rr = v1_rr * normal_vector[1] + v2_rr * normal_vector[2]
 
   u_ll_rotated = rotate_to_x(u_ll, normal_vector, equations)
   u_rr_rotated = rotate_to_x(u_rr, normal_vector, equations)
