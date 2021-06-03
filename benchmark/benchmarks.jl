@@ -12,6 +12,7 @@ let dimension = "2d"
                  joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
                  joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic_curved.jl"),
                  joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+                 joinpath(EXAMPLES_DIR, "elixir_euler_ec_curved.jl"),
                  joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic_curved.jl"),
                  joinpath(EXAMPLES_DIR, "elixir_euler_unstructured_quad_wall_bc.jl"), # this is the only elixir working for polydeg=3
                  joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
@@ -35,6 +36,7 @@ let dimension = "3d"
   for elixir in ["elixir_advection_extended.jl",
                  "elixir_advection_nonperiodic_curved.jl",
                  "elixir_euler_ec.jl",
+                 "elixir_euler_ec_curved.jl",
                  "elixir_euler_nonperiodic_curved.jl",
                  "elixir_euler_mortar.jl",
                  "elixir_euler_shockcapturing.jl"]
