@@ -1,15 +1,18 @@
 
 # General interface methods for SummationByPartsOperators.jl and Trixi.jl
+# TODO: FD. Move to another file
 nnodes(D::AbstractDerivativeOperator) = size(D, 1)
 eachnode(D::AbstractDerivativeOperator) = Base.OneTo(nnodes(D))
 get_nodes(D::AbstractDerivativeOperator) = grid(D)
 
 
 # For dispatch
+# TODO: FD. Move to another file
 const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
 
 
 # 2D containers
+# TODO: FD. Move to another file
 init_mortars(cell_ids, mesh, elements, mortar::Nothing) = nothing
 
 
@@ -134,6 +137,7 @@ end
 
 
 # AnalysisCallback
+# TODO: FD. Move to another file
 SolutionAnalyzer(D::AbstractDerivativeOperator) = D
 
 function integrate_via_indices(func::Func, u,
