@@ -1065,7 +1065,8 @@ end
 
 
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, CurvedMesh{2}},
-                                equations, surface_integral, dg::DGSEM, cache)
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DG, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 

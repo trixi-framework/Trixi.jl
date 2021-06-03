@@ -332,13 +332,14 @@ include("basis_lobatto_legendre.jl")
 """
     DGSEM(; RealT=Float64, polydeg::Integer,
             surface_flux=flux_central,
+            surface_integral=SurfaceIntegralWeakForm(surface_flux),
             volume_integral=VolumeIntegralWeakForm(),
             mortar=MortarL2(basis))
 
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
 [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
-const DGSEM = DG{Basis, Mortar, SurfaceIntegralWeakForm{SurfaceFlux}, VolumeIntegral} where {Basis<:LobattoLegendreBasis, Mortar, SurfaceFlux, VolumeIntegral}
+const DGSEM = DG{Basis} where {Basis<:LobattoLegendreBasis}
 
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux=flux_central,
@@ -367,9 +368,10 @@ DGSEM(polydeg, surface_flux=flux_central, volume_integral=VolumeIntegralWeakForm
 function DGSEM(; RealT=Float64,
                  polydeg::Integer,
                  surface_flux=flux_central,
+                 surface_integral=SurfaceIntegralWeakForm(surface_flux),
                  volume_integral=VolumeIntegralWeakForm())
   basis = LobattoLegendreBasis(RealT, polydeg)
-  return DGSEM(basis, surface_flux, volume_integral)
+  return DGSEM(basis, surface_integral, volume_integral)
 end
 
 @inline polydeg(dg::DGSEM) = polydeg(dg.basis)
