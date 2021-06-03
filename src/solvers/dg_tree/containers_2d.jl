@@ -87,7 +87,8 @@ end
 function init_elements!(elements, cell_ids, mesh::TreeMesh2D, basis)
   nodes = get_nodes(basis)
   # Compute the length of the 1D reference interval by integrating
-  # the function ith constant value unity
+  # the function with constant value unity on the corresponding
+  # element data type (using \circ)
   reference_length = integrate(one ∘ eltype, nodes, basis)
   # Compute the offset of the midpoint of the 1D reference interval
   # (its difference from zero)
