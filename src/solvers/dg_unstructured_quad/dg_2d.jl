@@ -83,19 +83,14 @@ end
   @unpack contravariant_vectors = cache.elements
 
   for j in eachnode(dg), i in eachnode(dg)
-    # Set diagonal entries (= regular volume fluxes due to consistency)
+    # pull the solution values and two contravariant vectors at node i,j
     u_node = get_node_vars(u, equations, dg, i, j, element)
-    # compute the fluxes in the x and y directions
-    flux1 = flux(u_node, 1, equations)
-    flux2 = flux(u_node, 2, equations)
-    # pull the two contravariant vectors
     Ja11_node, Ja12_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
     Ja21_node, Ja22_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-    # compute the two contravariant fluxes
-    fluxtilde1 = Ja11_node * flux1 + Ja12_node * flux2
-    fluxtilde2 = Ja21_node * flux1 + Ja22_node * flux2
-    set_node_vars!(ftilde1, fluxtilde1, equations, dg, i, i, j)
-    set_node_vars!(ftilde2, fluxtilde2, equations, dg, j, i, j)
+    # diagonal (consistent) part not needed since diagonal of
+    # dg.basis.derivative_split_transpose is zero!
+    set_node_vars!(ftilde1, zero(u_node), equations, dg, i, i, j)
+    set_node_vars!(ftilde2, zero(u_node), equations, dg, j, i, j)
 
     # contravariant fluxes in the first direction
     for ii in (i+1):nnodes(dg)
