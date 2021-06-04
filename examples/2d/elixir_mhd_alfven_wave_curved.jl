@@ -14,31 +14,29 @@ initial_condition = initial_condition_convergence_test
 # Get the DG approximation space
 
 volume_flux = flux_central
-solver = DGSEM(polydeg=3, surface_flux=flux_hll,
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
 # Get the curved quad mesh from a mapping function
 
-# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+# Mapping as described in https://arxiv.org/abs/1809.01178
 function mapping(xi_, eta_)
   # Transform input variables between -1 and 1 onto [0, sqrt(2)]
   # Note, we use the domain [0, sqrt(2)]^2 for the Alfvén wave convergence test case
   xi = 0.5 * sqrt(2) * xi_ + 0.5 * sqrt(2)
   eta = 0.5 * sqrt(2) * eta_ + 0.5 * sqrt(2)
 
-  y = eta + sqrt(2)/8 * (cos(1.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
-                         cos(0.5 * pi * (2 * eta - sqrt(2))/sqrt(2)))
+  y = eta + sqrt(2)/12 * (cos(1.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
+                          cos(0.5 * pi * (2 * eta - sqrt(2))/sqrt(2)))
 
-  x = xi + sqrt(2)/8 * (cos(0.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
-                        cos(2 * pi * (2 * y - sqrt(2))/sqrt(2)))
+  x = xi + sqrt(2)/12 * (cos(0.5 * pi * (2 * xi - sqrt(2))/sqrt(2)) *
+                         cos(2 * pi * (2 * y - sqrt(2))/sqrt(2)))
 
   return SVector(x, y)
 end
 
-cells_per_dimension = (10, 10)
-
-# Create curved mesh with 10 x 10 elements
+cells_per_dimension = (4, 4)
 mesh = CurvedMesh(cells_per_dimension, mapping)
 
 ###############################################################################
