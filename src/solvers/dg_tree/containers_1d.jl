@@ -68,7 +68,7 @@ end
 @inline nelements(elements::ElementContainer1D) = length(elements.cell_ids)
 # TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
 @inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
-@inline real(elements::ElementContainer1D) = eltype(elements.node_coordinates)
+@inline Base.real(elements::ElementContainer1D) = eltype(elements.node_coordinates)
 
 
 # Create element container and initialize element data
