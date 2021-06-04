@@ -11,7 +11,7 @@ mutable struct ElementContainer2D{RealT<:Real, uEltype<:Real} <: AbstractContain
 end
 
 nvariables(elements::ElementContainer2D) = size(elements.surface_flux_values, 1)
-nnodes(elements::ElementContainer2D) = size(elements.surface_flux_values, 2)
+nnodes(elements::ElementContainer2D) = size(elements.node_coordinates, 2)
 Base.eltype(elements::ElementContainer2D) = eltype(elements.surface_flux_values)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
@@ -69,6 +69,7 @@ end
 @inline nelements(elements::ElementContainer2D) = length(elements.cell_ids)
 # TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
 @inline eachelement(elements::ElementContainer2D) = Base.OneTo(nelements(elements))
+@inline real(elements::ElementContainer2D) = eltype(elements.node_coordinates)
 
 
 # Create element container and initialize element data
@@ -151,7 +152,7 @@ function Base.resize!(interfaces::InterfaceContainer2D, capacity)
                              (2, n_variables, n_nodes, capacity))
 
   resize!(_neighbor_ids, 2 * capacity)
-  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                                         (2, capacity))
 
   resize!(orientations, capacity)
@@ -169,7 +170,7 @@ function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) 
                   (2, n_variables, n_nodes, capacity))
 
   _neighbor_ids = fill(typemin(Int), 2 * capacity)
-  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                              (2, capacity))
 
   orientations = fill(typemin(Int), capacity)
@@ -365,10 +366,10 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh2D,
-                         elements::ElementContainer2D{RealT, uEltype}) where {RealT<:Real, uEltype<:Real}
+                         elements::ElementContainer2D)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer2D{RealT, uEltype}(
+  boundaries = BoundaryContainer2D{real(elements), eltype(elements)}(
     n_boundaries, nvariables(elements), nnodes(elements))
 
   # Connect elements with boundaries
@@ -520,7 +521,7 @@ function Base.resize!(mortars::L2MortarContainer2D, capacity)
                                 (2, n_variables, n_nodes, capacity))
 
   resize!(_neighbor_ids, 3 * capacity)
-  mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+  mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                                         (3, capacity))
 
   resize!(large_sides, capacity)
@@ -581,11 +582,11 @@ end
 
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh2D,
-                      elements::ElementContainer2D{RealT, uEltype},
-                      ::LobattoLegendreMortarL2) where {RealT<:Real, uEltype<:Real}
+                      elements::ElementContainer2D,
+                      ::LobattoLegendreMortarL2)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
-  mortars = L2MortarContainer2D{uEltype}(
+  mortars = L2MortarContainer2D{eltype(elements)}(
     n_mortars, nvariables(elements), nnodes(elements))
 
   # Connect elements with mortars
