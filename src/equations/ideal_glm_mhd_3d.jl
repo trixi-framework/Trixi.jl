@@ -438,7 +438,6 @@ end
 end
 
 
-# FIXME: wave speeds depend on rotation
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
     # Compute wave speed estimates in each direction. Requires rotation because
     # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
@@ -450,10 +449,12 @@ end
     # Orthogonal projection
     tangent1 -= dot(normal_vector, tangent1) * normal_vector
     tangent1 = normalize(tangent1)
-
     # Third orthogonal vector
     tangent2 = normalize(cross(normal_direction, tangent1))
-  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
+    # rotate the solution states
+    u_ll_rotated = rotate_to_x(u_ll, normal_vector, tangent1, tangent2, equations)
+    u_rr_rotated = rotate_to_x(u_rr, normal_vector, tangent1, tangent2, equations)
+  return max_abs_speed_naive(u_ll_rotated, u_rr_rotated, 1, equations) * norm(normal_direction)
 end
 
 
