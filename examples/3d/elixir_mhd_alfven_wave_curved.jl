@@ -21,11 +21,11 @@ solver = DGSEM(polydeg=5, surface_flux=flux_hll,
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
 function mapping(xi, eta, zeta)
-  y = eta + 0.25 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
+  y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
 
-  x = xi + 0.25 * (cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta))
+  x = xi + 0.125 * (cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta))
 
-  z = zeta + 0.25 * (cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta))
+  z = zeta + 0.125 * (cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta))
 
   return SVector(x, y, z)
 end

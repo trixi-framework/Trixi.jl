@@ -239,14 +239,13 @@ end
                                     volume_flux, mesh::TreeMesh{3}, equations, dg::DG, cache)
 
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    # Set diagonal entries (= regular volume fluxes due to consistency)
+    # Pull the solution values at the node i,j,k
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    flux1 = flux(u_node, 1, equations)
-    flux2 = flux(u_node, 2, equations)
-    flux3 = flux(u_node, 3, equations)
-    set_node_vars!(f1, flux1, equations, dg, i, i, j, k)
-    set_node_vars!(f2, flux2, equations, dg, j, i, j, k)
-    set_node_vars!(f3, flux3, equations, dg, k, i, j, k)
+    # diagonal (consistent) part not needed since diagonal of
+    # dg.basis.derivative_split_transpose is zero!
+    set_node_vars!(f1, zero(u_node), equations, dg, i, i, j, k)
+    set_node_vars!(f2, zero(u_node), equations, dg, j, i, j, k)
+    set_node_vars!(f3, zero(u_node), equations, dg, k, i, j, k)
 
     # Flux in x-direction
     for ii in (i+1):nnodes(dg)

@@ -83,7 +83,7 @@ end
   @unpack contravariant_vectors = cache.elements
 
   for j in eachnode(dg), i in eachnode(dg)
-    # pull the solution values and two contravariant vectors at node i,j
+    # pull the solution value and two contravariant vectors at node i,j
     u_node = get_node_vars(u, equations, dg, i, j, element)
     Ja11_node, Ja12_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
     Ja21_node, Ja22_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)

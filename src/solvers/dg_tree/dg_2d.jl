@@ -203,7 +203,7 @@ end
                                     volume_flux, mesh::TreeMesh{2}, equations, dg::DG, cache)
 
   for j in eachnode(dg), i in eachnode(dg)
-    # Pull the solutions values at the node i,j
+    # Pull the solution values at the node i,j
     u_node = get_node_vars(u, equations, dg, i, j, element)
     # diagonal (consistent) part not needed since diagonal of
     # dg.basis.derivative_split_transpose is zero!
