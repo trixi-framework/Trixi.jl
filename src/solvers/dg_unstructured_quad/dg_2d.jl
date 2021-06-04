@@ -330,13 +330,15 @@ function calc_interface_flux!(surface_flux_values,
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
   @unpack normal_directions = cache.elements
 
-  fstar_threaded                     = cache.fstar_upper_threaded
+  fstar_primary_threaded             = cache.fstar_upper_threaded
+  fstar_secondary_threaded           = cache.fstar_lower_threaded
   noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_threaded
   noncons_diamond_secondary_threaded = cache.noncons_diamond_lower_threaded
 
   @threaded for interface in eachinterface(dg, cache)
     # Choose thread-specific pre-allocated container
-    fstar                     = fstar_threaded[Threads.threadid()]
+    fstar_primary             = fstar_primary_threaded[Threads.threadid()]
+    fstar_secondary           = fstar_secondary_threaded[Threads.threadid()]
     noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
@@ -350,7 +352,7 @@ function calc_interface_flux!(surface_flux_values,
     secondary_index_increment = index_increment[interface]
 
     # Calculate the conservative portion of the numerical flux
-    calc_fstar!(fstar, equations, dg, u, normal_directions, interface,
+    calc_fstar!(fstar_primary, fstar_secondary, equations, dg, u, normal_directions, interface,
                 primary_element, primary_side, secondary_index, secondary_index_increment)
 
     for primary_index in eachnode(dg)
@@ -383,9 +385,9 @@ function calc_interface_flux!(surface_flux_values,
       # Copy flux back to primary/secondary element storage
       # Note the sign change for the components in the secondary element!
       for v in eachvariable(equations)
-        surface_flux_values[v, primary_index  , primary_side  , primary_element  ] = (fstar[v, primary_index] +
+        surface_flux_values[v, primary_index, primary_side, primary_element] = (fstar_primary[v, primary_index] +
             noncons_diamond_primary[v, primary_index])
-        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -(fstar[v, secondary_index] +
+        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -(fstar_secondary[v, secondary_index] +
             noncons_diamond_secondary[v, secondary_index])
       end
       # increment the index of the coordinate system in the secondary element
@@ -397,7 +399,9 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 
-@inline function calc_fstar!(destination::AbstractArray{<:Any,2}, equations, dg::DGSEM,
+@inline function calc_fstar!(destination_primary::AbstractArray{<:Any,2},
+                             destination_secondary::AbstractArray{<:Any,2},
+                             equations, dg::DGSEM,
                              u_interfaces, normal_directions,
                              interface, primary_element, primary_side,
                              secondary_element_start_index, secondary_element_index_increment)
@@ -419,7 +423,8 @@ end
     flux = surface_flux(u_ll, u_rr, outward_direction, equations)
 
     # Copy flux to left and right element storage
-    set_node_vars!(destination, flux, equations, dg, primary_index)
+    set_node_vars!(destination_primary,   flux, equations, dg, primary_index)
+    set_node_vars!(destination_secondary, flux, equations, dg, secondary_index)
     # increment the index of the coordinate system in the secondary element
     secondary_index += secondary_element_index_increment
   end

@@ -8,7 +8,25 @@ using Trixi
 
 equations = IdealGlmMhdEquations2D(5/3)
 
-initial_condition = initial_condition_weak_blast_wave
+function initial_condition_shifted_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
+  # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Shift blastwave to center of domain
+  inicenter = (sqrt(2)/2, sqrt(2)/2)
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(SVector(rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0), equations)
+end
+
+initial_condition = initial_condition_shifted_weak_blast_wave
 
 ###############################################################################
 # Get the DG approximation space
@@ -18,11 +36,11 @@ solver = DGSEM(polydeg=6, surface_flux=FluxRotated(flux_derigs_etal),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# Get the curved quad mesh from a file
+# Get the unstructured quad mesh from a file (downloads the file if not available locally)
 
-default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
-                                       default_mesh_file)
+default_mesh_file = joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh")
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/8f8cd23df27fcd494553f2a89f3c1ba4/raw/85e3c8d976bbe57ca3d559d653087b0889535295/mesh_alfven_wave_with_twist_and_flip.mesh",
+                                      default_mesh_file)
 mesh_file = default_mesh_file
 
 mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
