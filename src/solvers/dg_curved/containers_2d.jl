@@ -50,10 +50,37 @@ end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::AbstractArray{<:Any, 4}, basis::LobattoLegendreBasis)
-  @views mul!(jacobian_matrix[1, 1, :, :, element], basis.derivative_matrix, node_coordinates[1, :, :, element]) # x_ξ
-  @views mul!(jacobian_matrix[2, 1, :, :, element], basis.derivative_matrix, node_coordinates[2, :, :, element]) # y_ξ
-  @views mul!(jacobian_matrix[1, 2, :, :, element], node_coordinates[1, :, :, element], basis.derivative_matrix') # x_η
-  @views mul!(jacobian_matrix[2, 2, :, :, element], node_coordinates[2, :, :, element], basis.derivative_matrix') # y_η
+  @unpack derivative_matrix = basis
+
+  # The code below is equivalent to the following matrix multiplications, which
+  # seem to end up calling generic linear algebra code from Julia. Thus, the
+  # optimized code below using `@turbo` is much faster.
+  # @views mul!(jacobian_matrix[1, 1, :, :, element], derivative_matrix, node_coordinates[1, :, :, element]) # x_ξ
+  # @views mul!(jacobian_matrix[2, 1, :, :, element], derivative_matrix, node_coordinates[2, :, :, element]) # y_ξ
+  # @views mul!(jacobian_matrix[1, 2, :, :, element], node_coordinates[1, :, :, element], derivative_matrix') # x_η
+  # @views mul!(jacobian_matrix[2, 2, :, :, element], node_coordinates[2, :, :, element], derivative_matrix') # y_η
+
+  # x_ξ, y_ξ
+  @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
+    for j in indices((jacobian_matrix, derivative_matrix), (4, 1)), i in indices((jacobian_matrix, derivative_matrix), (3, 1))
+      res = zero(eltype(jacobian_matrix))
+      for ii in indices((node_coordinates, derivative_matrix), (2, 2))
+        res += derivative_matrix[i, ii] * node_coordinates[xy, ii, j, element]
+      end
+      jacobian_matrix[xy, 1, i, j, element] = res
+    end
+  end
+
+  # x_η, y_η
+  @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
+    for j in indices((jacobian_matrix, derivative_matrix), (4, 1)), i in indices((jacobian_matrix, derivative_matrix), (3, 1))
+      res = zero(eltype(jacobian_matrix))
+      for jj in indices((node_coordinates, derivative_matrix), (2, 2))
+        res += derivative_matrix[j, jj] * node_coordinates[xy, i, jj, element]
+      end
+      jacobian_matrix[xy, 2, i, j, element] = res
+    end
+  end
 
   return jacobian_matrix
 end
