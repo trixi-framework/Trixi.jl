@@ -370,9 +370,9 @@ function print_amr_information(callbacks, mesh, solver, cache)
   end
 
   for level = max_level:-1:min_level+1
-    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(==(level), levels)))
   end
-  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(==(min_level), levels)))
 
   return nothing
 end

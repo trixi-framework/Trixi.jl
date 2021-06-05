@@ -6,8 +6,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
+# advectionvelocity = (1.0, 1.0)
+advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
@@ -75,7 +75,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl=0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

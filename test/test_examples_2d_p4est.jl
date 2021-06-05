@@ -35,8 +35,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
   @testset "elixir_advection_amr_p4est_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_p4est_unstructured_flag.jl"),
-      l2   = [1.535436496965521e-3],
-      linf = [4.400105886102593e-2])
+      l2   = [1.29561551e-03],
+      linf = [3.92061383e-02])
   end
 
   @testset "elixir_advection_restart_p4est.jl" begin

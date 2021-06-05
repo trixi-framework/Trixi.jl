@@ -505,7 +505,7 @@ function coarsen!(mesh::P4estMesh)
   # Find original ID of each cell that has been coarsened and then refined again.
   for refined_cell in refined_cells
     # i-th cell of the ones that have been created by coarsening has been refined again
-    i = findfirst(isequal(refined_cell), new_cells)
+    i = findfirst(==(refined_cell), new_cells)
 
     # Remove IDs of the 2^NDIMS cells that have been coarsened to this cell
     coarsened_cells[:, i] .= -1
@@ -631,7 +631,7 @@ function collect_new_cells(mesh)
   end
 
   # Changed cells are all that haven't been set to zero above
-  new_cells = findall(isequal(1), cell_is_new)
+  new_cells = findall(==(1), cell_is_new)
 
   return new_cells
 end

@@ -15,7 +15,7 @@ mutable struct UnstructuredQuadSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
   boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
 end
 
-@inline nboundaries(container::UnstructuredQuadSortedBoundaryTypes) = sum(container.boundary_indices .|> length)
+@inline nboundaries(container::UnstructuredQuadSortedBoundaryTypes) = sum(length, container.boundary_indices)
 
 
 # constructor that "eats" the original boundary condition dictionary and sorts the information
