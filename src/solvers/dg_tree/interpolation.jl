@@ -198,7 +198,7 @@ end
 # 2D version
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, matrix::AbstractMatrix,
                                  data_in:: AbstractArray{<:Any, 3},
-                                 tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(data_in, 3)))
+                                 tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2)))
 
   # Interpolate in x-direction
   # @tullio threads=false tmp1[v, i, j]     = matrix[i, ii] * data_in[v, ii, j]
@@ -229,7 +229,7 @@ end
 function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 2},
                                         matrix::AbstractMatrix,
                                         data_in:: AbstractArray{<:Any, 2},
-                                        tmp1=zeros(eltype(data_out), size(matrix, 1), size(data_in, 2)))
+                                        tmp1=zeros(eltype(data_out), size(matrix, 1), size(matrix, 2)))
 
   # Interpolate in x-direction
   # @tullio threads=false     tmp1[i, j] = matrix[i, ii] * data_in[ii, j]
@@ -258,7 +258,7 @@ end
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
                                  matrix1::AbstractMatrix, matrix2::AbstractMatrix,
                                  data_in:: AbstractArray{<:Any, 3},
-                                 tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(data_in, 3)))
+                                 tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(matrix2, 2)))
 
   # Interpolate in x-direction
   # @tullio threads=false tmp1[v, i, j]     = matrix1[i, ii] * data_in[v, ii, j]
@@ -287,7 +287,7 @@ end
 function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
                                      matrix1::AbstractMatrix, matrix2::AbstractMatrix,
                                      data_in:: AbstractArray{<:Any, 3},
-                                     tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(data_in, 3)))
+                                     tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(matrix2, 2)))
 
   # Interpolate in x-direction
   # @tullio threads=false tmp1[v, i, j]     = matrix1[i, ii] * data_in[v, ii, j]
