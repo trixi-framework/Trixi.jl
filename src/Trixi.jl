@@ -48,6 +48,7 @@ using UnPack: @pack!
 using Tullio: @tullio
 using LoopVectorization
 
+using Flux
 
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
@@ -162,7 +163,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
 export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNNPP
 
 export PositivityPreservingLimiterZhangShu
 

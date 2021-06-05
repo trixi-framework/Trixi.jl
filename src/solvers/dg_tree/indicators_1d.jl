@@ -192,3 +192,127 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3},
 
   return alpha
 end
+
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorNNPP}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+
+  alpha = Vector{real(basis)}()
+  alpha_tmp = similar(alpha)
+
+  A = Array{real(basis), ndims(equations)}
+  indicator_threaded  = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
+end
+
+# this method is used when the indicator is constructed as for AMR
+function create_cache(typ::Type{IndicatorNNPP}, mesh, equations::AbstractEquations{1}, dg::DGSEM, cache)
+  create_cache(typ, equations, dg.basis)
+end
+
+
+function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,3},
+                                                   equations, dg::DGSEM, cache;
+                                                   kwargs...)
+  @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_nnpp
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_nnpp.cache
+  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+  #       or just `resize!` whenever we call the relevant methods as we do now?
+  resize!(alpha, nelements(dg, cache))
+  if alpha_smooth
+    resize!(alpha_tmp, nelements(dg, cache))
+  end
+
+  @threaded for element in eachelement(dg, cache)
+    indicator  = indicator_threaded[Threads.threadid()]
+    modal      = modal_threaded[Threads.threadid()]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    for i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, element)
+      indicator[i] = indicator_nnpp.variable(u_local, equations)
+    end
+
+    # Convert to modal representation
+    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator)
+
+    # Calculate total energies for all modes, without highest, without two highest
+    total_energy = zero(eltype(modal))
+    for i in 1:nnodes(dg)
+      total_energy += modal[i]^2
+    end
+    total_energy_clip1 = zero(eltype(modal))
+    for i in 1:(nnodes(dg)-1)
+      total_energy_clip1 += modal[i]^2
+    end
+    total_energy_clip2 = zero(eltype(modal))
+    for i in 1:(nnodes(dg)-2)
+      total_energy_clip2 += modal[i]^2
+    end
+
+
+    if size(Flux.params(network)[1],2) == 2
+      # Calculate energy in lower modes for the network input
+      X = zeros(2,1)
+      X[1] = (total_energy - total_energy_clip1)/total_energy
+      X[2] = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+
+    elseif size(Flux.params(network)[1],2) == 3
+      # Calculate energy in lower modes for the network input
+    	X = zeros(3,1)
+      X[1] = (total_energy - total_energy_clip1)/total_energy
+      X[2] = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+      X[3] = nnodes(dg) 
+    end
+
+    # Scale input data
+    X = X ./max(maximum(abs.(X)),1)
+
+    if alpha_continuous && !alpha_amr
+      if network(X)[1] > 0.5
+        alpha_element = network(X)[1]
+      else
+        alpha_element = 0
+      end
+      
+      # Take care of the case close to pure FV
+      if alpha_element > 1 - alpha_min
+       alpha_element = one(alpha_element)
+      end
+
+      # Clip the maximum amount of FV allowed
+      alpha[element] = alpha_max * alpha_element
+    elseif !alpha_continuous && !alpha_amr
+      if network(X)[1] > 0.5
+        alpha[element] = 1
+      else
+        alpha[element] = 0
+      end
+    elseif alpha_amr
+      alpha_element = network(X)[1]
+    end
+  end
+
+  if (alpha_smooth)
+    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+    # Copy alpha values such that smoothing is indpedenent of the element access order
+    alpha_tmp .= alpha
+
+    # Loop over interfaces
+    for interface in eachinterface(dg, cache)
+      # Get neighboring element ids
+      left  = cache.interfaces.neighbor_ids[1, interface]
+      right = cache.interfaces.neighbor_ids[2, interface]
+
+      # Apply smoothing
+      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
+      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
+    end
+  end
+
+  return alpha
+end
+
