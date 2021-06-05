@@ -354,7 +354,7 @@ end
 
 # TODO: Deprecated in v0.3 (no longer documented)
 function DGSEM(basis::LobattoLegendreBasis,
-               surface_integral::AbstractSurfaceIntegral=SurfaceIntegralWeakForm(surface_flux),
+               surface_integral::AbstractSurfaceIntegral,
                volume_integral=VolumeIntegralWeakForm(),
                mortar=MortarL2(basis))
 

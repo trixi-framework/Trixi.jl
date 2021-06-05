@@ -726,7 +726,7 @@ function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
 end
 
 
-function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_nodes, n_variables) where {uEltype<:Real}
+function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
