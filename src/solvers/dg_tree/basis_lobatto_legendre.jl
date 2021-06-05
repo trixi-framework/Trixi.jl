@@ -334,35 +334,45 @@ end
 
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
-function polynomial_interpolation_matrix(nodes_in, nodes_out)
+function polynomial_interpolation_matrix(nodes_in, nodes_out,
+                                         baryweights_in=barycentric_weights(nodes_in))
   n_nodes_in = length(nodes_in)
   n_nodes_out = length(nodes_out)
-  wbary_in = barycentric_weights(nodes_in)
-  vdm = zeros(n_nodes_out, n_nodes_in)
+  vandermonde = Matrix{promote_type(eltype(nodes_in), eltype(nodes_out))}(undef,
+                  n_nodes_out, n_nodes_in)
+  polynomial_interpolation_matrix!(vandermonde, nodes_in, nodes_out, baryweights_in)
 
-  for k in 1:n_nodes_out
+  return vandermonde
+end
+
+function polynomial_interpolation_matrix!(vandermonde,
+                                          nodes_in, nodes_out,
+                                          baryweights_in)
+  fill!(vandermonde, zero(eltype(vandermonde)))
+
+  for k in eachindex(nodes_out)
     match = false
-    for j in 1:n_nodes_in
-      if isapprox(nodes_out[k], nodes_in[j], rtol=eps())
+    for j in eachindex(nodes_in)
+      if isapprox(nodes_out[k], nodes_in[j])
         match = true
-        vdm[k, j] = 1
+        vandermonde[k, j] = 1
       end
     end
 
     if match == false
-      s = 0.0
-      for j in 1:n_nodes_in
-        t = wbary_in[j] / (nodes_out[k] - nodes_in[j])
-        vdm[k, j] = t
+      s = zero(eltype(vandermonde))
+      for j in eachindex(nodes_in)
+        t = baryweights_in[j] / (nodes_out[k] - nodes_in[j])
+        vandermonde[k, j] = t
         s += t
       end
-      for j in 1:n_nodes_in
-        vdm[k, j] = vdm[k, j] / s
+      for j in eachindex(nodes_in)
+        vandermonde[k, j] = vandermonde[k, j] / s
       end
     end
   end
 
-  return vdm
+  return vandermonde
 end
 
 

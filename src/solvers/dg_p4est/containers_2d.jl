@@ -26,6 +26,9 @@ function calc_node_coordinates!(node_coordinates,
   @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
   tmp1 = zeros(real(mesh), 2, length(nodes), length(mesh.nodes))
+  baryweights_in = barycentric_weights(mesh.nodes)
+  matrix1 = Matrix{real(mesh)}(undef, length(mesh.nodes), length(mesh.nodes))
+  matrix2 = similar(matrix1)
 
   # Macros from p4est
   p4est_root_len = 1 << P4EST_MAXLEVEL
@@ -45,8 +48,8 @@ function calc_node_coordinates!(node_coordinates,
 
       nodes_out_x = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
       nodes_out_y = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
-      matrix1 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_x)
-      matrix2 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_y)
+      polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x, baryweights_in)
+      polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y, baryweights_in)
 
       multiply_dimensionwise!(
         view(node_coordinates, :, :, :, element),
