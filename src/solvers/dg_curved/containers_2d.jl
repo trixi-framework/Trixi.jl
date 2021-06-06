@@ -103,13 +103,15 @@ end
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any,3}, element, jacobian_matrix)
   # The code below is equivalent to the following high-level code but much faster.
-  # @. @views inverse_jacobian[:, :, element] = inv(jacobian_matrix[1, 1, :, :, element] * jacobian_matrix[2, 2, :, :, element] -
-  #                                                 jacobian_matrix[1, 2, :, :, element] * jacobian_matrix[2, 1, :, :, element])
+  @. @views inverse_jacobian[:, :, element] = inv(jacobian_matrix[1, 1, :, :, element] * jacobian_matrix[2, 2, :, :, element] -
+                                                  jacobian_matrix[1, 2, :, :, element] * jacobian_matrix[2, 1, :, :, element])
 
-  @turbo for j in indices((inverse_jacobian, jacobian_matrix), (1, 3)), i in indices((inverse_jacobian, jacobian_matrix), (2, 4))
-    inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j, element] * jacobian_matrix[2, 2, i, j, element] -
-                                          jacobian_matrix[1, 2, i, j, element] * jacobian_matrix[2, 1, i, j, element])
-  end
+  # TODO: P$EST performance
+  # Needs a fix for https://github.com/JuliaSIMD/LoopVectorization.jl/issues/279
+  # @turbo for j in indices((inverse_jacobian, jacobian_matrix), (2, 4)), i in indices((inverse_jacobian, jacobian_matrix), (1, 3))
+  #   inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j, element] * jacobian_matrix[2, 2, i, j, element] -
+  #                                         jacobian_matrix[1, 2, i, j, element] * jacobian_matrix[2, 1, i, j, element])
+  # end
 
   return inverse_jacobian
 end
