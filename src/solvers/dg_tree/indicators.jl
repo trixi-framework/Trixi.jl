@@ -262,3 +262,84 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNNPP)
   end
 end
 
+
+"""
+    IndicatorNNRH
+
+Artificial neural network based indicator used for shock-capturing or AMR
+  - Ray, Hesthaven (2018/2019)
+  "An artificial neural network as a troubled-cell indicator"
+  doi: https://doi.org/10.1016/j.jcp.2018.04.029
+  "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
+  doi: https://doi.org/10.1016/j.jcp.2019.07.043
+"""
+struct IndicatorNNRH{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
+  alpha_max::RealT
+  alpha_min::RealT
+  alpha_smooth::Bool
+  alpha_continuous::Bool
+  alpha_amr::Bool
+  variable::Variable
+  network::Chain
+  cache::Cache
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorNNRH(equations::AbstractEquations, basis, mesh;
+                                   alpha_max=0.5,
+                                   alpha_min=0.001,
+                                   alpha_smooth=true,
+                                   alpha_continuous=true,
+                                   alpha_amr=false,
+                                   variable,
+                                   network)
+  alpha_max, alpha_min = promote(alpha_max, alpha_min)
+  cache = create_cache(IndicatorNNRH, equations, basis, mesh)
+  IndicatorNNRH{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
+end
+
+# this method is used when the indicator is constructed as for AMR
+function IndicatorNNRH(semi::AbstractSemidiscretization;
+                                   alpha_max=0.5,
+                                   alpha_min=0.001,
+                                   alpha_smooth=true,
+                                   alpha_continuous=true,
+                                   alpha_amr=true,
+                                   variable,
+                                   network)
+  alpha_max, alpha_min = promote(alpha_max, alpha_min)
+  cache = create_cache(IndicatorNNRH, semi)
+  IndicatorNNRH{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
+end
+
+
+function Base.show(io::IO, indicator::IndicatorNNRH)
+  @nospecialize indicator # reduce precompilation time
+
+  print(io, "IndicatorNNPP(")
+  print(io, indicator.variable)
+  print(io, ", alpha_max=", indicator.alpha_max)
+  print(io, ", alpha_min=", indicator.alpha_min)
+  print(io, ", alpha_smooth=", indicator.alpha_smooth)
+  print(io, ", alpha_continuous=", indicator.alpha_continuous)
+  print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNNRH)
+  @nospecialize indicator # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    setup = [
+             "indicator variable" => indicator.variable,
+             "max. α" => indicator.alpha_max,
+             "min. α" => indicator.alpha_min,
+             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+             "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
+            ]
+    summary_box(io, "IndicatorNNRH", setup)
+  end
+end
