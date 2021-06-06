@@ -27,6 +27,9 @@ f3(s) = SVector(5 * s, -5.0 + 5 * sin(0.5 * pi * s))
 f4(s) = SVector(5 * s,  5.0 + 5 * sin(0.5 * pi * s))
 faces = (f1, f2, f3, f4)
 
+# This creates a mapping that transforms [-1, 1]^2 to the domain with the faces defined above.
+# It generally doesn't work for meshes loaded from mesh files because these can be meshes
+# of arbitrary domains, but the mesh below is specifically built on the domain [-1, 1]^2.
 Trixi.validate_faces(faces)
 mapping_flag = Trixi.transfinite_mapping(faces)
 
@@ -61,7 +64,7 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 
-save_solution = SaveSolutionCallback(interval=1,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)

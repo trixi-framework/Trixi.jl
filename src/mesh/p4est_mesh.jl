@@ -106,14 +106,6 @@ function P4estMesh(trees_per_dimension; polydeg,
   # Use Int-Vector of size 2 as quadrant user data
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 
-  # Destroy p4est structs at exit of Julia
-  function destroy_p4est_structs()
-    p4est_destroy(p4est)
-    p4est_connectivity_destroy(conn)
-  end
-
-  atexit(destroy_p4est_structs)
-
   # Non-periodic boundaries
   boundary_names = fill(Symbol("---"), 4, prod(trees_per_dimension))
   linear_indices = LinearIndices(trees_per_dimension)
@@ -140,8 +132,17 @@ function P4estMesh(trees_per_dimension; polydeg,
     end
   end
 
-  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
+  mesh = P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
                                           boundary_names, "", unsaved_changes)
+
+  # Destroy p4est structs when the mesh is garbage collected
+  finalizer(mesh) do
+    conn = mesh.p4est.connectivity
+    p4est_destroy(mesh.p4est)
+    p4est_connectivity_destroy(conn)
+  end
+
+  return mesh
 end
 
 
@@ -197,19 +198,20 @@ function P4estMesh(meshfile::String;
   # Use Int-Vector of size 2 as quadrant user data
   p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 
-  # Destroy p4est structs at exit of Julia
-  function destroy_p4est_structs()
-    p4est_destroy(p4est)
-    p4est_connectivity_destroy(conn)
-  end
-
-  atexit(destroy_p4est_structs)
-
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 4, n_trees)
 
-  return P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
+  mesh = P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
                                           boundary_names, "", unsaved_changes)
+
+  # Destroy p4est structs when the mesh is garbage collected
+  finalizer(mesh) do
+    conn = mesh.p4est.connectivity
+    p4est_destroy(mesh.p4est)
+    p4est_connectivity_destroy(conn)
+  end
+
+  return mesh
 end
 
 
