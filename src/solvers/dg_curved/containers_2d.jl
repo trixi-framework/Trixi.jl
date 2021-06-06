@@ -89,12 +89,24 @@ end
 # Calculate contravarant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
 # Those are called Ja^i in Kopriva's blue book.
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,5}, element, jacobian_matrix)
-  # First contravariant vector Ja^1
-  @. @views contravariant_vectors[1, 1, :, :, element] =  jacobian_matrix[2, 2, :, :, element]
-  @. @views contravariant_vectors[2, 1, :, :, element] = -jacobian_matrix[1, 2, :, :, element]
-  # Second contravariant vector Ja^2
-  @. @views contravariant_vectors[1, 2, :, :, element] = -jacobian_matrix[2, 1, :, :, element]
-  @. @views contravariant_vectors[2, 2, :, :, element] =  jacobian_matrix[1, 1, :, :, element]
+  # The code below is equivalent to the following using broadcasting but much faster.
+  # # First contravariant vector Ja^1
+  # @. @views contravariant_vectors[1, 1, :, :, element] =  jacobian_matrix[2, 2, :, :, element]
+  # @. @views contravariant_vectors[2, 1, :, :, element] = -jacobian_matrix[1, 2, :, :, element]
+  # # Second contravariant vector Ja^2
+  # @. @views contravariant_vectors[1, 2, :, :, element] = -jacobian_matrix[2, 1, :, :, element]
+  # @. @views contravariant_vectors[2, 2, :, :, element] =  jacobian_matrix[1, 1, :, :, element]
+
+  @turbo for j in indices((contravariant_vectors, jacobian_matrix), (4, 4)),
+             i in indices((contravariant_vectors, jacobian_matrix), (3, 3))
+    # First contravariant vector Ja^1
+    contravariant_vectors[1, 1, i, j, element] =  jacobian_matrix[2, 2, i, j, element]
+    contravariant_vectors[2, 1, i, j, element] = -jacobian_matrix[1, 2, i, j, element]
+
+    # Second contravariant vector Ja^2
+    contravariant_vectors[1, 2, i, j, element] = -jacobian_matrix[2, 1, i, j, element]
+    contravariant_vectors[2, 2, i, j, element] =  jacobian_matrix[1, 1, i, j, element]
+  end
 
   return contravariant_vectors
 end
