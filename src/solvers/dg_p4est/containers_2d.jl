@@ -82,11 +82,10 @@ function init_interfaces_iter_face(info, user_data)
 
   # Unpack user_data = [interfaces, interface_id, mesh] and increment interface_id
   ptr = Ptr{Any}(user_data)
-  data_array = unsafe_wrap(Array, ptr, 3)
-  interfaces = data_array[1]
-  interface_id = data_array[2]
-  data_array[2] = interface_id + 1
-  mesh = data_array[3]
+  interfaces   = unsafe_load(ptr, 1)
+  interface_id = unsafe_load(ptr, 2)
+  mesh         = unsafe_load(ptr, 3)
+  unsafe_store!(ptr, interface_id + 1, 2)
 
   # Function barrier because the unpacked user_data above is type-unstable
   init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
@@ -169,11 +168,10 @@ function init_boundaries_iter_face(info, user_data)
 
   # Unpack user_data = [boundaries, boundary_id, mesh] and increment boundary_id
   ptr = Ptr{Any}(user_data)
-  data_array = unsafe_wrap(Array, ptr, 3)
-  boundaries = data_array[1]
-  boundary_id = data_array[2]
-  data_array[2] += 1
-  mesh = data_array[3]
+  boundaries  = unsafe_load(ptr, 1)
+  boundary_id = unsafe_load(ptr, 2)
+  mesh        = unsafe_load(ptr, 3)
+  unsafe_store!(ptr, boundary_id + 1, 2)
 
   # Function barrier because the unpacked user_data above is type-unstable
   init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
@@ -251,11 +249,10 @@ function init_mortars_iter_face(info, user_data)
 
   # Unpack user_data = [mortars, mortar_id, mesh] and increment mortar_id
   ptr = Ptr{Any}(user_data)
-  data_array = unsafe_wrap(Array, ptr, 3)
-  mortars = data_array[1]
-  mortar_id = data_array[2]
-  data_array[2] += 1
-  mesh = data_array[3]
+  mortars   = unsafe_load(ptr, 1)
+  mortar_id = unsafe_load(ptr, 2)
+  mesh      = unsafe_load(ptr, 3)
+  unsafe_store!(ptr, mortar_id + 1, 2)
 
   # Function barrier because the unpacked user_data above is type-unstable
   init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
