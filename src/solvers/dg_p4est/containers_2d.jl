@@ -269,7 +269,7 @@ function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
 
   if sides[1].is_hanging == true
     # Left is small (1), right is large (2)
-    small_large = [1, 2]
+    small_large = (1, 2)
 
     local_small_quad_ids = sides[1].is.hanging.quadid
     # Global IDs of the two small quads
@@ -280,7 +280,7 @@ function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
     large_quad_id = offsets[2] + sides[2].is.full.quadid
   else # sides[2].is_hanging == true
     # Left is large (2), right is small (1)
-    small_large = [2, 1]
+    small_large = (2, 1)
 
     local_small_quad_ids = sides[2].is.hanging.quadid
     # Global IDs of the two small quads
