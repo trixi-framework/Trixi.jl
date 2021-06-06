@@ -260,14 +260,18 @@ function trixi_plot(sol::TrixiODESolution; variable_in = 1, plot_polydeg=5)
     variable_names = Trixi.varnames(cons2cons,equations)
     options = [zip(variable_names,1:length(variable_names))...]
     menu = Makie.Menu(fig, options = options)
-    toggle = Makie.Toggle(fig,active=true)
+    toggle_sol_mesh = Makie.Toggle(fig,active=true)
+    toggle_mesh = Makie.Toggle(fig,active=true)
     fig[1, 1] = Makie.vgrid!(
         Makie.Label(fig, "Solution field", width = nothing), menu,
-        Makie.Label(fig, "Mesh visible"), toggle;
+        Makie.Label(fig, "Solution mesh visible"), toggle_sol_mesh,
+        Makie.Label(fig, "Mesh visible"), toggle_mesh;
         tellheight=false,width = 200
     )
 
-    scene = Makie.Axis3(fig[1, 2]) # is there a way to set limits for LScene?
+    # ax = Makie.Axis3(fig[1, 2]) 
+    ax = Makie.LScene(fig[1,2],scenekw = (show_axis = false,))
+    # ax.zautolimitmargin[] = (0.,.05) # makes mesh flush with 
 
     # interactive menu variable 
     menu.selection[] = variable_in 
@@ -275,24 +279,39 @@ function trixi_plot(sol::TrixiODESolution; variable_in = 1, plot_polydeg=5)
 
     # these lines get re-run whenever variable[] is updated
     plotting_mesh = Makie.@lift(Trixi.generate_plotting_triangulation(sol, $(menu.selection), plot_polydeg = plot_polydeg))
+    solution_z = Makie.@lift(getindex.($plotting_mesh.position,3)) 
+    Makie.mesh!(ax,plotting_mesh,color=solution_z,plot_polydeg=plot_polydeg)
+
+    # mesh overlay    
     wire_points = Makie.@lift(Trixi.generate_plotting_wireframe(sol, $(menu.selection), plot_polydeg = plot_polydeg))
-    solution_z = getindex.(plotting_mesh[].position,3)
-    Makie.mesh!(scene,plotting_mesh,color=solution_z,plot_polydeg=plot_polydeg)
-    wire_mesh_top = Makie.lines!(scene,wire_points,color=:white) 
-    wire_mesh_bottom = Makie.lines!(scene,wire_points,color=:white) 
+    wire_mesh_top = Makie.lines!(ax,wire_points,color=:white) 
+    wire_mesh_bottom = Makie.lines!(ax,wire_points,color=:white) 
     Makie.translate!(wire_mesh_top,0,0,1e-3)
     Makie.translate!(wire_mesh_bottom,0,0,-1e-3)
-    
-    # interactive menu selection
-    Makie.on(menu.selection) do s
-        Makie.autolimits!(scene)        
+
+    # mesh below the solution
+    function compute_z_offset(solution_z)
+        zmin = minimum(solution_z)
+        zrange = (x->x[2]-x[1])(extrema(solution_z))
+        return zmin - .25*zrange
     end
+    z_offset = Makie.@lift(compute_z_offset($solution_z))
+    get_flat_points(wire_points,z_offset) = [Makie.Point(point.data[1:2]...,z_offset) for point in wire_points]
+    flat_wire_points = Makie.@lift get_flat_points($wire_points,$z_offset)
+    wire_mesh_flat = Makie.lines!(ax,flat_wire_points,color=:black) 
+    
+    # # interactive menu selection
+    # Makie.on(menu.selection) do s
+    #     Makie.autolimits!(ax)
+    # end
+    Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap = :viridis, flipaxis = false)
 
     menu.is_open = false 
 
     # syncs the toggle to the mesh
-    Makie.connect!(wire_mesh_top.visible, toggle.active) 
-    Makie.connect!(wire_mesh_bottom.visible, toggle.active)
-    
+    Makie.connect!(wire_mesh_top.visible, toggle_sol_mesh.active) 
+    Makie.connect!(wire_mesh_bottom.visible, toggle_sol_mesh.active)
+    Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
+
     fig
 end
