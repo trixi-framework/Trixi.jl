@@ -66,7 +66,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)

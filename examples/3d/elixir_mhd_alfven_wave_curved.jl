@@ -38,7 +38,6 @@ mesh = CurvedMesh(cells_per_dimension, mapping)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
-
 ###############################################################################
 # ODE solvers, callbacks etc.
 
@@ -51,7 +50,7 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)

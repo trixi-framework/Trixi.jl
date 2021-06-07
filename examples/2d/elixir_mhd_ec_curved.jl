@@ -52,8 +52,8 @@ function mapping(xi_, eta_)
   return SVector(x, y)
 end
 
-cells_per_dimension = (8, 8)
 # Create curved mesh with 8 x 8 elements
+cells_per_dimension = (8, 8)
 mesh = CurvedMesh(cells_per_dimension, mapping)
 
 ###############################################################################
@@ -77,7 +77,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
