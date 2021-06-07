@@ -91,7 +91,7 @@ end
 # Calculate 3D twopoint contravariant flux (element version)
 @inline function calcflux_twopoint!(ftilde1, ftilde2, ftilde3, u::AbstractArray{<:Any,5}, element,
                                     volume_flux, mesh::CurvedMesh{3},
-                                    equations, dg::DG, cache)
+                                    equations, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
 
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -295,7 +295,7 @@ end
 
 
 function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
-                              nonconservative_terms, # can be true/false
+                              nonconservative_terms, # can be Val(true)/Val(false)
                               equations, dg::DG)
   @unpack elements = cache
   @unpack surface_flux = dg

@@ -79,7 +79,7 @@ end
 # Calculate 2D twopoint contravariant flux (element version)
 @inline function calcflux_twopoint!(ftilde1, ftilde2, u::AbstractArray{<:Any,4}, element,
                                     volume_flux, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
-                                    equations, dg::DG, cache)
+                                    equations, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
 
   for j in eachnode(dg), i in eachnode(dg)

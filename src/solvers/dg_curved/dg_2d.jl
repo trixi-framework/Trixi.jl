@@ -79,7 +79,7 @@ end
 
 function calc_interface_flux!(cache, u,
                               mesh::CurvedMesh{2},
-                              nonconservative_terms, # can be true/false
+                              nonconservative_terms, # can be Val(true)/Val(false)
                               equations, dg::DG)
   @unpack elements = cache
 
@@ -165,7 +165,7 @@ end
                                       mesh::CurvedMesh{2},
                                       nonconservative_terms::Val{true}, equations,
                                       dg::DG, cache)
-  # This is slow for LSA, but for some reason faster for Euler (see #519)
+  # See comment on `calc_interface_flux!` with `nonconservative_terms::Val{false}`
   if left_element <= 0 # left_element = 0 at boundaries
     return nothing
   end
