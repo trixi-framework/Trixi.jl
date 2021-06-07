@@ -69,14 +69,19 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 
-# Iterate over all interfaces and extract inner interface data to interface container
-# This function will be passed to p4est in init_interfaces! below
-mutable struct InitInterfacesIterFaceUserData{Interfaces, Mesh}
-  interfaces  ::Interfaces
-  interface_id::Int
-  mesh        ::Mesh
+# A helper struct used in
+# - init_interfaces_iter_face
+# - init_boundaries_iter_face
+# - init_mortars_iter_face
+# below.
+mutable struct InitSurfacesIterFaceUserData{Surfaces, Mesh}
+  surfaces  ::Surfaces
+  surface_id::Int
+  mesh      ::Mesh
 end
 
+# Iterate over all interfaces and extract inner interface data to interface container
+# This function will be passed to p4est in init_interfaces! below
 function init_interfaces_iter_face(info, user_data)
   if info.sides.elem_count != 2
     # Not an inner interface
@@ -92,7 +97,7 @@ function init_interfaces_iter_face(info, user_data)
   end
 
   # Unpack user_data = [interfaces, interface_id, mesh]
-  _user_data = unsafe_pointer_to_objref(Ptr{InitInterfacesIterFaceUserData}(user_data))
+  _user_data = unsafe_pointer_to_objref(Ptr{InitSurfacesIterFaceUserData}(user_data))
 
   # Function barrier because the unpacked user_data above is type-unstable
   init_interfaces_iter_face_inner(info, sides, _user_data)
@@ -100,8 +105,10 @@ end
 
 # Function barrier for type stability
 function init_interfaces_iter_face_inner(info, sides, user_data)
-  @unpack interfaces, interface_id, mesh = user_data
-  user_data.interface_id += 1
+  interfaces   = user_data.surfaces
+  interface_id = user_data.surface_id
+  mesh         = user_data.mesh
+  user_data.surface_id += 1
 
   # Global trees array, one-based indexing
   trees = (unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
@@ -160,7 +167,7 @@ end
 function init_interfaces!(interfaces::Interfaces, mesh::Mesh) where {Interfaces, Mesh<:P4estMesh{2}}
   # Let p4est iterate over all interfaces and call init_interfaces_iter_face
   iter_face_c = @cfunction(init_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = InitInterfacesIterFaceUserData(interfaces, 1, mesh)
+  user_data = InitSurfacesIterFaceUserData(interfaces, 1, mesh)
 
   iterate_faces(mesh, iter_face_c, user_data)
 
@@ -176,19 +183,20 @@ function init_boundaries_iter_face(info, user_data)
     return nothing
   end
 
-  # Unpack user_data = [boundaries, boundary_id, mesh] and increment boundary_id
-  ptr = Ptr{Any}(user_data)
-  boundaries  = unsafe_load(ptr, 1)
-  boundary_id = unsafe_load(ptr, 2)
-  mesh        = unsafe_load(ptr, 3)
-  unsafe_store!(ptr, boundary_id + 1, 2)
+  # Unpack user_data = [boundaries, boundary_id, mesh]
+  _user_data = unsafe_pointer_to_objref(Ptr{InitSurfacesIterFaceUserData}(user_data))
 
   # Function barrier because the unpacked user_data above is type-unstable
-  init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
+  init_boundaries_iter_face_inner(info, _user_data)
 end
 
 # Function barrier for type stability
-function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
+function init_boundaries_iter_face_inner(info, user_data)
+  boundaries  = user_data.surfaces
+  boundary_id = user_data.surface_id
+  mesh        = user_data.mesh
+  user_data.surface_id += 1
+
   # Extract boundary data
   side = unsafe_load_sc(p4est_iter_face_side_t, info.sides)
   # Load tree from global trees array, one-based indexing
@@ -233,7 +241,7 @@ end
 function init_boundaries!(boundaries, mesh::P4estMesh{2})
   # Let p4est iterate over all interfaces and call init_boundaries_iter_face
   iter_face_c = @cfunction(init_boundaries_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [boundaries, 1, mesh]
+  user_data = InitSurfacesIterFaceUserData(boundaries, 1, mesh)
 
   iterate_faces(mesh, iter_face_c, user_data)
 
@@ -257,20 +265,21 @@ function init_mortars_iter_face(info, user_data)
     return nothing
   end
 
-  # Unpack user_data = [mortars, mortar_id, mesh] and increment mortar_id
-  ptr = Ptr{Any}(user_data)
-  mortars   = unsafe_load(ptr, 1)
-  mortar_id = unsafe_load(ptr, 2)
-  mesh      = unsafe_load(ptr, 3)
-  unsafe_store!(ptr, mortar_id + 1, 2)
+  # Unpack user_data = [mortars, mortar_id, mesh]
+  _user_data = unsafe_pointer_to_objref(Ptr{InitSurfacesIterFaceUserData}(user_data))
 
   # Function barrier because the unpacked user_data above is type-unstable
-  init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
+  init_mortars_iter_face_inner(info, sides, _user_data)
 end
 
 # Function barrier for type stability
-function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
-  # Load local trees from global trees array, one-based indexing
+function init_mortars_iter_face_inner(info, sides, user_data)
+  mortars   = user_data.surfaces
+  mortar_id = user_data.surface_id
+  mesh      = user_data.mesh
+  user_data.surface_id += 1
+
+  # Global trees array, one-based indexing
   trees = (unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
            unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
   # Quadrant numbering offsets of the quadrants at this interface
@@ -347,7 +356,7 @@ end
 
 function init_mortars!(mortars, mesh::P4estMesh{2})
   iter_face_c = @cfunction(init_mortars_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [mortars, 1, mesh]
+  user_data = InitSurfacesIterFaceUserData(mortars, 1, mesh)
 
   iterate_faces(mesh, iter_face_c, user_data)
 
