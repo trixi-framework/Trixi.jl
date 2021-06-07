@@ -79,7 +79,7 @@ end
 
 function calc_interface_flux!(cache, u,
                               mesh::CurvedMesh{2},
-                              nonconservative_terms, # can be Val(true)/Val(false)
+                              nonconservative_terms, # can be Val{true}/Val{false}
                               equations, dg::DG)
   @unpack elements = cache
 

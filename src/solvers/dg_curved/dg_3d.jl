@@ -90,8 +90,7 @@ end
 
 # Calculate 3D twopoint contravariant flux (element version)
 @inline function calcflux_twopoint!(ftilde1, ftilde2, ftilde3, u::AbstractArray{<:Any,5}, element,
-                                    volume_flux, mesh::CurvedMesh{3},
-                                    equations, dg::DGSEM, cache)
+                                    mesh::CurvedMesh{3}, equations, volume_flux, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
 
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -189,9 +188,9 @@ end
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    nonconservative_terms::Val{false}, volume_flux, element,
-                                    mesh::CurvedMesh{3}, equations,
-                                    dg::DGSEM, cache, alpha=true)
+                                    nonconservative_terms::Val{false}, element,
+                                    mesh::CurvedMesh{3}, equations, volume_flux, dg::DGSEM, cache,
+                                    alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -295,7 +294,7 @@ end
 
 
 function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
-                              nonconservative_terms, # can be Val(true)/Val(false)
+                              nonconservative_terms, # can be Val{true}/Val{false}
                               equations, dg::DG)
   @unpack elements = cache
   @unpack surface_flux = dg
@@ -398,7 +397,7 @@ end
                                       mesh::CurvedMesh{3},
                                       nonconservative_terms::Val{true}, equations,
                                       dg::DG, cache)
-  # This is slow for LSA, but for some reason faster for Euler (see #519)
+  # See comment on `calc_interface_flux!` with `nonconservative_terms::Val{false}`
   if left_element <= 0 # left_element = 0 at boundaries
     return surface_flux_values
   end

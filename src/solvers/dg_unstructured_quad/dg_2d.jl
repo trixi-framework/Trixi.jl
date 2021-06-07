@@ -78,8 +78,8 @@ end
 
 # Calculate 2D twopoint contravariant flux (element version)
 @inline function calcflux_twopoint!(ftilde1, ftilde2, u::AbstractArray{<:Any,4}, element,
-                                    volume_flux, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
-                                    equations, dg::DGSEM, cache)
+                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                                    equations, volume_flux, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
 
   for j in eachnode(dg), i in eachnode(dg)
@@ -143,9 +143,9 @@ end
 
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{false}, volume_flux, element,
+                                    nonconservative_terms::Val{false}, element,
                                     mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
-                                    dg::DGSEM, cache, alpha=true)
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 

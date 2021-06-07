@@ -236,7 +236,7 @@ end
 
 # Calculate 3D twopoint flux (element version)
 @inline function calcflux_twopoint!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
-                                    volume_flux, mesh::TreeMesh{3}, equations, dg::DG, cache)
+                                    mesh::TreeMesh{3}, equations, volume_flux, dg::DG, cache)
 
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
     # Pull the solution values at the node i,j,k
@@ -303,14 +303,15 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
   @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, volume_integral.volume_flux, element,
-                       mesh, equations, dg, cache)
+    split_form_kernel!(du, u, nonconservative_terms, element,
+                       mesh, equations, volume_integral.volume_flux, dg, cache)
   end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    nonconservative_terms::Val{false}, volume_flux, element,
-                                    mesh::TreeMesh{3}, equations, dg::DGSEM, cache, alpha=true)
+                                    nonconservative_terms::Val{false}, element,
+                                    mesh::TreeMesh{3}, equations, volume_flux, dg::DGSEM, cache,
+                                    alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -367,9 +368,9 @@ end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    nonconservative_terms::Val{true}, volume_flux, element,
+                                    nonconservative_terms::Val{true}, element,
                                     mesh::Union{TreeMesh{3}, CurvedMesh{3}},
-                                    equations, dg::DGSEM, cache, alpha=true)
+                                    equations, volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split_transpose = dg.basis
   @unpack f1_threaded, f2_threaded, f3_threaded = cache
 
@@ -379,7 +380,7 @@ end
   f3 = f3_threaded[Threads.threadid()]
 
   # Calculate volume fluxes (one more dimension than weak form)
-  calcflux_twopoint!(f1, f2, f3, u, element, volume_flux, mesh, equations, dg, cache)
+  calcflux_twopoint!(f1, f2, f3, u, element, mesh, equations, volume_flux, dg, cache)
 
   # Calculate volume integral in one element
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -417,8 +418,8 @@ function calc_volume_integral!(du, u,
   # Loop over pure DG elements
   @timed timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
     element = element_ids_dg[idx_element]
-    split_form_kernel!(du, u, nonconservative_terms, volume_flux_dg, element,
-                       mesh, equations, dg, cache)
+    split_form_kernel!(du, u, nonconservative_terms, element,
+                       mesh, equations, volume_flux_dg, dg, cache)
   end
 
   # Loop over blended DG-FV elements
@@ -427,8 +428,8 @@ function calc_volume_integral!(du, u,
     alpha_element = alpha[element]
 
     # Calculate DG volume integral contribution
-    split_form_kernel!(du, u, nonconservative_terms, volume_flux_dg, element,
-                       mesh, equations, dg, cache, 1 - alpha_element)
+    split_form_kernel!(du, u, nonconservative_terms, element,
+                       mesh, equations, volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
     fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, alpha_element)
