@@ -64,143 +64,17 @@ end
 
 @inline function init_interface_node_indices!(interfaces::InterfaceContainerP4est{3},
                                               faces, orientation, interface_id)
-  # TODO P4EST revise and comment
-  right_handed1 = faces[1] in (1, 2, 5)
-  right_handed2 = faces[2] in (1, 2, 5)
-
-  flipped = right_handed1 == right_handed2
-
   lower = argmin(faces)
 
   # Iterate over primary and secondary element
   for side in 1:2
     # Align interface at the primary element (primary element has surface indices (:i, :j)).
-    # For orientation != 0, the secondary element needs to be indexed differently.
-    #
-    # In all the folowing illustrations, p4est's face corner numbering is shown.
-    # ξ and η are the local coordinates of the respective face.
-    # We're looking at both faces in the same physical direction, so that the primary
-    # element (on the left) has right-handed coordinates.
-    if side == lower || (!flipped && orientation == 0)
-      # Corner 0 of first side matches corner 0 of second side.
-      #
-      #   2┌──────┐3   2┌──────┐3
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   0└──────┘1
-      #     η            η
-      #     ↑            ↑
-      #     │            │
-      #     └───> ξ      └───> ξ
+    # The secondary element needs to be indexed differently.
+    if side == 1
       surface_index1 = :i
       surface_index2 = :j
-      # TODO P4EST Switch if both are in negative directions!!!!!!!!!
-    elseif flipped && orientation == 0
-      # Corner 0 of first side matches corner 0 of second side.
-      #
-      #   2┌──────┐3   1┌──────┐3
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   0└──────┘2
-      #     η            ξ
-      #     ↑            ↑
-      #     │            │
-      #     └───> ξ      └───> η
-      surface_index1 = :j
-      surface_index2 = :i
-    elseif !flipped && orientation == 1
-      # Corner 0 of first side matches corner 1 of second side.
-      # Face corner numbering as in p4est,
-      # ξ and η are the local coordinates of the respective face.
-      #
-      #   2┌──────┐3   0┌──────┐2
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   1└──────┘3
-      #     η            ┌───> η
-      #     ↑            │
-      #     │            ↓
-      #     └───> ξ      ξ
-      surface_index1 = :j_backwards
-      surface_index2 = :i
-    elseif flipped && orientation == 1
-      # Corner 0 of first side matches corner 1 of second side.
-      # Face corner numbering as in p4est,
-      # ξ and η are the local coordinates of the respective face.
-      #
-      #   2┌──────┐3   3┌──────┐2
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   1└──────┘0
-      #     η                 η
-      #     ↑                 ↑
-      #     │                 │
-      #     └───> ξ     ξ <───┘
-      surface_index1 = :i_backwards
-      surface_index2 = :j
-    elseif !flipped && orientation == 2
-      if faces == (4, 2)
-        @info "" interface_id
-      end
-      # Corner 0 of first side matches corner 2 of second side.
-      # Face corner numbering as in p4est,
-      # ξ and η are the local coordinates of the respective face.
-      #
-      #   2┌──────┐3   3┌──────┐1
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   2└──────┘0
-      #     η                 ξ
-      #     ↑                 ↑
-      #     │                 │
-      #     └───> ξ     η <───┘
-      surface_index1 = :j
-      surface_index2 = :i_backwards
-    elseif flipped && orientation == 2
-      # Corner 0 of first side matches corner 2 of second side.
-      # Face corner numbering as in p4est,
-      # ξ and η are the local coordinates of the respective face.
-      #
-      #   2┌──────┐3   0┌──────┐1
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   2└──────┘3
-      #     η            ┌───> ξ
-      #     ↑            │
-      #     │            ↓
-      #     └───> ξ      η
-      surface_index1 = :i
-      surface_index2 = :j_backwards
-    elseif !flipped && orientation == 3
-      # Corner 0 of first side matches corner 3 of second side.
-      # Face corner numbering as in p4est,
-      # ξ and η are the local coordinates of the respective face.
-      #
-      #   2┌──────┐3   1┌──────┐0
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   3└──────┘2
-      #     η           ξ <───┐
-      #     ↑                 │
-      #     │                 ↓
-      #     └───> ξ           η
-      surface_index1 = :i_backwards
-      surface_index2 = :j_backwards
-    else # flipped && orientation == 3
-      # Corner 0 of first side matches corner 3 of second side.
-      # Face corner numbering as in p4est,
-      # ξ and η are the local coordinates of the respective face.
-      #
-      #   2┌──────┐3   2┌──────┐0
-      #    │      │     │      │
-      #    │      │     │      │
-      #   0└──────┘1   3└──────┘1
-      #     η           η <───┐
-      #     ↑                 │
-      #     │                 ↓
-      #     └───> ξ           ξ
-      surface_index1 = :j_backwards
-      surface_index2 = :i_backwards
+    else
+      surface_index1, surface_index2 = p4est_orientation_to_indices(faces[2], faces[1], orientation)
     end
 
     if faces[side] == 0
@@ -226,6 +100,7 @@ end
 
   return interfaces
 end
+
 
 function init_interfaces!(interfaces, mesh::P4estMesh{3})
   # Let p4est iterate over all interfaces and call init_interfaces_iter_face
@@ -271,4 +146,137 @@ function init_boundaries!(boundaries, mesh::P4estMesh{3})
   iterate_faces(mesh.p4est, iter_face_c, user_data)
 
   return boundaries
+end
+
+
+# Convert p4est orientation code to node indices.
+# Return node indices that index "my side" wrt "other side",
+# i.e., i and j are indices of other side.
+function p4est_orientation_to_indices(my_face, other_face, orientation_code)
+  # my_face and other_face are the face directions (zero-based)
+  # of "my side" and "other side" respectively.
+  # Face corner 0 of the face with the lower face direction connects to a corner of the other face.
+  # The number of this corner is the orientation code in p4est.
+  lower = my_face <= other_face
+
+  # x_pos, y_neg, and z_pos are the directions in which the face has right-handed coordinates
+  # when looked at from the outside.
+  my_right_handed = my_face in (1, 2, 5)
+  other_right_handed = other_face in (1, 2, 5)
+
+  # If both or none are right-handed when looked at from the outside, they will have different
+  # orientations when looked at from the same side of the interface.
+  flipped = my_right_handed == other_right_handed
+
+  # In the folowing illustrations, p4est's face corner numbering is shown.
+  # ξ and η are the local coordinates of the respective face.
+  # We're looking at both faces from the same side of the interface, so that "other side"
+  # (in the illustrations on the left) has right-handed coordinates.
+  if !flipped
+    if orientation_code == 0
+      # Corner 0 of other side matches corner 0 of my side
+      #   2┌──────┐3   2┌──────┐3
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   0└──────┘1
+      #     η            η
+      #     ↑            ↑
+      #     │            │
+      #     └───> ξ      └───> ξ
+      surface_index1 = :i
+      surface_index2 = :j
+    elseif ((lower && orientation_code == 2) # Corner 0 of my side matches corner 2 of other side
+        || (!lower && orientation_code == 1)) # Corner 0 of other side matches corner 1 of my side
+      #   2┌──────┐3   0┌──────┐2
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   1└──────┘3
+      #     η            ┌───> η
+      #     ↑            │
+      #     │            ↓
+      #     └───> ξ      ξ
+      surface_index1 = :j_backwards
+      surface_index2 = :i
+    elseif ((lower && orientation_code == 1) # Corner 0 of my side matches corner 1 of other side
+        || (!lower && orientation_code == 2)) # Corner 0 of other side matches corner 2 of my side
+      #   2┌──────┐3   3┌──────┐1
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   2└──────┘0
+      #     η                 ξ
+      #     ↑                 ↑
+      #     │                 │
+      #     └───> ξ     η <───┘
+      surface_index1 = :j
+      surface_index2 = :i_backwards
+    else # orientation_code == 3
+      # Corner 0 of my side matches corner 3 of other side and
+      # corner 0 of other side matches corner 3 of my side.
+      #   2┌──────┐3   1┌──────┐0
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   3└──────┘2
+      #     η           ξ <───┐
+      #     ↑                 │
+      #     │                 ↓
+      #     └───> ξ           η
+      surface_index1 = :i_backwards
+      surface_index2 = :j_backwards
+    end
+  else # flipped
+    if orientation_code == 0
+      # Corner 0 of other side matches corner 0 of my side
+      #   2┌──────┐3   1┌──────┐3
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   0└──────┘2
+      #     η            ξ
+      #     ↑            ↑
+      #     │            │
+      #     └───> ξ      └───> η
+      surface_index1 = :j
+      surface_index2 = :i
+    elseif orientation_code == 2
+      # Corner 0 of my side matches corner 2 of other side and
+      # corner 0 of other side matches corner 2 of my side.
+      #   2┌──────┐3   0┌──────┐1
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   2└──────┘3
+      #     η            ┌───> ξ
+      #     ↑            │
+      #     │            ↓
+      #     └───> ξ      η
+      surface_index1 = :i
+      surface_index2 = :j_backwards
+    elseif orientation_code == 1
+      # Corner 0 of my side matches corner 1 of other side and
+      # corner 0 of other side matches corner 1 of my side.
+      #   2┌──────┐3   3┌──────┐2
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   1└──────┘0
+      #     η                 η
+      #     ↑                 ↑
+      #     │                 │
+      #     └───> ξ     ξ <───┘
+      surface_index1 = :i_backwards
+      surface_index2 = :j
+    else # orientation_code == 3
+      # Corner 0 of my side matches corner 3 of other side and
+      # corner 0 of other side matches corner 3 of my side.
+      #   2┌──────┐3   2┌──────┐0
+      #    │      │     │      │
+      #    │      │     │      │
+      #   0└──────┘1   3└──────┘1
+      #     η           η <───┐
+      #     ↑                 │
+      #     │                 ↓
+      #     └───> ξ           ξ
+      surface_index1 = :j_backwards
+      surface_index2 = :i_backwards
+    end
+  end
+
+  return surface_index1, surface_index2
 end
