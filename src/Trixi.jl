@@ -34,6 +34,7 @@ import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
+using LoopVectorization.ArrayInterface: static_length
 import MPI
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
