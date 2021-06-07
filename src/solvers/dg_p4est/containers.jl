@@ -318,19 +318,21 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
   resize!(elements, ncells(mesh))
   init_elements!(elements, mesh, dg.basis)
 
+  required = count_required_surfaces(mesh)
+
   # re-initialize interfaces container
   @unpack interfaces = cache
-  resize!(interfaces, count_required_interfaces(mesh))
+  resize!(interfaces, required.interfaces)
   init_interfaces!(interfaces, mesh)
 
   # re-initialize boundaries container
   @unpack boundaries = cache
-  resize!(boundaries, count_required_boundaries(mesh))
+  resize!(boundaries, required.boundaries)
   init_boundaries!(boundaries, mesh)
 
   # re-initialize mortars container
   @unpack mortars = cache
-  resize!(mortars, count_required_mortars(mesh))
+  resize!(mortars, required.mortars)
   init_mortars!(mortars, mesh)
 end
 
@@ -414,6 +416,59 @@ function count_required(mesh::P4estMesh, iter_face_c)
 
   # Return counter
   return user_data[1]
+end
+
+# Iterate over all interfaces and count
+# - (inner) interfaces
+# - mortars
+# - boundaries
+# and collect the numbers in `user_data` in this order.
+function count_surfaces_iter_face(info, user_data)
+  if info.sides.elem_count == 2
+    # Two neighboring elements => Interface or mortar
+
+    # Extract surface data
+    sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
+             load_sc_array(p4est_iter_face_side_t, info.sides, 2))
+
+    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+      # No hanging nodes => normal interface
+      # Unpack user_data = [interface_count] and increment interface_count
+      ptr = Ptr{Int}(user_data)
+      id = unsafe_load(ptr, 1)
+      unsafe_store!(ptr, id + 1, 1)
+    else
+      # Hanging nodes => mortar
+      # Unpack user_data = [mortar_count] and increment mortar_count
+      ptr = Ptr{Int}(user_data)
+      id = unsafe_load(ptr, 2)
+      unsafe_store!(ptr, id + 1, 2)
+    end
+  elseif info.sides.elem_count == 1
+    # One neighboring elements => Boundary
+
+    # Unpack user_data = [boundary_count] and increment boundary_count
+    ptr = Ptr{Int}(user_data)
+    id = unsafe_load(ptr, 3)
+    unsafe_store!(ptr, id + 1, 3)
+  end
+
+  return nothing
+end
+
+function count_required_surfaces(mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call count_surfaces_iter_face
+  iter_face_c = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+
+  # interfaces, mortars, boundaries
+  user_data = [0, 0, 0]
+
+  iterate_faces(mesh, iter_face_c, user_data)
+
+  # Return counters
+  return (interfaces = user_data[1],
+          mortars    = user_data[2],
+          boundaries = user_data[3])
 end
 
 # Let p4est iterate over all interfaces and execute the C function iter_face_c
