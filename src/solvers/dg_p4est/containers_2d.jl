@@ -71,6 +71,12 @@ end
 
 # Iterate over all interfaces and extract inner interface data to interface container
 # This function will be passed to p4est in init_interfaces! below
+mutable struct InitInterfacesIterFaceUserData{Interfaces, Mesh}
+  interfaces  ::Interfaces
+  interface_id::Int
+  mesh        ::Mesh
+end
+
 function init_interfaces_iter_face(info, user_data)
   if info.sides.elem_count != 2
     # Not an inner interface
@@ -85,20 +91,19 @@ function init_interfaces_iter_face(info, user_data)
     return nothing
   end
 
-  # Unpack user_data = [interfaces, interface_id, mesh] and increment interface_id
-  ptr = Ptr{Any}(user_data)
-  interfaces   = unsafe_load(ptr, 1)
-  interface_id = unsafe_load(ptr, 2)
-  mesh         = unsafe_load(ptr, 3)
-  unsafe_store!(ptr, interface_id + 1, 2)
+  # Unpack user_data = [interfaces, interface_id, mesh]
+  _user_data = unsafe_pointer_to_objref(Ptr{InitInterfacesIterFaceUserData}(user_data))
 
   # Function barrier because the unpacked user_data above is type-unstable
-  init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
+  init_interfaces_iter_face_inner(info, sides, _user_data)
 end
 
 # Function barrier for type stability
-function init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
-  # Load local trees from global trees array, one-based indexing
+function init_interfaces_iter_face_inner(info, sides, user_data)
+  @unpack interfaces, interface_id, mesh = user_data
+  user_data.interface_id += 1
+
+  # Global trees array, one-based indexing
   trees = (unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
            unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
   # Quadrant numbering offsets of the quadrants at this interface
@@ -152,10 +157,10 @@ function init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, 
   return nothing
 end
 
-function init_interfaces!(interfaces, mesh::P4estMesh{2})
+function init_interfaces!(interfaces::Interfaces, mesh::Mesh) where {Interfaces, Mesh<:P4estMesh{2}}
   # Let p4est iterate over all interfaces and call init_interfaces_iter_face
   iter_face_c = @cfunction(init_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [interfaces, 1, mesh]
+  user_data = InitInterfacesIterFaceUserData(interfaces, 1, mesh)
 
   iterate_faces(mesh, iter_face_c, user_data)
 
