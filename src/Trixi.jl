@@ -186,11 +186,6 @@ function __init__()
   end
 end
 
-# using Makie: Makie, Attributes, to_triangles, to_vertices, mesh, mesh!, translate!, plot!, @recipe, lines!, @lift
-# include("visualization/makie_visualization.jl")
-# # using .Makie: Makie, Attributes, to_triangles, to_vertices, mesh, mesh!, translate!, plot!, @recipe, lines!, @lift
-# export trixi_pcolor, trixi_pcolor!, trixi_wireframe, trixi_wireframe!, trixi_plot
-
 
 include("auxiliary/precompile.jl")
 _precompile_manual_()
