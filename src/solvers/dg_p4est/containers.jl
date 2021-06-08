@@ -320,20 +320,22 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
   required = count_required_surfaces(mesh)
 
-  # re-initialize interfaces container
+  # resize interfaces container
   @unpack interfaces = cache
   resize!(interfaces, required.interfaces)
-  init_interfaces!(interfaces, mesh)
 
-  # re-initialize boundaries container
+  # resize boundaries container
   @unpack boundaries = cache
   resize!(boundaries, required.boundaries)
-  init_boundaries!(boundaries, mesh)
 
-  # re-initialize mortars container
+  # resize mortars container
   @unpack mortars = cache
   resize!(mortars, required.mortars)
-  init_mortars!(mortars, mesh)
+
+  # re-initialize containers together to reduce
+  # the number of iterations over the mesh in
+  # p4est
+  init_surfaces!(interfaces, mortars, boundaries, mesh)
 end
 
 
@@ -364,7 +366,7 @@ function count_surfaces_iter_face(info, user_data)
       unsafe_store!(ptr, id + 1, 2)
     end
   elseif info.sides.elem_count == 1
-    # One neighboring elements => Boundary
+    # One neighboring elements => boundary
 
     # Unpack user_data = [boundary_count] and increment boundary_count
     ptr = Ptr{Int}(user_data)
