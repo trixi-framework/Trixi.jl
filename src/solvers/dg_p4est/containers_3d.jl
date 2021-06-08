@@ -149,6 +149,53 @@ function init_boundaries!(boundaries, mesh::P4estMesh{3})
 end
 
 
+# faces[1] is expected to be the face of the small side.
+@inline function init_mortar_node_indices!(mortars::MortarContainerP4est{3},
+                                           faces, orientation, mortar_id)
+  for side in 1:2
+    # Align mortar at small side.
+    # The large side needs to be indexed differently.
+    if side == 1
+      surface_index1 = :i
+      surface_index2 = :j
+    else
+      surface_index1, surface_index2 = p4est_orientation_to_indices(faces[2], faces[1], orientation)
+    end
+
+    if faces[side] == 0
+      # Index face in negative x-direction
+      mortars.node_indices[side, mortar_id] = (:one, surface_index1, surface_index2)
+    elseif faces[side] == 1
+      # Index face in positive x-direction
+      mortars.node_indices[side, mortar_id] = (:end, surface_index1, surface_index2)
+    elseif faces[side] == 2
+      # Index face in negative y-direction
+      mortars.node_indices[side, mortar_id] = (surface_index1, :one, surface_index2)
+    elseif faces[side] == 3
+      # Index face in positive y-direction
+      mortars.node_indices[side, mortar_id] = (surface_index1, :end, surface_index2)
+    elseif faces[side] == 4
+      # Index face in negative z-direction
+      mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2, :one)
+    else # faces[side] == 5
+      # Index face in positive z-direction
+      mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2, :end)
+    end
+  end
+
+  return mortars
+end
+
+function init_mortars!(mortars, mesh::P4estMesh{3})
+  iter_face_c = @cfunction(init_mortars_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = [mortars, 1, mesh]
+
+  iterate_faces(mesh.p4est, iter_face_c, user_data)
+
+  return mortars
+end
+
+
 # Convert p4est orientation code to node indices.
 # Return node indices that index "my side" wrt "other side",
 # i.e., i and j are indices of other side.
