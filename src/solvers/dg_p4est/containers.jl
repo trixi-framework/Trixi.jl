@@ -141,7 +141,7 @@ function init_interfaces(mesh::P4estMesh, equations, basis, elements)
   uEltype = eltype(elements)
 
   # Initialize container
-  n_interfaces = count_required_interfaces(mesh)
+  n_interfaces = count_required_surfaces(mesh).interfaces
 
   _u = Vector{uEltype}(undef, 2 * nvariables(equations) * nnodes(basis)^(NDIMS-1) * n_interfaces)
   u = unsafe_wrap(Array, pointer(_u),
@@ -203,7 +203,7 @@ function init_boundaries(mesh::P4estMesh, equations, basis, elements)
   uEltype = eltype(elements)
 
   # Initialize container
-  n_boundaries = count_required_boundaries(mesh)
+  n_boundaries = count_required_surfaces(mesh).boundaries
 
   _u = Vector{uEltype}(undef, nvariables(equations) * nnodes(basis)^(NDIMS-1) * n_boundaries)
   u = unsafe_wrap(Array, pointer(_u),
@@ -290,7 +290,7 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
   uEltype = eltype(elements)
 
   # Initialize container
-  n_mortars = count_required_mortars(mesh)
+  n_mortars = count_required_surfaces(mesh).mortars
 
   _u = Vector{uEltype}(undef,
     2 * nvariables(equations) * 2^(NDIMS-1) * nnodes(basis)^(NDIMS-1) * n_mortars)
@@ -337,87 +337,6 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 end
 
 
-# Iterate over all interfaces and count inner interfaces
-function count_interfaces_iter_face(info, user_data)
-  if info.sides.elem_count == 2
-    # Extract interface data
-    sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
-             unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
-
-    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
-      # No hanging nodes => normal interface
-      # Unpack user_data = [interface_count] and increment interface_count
-      ptr = Ptr{Int}(user_data)
-      id = unsafe_load(ptr)
-      unsafe_store!(ptr, id + 1)
-    end
-  end
-
-  return nothing
-end
-
-# Iterate over all interfaces and count boundaries
-function count_boundaries_iter_face(info, user_data)
-  if info.sides.elem_count == 1
-    # Unpack user_data = [boundary_count] and increment boundary_count
-    ptr = Ptr{Int}(user_data)
-    id = unsafe_load(ptr)
-    unsafe_store!(ptr, id + 1)
-  end
-
-  return nothing
-end
-
-# Iterate over all interfaces and count mortars
-function count_mortars_iter_face(info, user_data)
-  if info.sides.elem_count == 2
-    # Extract interface data
-    sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
-             unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
-
-    if sides[1].is_hanging != 0 || sides[2].is_hanging != 0
-      # Hanging nodes => mortar
-      # Unpack user_data = [mortar_count] and increment mortar_count
-      ptr = Ptr{Int}(user_data)
-      id = unsafe_load(ptr)
-      unsafe_store!(ptr, id + 1)
-    end
-  end
-
-  return nothing
-end
-
-function count_required_interfaces(mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call count_interfaces_iter_face
-  iter_face_c = @cfunction(count_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-
-  return count_required(mesh, iter_face_c)
-end
-
-function count_required_boundaries(mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call count_boundaries_iter_face
-  iter_face_c = @cfunction(count_boundaries_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-
-  return count_required(mesh, iter_face_c)
-end
-
-function count_required_mortars(mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call count_mortars_iter_face
-  iter_face_c = @cfunction(count_mortars_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-
-  return count_required(mesh, iter_face_c)
-end
-
-function count_required(mesh::P4estMesh, iter_face_c)
-  # Counter
-  user_data = [0]
-
-  iterate_faces(mesh, iter_face_c, user_data)
-
-  # Return counter
-  return user_data[1]
-end
-
 # Iterate over all interfaces and count
 # - (inner) interfaces
 # - mortars
@@ -428,8 +347,8 @@ function count_surfaces_iter_face(info, user_data)
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
-    sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
-             load_sc_array(p4est_iter_face_side_t, info.sides, 2))
+    sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
+             unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
 
     if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
       # No hanging nodes => normal interface
