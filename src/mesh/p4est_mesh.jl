@@ -16,6 +16,24 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
   boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
   current_filename      ::String
   unsaved_changes       ::Bool
+
+  function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
+                            current_filename, unsaved_changes) where NDIMS
+    mesh = new{NDIMS, eltype(tree_node_coordinates), NDIMS+2}(p4est, tree_node_coordinates,
+      nodes, boundary_names, current_filename, unsaved_changes)
+
+    # Destroy p4est structs when the mesh is garbage collected
+    finalizer(destroy_mesh, mesh)
+
+    return mesh
+  end
+end
+
+
+function destroy_mesh(mesh)
+  conn = mesh.p4est.connectivity
+  p4est_destroy(mesh.p4est)
+  p4est_connectivity_destroy(conn)
 end
 
 
@@ -132,17 +150,8 @@ function P4estMesh(trees_per_dimension; polydeg,
     end
   end
 
-  mesh = P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
-                                          boundary_names, "", unsaved_changes)
-
-  # Destroy p4est structs when the mesh is garbage collected
-  finalizer(mesh) do
-    conn = mesh.p4est.connectivity
-    p4est_destroy(mesh.p4est)
-    p4est_connectivity_destroy(conn)
-  end
-
-  return mesh
+  return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
+                          boundary_names, "", unsaved_changes)
 end
 
 
@@ -201,17 +210,8 @@ function P4estMesh(meshfile::String;
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 4, n_trees)
 
-  mesh = P4estMesh{NDIMS, RealT, NDIMS+2}(p4est, tree_node_coordinates, nodes,
-                                          boundary_names, "", unsaved_changes)
-
-  # Destroy p4est structs when the mesh is garbage collected
-  finalizer(mesh) do
-    conn = mesh.p4est.connectivity
-    p4est_destroy(mesh.p4est)
-    p4est_connectivity_destroy(conn)
-  end
-
-  return mesh
+  return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
+                          boundary_names, "", unsaved_changes)
 end
 
 

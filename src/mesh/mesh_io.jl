@@ -259,8 +259,8 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
     p4est = p4est_load(p4est_file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
 
-    mesh = P4estMesh{ndims, RealT, ndims+2}(p4est, tree_node_coordinates,
-                                            nodes, boundary_names, "", false)
+    mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
+                            nodes, boundary_names, "", false)
   else
     error("Unknown mesh type!")
   end
