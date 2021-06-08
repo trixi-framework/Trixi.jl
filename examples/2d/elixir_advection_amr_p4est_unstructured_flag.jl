@@ -6,7 +6,6 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-# advectionvelocity = (1.0, 1.0)
 advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
