@@ -1,7 +1,0 @@
-[deps]
-GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
-NodesAndModes = "7aca2e03-f7e2-4192-9ec8-f4ca66d597fb"
-OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
-Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
-Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
