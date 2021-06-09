@@ -435,6 +435,6 @@ end
                                              semi::SemidiscretizationEulerGravity,
                                              t, iter; kwargs...)
   passive_args = ((semi.cache.u_ode, mesh_equations_solver_cache(semi.semi_gravity)...),)
-  amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)..., t, iter;
+  amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)..., semi, t, iter;
                kwargs..., passive_args=passive_args)
 end

@@ -2,7 +2,9 @@
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal performance using different types
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2}
+  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
+                uEltype, 2,
+                nvariables(equations) * nnodes(mortar_l2)}
   fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   u_threaded =           MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -165,15 +167,15 @@ function prolong2mortars!(cache, u,
   size_ = (nnodes(dg), nnodes(dg))
 
   @threaded for mortar in eachmortar(dg, cache)
-    small_node_indices  = node_indices[1, mortar]
-    large_node_indices  = node_indices[2, mortar]
+    small_indices = node_indices[1, mortar]
+    large_indices = node_indices[2, mortar]
 
     # Copy solution small to small
     for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)
       # Use Tuple `node_indices` and `evaluate_index` to copy values
       # from the correct face and in the correct orientation
-      cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_node_indices, size_, 1, i),
-                                                   evaluate_index(small_node_indices, size_, 2, i),
+      cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_indices, size_, 1, i),
+                                                   evaluate_index(small_indices, size_, 2, i),
                                                    element_ids[pos, mortar]]
     end
 
@@ -185,8 +187,8 @@ function prolong2mortars!(cache, u,
     for i in eachnode(dg), v in eachvariable(equations)
       # Use Tuple `node_indices` and `evaluate_index` to copy values
       # from the correct face and in the correct orientation
-      u_buffer[v, i] = u[v, evaluate_index(large_node_indices, size_, 1, i),
-                            evaluate_index(large_node_indices, size_, 2, i),
+      u_buffer[v, i] = u[v, evaluate_index(large_indices, size_, 1, i),
+                            evaluate_index(large_indices, size_, 2, i),
                             element_ids[3, mortar]]
     end
 
@@ -237,9 +239,13 @@ function calc_mortar_flux!(surface_flux_values,
       set_node_vars!(fstar[pos], flux_, equations, dg, i)
     end
 
+    # Buffer to interpolate flux values of the large element to before copying
+    # in the correct orientation
+    u_buffer = cache.u_threaded[Threads.threadid()]
+
     mortar_fluxes_to_elements!(surface_flux_values,
                                mesh, equations, mortar_l2, dg, cache,
-                               mortar, fstar)
+                               mortar, fstar, u_buffer)
   end
 
   return nothing
@@ -249,7 +255,7 @@ end
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::P4estMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar)
+                                            dg::DGSEM, cache, mortar, fstar, u_buffer)
   @unpack element_ids, node_indices = cache.mortars
 
   small_indices  = node_indices[1, mortar]
@@ -264,7 +270,7 @@ end
   for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)
     # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
     # to left and right element storage in the correct orientation
-    surface_index = evaluate_index_surface(node_indices[pos, mortar], size_, 1, i)
+    surface_index = evaluate_index_surface(small_indices, size_, 1, i)
     surface_flux_values[v, surface_index,
                         small_direction,
                         element_ids[pos, mortar]] = fstar[pos][v, i]
@@ -273,6 +279,11 @@ end
   large_element = element_ids[3, mortar]
 
   # Project small fluxes to large element.
+  # TODO: Taal performance, see comment in dg_tree/dg_2d.jl
+  multiply_dimensionwise!(u_buffer,
+                          mortar_l2.reverse_upper, fstar[2],
+                          mortar_l2.reverse_lower, fstar[1])
+
   # The flux is calculated in the outward direction of the small elements,
   # so the sign must be switched to get the flux in outward direction
   # of the large element.
@@ -280,11 +291,15 @@ end
   # of the large element as well) are twice as large as the contravariant vectors
   # of the small elements. Therefore, the flux need to be scaled by a factor of 2
   # to obtain the flux of the large element.
-  #
-  # TODO: Taal performance, see comment in dg_tree/dg_2d.jl
-  multiply_dimensionwise!(view(surface_flux_values, :, :, large_direction, large_element),
-                          mortar_l2.reverse_upper, -2 * fstar[2],
-                          mortar_l2.reverse_lower, -2 * fstar[1])
+  u_buffer .*= -2
+
+  # Copy interpolated flux values from buffer to large element face in the correct orientation
+  for i in eachnode(dg), v in eachvariable(equations)
+    # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+    # to surface flux storage in the correct orientation
+    surface_index = evaluate_index_surface(large_indices, size_, 1, i)
+    surface_flux_values[v, surface_index, large_direction, large_element] = u_buffer[v, i]
+  end
 
   return nothing
 end

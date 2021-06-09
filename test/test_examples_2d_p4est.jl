@@ -15,10 +15,28 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [6.437440532947036e-5])
   end
 
-  @testset "elixir_advection_p4est_non_conforming.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_p4est_non_conforming.jl"),
+  @testset "elixir_advection_p4est_non_conforming_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_p4est_non_conforming_flag.jl"),
       l2   = [4.634288969205318e-4],
       linf = [4.740692055057893e-3])
+  end
+
+  @testset "elixir_advection_p4est_non_conforming_flag_unstructured.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_p4est_non_conforming_flag_unstructured.jl"),
+      l2   = [3.038384623519386e-3],
+      linf = [6.324792487776842e-2])
+  end
+
+  @testset "elixir_advection_amr_solution_independent_p4est.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent_p4est.jl"),
+      l2   = [7.945073295691892e-5],
+      linf = [0.0007454287896710293])
+  end
+
+  @testset "elixir_advection_amr_p4est_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_p4est_unstructured_flag.jl"),
+      l2   = [1.29561551e-03],
+      linf = [3.92061383e-02])
   end
 
   @testset "elixir_advection_restart_p4est.jl" begin

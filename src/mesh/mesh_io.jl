@@ -136,12 +136,19 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::P4estMesh, output_directory)
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
-  filename = joinpath(output_directory, "mesh.h5")
-  p4est_filename = "p4est_data"
+  # Determine file name based on existence of meaningful time step
+  if timestep > 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    p4est_filename = @sprintf("p4est_data_%06d", timestep)
+  else
+    filename = joinpath(output_directory, "mesh.h5")
+    p4est_filename = "p4est_data"
+  end
+
   p4est_file = joinpath(output_directory, p4est_filename)
 
   # Save the complete connectivity/p4est data to disk.
@@ -251,11 +258,9 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
     p4est = p4est_load(p4est_file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
-    ghost = p4est_ghost_new(p4est, P4EST_CONNECT_FACE)
-    p4est_mesh = p4est_mesh_new(p4est, ghost, P4EST_CONNECT_FACE)
 
-    mesh = P4estMesh{ndims, RealT, ndims+2}(p4est, p4est_mesh, tree_node_coordinates,
-                                            nodes, boundary_names, "", false)
+    mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
+                            nodes, boundary_names, "", false)
   else
     error("Unknown mesh type!")
   end

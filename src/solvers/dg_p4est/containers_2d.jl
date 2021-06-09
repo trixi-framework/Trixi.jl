@@ -31,11 +31,11 @@ function calc_node_coordinates!(node_coordinates,
   p4est_root_len = 1 << P4EST_MAXLEVEL
   p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
-  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
+  trees = unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
 
   for tree in eachindex(trees)
     offset = trees[tree].quadrants_offset
-    quadrants = convert_sc_array(p4est_quadrant_t, trees[tree].quadrants)
+    quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree].quadrants)
 
     for i in eachindex(quadrants)
       element = offset + i
@@ -69,7 +69,8 @@ function init_interfaces_iter_face(info, user_data)
     return nothing
   end
 
-  sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+  sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
+           unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
 
   if sides[1].is_hanging == true || sides[2].is_hanging == true
     # Mortar, no normal interface
@@ -81,16 +82,23 @@ function init_interfaces_iter_face(info, user_data)
   data_array = unsafe_wrap(Array, ptr, 3)
   interfaces = data_array[1]
   interface_id = data_array[2]
-  data_array[2] += 1
+  data_array[2] = interface_id + 1
   mesh = data_array[3]
 
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
-  # Quadrant numbering offsets of the quadrants at this interface, one-based indexing
-  offsets = [trees[sides[1].treeid + 1].quadrants_offset,
-             trees[sides[2].treeid + 1].quadrants_offset]
+  # Function barrier because the unpacked user_data above is type-unstable
+  init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
+end
 
-  local_quad_ids = [sides[1].is.full.quadid, sides[2].is.full.quadid]
+# Function barrier for type stability
+function init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
+  # Load local trees from global trees array, one-based indexing
+  trees = (unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
+           unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
+  # Quadrant numbering offsets of the quadrants at this interface
+  offsets = SVector(trees[1].quadrants_offset,
+                    trees[2].quadrants_offset)
+
+  local_quad_ids = SVector(sides[1].is.full.quadid, sides[2].is.full.quadid)
   # Global IDs of the neighboring quads
   quad_ids = offsets + local_quad_ids
 
@@ -100,7 +108,7 @@ function init_interfaces_iter_face(info, user_data)
   interfaces.element_ids[2, interface_id] = quad_ids[2] + 1
 
   # Face at which the interface lies
-  faces = [sides[1].face, sides[2].face]
+  faces = (sides[1].face, sides[2].face)
 
   # Relative orientation of the two cell faces,
   # 0 for aligned coordinates, 1 for reversed coordinates.
@@ -164,17 +172,23 @@ function init_boundaries_iter_face(info, user_data)
   data_array[2] += 1
   mesh = data_array[3]
 
+  # Function barrier because the unpacked user_data above is type-unstable
+  init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
+end
+
+# Function barrier for type stability
+function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   # Extract boundary data
-  sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
-  # Quadrant numbering offset of this quadrant, one-based indexing
-  offset = trees[sides[1].treeid + 1].quadrants_offset
+  side = unsafe_load_sc(p4est_iter_face_side_t, info.sides)
+  # Load tree from global trees array, one-based indexing
+  tree = unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, side.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
 
   # Verify before accessing is.full, but this should never happen
-  @assert sides[1].is_hanging == false
+  @assert side.is_hanging == false
 
-  local_quad_id = sides[1].is.full.quadid
+  local_quad_id = side.is.full.quadid
   # Global ID of this quad
   quad_id = offset + local_quad_id
 
@@ -183,7 +197,7 @@ function init_boundaries_iter_face(info, user_data)
   boundaries.element_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
-  face = sides[1].face
+  face = side.face
 
   if face == 0
     # Index face in negative x-direction
@@ -200,7 +214,7 @@ function init_boundaries_iter_face(info, user_data)
   end
 
   # One-based indexing
-  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, sides[1].treeid + 1]
+  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, side.treeid + 1]
 
   return nothing
 end
@@ -224,7 +238,8 @@ function init_mortars_iter_face(info, user_data)
     return nothing
   end
 
-  sides = convert_sc_array(p4est_iter_face_side_t, info.sides)
+  sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
+           unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
 
   if sides[1].is_hanging == false && sides[2].is_hanging == false
     # Normal interface, no mortar
@@ -239,14 +254,21 @@ function init_mortars_iter_face(info, user_data)
   data_array[2] += 1
   mesh = data_array[3]
 
-  # Global trees array
-  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
-  # Quadrant numbering offsets of the quadrants at this interface, one-based indexing
-  offsets = [trees[sides[1].treeid + 1].quadrants_offset,
-             trees[sides[2].treeid + 1].quadrants_offset]
+  # Function barrier because the unpacked user_data above is type-unstable
+  init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
+end
+
+# Function barrier for type stability
+function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
+  # Load local trees from global trees array, one-based indexing
+  trees = (unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
+           unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
+  # Quadrant numbering offsets of the quadrants at this interface
+  offsets = SVector(trees[1].quadrants_offset,
+                    trees[2].quadrants_offset)
 
   if sides[1].is_hanging == true
-    # Left is small, right is large
+    # Left is small (1), right is large (2)
     small_large = [1, 2]
 
     local_small_quad_ids = sides[1].is.hanging.quadid
@@ -257,7 +279,7 @@ function init_mortars_iter_face(info, user_data)
     @assert sides[2].is_hanging == false
     large_quad_id = offsets[2] + sides[2].is.full.quadid
   else # sides[2].is_hanging == true
-    # Left is large, right is small
+    # Left is large (2), right is small (1)
     small_large = [2, 1]
 
     local_small_quad_ids = sides[2].is.hanging.quadid
@@ -288,10 +310,10 @@ function init_mortars_iter_face(info, user_data)
     # For orientation == 1, the large side needs to be indexed backwards
     # relative to the mortar.
     if small_large[side] == 1 || orientation == 0
-      # Forward indexing
+      # Forward indexing for small side or orientation == 0
       i = :i
     else
-      # Backward indexing
+      # Backward indexing for large side with reversed orientation
       i = :i_backwards
     end
 
