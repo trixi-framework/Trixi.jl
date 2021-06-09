@@ -413,7 +413,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 
     if semi.boundary_conditions isa UnstructuredQuadSortedBoundaryTypes
       # Reinitialize boundary types container because boundaries may have changed.
-      initialize!(boundary_conditions, cache)
+      initialize!(semi.boundary_conditions, cache)
     end
   end
 
