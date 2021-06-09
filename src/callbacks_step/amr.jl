@@ -411,14 +411,20 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     # don't set it to has_changed since there can be changes from earlier calls
     mesh.unsaved_changes = true
 
-    if semi.boundary_conditions isa UnstructuredQuadSortedBoundaryTypes
-      # Reinitialize boundary types container because boundaries may have changed.
-      initialize!(semi.boundary_conditions, cache)
-    end
+    reinitialize_boundaries!(semi.boundary_conditions, cache)
   end
 
   # Return true if there were any cells coarsened or refined, otherwise false
   return has_changed
+end
+
+function reinitialize_boundaries!(boundary_conditions::UnstructuredQuadSortedBoundaryTypes, cache)
+  # Reinitialize boundary types container because boundaries may have changed.
+  initialize!(boundary_conditions, cache)
+end
+
+function reinitialize_boundaries!(boundary_conditions, cache)
+  return boundary_conditions
 end
 
 
