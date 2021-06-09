@@ -102,7 +102,7 @@ function max_dt(u, t, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
 end
 
 
-function max_dt(u, t, mesh::CurvedMesh{2},
+function max_dt(u, t, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 

@@ -6,6 +6,7 @@ on:
       - main
     paths-ignore:
       - 'AUTHORS.md'
+      - 'CITATION.bib'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
       - 'NEWS.md'
@@ -20,6 +21,7 @@ on:
   pull_request:
     paths-ignore:
       - 'AUTHORS.md'
+      - 'CITATION.bib'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
       - 'NEWS.md'
