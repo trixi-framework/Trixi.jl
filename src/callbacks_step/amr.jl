@@ -321,7 +321,7 @@ end
 
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
-  # Global trees array, one-based indexing
+  # Load tree from global trees array, one-based indexing
   tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
@@ -522,21 +522,64 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
 end
 
 
+function current_element_levels(mesh::TreeMesh, solver, cache)
+  cell_ids = cache.elements.cell_ids[eachelement(solver, cache)]
+
+  return mesh.tree.levels[cell_ids]
+end
+
+
+function extract_levels_iter_volume(info, user_data)
+  # Load tree from global trees array, one-based indexing
+  tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
+  # Global quad ID
+  quad_id = offset + info.quadid
+  # Julia element ID
+  element_id = quad_id + 1
+
+  current_level = info.quad.level
+
+  # Unpack user_data = current_levels and save current element level
+  ptr = Ptr{Int}(user_data)
+  unsafe_store!(ptr, current_level, element_id)
+
+  return nothing
+end
+
+function current_element_levels(mesh::P4estMesh, solver, cache)
+  current_levels = Vector{Int}(undef, nelements(solver, cache))
+  iter_volume_c = @cfunction(extract_levels_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+
+  GC.@preserve current_levels begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  pointer(current_levels), # user_data
+                  iter_volume_c, # iter_volume
+                  C_NULL, # iter_face
+                  C_NULL) # iter_corner
+  end
+
+  return current_levels
+end
+
+
 # TODO: Taal refactor, merge the two loops of ControllerThreeLevel and IndicatorLöhner etc.?
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
 function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
-                                            mesh::TreeMesh, equations, dg::DG, cache;
+                                            mesh, equations, dg::DG, cache;
                                             kwargs...)
 
   @unpack controller_value = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
   alpha = controller.indicator(u, equations, dg, cache; kwargs...)
+  current_levels = current_element_levels(mesh, dg, cache)
 
   @threaded for element in eachelement(dg, cache)
-    cell_id = cache.elements.cell_ids[element]
-    current_level = mesh.tree.levels[cell_id]
+    current_level = current_levels[element]
 
     # set target level
     target_level = current_level
@@ -564,80 +607,6 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
 
   return controller_value
 end
-
-
-# Loop above (as for TreeMesh) but executed by p4est
-function controller_three_level_iter_volume(info, user_data)
-  # Unpack user_data = [controller, alpha]
-  ptr = Ptr{Any}(user_data)
-  data_array = unsafe_wrap(Array, ptr, 2)
-  controller = data_array[1]
-  alpha = data_array[2]
-
-  @unpack controller_value = controller.cache
-
-  # Global trees array, one-based indexing
-  tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
-  # Quadrant numbering offset of this quadrant
-  offset = tree.quadrants_offset
-  # Global quad ID
-  quad_id = offset + info.quadid
-  # Julia element ID
-  element = quad_id + 1
-
-  current_level = info.quad.level
-
-  # set target level
-  target_level = current_level
-  if alpha[element] > controller.max_threshold
-    target_level = controller.max_level
-  elseif alpha[element] > controller.med_threshold
-    if controller.med_level > 0
-      target_level = controller.med_level
-      # otherwise, target_level = current_level
-      # set med_level = -1 to implicitly use med_level = current_level
-    end
-  else
-    target_level = controller.base_level
-  end
-
-  # compare target level with actual level to set controller
-  if current_level < target_level
-    controller_value[element] = 1 # refine!
-  elseif current_level > target_level
-    controller_value[element] = -1 # coarsen!
-  else
-    controller_value[element] = 0 # we're good
-  end
-
-  return nothing
-end
-
-function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
-                                            mesh::P4estMesh, equations, dg::DG, cache;
-                                            kwargs...)
-
-  @unpack controller_value = controller.cache
-  resize!(controller_value, nelements(dg, cache))
-
-  alpha = controller.indicator(u, equations, dg, cache; kwargs...)
-
-  # Let p4est do the same iteration as with TreeMesh above
-  user_data = [controller, alpha]
-  iter_volume_c = @cfunction(controller_three_level_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
-
-  GC.@preserve user_data begin
-    p4est_iterate(mesh.p4est,
-                  C_NULL, # ghost layer
-                  pointer(user_data),
-                  iter_volume_c, # iter_volume
-                  C_NULL, # iter_face
-                  C_NULL) # iter_corner
-  end
-
-  return controller_value
-end
-
 
 
 """
@@ -728,7 +697,7 @@ end
 
 
 function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
-                                                    mesh::TreeMesh, equations, dg::DG, cache;
+                                                    mesh, equations, dg::DG, cache;
                                                     kwargs...)
 
   @unpack controller_value = controller.cache
@@ -737,9 +706,10 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
   alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
   alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
 
+  current_levels = current_element_levels(mesh, dg, cache)
+
   @threaded for element in eachelement(dg, cache)
-    cell_id = cache.elements.cell_ids[element]
-    current_level = mesh.tree.levels[cell_id]
+    current_level = current_levels[element]
 
     # set target level
     target_level = current_level
