@@ -339,8 +339,8 @@ end
 function count_interfaces_iter_face(info, user_data)
   if info.sides.elem_count == 2
     # Extract interface data
-    sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
-             load_sc_array(p4est_iter_face_side_t, info.sides, 2))
+    sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
+             unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
 
     if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
       # No hanging nodes => normal interface
@@ -370,8 +370,8 @@ end
 function count_mortars_iter_face(info, user_data)
   if info.sides.elem_count == 2
     # Extract interface data
-    sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
-             load_sc_array(p4est_iter_face_side_t, info.sides, 2))
+    sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
+             unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
 
     if sides[1].is_hanging != 0 || sides[2].is_hanging != 0
       # Hanging nodes => mortar
@@ -431,8 +431,8 @@ function iterate_faces(mesh::P4estMesh, iter_face_c, user_data)
 end
 
 
-# Convert sc_array to Julia array of the specified type
-function convert_sc_array(::Type{T}, sc_array) where T
+# Convert sc_array of type T to Julia array
+function unsafe_wrap_sc(::Type{T}, sc_array) where T
   element_count = sc_array.elem_count
   element_size = sc_array.elem_size
 
@@ -442,7 +442,8 @@ function convert_sc_array(::Type{T}, sc_array) where T
 end
 
 
-function load_sc_array(::Type{T}, sc_array, i=1) where T
+# Load the ith element (1-indexed) of an sc array of type T
+function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
   element_size = sc_array.elem_size
 
   @assert element_size == sizeof(T)

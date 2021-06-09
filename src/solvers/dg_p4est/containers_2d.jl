@@ -31,11 +31,11 @@ function calc_node_coordinates!(node_coordinates,
   p4est_root_len = 1 << P4EST_MAXLEVEL
   p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
-  trees = convert_sc_array(p4est_tree_t, mesh.p4est.trees)
+  trees = unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
 
   for tree in eachindex(trees)
     offset = trees[tree].quadrants_offset
-    quadrants = convert_sc_array(p4est_quadrant_t, trees[tree].quadrants)
+    quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree].quadrants)
 
     for i in eachindex(quadrants)
       element = offset + i
@@ -69,8 +69,8 @@ function init_interfaces_iter_face(info, user_data)
     return nothing
   end
 
-  sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
-           load_sc_array(p4est_iter_face_side_t, info.sides, 2))
+  sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
+           unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
 
   if sides[1].is_hanging == true || sides[2].is_hanging == true
     # Mortar, no normal interface
@@ -91,9 +91,9 @@ end
 
 # Function barrier for type stability
 function init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
-  # Global trees array, one-based indexing
-  trees = (load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
-           load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
+  # Load local trees from global trees array, one-based indexing
+  trees = (unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
+           unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
   # Quadrant numbering offsets of the quadrants at this interface
   offsets = SVector(trees[1].quadrants_offset,
                     trees[2].quadrants_offset)
@@ -179,9 +179,9 @@ end
 # Function barrier for type stability
 function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   # Extract boundary data
-  side = load_sc_array(p4est_iter_face_side_t, info.sides)
-  # Global trees array, one-based indexing
-  tree = load_sc_array(p4est_tree_t, mesh.p4est.trees, side.treeid + 1)
+  side = unsafe_load_sc(p4est_iter_face_side_t, info.sides)
+  # Load tree from global trees array, one-based indexing
+  tree = unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, side.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
 
@@ -238,8 +238,8 @@ function init_mortars_iter_face(info, user_data)
     return nothing
   end
 
-  sides = (load_sc_array(p4est_iter_face_side_t, info.sides, 1),
-           load_sc_array(p4est_iter_face_side_t, info.sides, 2))
+  sides = (unsafe_load_sc(p4est_iter_face_side_t, info.sides, 1),
+           unsafe_load_sc(p4est_iter_face_side_t, info.sides, 2))
 
   if sides[1].is_hanging == false && sides[2].is_hanging == false
     # Normal interface, no mortar
@@ -260,9 +260,9 @@ end
 
 # Function barrier for type stability
 function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
-  # Global trees array, one-based indexing
-  trees = (load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
-           load_sc_array(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
+  # Load local trees from global trees array, one-based indexing
+  trees = (unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[1].treeid + 1),
+           unsafe_load_sc(p4est_tree_t, mesh.p4est.trees, sides[2].treeid + 1))
   # Quadrant numbering offsets of the quadrants at this interface
   offsets = SVector(trees[1].quadrants_offset,
                     trees[2].quadrants_offset)

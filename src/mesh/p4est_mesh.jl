@@ -457,8 +457,12 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
   quadrants = unsafe_wrap(Array, quadrants_ptr, 4)
 
   # Controller value has been copied to the quadrant's user data storage before.
-  # Unpack quadrant's user data ([global quad ID, controller_value])
-  if all(i -> unsafe_load(Ptr{Int}(quadrants[i].p.user_data), 2) < 0, eachindex(quadrants))
+  # Load controller value from quadrant's user data ([global quad ID, controller_value]).
+  controller_value(i) = unsafe_load(Ptr{Int}(quadrants[i].p.user_data), 2)
+
+  # p4est calls this function for each 2^ndims quads that could be coarsened to a single one.
+  # Only coarsen if all these 2^ndims quads have been marked for coarsening.
+  if all(i -> controller_value(i) < 0, eachindex(quadrants))
     # return true (coarsen)
     return Cint(1)
   else
@@ -482,9 +486,11 @@ function coarsen!(mesh::P4estMesh)
 
   @timed timer() "coarsen!" p4est_coarsen(mesh.p4est, false, coarsen_fn_c, init_fn_c)
 
+  # IDs of newly created cells (one-based)
   new_cells = collect_new_cells(mesh)
+  # Old IDs of cells that have been coarsened (one-based)
   coarsened_cells_vec = collect_changed_cells(mesh, original_n_cells)
-  # 2^NDIMS changed cells should have been coarsened to one new cell.
+  # 2^ndims changed cells should have been coarsened to one new cell.
   # This matrix will store the IDs of all cells that have been coarsened to cell new_cells[i]
   # in the i-th column.
   coarsened_cells = reshape(coarsened_cells_vec, 2^ndims(mesh), length(new_cells))
@@ -520,8 +526,8 @@ end
 
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
-  # Global trees array, one-based indexing
-  tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  # Load tree from global trees array, one-based indexing
+  tree = unsafe_load_sc(p4est_tree_t, info.p4est.trees, info.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
@@ -551,7 +557,7 @@ end
 # Extract information about which cells have been changed
 function collect_changed_iter_volume(info, user_data)
   # The original element ID has been saved to user_data before.
-  # Unpack quadrant's user data ([global quad ID, controller_value]).
+  # Load original quad ID from quad's user data ([global quad ID, controller_value]).
   quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
   original_id = unsafe_load(quad_data_ptr, 1)
 
@@ -600,8 +606,8 @@ function collect_new_iter_volume(info, user_data)
 
   # original_id of cells that have been newly created is -1
   if original_id < 0
-    # Global trees array, one-based indexing
-    tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+    # Load tree from global trees array, one-based indexing
+    tree = unsafe_load_sc(p4est_tree_t, info.p4est.trees, info.treeid + 1)
     # Quadrant numbering offset of this quadrant
     offset = tree.quadrants_offset
     # Global quad ID

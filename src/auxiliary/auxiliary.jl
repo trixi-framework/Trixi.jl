@@ -228,4 +228,6 @@ function init_p4est()
 
   # Initialize p4est with log level ERROR to prevent a lot of output in AMR simulations
   p4est_init(C_NULL, SC_LP_ERROR)
+
+  return nothing
 end

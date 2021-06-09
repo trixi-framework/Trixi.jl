@@ -169,7 +169,7 @@ end
                                              kwargs...)
   # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
   # it when doing AMR while still dispatching on the `mesh` etc.
-  amr_callback(u_ode, mesh_equations_solver_cache(semi)..., t, iter; kwargs...)
+  amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi, t, iter; kwargs...)
 end
 
 
@@ -181,7 +181,7 @@ end
 # `passive_args` is expected to be an iterable of `Tuple`s of the form
 # `(p_u_ode, p_mesh, p_equations, p_dg, p_cache)`.
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
-                                     equations, dg::DG, cache,
+                                     equations, dg::DG, cache, semi,
                                      t, iter;
                                      only_refine=false, only_coarsen=false,
                                      passive_args=())
@@ -322,14 +322,13 @@ end
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
   # Load tree from global trees array, one-based indexing
-  tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  tree = unsafe_load_sc(p4est_tree_t, info.p4est.trees, info.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
   quad_id = offset + info.quadid
 
   # Access user_data = lambda
-  # TODO P4EST Is lambda always a Vector{Int}?
   user_data_ptr = Ptr{Int}(user_data)
   # Load controller_value = lambda[quad_id + 1]
   controller_value = unsafe_load(user_data_ptr, quad_id + 1)
@@ -343,7 +342,7 @@ function copy_to_quad_iter_volume(info, user_data)
 end
 
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
-                                     equations, dg::DG, cache,
+                                     equations, dg::DG, cache, semi,
                                      t, iter;
                                      only_refine=false, only_coarsen=false,
                                      passive_args=())
@@ -361,6 +360,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 
   # Copy controller value of each quad to the quad's user data storage
   iter_volume_c = @cfunction(copy_to_quad_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+
+  # The pointer to lambda will be interpreted as Ptr{Int} above
+  @assert lambda isa Vector{Int}
 
   GC.@preserve lambda begin
     p4est_iterate(mesh.p4est,
@@ -408,6 +410,11 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
   if has_changed # TODO: Taal decide, where shall we set this?
     # don't set it to has_changed since there can be changes from earlier calls
     mesh.unsaved_changes = true
+
+    if semi.boundary_conditions isa UnstructuredQuadSortedBoundaryTypes
+      # Reinitialize boundary types container because boundaries may have changed.
+      initialize!(boundary_conditions, cache)
+    end
   end
 
   # Return true if there were any cells coarsened or refined, otherwise false
@@ -531,7 +538,7 @@ end
 
 function extract_levels_iter_volume(info, user_data)
   # Load tree from global trees array, one-based indexing
-  tree = load_sc_array(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  tree = unsafe_load_sc(p4est_tree_t, info.p4est.trees, info.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
