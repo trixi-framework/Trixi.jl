@@ -275,19 +275,19 @@ function prolong2boundaries!(cache, u,
 
     if side == 1
       for l in eachnode(dg), v in eachvariable(equations)
-        boundaries.u[1, v, l, boundary] = u[v, l, 1, element]
+        boundaries.u[v, l, boundary] = u[v, l, 1, element]
       end
     elseif side == 2
       for l in eachnode(dg), v in eachvariable(equations)
-        boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
+        boundaries.u[v, l, boundary] = u[v, nnodes(dg), l, element]
       end
     elseif side == 3
       for l in eachnode(dg), v in eachvariable(equations)
-        boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
+        boundaries.u[v, l, boundary] = u[v, l, nnodes(dg), element]
       end
     else # side == 4
       for l in eachnode(dg), v in eachvariable(equations)
-        boundaries.u[1, v, l, boundary] = u[v, 1, l, element]
+        boundaries.u[v, l, boundary] = u[v, 1, l, element]
       end
     end
   end
@@ -378,7 +378,7 @@ end
   @unpack surface_flux = dg
 
   # pull the inner solution state from the boundary u values on the boundary element
-  u_inner = get_one_sided_surface_node_vars(u, equations, dg, 1, node_index, boundary_index)
+  u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
 
   # pull the outward pointing (normal) directional vector
   outward_direction = get_surface_normal(normal_directions, node_index, side_index, element_index)
