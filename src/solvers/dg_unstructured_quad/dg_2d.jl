@@ -463,13 +463,15 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+                             mesh::Union{UnstructuredQuadMesh, P4estMesh}, equations, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
 
 
+# Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::UnstructuredQuadMesh, equations, dg::DG)
+                             mesh::Union{UnstructuredQuadMesh, P4estMesh},
+                             equations, dg::DG)
   @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
   calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
@@ -482,7 +484,8 @@ end
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N,Any},
                                      BC_indices::NTuple{N,Vector{Int}},
-                                     mesh::UnstructuredQuadMesh, equations, dg::DG) where {N}
+                                     mesh::Union{UnstructuredQuadMesh, P4estMesh},
+                                     equations, dg::DG) where {N}
   # Extract the boundary condition type and index vector
   boundary_condition = first(BCs)
   boundary_condition_indices = first(BC_indices)
@@ -502,8 +505,9 @@ end
 
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     mesh::UnstructuredQuadMesh, equations, dg::DG)
-  nothing
+                                     mesh::Union{UnstructuredQuadMesh, P4estMesh},
+                                     equations, dg::DG)
+  return nothing
 end
 
 

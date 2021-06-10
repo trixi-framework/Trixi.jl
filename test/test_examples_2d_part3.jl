@@ -24,6 +24,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Unstructured curved mesh
   include("test_examples_2d_unstructured_quad.jl")
+
+  # P4estMesh
+  include("test_examples_2d_p4est.jl")
 end
 
 # Clean up afterwards: delete Trixi output directory

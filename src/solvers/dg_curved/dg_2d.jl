@@ -37,7 +37,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -295,7 +295,7 @@ end
 
 
 function apply_jacobian!(du,
-                         mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                         mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
                          equations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 

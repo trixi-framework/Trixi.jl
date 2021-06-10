@@ -10,12 +10,14 @@ using Trixi
 struct IndicatorSolutionIndependent{Cache<:NamedTuple} <: Trixi.AbstractIndicator
   cache::Cache
 end
+
 function IndicatorSolutionIndependent(semi)
   basis = semi.solver.basis
   alpha = Vector{real(basis)}()
   cache = (; semi.mesh, alpha)
   return IndicatorSolutionIndependent{typeof(cache)}(cache)
 end
+
 function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
                                                    equations, dg, cache;
                                                    t, kwargs...)
@@ -33,9 +35,12 @@ function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
 
   #Iterate over all elements
   for element in 1:length(alpha)
-    #Calculate periodic distance between cell and center.
-    cell_id = cache.elements.cell_ids[element]
-    coordinates = mesh.tree.coordinates[1:2, cell_id]
+    # Calculate periodic distance between cell and center.
+    # This requires an uncurved mesh!
+    coordinates = SVector(0.5 * (cache.elements.node_coordinates[1, 1, 1, element] +
+                                 cache.elements.node_coordinates[1, end, 1, element]),
+                          0.5 * (cache.elements.node_coordinates[2, 1, 1, element] +
+                                 cache.elements.node_coordinates[2, 1, end, element]))
 
     #The geometric shape of the amr should be preserved when the base_level is increased.
     #This is done by looking at the original coordinates of each cell.
@@ -88,9 +93,12 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5.0, -5.0)
 coordinates_max = ( 5.0,  5.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
-                n_cells_max=30_000)
+
+trees_per_dimension = (1, 1)
+
+mesh = P4estMesh(trees_per_dimension, polydeg=3,
+                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                 initial_refinement_level=4)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
