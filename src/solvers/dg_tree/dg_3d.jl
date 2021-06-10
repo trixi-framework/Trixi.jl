@@ -932,7 +932,8 @@ function calc_mortar_flux!(surface_flux_values,
     calc_fstar!(fstar_lower_left,  equations, surface_integral, dg, u_lower_left,  mortar, orientation)
     calc_fstar!(fstar_lower_right, equations, surface_integral, dg, u_lower_right, mortar, orientation)
 
-    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache, mortar,
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache, mortar,
                                fstar_upper_left, fstar_upper_right,
                                fstar_lower_left, fstar_lower_right,
                                fstar_tmp1)
@@ -1041,7 +1042,8 @@ function calc_mortar_flux!(surface_flux_values,
     for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
       fstar_lower_right[v, i, j] += noncons_diamond_lower_right[v, i, j]
     end
-    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache, mortar,
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache, mortar,
                                fstar_upper_left, fstar_upper_right,
                                fstar_lower_left, fstar_lower_right,
                                fstar_tmp1)
@@ -1067,8 +1069,11 @@ end
   return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values::AbstractArray{<:Any,5}, equations,
-                                            mortar_l2::LobattoLegendreMortarL2, dg::DGSEM, cache, mortar,
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::TreeMesh{3}, equations,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DGSEM, cache,
+                                            mortar,
                                             fstar_upper_left, fstar_upper_right,
                                             fstar_lower_left, fstar_lower_right,
                                             fstar_tmp1)

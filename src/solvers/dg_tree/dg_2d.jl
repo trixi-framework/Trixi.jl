@@ -113,7 +113,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::TreeMesh{2}, equations,
+              mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -907,7 +907,8 @@ function calc_mortar_flux!(surface_flux_values,
     calc_fstar!(fstar_upper, equations, surface_integral, dg, u_upper, mortar, orientation)
     calc_fstar!(fstar_lower, equations, surface_integral, dg, u_lower, mortar, orientation)
 
-    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache,
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache,
                                mortar, fstar_upper, fstar_lower)
   end
 
@@ -968,7 +969,8 @@ function calc_mortar_flux!(surface_flux_values,
 
     @. fstar_upper += noncons_diamond_upper
     @. fstar_lower += noncons_diamond_lower
-    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache,
+    mortar_fluxes_to_elements!(surface_flux_values,
+                               mesh, equations, mortar_l2, dg, cache,
                                mortar, fstar_upper, fstar_lower)
   end
 
@@ -992,8 +994,10 @@ end
   return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values::AbstractArray{<:Any,4}, equations,
-                                            mortar_l2::LobattoLegendreMortarL2, dg::DGSEM, cache,
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::TreeMesh{2}, equations,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DGSEM, cache,
                                             mortar, fstar_upper, fstar_lower)
   large_element = cache.mortars.neighbor_ids[3, mortar]
   upper_element = cache.mortars.neighbor_ids[2, mortar]
