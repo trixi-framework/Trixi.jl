@@ -11,7 +11,7 @@
 #             = 2*f*(1           + 1/3 f^2           + 1/5 f^4           + 1/7 f^6)
 #  (aR-aL)/Log(xi) = (aR+aL)*f/(2*f*(1 + 1/3 f^2 + 1/5 f^4 + 1/7 f^6)) = (aR+aL)/(2 + 2/3 f^2 + 2/5 f^4 + 2/7 f^6)
 #  (aR-aL)/Log(xi) = 0.5*(aR+aL)*(105/ (105+35 f^2+ 21 f^4 + 15 f^6)
-function ln_mean(value1, value2)
+@muladd function ln_mean(value1, value2)
   epsilon_f2 = 1.0e-4
   ratio = value2 / value1
   # f2 = f^2
