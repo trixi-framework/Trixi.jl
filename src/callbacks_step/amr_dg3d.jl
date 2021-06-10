@@ -1,18 +1,14 @@
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
-                 equations, dg::DGSEM, cache, cells_to_refine)
+                 equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
-  if isempty(cells_to_refine)
+  if isempty(elements_to_refine)
     return
   end
 
   # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg, cache))
-
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_refine = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
-                                          cells_to_refine)
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
@@ -159,17 +155,14 @@ end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
-                  equations, dg::DGSEM, cache, child_cells_to_coarsen)
+                  equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
-  if isempty(child_cells_to_coarsen)
+  if isempty(elements_to_remove)
     return
   end
 
   # Determine for each old element whether it needs to be removed
   to_be_removed = falses(nelements(dg, cache))
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_remove = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
-                                          child_cells_to_coarsen)
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
