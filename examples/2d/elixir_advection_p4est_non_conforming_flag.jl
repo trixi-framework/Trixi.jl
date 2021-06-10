@@ -9,8 +9,8 @@ using Trixi
 advectionvelocity = (1.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+# Create DG solver with polynomial degree = 4 and (local) Lax-Friedrichs/Rusanov flux as surface flux
+solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
@@ -19,9 +19,10 @@ f2(s) = SVector( 1.0, s + 1.0)
 f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
 f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
 
-# Create P4estMesh with 3 x 2 trees and 6 x 4 elements
+# Create P4estMesh with 3 x 2 trees and 6 x 4 elements,
+# approximate the geometry with a smaller polydeg for testing.
 trees_per_dimension = (3, 2)
-mesh = P4estMesh(trees_per_dimension, polydeg=3,
+mesh = P4estMesh(trees_per_dimension, polydeg=2,
                  faces=(f1, f2, f3, f4),
                  initial_refinement_level=1)
 
