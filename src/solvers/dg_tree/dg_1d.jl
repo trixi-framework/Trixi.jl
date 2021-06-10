@@ -181,10 +181,8 @@ end
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = alpha * derivative_split[i, ii] * flux1
-      add_to_node_vars!(du, integral_contribution, equations, dg, i,  element)
-      integral_contribution = alpha * derivative_split[ii, i] * flux1
-      add_to_node_vars!(du, integral_contribution, equations, dg, ii, element)
+      add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  element)
+      add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, element)
     end
   end
 end

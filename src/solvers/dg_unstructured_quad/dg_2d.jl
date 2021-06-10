@@ -88,10 +88,11 @@ function calc_volume_integral!(du, u,
 end
 
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{false}, volume_flux, element,
-                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
-                                    dg::DGSEM, cache, alpha=true)
+@muladd @inline function split_form_kernel!(
+    du::AbstractArray{<:Any,4}, u,
+    nonconservative_terms::Val{false}, volume_flux, element,
+    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
+    dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -119,10 +120,8 @@ end
       Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
       # compute the contravariant sharp flux
       fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2
-      integral_contribution = alpha * derivative_split[i, ii] * fluxtilde1
-      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
-      integral_contribution = alpha * derivative_split[ii, i] * fluxtilde1
-      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+      add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, element)
+      add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, element)
     end
 
     # y direction
@@ -136,10 +135,8 @@ end
       Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
       # compute the contravariant sharp flux
       fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2
-      integral_contribution = alpha * derivative_split[j, jj] * fluxtilde2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
-      integral_contribution = alpha * derivative_split[jj, j] * fluxtilde2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+      add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  element)
+      add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, element)
     end
   end
 end
