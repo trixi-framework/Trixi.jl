@@ -64,6 +64,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       atol = 5e-13, # required to make CI tests pass on macOS
     )
   end
+
+  @testset "elixir_eulergravity_eoc_test_p4est.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test_p4est.jl"),
+      l2   = [0.0002456507718735638, 0.0003374236900407321, 0.00033742369004074064, 0.0007198398465056179],
+      linf = [0.0013653498212873316, 0.0018996803803537077, 0.0018996803803517093, 0.004384818684607161],
+      tspan = (0.0, 0.1))
+  end
 end
 
 end # module
