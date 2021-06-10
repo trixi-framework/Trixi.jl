@@ -79,11 +79,11 @@ function calc_interface_flux!(surface_flux_values,
       # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
       # to left and right element storage in the correct orientation
       for v in eachvariable(equations)
-        surface_index = evaluate_index_surface(primary_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, primary_direction, primary_element] = flux_[v]
+        surf_i = evaluate_index_surface(primary_indices, size_, 1, i)
+        surface_flux_values[v, surf_i, primary_direction, primary_element] = flux_[v]
 
-        surface_index = evaluate_index_surface(secondary_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, secondary_direction, secondary_element] = -flux_[v]
+        surf_i = evaluate_index_surface(secondary_indices, size_, 1, i)
+        surface_flux_values[v, surf_i, secondary_direction, secondary_element] = -flux_[v]
       end
     end
   end
@@ -93,7 +93,8 @@ end
 
 
 function prolong2boundaries!(cache, u,
-                             mesh::P4estMesh{2}, equations, dg::DG)
+                             mesh::P4estMesh{2},
+                             equations, dg::DG)
   @unpack boundaries = cache
 
   size_ = (nnodes(dg), nnodes(dg))
@@ -116,7 +117,7 @@ end
 
 
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
-                             mesh::P4estMesh, equations, dg::DG)
+                             mesh::P4estMesh{2}, equations, dg::DG)
   @unpack boundaries = cache
   @unpack surface_flux_values, node_coordinates = cache.elements
   @unpack surface_flux = dg
@@ -151,8 +152,8 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
       # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
       # to left and right element storage in the correct orientation
       for v in eachvariable(equations)
-        surface_index = evaluate_index_surface(node_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, direction, element] = flux_[v]
+        surf_i = evaluate_index_surface(node_indices, size_, 1, i)
+        surface_flux_values[v, surf_i, direction, element] = flux_[v]
       end
     end
   end
@@ -305,7 +306,7 @@ end
 end
 
 
-function calc_surface_integral!(du, mesh::P4estMesh,
+function calc_surface_integral!(du, mesh::P4estMesh{2},
                                 equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements

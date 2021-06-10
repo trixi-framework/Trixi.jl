@@ -24,7 +24,7 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{3},
 end
 
 
-function create_cache_analysis(analyzer, mesh::CurvedMesh{3},
+function create_cache_analysis(analyzer, mesh::Union{CurvedMesh{3}, P4estMesh{3}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
@@ -92,7 +92,8 @@ end
 
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::CurvedMesh{3}, equations, initial_condition,
+                          mesh::Union{CurvedMesh{3}, P4estMesh{3}},
+                          equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -155,7 +156,8 @@ end
 
 
 function integrate_via_indices(func::Func, u,
-                               mesh::CurvedMesh{3}, equations, dg::DGSEM, cache,
+                               mesh::Union{CurvedMesh{3}, P4estMesh{3}},
+                               equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -182,7 +184,7 @@ end
 
 
 function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{3},CurvedMesh{3}},
+                   mesh::Union{TreeMesh{3}, CurvedMesh{3}, P4estMesh{3}},
                    equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -192,7 +194,8 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{3}, CurvedMesh{3}, P4estMesh{3}},
+                 equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, k, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, k, element)

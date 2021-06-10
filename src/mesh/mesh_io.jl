@@ -234,13 +234,15 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
       end
     end
 
-    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
+    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false,
+                      mapping_as_string=mapping_as_string)
   elseif mesh_type == "UnstructuredQuadMesh"
     mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
       return read(attributes(file)["mesh_filename"]),
              read(attributes(file)["periodicity"])
     end
-    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_, unsaved_changes=false)
+    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_,
+                                unsaved_changes=false)
   elseif mesh_type == "P4estMesh"
     p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
