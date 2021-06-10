@@ -212,20 +212,17 @@ function calc_volume_integral!(du, u,
 
       flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
+        add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, k, element)
       end
 
       flux2 = flux(u_node, 2, equations)
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
+        add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, k, element)
       end
 
       flux3 = flux(u_node, 3, equations)
       for kk in eachnode(dg)
-        integral_contribution = derivative_dhat[kk, k] * flux3
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
+        add_to_node_vars!(du, derivative_dhat[kk, k], flux3, equations, dg, i, j, kk, element)
       end
     end
   end

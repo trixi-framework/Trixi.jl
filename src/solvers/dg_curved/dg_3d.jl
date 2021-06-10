@@ -35,11 +35,12 @@ function rhs!(du, u, t,
 end
 
 
-function calc_volume_integral!(du, u,
-                               mesh::CurvedMesh{3},
-                               nonconservative_terms::Val{false}, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
+@muladd function calc_volume_integral!(
+    du, u,
+    mesh::CurvedMesh{3},
+    nonconservative_terms::Val{false}, equations,
+    volume_integral::VolumeIntegralWeakForm,
+    dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -55,30 +56,24 @@ function calc_volume_integral!(du, u,
       # first contravariant vector Ja^1 and the flux vector
       Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
       contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
-
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * contravariant_flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
+        add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations, dg, ii, j, k, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
       # second contravariant vector Ja^2 and the flux vector
       Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
       contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
-
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * contravariant_flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
+        add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations, dg, i, jj, k, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
       # third contravariant vector Ja^3 and the flux vector
       Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
       contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
-
       for kk in eachnode(dg)
-        integral_contribution = derivative_dhat[kk, k] * contravariant_flux3
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
+        add_to_node_vars!(du, derivative_dhat[kk, k], contravariant_flux3, equations, dg, i, j, kk, element)
       end
     end
   end
