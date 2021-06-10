@@ -99,26 +99,16 @@ end
   for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
 
-    # compute the fluxes in the x and y directions
-    flux1 = flux(u_node, 1, equations)
-    flux2 = flux(u_node, 2, equations)
-
-    # first direction: use consistency of the volume flux to make this evaluation cheaper
-    # pull the contravariant vector
+    # pull the contravariant vectors in each coordinate direction
     Ja11_node, Ja12_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-    # compute the two contravariant fluxes
-    fluxtilde1 = Ja11_node * flux1 + Ja12_node * flux2
-    integral_contribution = alpha * derivative_split[i, i] * fluxtilde1
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
-
-    # second direction: use consistency of the volume flux to make this evaluation cheaper
-    # pull the contravariant vector
     Ja21_node, Ja22_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-    fluxtilde2 = Ja21_node * flux1 + Ja22_node * flux2
-    integral_contribution = alpha * derivative_split[j, j] * fluxtilde2
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
 
-    # use symmetry of the volume flux for the remaining terms in the first direction
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-poitn flux
+    # computations.
+
+    # x direction
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
@@ -135,7 +125,7 @@ end
       add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
     end
 
-    # use symmetry of the volume flux for the remaining terms in the second direction
+    # y direction
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
       flux1 = volume_flux(u_node, u_node_jj, 1, equations)

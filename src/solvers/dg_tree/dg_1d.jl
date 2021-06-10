@@ -172,12 +172,12 @@ end
   for i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, element)
 
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-poitn flux
+    # computations.
+
     # x direction
-    # use consistency of the volume flux to make this evaluation cheaper
-    flux1 = flux(u_node, 1, equations)
-    integral_contribution = alpha * derivative_split[i, i] * flux1
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, element)
-    # use symmetry of the volume flux for the remaining terms
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
