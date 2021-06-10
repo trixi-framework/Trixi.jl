@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # Abstract base type - all containers that want to use these features must inherit from it
 abstract type AbstractContainer end
@@ -320,3 +324,6 @@ end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
   raw_copy!(c, c, from, from, destination)
 end
+
+
+end # @muladd

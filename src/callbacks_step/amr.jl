@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 """
     AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
@@ -759,3 +763,6 @@ end
 include("amr_dg1d.jl")
 include("amr_dg2d.jl")
 include("amr_dg3d.jl")
+
+
+end # @muladd

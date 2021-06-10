@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 @doc raw"""
     InviscidBurgersEquation1D
@@ -109,3 +113,6 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
 @inline energy_total(u, equation::InviscidBurgersEquation1D) = energy_total(u[1], equation)
+
+
+end # @muladd

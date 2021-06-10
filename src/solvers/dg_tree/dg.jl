@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 abstract type AbstractVolumeIntegral end
 
@@ -316,7 +320,7 @@ end
   return nothing
 end
 
-@muladd @inline function add_to_node_vars!(u, factor, u_node, equations, solver::DG, indices...)
+@inline function add_to_node_vars!(u, factor, u_node, equations, solver::DG, indices...)
   for v in eachvariable(equations)
     u[v, indices...] = u[v, indices...] + factor * u_node[v]
   end
@@ -449,3 +453,5 @@ include("dg_2d_parallel.jl")
 include("containers_3d.jl")
 include("dg_3d.jl")
 
+
+end # @muladd

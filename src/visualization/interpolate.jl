@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
 #
@@ -607,3 +612,6 @@ function calc_vertices(node_coordinates, mesh::UnstructuredQuadMesh)
 
   return x, y
 end
+
+
+end # @muladd

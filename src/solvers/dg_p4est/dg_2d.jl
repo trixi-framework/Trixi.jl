@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
@@ -338,3 +343,6 @@ function calc_surface_integral!(du, u, mesh::P4estMesh,
 
   return nothing
 end
+
+
+end # @muladd

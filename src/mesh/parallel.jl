@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 """
     partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
 
@@ -91,3 +96,6 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{true})
   # Construct and return filename
   return joinpath(dirname, mesh_file)
 end
+
+
+end # @muladd

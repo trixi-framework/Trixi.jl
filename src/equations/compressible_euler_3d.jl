@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 @doc raw"""
     CompressibleEulerEquations3D
@@ -1065,3 +1069,6 @@ end
 @inline function energy_internal(cons, equations::CompressibleEulerEquations3D)
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
+
+
+end # @muladd

@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 function rhs!(du, u, t,
               mesh::CurvedMesh{2}, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -35,12 +40,11 @@ function rhs!(du, u, t,
 end
 
 
-@muladd function calc_volume_integral!(
-    du, u,
-    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
-    nonconservative_terms::Val{false}, equations,
-    volume_integral::VolumeIntegralWeakForm,
-    dg::DGSEM, cache)
+function calc_volume_integral!(du, u,
+                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -242,3 +246,6 @@ function apply_jacobian!(du,
 
   return nothing
 end
+
+
+end # @muladd

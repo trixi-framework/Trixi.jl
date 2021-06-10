@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
@@ -62,3 +67,6 @@ include("containers.jl")
 include("dg_1d.jl")
 include("dg_2d.jl")
 include("dg_3d.jl")
+
+
+end # @muladd

@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # Note: This is an experimental feature and may be changed in future releases without notice.
 struct ElementContainer{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3}
   # Physical coordinates at each node
@@ -47,3 +52,6 @@ Base.eltype(::ElementContainer{NDIMS, RealT, uEltype}) where {NDIMS, RealT, uElt
 include("containers_1d.jl")
 include("containers_2d.jl")
 include("containers_3d.jl")
+
+
+end # @muladd

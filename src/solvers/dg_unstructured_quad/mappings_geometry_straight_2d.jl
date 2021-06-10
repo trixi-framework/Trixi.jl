@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # mapping formula from a point (xi, eta) in reference space [-1,1]^2 to a point (x,y)
 # in physical coordinate space for a quadrilateral element with straight sides
 #     Alg. 95 from the blue book of Kopriva
@@ -104,3 +109,6 @@ function calc_normal_directions!(normal_directions, element, nodes, corners)
 
   return normal_directions
 end
+
+
+end # @muladd

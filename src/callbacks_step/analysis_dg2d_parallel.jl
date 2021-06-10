@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::ParallelTreeMesh{2}, equations, initial_condition,
@@ -55,3 +59,5 @@ function integrate_via_indices(func::Func, u,
   return integral
 end
 
+
+end # @muladd

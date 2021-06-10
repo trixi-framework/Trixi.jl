@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 """
     CurvedMesh{NDIMS} <: AbstractMesh{NDIMS}
 
@@ -320,3 +325,6 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh)
     summary_footer(io)
   end
 end
+
+
+end # @muladd

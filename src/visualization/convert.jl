@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
 #
 # Returns a tuple with
@@ -157,3 +162,6 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
 
   return unstructured_data
 end
+
+
+end # @muladd

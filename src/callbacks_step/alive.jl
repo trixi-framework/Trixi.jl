@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 """
     AliveCallback(analysis_interval=0, alive_interval=analysis_interval÷10)
@@ -87,3 +91,6 @@ function (alive_callback::AliveCallback)(integrator)
   u_modified!(integrator, false)
   return nothing
 end
+
+
+end # @muladd

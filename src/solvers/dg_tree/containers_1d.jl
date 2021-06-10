@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct ElementContainer1D{RealT<:Real, uEltype<:Real} <: AbstractContainer
@@ -449,3 +453,5 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
   return boundaries.n_boundaries_per_direction
 end
 
+
+end # @muladd

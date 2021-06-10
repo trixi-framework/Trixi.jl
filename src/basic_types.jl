@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # abstract supertype of specific semidiscretizations such as
 # - SemidiscretizationHyperbolic for hyperbolic conservation laws
@@ -63,3 +67,6 @@ A singleton struct indicating periodic boundary conditions.
 const boundary_condition_periodic = BoundaryConditionPeriodic()
 
 Base.show(io::IO, ::BoundaryConditionPeriodic) = print(io, "boundary_condition_periodic")
+
+
+end # @muladd

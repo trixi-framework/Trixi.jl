@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 function rhs!(du, u, t,
               mesh::CurvedMesh{3}, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -35,12 +40,11 @@ function rhs!(du, u, t,
 end
 
 
-@muladd function calc_volume_integral!(
-    du, u,
-    mesh::CurvedMesh{3},
-    nonconservative_terms::Val{false}, equations,
-    volume_integral::VolumeIntegralWeakForm,
-    dg::DGSEM, cache)
+function calc_volume_integral!(du, u,
+                               mesh::CurvedMesh{3},
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -97,11 +101,11 @@ function calc_volume_integral!(du, u,
 end
 
 
-@muladd @inline function split_form_kernel!(
-    du::AbstractArray{<:Any,5}, u,
-    nonconservative_terms::Val{false}, volume_flux, element,
-    mesh::CurvedMesh{3}, equations,
-    dg::DGSEM, cache, alpha=true)
+@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
+                                    nonconservative_terms::Val{false},
+                                    volume_flux, element,
+                                    mesh::CurvedMesh{3},
+                                    equations, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -390,3 +394,6 @@ function apply_jacobian!(du,
 
   return nothing
 end
+
+
+end # @muladd

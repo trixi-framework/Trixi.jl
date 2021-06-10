@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 """
     GlmSpeedCallback(; glm_scale=0.5, cfl)
@@ -82,3 +86,6 @@ end
 end
 
 include("glm_speed_dg.jl")
+
+
+end # @muladd

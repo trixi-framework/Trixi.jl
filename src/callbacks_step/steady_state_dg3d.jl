@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{3},
                                                       equations, dg::DG, cache)
@@ -15,3 +19,6 @@ function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{
 
   return terminate
 end
+
+
+end # @muladd

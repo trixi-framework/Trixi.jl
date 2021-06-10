@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 """
     P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
 
@@ -644,3 +649,6 @@ function collect_new_cells(mesh)
 
   return new_cells
 end
+
+
+end # @muladd

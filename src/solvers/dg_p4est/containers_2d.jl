@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # Initialize data structures in element container
 function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, jacobian_matrix,
@@ -370,3 +375,6 @@ function init_mortars!(mortars, mesh::P4estMesh{2})
 
   return mortars
 end
+
+
+end # @muladd

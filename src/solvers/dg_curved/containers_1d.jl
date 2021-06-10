@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, left_neighbors,
@@ -75,3 +80,6 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{1})
 
   return left_neighbors
 end
+
+
+end # @muladd

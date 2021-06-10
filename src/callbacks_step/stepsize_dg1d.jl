@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 function max_dt(u, t, mesh::TreeMesh{1},
                 constant_speed::Val{false}, equations, dg::DG, cache)
@@ -78,3 +82,6 @@ function max_dt(u, t, mesh::CurvedMesh{1},
 
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
+
+
+end # @muladd

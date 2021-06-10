@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
@@ -88,11 +93,11 @@ function calc_volume_integral!(du, u,
 end
 
 
-@muladd @inline function split_form_kernel!(
-    du::AbstractArray{<:Any,4}, u,
-    nonconservative_terms::Val{false}, volume_flux, element,
-    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
-    dg::DGSEM, cache, alpha=true)
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                    nonconservative_terms::Val{false},
+                                    volume_flux, element,
+                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                                    equations, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -455,3 +460,6 @@ function max_discrete_metric_identities(dg::DGSEM, cache)
 
   return max_metric_ids
 end
+
+
+end # @muladd

@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # overload this function for specific callbacks which use element element variables
 # that should be saved
@@ -60,3 +64,6 @@ include("lbm_collision.jl")
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`
 include("trivial.jl")
+
+
+end # @muladd

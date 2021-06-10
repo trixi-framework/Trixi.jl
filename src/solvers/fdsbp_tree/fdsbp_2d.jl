@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # General interface methods for SummationByPartsOperators.jl and Trixi.jl
 # TODO: FD. Move to another file
@@ -205,3 +209,6 @@ end
 #       x = semi.cache.elements.node_coordinates[1, :, :, :] |> vec
 #       y = semi.cache.elements.node_coordinates[2, :, :, :] |> vec
 #       scatter(x, y, sol.u[end])
+
+
+end # @muladd

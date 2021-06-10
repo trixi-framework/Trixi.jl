@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 @doc raw"""
     CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
@@ -467,3 +471,5 @@ end
   return SVector{ncomponents(equations), real(equations)}(u[i+2]*v for i in eachcomponent(equations))
  end
 
+
+end # @muladd

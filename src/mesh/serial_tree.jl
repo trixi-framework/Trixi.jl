@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # Composite type that represents a NDIMS-dimensional tree (serial version).
 #
@@ -204,3 +208,6 @@ function reset_data_structures!(t::SerialTree{NDIMS}) where NDIMS
 
   invalidate!(t, 1, capacity(t) + 1)
 end
+
+
+end # @muladd

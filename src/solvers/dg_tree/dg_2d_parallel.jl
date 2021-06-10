@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # everything related to a DG semidiscretization in 2D using MPI,
 # currently limited to Lobatto-Legendre nodes
@@ -418,3 +422,5 @@ function calc_mpi_interface_flux!(surface_flux_values,
   return nothing
 end
 
+
+end # @muladd

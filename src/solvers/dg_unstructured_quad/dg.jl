@@ -1,3 +1,6 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
 
 
 @inline function get_one_sided_surface_node_vars(u, equations, solver::DG, j, indices...)
@@ -20,3 +23,6 @@ include("mappings_geometry_straight_2d.jl")
 include("containers_2d.jl")
 include("sort_boundary_conditions.jl")
 include("dg_2d.jl")
+
+
+end # @muladd

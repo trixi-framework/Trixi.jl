@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 summary_callback(integrator) = false # when used as condition; never call the summary callback during the simulation
 summary_callback(u, t, integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
@@ -195,3 +199,6 @@ function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Conditi
   println(io)
   return nothing
 end
+
+
+end # @muladd

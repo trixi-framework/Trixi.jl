@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 """
     LBMCollisionCallback()
@@ -57,3 +61,6 @@ end
 
 include("lbm_collision_dg2d.jl")
 include("lbm_collision_dg3d.jl")
+
+
+end # @muladd

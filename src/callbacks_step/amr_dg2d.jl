@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
                             dg::DGSEM, cache, old_mpi_ranks_per_cell)
@@ -349,3 +354,5 @@ function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2}, e
   return (; controller_value)
 end
 
+
+end # @muladd

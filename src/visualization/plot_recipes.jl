@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 # Convenience type to allow dispatch on solution objects that were created by Trixi
 #
 # This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
@@ -684,3 +689,6 @@ end
 @recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
   return PlotData1D(time_series_callback, point_id)
 end
+
+
+end # @muladd

@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0)
@@ -370,3 +374,6 @@ function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
 
   return mesh
 end
+
+
+end # @muladd

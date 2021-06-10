@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 """
     SaveRestartCallback(; interval=0,
@@ -126,3 +130,6 @@ end
 
 
 include("save_restart_dg.jl")
+
+
+end # @muladd

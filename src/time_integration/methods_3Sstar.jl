@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # Abstract base type for time integration schemes of storage class `3S*`
 abstract type SimpleAlgorithm3Sstar end
@@ -232,3 +236,6 @@ function Base.resize!(integrator::SimpleIntegrator3Sstar, new_size)
   resize!(integrator.u_tmp1, new_size)
   resize!(integrator.u_tmp2, new_size)
 end
+
+
+end # @muladd

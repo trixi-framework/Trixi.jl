@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 """
     SaveSolutionCallback(; interval=0,
@@ -155,3 +159,6 @@ end
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
 
 include("save_solution_dg.jl")
+
+
+end # @muladd

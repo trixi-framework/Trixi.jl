@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 """
     UnstructuredQuadSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
 
@@ -69,3 +74,6 @@ function initialize!(boundary_types_container::UnstructuredQuadSortedBoundaryTyp
 
   return boundary_types_container
 end
+
+
+end # @muladd

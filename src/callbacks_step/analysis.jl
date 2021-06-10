@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
@@ -489,3 +493,6 @@ include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
+
+
+end # @muladd

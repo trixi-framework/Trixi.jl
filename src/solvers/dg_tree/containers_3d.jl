@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct ElementContainer3D{RealT<:Real, uEltype<:Real} <: AbstractContainer
@@ -778,3 +782,5 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
                                       "expectations $(nmortars(mortars))")
 end
 
+
+end # @muladd

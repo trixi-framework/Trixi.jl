@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 @doc raw"""
     IdealGlmMhdMulticomponentEquations1D
@@ -422,3 +426,6 @@ end
 
   return SVector{ncomponents(equations), real(equations)}(u[i+7]*v for i in eachcomponent(equations))
  end
+
+
+end # @muladd

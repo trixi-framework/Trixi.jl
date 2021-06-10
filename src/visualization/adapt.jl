@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
+
 """
     adapt_to_mesh_level!(u_ode, semi, level)
     adapt_to_mesh_level!(sol::Trixi.TrixiODESolution, level)
@@ -47,3 +52,6 @@ function adapt_to_mesh_level(u_ode, semi, level)
 end
 
 adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
+
+
+end # @muladd

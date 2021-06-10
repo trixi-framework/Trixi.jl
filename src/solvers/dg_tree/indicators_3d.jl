@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
@@ -234,3 +238,6 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5},
 
   return alpha
 end
+
+
+end # @muladd

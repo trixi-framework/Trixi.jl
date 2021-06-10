@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
@@ -247,3 +251,5 @@ function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{1}, e
   return (; controller_value)
 end
 
+
+end # @muladd

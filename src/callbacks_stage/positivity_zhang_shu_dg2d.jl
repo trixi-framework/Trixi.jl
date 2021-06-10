@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
+# See TODO: link-to-my-blog-post
+@muladd begin
+
 
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)
@@ -37,3 +41,5 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
   return nothing
 end
 
+
+end # @muladd
