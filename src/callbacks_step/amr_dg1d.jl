@@ -23,7 +23,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # re-initialize elements container
     @unpack elements = cache
     resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
     @assert nelements(dg, cache) > old_n_elements
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -137,7 +137,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # re-initialize elements container
     @unpack elements = cache
     resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
     @assert nelements(dg, cache) < old_n_elements
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
