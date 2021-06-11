@@ -53,6 +53,9 @@ end
 
 @inline Base.ndims(::AbstractEquations{NDIMS}) where NDIMS = NDIMS
 
+# equations act like scalars in broadcasting
+Base.broadcastable(equations::AbstractEquations) = Ref(equations)
+
 
 """
     flux(u, orientation_or_normal, equations)
