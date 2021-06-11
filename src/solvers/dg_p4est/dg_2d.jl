@@ -310,7 +310,7 @@ end
 end
 
 
-function calc_surface_integral!(du, mesh::P4estMesh,
+function calc_surface_integral!(du, u, mesh::P4estMesh,
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
