@@ -63,22 +63,22 @@ function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::Abstr
   # x_ξ, y_ξ
   @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
     for j in indices((jacobian_matrix, node_coordinates), (4, 3)), i in indices((jacobian_matrix, derivative_matrix), (3, 1))
-      res = zero(eltype(jacobian_matrix))
+      result = zero(eltype(jacobian_matrix))
       for ii in indices((node_coordinates, derivative_matrix), (2, 2))
-        res += derivative_matrix[i, ii] * node_coordinates[xy, ii, j, element]
+        result += derivative_matrix[i, ii] * node_coordinates[xy, ii, j, element]
       end
-      jacobian_matrix[xy, 1, i, j, element] = res
+      jacobian_matrix[xy, 1, i, j, element] = result
     end
   end
 
   # x_η, y_η
   @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
     for j in indices((jacobian_matrix, derivative_matrix), (4, 1)), i in indices((jacobian_matrix, node_coordinates), (3, 2))
-      res = zero(eltype(jacobian_matrix))
+      result = zero(eltype(jacobian_matrix))
       for jj in indices((node_coordinates, derivative_matrix), (3, 2))
-        res += derivative_matrix[j, jj] * node_coordinates[xy, i, jj, element]
+        result += derivative_matrix[j, jj] * node_coordinates[xy, i, jj, element]
       end
-      jacobian_matrix[xy, 2, i, j, element] = res
+      jacobian_matrix[xy, 2, i, j, element] = result
     end
   end
 
