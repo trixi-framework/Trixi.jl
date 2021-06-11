@@ -333,8 +333,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
   resize!(mortars, required.mortars)
 
   # re-initialize containers together to reduce
-  # the number of iterations over the mesh in
-  # p4est
+  # the number of iterations over the mesh in p4est
   init_surfaces!(interfaces, mortars, boundaries, mesh)
 end
 
