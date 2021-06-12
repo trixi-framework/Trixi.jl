@@ -5,6 +5,13 @@ get_element_variables!(element_variables, u, mesh, equations,
                        volume_integral::AbstractVolumeIntegral, dg, cache) = nothing
 
 """
+    VolumeIntegralStrongForm
+
+The classical strong form volume integral type for FD/DG methods.
+"""
+struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
+
+"""
     VolumeIntegralWeakForm
 
 The classical weak form volume integral type for DG methods as explained in standard
@@ -132,17 +139,78 @@ end
 
 
 
+abstract type AbstractSurfaceIntegral end
+
 """
-    DG(basis, basis, surface_flux, volume_integral)
+    SurfaceIntegralWeakForm(surface_flux=flux_central)
+
+The classical weak form surface integral type for DG methods as explained in standard
+textbooks such as
+- Kopriva (2009)
+  Implementing Spectral Methods for Partial Differential Equations:
+  Algorithms for Scientists and Engineers
+  [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+
+See also [`VolumeIntegralWeakForm`](@ref).
+"""
+struct SurfaceIntegralWeakForm{SurfaceFlux} <: AbstractSurfaceIntegral
+  surface_flux::SurfaceFlux
+end
+
+SurfaceIntegralWeakForm() = SurfaceIntegralWeakForm(flux_central)
+
+function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "surface flux" => integral.surface_flux
+            ]
+    summary_box(io, "SurfaceIntegralWeakForm", setup)
+  end
+end
+
+"""
+    SurfaceIntegralStrongForm(surface_flux=flux_central)
+
+The classical strong form surface integral type for FD/DG methods.
+
+See also [`VolumeIntegralStrongForm`](@ref).
+"""
+struct SurfaceIntegralStrongForm{SurfaceFlux} <: AbstractSurfaceIntegral
+  surface_flux::SurfaceFlux
+end
+
+SurfaceIntegralStrongForm() = SurfaceIntegralStrongForm(flux_central)
+
+function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongForm)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "surface flux" => integral.surface_flux
+            ]
+    summary_box(io, "SurfaceIntegralStrongForm", setup)
+  end
+end
+
+
+
+"""
+    DG(; basis, mortar, surface_integral, volume_integral)
 
 Create a discontinuous Galerkin method.
 If [`basis isa LobattoLegendreBasis`](@ref LobattoLegendreBasis),
 this creates a [`DGSEM`](@ref).
 """
-struct DG{Basis, Mortar, SurfaceFlux, VolumeIntegral}
+struct DG{Basis, Mortar, SurfaceIntegral, VolumeIntegral}
   basis::Basis
   mortar::Mortar
-  surface_flux::SurfaceFlux
+  surface_integral::SurfaceIntegral
   volume_integral::VolumeIntegral
 end
 
@@ -152,7 +220,7 @@ function Base.show(io::IO, dg::DG)
   print(io, "DG{", real(dg), "}(")
   print(io,       dg.basis)
   print(io, ", ", dg.mortar)
-  print(io, ", ", dg.surface_flux)
+  print(io, ", ", dg.surface_integral)
   print(io, ", ", dg.volume_integral)
   print(io, ")")
 end
@@ -164,10 +232,10 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
     show(io, dg)
   else
     summary_header(io, "DG{" * string(real(dg)) * "}")
-    summary_line(io, "polynomial degree", polydeg(dg))
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar", dg.mortar)
-    summary_line(io, "surface flux", dg.surface_flux)
+    summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
+    show(increment_indent(io), mime, dg.surface_integral)
     summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
     if !(dg.volume_integral isa VolumeIntegralWeakForm)
       show(increment_indent(io), mime, dg.volume_integral)
@@ -176,11 +244,9 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
   end
 end
 
-@inline Base.real(dg::DG) = real(dg.basis) 
+Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 
-# TODO: Taal refactor, use case?
-# Deprecate in favor of nnodes or order_of_accuracy?
-@inline polydeg(dg::DG) = polydeg(dg.basis)
+@inline Base.real(dg::DG) = real(dg.basis)
 
 @inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
@@ -190,7 +256,7 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
 end
 
 
-# TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg))
+# TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
 @inline eachnode(dg::DG)             = Base.OneTo(nnodes(dg))
 @inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
 @inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
@@ -264,35 +330,49 @@ include("l2projection.jl")
 include("basis_lobatto_legendre.jl")
 
 """
-    DGSEM([RealT=Float64,] polydeg::Integer,
-          surface_flux=flux_central,
-          volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
-          mortar=MortarL2(basis))
+    DGSEM(; RealT=Float64, polydeg::Integer,
+            surface_flux=flux_central,
+            surface_integral=SurfaceIntegralWeakForm(surface_flux),
+            volume_integral=VolumeIntegralWeakForm(),
+            mortar=MortarL2(basis))
 
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
 [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
-const DGSEM = DG{Basis, Mortar, SurfaceFlux, VolumeIntegral} where {Basis<:LobattoLegendreBasis, Mortar, SurfaceFlux, VolumeIntegral}
+const DGSEM = DG{Basis} where {Basis<:LobattoLegendreBasis}
 
+# TODO: Deprecated in v0.3 (no longer documented)
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux=flux_central,
-               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
+               volume_integral=VolumeIntegralWeakForm(),
                mortar=MortarL2(basis))
 
-  return DG{typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
-    basis, mortar, surface_flux, volume_integral)
+  surface_integral = SurfaceIntegralWeakForm(surface_flux)
+  return DG{typeof(basis), typeof(mortar), typeof(surface_integral), typeof(volume_integral)}(
+    basis, mortar, surface_integral, volume_integral)
 end
 
+# TODO: Deprecated in v0.3 (no longer documented)
+function DGSEM(basis::LobattoLegendreBasis,
+               surface_integral::AbstractSurfaceIntegral,
+               volume_integral=VolumeIntegralWeakForm(),
+               mortar=MortarL2(basis))
+
+  return DG{typeof(basis), typeof(mortar), typeof(surface_integral), typeof(volume_integral)}(
+    basis, mortar, surface_integral, volume_integral)
+end
+
+# TODO: Deprecated in v0.3 (no longer documented)
 function DGSEM(RealT, polydeg::Integer,
                surface_flux=flux_central,
-               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
+               volume_integral=VolumeIntegralWeakForm(),
                mortar=MortarL2(LobattoLegendreBasis(RealT, polydeg)))
   basis = LobattoLegendreBasis(RealT, polydeg)
 
   return DGSEM(basis, surface_flux, volume_integral, mortar)
 end
 
-DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
+DGSEM(polydeg, surface_flux=flux_central, volume_integral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
 # The constructor using only keyword arguments is convenient for elixirs since
 # it allows to modify the polynomial degree and other parameters via
@@ -300,10 +380,15 @@ DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegra
 function DGSEM(; RealT=Float64,
                  polydeg::Integer,
                  surface_flux=flux_central,
+                 surface_integral=SurfaceIntegralWeakForm(surface_flux),
                  volume_integral=VolumeIntegralWeakForm())
   basis = LobattoLegendreBasis(RealT, polydeg)
-  return DGSEM(basis, surface_flux, volume_integral)
+  return DGSEM(basis, surface_integral, volume_integral)
 end
+
+@inline polydeg(dg::DGSEM) = polydeg(dg.basis)
+
+Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
 
 
 
@@ -356,3 +441,4 @@ include("dg_2d_parallel.jl")
 # 3D DG implementation
 include("containers_3d.jl")
 include("dg_3d.jl")
+

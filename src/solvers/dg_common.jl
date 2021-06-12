@@ -5,7 +5,7 @@ function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
   zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
 end
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DGSEM, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
@@ -44,6 +44,11 @@ end
     unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
                 (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
   end
+end
+
+# General fallback
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+  wrap_array_native(u_ode, mesh, equations, dg, cache)
 end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better

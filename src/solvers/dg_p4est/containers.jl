@@ -141,7 +141,7 @@ function init_interfaces(mesh::P4estMesh, equations, basis, elements)
   uEltype = eltype(elements)
 
   # Initialize container
-  n_interfaces = count_required_interfaces(mesh)
+  n_interfaces = count_required_surfaces(mesh).interfaces
 
   _u = Vector{uEltype}(undef, 2 * nvariables(equations) * nnodes(basis)^(NDIMS-1) * n_interfaces)
   u = unsafe_wrap(Array, pointer(_u),
@@ -162,58 +162,19 @@ function init_interfaces(mesh::P4estMesh, equations, basis, elements)
 end
 
 
-# Iterate over all interfaces and extract inner interface data to interface container
-# This function will be passed to p4est in init_interfaces! in containers_[23]d.jl
-function init_interfaces_iter_face(info, user_data)
-  if info.sides.elem_count != 2
-    # Not an inner interface
-    return nothing
-  end
+function init_interfaces!(interfaces, mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
+  iter_face_c = @cfunction(init_surfaces_iter_face,
+                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = InitSurfacesIterFaceUserData(
+    interfaces,
+    nothing, # mortars
+    nothing, # boundaries
+    mesh)
 
-  sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+  iterate_faces(mesh.p4est, iter_face_c, user_data)
 
-  if sides[1].is_hanging == true || sides[2].is_hanging == true
-    # Mortar, no normal interface
-    return nothing
-  end
-
-  # Unpack user_data = [interfaces, interface_id, mesh] and increment interface_id
-  ptr = Ptr{Any}(user_data)
-  data_array = unsafe_wrap(Array, ptr, 3)
-  interfaces = data_array[1]
-  interface_id = data_array[2]
-  data_array[2] = interface_id + 1
-  mesh = data_array[3]
-
-  # Function barrier because the unpacked user_data above is type-unstable
-  init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
-end
-
-# Function barrier for type stability
-function init_interfaces_iter_face_inner(info, sides, interfaces, interface_id, mesh)
-  # Get Tuple of local trees, one-based indexing
-  trees = (unsafe_load_tree(mesh.p4est, sides[1].treeid + 1),
-           unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
-  # Quadrant numbering offsets of the quadrants at this interface
-  offsets = SVector(trees[1].quadrants_offset,
-                    trees[2].quadrants_offset)
-
-  local_quad_ids = SVector(sides[1].is.full.quadid, sides[2].is.full.quadid)
-  # Global IDs of the neighboring quads
-  quad_ids = offsets + local_quad_ids
-
-  # Write data to interfaces container
-  # p4est uses zero-based indexing; convert to one-based indexing
-  interfaces.element_ids[1, interface_id] = quad_ids[1] + 1
-  interfaces.element_ids[2, interface_id] = quad_ids[2] + 1
-
-  # Face at which the interface lies
-  faces = (sides[1].face, sides[2].face)
-
-  # Save interfaces.node_indices dimension specific in containers_[23]d.jl
-  init_interface_node_indices!(interfaces, faces, info.orientation, interface_id)
-
-  return nothing
+  return interfaces
 end
 
 
@@ -258,7 +219,7 @@ function init_boundaries(mesh::P4estMesh, equations, basis, elements)
   uEltype = eltype(elements)
 
   # Initialize container
-  n_boundaries = count_required_boundaries(mesh)
+  n_boundaries = count_required_surfaces(mesh).boundaries
 
   _u = Vector{uEltype}(undef, nvariables(equations) * nnodes(basis)^(NDIMS-1) * n_boundaries)
   u = unsafe_wrap(Array, pointer(_u),
@@ -279,25 +240,21 @@ function init_boundaries(mesh::P4estMesh, equations, basis, elements)
 end
 
 
-# Iterate over all interfaces and extract boundary data to boundary container
-# This function will be passed to p4est in init_boundaries! in containers_[23]d.jl
-function init_boundaries_iter_face(info, user_data)
-  if info.sides.elem_count == 2
-    # Not a boundary
-    return nothing
-  end
+function init_boundaries!(boundaries, mesh::P4estMesh{2})
+  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
+  iter_face_c = @cfunction(init_surfaces_iter_face,
+                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = InitSurfacesIterFaceUserData(
+    nothing, # interfaces
+    nothing, # mortars
+    boundaries,
+    mesh)
 
-  # Unpack user_data = [boundaries, boundary_id, mesh] and increment boundary_id
-  ptr = Ptr{Any}(user_data)
-  data_array = unsafe_wrap(Array, ptr, 3)
-  boundaries = data_array[1]
-  boundary_id = data_array[2]
-  data_array[2] += 1
-  mesh = data_array[3]
+  iterate_faces(mesh.p4est, iter_face_c, user_data)
 
-  # Function barrier because the unpacked user_data above is type-unstable
-  init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
+  return boundaries
 end
+
 
 # Function barrier for type stability
 function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
@@ -400,7 +357,7 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
   uEltype = eltype(elements)
 
   # Initialize container
-  n_mortars = count_required_mortars(mesh)
+  n_mortars = count_required_surfaces(mesh).mortars
 
   _u = Vector{uEltype}(undef,
     2 * nvariables(equations) * 2^(NDIMS-1) * nnodes(basis)^(NDIMS-1) * n_mortars)
@@ -424,35 +381,189 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
 end
 
 
-# Iterate over all interfaces and extract mortar data to mortar container
-# This function will be passed to p4est in init_mortars! in containers_[23]d.jl
-function init_mortars_iter_face(info, user_data)
-  if info.sides.elem_count != 2
-    # Not an inner interface
-    return nothing
-  end
+function init_mortars!(mortars, mesh::P4estMesh{2})
+  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
+  iter_face_c = @cfunction(init_surfaces_iter_face,
+                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = InitSurfacesIterFaceUserData(
+    nothing, # interfaces
+    mortars,
+    nothing, # boundaries
+    mesh)
 
-  sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+  iterate_faces(mesh.p4est, iter_face_c, user_data)
 
-  if sides[1].is_hanging == false && sides[2].is_hanging == false
-    # Normal interface, no mortar
-    return nothing
-  end
+  return mortars
+end
 
-  # Unpack user_data = [mortars, mortar_id, mesh] and increment mortar_id
-  ptr = Ptr{Any}(user_data)
-  data_array = unsafe_wrap(Array, ptr, 3)
-  mortars = data_array[1]
-  mortar_id = data_array[2]
-  data_array[2] += 1
-  mesh = data_array[3]
+
+function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+  # Re-initialize elements container
+  @unpack elements = cache
+  resize!(elements, ncells(mesh))
+  init_elements!(elements, mesh, dg.basis)
+
+  required = count_required_surfaces(mesh)
+
+  # resize interfaces container
+  @unpack interfaces = cache
+  resize!(interfaces, required.interfaces)
+
+  # resize boundaries container
+  @unpack boundaries = cache
+  resize!(boundaries, required.boundaries)
+
+  # resize mortars container
+  @unpack mortars = cache
+  resize!(mortars, required.mortars)
+
+  # re-initialize containers together to reduce
+  # the number of iterations over the mesh in p4est
+  init_surfaces!(interfaces, mortars, boundaries, mesh)
+end
+
+
+# A helper struct used in initialization methods below
+mutable struct InitSurfacesIterFaceUserData{Interfaces, Mortars, Boundaries, Mesh}
+  interfaces  ::Interfaces
+  interface_id::Int
+  mortars     ::Mortars
+  mortar_id   ::Int
+  boundaries  ::Boundaries
+  boundary_id ::Int
+  mesh        ::Mesh
+end
+
+function InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh)
+  return InitSurfacesIterFaceUserData{
+    typeof(interfaces), typeof(mortars), typeof(boundaries), typeof(mesh)}(
+      interfaces, 1, mortars, 1, boundaries, 1, mesh)
+end
+
+function init_surfaces_iter_face(info, user_data)
+  # Unpack user_data
+  data = unsafe_pointer_to_objref(Ptr{InitSurfacesIterFaceUserData}(user_data))
 
   # Function barrier because the unpacked user_data above is type-unstable
-  init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
+  init_surfaces_iter_face_inner(info, data)
 end
 
 # Function barrier for type stability
-function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
+function init_surfaces_iter_face_inner(info, user_data)
+  @unpack interfaces, mortars, boundaries = user_data
+
+  if info.sides.elem_count == 2
+    # Two neighboring elements => Interface or mortar
+
+    # Extract surface data
+    sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
+
+    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+      # No hanging nodes => normal interface
+      if interfaces !== nothing
+        init_interfaces_iter_face_inner(info, sides, user_data)
+      end
+    else
+      # Hanging nodes => mortar
+      if mortars !== nothing
+        init_mortars_iter_face_inner(info, sides, user_data)
+      end
+    end
+  elseif info.sides.elem_count == 1
+    # One neighboring elements => boundary
+    if boundaries !== nothing
+      init_boundaries_iter_face_inner(info, user_data)
+    end
+  end
+
+  return nothing
+end
+
+function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
+  iter_face_c = @cfunction(init_surfaces_iter_face,
+                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = InitSurfacesIterFaceUserData(
+    interfaces, mortars, boundaries, mesh)
+
+  iterate_faces(mesh, iter_face_c, user_data)
+
+  return interfaces
+end
+
+
+# Initialization of interfaces after the function barrier
+function init_interfaces_iter_face_inner(info, sides, user_data)
+  @unpack interfaces, interface_id, mesh = user_data
+  user_data.interface_id += 1
+
+  # Get Tuple of local trees, one-based indexing
+  trees = (unsafe_load_tree(mesh.p4est, sides[1].treeid + 1),
+           unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
+  # Quadrant numbering offsets of the quadrants at this interface
+  offsets = SVector(trees[1].quadrants_offset,
+                    trees[2].quadrants_offset)
+
+  local_quad_ids = SVector(sides[1].is.full.quadid, sides[2].is.full.quadid)
+  # Global IDs of the neighboring quads
+  quad_ids = offsets + local_quad_ids
+
+  # Write data to interfaces container
+  # p4est uses zero-based indexing; convert to one-based indexing
+  interfaces.element_ids[1, interface_id] = quad_ids[1] + 1
+  interfaces.element_ids[2, interface_id] = quad_ids[2] + 1
+
+  # Face at which the interface lies
+  faces = (sides[1].face, sides[2].face)
+
+  # Save interfaces.node_indices dimension specific in containers_[23]d.jl
+  init_interface_node_indices!(interfaces, faces, info.orientation, interface_id)
+
+  return nothing
+end
+
+
+# Initialization of boundaries after the function barrier
+function init_boundaries_iter_face_inner(info, user_data)
+  @unpack boundaries, boundary_id, mesh = user_data
+  user_data.boundary_id += 1
+
+  # Extract boundary data
+  side = unsafe_load_side(info)
+  # Get local tree, one-based indexing
+  tree = unsafe_load_tree(mesh.p4est, side.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
+
+  # Verify before accessing is.full, but this should never happen
+  @assert side.is_hanging == false
+
+  local_quad_id = side.is.full.quadid
+  # Global ID of this quad
+  quad_id = offset + local_quad_id
+
+  # Write data to boundaries container
+  # p4est uses zero-based indexing; convert to one-based indexing
+  boundaries.element_ids[boundary_id] = quad_id + 1
+
+  # Face at which the boundary lies
+  face = side.face
+
+  # Save boundaries.node_indices dimension specific in containers_[23]d.jl
+  init_boundary_node_indices!(boundaries, face, boundary_id)
+
+  # One-based indexing
+  boundaries.name[boundary_id] = mesh.boundary_names[face + 1, side.treeid + 1]
+
+  return nothing
+end
+
+
+# Initialization of mortars after the function barrier
+function init_mortars_iter_face_inner(info, sides, user_data)
+  @unpack mortars, mortar_id, mesh = user_data
+  user_data.mortar_id += 1
+
   # Get Tuple of local trees, one-based indexing
   trees = (unsafe_load_tree(mesh.p4est, sides[1].treeid + 1),
            unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
@@ -497,128 +608,76 @@ function init_mortars_iter_face_inner(info, sides, mortars, mortar_id, mesh)
 end
 
 
-function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
-  # Re-initialize elements container
-  @unpack elements = cache
-  resize!(elements, ncells(mesh))
-  init_elements!(elements, mesh, dg.basis)
-
-  # re-initialize interfaces container
-  @unpack interfaces = cache
-  resize!(interfaces, count_required_interfaces(mesh))
-  init_interfaces!(interfaces, mesh)
-
-  # re-initialize boundaries container
-  @unpack boundaries = cache
-  resize!(boundaries, count_required_boundaries(mesh))
-  init_boundaries!(boundaries, mesh)
-
-  # re-initialize mortars container
-  @unpack mortars = cache
-  resize!(mortars, count_required_mortars(mesh))
-  init_mortars!(mortars, mesh)
-end
-
-
-# Iterate over all interfaces and count inner interfaces
-function count_interfaces_iter_face(info, user_data)
+# Iterate over all interfaces and count
+# - (inner) interfaces
+# - mortars
+# - boundaries
+# and collect the numbers in `user_data` in this order.
+function count_surfaces_iter_face(info, user_data)
   if info.sides.elem_count == 2
-    # Extract interface data
+    # Two neighboring elements => Interface or mortar
+
+    # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
     if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
       # No hanging nodes => normal interface
       # Unpack user_data = [interface_count] and increment interface_count
       ptr = Ptr{Int}(user_data)
-      id = unsafe_load(ptr)
-      unsafe_store!(ptr, id + 1)
-    end
-  end
-
-  return nothing
-end
-
-# Iterate over all interfaces and count boundaries
-function count_boundaries_iter_face(info, user_data)
-  if info.sides.elem_count == 1
-    # Unpack user_data = [boundary_count] and increment boundary_count
-    ptr = Ptr{Int}(user_data)
-    id = unsafe_load(ptr)
-    unsafe_store!(ptr, id + 1)
-  end
-
-  return nothing
-end
-
-# Iterate over all interfaces and count mortars
-function count_mortars_iter_face(info, user_data)
-  if info.sides.elem_count == 2
-    # Extract interface data
-    sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
-
-    if sides[1].is_hanging != 0 || sides[2].is_hanging != 0
+      id = unsafe_load(ptr, 1)
+      unsafe_store!(ptr, id + 1, 1)
+    else
       # Hanging nodes => mortar
       # Unpack user_data = [mortar_count] and increment mortar_count
       ptr = Ptr{Int}(user_data)
-      id = unsafe_load(ptr)
-      unsafe_store!(ptr, id + 1)
+      id = unsafe_load(ptr, 2)
+      unsafe_store!(ptr, id + 1, 2)
     end
+  elseif info.sides.elem_count == 1
+    # One neighboring elements => boundary
+
+    # Unpack user_data = [boundary_count] and increment boundary_count
+    ptr = Ptr{Int}(user_data)
+    id = unsafe_load(ptr, 3)
+    unsafe_store!(ptr, id + 1, 3)
   end
 
   return nothing
 end
 
+function count_required_surfaces(mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call count_surfaces_iter_face
+  iter_face_c = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
 
-function count_required_interfaces(mesh::P4estMesh{2})
-  # Let p4est iterate over all interfaces and call count_interfaces_iter_face
-  iter_face_c = @cfunction(count_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+  # interfaces, mortars, boundaries
+  user_data = [0, 0, 0]
 
-  return count_required(mesh, iter_face_c)
+  iterate_faces(mesh, iter_face_c, user_data)
+
+  # Return counters
+  return (interfaces = user_data[1],
+          mortars    = user_data[2],
+          boundaries = user_data[3])
 end
 
-function count_required_interfaces(mesh::P4estMesh{3})
-  # Let p4est iterate over all interfaces and call count_interfaces_iter_face
-  iter_face_c = @cfunction(count_interfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+# Let p4est iterate over all interfaces and execute the C function iter_face_c
+function iterate_faces(mesh::P4estMesh, iter_face_c, user_data)
+  if user_data isa AbstractArray
+    user_data_ptr = pointer(user_data)
+  else
+    user_data_ptr = pointer_from_objref(user_data)
+  end
 
-  return count_required(mesh, iter_face_c)
-end
+  GC.@preserve user_data begin
+    p4est_iterate(mesh.p4est,
+                  C_NULL, # ghost layer
+                  user_data_ptr,
+                  C_NULL, # iter_volume
+                  iter_face_c, # iter_face
+                  C_NULL) # iter_corner
+  end
 
-function count_required_boundaries(mesh::P4estMesh{2})
-  # Let p4est iterate over all interfaces and call count_boundaries_iter_face
-  iter_face_c = @cfunction(count_boundaries_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-
-  return count_required(mesh, iter_face_c)
-end
-
-function count_required_boundaries(mesh::P4estMesh{3})
-  # Let p4est iterate over all interfaces and call count_boundaries_iter_face
-  iter_face_c = @cfunction(count_boundaries_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
-
-  return count_required(mesh, iter_face_c)
-end
-
-function count_required_mortars(mesh::P4estMesh{2})
-  # Let p4est iterate over all interfaces and call count_mortars_iter_face
-  iter_face_c = @cfunction(count_mortars_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-
-  return count_required(mesh, iter_face_c)
-end
-
-function count_required_mortars(mesh::P4estMesh{3})
-  # Let p4est iterate over all interfaces and call count_mortars_iter_face
-  iter_face_c = @cfunction(count_mortars_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
-
-  return count_required(mesh, iter_face_c)
-end
-
-function count_required(mesh::P4estMesh, iter_face_c)
-  # Counter
-  user_data = [0]
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
-
-  # Return counter
-  return user_data[1]
+  return nothing
 end
 
 

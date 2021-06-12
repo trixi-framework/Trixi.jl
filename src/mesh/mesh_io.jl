@@ -167,7 +167,9 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
     attributes(file)["p4est_file"] = p4est_filename
 
     file["tree_node_coordinates"] = mesh.tree_node_coordinates
-    file["nodes"] = mesh.nodes
+    file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
+                                       # to increase the runtime performance
+                                       # but HDF5 can only handle plain arrays
     file["boundary_names"] = mesh.boundary_names .|> String
   end
 

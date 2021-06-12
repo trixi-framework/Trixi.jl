@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: dot, mul!, norm, cross, normalize
+using LinearAlgebra: diag, dot, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -33,7 +33,8 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
-using LoopVectorization: LoopVectorization, @turbo
+using LoopVectorization: LoopVectorization, @turbo, indices
+using LoopVectorization.ArrayInterface: static_length
 import MPI
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
@@ -47,6 +48,11 @@ using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_tim
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
+# finite difference SBP operators
+using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
+import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
+@reexport using SummationByPartsOperators:
+  SummationByPartsOperators, derivative_operator
 
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
@@ -140,9 +146,11 @@ export TreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
-       VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
+       VolumeIntegralWeakForm, VolumeIntegralStrongForm,
+       VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        MortarL2
 
 export nelements, nnodes, nvariables,

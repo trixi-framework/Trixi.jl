@@ -20,7 +20,7 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -178,7 +178,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(solver))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *

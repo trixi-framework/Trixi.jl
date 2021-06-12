@@ -3,7 +3,7 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasi
   @unpack node_coordinates, jacobian_matrix,
           contravariant_vectors, inverse_jacobian = elements
 
-  calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+  calc_node_coordinates!(node_coordinates, mesh, basis)
 
   for element in 1:ncells(mesh)
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
@@ -20,12 +20,20 @@ end
 # Interpolate tree_node_coordinates to each quadrant
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
-                                nodes)
+                                basis::LobattoLegendreBasis)
   # Hanging nodes will cause holes in the mesh if its polydeg is higher
   # than the polydeg of the solver.
-  @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+  @assert length(basis.nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
-  tmp1 = zeros(real(mesh), 2, length(nodes), length(mesh.nodes))
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  tmp1    = StrideArray(undef, real(mesh),
+                        StaticInt(2), static_length(basis.nodes), static_length(mesh.nodes))
+  matrix1 = StrideArray(undef, real(mesh),
+                        static_length(basis.nodes), static_length(mesh.nodes))
+  matrix2 = similar(matrix1)
+  baryweights_in = barycentric_weights(mesh.nodes)
 
   # Macros from p4est
   p4est_root_len = 1 << P4EST_MAXLEVEL
@@ -43,10 +51,10 @@ function calc_node_coordinates!(node_coordinates,
 
       quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
 
-      nodes_out_x = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
-      nodes_out_y = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
-      matrix1 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_x)
-      matrix2 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_y)
+      nodes_out_x = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
+      nodes_out_y = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
+      polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x, baryweights_in)
+      polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y, baryweights_in)
 
       multiply_dimensionwise!(
         view(node_coordinates, :, :, :, element),
@@ -94,16 +102,6 @@ end
   return interfaces
 end
 
-function init_interfaces!(interfaces, mesh::P4estMesh{2})
-  # Let p4est iterate over all interfaces and call init_interfaces_iter_face
-  iter_face_c = @cfunction(init_interfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [interfaces, 1, mesh]
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
-
-  return interfaces
-end
-
 
 @inline function init_boundary_node_indices!(boundaries::BoundaryContainerP4est{2},
                                              face, boundary_id)
@@ -124,20 +122,10 @@ end
   return boundaries
 end
 
-function init_boundaries!(boundaries, mesh::P4estMesh{2})
-  # Let p4est iterate over all interfaces and call init_boundaries_iter_face
-  iter_face_c = @cfunction(init_boundaries_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [boundaries, 1, mesh]
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
-
-  return boundaries
-end
-
 
 # faces[1] is expected to be the face of the small side.
 @inline function init_mortar_node_indices!(mortars::MortarContainerP4est{2},
-                                           faces, orientation, mortar_id)
+  faces, orientation, mortar_id)
   for side in 1:2
     # Align mortar in positive coordinate direction of small side.
     # For orientation == 1, the large side needs to be indexed backwards
@@ -164,15 +152,6 @@ end
       mortars.node_indices[side, mortar_id] = (i, :end)
     end
   end
-
-  return mortars
-end
-
-function init_mortars!(mortars, mesh::P4estMesh{2})
-  iter_face_c = @cfunction(init_mortars_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [mortars, 1, mesh]
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
 
   return mortars
 end
