@@ -150,15 +150,10 @@ function P4estMesh(trees_per_dimension; polydeg,
                                                 prod(trees_per_dimension))
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, trees_per_dimension)
 
-  # p4est_connectivity_new_brick has trees in Morton order, so use our own function for this
+  # p4est_connectivity_new_brick has trees in Z-order, so use our own function for this
   conn = connectivity_structured(trees_per_dimension..., periodicity)
-  # Use Int-Vector of size 2 as quadrant user data
-  # TODO P4EST
-  if NDIMS == 2
-    p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
-  else
-    p4est = p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
-  end
+
+  p4est = new_p4est(conn, initial_refinement_level)
 
   # Non-periodic boundaries
   boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
@@ -264,12 +259,7 @@ function P4estMesh{NDIMS}(meshfile::String;
   # Prevent p4est from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
 
-  # TODO P4EST
-  if NDIMS == 2
-    conn = p4est_connectivity_read_inp(meshfile)
-  else
-    conn = p8est_connectivity_read_inp(meshfile)
-  end
+  conn = read_inp_p4est(meshfile, Val(NDIMS))
 
   # These need to be of the type Int for unsafe_wrap below to work
   n_trees::Int = conn.num_trees
@@ -286,13 +276,7 @@ function P4estMesh{NDIMS}(meshfile::String;
                                                 n_trees)
   calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
 
-  # Use Int-Vector of size 2 as quadrant user datalevel, true, 2 * sizeof(Int), C_NULL, C_NULL)
-  # TODO P4EST
-  if NDIMS == 2
-    p4est = p4est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
-  else
-    p4est = p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
-  end
+  p4est = new_p4est(conn, initial_refinement_level)
 
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 2 * NDIMS, n_trees)

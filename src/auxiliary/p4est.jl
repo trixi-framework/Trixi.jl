@@ -17,6 +17,52 @@ function init_p4est()
 end
 
 
+function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
+  p4est_new_ext(0, # No MPI communicator
+                conn,
+                0, # No minimum initial qudrants per processor
+                initial_refinement_level,
+                true, # Refine uniformly
+                2 * sizeof(Int), # Use Int-Vector of size 2 as quadrant user data
+                C_NULL, # No init function
+                C_NULL) # No user pointer
+end
+
+function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
+  p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
+end
+
+
+function save_p4est!(file, p4est::Ptr{p4est_t})
+  # Don't save user data of the quads
+  p4est_save(file, p4est, false)
+end
+
+function save_p4est!(file, p8est::Ptr{p8est_t})
+  # Don't save user data of the quads
+  p8est_save(file, p8est, false)
+end
+
+
+# 2D
+function load_p4est(file, ::Val{2})
+  conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
+  p4est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+end
+
+# 3D
+function load_p4est(file, ::Val{3})
+  conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
+  p8est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+end
+
+
+# 2D
+read_inp_p4est(meshfile, ::Val{2}) = p4est_connectivity_read_inp(meshfile)
+# 3D
+read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
+
+
 # Convert sc_array of type T to Julia array
 function unsafe_wrap_sc(::Type{T}, sc_array) where T
   element_count = sc_array.elem_count
