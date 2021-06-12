@@ -7,19 +7,20 @@ to manage trees and mesh refinement.
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2} <: AbstractMesh{NDIMS}
+mutable struct P4estMesh{NDIMS, RealT<:Real, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
   p4est                 ::Ptr{p4est_t}
   # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
   # This specifies the geometry interpolation for each tree.
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
-  nodes                 ::Vector{RealT}
+  nodes                 ::SVector{NNODES, RealT}
   boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
   current_filename      ::String
   unsaved_changes       ::Bool
 
   function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
                             current_filename, unsaved_changes) where NDIMS
-    mesh = new{NDIMS, eltype(tree_node_coordinates), NDIMS+2}(p4est, tree_node_coordinates,
+    mesh = new{NDIMS, eltype(tree_node_coordinates), NDIMS+2, length(nodes)}(
+      p4est, tree_node_coordinates,
       nodes, boundary_names, current_filename, unsaved_changes)
 
     # Destroy p4est structs when the mesh is garbage collected
