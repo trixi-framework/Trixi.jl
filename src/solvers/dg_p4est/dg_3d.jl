@@ -16,7 +16,7 @@ end
 
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{3},
-                             equations, dg::DG)
+                             equations, surface_integral, dg::DG)
   @unpack interfaces = cache
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
@@ -50,8 +50,8 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{3},
                               nonconservative_terms::Val{false},
-                              equations, dg::DG, cache)
-  @unpack surface_flux = dg
+                              equations, surface_integral, dg::DG, cache)
+  @unpack surface_flux = surface_integral
   @unpack u, element_ids, node_indices = cache.interfaces
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
@@ -100,7 +100,7 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::P4estMesh{3},
-                             equations, dg::DG)
+                             equations, surface_integral, dg::DG)
   @unpack boundaries = cache
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
@@ -124,10 +124,11 @@ end
 
 
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
-                             mesh::P4estMesh{3}, equations, dg::DG)
+                             mesh::P4estMesh{3},
+                             equations, surface_integral, dg::DG)
   @unpack boundaries = cache
   @unpack surface_flux_values, node_coordinates = cache.elements
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
 
@@ -171,7 +172,8 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::P4estMesh{3}, equations,
-                          mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
+                          mortar_l2::LobattoLegendreMortarL2,
+                          surface_integral, dg::DGSEM)
   @unpack element_ids, node_indices = cache.mortars
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
@@ -230,10 +232,11 @@ end
 function calc_mortar_flux!(surface_flux_values,
                            mesh::P4estMesh{3},
                            nonconservative_terms::Val{false}, equations,
-                           mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
+                           mortar_l2::LobattoLegendreMortarL2,
+                           surface_integral, dg::DG, cache)
   @unpack u, element_ids, node_indices = cache.mortars
   @unpack fstar_threaded = cache
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
 
@@ -341,8 +344,11 @@ end
 end
 
 
-function calc_surface_integral!(du, mesh::P4estMesh{3},
-                                equations, dg::DGSEM, cache)
+function calc_surface_integral!(du, u,
+                                mesh::P4estMesh{3},
+                                equations,
+                                surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 

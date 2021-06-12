@@ -62,10 +62,21 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 
+function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh{3})
+  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
+  iter_face_c = @cfunction(init_surfaces_iter_face,
+                           Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+  user_data = InitSurfacesIterFaceUserData(
+    interfaces, mortars, boundaries, mesh)
+
+  iterate_faces(mesh.p4est, iter_face_c, user_data)
+
+  return interfaces
+end
+
+
 @inline function init_interface_node_indices!(interfaces::InterfaceContainerP4est{3},
                                               faces, orientation, interface_id)
-  lower = argmin(faces)
-
   # Iterate over primary and secondary element
   for side in 1:2
     # Align interface at the primary element (primary element has surface indices (:i, :j)).
@@ -102,17 +113,6 @@ end
 end
 
 
-function init_interfaces!(interfaces, mesh::P4estMesh{3})
-  # Let p4est iterate over all interfaces and call init_interfaces_iter_face
-  iter_face_c = @cfunction(init_interfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [interfaces, 1, mesh]
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
-
-  return interfaces
-end
-
-
 @inline function init_boundary_node_indices!(boundaries::BoundaryContainerP4est{3},
                                              face, boundary_id)
   if face == 0
@@ -134,16 +134,6 @@ end
     # Index face in positive z-direction
     boundaries.node_indices[boundary_id] = (:i, :j, :end)
   end
-
-  return boundaries
-end
-
-function init_boundaries!(boundaries, mesh::P4estMesh{3})
-  # Let p4est iterate over all interfaces and call init_boundaries_iter_face
-  iter_face_c = @cfunction(init_boundaries_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [boundaries, 1, mesh]
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
 
   return boundaries
 end
@@ -182,15 +172,6 @@ end
       mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2, :end)
     end
   end
-
-  return mortars
-end
-
-function init_mortars!(mortars, mesh::P4estMesh{3})
-  iter_face_c = @cfunction(init_mortars_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = [mortars, 1, mesh]
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
 
   return mortars
 end
@@ -326,4 +307,20 @@ function p4est_orientation_to_indices(my_face, other_face, orientation_code)
   end
 
   return surface_index1, surface_index2
+end
+
+
+function count_required_surfaces(mesh::P4estMesh{3})
+  # Let p4est iterate over all interfaces and call count_surfaces_iter_face
+  iter_face_c = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+
+  # interfaces, mortars, boundaries
+  user_data = [0, 0, 0]
+
+  iterate_faces(mesh.p4est, iter_face_c, user_data)
+
+  # Return counters
+  return (interfaces = user_data[1],
+          mortars    = user_data[2],
+          boundaries = user_data[3])
 end

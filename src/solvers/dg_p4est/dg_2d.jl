@@ -47,8 +47,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
                               nonconservative_terms::Val{false},
-                              equations, surface_integral,
-                              dg::DG, cache)
+                              equations, surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, element_ids, node_indices = cache.interfaces
 

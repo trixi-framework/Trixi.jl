@@ -163,16 +163,7 @@ end
 
 
 function init_interfaces!(interfaces, mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
-  iter_face_c = @cfunction(init_surfaces_iter_face,
-                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = InitSurfacesIterFaceUserData(
-    interfaces,
-    nothing, # mortars
-    nothing, # boundaries
-    mesh)
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
+  init_surfaces!(interfaces, nothing, nothing, mesh)
 
   return interfaces
 end
@@ -240,17 +231,8 @@ function init_boundaries(mesh::P4estMesh, equations, basis, elements)
 end
 
 
-function init_boundaries!(boundaries, mesh::P4estMesh{2})
-  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
-  iter_face_c = @cfunction(init_surfaces_iter_face,
-                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = InitSurfacesIterFaceUserData(
-    nothing, # interfaces
-    nothing, # mortars
-    boundaries,
-    mesh)
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
+function init_boundaries!(boundaries, mesh::P4estMesh)
+  init_surfaces!(nothing, nothing, boundaries, mesh)
 
   return boundaries
 end
@@ -381,17 +363,8 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
 end
 
 
-function init_mortars!(mortars, mesh::P4estMesh{2})
-  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
-  iter_face_c = @cfunction(init_surfaces_iter_face,
-                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = InitSurfacesIterFaceUserData(
-    nothing, # interfaces
-    mortars,
-    nothing, # boundaries
-    mesh)
-
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
+function init_mortars!(mortars, mesh::P4estMesh)
+  init_surfaces!(nothing, mortars, nothing, mesh)
 
   return mortars
 end
@@ -477,18 +450,6 @@ function init_surfaces_iter_face_inner(info, user_data)
   end
 
   return nothing
-end
-
-function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
-  iter_face_c = @cfunction(init_surfaces_iter_face,
-                           Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-  user_data = InitSurfacesIterFaceUserData(
-    interfaces, mortars, boundaries, mesh)
-
-  iterate_faces(mesh, iter_face_c, user_data)
-
-  return interfaces
 end
 
 
@@ -640,41 +601,6 @@ function count_surfaces_iter_face(info, user_data)
     ptr = Ptr{Int}(user_data)
     id = unsafe_load(ptr, 3)
     unsafe_store!(ptr, id + 1, 3)
-  end
-
-  return nothing
-end
-
-function count_required_surfaces(mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call count_surfaces_iter_face
-  iter_face_c = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
-
-  # interfaces, mortars, boundaries
-  user_data = [0, 0, 0]
-
-  iterate_faces(mesh, iter_face_c, user_data)
-
-  # Return counters
-  return (interfaces = user_data[1],
-          mortars    = user_data[2],
-          boundaries = user_data[3])
-end
-
-# Let p4est iterate over all interfaces and execute the C function iter_face_c
-function iterate_faces(mesh::P4estMesh, iter_face_c, user_data)
-  if user_data isa AbstractArray
-    user_data_ptr = pointer(user_data)
-  else
-    user_data_ptr = pointer_from_objref(user_data)
-  end
-
-  GC.@preserve user_data begin
-    p4est_iterate(mesh.p4est,
-                  C_NULL, # ghost layer
-                  user_data_ptr,
-                  C_NULL, # iter_volume
-                  iter_face_c, # iter_face
-                  C_NULL) # iter_corner
   end
 
   return nothing

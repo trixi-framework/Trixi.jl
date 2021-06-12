@@ -61,10 +61,16 @@ end
 
 # Let p4est iterate over all interfaces and execute the C function iter_face_c
 function iterate_faces(p4est::Ptr{p4est_t}, iter_face_c, user_data)
+  if user_data isa AbstractArray
+    user_data_ptr = pointer(user_data)
+  else
+    user_data_ptr = pointer_from_objref(user_data)
+  end
+
   GC.@preserve user_data begin
     p4est_iterate(p4est,
                   C_NULL, # ghost layer
-                  pointer(user_data),
+                  user_data_ptr,
                   C_NULL, # iter_volume
                   iter_face_c, # iter_face
                   C_NULL) # iter_corner
@@ -73,11 +79,18 @@ function iterate_faces(p4est::Ptr{p4est_t}, iter_face_c, user_data)
   return nothing
 end
 
+# Let p4est iterate over all interfaces and execute the C function iter_face_c
 function iterate_faces(p8est::Ptr{p8est_t}, iter_face_c, user_data)
+  if user_data isa AbstractArray
+    user_data_ptr = pointer(user_data)
+  else
+    user_data_ptr = pointer_from_objref(user_data)
+  end
+
   GC.@preserve user_data begin
     p8est_iterate(p8est,
                   C_NULL, # ghost layer
-                  pointer(user_data),
+                  user_data_ptr,
                   C_NULL, # iter_volume
                   iter_face_c, # iter_face
                   C_NULL, # iter_edge
