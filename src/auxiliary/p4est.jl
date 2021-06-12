@@ -17,27 +17,6 @@ function init_p4est()
 end
 
 
-function register_destroy_p4est_structs(p4est::Ptr{p4est_t}, conn)
-  # Destroy p4est structs at exit of Julia
-  function destroy_p4est_structs()
-    p4est_destroy(p4est)
-    p4est_connectivity_destroy(conn)
-  end
-
-  atexit(destroy_p4est_structs)
-end
-
-function register_destroy_p4est_structs(p8est::Ptr{p8est_t}, conn)
-  # Destroy p4est structs at exit of Julia
-  function destroy_p8est_structs()
-    p8est_destroy(p8est)
-    p8est_connectivity_destroy(conn)
-  end
-
-  atexit(destroy_p8est_structs)
-end
-
-
 # Convert sc_array of type T to Julia array
 function unsafe_wrap_sc(::Type{T}, sc_array) where T
   element_count = sc_array.elem_count
