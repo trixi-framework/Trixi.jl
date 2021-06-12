@@ -115,7 +115,7 @@ end
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any,3}, element, jacobian_matrix)
   # The code below is equivalent to the following high-level code but much faster.
-  # @. inverse_jacobian[i, j, element] = inv(det(jacobian_matrix[:, :, i, j, element])
+  # inverse_jacobian[i, j, element] = inv(det(jacobian_matrix[:, :, i, j, element])
 
   @turbo for j in indices((inverse_jacobian, jacobian_matrix), (2, 4)),
              i in indices((inverse_jacobian, jacobian_matrix), (1, 3))
