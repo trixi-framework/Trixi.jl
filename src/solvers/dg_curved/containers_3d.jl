@@ -76,12 +76,12 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
   # The general form is
   # Jaⁱₙ = 0.5 * ( ∇ × (Xₘ ∇ Xₗ - Xₗ ∇ Xₘ) )ᵢ  where (n, m, l) cyclic and ∇ = (∂/∂ξ, ∂/∂η, ∂/∂ζ)ᵀ
 
-  # Calculate Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
   for n in 1:3
     # (n, m, l) cyclic
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
+    # Calculate Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
     @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
 
@@ -101,14 +101,8 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       contravariant_vectors[n, 1, i, j, k, element] = result
     end
-  end
 
-  # Calculate Ja²ₙ = 0.5 * [ (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ - (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ ]
-  for n in 1:3
-    # (n, m, l) cyclic
-    m = (n % 3) + 1
-    l = ((n + 1) % 3) + 1
-
+    # Calculate Ja²ₙ = 0.5 * [ (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ - (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ ]
     @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
 
@@ -128,14 +122,8 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
       contravariant_vectors[n, 2, i, j, k, element] = result
     end
-  end
 
-  # Calculate Ja³ₙ = 0.5 * [ (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ - (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η ]
-  for n in 1:3
-    # (n, m, l) cyclic
-    m = (n % 3) + 1
-    l = ((n + 1) % 3) + 1
-
+    # Calculate Ja³ₙ = 0.5 * [ (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ - (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η ]
     @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
 
