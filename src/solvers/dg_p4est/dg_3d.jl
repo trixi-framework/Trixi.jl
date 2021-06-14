@@ -7,10 +7,12 @@ function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreM
                        for _ in 1:Threads.nthreads()]
 
   A3d = Array{uEltype, 3}
-  u_threaded     = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                       for _ in 1:Threads.nthreads()]
+  fstar_tmp1_threaded = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
+                            for _ in 1:Threads.nthreads()]
+  u_threaded          = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
+                            for _ in 1:Threads.nthreads()]
 
-  (; fstar_threaded, u_threaded)
+  (; fstar_threaded, fstar_tmp1_threaded, u_threaded)
 end
 
 
@@ -174,11 +176,15 @@ function prolong2mortars!(cache, u,
                           mesh::P4estMesh{3}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
+  # temporary buffer for projections
+  @unpack fstar_tmp1_threaded = cache
   @unpack element_ids, node_indices = cache.mortars
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
 
   @threaded for mortar in eachmortar(dg, cache)
+    fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
+
     small_indices = node_indices[1, mortar]
     large_indices = node_indices[2, mortar]
 
@@ -210,19 +216,23 @@ function prolong2mortars!(cache, u,
     multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
                             mortar_l2.forward_lower,
                             mortar_l2.forward_lower,
-                            u_buffer)
+                            u_buffer,
+                            fstar_tmp1)
     multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
                             mortar_l2.forward_upper,
                             mortar_l2.forward_lower,
-                            u_buffer)
+                            u_buffer,
+                            fstar_tmp1)
     multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
                             mortar_l2.forward_lower,
                             mortar_l2.forward_upper,
-                            u_buffer)
+                            u_buffer,
+                            fstar_tmp1)
     multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
                             mortar_l2.forward_upper,
                             mortar_l2.forward_upper,
-                            u_buffer)
+                            u_buffer,
+                            fstar_tmp1)
   end
 
   return nothing
@@ -235,7 +245,7 @@ function calc_mortar_flux!(surface_flux_values,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
   @unpack u, element_ids, node_indices = cache.mortars
-  @unpack fstar_threaded = cache
+  @unpack fstar_threaded, fstar_tmp1_threaded = cache
   @unpack surface_flux = surface_integral
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
@@ -243,6 +253,7 @@ function calc_mortar_flux!(surface_flux_values,
   @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
+    fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
@@ -270,7 +281,7 @@ function calc_mortar_flux!(surface_flux_values,
 
     mortar_fluxes_to_elements!(surface_flux_values,
                                mesh, equations, mortar_l2, dg, cache,
-                               mortar, fstar, u_buffer)
+                               mortar, fstar, u_buffer, fstar_tmp1)
   end
 
   return nothing
@@ -280,7 +291,7 @@ end
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::P4estMesh{3}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar, u_buffer)
+                                            dg::DGSEM, cache, mortar, fstar, u_buffer, fstar_tmp)
   @unpack element_ids, node_indices = cache.mortars
 
   small_indices  = node_indices[1, mortar]
@@ -307,19 +318,23 @@ end
   multiply_dimensionwise!(
     u_buffer,
     mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-    view(fstar, .., 1))
+    view(fstar, .., 1),
+    fstar_tmp)
   add_multiply_dimensionwise!(
     u_buffer,
     mortar_l2.reverse_upper, mortar_l2.reverse_lower,
-    view(fstar, .., 2))
+    view(fstar, .., 2),
+    fstar_tmp)
   add_multiply_dimensionwise!(
     u_buffer,
     mortar_l2.reverse_lower, mortar_l2.reverse_upper,
-    view(fstar, .., 3))
+    view(fstar, .., 3),
+    fstar_tmp)
   add_multiply_dimensionwise!(
     u_buffer,
     mortar_l2.reverse_upper, mortar_l2.reverse_upper,
-    view(fstar, .., 4))
+    view(fstar, .., 4),
+    fstar_tmp)
 
   # The flux is calculated in the outward direction of the small elements,
   # so the sign must be switched to get the flux in outward direction
