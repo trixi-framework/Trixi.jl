@@ -84,9 +84,11 @@ function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
 end
 
 
-# Let p4est iterate over all interfaces and execute the C function iter_face_c
-function iterate_faces(p4est::Ptr{p4est_t}, iter_face_c, user_data)
-  if user_data isa AbstractArray
+function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
+                       iter_volume_c=C_NULL, iter_face_c=C_NULL)
+  if user_data === C_NULL
+    user_data_ptr = user_data
+  elseif user_data isa AbstractArray
     user_data_ptr = pointer(user_data)
   else
     user_data_ptr = pointer_from_objref(user_data)
@@ -96,7 +98,7 @@ function iterate_faces(p4est::Ptr{p4est_t}, iter_face_c, user_data)
     p4est_iterate(p4est,
                   C_NULL, # ghost layer
                   user_data_ptr,
-                  C_NULL, # iter_volume
+                  iter_volume_c, # iter_volume
                   iter_face_c, # iter_face
                   C_NULL) # iter_corner
   end
@@ -104,9 +106,11 @@ function iterate_faces(p4est::Ptr{p4est_t}, iter_face_c, user_data)
   return nothing
 end
 
-# Let p4est iterate over all interfaces and execute the C function iter_face_c
-function iterate_faces(p8est::Ptr{p8est_t}, iter_face_c, user_data)
-  if user_data isa AbstractArray
+function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
+                       iter_volume_c=C_NULL, iter_face_c=C_NULL)
+  if user_data === C_NULL
+    user_data_ptr = user_data
+  elseif user_data isa AbstractArray
     user_data_ptr = pointer(user_data)
   else
     user_data_ptr = pointer_from_objref(user_data)
@@ -116,7 +120,7 @@ function iterate_faces(p8est::Ptr{p8est_t}, iter_face_c, user_data)
     p8est_iterate(p8est,
                   C_NULL, # ghost layer
                   user_data_ptr,
-                  C_NULL, # iter_volume
+                  iter_volume_c, # iter_volume
                   iter_face_c, # iter_face
                   C_NULL, # iter_edge
                   C_NULL) # iter_corner

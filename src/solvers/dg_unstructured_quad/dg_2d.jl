@@ -77,7 +77,7 @@ end
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
-                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -90,8 +90,8 @@ end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{false}, volume_flux, element,
-                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
-                                    dg::DGSEM, cache, alpha=true)
+                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
+                                    equations, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 

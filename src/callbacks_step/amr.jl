@@ -322,7 +322,7 @@ end
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_sc(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
@@ -363,15 +363,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 
   # The pointer to lambda will be interpreted as Ptr{Int} above
   @assert lambda isa Vector{Int}
-
-  GC.@preserve lambda begin
-    p4est_iterate(mesh.p4est,
-                  C_NULL, # ghost layer
-                  pointer(lambda),
-                  iter_volume_c, # iter_volume
-                  C_NULL, # iter_face
-                  C_NULL) # iter_corner
-  end
+  iterate_p4est(mesh.p4est, lambda; iter_volume_c=iter_volume_c)
 
   @timed timer() "refine" if !only_coarsen
     # Refine mesh
@@ -544,7 +536,7 @@ end
 
 function extract_levels_iter_volume(info, user_data)
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_sc(p4est_tree_t, info.p4est.trees, info.treeid + 1)
+  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
@@ -561,18 +553,20 @@ function extract_levels_iter_volume(info, user_data)
   return nothing
 end
 
-function current_element_levels(mesh::P4estMesh, solver, cache)
+function current_element_levels(mesh::P4estMesh{2}, solver, cache)
   current_levels = Vector{Int}(undef, nelements(solver, cache))
   iter_volume_c = @cfunction(extract_levels_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
 
-  GC.@preserve current_levels begin
-    p4est_iterate(mesh.p4est,
-                  C_NULL, # ghost layer
-                  pointer(current_levels), # user_data
-                  iter_volume_c, # iter_volume
-                  C_NULL, # iter_face
-                  C_NULL) # iter_corner
-  end
+  iterate_p4est(mesh.p4est, current_levels; iter_volume_c=iter_volume_c)
+
+  return current_levels
+end
+
+function current_element_levels(mesh::P4estMesh{3}, solver, cache)
+  current_levels = Vector{Int}(undef, nelements(solver, cache))
+  iter_volume_c = @cfunction(extract_levels_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+
+  iterate_p4est(mesh.p4est, current_levels; iter_volume_c=iter_volume_c)
 
   return current_levels
 end

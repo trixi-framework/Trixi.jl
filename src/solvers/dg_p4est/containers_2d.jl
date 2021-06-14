@@ -76,7 +76,7 @@ function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh{2})
   user_data = InitSurfacesIterFaceUserData(
     interfaces, mortars, boundaries, mesh)
 
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
+  iterate_p4est(mesh.p4est, user_data; iter_face_c=iter_face_c)
 
   return interfaces
 end
@@ -177,7 +177,7 @@ function count_required_surfaces(mesh::P4estMesh{2})
   # interfaces, mortars, boundaries
   user_data = [0, 0, 0]
 
-  iterate_faces(mesh.p4est, iter_face_c, user_data)
+  iterate_p4est(mesh.p4est, user_data; iter_face_c=iter_face_c)
 
   # Return counters
   return (interfaces = user_data[1],
