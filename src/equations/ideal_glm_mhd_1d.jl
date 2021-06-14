@@ -13,6 +13,12 @@ The ideal compressible GLM-MHD equations in one space dimension.
 """
 struct IdealGlmMhdEquations1D{RealT<:Real} <: AbstractIdealGlmMhdEquations{1, 8}
   gamma::RealT
+  inv_γm1::RealT
+
+  function IdealGlmMhdEquations1D(gamma)
+    γ, inv_γm1 = promote(gamma, inv(gamma - 1))
+    new{typeof(γ)}(γ, inv_γm1)
+  end
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = Val(false)
