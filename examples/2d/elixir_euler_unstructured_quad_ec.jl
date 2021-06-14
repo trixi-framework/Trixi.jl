@@ -14,7 +14,7 @@ initial_condition = initial_condition_weak_blast_wave
 # Get the DG approximation space
 
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg=6, surface_flux=FluxRotated(flux_ranocha),
+solver = DGSEM(polydeg=6, surface_flux=flux_ranocha,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
