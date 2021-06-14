@@ -107,18 +107,16 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
-    for j in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (5, 4, 5)),
-        ii in indices((contravariant_vectors, derivative_matrix), (4, 1)),
-        i in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (3, 2, 3))
-
+    for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
-      for jj in indices((derivative_matrix, node_coordinates, jacobian_matrix), (2, 3, 4))
-        result += 0.5 * derivative_matrix[ii, jj] * (
-          node_coordinates[m, i, jj, j, element] * jacobian_matrix[l, 3, i, jj, j, element] -
-          node_coordinates[l, i, jj, j, element] * jacobian_matrix[m, 3, i, jj, j, element])
+
+      for ii in eachnode(basis)
+        result += 0.5 * derivative_matrix[j, ii] * (
+          node_coordinates[m, i, ii, k, element] * jacobian_matrix[l, 3, i, ii, k, element] -
+          node_coordinates[l, i, ii, k, element] * jacobian_matrix[m, 3, i, ii, k, element])
       end
 
-      contravariant_vectors[n, 1, i, ii, j, element] = result
+      contravariant_vectors[n, 1, i, j, k, element] = result
     end
   end
 
@@ -127,18 +125,16 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
-    for j in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (4, 3, 4)),
-        ii in indices((contravariant_vectors, derivative_matrix), (5, 1)),
-        i in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (3, 2, 3))
-
+    for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
-      for jj in indices((derivative_matrix, node_coordinates, jacobian_matrix), (2, 4, 5))
-        result += 0.5 * derivative_matrix[ii, jj] * (
-          node_coordinates[m, i, j, jj, element] * jacobian_matrix[l, 1, i, j, jj, element] -
-          node_coordinates[l, i, j, jj, element] * jacobian_matrix[m, 1, i, j, jj, element])
+
+      for ii in eachnode(basis)
+        result += 0.5 * derivative_matrix[k, ii] * (
+          node_coordinates[m, i, j, ii, element] * jacobian_matrix[l, 1, i, j, ii, element] -
+          node_coordinates[l, i, j, ii, element] * jacobian_matrix[m, 1, i, j, ii, element])
       end
 
-      contravariant_vectors[n, 2, i, j, ii, element] = result
+      contravariant_vectors[n, 2, i, j, k, element] = result
     end
   end
 
@@ -147,18 +143,16 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
-    for j in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (5, 4, 5)),
-        ii in indices((contravariant_vectors, derivative_matrix), (3, 1)),
-        i in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (4, 3, 4))
-
+    for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
-      for jj in indices((derivative_matrix, node_coordinates, jacobian_matrix), (2, 2, 3))
-        result += 0.5 * derivative_matrix[ii, jj] * (
-          node_coordinates[m, jj, i, j, element] * jacobian_matrix[l, 2, jj, i, j, element] -
-          node_coordinates[l, jj, i, j, element] * jacobian_matrix[m, 2, jj, i, j, element])
+
+      for ii in eachnode(basis)
+        result += 0.5 * derivative_matrix[i, ii] * (
+          node_coordinates[m, ii, j, k, element] * jacobian_matrix[l, 2, ii, j, k, element] -
+          node_coordinates[l, ii, j, k, element] * jacobian_matrix[m, 2, ii, j, k, element])
       end
 
-      contravariant_vectors[n, 3, ii, i, j, element] = result
+      contravariant_vectors[n, 3, i, j, k, element] = result
     end
   end
 
@@ -192,18 +186,16 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
-    for j in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (4, 3, 4)),
-        ii in indices((contravariant_vectors, derivative_matrix), (5, 1)),
-        i in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (3, 2, 3))
-
+    for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
-      for jj in indices((derivative_matrix, node_coordinates, jacobian_matrix), (2, 4, 5))
-        result += 0.5 * derivative_matrix[ii, jj] * (
-          node_coordinates[m, i, j, jj, element] * jacobian_matrix[l, 2, i, j, jj, element] -
-          node_coordinates[l, i, j, jj, element] * jacobian_matrix[m, 2, i, j, jj, element])
+
+      for ii in eachnode(basis)
+        result += 0.5 * derivative_matrix[k, ii] * (
+          node_coordinates[m, i, j, ii, element] * jacobian_matrix[l, 2, i, j, ii, element] -
+          node_coordinates[l, i, j, ii, element] * jacobian_matrix[m, 2, i, j, ii, element])
       end
 
-      contravariant_vectors[n, 1, i, j, ii, element] -= result
+      contravariant_vectors[n, 1, i, j, k, element] -= result
     end
   end
 
@@ -212,18 +204,16 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
-    for j in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (5, 4, 5)),
-        ii in indices((contravariant_vectors, derivative_matrix), (3, 1)),
-        i in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (4, 3, 4))
-
+    for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
-      for jj in indices((derivative_matrix, node_coordinates, jacobian_matrix), (2, 2, 3))
-        result += 0.5 * derivative_matrix[ii, jj] * (
-          node_coordinates[m, jj, i, j, element] * jacobian_matrix[l, 3, jj, i, j, element] -
-          node_coordinates[l, jj, i, j, element] * jacobian_matrix[m, 3, jj, i, j, element])
+
+      for ii in eachnode(basis)
+        result += 0.5 * derivative_matrix[i, ii] * (
+          node_coordinates[m, ii, j, k, element] * jacobian_matrix[l, 3, ii, j, k, element] -
+          node_coordinates[l, ii, j, k, element] * jacobian_matrix[m, 3, ii, j, k, element])
       end
 
-      contravariant_vectors[n, 2, ii, i, j, element] -= result
+      contravariant_vectors[n, 2, i, j, k, element] -= result
     end
   end
 
@@ -232,18 +222,16 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
-    for j in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (5, 4, 5)),
-        ii in indices((contravariant_vectors, derivative_matrix), (4, 1)),
-        i in indices((contravariant_vectors, node_coordinates, jacobian_matrix), (3, 2, 3))
-
+    for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
       result = zero(eltype(contravariant_vectors))
-      for jj in indices((derivative_matrix, node_coordinates, jacobian_matrix), (2, 3, 4))
-        result += 0.5 * derivative_matrix[ii, jj] * (
-          node_coordinates[m, i, jj, j, element] * jacobian_matrix[l, 1, i, jj, j, element] -
-          node_coordinates[l, i, jj, j, element] * jacobian_matrix[m, 1, i, jj, j, element])
+
+      for ii in eachnode(basis)
+        result += 0.5 * derivative_matrix[j, ii] * (
+          node_coordinates[m, i, ii, k, element] * jacobian_matrix[l, 1, i, ii, k, element] -
+          node_coordinates[l, i, ii, k, element] * jacobian_matrix[m, 1, i, ii, k, element])
       end
 
-      contravariant_vectors[n, 3, i, ii, j, element] -= result
+      contravariant_vectors[n, 3, i, j, k, element] -= result
     end
   end
 
