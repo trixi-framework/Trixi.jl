@@ -421,6 +421,9 @@ function init_surfaces_iter_face(info, user_data)
   init_surfaces_iter_face_inner(info, data)
 end
 
+cfunction(::Val{init_surfaces_iter_face}, ::Val{2}) = @cfunction(init_surfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+cfunction(::Val{init_surfaces_iter_face}, ::Val{3}) = @cfunction(init_surfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+
 # Function barrier for type stability
 function init_surfaces_iter_face_inner(info, user_data)
   @unpack interfaces, mortars, boundaries = user_data
@@ -450,6 +453,17 @@ function init_surfaces_iter_face_inner(info, user_data)
   end
 
   return nothing
+end
+
+function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
+  iter_face_c = cfunction(Val(init_surfaces_iter_face), Val(ndims(mesh)))
+  user_data = InitSurfacesIterFaceUserData(
+    interfaces, mortars, boundaries, mesh)
+
+  iterate_p4est(mesh.p4est, user_data; iter_face_c=iter_face_c)
+
+  return interfaces
 end
 
 
@@ -604,6 +618,24 @@ function count_surfaces_iter_face(info, user_data)
   end
 
   return nothing
+end
+
+cfunction(::Val{count_surfaces_iter_face}, ::Val{2}) = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+cfunction(::Val{count_surfaces_iter_face}, ::Val{3}) = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
+
+function count_required_surfaces(mesh::P4estMesh)
+  # Let p4est iterate over all interfaces and call count_surfaces_iter_face
+  iter_face_c = cfunction(Val(count_surfaces_iter_face), Val(ndims(mesh)))
+
+  # interfaces, mortars, boundaries
+  user_data = [0, 0, 0]
+
+  iterate_p4est(mesh.p4est, user_data; iter_face_c=iter_face_c)
+
+  # Return counters
+  return (interfaces = user_data[1],
+          mortars    = user_data[2],
+          boundaries = user_data[3])
 end
 
 

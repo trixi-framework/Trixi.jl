@@ -17,6 +17,27 @@ function init_p4est()
 end
 
 
+# Convert sc_array of type T to Julia array
+function unsafe_wrap_sc(::Type{T}, sc_array) where T
+  element_count = sc_array.elem_count
+  element_size = sc_array.elem_size
+
+  @assert element_size == sizeof(T)
+
+  return [unsafe_wrap(T, sc_array.array + element_size * i) for i in 0:element_count-1]
+end
+
+
+# Load the ith element (1-indexed) of an sc array of type T
+function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
+  element_size = sc_array.elem_size
+
+  @assert element_size == sizeof(T)
+
+  return unsafe_wrap(T, sc_array.array + element_size * (i - 1))
+end
+
+
 function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
   p4est_new_ext(0, # No MPI communicator
                 conn,
@@ -63,25 +84,12 @@ read_inp_p4est(meshfile, ::Val{2}) = p4est_connectivity_read_inp(meshfile)
 read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
 
 
-# Convert sc_array of type T to Julia array
-function unsafe_wrap_sc(::Type{T}, sc_array) where T
-  element_count = sc_array.elem_count
-  element_size = sc_array.elem_size
-
-  @assert element_size == sizeof(T)
-
-  return [unsafe_wrap(T, sc_array.array + element_size * i) for i in 0:element_count-1]
-end
+refine_p4est!(p4est::Ptr{p4est_t}, recursive, refine_fn_c, init_fn_c) = p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
+refine_p4est!(p8est::Ptr{p8est_t}, recursive, refine_fn_c, init_fn_c) = p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
 
 
-# Load the ith element (1-indexed) of an sc array of type T
-function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
-  element_size = sc_array.elem_size
-
-  @assert element_size == sizeof(T)
-
-  return unsafe_wrap(T, sc_array.array + element_size * (i - 1))
-end
+coarsen_p4est!(p4est::Ptr{p4est_t}, recursive, coarsen_fn_c, init_fn_c) = p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
+coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 
 
 function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
