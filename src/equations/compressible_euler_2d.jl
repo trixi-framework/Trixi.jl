@@ -798,7 +798,7 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Ranocha (2018)
@@ -843,6 +843,38 @@ See also
     f3 = f1 * v2_avg + p_avg
     f4 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
   end
+
+  return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2))
+  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2))
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+  # Compute the necessary mean values
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  inv_rho_p_mean = inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2])
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 )
+        + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
   return SVector(f1, f2, f3, f4)
 end

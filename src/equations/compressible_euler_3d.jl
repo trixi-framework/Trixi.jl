@@ -654,7 +654,7 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations3D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Ranocha (2018)
@@ -710,6 +710,42 @@ See also
     f4 = f1 * v3_avg + p_avg
     f5 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 ) + 0.5 * (p_ll*v3_rr + p_rr*v3_ll)
   end
+
+  return SVector(f1, f2, f3, f4, f5)
+end
+
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
+  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
+
+  # Compute the necessary mean values
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  inv_rho_p_mean = inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  v3_avg = 0.5 * (v3_ll + v3_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr + v3_ll*v3_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2] + v3_avg * normal_direction[3])
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = f1 * v3_avg + p_avg * normal_direction[3]
+  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 )
+      + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
   return SVector(f1, f2, f3, f4, f5)
 end
