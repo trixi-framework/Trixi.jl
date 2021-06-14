@@ -183,7 +183,7 @@ end
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix, basis)
-  for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+  @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
     # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
     inverse_jacobian[i, j, k, element] = inv(
         jacobian_matrix[1, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[3, 3, i, j, k, element] +
