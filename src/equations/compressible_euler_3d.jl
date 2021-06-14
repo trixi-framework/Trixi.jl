@@ -683,7 +683,10 @@ See also
 
   # Compute the necessary mean values
   rho_mean = ln_mean(rho_ll, rho_rr)
-  inv_rho_p_mean = inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  # Equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)` since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
   v1_avg = 0.5 * (v1_ll + v1_rr)
   v2_avg = 0.5 * (v2_ll + v2_rr)
   v3_avg = 0.5 * (v3_ll + v3_rr)
@@ -732,7 +735,10 @@ end
 
   # Compute the necessary mean values
   rho_mean = ln_mean(rho_ll, rho_rr)
-  inv_rho_p_mean = inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  # Equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)` since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
   v1_avg = 0.5 * (v1_ll + v1_rr)
   v2_avg = 0.5 * (v2_ll + v2_rr)
   v3_avg = 0.5 * (v3_ll + v3_rr)
