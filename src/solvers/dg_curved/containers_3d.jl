@@ -53,13 +53,45 @@ end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis)
-  for dim in 1:3, j in eachnode(basis), i in eachnode(basis)
-    # ∂/∂ξ
-    @views mul!(jacobian_matrix[dim, 1, :, i, j, element], basis.derivative_matrix, node_coordinates[dim, :, i, j, element])
-    # ∂/∂η
-    @views mul!(jacobian_matrix[dim, 2, i, :, j, element], basis.derivative_matrix, node_coordinates[dim, i, :, j, element])
-    # ∂/∂ζ
-    @views mul!(jacobian_matrix[dim, 3, i, j, :, element], basis.derivative_matrix, node_coordinates[dim, i, j, :, element])
+  # The code below is equivalent to the following matrix multiplications but much faster.
+  #
+  # for dim in 1:3, j in eachnode(basis), i in eachnode(basis)
+  #   # ∂/∂ξ
+  #   jacobian_matrix[dim, 1, :, i, j, element] = basis.derivative_matrix * node_coordinates[dim, :, i, j, element]
+  #   # ∂/∂η
+  #   jacobian_matrix[dim, 2, i, :, j, element] = basis.derivative_matrix * node_coordinates[dim, i, :, j, element]
+  #   # ∂/∂ζ
+  #   jacobian_matrix[dim, 3, i, j, :, element] = basis.derivative_matrix * node_coordinates[dim, i, j, :, element]
+  # end
+
+  @turbo for dim in 1:3, k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+    result = zero(eltype(jacobian_matrix))
+
+    for ii in eachnode(basis)
+      result += basis.derivative_matrix[i, ii] * node_coordinates[dim, ii, j, k, element]
+    end
+
+    jacobian_matrix[dim, 1, i, j, k, element] = result
+  end
+
+  @turbo for dim in 1:3, k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+    result = zero(eltype(jacobian_matrix))
+
+    for ii in eachnode(basis)
+      result += basis.derivative_matrix[j, ii] * node_coordinates[dim, i, ii, k, element]
+    end
+
+    jacobian_matrix[dim, 2, i, j, k, element] = result
+  end
+
+  @turbo for dim in 1:3, k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+    result = zero(eltype(jacobian_matrix))
+
+    for ii in eachnode(basis)
+      result += basis.derivative_matrix[k, ii] * node_coordinates[dim, i, j, ii, element]
+    end
+
+    jacobian_matrix[dim, 3, i, j, k, element] = result
   end
 
   return jacobian_matrix
