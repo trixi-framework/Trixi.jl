@@ -1,5 +1,5 @@
 # By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See TODO: link-to-my-blog-post
+# See https://ranocha.de/blog/Optimizing_EC_Trixi/
 @muladd begin
 
 
@@ -139,7 +139,7 @@ end
 # Convenience constructor that converts a vector of points into a Trixi-style coordinate array
 function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
                             kwargs...)
-  # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims] 
+  # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims]
   n_points = length(point_coordinates)
   point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, n_points, ndims(mesh))
 

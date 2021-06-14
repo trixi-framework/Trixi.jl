@@ -1,5 +1,5 @@
 # By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See TODO: link-to-my-blog-post
+# See https://ranocha.de/blog/Optimizing_EC_Trixi/
 @muladd begin
 
 
