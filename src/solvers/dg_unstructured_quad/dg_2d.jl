@@ -26,6 +26,9 @@ function create_cache(mesh::UnstructuredQuadMesh, equations,
     error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
   end
 
+  # Add specialized parts of the cache required to compute the flux differencing volume integral
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+
   return cache
 end
 
@@ -78,26 +81,76 @@ function rhs!(du, u, t,
 end
 
 
-# flux differencing volume integral on curvilinear quadrilateral elements. Averaging of the
-# mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
-# the physical fluxes in each Cartesian direction
-function calc_volume_integral!(du, u,
-                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache)
-  @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, volume_integral.volume_flux, element,
-                       mesh, equations, dg, cache)
+# Calculate 2D twopoint contravariant flux (element version)
+@inline function calcflux_twopoint!(ftilde1, ftilde2, u::AbstractArray{<:Any,4}, element,
+                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                                    equations, volume_flux, dg::DGSEM, cache)
+  @unpack contravariant_vectors = cache.elements
+
+  for j in eachnode(dg), i in eachnode(dg)
+    # pull the solution value and two contravariant vectors at node i,j
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    Ja11_node, Ja12_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    Ja21_node, Ja22_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    # diagonal (consistent) part not needed since diagonal of
+    # dg.basis.derivative_split_transpose is zero!
+    set_node_vars!(ftilde1, zero(u_node), equations, dg, i, i, j)
+    set_node_vars!(ftilde2, zero(u_node), equations, dg, j, i, j)
+
+    # contravariant fluxes in the first direction
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+      flux2 = volume_flux(u_node, u_node_ii, 2, equations)
+      # pull the contravariant vectors and compute their average
+      Ja11_node_ii, Ja12_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+      Ja11_avg = 0.5 * (Ja11_node + Ja11_node_ii)
+      Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
+      # compute the contravariant sharp flux
+      fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2
+      # save and exploit symmetry
+      set_node_vars!(ftilde1, fluxtilde1, equations, dg, i, ii, j)
+      set_node_vars!(ftilde1, fluxtilde1, equations, dg, ii, i, j)
+    end
+
+    # contravariant fluxes in the second direction
+    for jj in (j+1):nnodes(dg)
+      u_node_jj  = get_node_vars(u, equations, dg, i, jj, element)
+      flux1 = volume_flux(u_node, u_node_jj, 1, equations)
+      flux2 = volume_flux(u_node, u_node_jj, 2, equations)
+      # pull the contravariant vectors and compute their average
+      Ja21_node_jj, Ja22_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, element)
+      Ja21_avg = 0.5 * (Ja21_node + Ja21_node_jj)
+      Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
+      # compute the contravariant sharp flux
+      fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2
+      # save and exploit symmetry
+      set_node_vars!(ftilde2, fluxtilde2, equations, dg, j,  i, jj)
+      set_node_vars!(ftilde2, fluxtilde2, equations, dg, jj, i, j)
+    end
   end
+
+  calcflux_twopoint_nonconservative!(ftilde1, ftilde2, u, element,
+                                     have_nonconservative_terms(equations),
+                                     mesh, equations, dg, cache)
+end
+
+
+function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
+                                            nonconservative_terms::Val{true},
+                                            mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                                            equations, dg::DG, cache)
+  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
+  #      For now, just dispatch to an existing function for the IdealMhdEquations
+  @unpack contravariant_vectors = cache.elements
+  calcflux_twopoint_nonconservative!(f1, f2, u, element, contravariant_vectors, equations, dg, cache)
 end
 
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{false},
-                                    volume_flux, element,
-                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
-                                    equations, dg::DGSEM, cache, alpha=true)
+                                    nonconservative_terms::Val{false}, element,
+                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 
@@ -250,6 +303,119 @@ function calc_interface_flux!(surface_flux_values,
       # increment the index of the coordinate system in the secondary element
       secondary_index += index_increment[interface]
     end
+  end
+
+  return nothing
+end
+
+
+# compute the numerical flux interface with nonconservative terms coupling between two elements
+# on an unstructured quadrilateral mesh
+function calc_interface_flux!(surface_flux_values,
+                              mesh::UnstructuredQuadMesh,
+                              nonconservative_terms::Val{true}, equations,
+                              surface_integral, dg::DG, cache)
+  @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
+  @unpack normal_directions = cache.elements
+
+  fstar_primary_threaded             = cache.fstar_upper_threaded
+  fstar_secondary_threaded           = cache.fstar_lower_threaded
+  noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_threaded
+  noncons_diamond_secondary_threaded = cache.noncons_diamond_lower_threaded
+
+  @threaded for interface in eachinterface(dg, cache)
+    # Choose thread-specific pre-allocated container
+    fstar_primary             = fstar_primary_threaded[Threads.threadid()]
+    fstar_secondary           = fstar_secondary_threaded[Threads.threadid()]
+    noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
+    noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
+
+    # Get the primary element index and local side index
+    primary_element = element_ids[1, interface]
+    primary_side = element_side_ids[1, interface]
+
+    # Get initial index for the coordinate system on the secondary element and its
+    # index increment
+    secondary_index = start_index[interface]
+    secondary_index_increment = index_increment[interface]
+
+    # Calculate the conservative portion of the numerical flux
+    calc_fstar!(fstar_primary, fstar_secondary, equations, surface_integral, dg,
+                u, normal_directions, interface,
+                primary_element, primary_side, secondary_index, secondary_index_increment)
+
+    for primary_index in eachnode(dg)
+      # Pull the primary and secondary states from the boundary u values
+      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, interface)
+      u_rr = get_one_sided_surface_node_vars(u, equations, dg, 2, secondary_index, interface)
+      # Pull the outward pointing (normal) directional vector
+      #   Note! this assumes a conforming approximation, more must be done in terms of the normals
+      #         for hanging nodes and other non-conforming approximation spaces
+      outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
+                                             primary_element)
+      # Call pointwise nonconservative term
+      noncons_primary   = noncons_interface_flux(u_ll, u_rr, outward_direction, :weak, equations)
+      noncons_secondary = noncons_interface_flux(u_rr, u_ll, outward_direction, :weak, equations)
+      # Save to primary and secondary temporay storage
+      set_node_vars!(noncons_diamond_primary,   noncons_primary,   equations, dg, primary_index)
+      set_node_vars!(noncons_diamond_secondary, noncons_secondary, equations, dg, secondary_index)
+      # increment the index of the coordinate system in the secondary element
+      secondary_index += secondary_index_increment
+    end
+
+    # Get neighboring element and local side index
+    secondary_element = element_ids[2, interface]
+    secondary_side = element_side_ids[2, interface]
+
+    # Reinitialize index for the coordinate system on the secondary element
+    secondary_index = start_index[interface]
+    # loop through the primary element coordinate system and compute the interface coupling
+    for primary_index in eachnode(dg)
+      # Copy flux back to primary/secondary element storage
+      # Note the sign change for the components in the secondary element!
+      for v in eachvariable(equations)
+        surface_flux_values[v, primary_index, primary_side, primary_element] = (fstar_primary[v, primary_index] +
+            noncons_diamond_primary[v, primary_index])
+        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -(fstar_secondary[v, secondary_index] +
+            noncons_diamond_secondary[v, secondary_index])
+      end
+      # increment the index of the coordinate system in the secondary element
+      secondary_index += secondary_index_increment
+    end
+  end
+
+  return nothing
+end
+
+
+@inline function calc_fstar!(destination_primary::AbstractArray{<:Any,2},
+                             destination_secondary::AbstractArray{<:Any,2},
+                             equations, surface_integral, dg::DGSEM,
+                             u_interfaces, normal_directions,
+                             interface, primary_element, primary_side,
+                             secondary_element_start_index, secondary_element_index_increment)
+  @unpack surface_flux = surface_integral
+
+  secondary_index = secondary_element_start_index
+  for primary_index in eachnode(dg)
+    # pull the primary and secondary states from the boundary u values
+    u_ll = get_one_sided_surface_node_vars(u_interfaces, equations, dg, 1, primary_index, interface)
+    u_rr = get_one_sided_surface_node_vars(u_interfaces, equations, dg, 2, secondary_index, interface)
+
+    # pull the outward pointing (normal) directional vector
+    #   Note! this assumes a conforming approximation, more must be done in terms of the normals
+    #         for hanging nodes and other non-conforming approximation spaces
+    outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
+                                           primary_element)
+
+    # Call pointwise numerical flux with rotation. Direction is normalized inside this function
+    flux = surface_flux(u_ll, u_rr, outward_direction, equations)
+
+    # Copy flux to left and right element storage
+    set_node_vars!(destination_primary,   flux, equations, dg, primary_index)
+    set_node_vars!(destination_secondary, flux, equations, dg, secondary_index)
+    # increment the index of the coordinate system in the secondary element
+    secondary_index += secondary_element_index_increment
   end
 
   return nothing

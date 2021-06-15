@@ -17,7 +17,7 @@ We use the following numbering schemes on Cartesian or curved structured meshes.
   generalized via the variable `normal_direction`. This variable points in the
   normal direction at a given, curved surface. For the computation of boundary fluxes
   the `normal_direction` is normalized to be a `normal_vector` used, for example, in
-  within `FluxRotated`.
+  `FluxRotated`.
 
 
 ## Cells vs. elements vs. nodes
