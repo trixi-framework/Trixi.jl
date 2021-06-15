@@ -6,6 +6,9 @@ function create_cache(mesh::CurvedMesh, equations::AbstractEquations, dg::DG, ::
 
   cache = (; elements)
 
+  # Add specialized parts of the cache required to compute the volume integral etc.
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+
   return cache
 end
 
