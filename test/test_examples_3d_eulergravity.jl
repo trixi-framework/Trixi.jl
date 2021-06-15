@@ -1,6 +1,6 @@
 module TestExamples3DEulerGravity
 
-using Test
+using Test, SafeTestsets
 using Trixi
 
 include("test_trixi.jl")
@@ -8,8 +8,8 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
 
-@testset "Compressible Euler with self-gravity" begin
-  @testset "elixir_eulergravity_eoc_test.jl" begin
+@safetestset "Compressible Euler with self-gravity" begin
+  @safetestset "elixir_eulergravity_eoc_test.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
       l2   = [0.0004276779201667428, 0.00047204222332596204, 0.00047204222332608705, 0.0004720422233259819, 0.0010987026250960728],
       linf = [0.003496616916238704, 0.003764418290373106, 0.003764418290377103, 0.0037644182903766588, 0.008370424899251105],

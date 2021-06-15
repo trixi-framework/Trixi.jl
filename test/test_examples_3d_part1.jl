@@ -1,6 +1,6 @@
 module TestExamples3DPart1
 
-using Test
+using Test, SafeTestsets
 using Trixi
 
 include("test_trixi.jl")
@@ -12,10 +12,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "3D-Part1" begin
+@safetestset "3D-Part1" begin
 
 # Run basic tests
-@testset "Examples 3D" begin
+@safetestset "Examples 3D" begin
   # Linear scalar advection
   include("test_examples_3d_advection.jl")
 
@@ -30,7 +30,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 end
 
 
-@testset "Displaying components 3D" begin
+@safetestset "Displaying components 3D" begin
   @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
   # test both short and long printing formats
@@ -90,8 +90,8 @@ end
 end
 
 
-@testset "Additional tests in 3D" begin
-  @testset "compressible Euler" begin
+@safetestset "Additional tests in 3D" begin
+  @safetestset "compressible Euler" begin
     eqn = CompressibleEulerEquations3D(1.4)
 
     @test isapprox(energy_total([1.0, 2.0, 3.0, 4.0, 20.0], eqn), 20.0)
@@ -99,7 +99,7 @@ end
     @test isapprox(energy_internal([1.0, 2.0, 3.0, 4.0, 20], eqn), 5.5)
   end
 
-  @testset "hyperbolic diffusion" begin
+  @safetestset "hyperbolic diffusion" begin
     @test_nowarn HyperbolicDiffusionEquations3D(nu=1.0)
     eqn = HyperbolicDiffusionEquations3D(nu=1.0)
 

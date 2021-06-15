@@ -1,6 +1,6 @@
 module TestExamples1D
 
-using Test
+using Test, SafeTestsets
 using Trixi
 
 include("test_trixi.jl")
@@ -12,10 +12,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "1D" begin
+@safetestset "1D" begin
 
 # Run basic tests
-@testset "Examples 1D" begin
+@safetestset "Examples 1D" begin
   # Linear scalar advection
   include("test_examples_1d_advection.jl")
 
@@ -53,9 +53,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 end
 
 # Coverage test for all initial conditions
-@testset "Tests for initial conditions" begin
+@safetestset "Tests for initial conditions" begin
   # Linear scalar advection
-  @testset "elixir_advection_extended.jl with initial_condition_sin" begin
+  @safetestset "elixir_advection_extended.jl with initial_condition_sin" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [0.00017373554109980247],
       linf = [0.0006021275678165239],
@@ -63,7 +63,7 @@ end
       initial_condition = Trixi.initial_condition_sin)
   end
 
-  @testset "elixir_advection_extended.jl with initial_condition_constant" begin
+  @safetestset "elixir_advection_extended.jl with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [2.441369287653687e-16],
       linf = [4.440892098500626e-16],
@@ -71,7 +71,7 @@ end
       initial_condition = initial_condition_constant)
   end
 
-  @testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
+  @safetestset "elixir_advection_extended.jl with initial_condition_linear_x" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [1.9882464973192864e-16],
       linf = [1.4432899320127035e-15],
@@ -81,7 +81,7 @@ end
       periodicity=false)
   end
 
-  @testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
+  @safetestset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [6.1803596620800215e-6],
       linf = [2.4858560899509996e-5],
@@ -93,7 +93,7 @@ end
 end
 
 
-@testset "Displaying components 1D" begin
+@safetestset "Displaying components 1D" begin
   @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
   # test both short and long printing formats
@@ -176,8 +176,8 @@ end
 end
 
 
-@testset "Additional tests in 1D" begin
-  @testset "compressible Euler" begin
+@safetestset "Additional tests in 1D" begin
+  @safetestset "compressible Euler" begin
     eqn = CompressibleEulerEquations1D(1.4)
 
     @test isapprox(Trixi.entropy_thermodynamic([1.0, 2.0, 20.0], eqn), 1.9740810260220094)

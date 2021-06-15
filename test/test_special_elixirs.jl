@@ -1,7 +1,7 @@
 module TestElixirs
 
 using LinearAlgebra
-using Test
+using Test, SafeTestsets
 using Trixi
 
 import ForwardDiff
@@ -14,8 +14,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 
-@testset "Special elixirs" begin
-  @testset "Convergence test" begin
+@safetestset "Special elixirs" begin
+  @safetestset "Convergence test" begin
     mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"), 3)
     @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
 
@@ -33,7 +33,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
 
-  @testset "Test linear structure (2D)" begin
+  @safetestset "Test linear structure (2D)" begin
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=2)
     A, b = linear_structure(semi)
@@ -54,8 +54,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
 
-  @testset "Test Jacobian of DG (2D)" begin
-    @testset "Linear advection" begin
+  @safetestset "Test Jacobian of DG (2D)" begin
+    @safetestset "Linear advection" begin
       trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"),
                     tspan=(0.0, 0.0), initial_refinement_level=2)
       A, _ = linear_structure(semi)
@@ -71,7 +71,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
       @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
     end
 
-    @testset "Compressible Euler equations" begin
+    @safetestset "Compressible Euler equations" begin
       trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_euler_density_wave.jl"),
                     tspan=(0.0, 0.0), initial_refinement_level=2)
 
@@ -90,7 +90,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
       @test_skip jacobian_ad_forward(semi)
     end
 
-    @testset "MHD" begin
+    @safetestset "MHD" begin
       trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_mhd_alfven_wave.jl"),
                     tspan=(0.0, 0.0), initial_refinement_level=1)
       @test_nowarn jacobian_ad_forward(semi)
@@ -102,7 +102,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
 
-  @testset "Test linear structure (3D)" begin
+  @safetestset "Test linear structure (3D)" begin
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_extended.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=1)
     A, b = linear_structure(semi)
@@ -111,7 +111,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
 
-  @testset "Test Jacobian of DG (3D)" begin
+  @safetestset "Test Jacobian of DG (3D)" begin
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_extended.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=1)
     A, _ = linear_structure(semi)
@@ -128,8 +128,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
 
-  @testset "AD using ForwardDiff" begin
-    @testset "Euler equations 1D" begin
+  @safetestset "AD using ForwardDiff" begin
+    @safetestset "Euler equations 1D" begin
       function entropy_at_final_time(k) # k is the wave number of the initial condition
         equations = CompressibleEulerEquations1D(1.4)
         mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level=3, n_cells_max=10^4)
@@ -158,7 +158,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
       ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
     end
 
-    @testset "Linear advection 2D" begin
+    @safetestset "Linear advection 2D" begin
       function energy_at_final_time(k) # k is the wave number of the initial condition
         equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
         mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
