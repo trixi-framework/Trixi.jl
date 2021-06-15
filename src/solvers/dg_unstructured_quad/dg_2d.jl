@@ -322,7 +322,8 @@ end
 # on an unstructured quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredQuadMesh,
-                              nonconservative_terms::Val{true}, equations, dg::DG, cache)
+                              nonconservative_terms::Val{true}, equations,
+                              surface_integral, dg::DG, cache)
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
   @unpack normal_directions = cache.elements
 
@@ -348,7 +349,8 @@ function calc_interface_flux!(surface_flux_values,
     secondary_index_increment = index_increment[interface]
 
     # Calculate the conservative portion of the numerical flux
-    calc_fstar!(fstar_primary, fstar_secondary, equations, dg, u, normal_directions, interface,
+    calc_fstar!(fstar_primary, fstar_secondary, equations, surface_integral, dg,
+                u, normal_directions, interface,
                 primary_element, primary_side, secondary_index, secondary_index_increment)
 
     for primary_index in eachnode(dg)
@@ -397,11 +399,11 @@ end
 
 @inline function calc_fstar!(destination_primary::AbstractArray{<:Any,2},
                              destination_secondary::AbstractArray{<:Any,2},
-                             equations, dg::DGSEM,
+                             equations, surface_integral, dg::DGSEM,
                              u_interfaces, normal_directions,
                              interface, primary_element, primary_side,
                              secondary_element_start_index, secondary_element_index_increment)
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
 
   secondary_index = secondary_element_start_index
   for primary_index in eachnode(dg)
