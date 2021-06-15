@@ -27,6 +27,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # P4estMesh
   include("test_examples_2d_p4est.jl")
+
+  # FDSBP methods on the TreeMesh
+  include("test_tree_2d_fdsbp.jl")
 end
 
 # Clean up afterwards: delete Trixi output directory

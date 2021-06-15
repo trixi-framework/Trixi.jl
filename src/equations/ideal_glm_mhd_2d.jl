@@ -422,6 +422,99 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmM
 end
 
 
+"""
+    flux_hindenlang(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+
+Entropy conserving and kinetic energy preserving two-point flux of
+Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
+
+## References
+- Hindenlang (2019)
+  A new entropy conservative two-point flux for ideal MHD equations derived from
+  first principles.
+  Presented at HONOM 2019: European workshop on high order numerical methods
+  for evolutionary PDEs, theory and applications
+- Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+- Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_hindenlang(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations2D)
+  # Unpack left and right states to get velocities and pressure
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
+  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
+  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
+  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+
+  # Compute the necessary mean values needed for either direction
+  rho_mean   = ln_mean(rho_ll, rho_rr)
+  rho_p_mean = ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  v1_avg  = 0.5 * ( v1_ll +  v1_rr)
+  v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+  v3_avg  = 0.5 * ( v3_ll +  v3_rr)
+  p_avg   = 0.5 * (  p_ll +   p_rr)
+  psi_avg = 0.5 * (psi_ll + psi_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+  magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+
+  # Calculate fluxes depending on orientation with specific direction averages
+  if orientation == 1
+    f1 = rho_mean * v1_avg
+    f2 = f1 * v1_avg + p_avg + magnetic_square_avg - 0.5 * (B1_ll * B1_rr + B1_rr * B1_ll)
+    f3 = f1 * v2_avg                               - 0.5 * (B1_ll * B2_rr + B1_rr * B2_ll)
+    f4 = f1 * v3_avg                               - 0.5 * (B1_ll * B3_rr + B1_rr * B3_ll)
+    #f5 below
+    f6 = equations.c_h * psi_avg
+    f7 = 0.5 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
+    f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
+    f9 = equations.c_h * 0.5 * (B1_ll + B1_rr)
+    # total energy flux is complicated and involves the previous components
+    f5 = ( f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) )
+          + 0.5 * ( p_ll * v1_rr +  p_rr * v1_ll)
+          + 0.5 * (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
+          + 0.5 * (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
+          - 0.5 * (v2_ll * B1_ll * B2_rr + v2_rr * B1_rr * B2_ll)
+          - 0.5 * (v3_ll * B1_ll * B3_rr + v3_rr * B1_rr * B3_ll)
+          + 0.5 * equations.c_h * (B1_ll * psi_rr + B1_rr * psi_ll) )
+  else # orientation == 2
+    f1 = rho_mean * v2_avg
+    f2 = f1 * v1_avg                               - 0.5 * (B2_ll * B1_rr + B2_rr * B1_ll)
+    f3 = f1 * v2_avg + p_avg + magnetic_square_avg - 0.5 * (B2_ll * B2_rr + B2_rr * B2_ll)
+    f4 = f1 * v3_avg                               - 0.5 * (B2_ll * B3_rr + B2_rr * B3_ll)
+    #f5 below
+    f6 = 0.5 * (v2_ll * B1_ll - v1_ll * B2_ll + v2_rr * B1_rr - v1_rr * B2_rr)
+    f7 = equations.c_h * psi_avg
+    f8 = 0.5 * (v2_ll * B3_ll - v3_ll * B2_ll + v2_rr * B3_rr - v3_rr * B2_rr)
+    f9 = equations.c_h * 0.5 * (B2_ll + B2_rr)
+    # total energy flux is complicated and involves the previous components
+    f5 = ( f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) )
+          + 0.5 * ( p_ll * v2_rr +  p_rr * v2_ll)
+          + 0.5 * (v2_ll * B1_ll * B1_rr + v2_rr * B1_rr * B1_ll)
+          + 0.5 * (v2_ll * B3_ll * B3_rr + v2_rr * B3_rr * B3_ll)
+          - 0.5 * (v1_ll * B2_ll * B1_rr + v1_rr * B2_rr * B1_ll)
+          - 0.5 * (v3_ll * B2_ll * B3_rr + v3_rr * B2_rr * B3_ll)
+          + 0.5 * equations.c_h * (B2_ll * psi_rr + B2_rr * psi_ll) )
+  end
+
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll

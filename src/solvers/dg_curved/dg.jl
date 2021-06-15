@@ -20,7 +20,8 @@ end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
-                                                  mesh::CurvedMesh, equations, dg::DG, cache,
+                                                  mesh::CurvedMesh, equations,
+                                                  surface_integral, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
   @assert isperiodic(mesh, orientation)
 end
@@ -28,10 +29,11 @@ end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
                                                   boundary_condition,
-                                                  mesh::CurvedMesh, equations,dg::DG, cache,
+                                                  mesh::CurvedMesh, equations,
+                                                  surface_integral, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
   @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
 
   u_inner = get_node_vars(u, equations, dg, node_indices..., element)
   x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)

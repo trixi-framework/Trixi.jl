@@ -14,15 +14,16 @@ function rhs!(du, u, t,
   # Calculate interface fluxes
   @timed timer() "interface flux" calc_interface_flux!(
     cache, u, mesh,
-    have_nonconservative_terms(equations), equations, dg)
+    have_nonconservative_terms(equations), equations,
+    dg.surface_integral, dg)
 
   # Calculate boundary fluxes
   @timed timer() "boundary flux" calc_boundary_flux!(
-    cache, u, t, boundary_conditions, mesh, equations, dg)
+    cache, u, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
 
   # Calculate surface integrals
   @timed timer() "surface integral" calc_surface_integral!(
-    du, mesh, equations, dg, cache)
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   # Apply Jacobian from mapping to reference element
   @timed timer() "Jacobian" apply_jacobian!(
@@ -295,9 +296,8 @@ end
 
 function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
                               nonconservative_terms, # can be Val{true}/Val{false}
-                              equations, dg::DG)
+                              equations, surface_integral, dg::DG)
   @unpack elements = cache
-  @unpack surface_flux = dg
 
   @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
@@ -307,19 +307,22 @@ function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
                          element, 1, u, mesh,
-                         nonconservative_terms, equations, dg, cache)
+                         nonconservative_terms, equations,
+                         surface_integral, dg, cache)
 
     # Interfaces in y-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
                          element, 2, u, mesh,
-                         nonconservative_terms, equations, dg, cache)
+                         nonconservative_terms, equations,
+                         surface_integral, dg, cache)
 
     # Interfaces in z-direction (`orientation` = 3)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[3, element],
                          element, 3, u, mesh,
-                         nonconservative_terms, equations, dg, cache)
+                         nonconservative_terms, equations,
+                         surface_integral, dg, cache)
   end
 
   return nothing
@@ -330,13 +333,13 @@ end
                                       orientation, u,
                                       mesh::CurvedMesh{3},
                                       nonconservative_terms::Val{false}, equations,
-                                      dg::DG, cache)
+                                      surface_integral, dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
   if left_element <= 0 # left_element = 0 at boundaries
     return surface_flux_values
   end
 
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
   right_direction = 2 * orientation
@@ -396,13 +399,13 @@ end
                                       orientation, u,
                                       mesh::CurvedMesh{3},
                                       nonconservative_terms::Val{true}, equations,
-                                      dg::DG, cache)
+                                      surface_integral, dg::DG, cache)
   # See comment on `calc_interface_flux!` with `nonconservative_terms::Val{false}`
   if left_element <= 0 # left_element = 0 at boundaries
     return surface_flux_values
   end
 
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
   right_direction = 2 * orientation
@@ -466,23 +469,22 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::CurvedMesh{3}, equations, dg::DG)
+                             mesh::CurvedMesh{3}, equations, surface_integral, dg::DG)
   @assert isperiodic(mesh)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             mesh::CurvedMesh{3}, equations, dg::DG)
+                             mesh::CurvedMesh{3}, equations, surface_integral, dg::DG)
   calc_boundary_flux!(cache, u, t,
                       (boundary_condition, boundary_condition, boundary_condition,
                        boundary_condition, boundary_condition, boundary_condition),
-                      mesh, equations, dg)
+                      mesh, equations, surface_integral, dg)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             mesh::CurvedMesh{3}, equations, dg::DG)
-  @unpack surface_flux = dg
+                             mesh::CurvedMesh{3}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
 
@@ -494,7 +496,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     for k in eachnode(dg), j in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
                                        boundary_conditions[direction],
-                                       mesh, equations,  dg, cache,
+                                       mesh, equations, surface_integral, dg, cache,
                                        direction, (1, j, k), (j, k), element)
     end
 
@@ -505,7 +507,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     for k in eachnode(dg), j in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
                                        boundary_conditions[direction],
-                                       mesh, equations, dg, cache,
+                                       mesh, equations, surface_integral, dg, cache,
                                        direction, (nnodes(dg), j, k), (j, k), element)
     end
   end
@@ -518,7 +520,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     for k in eachnode(dg), i in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
                                        boundary_conditions[direction],
-                                       mesh, equations, dg, cache,
+                                       mesh, equations, surface_integral, dg, cache,
                                        direction, (i, 1, k), (i, k), element)
     end
 
@@ -529,7 +531,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     for k in eachnode(dg), i in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
                                        boundary_conditions[direction],
-                                       mesh, equations, dg, cache,
+                                       mesh, equations, surface_integral, dg, cache,
                                        direction, (i, nnodes(dg), k), (i, k), element)
     end
   end
@@ -542,7 +544,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     for j in eachnode(dg), i in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 3,
                                        boundary_conditions[direction],
-                                       mesh, equations, dg, cache,
+                                       mesh, equations, surface_integral, dg, cache,
                                        direction, (i, j, 1), (i, j), element)
     end
 
@@ -553,7 +555,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     for j in eachnode(dg), i in eachnode(dg)
       calc_boundary_flux_by_direction!(surface_flux_values, u, t, 3,
                                        boundary_conditions[direction],
-                                       mesh, equations, dg, cache,
+                                       mesh, equations, surface_integral, dg, cache,
                                        direction, (i, j, nnodes(dg)), (i, j), element)
     end
   end
