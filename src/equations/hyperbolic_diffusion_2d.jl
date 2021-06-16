@@ -239,16 +239,15 @@ end
 end
 
 
-# Calculate 1D flux in for a single point in the normal direction
-# Called from the general surface flux routine in `numerical_fluxes.jl` so the direction
-# has been normalized before this call
-@inline function flux(u, normal_vector::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
   @unpack inv_Tr = equations
 
-  f1 = -equations.nu * (normal_vector[1] * q1 + normal_vector[2] * q2)
-  f2 = -phi * inv_Tr * normal_vector[1]
-  f3 = -phi * inv_Tr * normal_vector[2]
+  f1 = -equations.nu * (normal_direction[1] * q1 + normal_direction[2] * q2)
+  f2 = -phi * inv_Tr * normal_direction[1]
+  f3 = -phi * inv_Tr * normal_direction[2]
 
   return SVector(f1, f2, f3)
 end

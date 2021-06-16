@@ -5,43 +5,57 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-equations = IdealGlmMhdEquations3D(1.4)
+equations = IdealGlmMhdEquations3D(5/3)
 
-initial_condition = initial_condition_weak_blast_wave
+initial_condition = initial_condition_convergence_test
 
-volume_flux = flux_hindenlang
-solver = DGSEM(polydeg=3, surface_flux=flux_hindenlang,
+volume_flux = flux_central
+solver = DGSEM(polydeg=5, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-2, -2, -2)
-coordinates_max = ( 2,  2,  2)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
-                n_cells_max=10_000)
+##############################################################################
+# Create the mesh
 
+# Note, we use the domain [-1, 1]^3 for the Alfvén wave convergence test case so the
+# warped mapping simplifies (quite a bit)
+
+# Mapping as described in https://arxiv.org/abs/2012.12040
+function mapping(xi, eta, zeta)
+  y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
+
+  x = xi + 0.125 * (cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta))
+
+  z = zeta + 0.125 * (cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta))
+
+  return SVector(x, y, z)
+end
+
+cells_per_dimension = (4, 4, 4)
+mesh = CurvedMesh(cells_per_dimension, mapping)
+
+###############################################################################
+# create the semi discretization object
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-cfl = 1.4
+cfl = 1.2
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
