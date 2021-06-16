@@ -128,38 +128,3 @@ macro test_nowarn_mod(expr)
     end
   end
 end
-
-
-"""
-    @trixi_testset "name of the testset" #= code to test #=
-
-Similar to `@testset`, but wraps the code inside a temporary module to avoid
-namespace pollution. It also `include`s this file again to provide the
-definition of `@test_trixi_include`.
-"""
-macro trixi_testset(name, expr)
-  @assert name isa String
-  mod = gensym(name)
-  quote
-    @eval module $mod
-      using Test
-      using Trixi
-      include(@__FILE__)
-      try
-        # We define `EXAMPLES_DIR` in (nearly) all test modules and use it to
-        # get the path to the elixirs to be tested.
-        using ..TestTrixiExamples: EXAMPLES_DIR
-      catch
-        # Just fail gracefully
-        nothing
-      end
-      @testset $name $expr
-    end
-    nothing
-  end
-  # quote
-  #   let
-  #     @testset $name $expr
-  #   end
-  # end
-end
