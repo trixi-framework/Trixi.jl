@@ -241,9 +241,9 @@ function circle(radius, center, n_points)
 end
 ```
 
-Then create and plot a [`PlotData1D`](@ref) object along a circle with radius=1, center=[1,1] and 100 points:
+Then create and plot a [`PlotData1D`](@ref) object along a circle with radius one, center at `(1,1)`, and 100 points:
 ```julia
-pd = PlotData1D(sol, along_curve=circle(1, [1,1], 100))
+pd = PlotData1D(sol, along_curve=circle(1.0, (1.0, 1.0), 100))
 plot(pd)
 ```
 This give you following plot:
