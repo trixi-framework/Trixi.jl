@@ -1,4 +1,4 @@
-module TestExamples3DPart2
+module TestTrixiExamples
 
 using Test
 using Trixi
