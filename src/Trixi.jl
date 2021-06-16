@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, dot, mul!, norm, cross, normalize
+using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -189,6 +189,12 @@ function __init__()
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
+  end
+
+  @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
+    using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
+    using .StartUpDG: Line, Tri, Quad, Hex
+    include("solvers/dg_modal/dg.jl")
   end
 end
 
