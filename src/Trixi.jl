@@ -194,7 +194,7 @@ function __init__()
   @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
     using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
     using .StartUpDG: Line, Tri, Quad, Hex
-    include("solvers/dg_modal/dg.jl")
+    include("solvers/dg_polymorphic/dg.jl")
   end
 end
 
