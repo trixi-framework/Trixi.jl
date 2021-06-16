@@ -151,14 +151,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
   @testset "elixir_euler_free_stream_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_curved.jl"),
       l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
-      linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13])
+      linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13],
+      atol = 7.0e-13)
   end
 
   @testset "elixir_euler_free_stream_curved.jl with FluxRotated(flux_lax_friedrichs)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_curved.jl"),
       surface_flux=FluxRotated(flux_lax_friedrichs),
       l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
-      linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13])
+      linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 6.502853810985698e-13, 2.7000623958883807e-13],
+      atol = 7.0e-13)
   end
 
   @testset "elixir_euler_nonperiodic_curved.jl" begin
@@ -174,6 +176,34 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       tspan = (0.0, 0.3))
   end
 
+  @testset "elixir_hypdiff_nonperiodic_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic_curved.jl"),
+      l2   = [0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
+      linf = [1.0771947577311836, 1.9143913544309838, 2.149549109115789],
+      tspan = (0.0, 0.1))
+  end
+
+  @testset "elixir_mhd_ec_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_curved.jl"),
+      l2   = [0.049292513442569026, 0.06118472341688633, 0.06100981168439492, 0.03154775908310433,
+              0.23198302161785492, 0.0247519941440438, 0.024448195911212046, 0.03543873189291887,
+              0.0015617736595970992],
+      linf = [0.23046364859986535, 0.30519572609771284, 0.39552198293921503, 0.2277249293363471,
+              0.9953367157247124, 0.11969759086572018, 0.11429783654481473, 0.1761519810380463,
+              0.037502059739661815],
+      tspan = (0.0, 0.3))
+  end
+
+  @testset "elixir_mhd_alfven_wave_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_curved.jl"),
+      l2   = [0.028937533507168618, 0.0062432054639327645, 0.005633373806188361, 0.007334018943006818,
+              0.004877728963620626, 0.007192028498071723, 0.006999219481342092, 0.006729459133884995,
+              0.004256125425790215],
+      linf = [0.17577416304965765, 0.06225741511291068, 0.03880568731344702, 0.05278192154508075,
+              0.03811117752054194, 0.0427542385663775, 0.037517543473435055, 0.047902503040458,
+              0.04112917360970982],
+      tspan = (0.0, 1.0))
+  end
 end
 
 end # module

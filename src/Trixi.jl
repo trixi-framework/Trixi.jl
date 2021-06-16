@@ -33,11 +33,13 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
-using LoopVectorization: LoopVectorization, @turbo
+using LoopVectorization: LoopVectorization, @turbo, indices
+using LoopVectorization.ArrayInterface: static_length
 import MPI
 using GeometryBasics: GeometryBasics, Mesh, normal_mesh 
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
+using P4est
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
@@ -47,6 +49,12 @@ using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_tim
 using Triangulate: Triangulate, TriangulateIO, triangulate
 @reexport using UnPack: @unpack
 using UnPack: @pack!
+
+# finite difference SBP operators
+using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
+import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
+@reexport using SummationByPartsOperators:
+  SummationByPartsOperators, derivative_operator
 
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
@@ -87,8 +95,8 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
-       flux_ec,
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang,
+       flux_kennedy_gruber, flux_shima_etal, flux_ec,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
@@ -134,13 +142,15 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh, CurvedMesh, UnstructuredQuadMesh
+export TreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
-       VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
+       VolumeIntegralWeakForm, VolumeIntegralStrongForm,
+       VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        MortarL2
 
 export nelements, nnodes, nvariables,
@@ -173,6 +183,8 @@ export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_leve
 
 function __init__()
   init_mpi()
+
+  init_p4est()
 
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin

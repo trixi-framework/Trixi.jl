@@ -193,7 +193,7 @@ Cassette.@context Ctx
     @testset "calc_jacobian_matrix" begin
       @testset "identity map" begin
         basis = LobattoLegendreBasis(5)
-        nodes = basis.nodes
+        nodes = Trixi.get_nodes(basis)
         jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
 
         node_coordinates = Array{Float64, 4}(undef, 2, 6, 6, 1)
@@ -207,7 +207,7 @@ Cassette.@context Ctx
 
       @testset "maximum exact polydeg" begin
         basis = LobattoLegendreBasis(3)
-        nodes = basis.nodes
+        nodes = Trixi.get_nodes(basis)
         jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
 
         # f(x, y) = [x^3, xy^2]
@@ -386,9 +386,9 @@ Cassette.@context Ctx
   end
 
   @testset "DG L2 mortar container debug output" begin
-    c2d = Trixi.L2MortarContainer2D{Float64, 1, 1}(1)
+    c2d = Trixi.L2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
-    c3d = Trixi.L2MortarContainer3D{Float64, 1, 1}(1)
+    c3d = Trixi.L2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
   end
 
@@ -510,7 +510,7 @@ Cassette.@context Ctx
       # test tuple args
       cons_vars = prim2cons((rho, v1, v2, v3, p), equations)
       entropy_vars = cons2entropy(cons_vars, equations)
-      @test cons_vars ≈ entropy2cons(entropy_vars, equations)      
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
   end
 
@@ -528,10 +528,6 @@ Cassette.@context Ctx
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
   end
-
-  # Test docstrings
-  DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
-  doctest(Trixi, manual=false)
 end
 
 

@@ -69,7 +69,6 @@ end
     q1  = one(T)
     q2  = one(T)
   else
-    # TODO: sincospi
     sinpi_x1,  cospi_x1  = sincos(pi*x[1])
     sinpi_2x2, cospi_2x2 = sincos(pi*2*x[2])
     phi =  2 *      cospi_x1 * sinpi_2x2 + 2 # ϕ
@@ -84,7 +83,6 @@ end
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
   @unpack inv_Tr = equations
 
-  # TODO: sincospi
   x1, x2 = x
   du1 = 10 * pi^2 * cospi(x1) * sinpi(2 * x2)
   du2 = -inv_Tr * u[2]
@@ -118,7 +116,6 @@ end
     q2  = 1.0
   else
     C   = inv(sinh(pi))
-    # TODO: sincospi
     sinpi_x1, cospi_x1 = sincos(pi*x[1])
     sinpi_x2, cospi_x2 = sincos(pi*x[2])
     sinh_pix1 = sinh(pi*x[1])
@@ -242,6 +239,28 @@ end
 end
 
 
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  phi, q1, q2 = u
+  @unpack inv_Tr = equations
+
+  f1 = -equations.nu * (normal_direction[1] * q1 + normal_direction[2] * q2)
+  f2 = -phi * inv_Tr * normal_direction[1]
+  f3 = -phi * inv_Tr * normal_direction[2]
+
+  return SVector(f1, f2, f3)
+end
+
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  λ_max = sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
+end
+
+
+# TODO: Could add a `rotate_to_x` and `rotate_from_x` in order to use this numerical surface flux
+#       in the FluxRotated functionality
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll
