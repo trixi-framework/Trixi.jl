@@ -679,8 +679,8 @@ function init_fn(p4est, which_tree, quadrant)
   return nothing
 end
 
-cfunction(::Val{init_fn}, ::Val{2}) = @cfunction(init_fn, Cvoid, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
-cfunction(::Val{init_fn}, ::Val{3}) = @cfunction(init_fn, Cvoid, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
+cfunction(::typeof(init_fn), ::Val{2}) = @cfunction(init_fn, Cvoid, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+cfunction(::typeof(init_fn), ::Val{3}) = @cfunction(init_fn, Cvoid, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
 
 function refine_fn(p4est, which_tree, quadrant)
   # Controller value has been copied to the quadrant's user data storage before.
@@ -697,8 +697,8 @@ function refine_fn(p4est, which_tree, quadrant)
   end
 end
 
-cfunction(::Val{refine_fn}, ::Val{2}) = @cfunction(refine_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
-cfunction(::Val{refine_fn}, ::Val{3}) = @cfunction(refine_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
+cfunction(::typeof(refine_fn), ::Val{2}) = @cfunction(refine_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+cfunction(::typeof(refine_fn), ::Val{3}) = @cfunction(refine_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
 
 # Refine marked cells and rebalance forest.
 # Return a list of all cells that have been refined during refinement or rebalancing.
@@ -707,8 +707,8 @@ function refine!(mesh::P4estMesh)
   original_n_cells = ncells(mesh)
   save_original_ids(mesh)
 
-  init_fn_c = cfunction(Val(init_fn), Val(ndims(mesh)))
-  refine_fn_c = cfunction(Val(refine_fn), Val(ndims(mesh)))
+  init_fn_c = cfunction(init_fn, Val(ndims(mesh)))
+  refine_fn_c = cfunction(refine_fn, Val(ndims(mesh)))
 
   # Refine marked cells
   @timed timer() "refine" refine_p4est!(mesh.p4est, false, refine_fn_c, init_fn_c)
@@ -740,8 +740,8 @@ end
 unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p4est_t}) = unsafe_wrap(Array, quadrants_ptr, 4)
 unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p8est_t}) = unsafe_wrap(Array, quadrants_ptr, 8)
 
-cfunction(::Val{coarsen_fn}, ::Val{2}) = @cfunction(coarsen_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p4est_quadrant_t}}))
-cfunction(::Val{coarsen_fn}, ::Val{3}) = @cfunction(coarsen_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p8est_quadrant_t}}))
+cfunction(::typeof(coarsen_fn), ::Val{2}) = @cfunction(coarsen_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p4est_quadrant_t}}))
+cfunction(::typeof(coarsen_fn), ::Val{3}) = @cfunction(coarsen_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p8est_quadrant_t}}))
 
 # Coarsen marked cells if the forest will stay balanced.
 # Return a list of all cells that have been coarsened.
@@ -751,8 +751,8 @@ function coarsen!(mesh::P4estMesh)
   save_original_ids(mesh)
 
   # Coarsen marked cells
-  coarsen_fn_c = cfunction(Val(coarsen_fn), Val(ndims(mesh)))
-  init_fn_c = cfunction(Val(init_fn), Val(ndims(mesh)))
+  coarsen_fn_c = cfunction(coarsen_fn, Val(ndims(mesh)))
+  init_fn_c = cfunction(init_fn, Val(ndims(mesh)))
 
   @timed timer() "coarsen!" coarsen_p4est!(mesh.p4est, false, coarsen_fn_c, init_fn_c)
 
@@ -808,12 +808,12 @@ function save_original_id_iter_volume(info, user_data)
   return nothing
 end
 
-cfunction(::Val{save_original_id_iter_volume}, ::Val{2}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
-cfunction(::Val{save_original_id_iter_volume}, ::Val{3}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+cfunction(::typeof(save_original_id_iter_volume), ::Val{2}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+cfunction(::typeof(save_original_id_iter_volume), ::Val{3}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 # Copy old element IDs to each quad's user data storage
 function save_original_ids(mesh::P4estMesh)
-  iter_volume_c = cfunction(Val(save_original_id_iter_volume), Val(ndims(mesh)))
+  iter_volume_c = cfunction(save_original_id_iter_volume, Val(ndims(mesh)))
 
   iterate_p4est(mesh.p4est, C_NULL; iter_volume_c=iter_volume_c)
 end
@@ -840,14 +840,14 @@ function collect_changed_iter_volume(info, user_data)
   return nothing
 end
 
-cfunction(::Val{collect_changed_iter_volume}, ::Val{2}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
-cfunction(::Val{collect_changed_iter_volume}, ::Val{3}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+cfunction(::typeof(collect_changed_iter_volume), ::Val{2}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+cfunction(::typeof(collect_changed_iter_volume), ::Val{3}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 function collect_changed_cells(mesh::P4estMesh, original_n_cells)
   original_cells = collect(1:original_n_cells)
 
   # Iterate over all quads and set original cells that haven't been changed to zero
-  iter_volume_c = cfunction(Val(collect_changed_iter_volume), Val(ndims(mesh)))
+  iter_volume_c = cfunction(collect_changed_iter_volume, Val(ndims(mesh)))
 
   iterate_p4est(mesh.p4est, original_cells; iter_volume_c=iter_volume_c)
 
@@ -884,14 +884,14 @@ function collect_new_iter_volume(info, user_data)
   return nothing
 end
 
-cfunction(::Val{collect_new_iter_volume}, ::Val{2}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
-cfunction(::Val{collect_new_iter_volume}, ::Val{3}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+cfunction(::typeof(collect_new_iter_volume), ::Val{2}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+cfunction(::typeof(collect_new_iter_volume), ::Val{3}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 function collect_new_cells(mesh::P4estMesh)
   cell_is_new = zeros(Int, ncells(mesh))
 
   # Iterate over all quads and set original cells that have been changed to one
-  iter_volume_c = cfunction(Val(collect_new_iter_volume), Val(ndims(mesh)))
+  iter_volume_c = cfunction(collect_new_iter_volume, Val(ndims(mesh)))
 
   iterate_p4est(mesh.p4est, cell_is_new; iter_volume_c=iter_volume_c)
 
