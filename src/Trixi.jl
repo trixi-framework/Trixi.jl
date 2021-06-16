@@ -163,7 +163,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
 export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNNPP, IndicatorNNRH
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNNPP, IndicatorNNRH, IndicatorCNN
 
 export PositivityPreservingLimiterZhangShu
 

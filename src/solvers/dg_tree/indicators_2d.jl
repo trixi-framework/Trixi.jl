@@ -562,3 +562,129 @@ function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,4},
   return alpha
 end
 
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorCNN}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+
+  alpha = Vector{real(basis)}()
+  alpha_tmp = similar(alpha)
+
+  A = Array{real(basis), ndims(equations)}
+  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  #modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  #modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+  return (; alpha, alpha_tmp, indicator_threaded) #, modal_threaded, modal_tmp1_threaded)
+end
+
+# this method is used when the indicator is constructed as for AMR
+function create_cache(typ::Type{IndicatorCNN}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
+  create_cache(typ, equations, dg.basis)
+end
+
+
+function (indicator_cnn::IndicatorCNN)(u::AbstractArray{<:Any,4},
+                                                   equations, dg::DGSEM, cache;
+                                                   kwargs...)
+  @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_cnn
+  @unpack alpha, alpha_tmp, indicator_threaded = indicator_cnn.cache
+  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+  #       or just `resize!` whenever we call the relevant methods as we do now?
+  resize!(alpha, nelements(dg, cache))
+  if alpha_smooth
+    resize!(alpha_tmp, nelements(dg, cache))
+  end
+
+  @threaded for element in eachelement(dg, cache)
+    indicator  = indicator_threaded[Threads.threadid()]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      indicator[i, j] = indicator_cnn.variable(u_local, equations)
+    end
+
+    
+    n_cnn = 4
+    nodes,_ = gauss_lobatto_nodes_weights(nnodes(dg))
+    cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
+    vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
+    data_cnn = Array{Float64}(undef, n_cnn, n_cnn)
+    X = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
+
+    for j in 1:n_cnn, i in 1:n_cnn
+      acc = 0
+      for jj in eachnode(dg), ii in eachnode(dg)
+        acc += vandermonde[i,ii] * indicator[ii,jj] * vandermonde[j,jj]
+      end
+      data_cnn[i,j] = acc
+    end
+
+    X[:,:,1,1] = data_cnn[:,:]
+
+    # Scale input data
+    X = X ./max(maximum(abs.(X)),1)
+
+    if alpha_continuous && !alpha_amr
+      # Set good cells to 0 and troubled cells to continuous value of the network prediction
+      if network(X)[1] > 0.5
+        alpha_element = network(X)[1]
+      else
+        alpha_element = 0
+      end
+      
+      # Take care of the case close to pure FV
+      if alpha_element > 1 - alpha_min
+       alpha_element = one(alpha_element)
+      end
+
+      # Clip the maximum amount of FV allowed
+      alpha[element] = alpha_max * alpha_element
+    elseif !alpha_continuous && !alpha_amr
+      # Set good cells to 0 and troubled cells to 1
+      if network(X)[1] > 0.5
+        alpha[element] = 1
+      else
+        alpha[element] = 0
+      end
+    elseif alpha_amr
+      # The entire continuous output of the neural network is used for AMR
+      alpha_element = network(X)[1]
+    end
+
+  end
+
+  if (alpha_smooth)
+    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+    # Copy alpha values such that smoothing is indpedenent of the element access order
+    alpha_tmp .= alpha
+
+    # Loop over interfaces
+    for interface in eachinterface(dg, cache)
+      # Get neighboring element ids
+      left  = cache.interfaces.neighbor_ids[1, interface]
+      right = cache.interfaces.neighbor_ids[2, interface]
+
+      # Apply smoothing
+      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
+      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
+    end
+
+    # Loop over L2 mortars
+    for mortar in eachmortar(dg, cache)
+      # Get neighboring element ids
+      lower = cache.mortars.neighbor_ids[1, mortar]
+      upper = cache.mortars.neighbor_ids[2, mortar]
+      large = cache.mortars.neighbor_ids[3, mortar]
+
+      # Apply smoothing
+      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
+      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
+    end
+  end
+
+  return alpha
+end
