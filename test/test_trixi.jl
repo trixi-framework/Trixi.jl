@@ -128,3 +128,38 @@ macro test_nowarn_mod(expr)
     end
   end
 end
+
+
+"""
+    @trixi_testset "name of the testset" #= code to test #=
+
+Similar to `@testset`, but wraps the code inside a temporary module to avoid
+namespace pollution. It also `include`s this file again to provide the
+definition of `@test_trixi_include`.
+"""
+macro trixi_testset(name, expr)
+  @assert name isa String
+  mod = gensym(name)
+  quote
+    @eval module $mod
+      using Test
+      using Trixi
+      include(@__FILE__)
+      # We define `EXAMPLES_DIR` in (nearly) all test modules and use it to
+      # get the path to the elixirs to be tested. However, that's not required
+      # and we want to fail gracefully if it's not defined.
+      try
+        import ..EXAMPLES_DIR
+      catch
+        nothing
+      end
+      @testset $name $expr
+    end
+    nothing
+  end
+  # quote
+  #   let
+  #     @testset $name $expr
+  #   end
+  # end
+end
