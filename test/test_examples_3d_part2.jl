@@ -1,6 +1,6 @@
 module TestExamples3DPart2
 
-using Test, SafeTestsets
+using Test
 using Trixi
 
 include("test_trixi.jl")
@@ -12,10 +12,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@safetestset "3D-Part2" begin
+@testset "3D-Part2" begin
 
 # Run basic tests
-@safetestset "Examples 3D" begin
+@testset "Examples 3D" begin
   # MHD
   include("test_examples_3d_mhd.jl")
 
@@ -27,8 +27,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 end
 
 
-@safetestset "Additional tests in 3D" begin
-  @safetestset "ideal GLM MHD" begin
+@testset "Additional tests in 3D" begin
+  @testset "ideal GLM MHD" begin
     eqn = IdealGlmMhdEquations3D(1.4)
     u = [1.0, 2.0, 3.0, 4.0, 20.0, 0.1, 0.2, 0.3, 1.5]
 

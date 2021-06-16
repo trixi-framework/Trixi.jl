@@ -1,6 +1,6 @@
 module TestVisualization
 
-using Test, SafeTestsets
+using Test
 using Documenter
 using Trixi
 using Plots
@@ -15,7 +15,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
-@safetestset "Visualization tests" begin
+@testset "Visualization tests" begin
   # Run 2D tests with elixirs for both mesh types
   test_examples_2d = Dict(
     "TreeMesh" => "elixir_euler_blast_wave_amr.jl",
@@ -23,7 +23,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     "UnstructuredQuadMesh" => "elixir_euler_unstructured_quad_wall_bc.jl"
   )
 
-  @safetestset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
+  @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", test_examples_2d[mesh]),
                                      tspan=(0,0.1))
@@ -69,7 +69,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
 
-    @safetestset "2D plot recipes" begin
+    @testset "2D plot recipes" begin
       pd = PlotData2D(sol)
 
       @test_nowarn_debug plot(sol)
@@ -78,14 +78,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug plot(getmesh(pd))
     end
 
-    @safetestset "1D plot from 2D solution" begin
+    @testset "1D plot from 2D solution" begin
       @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
       pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
       @test_nowarn_debug plot(pd1D)
     end
   end
 
-  @safetestset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
+  @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
     # Run Trixi
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
                                      tspan=(0,0.1))
@@ -135,7 +135,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     pd2 = PlotData1D(sol, nvisnodes=2)
     @test size(pd2.data) == (128, 3)
 
-    @safetestset "1D plot recipes" begin
+    @testset "1D plot recipes" begin
       pd = PlotData1D(sol)
 
       @test_nowarn_debug plot(sol)
@@ -146,7 +146,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
     # with at least one plot remaining empty
-    @safetestset "plotting multiple variables" begin
+    @testset "plotting multiple variables" begin
       x = collect(0.0:0.1:1.0)
       data1d = rand(5, 11)
       variable_names = string.('a':'e')
@@ -163,7 +163,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @safetestset "plot time series" begin
+  @testset "plot time series" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))
@@ -172,7 +172,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test PlotData1D(time_series, 1) isa PlotData1D
   end
 
-  @safetestset "adapt_to_mesh_level" begin
+  @testset "adapt_to_mesh_level" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
     @test adapt_to_mesh_level(sol, 5) isa Tuple
@@ -185,18 +185,18 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isapprox(sol.u[end], u_ode_level5, atol=1e-13)
   end
 
-  @safetestset "plot 3D" begin
+  @testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
   end
 
-  @safetestset "plotting TimeIntegratorSolution" begin
+  @testset "plotting TimeIntegratorSolution" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
     @test_nowarn_debug plot(sol)
   end
 
-  @safetestset "VisualizationCallback" begin
+  @testset "VisualizationCallback" begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
     # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
@@ -212,13 +212,13 @@ isdir(outdir) && rm(outdir, recursive=true)
                                                plot_creator=Trixi.save_plot),
                                tspan=(0.0, 2.0))
 
-    @safetestset "elixir_advection_amr_visualization.jl with save_plot" begin
+    @testset "elixir_advection_amr_visualization.jl with save_plot" begin
       @test isfile(joinpath(outdir, "solution_000000.png"))
       @test isfile(joinpath(outdir, "solution_000020.png"))
       @test isfile(joinpath(outdir, "solution_000024.png"))
     end
 
-    @safetestset "show" begin
+    @testset "show" begin
       @test_nowarn_debug show(stdout, visualization)
       println(stdout)
 

@@ -1,6 +1,6 @@
 module TestExamples2DPart2
 
-using Test, SafeTestsets
+using Test
 using Trixi
 
 include("test_trixi.jl")
@@ -12,10 +12,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@safetestset "2D-Part2" begin
+@testset "2D-Part2" begin
 
 # Run basic tests
-@safetestset "Examples 2D" begin
+@testset "Examples 2D" begin
   # Compressible Euler Multicomponent
   include("test_examples_2d_eulermulti.jl")
 
@@ -30,9 +30,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 end
 
 # Coverage test for all initial conditions
-@safetestset "Tests for initial conditions" begin
+@testset "Tests for initial conditions" begin
   # GLM-MHD
-  @safetestset "elixir_mhd_alfven_wave.jl one step with initial_condition_constant" begin
+  @testset "elixir_mhd_alfven_wave.jl one step with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
       l2   = [7.144325530681224e-17, 2.123397983547417e-16, 5.061138912500049e-16, 3.6588423152083e-17, 8.449816179702522e-15, 3.9171737639099993e-16, 2.445565690318772e-16, 3.6588423152083e-17, 9.971153407737885e-17],
       linf = [2.220446049250313e-16, 8.465450562766819e-16, 1.8318679906315083e-15, 1.1102230246251565e-16, 1.4210854715202004e-14, 8.881784197001252e-16, 4.440892098500626e-16, 1.1102230246251565e-16, 4.779017148551244e-16],
@@ -40,14 +40,14 @@ end
       initial_condition = initial_condition_constant)
   end
 
-  @safetestset "elixir_mhd_rotor.jl" begin
+  @testset "elixir_mhd_rotor.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
       l2   = [1.2429643014570362, 1.7996363685163963, 1.6899889382208215, 0.0, 2.263014495582255, 0.2127948919559293, 0.23341167012961367, 0.0, 0.003341061230142962],
       linf = [10.401662016997985, 14.061042946011094, 15.556382737749237, 0.0, 16.714999099689578, 1.3250449624793987, 1.4148467737020096, 0.0, 0.0878998114279951],
       tspan = (0.0, 0.05))
   end
 
-  @safetestset "elixir_mhd_blast_wave.jl" begin
+  @testset "elixir_mhd_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave.jl"),
       l2   = [0.17569823349539196, 3.853292514951796, 2.474036084054808, 0.0, 355.36545703316915, 2.3525087027248084, 1.394705056983077, 0.0, 0.029910308624236454],
       linf = [1.5831869462980066, 44.20237543674303, 12.866364462538552, 0.0, 2237.8614138686, 13.066894956593798, 8.984965484247244, 0.0, 0.5226498664960756],
@@ -55,7 +55,7 @@ end
   end
 
   # LBM
-  @safetestset "elixir_lbm_couette.jl with initial_condition_couette_steady" begin
+  @testset "elixir_lbm_couette.jl with initial_condition_couette_steady" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_couette.jl"),
       l2   = [9.321369073400123e-16, 1.6498793963435488e-6, 5.211495843124065e-16,
               1.6520893954826173e-6, 1.0406056181388841e-5, 8.801606429417205e-6,
@@ -67,7 +67,7 @@ end
       tspan = (0.0, 1.0))
   end
 
-  @safetestset "elixir_lbm_lid_driven_cavity.jl with stationary walls" begin
+  @testset "elixir_lbm_lid_driven_cavity.jl with stationary walls" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_lid_driven_cavity.jl"),
       l2   = [1.7198203373689985e-16, 1.685644347036533e-16, 2.1604974801394525e-16,
               2.1527076266915764e-16, 4.2170298143732604e-17, 5.160156233016299e-17,

@@ -1,6 +1,6 @@
 module TestExamples2DPart3
 
-using Test, SafeTestsets
+using Test
 using Trixi
 
 include("test_trixi.jl")
@@ -12,10 +12,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@safetestset "2D-Part3" begin
+@testset "2D-Part3" begin
 
 # Run basic tests
-@safetestset "Examples 2D" begin
+@testset "Examples 2D" begin
   # Acoustic perturbation
   include("test_examples_2d_ape.jl")
 

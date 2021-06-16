@@ -1,6 +1,6 @@
 module TestUnit
 
-using Test, SafeTestsets
+using Test
 using Cassette
 using Documenter
 using Trixi
@@ -15,13 +15,13 @@ isdir(outdir) && rm(outdir, recursive=true)
 Cassette.@context Ctx
 
 # Run various unit (= non-elixir-triggered) tests
-@safetestset "Unit tests" begin
-  @safetestset "SerialTree" begin
-    @safetestset "constructors" begin
+@testset "Unit tests" begin
+  @testset "SerialTree" begin
+    @testset "constructors" begin
       @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
     end
 
-    @safetestset "helper functions" begin
+    @testset "helper functions" begin
       t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
       @test_nowarn display(t)
       @test Trixi.ndims(t) == 1
@@ -31,7 +31,7 @@ Cassette.@context Ctx
       @test Trixi.n_directions(t) == 2
     end
 
-    @safetestset "refine!/coarsen!" begin
+    @testset "refine!/coarsen!" begin
       t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
       @test Trixi.refine!(t) == [1]
       @test Trixi.coarsen!(t) == [1]
@@ -46,27 +46,27 @@ Cassette.@context Ctx
     end
   end
 
-  @safetestset "ParallelTree" begin
-    @safetestset "constructors" begin
+  @testset "ParallelTree" begin
+    @testset "constructors" begin
       @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
     end
 
-    @safetestset "helper functions" begin
+    @testset "helper functions" begin
       t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
       @test isnothing(display(t))
       @test isnothing(Trixi.reset_data_structures!(t))
     end
   end
 
-  @safetestset "TreeMesh" begin
-    @safetestset "constructors" begin
+  @testset "TreeMesh" begin
+    @testset "constructors" begin
       @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
     end
   end
 
-  @safetestset "ParallelTreeMesh" begin
-    @safetestset "partition!" begin
-      @safetestset "mpi_nranks() = 2" begin
+  @testset "ParallelTreeMesh" begin
+    @testset "partition!" begin
+      @testset "mpi_nranks() = 2" begin
         Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 2
         Cassette.overdub(Ctx(), () -> begin
           @test Trixi.mpi_nranks() == 2
@@ -93,7 +93,7 @@ Cassette.@context Ctx
         end)
       end
 
-      @safetestset "mpi_nranks() = 3" begin
+      @testset "mpi_nranks() = 3" begin
         Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
         Cassette.overdub(Ctx(), () -> begin
         @test Trixi.mpi_nranks() == 3
@@ -120,7 +120,7 @@ Cassette.@context Ctx
         end)
       end
 
-      @safetestset "mpi_nranks() = 9" begin
+      @testset "mpi_nranks() = 9" begin
         Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 9
         Cassette.overdub(Ctx(), () -> begin
         @test Trixi.mpi_nranks() == 9
@@ -140,7 +140,7 @@ Cassette.@context Ctx
         end)
       end
 
-      @safetestset "mpi_nranks() = 3 non-uniform" begin
+      @testset "mpi_nranks() = 3 non-uniform" begin
         Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
         Cassette.overdub(Ctx(), () -> begin
           @test Trixi.mpi_nranks() == 3
@@ -166,7 +166,7 @@ Cassette.@context Ctx
         end)
       end
 
-      @safetestset "not enough ranks" begin
+      @testset "not enough ranks" begin
         Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
         Cassette.overdub(Ctx(), () -> begin
           @test Trixi.mpi_nranks() == 3
@@ -189,9 +189,9 @@ Cassette.@context Ctx
     end
   end
 
-  @safetestset "curved mesh" begin
-    @safetestset "calc_jacobian_matrix" begin
-      @safetestset "identity map" begin
+  @testset "curved mesh" begin
+    @testset "calc_jacobian_matrix" begin
+      @testset "identity map" begin
         basis = LobattoLegendreBasis(5)
         nodes = Trixi.get_nodes(basis)
         jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
@@ -205,7 +205,7 @@ Cassette.@context Ctx
         @test Trixi.calc_jacobian_matrix!(jacobian_matrix, 1, node_coordinates, basis) ≈ expected
       end
 
-      @safetestset "maximum exact polydeg" begin
+      @testset "maximum exact polydeg" begin
         basis = LobattoLegendreBasis(3)
         nodes = Trixi.get_nodes(basis)
         jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
@@ -226,12 +226,12 @@ Cassette.@context Ctx
     end
   end
 
-  @safetestset "interpolation" begin
-    @safetestset "nodes and weights" begin
+  @testset "interpolation" begin
+    @testset "nodes and weights" begin
       @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])
     end
 
-    @safetestset "multiply_dimensionwise" begin
+    @testset "multiply_dimensionwise" begin
       nodes_in  = [0.0, 0.5, 1.0]
       nodes_out = [0.0, 1/3, 2/3, 1.0]
       matrix = Trixi.polynomial_interpolation_matrix(nodes_in, nodes_out)
@@ -257,16 +257,16 @@ Cassette.@context Ctx
     end
   end
 
-  @safetestset "L2 projection" begin
-    @safetestset "calc_reverse_upper for LGL" begin
+  @testset "L2 projection" begin
+    @testset "calc_reverse_upper for LGL" begin
       @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)), [[0.25, 0.25] [0.0, 0.5]])
     end
-    @safetestset "calc_reverse_lower for LGL" begin
+    @testset "calc_reverse_lower for LGL" begin
       @test isapprox(Trixi.calc_reverse_lower(2, Val(:gauss_lobatto)), [[0.5, 0.0] [0.25, 0.25]])
     end
   end
 
-  @safetestset "containers" begin
+  @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
       data::Vector{Int}
@@ -295,17 +295,17 @@ Cassette.@context Ctx
               c1.data[1:c1.length] == c2.data[1:c2.length])
     end
 
-    @safetestset "size" begin
+    @testset "size" begin
       c = MyContainer([1, 2, 3])
       @test size(c) == (3,)
     end
 
-    @safetestset "resize!" begin
+    @testset "resize!" begin
       c = MyContainer([1, 2, 3])
       @test length(resize!(c, 2)) == 2
     end
 
-    @safetestset "copy!" begin
+    @testset "copy!" begin
       c1 = MyContainer([1, 2, 3])
       c2 = MyContainer([4, 5])
       @test Trixi.copy!(c1, c2, 2, 1, 2) == MyContainer([1, 2, 3]) # no-op
@@ -324,7 +324,7 @@ Cassette.@context Ctx
       @test Trixi.copy!(c1, 1, 3) == MyContainer([1, 2, 1])
     end
 
-    @safetestset "move!" begin
+    @testset "move!" begin
       c = MyContainer([1, 2, 3])
       @test Trixi.move!(c, 1, 1) == MyContainer([1, 2, 3]) # no-op
 
@@ -332,7 +332,7 @@ Cassette.@context Ctx
       @test Trixi.move!(c, 1, 2) == MyContainer([0, 1, 3])
     end
 
-    @safetestset "swap!" begin
+    @testset "swap!" begin
       c = MyContainer([1,2])
       @test Trixi.swap!(c, 1, 1) == MyContainer([1, 2]) # no-op
 
@@ -340,7 +340,7 @@ Cassette.@context Ctx
       @test Trixi.swap!(c, 1, 2) == MyContainer([2,1])
     end
 
-    @safetestset "erase!" begin
+    @testset "erase!" begin
       c = MyContainer([1, 2])
       @test Trixi.erase!(c, 2, 1) == MyContainer([1, 2]) # no-op
 
@@ -348,7 +348,7 @@ Cassette.@context Ctx
       @test Trixi.erase!(c, 1) == MyContainer([0, 2])
     end
 
-    @safetestset "remove_shift!" begin
+    @testset "remove_shift!" begin
       c = MyContainer([1, 2, 3, 4])
       @test Trixi.remove_shift!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
 
@@ -359,7 +359,7 @@ Cassette.@context Ctx
       @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
     end
 
-    @safetestset "remove_fill!" begin
+    @testset "remove_fill!" begin
       c = MyContainer([1, 2, 3, 4])
       @test Trixi.remove_fill!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
 
@@ -367,32 +367,32 @@ Cassette.@context Ctx
       @test Trixi.remove_fill!(c, 2, 2) == MyContainer([1, 4, 3], 4)
     end
 
-    @safetestset "reset!" begin
+    @testset "reset!" begin
       c = MyContainer([1, 2, 3])
       @test Trixi.reset!(c, 2) == MyContainer(Int[], 2)
     end
   end
 
-  @safetestset "example elixirs" begin
+  @testset "example elixirs" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
     @test endswith(default_example(), "elixir_advection_basic.jl")
   end
 
-  @safetestset "HLL flux with vanishing wave speed estimates (#502)" begin
+  @testset "HLL flux with vanishing wave speed estimates (#502)" begin
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.0, 0.0, 0.0)
     @test !any(isnan, FluxHLL()(u, u, 1, equations))
   end
 
-  @safetestset "DG L2 mortar container debug output" begin
+  @testset "DG L2 mortar container debug output" begin
     c2d = Trixi.L2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
     c3d = Trixi.L2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
   end
 
-  @safetestset "Printing indicators/controllers" begin
+  @testset "Printing indicators/controllers" begin
     # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
     # just useful to run basic tests of `show` methods.
 
@@ -409,7 +409,7 @@ Cassette.@context Ctx
     @test_nowarn show(stdout, indicator_max)
   end
 
-  @safetestset "LBM 2D constructor" begin
+  @testset "LBM 2D constructor" begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=nothing, Re=1000)
     # Both Mach number and velocity set
@@ -423,7 +423,7 @@ Cassette.@context Ctx
     @test LatticeBoltzmannEquations2D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations2D
   end
 
-  @safetestset "LBM 3D constructor" begin
+  @testset "LBM 3D constructor" begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=nothing, Re=1000)
     # Both Mach number and velocity set
@@ -437,7 +437,7 @@ Cassette.@context Ctx
     @test LatticeBoltzmannEquations3D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations3D
   end
 
-  @safetestset "LBM 2D functions" begin
+  @testset "LBM 2D functions" begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, equation)
@@ -447,7 +447,7 @@ Cassette.@context Ctx
     @test isapprox(Trixi.velocity(u, 2, equation), 3)
   end
 
-  @safetestset "LBM 3D functions" begin
+  @testset "LBM 3D functions" begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations3D(Ma=0.1, Re=1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
@@ -458,7 +458,7 @@ Cassette.@context Ctx
     @test isapprox(velocity(u, 3, equation), 4)
   end
 
-  @safetestset "LBMCollisionCallback" begin
+  @testset "LBMCollisionCallback" begin
     # Printing of LBM collision callback
     callback = LBMCollisionCallback()
     @test_nowarn show(stdout, callback)
@@ -467,7 +467,7 @@ Cassette.@context Ctx
     println()
   end
 
-  @safetestset "APE 2D varnames" begin
+  @testset "APE 2D varnames" begin
     v_mean_global = (0.0, 0.0)
     c_mean_global = 1.0
     rho_mean_global = 1.0
@@ -477,7 +477,7 @@ Cassette.@context Ctx
     @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 
-  @safetestset "Euler conversion between conservative/entropy variables" begin
+  @testset "Euler conversion between conservative/entropy variables" begin
     rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
     let equations = CompressibleEulerEquations1D(1.4)
@@ -514,7 +514,7 @@ Cassette.@context Ctx
     end
   end
 
-  @safetestset "TimeSeriesCallback" begin
+  @testset "TimeSeriesCallback" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))

@@ -1,4 +1,4 @@
-using Test, SafeTestsets
+using Test
 using MPI: mpiexec
 
 # run tests on Travis CI in parallel
@@ -6,7 +6,7 @@ const TRIXI_TEST = get(ENV, "TRIXI_TEST", "all")
 const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
 const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
 
-@time @safetestset "Trixi.jl tests" begin
+@time @testset "Trixi.jl tests" begin
   # This is placed first since tests error out otherwise if `TRIXI_TEST == "all"`,
   # at least on some systems.
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_mpi"
