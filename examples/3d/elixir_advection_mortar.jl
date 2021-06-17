@@ -34,6 +34,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
 
@@ -48,8 +49,6 @@ save_solution = SaveSolutionCallback(interval=100,
                                    solution_variables=cons2prim)
 
 stepsize_callback = StepsizeCallback(cfl=1.2)
-
-analysis_interval = 100
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

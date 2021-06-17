@@ -3,32 +3,32 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timed timer() "volume integral" calc_volume_integral!(
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
   # Calculate interface and boundary fluxes
-  @timed timer() "interface flux" calc_interface_flux!(
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
     cache, u, mesh, equations, dg.surface_integral, dg)
 
   # Calculate boundary fluxes
-  @timed timer() "boundary flux" calc_boundary_flux!(
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
     cache, u, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
 
   # Calculate surface integrals
-  @timed timer() "surface integral" calc_surface_integral!(
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
     du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @timed timer() "Jacobian" apply_jacobian!(
+  @trixi_timeit timer() "Jacobian" apply_jacobian!(
     du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timed timer() "source terms" calc_sources!(
+  @trixi_timeit timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
   return nothing
