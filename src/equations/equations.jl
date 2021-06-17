@@ -161,7 +161,7 @@ julia> BoundaryConditionWall(boundary_state_slip_wall)
 
 !!! warning "Experimental code"
     This boundary condition can change any time and is currently only implemented for the
-    [`CompressibleEulerEquations2D`](@ref).
+    [`CompressibleEulerEquations2D`](@ref) and [`AcousticPerturbationEquations2D`](@ref).
 """
 struct BoundaryConditionWall{B}
   boundary_value_function::B

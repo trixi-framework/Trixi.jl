@@ -41,13 +41,9 @@ more flexible. These values are ignored if the mean values are defined internall
 condition.
 
 The equations are based on the APE-4 system introduced in the following paper:
-
-R. Ewert, W. Schröder
-"Acoustic perturbation equations based on flow decomposition via source filtering",
-Journal of Computational Physics,
-Volume 188, Issue 2,
-2003,
-[DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2)
+- Roland Ewert and Wolfgang Schröder (2003)
+  Acoustic perturbation equations based on flow decomposition via source filtering
+  [DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2)
 """
 struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbationEquations{2, 7}
   v_mean_global::SVector{2, RealT}
@@ -338,6 +334,73 @@ end
 
   λ_max = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
 end
+
+
+# Calculate 1D flux for a single point in the normal direction
+# Called from the general surface flux routine in `numerical_fluxes.jl` so the direction
+# has been normalized before this call
+@inline function flux(u, normal_vector::AbstractVector, equations::AcousticPerturbationEquations2D)
+  v1_prime, v2_prime, p_prime = cons2state(u, equations)
+  v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
+
+  f1 = normal_vector[1] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
+  f2 = normal_vector[2] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
+  f3 = ( normal_vector[1] * (c_mean^2 * rho_mean * v1_prime + v1_mean * p_prime)
+       + normal_vector[2] * (c_mean^2 * rho_mean * v2_prime + v2_mean * p_prime) )
+
+  # The rest of the state variables are actually variable coefficients, hence the flux should be
+  # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
+  # for details.
+  f4 = f5 = f6 = f7 = zero(eltype(u))
+
+  return SVector(f1, f2, f3, f4, f5, f6, f7)
+end
+
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::AcousticPerturbationEquations2D)
+  # Calculate v = v_prime + v_mean
+  v_prime_ll = normal_direction[1]*u_ll[1] + normal_direction[2]*u_ll[2]
+  v_prime_rr = normal_direction[1]*u_rr[1] + normal_direction[2]*u_rr[2]
+  v_mean_ll = normal_direction[1]*u_ll[4] + normal_direction[2]*u_ll[5]
+  v_mean_rr = normal_direction[1]*u_rr[4] + normal_direction[2]*u_rr[5]
+
+  v_ll = v_prime_ll + v_mean_ll
+  v_rr = v_prime_rr + v_mean_rr
+
+  c_mean_ll = u_ll[6]
+  c_mean_rr = u_rr[6]
+
+  λ_max = (max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)) * norm(normal_direction)
+end
+
+
+"""
+    boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
+                             equations::AcousticPertubationEquations2D)
+
+Idea behind this boundary condition is to use an orthogonal projection of the perturbed velocities
+to zero out the normal velocity while retaining the possibility of a tangential velocity
+in the boundary state. Further details are available in the paper:
+- Marcus Bauer, Jürgen Dierke and Roland Ewert (2011)
+  Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
+  [DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
+"""
+function boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
+                                  equations::AcousticPerturbationEquations2D)
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal and tangential components of the velocity
+  u_normal  = normal[1] * u_inner[1] + normal[2] * u_inner[2]
+  u_tangent = (u_inner[1] - u_normal * normal[1], u_inner[2] - u_normal * normal[2])
+
+  return SVector(u_tangent[1] - u_normal * normal[1],
+                 u_tangent[2] - u_normal * normal[2],
+                 u_inner[3],
+                 cons2mean(u_inner, equations)...)
+end
+
 
 
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = Val(false)

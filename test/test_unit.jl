@@ -510,7 +510,7 @@ Cassette.@context Ctx
       # test tuple args
       cons_vars = prim2cons((rho, v1, v2, v3, p), equations)
       entropy_vars = cons2entropy(cons_vars, equations)
-      @test cons_vars ≈ entropy2cons(entropy_vars, equations)      
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
   end
 
@@ -528,10 +528,6 @@ Cassette.@context Ctx
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
   end
-
-  # Test docstrings
-  DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
-  doctest(Trixi, manual=false)
 end
 
 

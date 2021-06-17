@@ -19,7 +19,7 @@ boundary_conditions = (x_neg=boundary_condition_zero,
                        y_neg=boundary_condition_monopole,
                        y_pos=boundary_condition_zero)
 
-# Create a uniformely refined mesh with periodic boundaries
+# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
                 n_cells_max=100_000,

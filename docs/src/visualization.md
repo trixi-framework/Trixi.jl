@@ -235,18 +235,18 @@ We can write a function like this, that outputs a list of points on a circle:
 function circle(radius, center, n_points)
     coordinates = zeros(2, n_points)
     for i in 1:n_points
-        coordinates[:,i] = radius*[cospi(2*(i-1)/n_points), sinpi(2*(i-1)/n_points)] + center
+        coordinates[:,i] = radius*[cospi(2*i/n_points), sinpi(2*i/n_points)] + center
     end
     return coordinates
 end
 ```
 
-Then create and plot a [`PlotData1D`](@ref) object along a circle with radius=1, center=[1,1] and 100 points:
+Then create and plot a [`PlotData1D`](@ref) object along a circle with radius one, center at `(1,1)`, and 100 points:
 ```julia
-pd = PlotData1D(sol, along_curve=circle(1, [1,1], 100))
+pd = PlotData1D(sol, along_curve=circle(1.0, (1.0, 1.0), 100))
 plot(pd)
 ```
-This give you following plot:
+This gives you following plot:
 ![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
 
 Creating a plot like this has it´s downside. For one it is unclear, what to put on the x-axis

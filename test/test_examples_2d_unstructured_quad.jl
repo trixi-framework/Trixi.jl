@@ -49,6 +49,21 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.31880214280781305, 0.3468488554333352, 0.34592958184413264, 0.784555926860546],
       tspan = (0.0, 1.0))
   end
+
+  @testset "elixir_advection_unstructured_quad_basic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_quad_basic.jl"),
+      l2   = [0.00023219572238346008],
+      linf = [0.0017401556568237275])
+  end
+
+  @testset "elixir_ape_unstructured_quad_gauss_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_ape_unstructured_quad_gauss_wall.jl"),
+      l2   = [0.029331247985489625, 0.02934616721732521, 0.03803253571320854, 0.0,
+              7.465932985352019e-16, 1.4931865970704038e-15, 1.4931865970704038e-15],
+      linf = [0.3626825396196784, 0.3684490307932018, 0.8477478712580901, 0.0,
+              8.881784197001252e-16, 1.7763568394002505e-15, 1.7763568394002505e-15],
+      tspan = (0.0, 5.0))
+  end
 end
 
 end # module

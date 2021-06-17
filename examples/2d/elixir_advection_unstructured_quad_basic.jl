@@ -1,35 +1,39 @@
+
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the acoustic perturbation equations
+# semidiscretization of the linear advection equation
 
-v_mean_global = (0.25, 0.25)
-c_mean_global = 1.0
-rho_mean_global = 1.0
-equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+advectionvelocity = (1.0, 1.0)
+equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+###############################################################################
+# Get the DG approximation space
 
-coordinates_min = (-1, -1) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1,  1) # maximum coordinates (max(x), max(y))
+solver = DGSEM(polydeg=6, surface_flux=flux_lax_friedrichs)
 
-# Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
-                n_cells_max=30_000) # set maximum capacity of tree data structure
+###############################################################################
+# Get the curved quad mesh from a file (downloads the file if not available locally)
 
-# A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss, solver)
+default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
+                                       default_mesh_file)
+mesh_file = default_mesh_file
 
+mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
+
+###############################################################################
+# create the semi discretization object
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, (0.0, 1.0));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -43,19 +47,15 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
-
 ###############################################################################
 # run the simulation
 
-# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
-
-# Print the timer summary
-summary_callback()
+summary_callback() # print the timer summary
