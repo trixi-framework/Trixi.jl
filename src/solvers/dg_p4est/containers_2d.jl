@@ -21,17 +21,23 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 basis::LobattoLegendreBasis)
+  calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+end
+
+function calc_node_coordinates!(node_coordinates,
+                                mesh::P4estMesh{2},
+                                nodes::AbstractVector)
   # Hanging nodes will cause holes in the mesh if its polydeg is higher
   # than the polydeg of the solver.
-  @assert length(basis.nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+  @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
   # We use `StrideArray`s here since these buffers are used in performance-critical
   # places and the additional information passed to the compiler makes them faster
   # than native `Array`s.
   tmp1    = StrideArray(undef, real(mesh),
-                        StaticInt(2), static_length(basis.nodes), static_length(mesh.nodes))
+                        StaticInt(2), static_length(nodes), static_length(mesh.nodes))
   matrix1 = StrideArray(undef, real(mesh),
-                        static_length(basis.nodes), static_length(mesh.nodes))
+                        static_length(nodes), static_length(mesh.nodes))
   matrix2 = similar(matrix1)
   baryweights_in = barycentric_weights(mesh.nodes)
 
@@ -51,8 +57,8 @@ function calc_node_coordinates!(node_coordinates,
 
       quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
 
-      nodes_out_x = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
-      nodes_out_y = 2 * (quad_length * 1/2 * (basis.nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
+      nodes_out_x = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.x / p4est_root_len) .- 1
+      nodes_out_y = 2 * (quad_length * 1/2 * (nodes .+ 1) .+ quad.y / p4est_root_len) .- 1
       polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x, baryweights_in)
       polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y, baryweights_in)
 
