@@ -17,9 +17,6 @@ DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
 DocMeta.setdocmeta!(Trixi2Img, :DocTestSetup, :(using Trixi2Img); recursive=true)
 
-# Generate markdown and notebook files for tutorials
-trixi_include("src/tutorials/make.jl")
-
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
@@ -43,10 +40,8 @@ makedocs(
             "Visualization" => "visualization.md",
         ],
         "Tutorials" => [
-            "Introduction" => "tutorials/pages/index.md",
-            "Adding a new equation" => "tutorials/pages/adding_a_new_equation.md",
-            "Differentiable programming" => "tutorials/pages/differentiable_programming.md",
-            "Testing" => "tutorials/pages/testing_repository.md",
+            "Adding a new equation" => "adding_a_new_equation.md",
+            "Differentiable programming" => "differentiable_programming.md",
         ],
         "Basic building blocks" => [
             "Meshes" => [

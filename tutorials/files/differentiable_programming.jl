@@ -17,17 +17,11 @@
 
 
 # ### Computing the Jacobian
-#src # TODO Most of (all) refenrences don't work, because there is `no doc found for reference '[`...`](@ref)' in src\Differentiable programming.md.
-#src # Same problem in `adding a new equation`
-#src # Another warning is `invalid local link: unresolved path in Differentiable programming.md`
-# The high-level interface to compute the Jacobian this way is [`jacobian_ad_forward`](@ref).
-
-#src # TODO How to split Julia parts?
-#src # TODO How to write this headline euler_eigenvalues? Or are they just notes for us?
+# The high-level interface to compute the Jacobian this way is [`jacobian_ad_forward`](@trixi-docs:reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
 
 #src # euler_eigenvalues
 using Trixi, LinearAlgebra, Plots
-# 
+#
 equations = CompressibleEulerEquations2D(1.4);
 
 solver = DGSEM(3, flux_central);
@@ -37,19 +31,20 @@ mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_ma
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
 
 J = jacobian_ad_forward(semi);
-# 
+#
 size(J)
-#md ## (1024, 1024)
-# 
+#
+#md (1024, 1024)
+#
 λ = eigvals(J);
 
 scatter(real.(λ), imag.(λ));
-## TODO Should all plots be in the output? Until now they're not.
+
 3.0e-10 < maximum(real, λ) / maximum(abs, λ) < 8.0e-10
-#md ## true
+#md true
 # 
 1.0e-7 < maximum(real, λ) < 5.0e-7
-#md ## true
+#md true
 
 # Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs` at the interfaces,
 # the maximal real part of the eigenvalues increases.
@@ -66,10 +61,10 @@ J = jacobian_ad_forward(semi);
 scatter!(real.(λ), imag.(λ));
 # 
 λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
-#md ## 2.1e-5
+#md 2.1e-5
 # 
 round(maximum(real, λ), sigdigits=2)
-#md ## 0.0057
+#md 0.0057
 
 # However, we should be careful when using this analysis, since the eigenvectors are not necessarily
 # well-conditioned.
@@ -78,7 +73,7 @@ round(maximum(real, λ), sigdigits=2)
 λ, V = eigen(J);
 
 round(cond(V), sigdigits=2)
-#md ## 1.8e6
+#md 1.8e6
 
 # In one space dimension, the situation is a bit different.
 
@@ -98,15 +93,15 @@ J = jacobian_ad_forward(semi);
 scatter(real.(λ), imag.(λ));
 # 
 1.0e-16 < maximum(real, λ) / maximum(abs, λ) < 6.0e-16
-#md ## true
+#md true
 # 
 1.0e-12 < maximum(real, λ) < 6.0e-12
-#md ## true
+#md true
 # 
 λ, V = eigen(J);
 
 200 < cond(V) < 300
-#md ## true
+#md true
 
 # If we add dissipation, the maximal real part is still approximately zero.
 
@@ -124,15 +119,15 @@ scatter!(real.(λ), imag.(λ));
 λ = eigvals(J);
 
 1.0e-18 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
-#md ## true
+#md true
 # 
 5.0e-14 < maximum(real, λ) < 7.0e-13
-#md ## true
+#md true
 # 
 λ, V = eigen(J);
 
 90_000 < cond(V) < 100_000
-#md ## true
+#md true
 
 # Note that the condition number of the eigenvector matrix increases but is still smaller than for the
 # example in 2D.
@@ -174,7 +169,7 @@ round.(extrema(J), sigdigits=2)
 # which we want to perform the linearization. Next, we wrap the RHS evaluation inside a closure
 # and pass that to `ForwardDiff.jacobian`. There, we need to make sure that the internal caches
 # are able to store dual numbers from ForwardDiff.jl by setting `uEltype` appropriately. A similar
-# approach is used by [`jacobian_ad_forward`](@ref).
+# approach is used by [`jacobian_ad_forward`](@trixi-docs:reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
 
 # Note that the ideal gas constant does not influence the semidiscrete rate of change of the
 # density, as demonstrated by
@@ -368,7 +363,7 @@ plot(sol)
 
 # ## Finite difference approximations
 
-# Trixi provides the convenience function [`jacobian_fd`](@ref) to approximate the Jacobian
+# Trixi provides the convenience function [`jacobian_fd`](@trixi-docs:reference-trixi/#Trixi.jacobian_fd-Tuple{Trixi.AbstractSemidiscretization}) to approximate the Jacobian
 # via central finite differences.
 
 using Trixi, LinearAlgebra
@@ -402,7 +397,7 @@ round(norm(J_fd - J_ad) / size(J_fd, 1), sigdigits=2)
 # ```
 
 # where `A` is a linear operator ("matrix") and `b` is a vector. Trixi allows you
-# to obtain this linear structure in a matrix-free way by using [`linear_structure`](@ref).
+# to obtain this linear structure in a matrix-free way by using [`linear_structure`](@trixi-docs:reference-trixi/#Trixi.linear_structure-Tuple{Trixi.AbstractSemidiscretization}).
 # The resulting operator `A` can be used in multiplication, e.g. `mul!` from
 # LinearAlgebra, converted to a sparse matrix using `sparse` from SparseArrays,
 # or converted to a dense matrix using `Matrix` for detailed eigenvalue analyses.

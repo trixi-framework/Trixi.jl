@@ -7,7 +7,7 @@
 # \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
 # ```
 # in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
-# is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
+# is encoded as a subtype of [`Trixi.AbstractEquations`](@trixi-docs:reference-trixi/#Trixi.AbstractEquations).
 
 # ## Basic setup
   
@@ -28,7 +28,8 @@ end; # module
 # for this equation. Other models could bundle arbitrary parameters, e.g., the
 # ideal gas constant for the compressible Euler equations.
 
-# From here on, the following code snippets should be written inside the `module`.
+# From here on, the following code snippets normally are written inside the `module`.
+# To make this work outside `CubicConservationLaw.CubicEquation` is used instead of `CubicEquation`.
 # The complete code can be found at the end.
 # Next, we define the physical flux `f(u) = u^3` using the calling structure
 # used in Trixi.jl.
@@ -72,7 +73,7 @@ ode = semidiscretize(semi, tspan);
 # The `ode` is an `ODEProblem` from the SciML/DifferentialEquations ecosystem.
 # Thus, we can solve this ODE numerically using any time integration method,
 # e.g., `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
-# Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
+# Before, we set up a [callback](@trixi-docs:callbacks/#callbacks-id) to summarize the simulation setup.
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
   
@@ -81,7 +82,6 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
   
 ## Print the timer summary
-#src TODO Printing this in notebook/html?
 summary_callback()
 
 # That's it, you ran your first simulation using your new equation with Trixi! Now,
@@ -89,7 +89,7 @@ summary_callback()
 
 using Plots
 plot(sol)
-#md # ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
+#src # ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
   
 # You can already see that discontinuities will develop and oscillations start to
 # occur around steep parts of the wave. That's expected from our central discretization.
@@ -116,7 +116,7 @@ sol = solve(ode, SSPRK43(),
 summary_callback()
 plot!(sol)
   
-#md # ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
+#src # ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
   
 # You can see that there are fewer oscillations, in particular around steep edges.
 # Now let's increase the final time (and also the spatial resolution).
@@ -128,7 +128,7 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 
-#md # ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
+#src # ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
   
 # You can observe that nonclassical shocks develop and are stable under grid refinement,
 # e.g. for `initial_refinement_level=12`. In this case, these nonclassical shocks
@@ -139,8 +139,8 @@ plot(sol)
   return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
 end
 
-# and use a [`VolumeIntegralFluxDifferencing`](@ref) instead of the standard
-# [`VolumeIntegralWeakForm`](@ref) in the DGSEM.
+# and use a [`VolumeIntegralFluxDifferencing`](@trixi-docs:reference-trixi/#Trixi.VolumeIntegralFluxDifferencing) instead of the standard
+# [`VolumeIntegralWeakForm`](@trixi-docs:reference-trixi/#Trixi.VolumeIntegralWeakForm) in the DGSEM.
 
 ## Let's use a provably entropy-dissipative semidiscretization
 semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
@@ -149,20 +149,20 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 
-#md # ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
+#src # ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
   
 # Possible next steps could be
 # - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`
-#   to use CFL_based time step control via a [`StepsizeCallback`][@ref]
+#   to use CFL_based time step control via a [`StepsizeCallback`][@trixi-docs:reference-trixi/#Trixi.StepsizeCallback]
 # - to define quantities of interest like `Trixi.entropy(u, equations::CubicEquation) = u[1]^2`
-#   and integrate them in a simulation using the [`AnalysisCallback`](@ref)
-# - to experiment with shock-capturing volume integrals [`VolumeIntegralShockCapturingHG`](@ref)
-#   and adaptive mesh refinement [`AMRCallback`](@ref)
+#   and integrate them in a simulation using the [`AnalysisCallback`](@trixi-docs:reference-trixi/#Trixi.AnalysisCallback)
+# - to experiment with shock-capturing volume integrals [`VolumeIntegralShockCapturingHG`](@trixi-docs:reference-trixi/#Trixi.VolumeIntegralShockCapturingHG)
+#   and adaptive mesh refinement [`AMRCallback`](@trixi-docs:reference-trixi/#Trixi.AMRCallback)
   
   
 # ## Summary of the code
   
-# To sum up, here is the complete code that we used (without the [`SummaryCallback`](@ref)
+# To sum up, here is the complete code that we used (without the [`SummaryCallback`](@trixi-docs:reference-trixi/#Trixi.SummaryCallback-Tuple{})
 # since that creates a lot of unnecessary output in the doctests of this tutorial).
   
 ## Define new physics
