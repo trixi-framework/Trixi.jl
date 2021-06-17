@@ -21,16 +21,16 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 basis::LobattoLegendreBasis)
+  # Hanging nodes will cause holes in the mesh if its polydeg is higher
+  # than the polydeg of the solver.
+  @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+
   calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
 
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 nodes::AbstractVector)
-  # Hanging nodes will cause holes in the mesh if its polydeg is higher
-  # than the polydeg of the solver.
-  @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
-
   # We use `StrideArray`s here since these buffers are used in performance-critical
   # places and the additional information passed to the compiler makes them faster
   # than native `Array`s.
