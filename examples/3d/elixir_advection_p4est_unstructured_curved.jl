@@ -49,8 +49,8 @@ isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/d45
                               mesh_file)
 
 mesh = P4estMesh{3}(mesh_file, polydeg=3,
-                    # mapping=mapping,
-                    initial_refinement_level=1)
+                    mapping=mapping,
+                    initial_refinement_level=2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
@@ -59,14 +59,17 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+ode = semidiscretize(semi, (0.0, 0.1));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=100)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 # The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
 save_restart = SaveRestartCallback(interval=100,
@@ -80,7 +83,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_restart, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_restart, save_solution, stepsize_callback)
 
 
 ###############################################################################

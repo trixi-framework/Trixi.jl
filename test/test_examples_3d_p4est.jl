@@ -17,8 +17,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
 
   @testset "elixir_advection_p4est_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_p4est_unstructured_curved.jl"),
-      l2   = [0.006898998831113777],
-      linf = [0.1840166928389424])
+      l2   = [0.0006244885699399409],
+      linf = [0.04076651402041587])
   end
 
   @testset "elixir_advection_p4est_non_conforming.jl" begin
