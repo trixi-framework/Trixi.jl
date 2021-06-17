@@ -443,12 +443,12 @@ function refine!(mesh::P4estMesh)
   # Refine marked cells
   refine_fn_c = @cfunction(refine_fn, Cint,
     (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
-  @timed timer() "refine" p4est_refine(mesh.p4est, false, refine_fn_c, init_fn_c)
+  @trixi_timeit timer() "refine" p4est_refine(mesh.p4est, false, refine_fn_c, init_fn_c)
 
-  @timed timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
+  @trixi_timeit timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
   # Due to a bug in p4est, the forest needs to be rebalanced twice sometimes
   # See https://github.com/cburstedde/p4est/issues/112
-  @timed timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
+  @trixi_timeit timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
 
   return collect_changed_cells(mesh, original_n_cells)
 end
@@ -485,7 +485,7 @@ function coarsen!(mesh::P4estMesh)
   init_fn_c = @cfunction(init_fn, Cvoid,
     (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
 
-  @timed timer() "coarsen!" p4est_coarsen(mesh.p4est, false, coarsen_fn_c, init_fn_c)
+  @trixi_timeit timer() "coarsen!" p4est_coarsen(mesh.p4est, false, coarsen_fn_c, init_fn_c)
 
   # IDs of newly created cells (one-based)
   new_cells = collect_new_cells(mesh)
@@ -500,10 +500,10 @@ function coarsen!(mesh::P4estMesh)
   intermediate_n_cells = ncells(mesh)
   save_original_ids(mesh)
 
-  @timed timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
+  @trixi_timeit timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
   # Due to a bug in p4est, the forest needs to be rebalanced twice sometimes
   # See https://github.com/cburstedde/p4est/issues/112
-  @timed timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
+  @trixi_timeit timer() "rebalance" p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn_c)
 
   refined_cells = collect_changed_cells(mesh, intermediate_n_cells)
 
