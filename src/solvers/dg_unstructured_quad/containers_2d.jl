@@ -225,7 +225,7 @@ end
 
 # generic container for the boundary interfaces of an unstructured mesh
 struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
-  u               ::Array{uEltype, 4} # [primary, variables, i, boundaries]
+  u               ::Array{uEltype, 3} # [variables, i, boundaries]
   element_id      ::Vector{Int}       # [boundaries]
   element_side_id ::Vector{Int}       # [boundaries]
   node_coordinates::Array{RealT, 3}   # [ndims, nnodes, boundaries]
@@ -241,7 +241,7 @@ function UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacit
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
-  u                = fill(nan_uEltype, (1, NVARS, n_nodes, capacity))
+  u                = fill(nan_uEltype, (NVARS, n_nodes, capacity))
   element_id       = fill(typemin(Int), capacity)
   element_side_id  = fill(typemin(Int), capacity)
   node_coordinates = fill(nan_RealT, (2, n_nodes, capacity))

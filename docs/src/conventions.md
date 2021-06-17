@@ -13,6 +13,11 @@ We use the following numbering schemes on Cartesian or curved structured meshes.
   For example, the `boundary_conditions` are ordered in this way
   when a `Tuple` of boundary conditions per direction is passed
   to the constructor of a `SemidiscretizationHyperbolic`.
+- For structured and unstructured curved meshes the concept of direction is
+  generalized via the variable `normal_direction`. This variable points in the
+  normal direction at a given, curved surface. For the computation of boundary fluxes
+  the `normal_direction` is normalized to be a `normal_vector` used, for example, in
+  `FluxRotated`.
 
 
 ## Cells vs. elements vs. nodes

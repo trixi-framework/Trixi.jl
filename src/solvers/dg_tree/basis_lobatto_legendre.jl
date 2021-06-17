@@ -84,6 +84,32 @@ end
 
 @inline polydeg(basis::LobattoLegendreBasis) = nnodes(basis) - 1
 
+@inline get_nodes(basis::LobattoLegendreBasis) = basis.nodes
+
+
+"""
+    integrate(f, u, basis::LobattoLegendreBasis)
+
+Map the function `f` to the coefficients `u` and integrate with respect to the
+quadrature rule given by `basis`.
+"""
+function integrate(f, u, basis::LobattoLegendreBasis)
+  @unpack weights = basis
+
+  res = zero(f(first(u)))
+  for i in eachindex(u, weights)
+    res += f(u[i]) * weights[i]
+  end
+  return res
+end
+
+# Return the first/last weight of the quadrature associated with `basis`.
+# Since the mass matrix for nodal Lobatto-Legendre bases is diagonal,
+# these weights are the only coefficients necessary for the scaling of
+# surface terms/integrals in DGSEM.
+left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
+right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
+
 
 
 struct LobattoLegendreMortarL2{RealT<:Real, NNODES, ForwardMatrix<:AbstractMatrix{RealT}, ReverseMatrix<:AbstractMatrix{RealT}} <: AbstractMortarL2{RealT}
@@ -114,7 +140,7 @@ function MortarL2(basis::LobattoLegendreBasis)
   #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
   #       with different types of the reverse matrices and different types of
   #       `fstar_upper_threaded` etc. used in the cache.
-  #       Check whether `@avx` with `eachnode` in `multiply_dimensionwise!` can be faster than
+  #       Check whether `@turbo` with `eachnode` in `multiply_dimensionwise!` can be faster than
   #       `@tullio` when the matrix sizes are not necessarily static.
   # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
   # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
@@ -193,7 +219,7 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis; analysis_polydeg=2*polyde
 
   # compute everything using `Float64` by default
   nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_)
-  vandermonde_ = polynomial_interpolation_matrix(basis.nodes, nodes_)
+  vandermonde_ = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
   # type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency
@@ -249,7 +275,7 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
   #       Check the performance of different implementations of
   #       `refine_elements!` (forward) and `coarsen_elements!` (reverse)
   #       with different types of the matrices.
-  #       Check whether `@avx` with `eachnode` in `multiply_dimensionwise!`
+  #       Check whether `@turbo` with `eachnode` in `multiply_dimensionwise!`
   #       can be faster than `@tullio` when the matrix sizes are not necessarily
   #       static.
   forward_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_upper_)
@@ -334,35 +360,45 @@ end
 
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
-function polynomial_interpolation_matrix(nodes_in, nodes_out)
+function polynomial_interpolation_matrix(nodes_in, nodes_out,
+                                         baryweights_in=barycentric_weights(nodes_in))
   n_nodes_in = length(nodes_in)
   n_nodes_out = length(nodes_out)
-  wbary_in = barycentric_weights(nodes_in)
-  vdm = zeros(n_nodes_out, n_nodes_in)
+  vandermonde = Matrix{promote_type(eltype(nodes_in), eltype(nodes_out))}(undef,
+                  n_nodes_out, n_nodes_in)
+  polynomial_interpolation_matrix!(vandermonde, nodes_in, nodes_out, baryweights_in)
 
-  for k in 1:n_nodes_out
+  return vandermonde
+end
+
+function polynomial_interpolation_matrix!(vandermonde,
+                                          nodes_in, nodes_out,
+                                          baryweights_in)
+  fill!(vandermonde, zero(eltype(vandermonde)))
+
+  for k in eachindex(nodes_out)
     match = false
-    for j in 1:n_nodes_in
-      if isapprox(nodes_out[k], nodes_in[j], rtol=eps())
+    for j in eachindex(nodes_in)
+      if isapprox(nodes_out[k], nodes_in[j])
         match = true
-        vdm[k, j] = 1
+        vandermonde[k, j] = 1
       end
     end
 
     if match == false
-      s = 0.0
-      for j in 1:n_nodes_in
-        t = wbary_in[j] / (nodes_out[k] - nodes_in[j])
-        vdm[k, j] = t
+      s = zero(eltype(vandermonde))
+      for j in eachindex(nodes_in)
+        t = baryweights_in[j] / (nodes_out[k] - nodes_in[j])
+        vandermonde[k, j] = t
         s += t
       end
-      for j in 1:n_nodes_in
-        vdm[k, j] = vdm[k, j] / s
+      for j in eachindex(nodes_in)
+        vandermonde[k, j] = vandermonde[k, j] / s
       end
     end
   end
 
-  return vdm
+  return vandermonde
 end
 
 

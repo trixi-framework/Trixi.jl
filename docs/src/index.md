@@ -153,9 +153,8 @@ and generate a heatmap plot of the results with
 julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
-<p align="center">
-  <img width="300px" src="https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png">
-</p>
+
+![image](https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
@@ -256,13 +255,17 @@ If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following
 [paper](https://arxiv.org/abs/2008.10593):
 ```bibtex
-@online{schlottkelakemper2020purely,
+@article{schlottkelakemper2021purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
          self-gravitating gas dynamics},
   author={Schlottke-Lakemper, Michael and Winters, Andrew R and
           Ranocha, Hendrik and Gassner, Gregor J},
-  year={2020},
-  month={08},
+  journal={Journal of Computational Physics},
+  pages={110467},
+  year={2021},
+  month={06},
+  publisher={Elsevier},
+  doi={10.1016/j.jcp.2021.110467},
   eprint={2008.10593},
   eprinttype={arXiv},
   eprintclass={math.NA}

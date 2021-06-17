@@ -33,7 +33,7 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 coordinates_min = (-3, -3) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 3,  3) # maximum coordinates (max(x), max(y))
 
-# Create a uniformely refined mesh with periodic boundaries
+# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
@@ -61,11 +61,15 @@ analysis_callback = AnalysisCallback(semi, interval=100)
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
+# The TimeSeriesCallback records the solution at the given points over time
+time_series = TimeSeriesCallback(semi, [(0.0, 0.0), (-1.0, 0.5)])
+
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, time_series,
+                        stepsize_callback)
 
 
 ###############################################################################

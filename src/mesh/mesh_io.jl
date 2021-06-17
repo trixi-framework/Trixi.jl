@@ -125,6 +125,47 @@ function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = length(mesh)
     attributes(file)["mesh_filename"] = mesh.filename
+    attributes(file)["periodicity"] = collect(mesh.periodicity)
+  end
+
+  return filename
+end
+
+
+# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
+# of the mesh, like its size and the type of boundary mapping function.
+# Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
+# these attributes for plotting purposes
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
+  # Create output directory (if it does not exist)
+  mkpath(output_directory)
+
+  # Determine file name based on existence of meaningful time step
+  if timestep > 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    p4est_filename = @sprintf("p4est_data_%06d", timestep)
+  else
+    filename = joinpath(output_directory, "mesh.h5")
+    p4est_filename = "p4est_data"
+  end
+
+  p4est_file = joinpath(output_directory, p4est_filename)
+
+  # Save the complete connectivity/p4est data to disk.
+  p4est_save(p4est_file, mesh.p4est, false)
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["p4est_file"] = p4est_filename
+
+    file["tree_node_coordinates"] = mesh.tree_node_coordinates
+    file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
+                                       # to increase the runtime performance
+                                       # but HDF5 can only handle plain arrays
+    file["boundary_names"] = mesh.boundary_names .|> String
   end
 
   return filename
@@ -167,6 +208,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     size = Tuple(size_)
 
+    # TODO: `@eval` is evil
     # A temporary workaround to evaluate the code that defines the domain mapping in a local scope.
     # This prevents errors when multiple restart elixirs are executed in one session, where one
     # defines `mapping` as a variable, while the other defines it as a function.
@@ -197,12 +239,31 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
   elseif mesh_type == "UnstructuredQuadMesh"
-    # FIXME: This works for visualization purposes via Trixi2Vtk however one currently cannot
-    #        restrat an unstructured and periodic simulation
-    mesh_filename = h5open(mesh_file, "r") do file
-      return read(attributes(file)["mesh_filename"])
+    mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
+      return read(attributes(file)["mesh_filename"]),
+             read(attributes(file)["periodicity"])
     end
-    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=false, unsaved_changes=false)
+    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_, unsaved_changes=false)
+  elseif mesh_type == "P4estMesh"
+    p4est_filename, tree_node_coordinates,
+        nodes, boundary_names_ = h5open(mesh_file, "r") do file
+      return read(attributes(file)["p4est_file"]),
+             read(file["tree_node_coordinates"]),
+             read(file["nodes"]),
+             read(file["boundary_names"])
+    end
+
+    boundary_names = boundary_names_ .|> Symbol
+
+    p4est_file = joinpath(dirname(mesh_file), p4est_filename)
+    # Prevent Julia crashes when p4est can't find the file
+    @assert isfile(p4est_file)
+
+    conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
+    p4est = p4est_load(p4est_file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+
+    mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
+                            nodes, boundary_names, "", false)
   else
     error("Unknown mesh type!")
   end

@@ -92,6 +92,11 @@ the memory/allocs are (roughly) the same, there doesn't seem to be a significant
 
 You can also make it more detailed by benchmarking only, e.g., the calculation of the volume terms, but whether that's necessary depends on the modifications you made and their (potential) impact.
 
+Some more detailed description of manual profiling and benchmarking as well as
+resulting performance improvements of Trixi are given in the following blog post.
+- [Improving performance of AMR with p4est](https://ranocha.de/blog/Optimizing_p4est_AMR/),
+  cf. [#638](https://github.com/trixi-framework/Trixi.jl/pull/638)
+
 
 ## Automated benchmarking
 
@@ -134,7 +139,7 @@ julia> include("benchmark/run_benchmarks.jl")
 ```
 Then, markdown files including the results are saved in `benchmark/`.
 [This example result](https://gist.github.com/ranocha/bf98d19e288e759d3a36ca0643448efb)
-was obtained using a GitHub action for the 
+was obtained using a GitHub action for the
 [PR #535](https://github.com/trixi-framework/Trixi.jl/pull/535).
 Note that GitHub actions run on in the cloud in a virtual machine. Hence, we do not really
 have control over it and performance results must be taken with a grain of salt.

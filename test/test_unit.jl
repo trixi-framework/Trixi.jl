@@ -5,6 +5,8 @@ using Cassette
 using Documenter
 using Trixi
 
+include("test_trixi.jl")
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
@@ -191,7 +193,7 @@ Cassette.@context Ctx
     @testset "calc_jacobian_matrix" begin
       @testset "identity map" begin
         basis = LobattoLegendreBasis(5)
-        nodes = basis.nodes
+        nodes = Trixi.get_nodes(basis)
         jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
 
         node_coordinates = Array{Float64, 4}(undef, 2, 6, 6, 1)
@@ -205,7 +207,7 @@ Cassette.@context Ctx
 
       @testset "maximum exact polydeg" begin
         basis = LobattoLegendreBasis(3)
-        nodes = basis.nodes
+        nodes = Trixi.get_nodes(basis)
         jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
 
         # f(x, y) = [x^3, xy^2]
@@ -384,9 +386,9 @@ Cassette.@context Ctx
   end
 
   @testset "DG L2 mortar container debug output" begin
-    c2d = Trixi.L2MortarContainer2D{Float64, 1, 1}(1)
+    c2d = Trixi.L2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
-    c3d = Trixi.L2MortarContainer3D{Float64, 1, 1}(1)
+    c3d = Trixi.L2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
   end
 
@@ -508,13 +510,24 @@ Cassette.@context Ctx
       # test tuple args
       cons_vars = prim2cons((rho, v1, v2, v3, p), equations)
       entropy_vars = cons2entropy(cons_vars, equations)
-      @test cons_vars ≈ entropy2cons(entropy_vars, equations)      
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
   end
 
-  # Test docstrings
-  DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
-  doctest(Trixi, manual=false)
+  @testset "TimeSeriesCallback" begin
+    @test_nowarn_debug trixi_include(@__MODULE__,
+                                     joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
+                                     tspan=(0, 0.05))
+
+    point_data_1 = time_series.affect!.point_data[1]
+    @test all(isapprox.(point_data_1[1:7], [-2.4417734981719132e-5, -3.4296207289200194e-5,
+                                            0.0018130846385739788, -0.5, 0.25, 1.0, 1.0]))
+    @test_throws DimensionMismatch Trixi.get_elements_by_coordinates!([1, 2], rand(2, 4), mesh,
+                                                                      solver, nothing)
+    @test_nowarn show(stdout, time_series)
+    @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
+    @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+  end
 end
 
 

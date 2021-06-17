@@ -52,7 +52,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       initial_cache=NamedTuple())
 
   cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
-  _boundary_conditions = digest_boundary_conditions(boundary_conditions)
+  _boundary_conditions = digest_boundary_conditions(boundary_conditions, cache)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
@@ -81,22 +81,27 @@ end
 
 
 # allow passing named tuples of BCs constructed in an arbitrary order
-digest_boundary_conditions(boundary_conditions) = boundary_conditions
+digest_boundary_conditions(boundary_conditions, cache) = boundary_conditions
 
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
   @unpack x_neg, x_pos = boundary_conditions
   (; x_neg, x_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
   @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
   @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
-function digest_boundary_conditions(boundary_conditions::AbstractArray)
+# sort the boundary conditions from a dictionary and into tuples
+function digest_boundary_conditions(boundary_conditions::Dict, cache)
+  UnstructuredQuadSortedBoundaryTypes(boundary_conditions, cache)
+end
+
+function digest_boundary_conditions(boundary_conditions::AbstractArray, cache)
   throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
@@ -130,9 +135,10 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", semi.equations |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
-    if semi.boundary_conditions isa Dict
-      summary_line(io, "boundary conditions", length(semi.boundary_conditions))
-      for (boundary_name, boundary_condition) in semi.boundary_conditions
+    if semi.boundary_conditions isa UnstructuredQuadSortedBoundaryTypes
+      @unpack boundary_dictionary = semi.boundary_conditions
+      summary_line(io, "boundary conditions", length(boundary_dictionary))
+      for (boundary_name, boundary_condition) in boundary_dictionary
         summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
       end
     else # non dictionary boundary conditions container
@@ -202,7 +208,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @timed timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
+  @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 

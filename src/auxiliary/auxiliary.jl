@@ -2,7 +2,7 @@ include("containers.jl")
 include("math.jl")
 
 
-# Enable debug timings `@timed timer() "name" stuff...`.
+# Enable debug timings `@trixi_timeit timer() "name" stuff...`.
 # This allows us to disable timings completely by executing
 # `TimerOutputs.disable_debug_timings(Trixi)`
 # and to enable them again by executing
@@ -147,7 +147,7 @@ but without guarantee that the underlying implementation uses `Threads.@threads`
 or works for more general `for` loops.
 In particular, there may be an additional check whether only one thread is used
 to reduce the overhead of serial execution or the underlying threading capabilities
-might be provided by other packages such as [CheapThreads.jl](https://github.com/JuliaSIMD/CheapThreads.jl).
+might be provided by other packages such as [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl).
 
 !!! warn
     This macro does not necessarily work for general `for` loops. For example,
@@ -174,7 +174,7 @@ macro threaded(expr)
   #   end
   # end)
   #
-  # However, the code below using `@batch` from CheapThreads.jl is more efficient,
+  # However, the code below using `@batch` from Polyester.jl is more efficient,
   # since this packages provides threads with less overhead. Since it is written
   # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
   # to provide the most efficient and useful implementation of threads (as we use
@@ -186,14 +186,14 @@ macro threaded(expr)
 end
 
 
-#     @timed timer() "some label" expression
+#     @trixi_timeit timer() "some label" expression
 #
 # Basically the same as a special case of `@timeit_debug` from
 # [TimerOutputs.jl](https://github.com/KristofferC/TimerOutputs.jl),
 # but without `try ... finally ... end` block. Thus, it's not exception-safe,
 # but it also avoids some related performance problems. Since we do not use
 # exception handling in Trixi, that's not really an issue.
-macro timed(timer_output, label, expr)
+macro trixi_timeit(timer_output, label, expr)
   timeit_block = quote
     if timeit_debug_enabled()
       local to = $(esc(timer_output))
@@ -211,4 +211,23 @@ macro timed(timer_output, label, expr)
     end
     val
   end
+end
+
+
+"""
+    init_p4est()
+
+Initialize p4est by calling `p4est_init` and setting the log level to `SC_LP_ERROR`.
+This function will check if p4est is already initialized
+and if yes, do nothing, thus it is safe to call it multiple times.
+"""
+function init_p4est()
+  if p4est_package_id()[] >= 0
+    return nothing
+  end
+
+  # Initialize p4est with log level ERROR to prevent a lot of output in AMR simulations
+  p4est_init(C_NULL, SC_LP_ERROR)
+
+  return nothing
 end

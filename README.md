@@ -6,7 +6,7 @@
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.34.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.39.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 <!-- [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl) -->
 
@@ -158,13 +158,17 @@ If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following
 [paper](https://arxiv.org/abs/2008.10593):
 ```bibtex
-@online{schlottkelakemper2020purely,
+@article{schlottkelakemper2021purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
          self-gravitating gas dynamics},
   author={Schlottke-Lakemper, Michael and Winters, Andrew R and
           Ranocha, Hendrik and Gassner, Gregor J},
-  year={2020},
-  month={08},
+  journal={Journal of Computational Physics},
+  pages={110467},
+  year={2021},
+  month={06},
+  publisher={Elsevier},
+  doi={10.1016/j.jcp.2021.110467},
   eprint={2008.10593},
   eprinttype={arXiv},
   eprintclass={math.NA}

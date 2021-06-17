@@ -454,7 +454,6 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   C_grav = -2.0 * G / pi # 2 == 4 / ndims
 
   x1, x2 = x
-  # TODO: sincospi
   si, co = sincos(pi * (x1 + x2 - t))
   rhox = A * pi * co
   rho  = c + A *  si
@@ -484,7 +483,6 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   C_grav = -2 * G / pi # 2 == 4 / ndims
 
   x1, x2 = x
-  # TODO: sincospi
   si, co = sincos(pi * (x1 + x2 - t))
   rhox = A * pi * co
   rho  = c + A *  si
@@ -592,7 +590,6 @@ velocity of the the exterior fictitious element to the negative of the internal 
   normal = normal_direction / norm(normal_direction)
 
   # compute the normal and tangential components of the velocity
-  u_tangent = zeros(eltype(normal), 2)
   u_normal  = normal[1] * u_internal[2] + normal[2] * u_internal[3]
   u_tangent = (u_internal[2] - u_normal * normal[1], u_internal[3] - u_normal * normal[2])
 
@@ -623,17 +620,20 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
-@inline function flux(u, normal::AbstractVector, equations::CompressibleEulerEquations2D)
+
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 
-  v_normal = v1 * normal[1] + v2 * normal[2]
+  v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   rho_v_normal = rho * v_normal
   f1 = rho_v_normal
-  f2 = rho_v_normal * v1 + p * normal[1]
-  f3 = rho_v_normal * v2 + p * normal[2]
+  f2 = rho_v_normal * v1 + p * normal_direction[1]
+  f3 = rho_v_normal * v2 + p * normal_direction[2]
   f4 = (rho_e + p) * v_normal
   return SVector(f1, f2, f3, f4)
 end
@@ -859,8 +859,9 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations2D)
-  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal)
+
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
+  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
 end
 
 
@@ -890,7 +891,8 @@ end
 end
 
 
-@inline function min_max_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations2D)
+@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::CompressibleEulerEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
@@ -903,22 +905,23 @@ end
   v2_rr = rho_v2_rr / rho_rr
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
 
-  v_normal_ll = v1_ll * normal[1] + v2_ll * normal[2]
-  v_normal_rr = v1_rr * normal[1] + v2_rr * normal[2]
+  v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
-  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm(normal)
-  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm(normal)
+  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm(normal_direction)
+  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm(normal_direction)
 
   return λ_min, λ_max
 end
 
 
-# Rotate normal vector to x-axis; normal vector `normal` needs to be normalized
-@inline function rotate_to_x(u, normal, equations::CompressibleEulerEquations2D)
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
+# has been normalized prior to this rotation of the state vector
+@inline function rotate_to_x(u, normal_vector, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal[1]
-  s = normal[2]
+  c = normal_vector[1]
+  s = normal_vector[2]
 
   # Apply the 2D rotation matrix with normal and tangent directions of the form
   # [ 1    0    0   0;
@@ -934,11 +937,13 @@ end
 end
 
 
-@inline function rotate_from_x(u, normal, equations::CompressibleEulerEquations2D)
+# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
+# has been normalized prior to this back-rotation of the state vector
+@inline function rotate_from_x(u, normal_vector, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal[1]
-  s = normal[2]
+  c = normal_vector[1]
+  s = normal_vector[2]
 
   # Apply the 2D back-rotation matrix with normal and tangent directions of the form
   # [ 1    0    0   0;

@@ -8,6 +8,7 @@
 *.avi
 *.ogv
 *.mesh
+*.inp
 **/Manifest.toml
 out*/
 docs/build

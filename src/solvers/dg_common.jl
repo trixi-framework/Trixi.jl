@@ -5,7 +5,7 @@ function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
   zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
 end
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DGSEM, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
@@ -33,7 +33,7 @@ end
     #     In fact, everything can be fast and fine for many cases but some parts
     #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
     #     Hence, this version should only be used when `@threaded` is based on
-    #     `@batch` from CheapThreads.jl or something similar. Using CheapThreads.jl
+    #     `@batch` from Polyester.jl or something similar. Using Polyester.jl
     #     is probably the best option since everything will be handed over to
     #     Chris Elrod, one of the best performance software engineers for Julia.
     PtrArray(pointer(u_ode),
@@ -44,6 +44,11 @@ end
     unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
                 (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
   end
+end
+
+# General fallback
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+  wrap_array_native(u_ode, mesh, equations, dg, cache)
 end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
