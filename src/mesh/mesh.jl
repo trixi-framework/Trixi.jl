@@ -110,7 +110,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   end
 
   # Create mesh
-  mesh = @timed timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max, domain_center, domain_length, periodicity)
+  mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max, domain_center, domain_length, periodicity)
 
   # Initialize mesh
   initialize!(mesh, initial_refinement_level, refinement_patches, coarsening_patches)
@@ -121,10 +121,10 @@ end
 function initialize!(mesh::TreeMesh, initial_refinement_level,
                      refinement_patches, coarsening_patches)
   # Create initial refinement
-  @timed timer() "initial refinement" refine_uniformly!(mesh.tree, initial_refinement_level)
+  @trixi_timeit timer() "initial refinement" refine_uniformly!(mesh.tree, initial_refinement_level)
 
   # Apply refinement patches
-  @timed timer() "refinement patches" for patch in refinement_patches
+  @trixi_timeit timer() "refinement patches" for patch in refinement_patches
     mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     # TODO: Taal refactor, use multiple dispatch?
     if patch.type == "box"
@@ -135,7 +135,7 @@ function initialize!(mesh::TreeMesh, initial_refinement_level,
   end
 
   # Apply coarsening patches
-  @timed timer() "coarsening patches" for patch in coarsening_patches
+  @trixi_timeit timer() "coarsening patches" for patch in coarsening_patches
     mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     # TODO: Taal refactor, use multiple dispatch
     if patch.type == "box"
@@ -205,4 +205,5 @@ include("parallel.jl")
 include("curved_mesh.jl")
 include("surface_interpolant.jl")
 include("unstructured_quad_mesh.jl")
+include("p4est_mesh.jl")
 include("mesh_io.jl")

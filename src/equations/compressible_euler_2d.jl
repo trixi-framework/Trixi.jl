@@ -621,19 +621,19 @@ end
 end
 
 
-# Called from the general surface flux routine in `numerical_fluxes.jl` so the direction
-# has been normalized before this call
-@inline function flux(u, normal_vector::AbstractVector, equations::CompressibleEulerEquations2D)
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 
-  v_normal = v1 * normal_vector[1] + v2 * normal_vector[2]
+  v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   rho_v_normal = rho * v_normal
   f1 = rho_v_normal
-  f2 = rho_v_normal * v1 + p * normal_vector[1]
-  f3 = rho_v_normal * v2 + p * normal_vector[2]
+  f2 = rho_v_normal * v1 + p * normal_direction[1]
+  f3 = rho_v_normal * v2 + p * normal_direction[2]
   f4 = (rho_e + p) * v_normal
   return SVector(f1, f2, f3, f4)
 end

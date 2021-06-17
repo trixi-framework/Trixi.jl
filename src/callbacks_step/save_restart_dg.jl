@@ -1,6 +1,6 @@
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh, CurvedMesh, UnstructuredQuadMesh},
+                           mesh::Union{SerialTreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh},
                            equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
@@ -40,7 +40,7 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 
-function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh,UnstructuredQuadMesh},
+function load_restart_file(mesh::Union{SerialTreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh},
                            equations, dg::DG, cache, restart_file)
 
   # allocate memory

@@ -2,7 +2,7 @@ include("containers.jl")
 include("math.jl")
 
 
-# Enable debug timings `@timed timer() "name" stuff...`.
+# Enable debug timings `@trixi_timeit timer() "name" stuff...`.
 # This allows us to disable timings completely by executing
 # `TimerOutputs.disable_debug_timings(Trixi)`
 # and to enable them again by executing
@@ -186,14 +186,14 @@ macro threaded(expr)
 end
 
 
-#     @timed timer() "some label" expression
+#     @trixi_timeit timer() "some label" expression
 #
 # Basically the same as a special case of `@timeit_debug` from
 # [TimerOutputs.jl](https://github.com/KristofferC/TimerOutputs.jl),
 # but without `try ... finally ... end` block. Thus, it's not exception-safe,
 # but it also avoids some related performance problems. Since we do not use
 # exception handling in Trixi, that's not really an issue.
-macro timed(timer_output, label, expr)
+macro trixi_timeit(timer_output, label, expr)
   timeit_block = quote
     if timeit_debug_enabled()
       local to = $(esc(timer_output))
@@ -211,4 +211,23 @@ macro timed(timer_output, label, expr)
     end
     val
   end
+end
+
+
+"""
+    init_p4est()
+
+Initialize p4est by calling `p4est_init` and setting the log level to `SC_LP_ERROR`.
+This function will check if p4est is already initialized
+and if yes, do nothing, thus it is safe to call it multiple times.
+"""
+function init_p4est()
+  if p4est_package_id()[] >= 0
+    return nothing
+  end
+
+  # Initialize p4est with log level ERROR to prevent a lot of output in AMR simulations
+  p4est_init(C_NULL, SC_LP_ERROR)
+
+  return nothing
 end

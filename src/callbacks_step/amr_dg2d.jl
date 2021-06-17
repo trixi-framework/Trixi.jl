@@ -16,7 +16,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # nicely with non-base array types
     old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
-    @timed timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
+    @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -24,7 +24,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-    @timed timer() "exchange data" begin
+    @trixi_timeit timer() "exchange data" begin
       # Collect MPI requests for MPI_Waitall
       requests = Vector{MPI.Request}()
 
@@ -69,7 +69,7 @@ function reinitialize_containers!(mesh::TreeMesh{2}, equations, dg::DGSEM, cache
   # re-initialize elements container
   @unpack elements = cache
   resize!(elements, length(leaf_cell_ids))
-  init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
+  init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
 
   # re-initialize interfaces container
   @unpack interfaces = cache
@@ -100,18 +100,15 @@ end
 
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
-                 equations, dg::DGSEM, cache, cells_to_refine)
+function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                 equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
-  if isempty(cells_to_refine)
+  if isempty(elements_to_refine)
     return
   end
 
   # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg, cache))
-
-  # Find all indices of elements whose cell ids are in cells_to_refine
-  elements_to_refine = findall(cell_id -> cell_id in cells_to_refine, cache.elements.cell_ids)
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
@@ -146,7 +143,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
@@ -222,18 +219,15 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
-                  equations, dg::DGSEM, cache, child_cells_to_coarsen)
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                  equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
-  if isempty(child_cells_to_coarsen)
+  if isempty(elements_to_remove)
     return
   end
 
   # Determine for each old element whether it needs to be removed
   to_be_removed = falses(nelements(dg, cache))
-
-  # Find all indices of elements whose cell ids are in child_cells_to_coarsen
-  elements_to_remove = findall(cell_id -> cell_id in child_cells_to_coarsen, cache.elements.cell_ids)
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
@@ -279,7 +273,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
@@ -343,7 +337,7 @@ end
 
 
 # this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{2}, equations, dg::DG, cache)
+function create_cache(::Type{ControllerThreeLevel}, mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations, dg::DG, cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
