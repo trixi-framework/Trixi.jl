@@ -23,7 +23,7 @@ function calc_node_coordinates!(node_coordinates,
                                 basis::LobattoLegendreBasis)
   # Hanging nodes will cause holes in the mesh if its polydeg is higher
   # than the polydeg of the solver.
-  @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+  @assert length(basis.nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
   calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
