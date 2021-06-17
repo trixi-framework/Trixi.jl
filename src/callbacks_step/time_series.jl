@@ -166,7 +166,7 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
   # Create record if in correct interval (needs to be checked since the callback is also called
   # after the final step for storing the data on disk, indepdendent of the current interval)
   if integrator.iter % interval == 0
-    @timed timer() "time series" begin
+    @trixi_timeit timer() "time series" begin
       # Store time and step
       push!(time_series_callback.time, integrator.t)
       push!(time_series_callback.step, iter)

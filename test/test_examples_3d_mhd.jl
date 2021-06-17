@@ -9,13 +9,13 @@ include("test_trixi.jl")
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
 
 @testset "MHD" begin
-  @testset "elixir_mhd_ec.jl" begin
+  @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [0.017590099293094203, 0.017695875823827714, 0.017695875823827686, 0.017698038279620777, 0.07495006099352074, 0.010391801950005755, 0.010391801950005759, 0.010393502246627087, 2.524766553484067e-16],
       linf = [0.28173002819718196, 0.3297583616136297, 0.32975836161363004, 0.356862935505337, 1.2893514981209626, 0.10950981489747313, 0.10950981489747136, 0.11517234329681891, 2.0816911067714202e-15])
   end
 
-  @testset "elixir_mhd_ec.jl with initial_condition=initial_condition_constant" begin
+  @trixi_testset "elixir_mhd_ec.jl with initial_condition=initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [4.270231310667203e-16, 2.4381208042014784e-15, 5.345107673575357e-15, 3.00313882171883e-15, 1.7772703118758417e-14, 1.0340110783830874e-15, 1.1779095371939702e-15, 9.961878521814573e-16, 8.1201730630719145e-16],
       linf = [2.4424906541753444e-15, 2.881028748902281e-14, 2.4646951146678475e-14, 2.3092638912203256e-14, 2.3447910280083306e-13, 1.7763568394002505e-14, 1.0436096431476471e-14, 2.042810365310288e-14, 7.057203733035201e-15],
@@ -23,20 +23,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       initial_condition=initial_condition_constant)
   end
 
-  @testset "elixir_mhd_alfven_wave.jl" begin
+  @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
       l2   = [0.003872168982949962, 0.009234032031394519, 0.004166855440339939, 0.01160194799648245, 0.006989139550604536, 0.009258319391439123, 0.004972194549900642, 0.011701012705405973, 0.003796916988492686],
       linf = [0.012897588621946787, 0.03317614952204696, 0.011594778657069232, 0.04437495747712844, 0.025695368105128846, 0.03336443221122043, 0.01000776455308272, 0.044820519469304224, 0.01606741448289395])
   end
 
-  @testset "elixir_mhd_alfven_wave_mortar.jl" begin
+  @trixi_testset "elixir_mhd_alfven_wave_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_mortar.jl"),
       l2   = [0.0021525855794505733, 0.006723734997085876, 0.0030402457081513405, 0.008711037977296627, 0.005507951439477701, 0.007204815741889562, 0.0029726037822043116, 0.008823488862283192, 0.003551010115322961],
       linf = [0.013133814395385413, 0.05541886629871225, 0.020708270215062375, 0.05932492264609865, 0.03448645356854563, 0.05319127664438378, 0.01770393941703363, 0.060904784306590354, 0.020639279160633826],
       tspan = (0.0, 0.25))
   end
 
-  @testset "elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hll" begin
+  @trixi_testset "elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hll" begin
     # OBS! This setup does not make much sense and is only used to exercise all components of the
     # flux_hll implementation
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),

@@ -17,13 +17,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 # Run basic tests
 @testset "Examples 2D" begin
   # Linear scalar advection
-  @testset "elixir_advection_basic.jl" begin
+  @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [9.144681765639205e-6],
       linf = [6.437440532547356e-5])
   end
 
-  @testset "elixir_advection_restart.jl" begin
+  @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [1.2148032444677485e-5],
       linf = [6.495644794757283e-5])
@@ -31,38 +31,38 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   # Linear scalar advection with AMR
   # These example files are only for testing purposes and have no practical use
-  @testset "elixir_advection_amr_refine_twice.jl" begin
+  @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
       l2   = [0.00019847333806230843],
       linf = [0.005591345460895569])
   end
 
-  @testset "elixir_advection_amr_coarsen_twice.jl" begin
+  @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"),
       l2   = [0.00519897841357112],
       linf = [0.06272325552264647])
   end
 
   # Hyperbolic diffusion
-  @testset "elixir_hypdiff_lax_friedrichs.jl" begin
+  @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.00015687751816056159, 0.001025986772217084, 0.0010259867722169909],
       linf = [0.0011986956416591976, 0.006423873516411049, 0.006423873516411049])
   end
 
-  @testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
+  @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_harmonic_nonperiodic.jl"),
       l2   = [8.61813235543625e-8, 5.619399844542781e-7, 5.6193998447443e-7],
       linf = [1.124861862180196e-6, 8.622436471039663e-6, 8.622436470151484e-6])
   end
 
-  @testset "elixir_hypdiff_nonperiodic.jl" begin
+  @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [8.523077653955306e-6, 2.8779323653065056e-5, 5.4549427691297846e-5],
       linf = [5.5227409524905013e-5, 0.0001454489597927185, 0.00032396328684569653])
   end
 
-  @testset "elixir_hypdiff_godunov.jl" begin
+  @trixi_testset "elixir_hypdiff_godunov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
       l2   = [5.868147556385677e-6, 3.805179273239753e-5, 3.805179273248075e-5],
       linf = [3.7019654930525725e-5, 0.00021224229433514097, 0.00021224229433514097])
@@ -72,7 +72,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   # Compressible Euler
   # Note: Some tests here have manually increased relative tolerances since reduction via MPI can
   #       slightly change the L2 error norms (different floating point truncation errors)
-  @testset "elixir_euler_source_terms.jl" begin
+  @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       l2   = [8.517783186497567e-7, 1.2350199409361865e-6, 1.2350199409828616e-6, 4.277884398786315e-6],
       linf = [8.357934254688004e-6, 1.0326389653148027e-5, 1.0326389654924384e-5, 4.4961900057316484e-5],
@@ -80,40 +80,40 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   # This example file is only for testing purposes and has no practical use
-  @testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
+  @trixi_testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
       l2   = [5.054610689084266e-5, 4.1292984615076345e-5, 4.129298461525107e-5, 0.00012166584022297836],
       linf = [0.00036520888680691144, 0.00029957662372082083, 0.0002995766237181563, 0.0011499261044116693])
   end
 
-  @testset "elixir_euler_density_wave.jl" begin
+  @trixi_testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [0.0010600778457965205, 0.00010600778457646603, 0.0002120155691588112, 2.6501946142012653e-5],
       linf = [0.006614198043407127, 0.0006614198043931596, 0.001322839608845383, 0.00016535495117153687],
       tspan = (0.0, 0.5))
   end
 
-  @testset "elixir_euler_nonperiodic.jl" begin
+  @trixi_testset "elixir_euler_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic.jl"),
       l2   = [2.3652137675654753e-6, 2.1386731303685556e-6, 2.138673130413185e-6, 6.009920290578574e-6],
       linf = [1.4080448659026246e-5, 1.7581818010814487e-5, 1.758181801525538e-5, 5.9568540361709665e-5],
       rtol = 0.001)
   end
 
-  @testset "elixir_euler_ec.jl" begin
+  @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
       linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
   end
 
-  @testset "elixir_euler_vortex.jl" begin
+  @trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
       l2   = [3.6342636871275523e-6, 0.0032111366825032443, 0.0032111479254594345, 0.004545714785045611],
       linf = [7.903587114788113e-5, 0.030561314311228993, 0.030502600162385596, 0.042876297246817074],
       rtol = 0.001)
   end
 
-  @testset "elixir_euler_vortex_shockcapturing.jl" begin
+  @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
       l2   = [3.80342739421474e-6, 5.561118953968859e-5, 5.564042529709319e-5, 0.0001570628548096201],
       linf = [8.491382365727329e-5, 0.0009602965158113097, 0.0009669978616948516, 0.0030750353269972663],

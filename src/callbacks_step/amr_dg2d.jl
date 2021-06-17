@@ -21,7 +21,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # nicely with non-base array types
     old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
-    @timed timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
+    @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -29,7 +29,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-    @timed timer() "exchange data" begin
+    @trixi_timeit timer() "exchange data" begin
       # Collect MPI requests for MPI_Waitall
       requests = Vector{MPI.Request}()
 

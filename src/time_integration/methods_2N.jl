@@ -123,7 +123,7 @@ function solve!(integrator::SimpleIntegrator2N)
   callbacks = integrator.opts.callback
 
   integrator.finalstep = false
-  @timed timer() "main loop" while !integrator.finalstep
+  @trixi_timeit timer() "main loop" while !integrator.finalstep
     if isnan(integrator.dt)
       error("time step size `dt` is NaN")
     end
@@ -142,7 +142,7 @@ function solve!(integrator::SimpleIntegrator2N)
 
       a_stage    = alg.a[stage]
       b_stage_dt = alg.b[stage] * integrator.dt
-      @timed timer() "Runge-Kutta step" begin
+      @trixi_timeit timer() "Runge-Kutta step" begin
         @threaded for i in eachindex(integrator.u)
           integrator.u_tmp[i] = integrator.du[i] - integrator.u_tmp[i] * a_stage
           integrator.u[i] += integrator.u_tmp[i] * b_stage_dt

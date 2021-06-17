@@ -351,8 +351,8 @@ end
 
 # Refine entire tree by one level
 function refine!(t::AbstractTree)
-  cells = @timed timer() "collect all leaf cells" leaf_cells(t)
-  @timed timer() "refine!" refine!(t, cells, cells)
+  cells = @trixi_timeit timer() "collect all leaf cells" leaf_cells(t)
+  @trixi_timeit timer() "refine!" refine!(t, cells, cells)
 end
 
 
@@ -367,12 +367,12 @@ function refine!(t::AbstractTree, cell_ids, sorted_unique_cell_ids=sort(unique(c
   reset_original_cell_ids!(t)
 
   # Refine all requested cells
-  refined = @timed timer() "refine_unbalanced!" refine_unbalanced!(t, cell_ids, sorted_unique_cell_ids)
+  refined = @trixi_timeit timer() "refine_unbalanced!" refine_unbalanced!(t, cell_ids, sorted_unique_cell_ids)
   refinement_count = length(refined)
 
   # Iteratively rebalance the tree until it does not change anymore
   while length(refined) > 0
-    refined = @timed timer() "rebalance!" rebalance!(t, refined)
+    refined = @trixi_timeit timer() "rebalance!" rebalance!(t, refined)
     refinement_count += length(refined)
   end
 
