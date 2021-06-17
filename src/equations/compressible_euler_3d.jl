@@ -10,8 +10,8 @@ The compressible Euler equations for an ideal gas with ratio of specific heats `
 in three space dimensions.
 """
 struct CompressibleEulerEquations3D{RealT<:Real} <: AbstractCompressibleEulerEquations{3, 5}
-  gamma::RealT
-  inv_γm1::RealT
+  gamma::RealT   # ratio of specific heats
+  inv_γm1::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
   function CompressibleEulerEquations3D(gamma)
     γ, inv_γm1 = promote(gamma, inv(gamma - 1))
@@ -549,40 +549,40 @@ Kinetic energy preserving two-point flux by
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
 
   # Average each factor of products in flux
-  rho_avg = 1/2 * (rho_ll + rho_rr)
-  v1_avg = 1/2 * (v1_ll + v1_rr)
-  v2_avg = 1/2 * (v2_ll + v2_rr)
-  v3_avg = 1/2 * (v3_ll + v3_rr)
-  p_avg = 1/2 * ((equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2)) +
-                 (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2)))
-  e_avg = 1/2 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
+  rho_avg = 0.5 * (rho_ll + rho_rr)
+  v1_avg  = 0.5 * (v1_ll + v1_rr)
+  v2_avg  = 0.5 * (v2_ll + v2_rr)
+  v3_avg  = 0.5 * (v3_ll + v3_rr)
+  p_avg = 0.5 * ((equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2)) +
+                 (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2)))
+  e_avg = 0.5 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
 
   # Calculate fluxes depending on orientation
   if orientation == 1
     f1 = rho_avg * v1_avg
-    f2 = rho_avg * v1_avg * v1_avg + p_avg
-    f3 = rho_avg * v1_avg * v2_avg
-    f4 = rho_avg * v1_avg * v3_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * v3_avg
     f5 = (rho_avg * e_avg + p_avg) * v1_avg
   elseif orientation == 2
     f1 = rho_avg * v2_avg
-    f2 = rho_avg * v2_avg * v1_avg
-    f3 = rho_avg * v2_avg * v2_avg + p_avg
-    f4 = rho_avg * v2_avg * v3_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = f1 * v3_avg
     f5 = (rho_avg * e_avg + p_avg) * v2_avg
   else
     f1 = rho_avg * v3_avg
-    f2 = rho_avg * v3_avg * v1_avg
-    f3 = rho_avg * v3_avg * v2_avg
-    f4 = rho_avg * v3_avg * v3_avg + p_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * v3_avg + p_avg
     f5 = (rho_avg * e_avg + p_avg) * v3_avg
   end
 
@@ -683,7 +683,8 @@ See also
 
   # Compute the necessary mean values
   rho_mean = ln_mean(rho_ll, rho_rr)
-  # Equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)` since
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
   #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
   #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
   inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
@@ -735,7 +736,8 @@ end
 
   # Compute the necessary mean values
   rho_mean = ln_mean(rho_ll, rho_rr)
-  # Equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)` since
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
   #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
   #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
   inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)

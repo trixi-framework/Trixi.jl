@@ -441,7 +441,7 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
   [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
-- HEndrik Ranocha (2020)
+- Hendrik Ranocha (2020)
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
