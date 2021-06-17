@@ -31,7 +31,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       cfl = 1.4)
   end
 
-  @trixi_testset "elixir_advection_rotated.jl" begin
+  @testset "elixir_advection_rotated.jl" begin
     @trixi_testset "elixir_advection_rotated.jl with α = 0.0" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
         l2   = [7.013143474176369e-6],
@@ -106,7 +106,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5])
   end
 
-  @trixi_testset "elixir_euler_source_terms_rotated.jl" begin
+  @testset "elixir_euler_source_terms_rotated.jl" begin
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.0" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
       l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],

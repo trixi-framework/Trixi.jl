@@ -139,7 +139,14 @@ definition of `@test_trixi_include`.
 """
 macro trixi_testset(name, expr)
   @assert name isa String
-  mod = gensym(name)
+  # TODO: `@eval` is evil
+  # We would like to use
+  #   mod = gensym(name)
+  # to create new module names for every test set. However, this is not
+  # compatible with the dirty hack using `@eval` to get the mapping when
+  # loading structured, curvilinear meshes. Thus, we need to use a plain
+  # module name here.
+  mod = Symbol("TrixiTestModule")
   quote
     @eval module $mod
       using Test
@@ -157,9 +164,4 @@ macro trixi_testset(name, expr)
     end
     nothing
   end
-  # quote
-  #   let
-  #     @testset $name $expr
-  #   end
-  # end
 end
