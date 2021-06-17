@@ -250,30 +250,43 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
 end
 
-# Convert 2d unstructured data to 1d data at given coordinates.
-function unstructured_2d_to_1d_along_curve(original_nodes, unstructured_data, nvisnodes, coordinates, mesh, solver, cache)
+function calc_arc_length(coordinates)
+  arc_length = 0
+  for i in 1:size(coordinates)[2]-1
+    arc_length = arc_length + sqrt(sum((coordinates[:,i]-coordinates[:,i+1]).^2))
+  end
+  return arc_length
+end
 
-  @assert size(coordinates) == (2, size(coordinates)[2]) "Coordinates along curve must be 2xn dimensional."
+# Convert 2d unstructured data to 1d data at given curve.
+function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
 
-  n_elements_curve = size(coordinates)[2]
+  n_points_curve = size(curve)[2]
   n_nodes, _, n_elements, n_variables = size(unstructured_data)
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
 
-  # Setup data structures.
-  nodes_on_curve = collect(range(0, 1, length = n_elements_curve))
-  data_on_curve = Array{Float64}(undef, n_elements_curve, n_variables)
-  temp_data = Array{Float64}(undef, n_nodes, n_elements_curve, n_variables)
-
-  # For each coordinate find the corresponding element with its id.
-  element_ids = get_elements_by_coordinates(coordinates, mesh, solver, cache)
-
+  # Check if input is correct.
   min = original_nodes[:, 1, 1, 1]
   max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_elements]
+  @assert size(curve) == (2, size(curve)[2]) "Coordinates along curve must be 2xn dimensional."
+  for element in 1:n_points_curve
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
+            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+  end
+
+  # Set nodes acording to the length of the curve.
+  arc_length = calc_arc_length(curve)
+  nodes_on_curve = collect(range(0, arc_length, length = n_points_curve))
+
+  # Setup data structures.
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_points_curve, n_variables)
+
+  # For each coordinate find the corresponding element with its id.
+  element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
 
   # Iterate over all found elements.
-  for element in 1:n_elements_curve
-    @assert (prod(vcat(coordinates[:, n_elements_curve] .>= min, coordinates[:, n_elements_curve]
-            .<= max))) "Some coordinates from `along_curve` are outside of the domain.."
+  for element in 1:n_points_curve
 
     min_coordinate = original_nodes[:, 1, 1, element_ids[element]]
     max_coordinate = original_nodes[:, n_nodes, n_nodes, element_ids[element]]
@@ -282,43 +295,48 @@ function unstructured_2d_to_1d_along_curve(original_nodes, unstructured_data, nv
     normalized_coordinates = (coordinates[:, element] - min_coordinate)/element_length[1]*2 .-1
 
     # Interpolate to a single point in each element.
-    vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
-    vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
+    vandermonde_y = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
     for v in 1:n_variables
       for i in 1:n_nodes
-        temp_data[i, element, v] = (vandermonde_ii*unstructured_data[i, :, element_ids[element], v])[1]
+        temp_data[i, element, v] = (vandermonde_y*unstructured_data[i, :, element_ids[element], v])[1]
       end
-      data_on_curve[element, v] = (vandermonde_i*temp_data[:, element, v])[]
+      data_on_curve[element, v] = (vandermonde_x*temp_data[:, element, v])[]
     end
   end
 
   return nodes_on_curve, data_on_curve, nothing
 end
 
-# Convert 2d unstructured data to 1d data at given coordinates.
-function unstructured_3d_to_1d_along_curve(original_nodes, unstructured_data, nvisnodes, coordinates, mesh, solver, cache)
+# Convert 3d unstructured data to 1d data at given curve.
+function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
 
-  n_elements_curve = size(coordinates)[2]
+  n_points_curve = size(curve)[2]
   n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
 
-  @assert size(coordinates) == (3, n_elements_curve) "Coordinates along curve must be 3xn dimensional."
-
-  # Setup data structures.
-  nodes_on_curve = collect(range(0, 1, length = n_elements_curve))
-  data_on_curve = Array{Float64}(undef, n_elements_curve, n_variables)
-  temp_data = Array{Float64}(undef, n_nodes, n_nodes+1, n_elements_curve, n_variables)
-
-  # For each coordinate find the corresponding element with its id.
-  element_ids = get_elements_by_coordinates(coordinates, mesh, solver, cache)
-
+  # Check if input is correct.
   min = original_nodes[:, 1, 1, 1, 1]
   max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, n_elements]
+  @assert size(curve) == (3, n_points_curve) "Coordinates along curve must be 3xn dimensional."
+  for element in 1:n_points_curve
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
+            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+  end
+
+  # Set nodes acording to the length of the curve.
+  arc_length = calc_arc_length(curve)
+  nodes_on_curve = collect(range(0, arc_length, length = n_points_curve))
+
+  # Setup data structures.
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_nodes+1, n_points_curve, n_variables)
+
+  # For each coordinate find the corresponding element with its id.
+  element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
 
   # Iterate over all found elements.
-  for element in 1:n_elements_curve
-    @assert (prod(vcat(coordinates[:, n_elements_curve] .>= min, coordinates[:, n_elements_curve]
-            .<= max))) "Some coordinates from `along_curve` are outside of the domain.."
+  for element in 1:n_points_curve
 
     min_coordinate = original_nodes[:, 1, 1, 1, element_ids[element]]
     max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, element_ids[element]]
@@ -327,17 +345,17 @@ function unstructured_3d_to_1d_along_curve(original_nodes, unstructured_data, nv
     normalized_coordinates = (coordinates[:, element] - min_coordinate)/element_length[1]*2 .-1
 
     # Interpolate to a single point in each element.
-    vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
-    vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
-    vandermonde_iii = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[3])
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
+    vandermonde_y = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
+    vandermonde_z = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[3])
     for v in 1:n_variables
       for i in 1:n_nodes
         for ii in 1:n_nodes
-          temp_data[i, ii, element, v] = (vandermonde_iii*unstructured_data[i, ii, :, element_ids[element], v])[1]
+          temp_data[i, ii, element, v] = (vandermonde_z*unstructured_data[i, ii, :, element_ids[element], v])[1]
         end
-        temp_data[i, n_nodes+1, element, v] = (vandermonde_ii*temp_data[i, 1:n_nodes, element, v])[1]
+        temp_data[i, n_nodes+1, element, v] = (vandermonde_y*temp_data[i, 1:n_nodes, element, v])[1]
       end
-      data_on_curve[element, v] = (vandermonde_i*temp_data[:, n_nodes+1, element, v])[1]
+      data_on_curve[element, v] = (vandermonde_x*temp_data[:, n_nodes+1, element, v])[1]
     end
   end
 

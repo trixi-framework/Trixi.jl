@@ -87,7 +87,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
       if mesh == "TreeMesh"
         @testset "Create 1D plot along curve" begin
-          curve = -0.5*ones(2,10)
+          curve = zeros(2,10)
+          curve[1,:] = range(-1,-0.5,length=10)
           @test_nowarn_debug PlotData1D(sol, along_curve=curve) isa PlotData1D
           pd1D = PlotData1D(sol, along_curve=curve)
           @test_nowarn_debug plot(pd1D)
