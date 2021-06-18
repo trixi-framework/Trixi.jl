@@ -186,12 +186,12 @@ function calc_volume_integral!(du, u,
 
       flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, element)
       end
 
       flux2 = flux(u_node, 2, equations)
       for jj in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, element)
       end
     end
   end
@@ -288,16 +288,16 @@ end
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  j, element)
-      add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, j, element)
     end
 
     # y direction
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
       flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-      add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2, equations, dg, i, j,  element)
-      add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2, equations, dg, i, jj, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2, equations, dg, i, j,  element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2, equations, dg, i, jj, element)
     end
   end
 end

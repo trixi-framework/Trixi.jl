@@ -62,7 +62,7 @@ function calc_volume_integral!(du, u,
       Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
       contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
       for ii in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations, dg, ii, j, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations, dg, ii, j, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
@@ -70,7 +70,7 @@ function calc_volume_integral!(du, u,
       Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
       contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
       for jj in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations, dg, i, jj, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations, dg, i, jj, element)
       end
     end
   end

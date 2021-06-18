@@ -216,17 +216,17 @@ function calc_volume_integral!(du, u,
 
       flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, k, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, k, element)
       end
 
       flux2 = flux(u_node, 2, equations)
       for jj in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, k, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, k, element)
       end
 
       flux3 = flux(u_node, 3, equations)
       for kk in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[kk, k], flux3, equations, dg, i, j, kk, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[kk, k], flux3, equations, dg, i, j, kk, element)
       end
     end
   end
@@ -330,24 +330,24 @@ end
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  j, k, element)
-      add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, j, k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  j, k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, j, k, element)
     end
 
     # y direction
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
       flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-      add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2, equations, dg, i, j,  k, element)
-      add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2, equations, dg, i, jj, k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2, equations, dg, i, j,  k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2, equations, dg, i, jj, k, element)
     end
 
     # z direction
     for kk in (k+1):nnodes(dg)
       u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
       flux3 = volume_flux(u_node, u_node_kk, 3, equations)
-      add_to_node_vars!(du, alpha * derivative_split[k, kk], flux3, equations, dg, i, j, k,  element)
-      add_to_node_vars!(du, alpha * derivative_split[kk, k], flux3, equations, dg, i, j, kk, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], flux3, equations, dg, i, j, k,  element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], flux3, equations, dg, i, j, kk, element)
     end
   end
 end

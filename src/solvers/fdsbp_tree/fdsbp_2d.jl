@@ -110,29 +110,29 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
       u_node = get_node_vars(u, equations, dg, 1, l, element)
       f_node = flux(u_node, 1, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
-      surface_contribution = -(f_num - f_node) * inv_weight_left
-      add_to_node_vars!(du, surface_contribution, equations, dg, 1, l, element)
+      multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
+                                 equations, dg, 1, l, element)
 
       # surface at +x
       u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
       f_node = flux(u_node, 1, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
-      surface_contribution = +(f_num - f_node) * inv_weight_right
-      add_to_node_vars!(du, surface_contribution, equations, dg, nnodes(dg), l, element)
+      multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
+                                 equations, dg, nnodes(dg), l, element)
 
       # surface at -y
       u_node = get_node_vars(u, equations, dg, l, 1, element)
       f_node = flux(u_node, 2, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
-      surface_contribution = -(f_num - f_node) * inv_weight_left
-      add_to_node_vars!(du, surface_contribution, equations, dg, l, 1, element)
+      multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
+                                 equations, dg, l, 1, element)
 
       # surface at +y
       u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
       f_node = flux(u_node, 2, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
-      surface_contribution = +(f_num - f_node) * inv_weight_right
-      add_to_node_vars!(du, surface_contribution, equations, dg, l, nnodes(dg), element)
+      multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
+                                 equations, dg, l, nnodes(dg), element)
     end
   end
 

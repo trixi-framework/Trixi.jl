@@ -178,8 +178,8 @@ end
       Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
       # compute the contravariant sharp flux
       fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2
-      add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, element)
-      add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, element)
     end
 
     # y direction
@@ -193,8 +193,8 @@ end
       Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
       # compute the contravariant sharp flux
       fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2
-      add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  element)
-      add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, element)
     end
   end
 end

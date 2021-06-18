@@ -320,7 +320,7 @@ end
   return nothing
 end
 
-@inline function add_to_node_vars!(u, factor, u_node, equations, solver::DG, indices...)
+@inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG, indices...)
   for v in eachvariable(equations)
     u[v, indices...] = u[v, indices...] + factor * u_node[v]
   end

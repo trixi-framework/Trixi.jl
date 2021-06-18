@@ -63,7 +63,7 @@ function calc_volume_integral!(du, u,
       Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
       contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
       for ii in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations, dg, ii, j, k, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations, dg, ii, j, k, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
@@ -71,7 +71,7 @@ function calc_volume_integral!(du, u,
       Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
       contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
       for jj in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations, dg, i, jj, k, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations, dg, i, jj, k, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
@@ -79,7 +79,7 @@ function calc_volume_integral!(du, u,
       Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
       contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
       for kk in eachnode(dg)
-        add_to_node_vars!(du, derivative_dhat[kk, k], contravariant_flux3, equations, dg, i, j, kk, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[kk, k], contravariant_flux3, equations, dg, i, j, kk, element)
       end
     end
   end
@@ -229,8 +229,8 @@ end
       Ja13_avg = 0.5 * (Ja13_node + Ja13_node_ii)
       # compute the contravariant sharp flux
       fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2 + Ja13_avg * flux3
-      add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, k, element)
-      add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, k, element)
     end
 
     # y direction
@@ -247,8 +247,8 @@ end
       Ja23_avg = 0.5 * (Ja23_node + Ja23_node_jj)
       # compute the contravariant sharp flux
       fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2 + Ja23_avg * flux3
-      add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  k, element)
-      add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, k, element)
     end
 
     # z direction
@@ -265,8 +265,8 @@ end
       Ja33_avg = 0.5 * (Ja33_node + Ja33_node_kk)
       # compute the contravariant sharp flux
       fluxtilde3 = Ja31_avg * flux1 + Ja32_avg * flux2 + Ja33_avg * flux3
-      add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3, equations, dg, i, j, k,  element)
-      add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3, equations, dg, i, j, kk, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3, equations, dg, i, j, k,  element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3, equations, dg, i, j, kk, element)
     end
   end
 end
