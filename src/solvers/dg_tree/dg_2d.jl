@@ -46,7 +46,7 @@ function create_cache(mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMe
   f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
 
-  # TODO: mortars. Consider using `StrideArray`s.
+  # TODO: array types. Consider using `StrideArray`s.
   prototype = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype, 2, nvariables(equations) * nnodes(dg)}(undef)
   fstar_upper_threaded           = [similar(prototype) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded           = [similar(prototype) for _ in 1:Threads.nthreads()]
@@ -99,6 +99,9 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
 
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
   prototype = StrideArray(undef, uEltype, StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)))
   fstar_upper_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
@@ -1026,8 +1029,10 @@ end
       direction = 4
     end
   end
-  fast_copyto!(@view(surface_flux_values[:, :, direction, upper_element]), fstar_upper)
-  fast_copyto!(@view(surface_flux_values[:, :, direction, lower_element]), fstar_lower)
+  fast_copyto!(view(surface_flux_values, :, :, direction, upper_element),
+               fstar_upper)
+  fast_copyto!(view(surface_flux_values, :, :, direction, lower_element),
+               fstar_lower)
 
   # Project small fluxes to large element
   if cache.mortars.large_sides[mortar] == 1 # -> large element on left side

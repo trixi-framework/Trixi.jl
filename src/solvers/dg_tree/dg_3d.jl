@@ -48,6 +48,7 @@ function create_cache(mesh::Union{TreeMesh{3}, CurvedMesh{3}}, nonconservative_t
   f3_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
 
+  # TODO: array types. Consider using `StrideArray`s.
   A3d = Array{uEltype, 3}
   fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
                                    for _ in 1:Threads.nthreads()]
@@ -121,8 +122,12 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
-  # TODO: mortars; compare performance of different types
-  prototype = Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
+
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  prototype = StrideArray(undef, uEltype,
+    StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)), StaticInt(nnodes(mortar_l2)))
   fstar_upper_left_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
   fstar_upper_right_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
   fstar_lower_left_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
@@ -1108,11 +1113,14 @@ end
       direction = 6
     end
   end
-  # TODO: mortars
-  surface_flux_values[:, :, :, direction, upper_left_element]  .= fstar_upper_left
-  surface_flux_values[:, :, :, direction, upper_right_element] .= fstar_upper_right
-  surface_flux_values[:, :, :, direction, lower_left_element]  .= fstar_lower_left
-  surface_flux_values[:, :, :, direction, lower_right_element] .= fstar_lower_right
+  fast_copyto!(view(surface_flux_values, :, :, :, direction, upper_left_element),
+               fstar_upper_left)
+  fast_copyto!(view(surface_flux_values, :, :, :, direction, upper_right_element),
+               fstar_upper_right)
+  fast_copyto!(view(surface_flux_values, :, :, :, direction, lower_left_element),
+               fstar_lower_left)
+  fast_copyto!(view(surface_flux_values, :, :, :, direction, lower_right_element),
+               fstar_lower_right)
 
   # Project small fluxes to large element
   if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
