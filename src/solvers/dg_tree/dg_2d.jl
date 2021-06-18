@@ -46,11 +46,12 @@ function create_cache(mesh::Union{TreeMesh{2}, CurvedMesh{2}, UnstructuredQuadMe
   f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
 
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype, 2, nvariables(equations) * nnodes(dg)}
-  fstar_upper_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  # TODO: array types. Consider using `StrideArray`s.
+  prototype = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype, 2, nvariables(equations) * nnodes(dg)}(undef)
+  fstar_upper_threaded           = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded           = [similar(prototype) for _ in 1:Threads.nthreads()]
+  noncons_diamond_upper_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded,
           fstar_upper_threaded, fstar_lower_threaded,
@@ -97,14 +98,13 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
-  # TODO: Taal performance using different types
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}
-  fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
-  # A2d = Array{uEltype, 2}
-  # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-  # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  prototype = StrideArray(undef, uEltype, StaticInt(nvariables(equations)), StaticInt(nnodes(mortar_l2)))
+  fstar_upper_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   (; fstar_upper_threaded, fstar_lower_threaded)
 end
@@ -570,16 +570,16 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
   end
 
   return nothing
- end
+end
 
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
   @unpack interfaces = cache
-  @unpack orientations = interfaces
+  @unpack orientations, neighbor_ids = interfaces
 
   @threaded for interface in eachinterface(dg, cache)
-    left_element  = interfaces.neighbor_ids[1, interface]
-    right_element = interfaces.neighbor_ids[2, interface]
+    left_element  = neighbor_ids[1, interface]
+    right_element = neighbor_ids[2, interface]
 
     if orientations[interface] == 1
       # interface in x-direction
@@ -693,10 +693,10 @@ end
 function prolong2boundaries!(cache, u,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-  @unpack orientations, neighbor_sides = boundaries
+  @unpack orientations, neighbor_ids, neighbor_sides = boundaries
 
   @threaded for boundary in eachboundary(dg, cache)
-    element = boundaries.neighbor_ids[boundary]
+    element = neighbor_ids[boundary]
 
     if orientations[boundary] == 1
       # boundary in x-direction
@@ -1032,6 +1032,7 @@ end
   surface_flux_values[:, :, direction, upper_element] .= fstar_upper
   surface_flux_values[:, :, direction, lower_element] .= fstar_lower
 
+
   # Project small fluxes to large element
   if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
     if cache.mortars.orientations[mortar] == 1
@@ -1051,23 +1052,6 @@ end
     end
   end
 
-  # TODO: Taal performance
-  # for v in eachvariable(equations)
-  #   # The code below is semantically equivalent to
-  #   # surface_flux_values[v, :, direction, large_element] .=
-  #   #   (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
-  #   # but faster and does not allocate.
-  #   # Note that `true * some_float == some_float` in Julia, i.e. `true` acts as
-  #   # a universal `one`. Hence, the second `mul!` means "add the matrix-vector
-  #   # product to the current value of the destination".
-  #   @views mul!(surface_flux_values[v, :, direction, large_element],
-  #               mortar_l2.reverse_upper, fstar_upper[v, :])
-  #   @views mul!(surface_flux_values[v, :, direction, large_element],
-  #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
-  # end
-  # The code above could be replaced by the following code. However, the relative efficiency
-  # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
-  # Using StaticArrays for both makes the code above faster for common test cases.
   multiply_dimensionwise!(
     view(surface_flux_values, :, :, direction, large_element), mortar_l2.reverse_upper, fstar_upper,
                                                                mortar_l2.reverse_lower, fstar_lower)
