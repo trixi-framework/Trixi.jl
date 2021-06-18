@@ -45,6 +45,6 @@ end
 Base.eltype(::ElementContainer{NDIMS, RealT, uEltype}) where {NDIMS, RealT, uEltype} = uEltype
 
 
-include_fast("containers_1d.jl")
-include_fast("containers_2d.jl")
-include_fast("containers_3d.jl")
+include_optimized("containers_1d.jl")
+include_optimized("containers_2d.jl")
+include_optimized("containers_3d.jl")

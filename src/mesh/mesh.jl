@@ -1,7 +1,7 @@
 
-include_fast("abstract_tree.jl")
-include_fast("serial_tree.jl")
-include_fast("parallel_tree.jl")
+include_optimized("abstract_tree.jl")
+include_optimized("serial_tree.jl")
+include_optimized("parallel_tree.jl")
 
 
 get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
@@ -202,9 +202,9 @@ function total_volume(mesh::TreeMesh)
 end
 
 
-include_fast("parallel.jl")
-include_fast("curved_mesh.jl")
-include_fast("surface_interpolant.jl")
-include_fast("unstructured_quad_mesh.jl")
-include_fast("p4est_mesh.jl")
-include_fast("mesh_io.jl")
+include_optimized("parallel.jl")
+include_optimized("curved_mesh.jl")
+include_optimized("surface_interpolant.jl")
+include_optimized("unstructured_quad_mesh.jl")
+include_optimized("p4est_mesh.jl")
+include_optimized("mesh_io.jl")

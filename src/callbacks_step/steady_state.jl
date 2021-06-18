@@ -70,6 +70,6 @@ function (steady_state_callback::SteadyStateCallback)(du, u, semi::AbstractSemid
   steady_state_callback(du, u, mesh_equations_solver_cache(semi)...)
 end
 
-include_fast("steady_state_dg1d.jl")
-include_fast("steady_state_dg2d.jl")
-include_fast("steady_state_dg3d.jl")
+include_optimized("steady_state_dg1d.jl")
+include_optimized("steady_state_dg2d.jl")
+include_optimized("steady_state_dg3d.jl")

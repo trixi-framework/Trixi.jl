@@ -14,8 +14,8 @@ end
 
 
 # 2D unstructured DG implementation
-include_fast("mappings_geometry_curved_2d.jl")
-include_fast("mappings_geometry_straight_2d.jl")
-include_fast("containers_2d.jl")
-include_fast("sort_boundary_conditions.jl")
-include_fast("dg_2d.jl")
+include_optimized("mappings_geometry_curved_2d.jl")
+include_optimized("mappings_geometry_straight_2d.jl")
+include_optimized("containers_2d.jl")
+include_optimized("sort_boundary_conditions.jl")
+include_optimized("dg_2d.jl")

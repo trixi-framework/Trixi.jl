@@ -756,6 +756,6 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
 end
 
 
-include_fast("amr_dg1d.jl")
-include_fast("amr_dg2d.jl")
-include_fast("amr_dg3d.jl")
+include_optimized("amr_dg1d.jl")
+include_optimized("amr_dg2d.jl")
+include_optimized("amr_dg3d.jl")

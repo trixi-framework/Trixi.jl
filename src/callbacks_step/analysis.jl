@@ -485,7 +485,7 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
 
 # specialized implementations specific to some solvers
-include_fast("analysis_dg1d.jl")
-include_fast("analysis_dg2d.jl")
-include_fast("analysis_dg2d_parallel.jl")
-include_fast("analysis_dg3d.jl")
+include_optimized("analysis_dg1d.jl")
+include_optimized("analysis_dg2d.jl")
+include_optimized("analysis_dg2d_parallel.jl")
+include_optimized("analysis_dg3d.jl")

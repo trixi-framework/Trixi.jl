@@ -81,4 +81,4 @@ end
   return nothing
 end
 
-include_fast("glm_speed_dg.jl")
+include_optimized("glm_speed_dg.jl")

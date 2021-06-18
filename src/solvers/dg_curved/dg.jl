@@ -62,7 +62,7 @@ end
 @inline ndofs(mesh::CurvedMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
-include_fast("containers.jl")
-include_fast("dg_1d.jl")
-include_fast("dg_2d.jl")
-include_fast("dg_3d.jl")
+include_optimized("containers.jl")
+include_optimized("dg_1d.jl")
+include_optimized("dg_2d.jl")
+include_optimized("dg_3d.jl")

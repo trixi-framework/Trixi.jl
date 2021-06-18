@@ -1,2 +1,2 @@
 
-include_fast("positivity_zhang_shu.jl")
+include_optimized("positivity_zhang_shu.jl")

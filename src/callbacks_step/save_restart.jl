@@ -125,4 +125,4 @@ function load_restart_file(semi::AbstractSemidiscretization, restart_file)
 end
 
 
-include_fast("save_restart_dg.jl")
+include_optimized("save_restart_dg.jl")

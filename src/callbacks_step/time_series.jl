@@ -196,5 +196,5 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 end
 
 
-include_fast("time_series_dg.jl")
-include_fast("time_series_dg2d.jl")
+include_optimized("time_series_dg.jl")
+include_optimized("time_series_dg2d.jl")

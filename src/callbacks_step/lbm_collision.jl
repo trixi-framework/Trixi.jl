@@ -55,5 +55,5 @@ end
   return nothing
 end
 
-include_fast("lbm_collision_dg2d.jl")
-include_fast("lbm_collision_dg3d.jl")
+include_optimized("lbm_collision_dg2d.jl")
+include_optimized("lbm_collision_dg3d.jl")

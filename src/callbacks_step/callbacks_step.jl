@@ -42,21 +42,21 @@ end
 # * `GlmSpeedCallback` must come after computing time step size because it affects the value of c_h
 # * `LBMCollisionCallback` must come after computing time step size because it is already part of
 #    the next time step calculation
-include_fast("summary.jl")
-include_fast("steady_state.jl")
-include_fast("analysis.jl")
-include_fast("alive.jl")
-include_fast("save_restart.jl")
-include_fast("save_solution.jl")
-include_fast("time_series.jl")
-include_fast("visualization.jl")
+include_optimized("summary.jl")
+include_optimized("steady_state.jl")
+include_optimized("analysis.jl")
+include_optimized("alive.jl")
+include_optimized("save_restart.jl")
+include_optimized("save_solution.jl")
+include_optimized("time_series.jl")
+include_optimized("visualization.jl")
 
-include_fast("amr.jl")
-include_fast("stepsize.jl")
-include_fast("glm_speed.jl")
-include_fast("lbm_collision.jl")
+include_optimized("amr.jl")
+include_optimized("stepsize.jl")
+include_optimized("glm_speed.jl")
+include_optimized("lbm_collision.jl")
 
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`
-include_fast("trivial.jl")
+include_optimized("trivial.jl")

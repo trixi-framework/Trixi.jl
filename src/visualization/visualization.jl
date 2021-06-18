@@ -1,5 +1,5 @@
 
-include_fast("plot_recipes.jl")
-include_fast("interpolate.jl")
-include_fast("convert.jl")
-include_fast("adapt.jl")
+include_optimized("plot_recipes.jl")
+include_optimized("interpolate.jl")
+include_optimized("convert.jl")
+include_optimized("adapt.jl")

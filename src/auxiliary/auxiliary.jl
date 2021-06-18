@@ -1,6 +1,6 @@
 
-include_fast("containers.jl")
-include_fast("math.jl")
+include_optimized("containers.jl")
+include_optimized("math.jl")
 
 
 # Enable debug timings `@trixi_timeit timer() "name" stuff...`.
