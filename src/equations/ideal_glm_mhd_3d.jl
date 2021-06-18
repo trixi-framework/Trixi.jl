@@ -466,7 +466,8 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
 
   # Compute the necessary mean values needed for either direction
   rho_mean = ln_mean(rho_ll, rho_rr)
-  # Equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)` since
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
   #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
   #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
   inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
