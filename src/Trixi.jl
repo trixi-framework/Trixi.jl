@@ -57,8 +57,8 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 function include_optimized(filename)
   include(expr -> quote @muladd begin $expr end end, filename)
 end

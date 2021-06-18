@@ -337,7 +337,7 @@ end
 
 
 """
-    flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Entropy conserving two-point flux by
 - Chandrashekar (2013)
@@ -379,7 +379,7 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Ranocha (2018)
@@ -463,7 +463,7 @@ end
 
 
 """
-    flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
