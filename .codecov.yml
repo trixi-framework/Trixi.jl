@@ -7,6 +7,7 @@
 # [number of additional OS] = 2 (Windows, MacOS)
 # parallel jobs in ci.yml
 codecov:
+  branch: main
   notify:
     after_n_builds: 20
 comment:
