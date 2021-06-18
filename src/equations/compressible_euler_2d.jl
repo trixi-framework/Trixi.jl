@@ -656,14 +656,16 @@ end
     function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
-- Kuya, Totani and Kawai (2018)
+- Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
   [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+
 The modification is in the energy flux to guarantee pressure equilibrium and was developed by
 - Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
+  [DOI: 10.1016/j.jcp.2020.110060](https://doi.org/10.1016/j.jcp.2020.110060)
 """
 @inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
@@ -803,12 +805,12 @@ end
     flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
-- Ranocha (2018)
+- Hendrik Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
   [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
 See also
-- Ranocha (2020)
+- Hendrik Ranocha (2020)
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)

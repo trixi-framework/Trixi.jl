@@ -43,7 +43,7 @@ symmetric two-point volume fluxes. Based upon the theory developed by
   High-order entropy stable finite difference schemes for nonlinear
   conservation laws: Finite domains
   [doi: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
-- Ranocha (2017)
+- Hendrik Ranocha (2017)
   Comparison of Some Entropy Conservative Numerical Fluxes for the Euler Equations
   [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
   [doi: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
