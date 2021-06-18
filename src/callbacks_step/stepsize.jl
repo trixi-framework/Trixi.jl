@@ -101,9 +101,9 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
 end
 
 
-include("stepsize_dg1d.jl")
-include("stepsize_dg2d.jl")
-include("stepsize_dg3d.jl")
+include_fast("stepsize_dg1d.jl")
+include_fast("stepsize_dg2d.jl")
+include_fast("stepsize_dg3d.jl")
 
 
 end # @muladd

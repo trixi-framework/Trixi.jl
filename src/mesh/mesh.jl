@@ -3,9 +3,9 @@
 @muladd begin
 
 
-include("abstract_tree.jl")
-include("serial_tree.jl")
-include("parallel_tree.jl")
+include_fast("abstract_tree.jl")
+include_fast("serial_tree.jl")
+include_fast("parallel_tree.jl")
 
 
 get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
@@ -206,12 +206,12 @@ function total_volume(mesh::TreeMesh)
 end
 
 
-include("parallel.jl")
-include("curved_mesh.jl")
-include("surface_interpolant.jl")
-include("unstructured_quad_mesh.jl")
-include("p4est_mesh.jl")
-include("mesh_io.jl")
+include_fast("parallel.jl")
+include_fast("curved_mesh.jl")
+include_fast("surface_interpolant.jl")
+include_fast("unstructured_quad_mesh.jl")
+include_fast("p4est_mesh.jl")
+include_fast("mesh_io.jl")
 
 
 end # @muladd

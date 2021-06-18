@@ -200,8 +200,8 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 end
 
 
-include("time_series_dg.jl")
-include("time_series_dg2d.jl")
+include_fast("time_series_dg.jl")
+include_fast("time_series_dg2d.jl")
 
 
 end # @muladd

@@ -259,28 +259,28 @@ function entropy2cons end
 # Include files with actual implementations for different systems of equations.
 
 # Numerical flux formulations that are independent of the specific system of equations
-include("numerical_fluxes.jl")
+include_fast("numerical_fluxes.jl")
 
 # Linear scalar advection
 abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("linear_scalar_advection_1d.jl")
-include("linear_scalar_advection_2d.jl")
-include("linear_scalar_advection_3d.jl")
+include_fast("linear_scalar_advection_1d.jl")
+include_fast("linear_scalar_advection_2d.jl")
+include_fast("linear_scalar_advection_3d.jl")
 
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("inviscid_burgers_1d.jl")
+include_fast("inviscid_burgers_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("compressible_euler_1d.jl")
-include("compressible_euler_2d.jl")
-include("compressible_euler_3d.jl")
+include_fast("compressible_euler_1d.jl")
+include_fast("compressible_euler_2d.jl")
+include_fast("compressible_euler_3d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
-include("compressible_euler_multicomponent_1d.jl")
-include("compressible_euler_multicomponent_2d.jl")
+include_fast("compressible_euler_multicomponent_1d.jl")
+include_fast("compressible_euler_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
@@ -288,14 +288,14 @@ include("compressible_euler_multicomponent_2d.jl")
 
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("ideal_glm_mhd_1d.jl")
-include("ideal_glm_mhd_2d.jl")
-include("ideal_glm_mhd_3d.jl")
+include_fast("ideal_glm_mhd_1d.jl")
+include_fast("ideal_glm_mhd_2d.jl")
+include_fast("ideal_glm_mhd_3d.jl")
 
 # IdealGlmMhdMulticomponentEquations
 abstract type AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
-include("ideal_glm_mhd_multicomponent_1d.jl")
-include("ideal_glm_mhd_multicomponent_2d.jl")
+include_fast("ideal_glm_mhd_multicomponent_1d.jl")
+include_fast("ideal_glm_mhd_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
@@ -303,18 +303,18 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
 
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("hyperbolic_diffusion_1d.jl")
-include("hyperbolic_diffusion_2d.jl")
-include("hyperbolic_diffusion_3d.jl")
+include_fast("hyperbolic_diffusion_1d.jl")
+include_fast("hyperbolic_diffusion_2d.jl")
+include_fast("hyperbolic_diffusion_3d.jl")
 
 # Lattice-Boltzmann equation (advection part only)
 abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("lattice_boltzmann_2d.jl")
-include("lattice_boltzmann_3d.jl")
+include_fast("lattice_boltzmann_2d.jl")
+include_fast("lattice_boltzmann_3d.jl")
 
 # Acoustic perturbation equations
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("acoustic_perturbation_2d.jl")
+include_fast("acoustic_perturbation_2d.jl")
 
 
 end # @muladd

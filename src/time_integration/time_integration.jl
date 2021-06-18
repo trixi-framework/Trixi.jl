@@ -11,8 +11,8 @@ struct TimeIntegratorSolution{tType, uType, P}
   prob::P
 end
 
-include("methods_2N.jl")
-include("methods_3Sstar.jl")
+include_fast("methods_2N.jl")
+include_fast("methods_3Sstar.jl")
 
 
 end # @muladd

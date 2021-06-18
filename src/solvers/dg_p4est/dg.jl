@@ -53,8 +53,8 @@ end
 @inline ndofs(mesh::P4estMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
-include("containers.jl")
-include("dg_2d.jl")
+include_fast("containers.jl")
+include_fast("dg_2d.jl")
 
 
 end # @muladd

@@ -158,7 +158,7 @@ end
 # TODO: Taal refactor, move save_mesh_file?
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
 
-include("save_solution_dg.jl")
+include_fast("save_solution_dg.jl")
 
 
 end # @muladd

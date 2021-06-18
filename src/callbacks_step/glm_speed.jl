@@ -85,7 +85,7 @@ end
   return nothing
 end
 
-include("glm_speed_dg.jl")
+include_fast("glm_speed_dg.jl")
 
 
 end # @muladd

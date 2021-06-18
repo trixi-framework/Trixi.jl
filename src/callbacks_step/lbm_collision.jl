@@ -59,8 +59,8 @@ end
   return nothing
 end
 
-include("lbm_collision_dg2d.jl")
-include("lbm_collision_dg3d.jl")
+include_fast("lbm_collision_dg2d.jl")
+include_fast("lbm_collision_dg3d.jl")
 
 
 end # @muladd

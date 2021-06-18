@@ -512,7 +512,7 @@ end
 end
 
 
-include("containers_2d.jl")
+include_fast("containers_2d.jl")
 
 
 end # @muladd

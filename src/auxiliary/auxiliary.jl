@@ -3,8 +3,8 @@
 @muladd begin
 
 
-include("containers.jl")
-include("math.jl")
+include_fast("containers.jl")
+include_fast("math.jl")
 
 
 # Enable debug timings `@trixi_timeit timer() "name" stuff...`.

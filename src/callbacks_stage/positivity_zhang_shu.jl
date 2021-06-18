@@ -61,9 +61,9 @@ function limiter_zhang_shu!(u, thresholds::Tuple{}, variables::Tuple{},
 end
 
 
-include("positivity_zhang_shu_dg1d.jl")
-include("positivity_zhang_shu_dg2d.jl")
-include("positivity_zhang_shu_dg3d.jl")
+include_fast("positivity_zhang_shu_dg1d.jl")
+include_fast("positivity_zhang_shu_dg2d.jl")
+include_fast("positivity_zhang_shu_dg3d.jl")
 
 
 end # @muladd

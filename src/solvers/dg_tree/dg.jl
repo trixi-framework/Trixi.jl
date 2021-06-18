@@ -337,8 +337,8 @@ AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 
 # Include utilities
 include("interpolation.jl")
-include("l2projection.jl")
-include("basis_lobatto_legendre.jl")
+include_fast("l2projection.jl")
+include_fast("basis_lobatto_legendre.jl")
 
 """
     DGSEM(; RealT=Float64, polydeg::Integer,
@@ -435,23 +435,23 @@ end
 
 
 # indicators used for shock-capturing and AMR
-include("indicators.jl")
-include("indicators_1d.jl")
-include("indicators_2d.jl")
-include("indicators_3d.jl")
+include_fast("indicators.jl")
+include_fast("indicators_1d.jl")
+include_fast("indicators_2d.jl")
+include_fast("indicators_3d.jl")
 
 # 1D DG implementation
-include("containers_1d.jl")
-include("dg_1d.jl")
+include_fast("containers_1d.jl")
+include_fast("dg_1d.jl")
 
 # 2D DG implementation
-include("containers_2d.jl")
-include("dg_2d.jl")
-include("dg_2d_parallel.jl")
+include_fast("containers_2d.jl")
+include_fast("dg_2d.jl")
+include_fast("dg_2d_parallel.jl")
 
 # 3D DG implementation
-include("containers_3d.jl")
-include("dg_3d.jl")
+include_fast("containers_3d.jl")
+include_fast("dg_3d.jl")
 
 
 end # @muladd

@@ -66,10 +66,10 @@ end
 @inline ndofs(mesh::CurvedMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
-include("containers.jl")
-include("dg_1d.jl")
-include("dg_2d.jl")
-include("dg_3d.jl")
+include_fast("containers.jl")
+include_fast("dg_1d.jl")
+include_fast("dg_2d.jl")
+include_fast("dg_3d.jl")
 
 
 end # @muladd

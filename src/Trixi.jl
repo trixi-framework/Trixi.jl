@@ -54,31 +54,41 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator
 
+
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly
+# See https://ranocha.de/blog/Optimizing_EC_Trixi/
+function include_fast(filename)
+  include(expr -> quote @muladd begin $expr end end, filename)
+end
+
+
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
 # Placing them here allows us to make use of them for dispatch even for
 # other stuff defined very early in our include pipeline, e.g.
 #     IndicatorLöhner(semi::AbstractSemidiscretization)
-include("basic_types.jl")
+include_fast("basic_types.jl")
 
 # Include all top-level source files
-include("auxiliary/auxiliary.jl")
-include("auxiliary/mpi.jl")
-include("equations/equations.jl")
-include("mesh/mesh.jl")
-include("solvers/solvers.jl")
-include("semidiscretization/semidiscretization.jl")
-include("semidiscretization/semidiscretization_hyperbolic.jl")
-include("callbacks_step/callbacks_step.jl")
-include("callbacks_stage/callbacks_stage.jl")
-include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("time_integration/time_integration.jl")
+include_fast("auxiliary/auxiliary.jl")
+include_fast("auxiliary/mpi.jl")
+include_fast("equations/equations.jl")
+include_fast("mesh/mesh.jl")
+include_fast("solvers/solvers.jl")
+include_fast("semidiscretization/semidiscretization.jl")
+include_fast("semidiscretization/semidiscretization_hyperbolic.jl")
+include_fast("callbacks_step/callbacks_step.jl")
+include_fast("callbacks_stage/callbacks_stage.jl")
+include_fast("semidiscretization/semidiscretization_euler_gravity.jl")
+include_fast("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
-include("auxiliary/special_elixirs.jl")
+include_fast("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
-include("visualization/visualization.jl")
+include_fast("visualization/visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
@@ -193,7 +203,7 @@ function __init__()
 end
 
 
-include("auxiliary/precompile.jl")
+include_fast("auxiliary/precompile.jl")
 _precompile_manual_()
 
 

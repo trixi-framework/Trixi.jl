@@ -3,7 +3,7 @@
 @muladd begin
 
 
-include("positivity_zhang_shu.jl")
+include_fast("positivity_zhang_shu.jl")
 
 
 end # @muladd
