@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Note: We can't call the method below `Trixi.include` since that is created automatically
 # inside `module Trixi` to `include` source files and evaluate them within the global scope
@@ -208,6 +204,3 @@ function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, i
 
   trixi_include(mod, elixir; kwargs..., cells_per_dimension=new_cells_per_dimension)
 end
-
-
-end # @muladd

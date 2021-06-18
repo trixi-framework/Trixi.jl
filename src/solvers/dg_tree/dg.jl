@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 abstract type AbstractVolumeIntegral end
 
@@ -452,6 +448,3 @@ include_fast("dg_2d_parallel.jl")
 # 3D DG implementation
 include_fast("containers_3d.jl")
 include_fast("dg_3d.jl")
-
-
-end # @muladd

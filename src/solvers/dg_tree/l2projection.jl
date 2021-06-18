@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # This diagram shows what is meant by "lower", "upper", and "large":
 #      +1   +1
@@ -153,6 +149,3 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto})
 
   return operator
 end
-
-
-end # @muladd

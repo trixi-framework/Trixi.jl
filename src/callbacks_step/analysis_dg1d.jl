@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function create_cache_analysis(analyzer, mesh::TreeMesh{1},
                                equations, dg::DG, cache,
@@ -217,6 +213,3 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
   return linf_divb
 end
-
-
-end # @muladd

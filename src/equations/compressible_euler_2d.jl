@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 @doc raw"""
     CompressibleEulerEquations2D
@@ -1275,6 +1271,3 @@ end
 @inline function energy_internal(cons, equations::CompressibleEulerEquations2D)
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
-
-
-end # @muladd

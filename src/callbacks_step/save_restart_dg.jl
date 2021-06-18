@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function save_restart_file(u, time, dt, timestep,
                            mesh::Union{SerialTreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh},
@@ -194,6 +190,3 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
   return u_ode
 end
-
-
-end # @muladd

@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function rhs!(du, u, t,
               mesh::CurvedMesh{1}, equations,
@@ -110,6 +106,3 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
   end
 end
-
-
-end # @muladd

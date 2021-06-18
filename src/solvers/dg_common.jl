@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
@@ -101,6 +97,3 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg:
     end
   end
 end
-
-
-end # @muladd

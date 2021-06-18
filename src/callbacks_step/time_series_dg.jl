@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Store time series file for a TreeMesh with a DG solver
 function save_time_series_file(time_series_callback, mesh::TreeMesh, equations, dg::DG)
@@ -30,6 +26,3 @@ function save_time_series_file(time_series_callback, mesh::TreeMesh, equations, 
     end
   end
 end
-
-
-end # @muladd

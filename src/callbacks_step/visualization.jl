@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator, PlotCreator}
   interval::Int
@@ -232,6 +228,3 @@ function save_plot(plot_data, variable_names;
   filename = joinpath("out", @sprintf("solution_%06d.png", timestep))
   savefig(filename)
 end
-
-
-end # @muladd

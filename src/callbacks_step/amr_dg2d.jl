@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
@@ -353,6 +349,3 @@ function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2}, e
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
-
-
-end # @muladd

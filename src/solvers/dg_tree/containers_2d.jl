@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct ElementContainer2D{RealT<:Real, uEltype<:Real} <: AbstractContainer
@@ -848,6 +844,3 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
   @assert count == nmpiinterfaces(mpi_interfaces) ("Actual interface count ($count) does not match "
                                                    * "expectations $(nmpiinterfaces(mpi_interfaces))")
 end
-
-
-end # @muladd

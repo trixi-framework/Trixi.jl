@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 @doc raw"""
     LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
@@ -413,6 +409,3 @@ end
 @inline function energy_kinetic_nondimensional(u, equations::LatticeBoltzmannEquations3D)
   return energy_kinetic(u, equations) / equations.u0^2
 end
-
-
-end # @muladd

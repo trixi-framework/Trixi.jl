@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 @doc raw"""
     LinearScalarAdvectionEquation1D
@@ -165,6 +161,3 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5 * u^2
 @inline energy_total(u, equation::LinearScalarAdvectionEquation1D) = energy_total(u[1], equation)
-
-
-end # @muladd

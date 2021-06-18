@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     TimeSeriesCallback(semi, point_coordinates;
@@ -202,6 +198,3 @@ end
 
 include_fast("time_series_dg.jl")
 include_fast("time_series_dg2d.jl")
-
-
-end # @muladd

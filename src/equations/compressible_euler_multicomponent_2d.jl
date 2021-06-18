@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 @doc raw"""
     CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
@@ -881,6 +877,3 @@ end
 
   return SVector{ncomponents(equations), real(equations)}(u[i+3]*v for i in eachcomponent(equations))
  end
-
-
-end # @muladd

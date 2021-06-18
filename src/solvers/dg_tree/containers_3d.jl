@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct ElementContainer3D{RealT<:Real, uEltype<:Real} <: AbstractContainer
@@ -781,6 +777,3 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
   @assert count == nmortars(mortars) ("Actual mortar count ($count) does not match " *
                                       "expectations $(nmortars(mortars))")
 end
-
-
-end # @muladd

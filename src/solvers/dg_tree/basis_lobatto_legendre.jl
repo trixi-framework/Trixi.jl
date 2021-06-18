@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     LobattoLegendreBasis([RealT=Float64,] polydeg::Integer)
@@ -658,6 +654,3 @@ function vandermonde_legendre(nodes, N)
   return vandermonde, inverse_vandermonde
 end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
-
-
-end # @muladd

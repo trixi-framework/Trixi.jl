@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Note: This is an experimental feature and may be changed in future releases without notice.
 mutable struct ElementContainerP4est{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
@@ -513,6 +509,3 @@ end
 
 
 include_fast("containers_2d.jl")
-
-
-end # @muladd

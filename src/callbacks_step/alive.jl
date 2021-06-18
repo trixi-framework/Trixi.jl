@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     AliveCallback(analysis_interval=0, alive_interval=analysis_interval÷10)
@@ -91,6 +87,3 @@ function (alive_callback::AliveCallback)(integrator)
   u_modified!(integrator, false)
   return nothing
 end
-
-
-end # @muladd

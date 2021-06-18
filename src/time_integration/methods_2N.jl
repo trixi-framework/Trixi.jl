@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Abstract base type for time integration schemes of storage class `2N`
 abstract type SimpleAlgorithm2N end
@@ -197,6 +193,3 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
   resize!(integrator.du, new_size)
   resize!(integrator.u_tmp, new_size)
 end
-
-
-end # @muladd

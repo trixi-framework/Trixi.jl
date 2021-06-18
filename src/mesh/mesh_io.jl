@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0)
@@ -375,6 +371,3 @@ function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
 
   return mesh
 end
-
-
-end # @muladd

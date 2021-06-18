@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
@@ -327,6 +323,3 @@ function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{3}, equations
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
-
-
-end # @muladd

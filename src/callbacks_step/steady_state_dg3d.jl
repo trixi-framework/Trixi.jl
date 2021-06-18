@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{3},
                                                       equations, dg::DG, cache)
@@ -19,6 +15,3 @@ function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{
 
   return terminate
 end
-
-
-end # @muladd

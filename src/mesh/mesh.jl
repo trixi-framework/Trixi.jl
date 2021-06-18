@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 include_fast("abstract_tree.jl")
 include_fast("serial_tree.jl")
@@ -212,6 +208,3 @@ include_fast("surface_interpolant.jl")
 include_fast("unstructured_quad_mesh.jl")
 include_fast("p4est_mesh.jl")
 include_fast("mesh_io.jl")
-
-
-end # @muladd

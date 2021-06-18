@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBasis)
@@ -80,6 +76,3 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{1})
 
   return left_neighbors
 end
-
-
-end # @muladd

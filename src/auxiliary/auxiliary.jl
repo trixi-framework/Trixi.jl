@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 include_fast("containers.jl")
 include_fast("math.jl")
@@ -236,6 +232,3 @@ function init_p4est()
 
   return nothing
 end
-
-
-end # @muladd

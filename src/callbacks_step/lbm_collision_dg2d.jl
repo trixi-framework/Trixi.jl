@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function apply_collision!(u, dt, collision_op,
                           mesh::AbstractMesh{2}, equations, dg::DG, cache)
@@ -16,6 +12,3 @@ function apply_collision!(u, dt, collision_op,
 
   return nothing
 end
-
-
-end # @muladd

@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
@@ -493,6 +489,3 @@ include_fast("analysis_dg1d.jl")
 include_fast("analysis_dg2d.jl")
 include_fast("analysis_dg2d_parallel.jl")
 include_fast("analysis_dg3d.jl")
-
-
-end # @muladd

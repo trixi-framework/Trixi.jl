@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Creates cache for time series callback
 function create_cache_time_series(point_coordinates, mesh::TreeMesh{2}, dg, cache)
@@ -143,6 +139,3 @@ function record_state_at_points!(point_data, u, solution_variables, n_solution_v
     end
   end
 end
-
-
-end # @muladd

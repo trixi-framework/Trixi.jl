@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 abstract type AbstractIndicator end
 
@@ -189,6 +185,3 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
     summary_box(io, "IndicatorMax", setup)
   end
 end
-
-
-end # @muladd

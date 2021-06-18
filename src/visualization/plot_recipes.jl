@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Convenience type to allow dispatch on solution objects that were created by Trixi
 #
@@ -689,6 +685,3 @@ end
 @recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
   return PlotData1D(time_series_callback, point_id)
 end
-
-
-end # @muladd

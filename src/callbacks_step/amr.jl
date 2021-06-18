@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
@@ -763,6 +759,3 @@ end
 include_fast("amr_dg1d.jl")
 include_fast("amr_dg2d.jl")
 include_fast("amr_dg3d.jl")
-
-
-end # @muladd

@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 @doc raw"""
     AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
@@ -423,6 +419,3 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::AcousticPerturbationEquations2D) = u
-
-
-end # @muladd

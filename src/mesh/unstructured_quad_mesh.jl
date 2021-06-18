@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     UnstructuredQuadMesh{RealT<:Real} <: AbstractMesh{2}
@@ -251,6 +247,3 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{RealT,
     summary_footer(io)
   end
 end
-
-
-end # @muladd

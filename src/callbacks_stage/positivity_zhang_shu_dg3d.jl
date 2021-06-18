@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache)
@@ -40,6 +36,3 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
 
   return nothing
 end
-
-
-end # @muladd

@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # overload this function for specific callbacks which use element element variables
 # that should be saved
@@ -64,6 +60,3 @@ include_fast("lbm_collision.jl")
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`
 include_fast("trivial.jl")
-
-
-end # @muladd

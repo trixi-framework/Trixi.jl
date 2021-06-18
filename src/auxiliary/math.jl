@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     ln_mean(x, y)
@@ -80,6 +76,3 @@ multiplication.
     return log(y / x) / (y - x)
   end
 end
-
-
-end # @muladd

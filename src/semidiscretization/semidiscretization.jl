@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     ndofs(semi::AbstractSemidiscretization)
@@ -316,6 +312,3 @@ end
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
 # - rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
 #
-
-
-end # @muladd

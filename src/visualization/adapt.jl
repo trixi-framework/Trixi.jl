@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     adapt_to_mesh_level!(u_ode, semi, level)
@@ -52,6 +48,3 @@ function adapt_to_mesh_level(u_ode, semi, level)
 end
 
 adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
-
-
-end # @muladd

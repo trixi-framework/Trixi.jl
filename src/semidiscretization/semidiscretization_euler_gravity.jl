@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     ParametersEulerGravity(; background_density=0.0,
@@ -442,6 +438,3 @@ end
   amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)..., semi, t, iter;
                kwargs..., passive_args=passive_args)
 end
-
-
-end # @muladd

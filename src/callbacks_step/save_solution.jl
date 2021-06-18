@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     SaveSolutionCallback(; interval=0,
@@ -159,6 +155,3 @@ end
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
 
 include_fast("save_solution_dg.jl")
-
-
-end # @muladd

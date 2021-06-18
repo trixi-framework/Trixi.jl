@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
@@ -343,6 +339,3 @@ function calc_surface_integral!(du, u, mesh::P4estMesh,
 
   return nothing
 end
-
-
-end # @muladd

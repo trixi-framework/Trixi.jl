@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     GlmSpeedCallback(; glm_scale=0.5, cfl)
@@ -86,6 +82,3 @@ end
 end
 
 include_fast("glm_speed_dg.jl")
-
-
-end # @muladd

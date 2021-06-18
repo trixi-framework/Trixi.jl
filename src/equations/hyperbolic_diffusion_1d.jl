@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 @doc raw"""
     HyperbolicDiffusionEquations1D
@@ -218,6 +214,3 @@ end
   phi, q1 = u
   return 0.5 * (phi^2 + equations.Lr^2 * q1^2)
 end
-
-
-end # @muladd

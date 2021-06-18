@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # everything related to a DG semidiscretization in 3D,
 # currently limited to Lobatto-Legendre nodes
@@ -1208,6 +1204,3 @@ function calc_sources!(du, u, t, source_terms,
 
   return nothing
 end
-
-
-end # @muladd

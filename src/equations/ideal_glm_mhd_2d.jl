@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 @doc raw"""
     IdealGlmMhdEquations2D
@@ -1062,6 +1058,3 @@ end
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations2D)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end
-
-
-end # @muladd

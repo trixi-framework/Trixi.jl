@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 """
     SteadyStateCallback(; abstol=1.0e-8, reltol=1.0e-6)
@@ -77,6 +73,3 @@ end
 include_fast("steady_state_dg1d.jl")
 include_fast("steady_state_dg2d.jl")
 include_fast("steady_state_dg3d.jl")
-
-
-end # @muladd

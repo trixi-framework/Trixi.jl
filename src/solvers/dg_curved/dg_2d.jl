@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 function rhs!(du, u, t,
               mesh::CurvedMesh{2}, equations,
@@ -314,6 +310,3 @@ function apply_jacobian!(du,
 
   return nothing
 end
-
-
-end # @muladd

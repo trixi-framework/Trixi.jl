@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 abstract type AbstractTree{NDIMS} <: AbstractContainer end
 
@@ -767,6 +763,3 @@ end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
 # function reset_data_structures!(t::AbstractTree{NDIMS}) where NDIMS end
-
-
-end # @muladd

@@ -1,7 +1,3 @@
-# By default, Julia/LLVM does not use FMAs. Hence, we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi/
-@muladd begin
-
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasis)
@@ -375,6 +371,3 @@ function init_mortars!(mortars, mesh::P4estMesh{2})
 
   return mortars
 end
-
-
-end # @muladd
