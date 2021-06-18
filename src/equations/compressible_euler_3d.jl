@@ -458,9 +458,9 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
   p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
   if orientation == 1
     f1 = rho_v1
@@ -485,11 +485,8 @@ end
 end
 
 @inline function flux(u, normal::AbstractVector, equations::CompressibleEulerEquations3D)
-  rho, rho_v1, rho_v2, rho_v3, rho_e = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+  rho_e = last(u)
+  rho, v1, v2, v3, p = cons2prim(u, equations)
 
   v_normal = v1 * normal[1] + v2 * normal[2] + v3 * normal[3]
   rho_v_normal = rho * v_normal
@@ -519,17 +516,8 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
 """
 @inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  p_ll =  (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
-  p_rr =  (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
   rho_avg = 1/2 * (rho_ll + rho_rr)
@@ -578,24 +566,18 @@ Kinetic energy preserving two-point flux by
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
+  rho_e_ll = last(u_ll)
+  rho_e_rr = last(u_rr)
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
   rho_avg = 0.5 * (rho_ll + rho_rr)
-  v1_avg  = 0.5 * (v1_ll + v1_rr)
-  v2_avg  = 0.5 * (v2_ll + v2_rr)
-  v3_avg  = 0.5 * (v3_ll + v3_rr)
-  p_avg = 0.5 * ((equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2)) +
-                 (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2)))
-  e_avg = 0.5 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
+  v1_avg  = 0.5 * ( v1_ll +  v1_rr)
+  v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+  v3_avg  = 0.5 * ( v3_ll +  v3_rr)
+  p_avg   = 0.5 * (  p_ll +   p_rr)
+  e_avg   = 0.5 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
   # Calculate fluxes depending on orientation
   if orientation == 1
@@ -633,31 +615,23 @@ Entropy conserving two-point flux by
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
-  p_ll =  (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
-  p_rr =  (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
-  beta_ll = 0.5*rho_ll/p_ll
-  beta_rr = 0.5*rho_rr/p_rr
-  specific_kin_ll = 0.5*(v1_ll^2 + v2_ll^2 + v3_ll^2)
-  specific_kin_rr = 0.5*(v1_rr^2 + v2_rr^2 + v3_rr^2)
+  beta_ll = 0.5 * rho_ll / p_ll
+  beta_rr = 0.5 * rho_rr / p_rr
+  specific_kin_ll = 0.5 * (v1_ll^2 + v2_ll^2 + v3_ll^2)
+  specific_kin_rr = 0.5 * (v1_rr^2 + v2_rr^2 + v3_rr^2)
 
   # Compute the necessary mean values
-  rho_avg  = 0.5*(rho_ll+rho_rr)
-  rho_mean = ln_mean(rho_ll,rho_rr)
-  beta_mean = ln_mean(beta_ll,beta_rr)
-  beta_avg = 0.5*(beta_ll+beta_rr)
-  v1_avg = 0.5*(v1_ll+v1_rr)
-  v2_avg = 0.5*(v2_ll+v2_rr)
-  v3_avg = 0.5*(v3_ll+v3_rr)
-  p_mean = 0.5*rho_avg/beta_avg
+  rho_avg = 0.5 * (rho_ll + rho_rr)
+  rho_mean  = ln_mean(rho_ll,  rho_rr)
+  beta_mean = ln_mean(beta_ll, beta_rr)
+  beta_avg = 0.5 * (beta_ll + beta_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  v3_avg = 0.5 * (v3_ll + v3_rr)
+  p_mean = 0.5 * rho_avg / beta_avg
   velocity_square_avg = specific_kin_ll + specific_kin_rr
 
   # Calculate fluxes depending on orientation
@@ -701,17 +675,8 @@ See also
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
-  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
   # Compute the necessary mean values
   rho_mean = ln_mean(rho_ll, rho_rr)
@@ -752,17 +717,8 @@ end
 
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
-  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
   v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
   v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
 
@@ -822,19 +778,8 @@ end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
-
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
-
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
   if orientation == 1 # x-direction
     λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
@@ -1012,11 +957,7 @@ end
 
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations3D)
-  rho, rho_v1, rho_v2, rho_v3, rho_e = u
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  v3 = rho_v3 / rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+  rho, v1, v2, v3, p = cons2prim(u, equations)
   c = sqrt(equations.gamma * p / rho)
 
   return abs(v1) + c, abs(v2) + c, abs(v3) + c
@@ -1030,7 +971,7 @@ end
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  p = (equations.gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2 + v3^2))
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
 
   return SVector(rho, v1, v2, v3, p)
 end
@@ -1113,13 +1054,13 @@ end
 end
 
 
-# Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equations::CompressibleEulerEquations3D)
-  # Pressure
-  p = (equations.gamma - 1) * (cons[5] - 1/2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1])
+# Calculate thermodynamic entropy for a conservative state `u`
+@inline function entropy_thermodynamic(u, equations::CompressibleEulerEquations3D)
+  rho, _ = u
+  p = pressure(u, equations)
 
   # Thermodynamic entropy
-  s = log(p) - equations.gamma*log(cons[1])
+  s = log(p) - equations.gamma * log(rho)
 
   return s
 end
@@ -1144,7 +1085,8 @@ end
 
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(cons, equations::CompressibleEulerEquations3D)
-  return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
+  rho, rho_v1, rho_v2, rho_v3, _ = u
+  return 0.5 * (rho_v1^2 + rho_v2^2 +rho_v3^2) / rho
 end
 
 
