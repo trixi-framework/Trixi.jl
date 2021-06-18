@@ -191,11 +191,17 @@ function __init__()
     using .Plots: plot, plot!, savefig
   end
 
+  @require StructArrays="09ab397b-f2b6-538f-b94a-2f83cf4a842a" begin
+    using .StructArrays: StructArrays, StructArray
+  end
+
   @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
     using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
     using .StartUpDG: Line, Tri, Quad, Hex
-    include("solvers/dg_polymorphic/dg.jl")
+    include("solvers/dg_tri/dg.jl")
+    include("solvers/dg_tri/mesh_types.jl")
   end
+
 end
 
 
