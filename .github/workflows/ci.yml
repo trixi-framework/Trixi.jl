@@ -6,6 +6,7 @@ on:
       - main
     paths-ignore:
       - 'AUTHORS.md'
+      - 'CITATION.bib'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
       - 'NEWS.md'
@@ -20,6 +21,7 @@ on:
   pull_request:
     paths-ignore:
       - 'AUTHORS.md'
+      - 'CITATION.bib'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
       - 'NEWS.md'
@@ -127,12 +129,9 @@ jobs:
         env:
           PYTHON: ""
           TRIXI_TEST: ${{ matrix.trixi_test }}
-      # The following step is inspired by the setup of
-      # - uses: julia-actions/julia-processcoverage@v1/
-      # but checks also the examples folder, since the elixirs
-      # contained therein are considered to be a part of Trixi.
-      - run: julia --color=yes -e 'using Pkg; Pkg.activate("coveragetempenv", shared=true); Pkg.add(PackageSpec(name="CoverageTools")); using CoverageTools; pf = process_folder(); append!(pf, process_folder("examples")); LCOV.writefile("lcov.info", pf)'
-        shell: bash
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: src,examples
         # Codecov is disabled since it does not produce accurate measurements for parallel jobs
       - uses: codecov/codecov-action@v1
         with:

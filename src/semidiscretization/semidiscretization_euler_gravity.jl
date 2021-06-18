@@ -189,10 +189,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
   time_start = time_ns()
 
   # standard semidiscretization of the compressible Euler equations
-  @timed timer() "Euler solver" rhs!(du_ode, u_ode, semi_euler, t)
+  @trixi_timeit timer() "Euler solver" rhs!(du_ode, u_ode, semi_euler, t)
 
   # compute gravitational potential and forces
-  @timed timer() "gravity solver" update_gravity!(semi, u_ode)
+  @trixi_timeit timer() "gravity solver" update_gravity!(semi, u_ode)
 
   # add gravitational source source_terms to the Euler part
   if ndims(semi_euler) == 1
@@ -243,7 +243,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
   # iterate gravity solver until convergence or maximum number of iterations are reached
   @unpack equations = semi_gravity
   while !finalstep
-    dt = @timed timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
+    dt = @trixi_timeit timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
                                                            have_constant_speed(equations), equations,
                                                            semi_gravity.solver, semi_gravity.cache)
 
@@ -287,7 +287,7 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
     t_stage = t + dt * c[stage]
 
     # rhs! has the source term for the harmonic problem
-    # We don't need a `@timed timer() "rhs!"` here since that's already
+    # We don't need a `@trixi_timeit timer() "rhs!"` here since that's already
     # included in the `rhs!` call.
     rhs!(du_ode, u_ode, semi_gravity, t_stage)
 
@@ -298,7 +298,7 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
 
     a_stage = a[stage]
     b_stage_dt = b[stage] * dt
-    @timed timer() "Runge-Kutta step" begin
+    @trixi_timeit timer() "Runge-Kutta step" begin
       @threaded for idx in eachindex(u_ode)
         u_tmp1_ode[idx] = du_ode[idx] - u_tmp1_ode[idx] * a_stage
         u_ode[idx] += u_tmp1_ode[idx] * b_stage_dt
@@ -338,7 +338,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
     t_stage = t + dt * c[stage]
 
     # rhs! has the source term for the harmonic problem
-    # We don't need a `@timed timer() "rhs!"` here since that's already
+    # We don't need a `@trixi_timeit timer() "rhs!"` here since that's already
     # included in the `rhs!` call.
     rhs!(du_ode, u_ode, semi_gravity, t_stage)
 
@@ -352,7 +352,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
     gamma2_stage  = gamma2[stage]
     gamma3_stage  = gamma3[stage]
     beta_stage_dt = beta[stage] * dt
-    @timed timer() "Runge-Kutta step" begin
+    @trixi_timeit timer() "Runge-Kutta step" begin
       @threaded for idx in eachindex(u_ode)
         u_tmp1_ode[idx] += delta_stage * u_ode[idx]
         u_ode[idx]       = (gamma1_stage * u_ode[idx] +
@@ -435,6 +435,6 @@ end
                                              semi::SemidiscretizationEulerGravity,
                                              t, iter; kwargs...)
   passive_args = ((semi.cache.u_ode, mesh_equations_solver_cache(semi.semi_gravity)...),)
-  amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)..., t, iter;
+  amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)..., semi, t, iter;
                kwargs..., passive_args=passive_args)
 end
