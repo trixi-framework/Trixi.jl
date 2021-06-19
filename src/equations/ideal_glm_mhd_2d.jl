@@ -299,6 +299,74 @@ end
   return nothing
 end
 
+@inline function new_symmetric_flux(u_ll, u_rr, orientation::Integer,
+                                    equations::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+
+  # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  phi_pow_ll = 0.25 * SVector(0, B1_ll, B2_ll, B3_ll, v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll, v1_ll, v2_ll, v3_ll, 0)
+  phi_pow_rr = 0.25 * SVector(0, B1_rr, B2_rr, B3_rr, v1_rr*B1_rr + v2_rr*B2_rr + v3_rr*B3_rr, v1_rr, v2_rr, v3_rr, 0)
+
+  # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  if orientation == 1
+    phi_gal_ll = 0.25 * SVector(0, 0, 0, 0, v1_ll*psi_ll, 0, 0, 0, v1_ll)
+    phi_gal_rr = 0.25 * SVector(0, 0, 0, 0, v1_rr*psi_rr, 0, 0, 0, v1_rr)
+    B_ll = B1_ll
+    B_rr = B1_rr
+  else
+    phi_gal_ll = 0.25 * SVector(0, 0, 0, 0, v2_ll*psi_ll, 0, 0, 0, v2_ll)
+    phi_gal_rr = 0.25 * SVector(0, 0, 0, 0, v2_rr*psi_rr, 0, 0, 0, v2_rr)
+    B_ll = B2_ll
+    B_rr = B2_rr
+  end
+
+  return (flux_hindenlang(u_ll, u_rr, orientation, equations) +
+          (phi_pow_ll * B_rr + phi_gal_ll * psi_rr) +
+          (phi_pow_rr * B_ll + phi_gal_rr * psi_ll) )
+end
+
+@inline function new_antisymmetric_flux(u_ll, u_rr, orientation::Integer,
+                                        equations::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+
+  # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  phi_pow_ll = 0.25 * SVector(0, B1_ll, B2_ll, B3_ll, v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll, v1_ll, v2_ll, v3_ll, 0)
+  phi_pow_rr = 0.25 * SVector(0, B1_rr, B2_rr, B3_rr, v1_rr*B1_rr + v2_rr*B2_rr + v3_rr*B3_rr, v1_rr, v2_rr, v3_rr, 0)
+
+  # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  if orientation == 1
+    phi_gal_ll = 0.25 * SVector(0, 0, 0, 0, v1_ll*psi_ll, 0, 0, 0, v1_ll)
+    phi_gal_rr = 0.25 * SVector(0, 0, 0, 0, v1_rr*psi_rr, 0, 0, 0, v1_rr)
+    B_ll = B1_ll
+    B_rr = B1_rr
+  else
+    phi_gal_ll = 0.25 * SVector(0, 0, 0, 0, v2_ll*psi_ll, 0, 0, 0, v2_ll)
+    phi_gal_rr = 0.25 * SVector(0, 0, 0, 0, v2_rr*psi_rr, 0, 0, 0, v2_rr)
+    B_ll = B2_ll
+    B_rr = B2_rr
+  end
+
+  return ((phi_pow_ll * B_rr + phi_gal_ll * psi_rr) -
+          (phi_pow_rr * B_ll + phi_gal_rr * psi_ll) )
+end
+
+
 
 # Calculate the nonconservative terms from Powell and Galilean invariance for UnstructuredMesh2D
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed

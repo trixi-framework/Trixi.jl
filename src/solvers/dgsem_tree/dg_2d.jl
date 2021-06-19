@@ -337,6 +337,47 @@ end
   return nothing
 end
 
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                    nonconservative_terms::Val{true}, element,
+                                    mesh::TreeMesh{2}, equations, volume_flux::Tuple{Any,Any}, dg::DGSEM, cache,
+                                    alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can (hopefully) be optimized away due to constant propagation.
+  @unpack derivative_split = dg.basis
+  symmetric_flux, antisymmetric_flux = volume_flux
+
+  # Calculate volume integral in one element
+  for j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+
+    # The diagonal terms are zero since the diagonal of `derivative_split`
+    # is zero. We use the symmetry properties of the volume fluxes for the
+    # remaining terms.
+
+    # x direction
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+      symm_flux1 = symmetric_flux(    u_node, u_node_ii, 1, equations)
+      anti_flux1 = antisymmetric_flux(u_node, u_node_ii, 1, equations)
+      integral_contribution = alpha * derivative_split[i, ii] * (symm_flux1 + anti_flux1)
+      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
+      integral_contribution = alpha * derivative_split[ii, i] * (symm_flux1 - anti_flux1)
+      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+    end
+
+    # y direction
+    for jj in (j+1):nnodes(dg)
+      u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+      symm_flux2 = symmetric_flux(    u_node, u_node_jj, 2, equations)
+      anti_flux2 = antisymmetric_flux(u_node, u_node_jj, 2, equations)
+      integral_contribution = alpha * derivative_split[j, jj] * (symm_flux2 + anti_flux2)
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
+      integral_contribution = alpha * derivative_split[jj, j] * (symm_flux2 - anti_flux2)
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+    end
+  end
+end
+
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
