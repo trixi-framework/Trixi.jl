@@ -21,11 +21,17 @@ end
 # Interpolate tree_node_coordinates to each quadrant
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{3},
-                                nodes)
+                                basis::LobattoLegendreBasis)
   # Hanging nodes will cause holes in the mesh if its polydeg is higher
   # than the polydeg of the solver.
-  @assert length(nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
+  @assert length(basis.nodes) >= length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
+  calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+end
+
+function calc_node_coordinates!(node_coordinates,
+                                mesh::P4estMesh{3},
+                                nodes::AbstractVector)
   # Macros from p4est
   p4est_root_len = 1 << P4EST_MAXLEVEL
   p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
