@@ -2,15 +2,13 @@
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal compare performance of different types
-  A4d = Array{uEltype, 4}
-  fstar_threaded = A4d[A4d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2), 4)
-                       for _ in 1:Threads.nthreads()]
+  fstar_threaded = [Array{uEltype, 4}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2), 4)
+                    for _ in 1:Threads.nthreads()]
 
-  A3d = Array{uEltype, 3}
-  fstar_tmp1_threaded = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                            for _ in 1:Threads.nthreads()]
-  u_threaded          = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
-                            for _ in 1:Threads.nthreads()]
+  fstar_tmp1_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
+                         for _ in 1:Threads.nthreads()]
+  u_threaded          = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
+                         for _ in 1:Threads.nthreads()]
 
   (; fstar_threaded, fstar_tmp1_threaded, u_threaded)
 end

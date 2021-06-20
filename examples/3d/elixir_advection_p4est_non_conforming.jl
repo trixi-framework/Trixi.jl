@@ -18,7 +18,6 @@ coordinates_max = ( 1.0,  1.0,  1.0) # maximum coordinates (max(x), max(y), max(
 trees_per_dimension = (1, 1, 1)
 mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                #  faces=(f1, f2, f3, f4),
                  initial_refinement_level=2)
 
 # Refine bottom left quadrant of each tree to level 4

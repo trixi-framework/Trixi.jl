@@ -581,6 +581,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
     data_in[:, 1, 2] .= vertices[1:2, tree_to_vertex[3, tree] + 1]
     data_in[:, 2, 2] .= vertices[1:2, tree_to_vertex[4, tree] + 1]
 
+    # Interpolate corner coordinates to specified nodes
     multiply_dimensionwise!(
       view(node_coordinates, :, :, :, tree),
       matrix, matrix,
@@ -617,7 +618,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 5},
   data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
 
   for tree in 1:size(tree_to_vertex, 2)
-    # Tree vertices are stored in Z-order, ignore z-coordinate in 2D, zero-based indexing
+    # Tree vertices are stored in Z-order, zero-based indexing
     data_in[:, 1, 1, 1] .= vertices[:, tree_to_vertex[1, tree] + 1]
     data_in[:, 2, 1, 1] .= vertices[:, tree_to_vertex[2, tree] + 1]
     data_in[:, 1, 2, 1] .= vertices[:, tree_to_vertex[3, tree] + 1]
@@ -627,6 +628,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 5},
     data_in[:, 1, 2, 2] .= vertices[:, tree_to_vertex[7, tree] + 1]
     data_in[:, 2, 2, 2] .= vertices[:, tree_to_vertex[8, tree] + 1]
 
+    # Interpolate corner coordinates to specified nodes
     multiply_dimensionwise!(
       view(node_coordinates, :, :, :, :, tree),
       matrix, matrix, matrix,
