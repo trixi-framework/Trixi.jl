@@ -15,20 +15,17 @@ mesh = VertexMappedMesh(unif_mesh...,rd,is_periodic=(true,true))
 dg = DG(rd,(),SurfaceIntegralWeakForm(FluxLaxFriedrichs()),VolumeIntegralWeakForm())
 equations = CompressibleEulerEquations2D(1.4)
 
-function initial_condition_sine(xyz,t,equations::CompressibleEulerEquations2D)
-    x,y = xyz
-    rho = 2 + .1*sin(pi*x)*sin(pi*y)
-    u = .5
-    v = .5
-    p = 2.0
-    return prim2cons(SVector{4}(rho,u,v,p),equations)
-end
-function source_terms_zero(u,xyz,t,equations::CompressibleEulerEquations2D)
-    return SVector{4}(0.0,0.0,0.0,0.0)
-end
+# function initial_condition_sine(xyz,t,equations::CompressibleEulerEquations2D)
+#     x,y = xyz
+#     rho = 2 + .1*sin(pi*x)*sin(pi*y)
+#     u = .5
+#     v = .5
+#     p = 2.0
+#     return prim2cons(SVector{4}(rho,u,v,p),equations)
+# end
 
-initial_condition = initial_condition_sine
-source_terms = source_terms_zero
+initial_condition = initial_condition_convergence_test
+source_terms = source_terms_convergence_test
 
 # equations = LinearScalarAdvectionEquation2D((1.0,1.0))
 # function initial_condition(xyz,t,equations::LinearScalarAdvectionEquation2D)
@@ -40,9 +37,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
 
 tspan = (0.0, .50)
 ode = semidiscretize(semi, tspan)
-
-# du = similar(ode.u0)
-# Trixi.rhs!(du, ode.u0, semi, t)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
@@ -56,7 +50,13 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = .75*dt0, save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
 
-md = mesh.md
-u = StructArrays.component(sol.u[end],1)
-uplot = rd.Vp*u
-scatter(vec.((x->rd.Vp*x).(md.xyz))..., vec(uplot), zcolor=vec(uplot), msw=0, leg=false, cam=(0,90))
+# md = mesh.md
+# u = StructArrays.component(sol.u[end],1)
+# uplot = rd.Vp*u
+# scatter(vec.((x->rd.Vp*x).(md.xyz))..., vec(uplot), zcolor=vec(uplot), msw=0, leg=false, cam=(0,90))
+
+
+u = ode.u0
+du = similar(u)
+Trixi.calc_surface_integral!(du, u, dg.surface_integral,mesh,equations,dg,semi.cache)
+# Trixi.rhs!(du, ode.u0, semi, t)
