@@ -395,3 +395,5 @@ to convert all solution files. The default is to generate a PNG file for each
 variable found in the respective file. Use `format=:pdf` as a keyword argument
 to create PDF files. A comprehensive list of all possible arguments for
 `trixi2img` can be found in the [Trixi2Img.jl API](@ref).
+
+repeat tests
