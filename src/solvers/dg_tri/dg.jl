@@ -76,8 +76,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
             u_values, f_values, u_face_values, f_face_values)
 end
 
-function calc_volume_integral!(du,u::StructArray,nonconservative_terms::Val{false}, 
-                               volume_integral::VolumeIntegralWeakForm,
+function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegralWeakForm,
                                mesh::VertexMappedMesh, equations, dg::ModalDG{2}, cache)
 
     rd = dg.basis  
@@ -100,9 +99,8 @@ function calc_volume_integral!(du,u::StructArray,nonconservative_terms::Val{fals
     end
 end
 
-function calc_surface_integral!(du, u, mesh::VertexMappedMesh, equations, 
-                                surface_integral::SurfaceIntegralWeakForm{<:FluxPlusDissipation}, 
-                                dg::ModalDG{2}, cache) 
+function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm{<:FluxPlusDissipation}, 
+                                mesh::VertexMappedMesh, equations, dg::ModalDG{2}, cache) 
     rd = dg.basis
     md = mesh.md
     @unpack LIFT = rd
@@ -125,29 +123,35 @@ function calc_surface_integral!(du, u, mesh::VertexMappedMesh, equations,
 end
 
 # todo: specialize for modal DG on curved meshes using WADG
-negate_and_invert_jacobian!(du, mesh::AbstractMeshData, equations, 
-                            dg::DG{<:RefElemData}, cache) = du .*= cache.invJ
+invert_jacobian!(du, mesh::AbstractMeshData, equations, 
+                 dg::DG{<:RefElemData}, cache) = du .*= cache.invJ
 
 calc_sources!(du, u, t, source_terms::Nothing, mesh::AbstractMeshData, equations::AbstractEquations{Dims,NVARS}, 
               dg::DG{<:RefElemData}, cache) where {Dims,NVARS} = nothing
 
 # uses quadrature + projection to compute source terms. 
 # todo: use interpolation here instead of quadrature? 
-function calc_sources!(du, u, t, source_terms, mesh::AbstractMeshData, equations::AbstractEquations{2,NVARS}, 
-                       dg::DG{<:RefElemData}, cache) where {NVARS}
+function calc_sources!(du, u, t, source_terms, 
+                       mesh::VertexMappedMesh{2}, equations, dg::DG{<:RefElemData{2}}, cache) 
+
     rd = dg.basis
+    md = mesh.md
     @unpack Pq = rd
     @unpack u_values, f_values = cache
-    md = mesh.md
     for e in Base.OneTo(md.num_elements)
         u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
-        xy_e = StructArray{SVector{2,Float64}}(view.(md.xyzq, :, e))
-        f_values .= source_terms.(u_e, xy_e, t, equations) # reuse f_values 
+
+        # todo: fix. Not sure why these lines seem to allocate?
+        # xy_e = StructArray{SVector{2,real(dg)}}(view.(md.xyzq,:,e))
+        # f_values .= source_terms.(u_e, xy_e, t, equations) 
+        for i = 1:rd.Nq
+            f_values[i] = source_terms(u_e[i], getindex.(md.xyzq,i,e), t, equations) 
+        end
         StructArrays.foreachfield(mul_by_accum!(Pq), view(du,:,e), f_values)
     end
 end
 
-function calc_boundary_states!(cache,t,boundary_conditions,mesh,equations,dg::DG{<:RefElemData})
+function calc_boundary_states!(cache, t, boundary_conditions, mesh, equations, dg::DG{<:RefElemData})
     return nothing
 end
 
