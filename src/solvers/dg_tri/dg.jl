@@ -155,19 +155,20 @@ function rhs!(du, u, t, mesh, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG{<:RefElemData}, cache)
 
-    fill!(du,zero(eltype(du)))
-    calc_volume_integral!(du, u, Trixi.have_nonconservative_terms(equations), dg.volume_integral, 
-                          mesh, equations, dg, cache)
-    prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+    @trixi_timeit timer() "Reset du/dt" fill!(du,zero(eltype(du)))
 
-    # todo: add boundary conditions
-    calc_boundary_states!(cache, t, boundary_conditions, mesh, equations, dg)
+    @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(du, u, dg.volume_integral, 
+                                                                        mesh, equations, dg, cache)
+    @trixi_timeit timer() "prolong2interfaces!" prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
 
-    calc_surface_integral!(du, u, mesh, equations, dg.surface_integral, dg, cache)
+    # todo: implement boundary conditions
+    @trixi_timeit timer() "calc_boundary_states!" calc_boundary_states!(cache, t, boundary_conditions, mesh, equations, dg)
+
+    @trixi_timeit timer() "calc_surface_integral!" calc_surface_integral!(du, u, dg.surface_integral, mesh, equations, dg, cache)
     
-    negate_and_invert_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "invert_jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
-    calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+    @trixi_timeit timer() "calc_sources!" calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
 
     return nothing
 end
