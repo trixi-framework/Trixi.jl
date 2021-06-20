@@ -85,42 +85,42 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @timed timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timed timer() "volume integral" calc_volume_integral!(
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  @timed timer() "prolong2interfaces" prolong2interfaces!(
-    cache, u, mesh, equations, dg)
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
   # Calculate interface fluxes
-  @timed timer() "interface flux" calc_interface_flux!(
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
-    dg, cache)
+    dg.surface_integral, dg, cache)
 
   # Prolong solution to boundaries
-  @timed timer() "prolong2boundaries" prolong2boundaries!(
-    cache, u, mesh, equations, dg)
+  @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
   # Calculate boundary fluxes
-  @timed timer() "boundary flux" calc_boundary_flux!(
-    cache, t, boundary_conditions, mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
 
   # Calculate surface integrals
-  @timed timer() "surface integral" calc_surface_integral!(
-    du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
 
   # Apply Jacobian from mapping to reference element
-  @timed timer() "Jacobian" apply_jacobian!(
+  @trixi_timeit timer() "Jacobian" apply_jacobian!(
     du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timed timer() "source terms" calc_sources!(
+  @trixi_timeit timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
   return nothing
@@ -200,19 +200,19 @@ function calc_volume_integral!(du, u,
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  alpha = @timed timer() "blending factors" indicator(u, equations, dg, cache)
+  alpha = @trixi_timeit timer() "blending factors" indicator(u, equations, dg, cache)
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 
   # Loop over pure DG elements
-  @timed timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
+  @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
     element = element_ids_dg[idx_element]
     split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element)
   end
 
   # Loop over blended DG-FV elements
-  @timed timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
+  @trixi_timeit timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
     element = element_ids_dgfv[idx_element]
     alpha_element = alpha[element]
 
@@ -283,7 +283,7 @@ end
 
 
 function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{1}, equations, dg::DG)
+                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
   @unpack interfaces = cache
 
   @threaded for interface in eachinterface(dg, cache)
@@ -303,8 +303,8 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               nonconservative_terms::Val{false}, equations,
-                              dg::DG, cache)
-  @unpack surface_flux = dg
+                              surface_integral, dg::DG, cache)
+  @unpack surface_flux = surface_integral
   @unpack u, neighbor_ids, orientations = cache.interfaces
 
   @threaded for interface in eachinterface(dg, cache)
@@ -337,9 +337,9 @@ end
 
 
 function prolong2boundaries!(cache, u,
-                             mesh::TreeMesh{1}, equations, dg::DG)
+                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-  @unpack orientations, neighbor_sides = boundaries
+  @unpack neighbor_sides = boundaries
 
   @threaded for boundary in eachboundary(dg, cache)
     element = boundaries.neighbor_ids[boundary]
@@ -362,13 +362,13 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::TreeMesh{1}, equations, dg::DG)
+                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition,
-                             mesh::TreeMesh{1}, equations, dg::DG)
+                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -379,13 +379,13 @@ function calc_boundary_flux!(cache, t, boundary_condition,
   # Calc boundary fluxes in each direction
   for direction in eachindex(firsts)
     calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition,
-                                     equations, dg, cache,
+                                     equations, surface_integral, dg, cache,
                                      direction, firsts[direction], lasts[direction])
   end
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             mesh::TreeMesh{1}, equations, dg::DG)
+                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -395,15 +395,18 @@ function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tup
 
   # Calc boundary fluxes in each direction
   calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[1],
-                                   equations, dg, cache, 1, firsts[1], lasts[1])
+                                   equations, surface_integral, dg, cache,
+                                   1, firsts[1], lasts[1])
   calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[2],
-                                   equations, dg, cache, 2, firsts[2], lasts[2])
+                                   equations, surface_integral, dg, cache,
+                                   2, firsts[2], lasts[2])
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,3}, t,
-                                          boundary_condition, equations, dg::DG, cache,
+                                          boundary_condition, equations,
+                                          surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-  @unpack surface_flux = dg
+  @unpack surface_flux = surface_integral
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
   @threaded for boundary in first_boundary:last_boundary
@@ -431,8 +434,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
 end
 
 
-function calc_surface_integral!(du, mesh::Union{TreeMesh{1}, CurvedMesh{1}},
-                                equations, dg::DGSEM, cache)
+function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, CurvedMesh{1}},
+                                equations, surface_integral, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 

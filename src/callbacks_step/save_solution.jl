@@ -82,7 +82,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
-  @timed timer() "I/O" begin
+  @trixi_timeit timer() "I/O" begin
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory)
       mesh.unsaved_changes = false
@@ -113,14 +113,14 @@ function (solution_callback::SaveSolutionCallback)(integrator)
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
-  @timed timer() "I/O" begin
-    @timed timer() "save mesh" if mesh.unsaved_changes
+  @trixi_timeit timer() "I/O" begin
+    @trixi_timeit timer() "save mesh" if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory, iter)
       mesh.unsaved_changes = false
     end
 
     element_variables = Dict{Symbol, Any}()
-    @timed timer() "get element variables" begin
+    @trixi_timeit timer() "get element variables" begin
       get_element_variables!(element_variables, u_ode, semi)
       callbacks = integrator.opts.callback
       if callbacks isa CallbackSet
@@ -133,7 +133,7 @@ function (solution_callback::SaveSolutionCallback)(integrator)
       end
     end
 
-    @timed timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
+    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
   end
 
   # avoid re-evaluating possible FSAL stages

@@ -20,7 +20,7 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -173,12 +173,12 @@ function (analysis_callback::AnalysisCallback)(integrator)
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
-  @timed timer() "analyze solution" begin
+  @trixi_timeit timer() "analyze solution" begin
     # General information
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(solver))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *
@@ -370,9 +370,32 @@ function print_amr_information(callbacks, mesh, solver, cache)
   end
 
   for level = max_level:-1:min_level+1
-    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(==(level), levels)))
   end
-  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(==(min_level), levels)))
+
+  return nothing
+end
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
+
+  # Return early if there is nothing to print
+  uses_amr(callbacks) || return nothing
+
+  elements_per_level = zeros(P4EST_MAXLEVEL + 1)
+
+  for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+    elements_per_level .+= tree.quadrants_per_level
+  end
+
+  min_level = findfirst(i -> i > 0, elements_per_level) - 1
+  max_level = findlast(i -> i > 0, elements_per_level) - 1
+
+  for level = max_level:-1:min_level+1
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level + 1]))
+  end
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level + 1]))
 
   return nothing
 end

@@ -348,6 +348,9 @@ uses the `time` attribute in solution/restart files to inform ParaView about the
 solution time. A comprehensive list of all possible arguments for
 `trixi2vtk` can be found in the [Trixi2Vtk.jl API](@ref).
 
+Further information regarding the development of Trixi2Vtk can be found in the
+[development section](@id trixi2vtk-dev).
+
 
 ## Trixi2Img
 !!! note "Trixi2Img is deprecated"

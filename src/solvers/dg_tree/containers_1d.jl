@@ -1,7 +1,6 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
-# TODO: Taal refactor, remove NVARS, POLYDEG?
-mutable struct ElementContainer1D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG} <: AbstractContainer
+mutable struct ElementContainer1D{RealT<:Real, uEltype<:Real} <: AbstractContainer
   inverse_jacobian::Vector{RealT}        # [elements]
   node_coordinates::Array{RealT, 3}      # [orientation, i, elements]
   surface_flux_values::Array{uEltype, 3} # [variables, direction, elements]
@@ -11,9 +10,9 @@ mutable struct ElementContainer1D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG} <:
   _surface_flux_values::Vector{uEltype}
 end
 
-nvariables(::ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
-polydeg(::ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
-Base.eltype(::ElementContainer1D{RealT, uEltype}) where {RealT, uEltype} = uEltype
+nvariables(elements::ElementContainer1D) = size(elements.surface_flux_values, 1)
+nnodes(elements::ElementContainer1D) = size(elements.node_coordinates, 2)
+Base.eltype(elements::ElementContainer1D) = eltype(elements.surface_flux_values)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
@@ -21,8 +20,8 @@ Base.eltype(::ElementContainer1D{RealT, uEltype}) where {RealT, uEltype} = uElty
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
 function Base.resize!(elements::ElementContainer1D, capacity)
-  n_nodes = polydeg(elements) + 1
-  nvars = nvariables(elements)
+  n_nodes = nnodes(elements)
+  n_variables = nvariables(elements)
   @unpack _node_coordinates, _surface_flux_values,
           inverse_jacobian, cell_ids = elements
 
@@ -32,9 +31,9 @@ function Base.resize!(elements::ElementContainer1D, capacity)
   elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
                                           (1, n_nodes, capacity))
 
-  resize!(_surface_flux_values, nvars * 2 * 1 * capacity)
+  resize!(_surface_flux_values, n_variables * 2 * 1 * capacity)
   elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                             (nvars, 2 * 1, capacity))
+                                             (n_variables, 2 * 1, capacity))
 
   resize!(cell_ids, capacity)
 
@@ -42,8 +41,7 @@ function Base.resize!(elements::ElementContainer1D, capacity)
 end
 
 
-function ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
-  n_nodes = POLYDEG + 1
+function ElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
@@ -54,13 +52,13 @@ function ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) w
   node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
                                  (1, n_nodes, capacity))
 
-  _surface_flux_values = fill(nan_uEltype, NVARS * 2 * 1 * capacity)
+  _surface_flux_values = fill(nan_uEltype, n_variables * 2 * 1 * capacity)
   surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                    (NVARS, 2 * 1, capacity))
+                                    (n_variables, 2 * 1, capacity))
 
   cell_ids = fill(typemin(Int), capacity)
 
-  return ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}(
+  return ElementContainer1D{RealT, uEltype}(
     inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
     _node_coordinates, _surface_flux_values)
 end
@@ -70,21 +68,32 @@ end
 @inline nelements(elements::ElementContainer1D) = length(elements.cell_ids)
 # TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
 @inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
+@inline Base.real(elements::ElementContainer1D) = eltype(elements.node_coordinates)
 
 
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh1D,
-                       equations::AbstractEquations{1, NVARS},
-                       basis::LobattoLegendreBasis{T, NNODES}, ::Type{RealT}, ::Type{uEltype}) where {RealT<:Real, uEltype<:Real,NVARS, T, NNODES}
+                       equations::AbstractEquations{1},
+                       basis, ::Type{RealT}, ::Type{uEltype}) where {RealT<:Real, uEltype<:Real}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer1D{RealT, uEltype, NVARS, NNODES-1}(n_elements)
+  elements = ElementContainer1D{RealT, uEltype}(
+    n_elements, nvariables(equations), nnodes(basis))
 
-  init_elements!(elements, cell_ids, mesh, basis.nodes)
+  init_elements!(elements, cell_ids, mesh, basis)
   return elements
 end
 
-function init_elements!(elements, cell_ids, mesh::TreeMesh1D, nodes)
+function init_elements!(elements, cell_ids, mesh::TreeMesh1D, basis)
+  nodes = get_nodes(basis)
+  # Compute the length of the 1D reference interval by integrating
+  # the function with constant value unity on the corresponding
+  # element data type (using \circ)
+  reference_length = integrate(one ∘ eltype, nodes, basis)
+  # Compute the offset of the midpoint of the 1D reference interval
+  # (its difference from zero)
+  reference_offset = first(nodes) + reference_length / 2
+
   # Store cell ids
   elements.cell_ids .= cell_ids
 
@@ -96,13 +105,17 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh1D, nodes)
     # Get cell length
     dx = length_at_cell(mesh.tree, cell_id)
 
-    # Calculate inverse Jacobian as 1/(h/2)
-    elements.inverse_jacobian[element] = 2/dx
+    # Calculate inverse Jacobian
+    jacobian = dx / reference_length
+    elements.inverse_jacobian[element] = inv(jacobian)
 
     # Calculate node coordinates
-      for i in eachindex(nodes)
+    # Note that the `tree_coordinates` are the midpoints of the cells.
+    # Hence, we need to add an offset for `nodes` with a midpoint
+    # different from zero.
+      for i in eachnode(basis)
         elements.node_coordinates[1, i, element] = (
-            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
+            mesh.tree.coordinates[1, cell_id] + jacobian * (nodes[i] - reference_offset))
       end
   end
 
@@ -112,8 +125,7 @@ end
 
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-# TODO: Taal refactor, remove NVARS, POLYDEG?
-mutable struct InterfaceContainer1D{uEltype<:Real, NVARS, POLYDEG} <: AbstractContainer
+mutable struct InterfaceContainer1D{uEltype<:Real} <: AbstractContainer
   u::Array{uEltype, 3}      # [leftright, variables, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
@@ -122,22 +134,20 @@ mutable struct InterfaceContainer1D{uEltype<:Real, NVARS, POLYDEG} <: AbstractCo
   _neighbor_ids::Vector{Int}
 end
 
-nvariables(::InterfaceContainer1D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = NVARS
-polydeg(::InterfaceContainer1D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = POLYDEG
-Base.eltype(::InterfaceContainer1D{uEltype}) where {uEltype} = uEltype
+nvariables(interfaces::InterfaceContainer1D) = size(interfaces.u, 2)
+Base.eltype(interfaces::InterfaceContainer1D) = eltype(interfaces.u)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::InterfaceContainer1D, capacity)
-  n_nodes = polydeg(interfaces) + 1
-  nvars = nvariables(interfaces)
+  n_variables = nvariables(interfaces)
   @unpack _u, _neighbor_ids, orientations = interfaces
 
-  resize!(_u, 2 * nvars * capacity)
+  resize!(_u, 2 * n_variables * capacity)
   interfaces.u = unsafe_wrap(Array, pointer(_u),
-                             (2, nvars, capacity))
+                             (2, n_variables, capacity))
 
   resize!(_neighbor_ids, 2 * capacity)
-  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                                         (2, capacity))
 
   resize!(orientations, capacity)
@@ -146,22 +156,21 @@ function Base.resize!(interfaces::InterfaceContainer1D, capacity)
 end
 
 
-function InterfaceContainer1D{uEltype, NVARS, POLYDEG}(capacity::Integer) where {uEltype<:Real, NVARS, POLYDEG}
-  n_nodes = POLYDEG + 1
+function InterfaceContainer1D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
   nan = convert(uEltype, NaN)
 
   # Initialize fields with defaults
-  _u = fill(nan, 2 * NVARS * capacity)
+  _u = fill(nan, 2 * n_variables * capacity)
   u = unsafe_wrap(Array, pointer(_u),
-                  (2, NVARS, capacity))
+                  (2, n_variables, capacity))
 
   _neighbor_ids = fill(typemin(Int), 2 * capacity)
-  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                              (2, capacity))
 
   orientations = fill(typemin(Int), capacity)
 
-  return InterfaceContainer1D{uEltype, NVARS, POLYDEG}(
+  return InterfaceContainer1D{uEltype}(
     u, neighbor_ids, orientations,
     _u, _neighbor_ids)
 end
@@ -173,10 +182,11 @@ end
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh1D,
-                         elements::ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
+                         elements::ElementContainer1D)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer1D{uEltype, NVARS, POLYDEG}(n_interfaces)
+  interfaces = InterfaceContainer1D{eltype(elements)}(
+    n_interfaces, nvariables(elements), nnodes(elements))
 
   # Connect elements with interfaces
   init_interfaces!(interfaces, elements, mesh)
@@ -264,8 +274,7 @@ end
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-# TODO: Taal refactor, remove NVARS, POLYDEG?
-mutable struct BoundaryContainer1D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG} <: AbstractContainer
+mutable struct BoundaryContainer1D{RealT<:Real, uEltype<:Real} <: AbstractContainer
   u::Array{uEltype, 3}              # [leftright, variables, boundaries]
   neighbor_ids::Vector{Int}         # [boundaries]
   orientations::Vector{Int}         # [boundaries]
@@ -277,23 +286,21 @@ mutable struct BoundaryContainer1D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG} <
   _node_coordinates::Vector{RealT}
 end
 
-nvariables(::BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
-polydeg(::BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
-Base.eltype(::BoundaryContainer1D{RealT, uEltype}) where {RealT, uEltype} = uEltype
+nvariables(boundaries::BoundaryContainer1D) = size(boundaries.u, 2)
+Base.eltype(boundaries::BoundaryContainer1D) = eltype(boundaries.u)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::BoundaryContainer1D, capacity)
-  n_nodes = polydeg(boundaries) + 1
-  nvars = nvariables(boundaries)
+  n_variables = nvariables(boundaries)
   @unpack _u, _node_coordinates,
           neighbor_ids, orientations, neighbor_sides = boundaries
 
-  resize!(_u, 2 * nvars * capacity)
+  resize!(_u, 2 * n_variables * capacity)
   boundaries.u = unsafe_wrap(Array, pointer(_u),
-                             (2, nvars, capacity))
+                             (2, n_variables, capacity))
 
   resize!(_node_coordinates, 1 * capacity)
-  boundaries.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates ),
+  boundaries.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
                                             (1, capacity))
 
   resize!(neighbor_ids, capacity)
@@ -306,15 +313,14 @@ function Base.resize!(boundaries::BoundaryContainer1D, capacity)
 end
 
 
-function BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
-  n_nodes = POLYDEG + 1
+function BoundaryContainer1D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
   # Initialize fields with defaults
-  _u = fill(nan_uEltype, 2 * NVARS * capacity)
+  _u = fill(nan_uEltype, 2 * n_variables * capacity)
   u = unsafe_wrap(Array, pointer(_u),
-                  (2, NVARS, capacity))
+                  (2, n_variables, capacity))
 
   neighbor_ids = fill(typemin(Int), capacity)
 
@@ -328,7 +334,7 @@ function BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) 
 
   n_boundaries_per_direction = SVector(0, 0)
 
-  return BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}(
+  return BoundaryContainer1D{RealT, uEltype}(
     u, neighbor_ids, orientations, neighbor_sides,
     node_coordinates, n_boundaries_per_direction,
     _u, _node_coordinates)
@@ -341,10 +347,11 @@ nboundaries(boundaries::BoundaryContainer1D) = length(boundaries.orientations)
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh1D,
-                         elements::ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG}
+                         elements::ElementContainer1D)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}(n_boundaries)
+  boundaries = BoundaryContainer1D{real(elements), eltype(elements)}(
+    n_boundaries, nvariables(elements), nnodes(elements))
 
   # Connect elements with boundaries
   init_boundaries!(boundaries, elements, mesh)
