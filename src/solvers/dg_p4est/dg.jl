@@ -25,15 +25,10 @@ end
 @inline function get_normal_vector(direction, cache, indices...)
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-  # If the mapping is orientation-reversing, the contravariant vectors' orientation
-  # is reversed as well
-  sign_jacobian = sign(inverse_jacobian[indices...])
-
   orientation = div(direction + 1, 2)
-  normal = sign_jacobian * get_contravariant_vector(orientation, contravariant_vectors, indices...)
+  normal = get_contravariant_vector(orientation, contravariant_vectors, indices...)
 
   # Contravariant vectors at interfaces in negative coordinate direction are pointing inwards
-  # (after normalizing with sign(J) above)
   if direction in (1, 3, 5)
     normal *= -1
   end
