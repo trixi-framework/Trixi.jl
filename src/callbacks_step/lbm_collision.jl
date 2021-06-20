@@ -50,7 +50,7 @@ end
   u_ode = integrator.u
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @timed timer() "LBM collision" apply_collision!(u, dt, collision_op, mesh, equations, solver, cache)
+  @trixi_timeit timer() "LBM collision" apply_collision!(u, dt, collision_op, mesh, equations, solver, cache)
 
   return nothing
 end

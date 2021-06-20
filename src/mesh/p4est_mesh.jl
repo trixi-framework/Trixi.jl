@@ -711,9 +711,9 @@ function refine!(mesh::P4estMesh)
   refine_fn_c = cfunction(refine_fn, Val(ndims(mesh)))
 
   # Refine marked cells
-  @timed timer() "refine" refine_p4est!(mesh.p4est, false, refine_fn_c, init_fn_c)
+  @trixi_timeit timer() "refine" refine_p4est!(mesh.p4est, false, refine_fn_c, init_fn_c)
 
-  @timed timer() "rebalance" balance!(mesh, init_fn_c)
+  @trixi_timeit timer() "rebalance" balance!(mesh, init_fn_c)
 
   return collect_changed_cells(mesh, original_n_cells)
 end
@@ -754,7 +754,7 @@ function coarsen!(mesh::P4estMesh)
   coarsen_fn_c = cfunction(coarsen_fn, Val(ndims(mesh)))
   init_fn_c = cfunction(init_fn, Val(ndims(mesh)))
 
-  @timed timer() "coarsen!" coarsen_p4est!(mesh.p4est, false, coarsen_fn_c, init_fn_c)
+  @trixi_timeit timer() "coarsen!" coarsen_p4est!(mesh.p4est, false, coarsen_fn_c, init_fn_c)
 
   # IDs of newly created cells (one-based)
   new_cells = collect_new_cells(mesh)
@@ -769,7 +769,7 @@ function coarsen!(mesh::P4estMesh)
   intermediate_n_cells = ncells(mesh)
   save_original_ids(mesh)
 
-  @timed timer() "rebalance" balance!(mesh, init_fn_c)
+  @trixi_timeit timer() "rebalance" balance!(mesh, init_fn_c)
 
   refined_cells = collect_changed_cells(mesh, intermediate_n_cells)
 

@@ -208,6 +208,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     size = Tuple(size_)
 
+    # TODO: `@eval` is evil
     # A temporary workaround to evaluate the code that defines the domain mapping in a local scope.
     # This prevents errors when multiple restart elixirs are executed in one session, where one
     # defines `mapping` as a variable, while the other defines it as a function.
