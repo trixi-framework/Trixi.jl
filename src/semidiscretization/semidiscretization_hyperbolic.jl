@@ -162,7 +162,7 @@ function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh,
   end  
 end
 
-function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh,<:Union{Tuple,NamedTuple,AbstractArray}})
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:Union{Tuple,NamedTuple,AbstractArray}})
   summary_line(io, "boundary conditions", 2*ndims(semi))
   bcs = semi.boundary_conditions
 
