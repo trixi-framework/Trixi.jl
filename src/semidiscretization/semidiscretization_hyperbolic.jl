@@ -146,7 +146,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 end
 
 # type alias for dispatch in printing of boundary conditions
-const SemiHypMeshBCSolver{Mesh,BoundaryConditions,Solver} = 
+const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} = 
       SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, 
                                    SourceTerms, Solver} where {Equations, InitialCondition, SourceTerms}
 
