@@ -3,7 +3,7 @@ abstract type AbstractMeshData{Dim} <: AbstractMesh{Dim} end
 
 """
 VertexMappedMesh describes a mesh which is constructed by an reference-to-physical 
-mapping involving only the vertex positions. 
+mapping which can be constructed using only the vertex positions. 
 
 Wraps `MeshData` and `boundary_faces` in a dispatchable mesh type.
 """
@@ -26,7 +26,7 @@ Trixi.ndims(::VertexMappedMesh{Dim}) where {Dim} = Dim
 """
 VertexMappedMesh(VX,VY,EToV,rd,args...;kwargs...) = VertexMappedMesh((VX,VY),EToV,rd,args...;kwargs...)
 
-function VertexMappedMesh(VXYZ::NTuple{Dim,Vector{Tv}},EToV::Matrix{Ti},rd::RefElemData;
+function VertexMappedMesh(VXYZ::NTuple{Dim,Vector{Tv}}, EToV::Matrix{Ti}, rd::RefElemData;
                           is_on_boundary=nothing,
                           is_periodic::NTuple{Dim,Bool}=ntuple(_->false,Dim)) where {Dim,Tv,Ti}
 

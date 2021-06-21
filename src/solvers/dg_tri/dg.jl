@@ -59,7 +59,7 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
     StructArrays.foreachfield((out,u)->out .= view(u,Fmask,:), u_face_values, u)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype) where {DG <: DGWeakForm{2,Tri}}
+function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype) where {DG <: DGWeakForm{2}}
 
     rd = dg.basis
     md = mesh.md

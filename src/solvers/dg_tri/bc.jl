@@ -3,7 +3,7 @@ struct BoundaryStateDirichlet{B}
 end
 
 # Dirichlet-type boundary condition for use with TreeMesh or CurvedMesh
-@inline function (boundary_condition::BoundaryStateDirichlet)(u_inner, orientation_or_normal,
+@inline function (boundary_condition::BoundaryStateDirichlet)(u_inner, normal_direction,
                                                               x, t, equations)
   return boundary_condition.boundary_value_function(x, t, equations)
 end
