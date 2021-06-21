@@ -5,27 +5,24 @@ using Plots
 rd = RefElemData(Tri(),N=3)
 K1D = 8
 unif_mesh = StartUpDG.uniform_mesh(rd.elementType,K1D)
+
 mesh = VertexMappedMesh(unif_mesh...,rd,is_periodic=(true,true))
-
-# top_boundary(x,y,tol=50*eps()) = abs(y-1)<tol 
-# rest_of_boundary(x,y,tol=50*eps()) = !top_boundary(x,y,tol)
-# boundary_conditions = Dict(:top => top_boundary, 
-#                            :rest => rest_of_boundary)
-
 dg = DG(rd,(),SurfaceIntegralWeakForm(FluxLaxFriedrichs()),VolumeIntegralWeakForm())
 equations = CompressibleEulerEquations2D(1.4)
 
-# function initial_condition_sine(xyz,t,equations::CompressibleEulerEquations2D)
-#     x,y = xyz
-#     rho = 2 + .1*sin(pi*x)*sin(pi*y)
-#     u = .5
-#     v = .5
-#     p = 2.0
-#     return prim2cons(SVector{4}(rho,u,v,p),equations)
-# end
-
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
+
+# top_boundary(x,y,tol=50*eps()) = abs(y-1)<tol 
+# rest_of_boundary(x,y,tol=50*eps()) = !top_boundary(x,y,tol)
+# is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
+# mesh = VertexMappedMesh(unif_mesh...,rd,is_on_boundary=is_on_boundary)
+# boundary_condition_convergence_test = BoundaryStateDirichlet(initial_condition)
+# boundary_conditions = (; :top => boundary_condition_convergence_test,
+#                         :rest => boundary_condition_convergence_test)
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
+#                                     source_terms = source_terms, 
+#                                     boundary_conditions = boundary_conditions) 
 
 # equations = LinearScalarAdvectionEquation2D((1.0,1.0))
 # function initial_condition(xyz,t,equations::LinearScalarAdvectionEquation2D)
@@ -33,7 +30,7 @@ source_terms = source_terms_convergence_test
 # end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms)
+                                    source_terms = source_terms) 
 
 tspan = (0.0, .50)
 ode = semidiscretize(semi, tspan)
