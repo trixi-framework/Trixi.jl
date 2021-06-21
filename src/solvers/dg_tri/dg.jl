@@ -45,10 +45,18 @@ function compute_coefficients!(u::StructArray, initial_condition, t,
 end
 
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, 
-                             surface_integral, dg::ModalDG)
+                             surface_integral, dg::DG{<:RefElemData})
     rd = dg.basis        
     @unpack u_face_values = cache
     StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
+end
+
+function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, 
+                             surface_integral, dg::DG{<:RefElemData{Dim,<:AbstractElemShape,<:SBP}}) where {Dim}
+    rd = dg.basis        
+    @unpack Fmask = rd
+    @unpack u_face_values = cache
+    StructArrays.foreachfield((out,u)->out .= view(u,Fmask,:), u_face_values, u)
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype) where {DG <: DGWeakForm{2,Tri}}
@@ -77,7 +85,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
 end
 
 function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegralWeakForm,
-                               mesh::VertexMappedMesh, equations, dg::ModalDG{2}, cache)
+                               mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{2}}, cache)
 
     rd = dg.basis  
     md = mesh.md
@@ -99,31 +107,55 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
     end
 end
 
+# for polyomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm{<:FluxPlusDissipation}, 
-                                mesh::VertexMappedMesh, equations, dg::ModalDG{2}, cache) 
+                                mesh::VertexMappedMesh, equations, 
+                                dg::DG{<:RefElemData{2,<:AbstractElemShape,Polynomial}}, cache) 
     rd = dg.basis
     md = mesh.md
     @unpack LIFT = rd
-    @unpack mapP,nxJ,nyJ,sJ = md
     @unpack u_face_values, f_face_values = cache
-    @unpack surface_flux = surface_integral
-    @unpack numerical_flux, dissipation = surface_flux
-    
+    @unpack surface_flux = surface_integral    
     for e in Base.OneTo(md.num_elements) # todo: replace with eachelement(...)?
-        for i in Base.OneTo(rd.Nfq)
-            uM = u_face_values[i,e]
-            uP = u_face_values[mapP[i,e]]
-            normal = SVector{2}(nxJ[i,e],nyJ[i,e]) / sJ[i,e]
-            f_face_values[i] = numerical_flux(uM, uP, 1, equations) * nxJ[i,e] + 
-                               numerical_flux(uM, uP, 2, equations) * nyJ[i,e] - 
-                               dissipation(uM, uP, normal, equations) * sJ[i,e] # orientation = 1 = arbitrary
-        end
+        compute_local_surface_flux!(f_face_values,u_face_values,e,surface_flux,equations,rd,md)
         StructArrays.foreachfield(mul_by_accum!(LIFT),view(du,:,e),f_face_values)
     end
 end
 
+# Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to 
+# du[Fmask,:] .= u ./ rd.wq[rd.Fmask] 
+function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm{<:FluxPlusDissipation}, 
+                                mesh::VertexMappedMesh, equations, 
+                                dg::DG{<:RefElemData{2, <:AbstractElemShape, SBP}}, cache)  
+    rd = dg.basis
+    md = mesh.md
+    @unpack u_face_values, f_face_values = cache
+    @unpack surface_flux = surface_integral    
+    for e in Base.OneTo(md.num_elements) # todo: replace with eachelement(...)?
+        compute_local_surface_flux!(f_face_values, u_face_values, e, surface_flux, equations, rd, md)
+        for i = 1:length(f_face_values)
+            du[rd.Fmask[i],e] += f_face_values[i] * rd.wf[i] / rd.wq[rd.Fmask[i]]
+        end        
+    end
+end
+
+# computes local surface flux over a single element. Reusable for both DG/SBP. 
+@inline function compute_local_surface_flux!(f_face_values, u_face_values, element_index, surface_flux::FluxPlusDissipation,
+                                     equations, rd::RefElemData, md::MeshData)
+    @unpack numerical_flux, dissipation = surface_flux
+    @unpack mapP,nxJ,nyJ,sJ = md
+    for i in Base.OneTo(rd.Nfq)
+        uM = u_face_values[i,element_index]
+        uP = u_face_values[mapP[i,element_index]]
+        normal = SVector{2}(nxJ[i,element_index],nyJ[i,element_index]) / sJ[i,element_index]
+        f_face_values[i] = numerical_flux(uM, uP, 1, equations) * nxJ[i,element_index] + 
+                           numerical_flux(uM, uP, 2, equations) * nyJ[i,element_index] - 
+                           dissipation(uM, uP, normal, equations) * sJ[i,element_index] # orientation = 1 = arbitrary
+    end
+end
+
 # todo: specialize for modal DG on curved meshes using WADG
-invert_jacobian!(du, mesh::AbstractMeshData, equations, 
+@inline invert_jacobian!(du, mesh::AbstractMeshData, equations, 
                  dg::DG{<:RefElemData}, cache) = du .*= cache.invJ
 
 calc_sources!(du, u, t, source_terms::Nothing, mesh::AbstractMeshData, equations::AbstractEquations{Dims,NVARS}, 
