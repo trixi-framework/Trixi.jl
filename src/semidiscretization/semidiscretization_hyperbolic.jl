@@ -164,13 +164,8 @@ end
 
 function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh,<:Union{Tuple,NamedTuple,AbstractArray}})
   summary_line(io, "boundary conditions", 2*ndims(semi))
-  # if (semi.boundary_conditions isa Tuple ||
-  #     semi.boundary_conditions isa NamedTuple ||
-  #     semi.boundary_conditions isa AbstractArray)
   bcs = semi.boundary_conditions
-  # else
-  #   bcs = collect(semi.boundary_conditions for _ in 1:(2*ndims(semi)))
-  # end
+
   summary_line(increment_indent(io), "negative x", bcs[1])
   summary_line(increment_indent(io), "positive x", bcs[2])
   if ndims(semi) > 1
