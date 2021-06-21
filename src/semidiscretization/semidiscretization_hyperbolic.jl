@@ -153,7 +153,7 @@ const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} =
 # generic fallback: print the type of semi.boundary_condition.
 print_boundary_conditions(io, semi::SemiHypMeshBCSolver) = summary_line(io, "boundary conditions", typeof(semi.boundary_conditions))
 
-function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh,<:UnstructuredQuadSortedBoundaryTypes})
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:UnstructuredQuadSortedBoundaryTypes})
   @unpack boundary_conditions = semi
   @unpack boundary_dictionary = boundary_conditions
   summary_line(io, "boundary conditions", length(boundary_dictionary))
