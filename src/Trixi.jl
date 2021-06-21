@@ -200,8 +200,11 @@ function __init__()
     using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape    
     include("solvers/dg_tri/mesh.jl")
     export AbstractMeshData,VertexMappedMesh
-    include("solvers/dg_tri/dg.jl")
+    
+    include("solvers/dg_tri/bc.jl")
+    export BoundaryStateDirichlet, BoundaryStateWall
 
+    include("solvers/dg_tri/dg.jl")
   end
 
 end
