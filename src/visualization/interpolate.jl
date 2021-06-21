@@ -292,7 +292,7 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     max_coordinate = original_nodes[:, n_nodes, n_nodes, element_ids[element]]
     element_length = max_coordinate - min_coordinate
 
-    normalized_coordinates = (coordinates[:, element] - min_coordinate)/element_length[1]*2 .-1
+    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
 
     # Interpolate to a single point in each element.
     vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
@@ -342,7 +342,7 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, element_ids[element]]
     element_length = max_coordinate - min_coordinate
 
-    normalized_coordinates = (coordinates[:, element] - min_coordinate)/element_length[1]*2 .-1
+    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
 
     # Interpolate to a single point in each element.
     vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
