@@ -462,8 +462,8 @@ The slice position is specified by a `point` that lies on it, which defaults to 
 Both of these values are ignored when visualizing 1D data.
 This applies analogosly to three-dimensonal simulations, where `slice` may be `xy:`, `:xz`, or `:yz`.
 
-Another way to visualize two-dimensional data is by creating a plot along a given curve.
-This is done with the attribute `curve` can be set to a list of two-dimensional points
+Another way to visualize 2D/3D data is by creating a plot along a given curve.
+This is done with the attribute `curve` can be set to a list of 2D/3D points
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
 
 !!! warning "Experimental implementation"
