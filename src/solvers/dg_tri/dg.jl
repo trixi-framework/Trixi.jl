@@ -269,7 +269,7 @@ function rhs!(du, u, t, mesh, equations,
     return nothing
 end
 
-
+# Todo: make more efficient. Currently this allocates several fairly large arrays. 
 function calc_error_norms(func, u::StructArray, t, analyzer,
                           mesh::AbstractMeshData{Dim}, equations, initial_condition,
                           dg::DG{<:RefElemData{Dim}}, cache, cache_analysis) where {Dim}
@@ -287,13 +287,9 @@ function calc_error_norms(func, u::StructArray, t, analyzer,
 
     # `pointwise_error` is a StructArray{SVector{nvariables(equations),real(dg)}}, so to square each entry 
     # we need to apply a double broadcast (x->x.^2). 
-    pointwise_error = u_values - u_exact_values
+    pointwise_error = func.(u_values, equations) - func.(u_exact_values, equations) # todo remove allocating
     component_l2_errors = sum(md.wJq .* (x->x.^2).(pointwise_error)) 
     component_linf_errors = maximum((x->abs.(x)).(pointwise_error))
 
     return component_l2_errors, component_linf_errors
-    
-    # l2_error = sqrt(sum(component_l2_errors))
-    # linf_error = maximum(component_linf_errors)    
-    # return l2_error, linf_error
 end
