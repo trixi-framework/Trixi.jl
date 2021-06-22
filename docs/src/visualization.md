@@ -224,7 +224,7 @@ julia> plot(pd)
 This easy method of slicing is limited to axis only, but for 2D/3D solutions it is also
 possible to create a plot along any curve you want. To do so you first need to
 create a list of 2D/3D points on which you want your curve to sit on. Then you can
-create a [`PlotData1D`](@ref) with the attribute `along_curve` set as your list.
+create a [`PlotData1D`](@ref) with the attribute `curve` set as your list.
 
 Lets do an example of this on the basic advection equation from above and try to create
 a plot along the circle marked in green:
@@ -243,7 +243,7 @@ end
 
 Then create and plot a [`PlotData1D`](@ref) object along a circle with radius one, center at `(1,1)`, and 100 points:
 ```julia
-pd = PlotData1D(sol, along_curve=circle(1.0, (1.0, 1.0), 100))
+pd = PlotData1D(sol, curve=circle(1.0, (1.0, 1.0), 100))
 plot(pd)
 ```
 This gives you following plot:
