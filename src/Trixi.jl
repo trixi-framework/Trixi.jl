@@ -201,9 +201,6 @@ function __init__()
     include("solvers/dg_tri/mesh.jl")
     export AbstractMeshData,VertexMappedMesh
     
-    include("solvers/dg_tri/bc.jl")
-    export BoundaryStateDirichlet, BoundaryStateWall
-
     include("solvers/dg_tri/dg.jl")
   end
 
