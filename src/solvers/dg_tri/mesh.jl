@@ -1,5 +1,5 @@
 
-abstract type AbstractMeshData{Dim} <: AbstractMesh{Dim} end
+abstract type AbstractMeshData{Dim} end
 
 """
 VertexMappedMesh describes a mesh which is constructed by an reference-to-physical 
