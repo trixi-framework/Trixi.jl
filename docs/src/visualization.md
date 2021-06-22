@@ -250,7 +250,7 @@ This gives you following plot:
 ![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
 
 Creating a plot like this has it´s downside. For one it is unclear, what to put on the x-axis
-of the plot. To still be able to create a plot properly a range form 0 to 1 is used.
+of the plot. To still be able to create a plot properly the arc length of given curve is used.
 Also with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
 
 ### Visualizing results during a simulation
@@ -347,9 +347,6 @@ When multiple solution/restart files are provided, Trixi2Vtk will also generate 
 uses the `time` attribute in solution/restart files to inform ParaView about the
 solution time. A comprehensive list of all possible arguments for
 `trixi2vtk` can be found in the [Trixi2Vtk.jl API](@ref).
-
-Further information regarding the development of Trixi2Vtk can be found in the
-[development section](@id trixi2vtk-dev).
 
 
 ## Trixi2Img
