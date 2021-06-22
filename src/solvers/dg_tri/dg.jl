@@ -18,7 +18,6 @@ mul_by_accum!(A, α) = let A = A
     @inline (out, x)->mul!(out, A, x, α, one(eltype(out))) 
 end
 
-const ModalDG{Dims, Elem} = DG{<:RefElemData{Dims, Elem, Polynomial}, Tuple{}} where {Dims, Elem}
 const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar, 
                                       <:SurfaceIntegralWeakForm,
                                       <:VolumeIntegralWeakForm} where {Mortar}
@@ -114,7 +113,7 @@ end
 # calc_interface_flux!(cache, dg.surface_integral, mesh, equations, dg)
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm, 
                               mesh::VertexMappedMesh, equations, 
-                              dg::DG{<:RefElemData{2, <:AbstractElemShape, Polynomial}}) 
+                              dg::DG{<:RefElemData{2}}) 
 
     @unpack surface_flux = surface_integral
     md = mesh.md
@@ -141,25 +140,34 @@ end
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, 
                                 mesh::VertexMappedMesh, equations, 
-                                dg::DG{<:RefElemData{2, <:AbstractElemShape, Polynomial}}, cache) 
+                                dg::DG{<:RefElemData{2}}, cache) 
     rd = dg.basis
     StructArrays.foreachfield(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
 end
 
-# # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:] 
-# function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral, 
-#                              dg::DG{<:RefElemData{Dim, <:AbstractElemShape, <:SBP}}) where {Dim}
-#     rd = dg.basis        
-#     @unpack Fmask = rd
-#     @unpack u_face_values = cache
-#     StructArrays.foreachfield((out, u)->out .= view(u, Fmask, :), u_face_values, u)
-# end
+# Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:] 
+function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral, 
+                             dg::DG{<:RefElemData{Dim, <:AbstractElemShape, SBP}}) where {Dim}
+    rd = dg.basis        
+    @unpack Fmask = rd
+    @unpack u_face_values = cache
+    StructArrays.foreachfield((out, u)->out .= view(u, Fmask, :), u_face_values, u)
+end
 
 # # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to 
 # # du[Fmask,:] .= u ./ rd.wq[rd.Fmask] 
-#         for i = 1:length(flux_face_values)
-#             du[rd.Fmask[i],e] += flux_face_values[i] * rd.wf[i] / rd.wq[rd.Fmask[i]]
-#         end        
+function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, 
+                                mesh::VertexMappedMesh, equations, 
+                                dg::DG{<:RefElemData{2,<:AbstractElemShape, SBP}}, cache) 
+    rd = dg.basis
+    md = mesh.md
+    @unpack flux_face_values = cache
+    for e in Base.OneTo(md.num_elements)
+        for i in Base.OneTo(rd.Nfq)
+            du[rd.Fmask[i],e] += flux_face_values[i,e] * rd.wf[i] / rd.wq[rd.Fmask[i]]
+        end        
+    end
+end  
 
 # do nothing for periodic (default) boundary conditions
 calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic, 
