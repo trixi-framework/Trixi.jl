@@ -196,8 +196,10 @@ function __init__()
   end
 
   @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
+
     using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
-    using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape    
+    using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
+
     include("solvers/dg_tri/mesh.jl")
     export AbstractMeshData,VertexMappedMesh
     
