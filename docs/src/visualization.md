@@ -228,7 +228,7 @@ create a [`PlotData1D`](@ref) with the attribute `curve` set as your list.
 
 Lets do an example of this on the basic advection equation from above and try to create
 a plot along the circle marked in green:
-![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/118874452-38850880-b8eb-11eb-9ccf-ae734f3d1bd4.PNG)
+![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/122980179-a7e19280-d398-11eb-82a8-b7a998d23277.PNG)
 
 We can write a function like this, that outputs a list of points on a circle:
 ```julia
