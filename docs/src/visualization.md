@@ -235,7 +235,7 @@ We can write a function like this, that outputs a list of points on a circle:
 function circle(radius, center, n_points)
     coordinates = zeros(2, n_points)
     for i in 1:n_points
-        coordinates[:,i] = radius*[cospi(2*i/n_points), sinpi(2*i/n_points)] + center
+        coordinates[:,i] = radius*[cospi(2*i/n_points), sinpi(2*i/n_points)] .+ center
     end
     return coordinates
 end
