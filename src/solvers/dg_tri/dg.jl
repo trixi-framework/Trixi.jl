@@ -277,17 +277,16 @@ function rhs!(du, u, t, mesh, equations,
     return nothing
 end
 
-# Todo: make more efficient. Currently this allocates several fairly large arrays. 
+# Todo: make these two functions more efficient. Both currently allocate several fairly large arrays. 
 function calc_error_norms(func, u::StructArray, t, analyzer,
                           mesh::AbstractMeshData{Dim}, equations, initial_condition,
                           dg::DG{<:RefElemData{Dim}}, cache, cache_analysis) where {Dim}
     rd = dg.basis
     md = mesh.md
-    @unpack Vq = rd
     @unpack u_values = cache
 
     # interpolate u to quadrature points
-    StructArrays.foreachfield(mul_by!(Vq), u_values, u) 
+    StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u) 
 
     # convert md.xyz::NTuple{Dim,Matrix} to StructArray for broadcasting
     xyzq = StructArray{SVector{Dim,real(dg)}}(md.xyzq)
@@ -295,9 +294,27 @@ function calc_error_norms(func, u::StructArray, t, analyzer,
 
     # `pointwise_error` is a StructArray{SVector{nvariables(equations),real(dg)}}, so to square each entry 
     # we need to apply a double broadcast (x->x.^2). 
-    pointwise_error = func.(u_values, equations) - func.(u_exact_values, equations) # todo remove allocating
+    pointwise_error = func.(u_values, equations) - func.(u_exact_values, equations) # todo: for loop to avoid allocations
     component_l2_errors = sum(md.wJq .* (x->x.^2).(pointwise_error)) 
     component_linf_errors = maximum((x->abs.(x)).(pointwise_error))
 
     return component_l2_errors, component_linf_errors
 end
+
+function integrate(func::Func, u,
+                   mesh::AbstractMeshData,
+                   equations, dg::DG{<:RefElemData}, cache; normalize=true) where {Func}
+    rd = dg.basis
+    md = mesh.md
+    @unpack u_values = cache
+
+    # interpolate u to quadrature points
+    StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u) 
+
+    integral = sum(md.wJq .* func.(u_values, equations))
+    if normalize == true
+        integral /= sum(md.wJq)
+    end
+    return integral
+end
+
