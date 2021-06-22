@@ -284,8 +284,10 @@ function calc_error_norms(func, u::StructArray, t, analyzer,
     pointwise_error = u_values - u_exact_values
     component_l2_errors = sum(md.wJq .* (x->x.^2).(pointwise_error)) 
     component_linf_errors = maximum((x->abs.(x)).(pointwise_error))
+
+    return component_l2_errors, component_linf_errors
     
-    l2_error = sqrt(sum(component_l2_errors))
-    linf_error = maximum(component_linf_errors)    
-    return l2_error, linf_error
+    # l2_error = sqrt(sum(component_l2_errors))
+    # linf_error = maximum(component_linf_errors)    
+    # return l2_error, linf_error
 end
