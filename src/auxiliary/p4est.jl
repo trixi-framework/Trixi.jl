@@ -35,6 +35,8 @@ function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
 end
 
 
+# Create new p4est from a p4est_connectivity
+# 2D
 function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
   p4est_new_ext(0, # No MPI communicator
                 conn,
@@ -46,22 +48,27 @@ function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
                 C_NULL) # No user pointer
 end
 
+# 3D
 function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
   p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 end
 
 
+# Save p4est data to file
+# 2D
 function save_p4est!(file, p4est::Ptr{p4est_t})
   # Don't save user data of the quads
   p4est_save(file, p4est, false)
 end
 
+# 3D
 function save_p4est!(file, p8est::Ptr{p8est_t})
   # Don't save user data of the quads
   p8est_save(file, p8est, false)
 end
 
 
+# Load p4est from file
 # 2D
 function load_p4est(file, ::Val{2})
   conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
@@ -75,20 +82,30 @@ function load_p4est(file, ::Val{3})
 end
 
 
+# Read p4est connectivity from Abaqus mesh file (.inp)
 # 2D
 read_inp_p4est(meshfile, ::Val{2}) = p4est_connectivity_read_inp(meshfile)
 # 3D
 read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
 
 
+# Refine p4est if refine_fn_c returns 1
+# 2D
 refine_p4est!(p4est::Ptr{p4est_t}, recursive, refine_fn_c, init_fn_c) = p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
+# 3D
 refine_p4est!(p8est::Ptr{p8est_t}, recursive, refine_fn_c, init_fn_c) = p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
 
 
+# Refine p4est if coarsen_fn_c returns 1
+# 2D
 coarsen_p4est!(p4est::Ptr{p4est_t}, recursive, coarsen_fn_c, init_fn_c) = p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
+# 3D
 coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 
 
+# Let p4est iterate over each cell volume and cell face.
+# Call iter_volume_c for each cell and iter_face_c for each face.
+# 2D
 function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL
@@ -111,6 +128,7 @@ function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
   return nothing
 end
 
+# 3D
 function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL

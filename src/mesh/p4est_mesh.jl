@@ -297,14 +297,14 @@ end
 # This order makes `calc_tree_node_coordinates!` below and the calculation
 # of `boundary_names` above easier but is irrelevant otherwise.
 # 2D version
-function connectivity_structured(cells_x, cells_y, periodicity)
-  linear_indices = LinearIndices((cells_x, cells_y))
+function connectivity_structured(n_cells_x, n_cells_y, periodicity)
+  linear_indices = LinearIndices((n_cells_x, n_cells_y))
 
   # Vertices represent the coordinates of the forest. This is used by p4est
   # to write VTK files.
   # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
   n_vertices = 0
-  n_trees = cells_x * cells_y
+  n_trees = n_cells_x * n_cells_y
   # No corner connectivity is needed
   n_corners = 0
   vertices = C_NULL
@@ -313,7 +313,7 @@ function connectivity_structured(cells_x, cells_y, periodicity)
   tree_to_tree = Array{p4est_topidx_t, 2}(undef, 4, n_trees)
   tree_to_face = Array{Int8, 2}(undef, 4, n_trees)
 
-  for cell_y in 1:cells_y, cell_x in 1:cells_x
+  for cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
     tree = linear_indices[cell_x, cell_y]
 
     # Subtract 1 because p4est uses zero-based indexing
@@ -322,7 +322,7 @@ function connectivity_structured(cells_x, cells_y, periodicity)
       tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y] - 1
       tree_to_face[1, tree] = 1
     elseif periodicity[1]
-      tree_to_tree[1, tree] = linear_indices[cells_x, cell_y] - 1
+      tree_to_tree[1, tree] = linear_indices[n_cells_x, cell_y] - 1
       tree_to_face[1, tree] = 1
     else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
       tree_to_tree[1, tree] = tree - 1
@@ -330,7 +330,7 @@ function connectivity_structured(cells_x, cells_y, periodicity)
     end
 
     # Positive x-direction
-    if cell_x < cells_x
+    if cell_x < n_cells_x
       tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y] - 1
       tree_to_face[2, tree] = 0
     elseif periodicity[1]
@@ -346,7 +346,7 @@ function connectivity_structured(cells_x, cells_y, periodicity)
       tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1] - 1
       tree_to_face[3, tree] = 3
     elseif periodicity[2]
-      tree_to_tree[3, tree] = linear_indices[cell_x, cells_y] - 1
+      tree_to_tree[3, tree] = linear_indices[cell_x, n_cells_y] - 1
       tree_to_face[3, tree] = 3
     else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
       tree_to_tree[3, tree] = tree - 1
@@ -354,7 +354,7 @@ function connectivity_structured(cells_x, cells_y, periodicity)
     end
 
     # Positive y-direction
-    if cell_y < cells_y
+    if cell_y < n_cells_y
       tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1] - 1
       tree_to_face[4, tree] = 2
     elseif periodicity[2]
@@ -386,14 +386,14 @@ function connectivity_structured(cells_x, cells_y, periodicity)
 end
 
 # 3D version
-function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
-  linear_indices = LinearIndices((cells_x, cells_y, cells_z))
+function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
+  linear_indices = LinearIndices((n_cells_x, n_cells_y, n_cells_z))
 
   # Vertices represent the coordinates of the forest. This is used by p4est
   # to write VTK files.
   # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
   n_vertices = 0
-  n_trees = cells_x * cells_y * cells_z
+  n_trees = n_cells_x * n_cells_y * n_cells_z
   # No edge connectivity is needed
   n_edges = 0
   # No corner connectivity is needed
@@ -404,7 +404,7 @@ function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
   tree_to_tree = Array{p4est_topidx_t, 2}(undef, 6, n_trees)
   tree_to_face = Array{Int8, 2}(undef, 6, n_trees)
 
-  for cell_z in 1:cells_z, cell_y in 1:cells_y, cell_x in 1:cells_x
+  for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
     tree = linear_indices[cell_x, cell_y, cell_z]
 
     # Subtract 1 because p4est uses zero-based indexing
@@ -413,7 +413,7 @@ function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
       tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y, cell_z] - 1
       tree_to_face[1, tree] = 1
     elseif periodicity[1]
-      tree_to_tree[1, tree] = linear_indices[cells_x, cell_y, cell_z] - 1
+      tree_to_tree[1, tree] = linear_indices[n_cells_x, cell_y, cell_z] - 1
       tree_to_face[1, tree] = 1
     else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
       tree_to_tree[1, tree] = tree - 1
@@ -421,7 +421,7 @@ function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
     end
 
     # Positive x-direction
-    if cell_x < cells_x
+    if cell_x < n_cells_x
       tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y, cell_z] - 1
       tree_to_face[2, tree] = 0
     elseif periodicity[1]
@@ -437,7 +437,7 @@ function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
       tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1, cell_z] - 1
       tree_to_face[3, tree] = 3
     elseif periodicity[2]
-      tree_to_tree[3, tree] = linear_indices[cell_x, cells_y, cell_z] - 1
+      tree_to_tree[3, tree] = linear_indices[cell_x, n_cells_y, cell_z] - 1
       tree_to_face[3, tree] = 3
     else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
       tree_to_tree[3, tree] = tree - 1
@@ -445,7 +445,7 @@ function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
     end
 
     # Positive y-direction
-    if cell_y < cells_y
+    if cell_y < n_cells_y
       tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1, cell_z] - 1
       tree_to_face[4, tree] = 2
     elseif periodicity[2]
@@ -461,7 +461,7 @@ function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
       tree_to_tree[5, tree] = linear_indices[cell_x, cell_y, cell_z - 1] - 1
       tree_to_face[5, tree] = 5
     elseif periodicity[3]
-      tree_to_tree[5, tree] = linear_indices[cell_x, cell_y, cells_z] - 1
+      tree_to_tree[5, tree] = linear_indices[cell_x, cell_y, n_cells_z] - 1
       tree_to_face[5, tree] = 5
     else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
       tree_to_tree[5, tree] = tree - 1
@@ -469,7 +469,7 @@ function connectivity_structured(cells_x, cells_y, cells_z, periodicity)
     end
 
     # Positive z-direction
-    if cell_z < cells_z
+    if cell_z < n_cells_z
       tree_to_tree[6, tree] = linear_indices[cell_x, cell_y, cell_z + 1] - 1
       tree_to_face[6, tree] = 4
     elseif periodicity[3]
@@ -687,7 +687,9 @@ function init_fn(p4est, which_tree, quadrant)
   return nothing
 end
 
+# 2D
 cfunction(::typeof(init_fn), ::Val{2}) = @cfunction(init_fn, Cvoid, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+# 3D
 cfunction(::typeof(init_fn), ::Val{3}) = @cfunction(init_fn, Cvoid, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
 
 function refine_fn(p4est, which_tree, quadrant)
@@ -705,7 +707,9 @@ function refine_fn(p4est, which_tree, quadrant)
   end
 end
 
+# 2D
 cfunction(::typeof(refine_fn), ::Val{2}) = @cfunction(refine_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{p4est_quadrant_t}))
+# 3D
 cfunction(::typeof(refine_fn), ::Val{3}) = @cfunction(refine_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
 
 # Refine marked cells and rebalance forest.
@@ -745,10 +749,14 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
   end
 end
 
+# 2D
 unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p4est_t}) = unsafe_wrap(Array, quadrants_ptr, 4)
+# 3D
 unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p8est_t}) = unsafe_wrap(Array, quadrants_ptr, 8)
 
+# 2D
 cfunction(::typeof(coarsen_fn), ::Val{2}) = @cfunction(coarsen_fn, Cint, (Ptr{p4est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p4est_quadrant_t}}))
+# 3D
 cfunction(::typeof(coarsen_fn), ::Val{3}) = @cfunction(coarsen_fn, Cint, (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{Ptr{p8est_quadrant_t}}))
 
 # Coarsen marked cells if the forest will stay balanced.
@@ -816,7 +824,9 @@ function save_original_id_iter_volume(info, user_data)
   return nothing
 end
 
+# 2D
 cfunction(::typeof(save_original_id_iter_volume), ::Val{2}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+# 3D
 cfunction(::typeof(save_original_id_iter_volume), ::Val{3}) = @cfunction(save_original_id_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 # Copy old element IDs to each quad's user data storage
@@ -848,7 +858,9 @@ function collect_changed_iter_volume(info, user_data)
   return nothing
 end
 
+# 2D
 cfunction(::typeof(collect_changed_iter_volume), ::Val{2}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+# 3D
 cfunction(::typeof(collect_changed_iter_volume), ::Val{3}) = @cfunction(collect_changed_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 function collect_changed_cells(mesh::P4estMesh, original_n_cells)
@@ -892,7 +904,9 @@ function collect_new_iter_volume(info, user_data)
   return nothing
 end
 
+# 2D
 cfunction(::typeof(collect_new_iter_volume), ::Val{2}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+# 3D
 cfunction(::typeof(collect_new_iter_volume), ::Val{3}) = @cfunction(collect_new_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 function collect_new_cells(mesh::P4estMesh)

@@ -5,12 +5,12 @@ function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreM
   fstar_threaded = [Array{uEltype, 4}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2), 4)
                     for _ in 1:Threads.nthreads()]
 
-  fstar_tmp1_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
+  fstar_tmp_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
                          for _ in 1:Threads.nthreads()]
   u_threaded          = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
                          for _ in 1:Threads.nthreads()]
 
-  (; fstar_threaded, fstar_tmp1_threaded, u_threaded)
+  (; fstar_threaded, fstar_tmp_threaded, u_threaded)
 end
 
 
@@ -30,16 +30,18 @@ function prolong2interfaces!(cache, u,
 
     # Use Tuple `node_indices` and `evaluate_index` to copy values
     # from the correct face and in the correct orientation
-    for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      interfaces.u[1, v, i, j, interface] = u[v, evaluate_index(primary_indices, size_, 1, i, j),
-                                                 evaluate_index(primary_indices, size_, 2, i, j),
-                                                 evaluate_index(primary_indices, size_, 3, i, j),
-                                                 primary_element]
+    for j in eachnode(dg), i in eachnode(dg)
+      for v in eachvariable(equations)
+        interfaces.u[1, v, i, j, interface] = u[v, evaluate_index(primary_indices, size_, 1, i, j),
+                                                   evaluate_index(primary_indices, size_, 2, i, j),
+                                                   evaluate_index(primary_indices, size_, 3, i, j),
+                                                   primary_element]
 
-      interfaces.u[2, v, i, j, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i, j),
-                                                 evaluate_index(secondary_indices, size_, 2, i, j),
-                                                 evaluate_index(secondary_indices, size_, 3, i, j),
-                                                 secondary_element]
+        interfaces.u[2, v, i, j, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i, j),
+                                                   evaluate_index(secondary_indices, size_, 2, i, j),
+                                                   evaluate_index(secondary_indices, size_, 3, i, j),
+                                                   secondary_element]
+      end
     end
   end
 
@@ -111,11 +113,13 @@ function prolong2boundaries!(cache, u,
 
     # Use Tuple `node_indices` and `evaluate_index` to copy values
     # from the correct face and in the correct orientation
-    for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      boundaries.u[v, i, j, boundary] = u[v, evaluate_index(node_indices, size_, 1, i, j),
-                                             evaluate_index(node_indices, size_, 2, i, j),
-                                             evaluate_index(node_indices, size_, 3, i, j),
-                                             element]
+    for j in eachnode(dg), i in eachnode(dg)
+      for v in eachvariable(equations)
+        boundaries.u[v, i, j, boundary] = u[v, evaluate_index(node_indices, size_, 1, i, j),
+                                               evaluate_index(node_indices, size_, 2, i, j),
+                                               evaluate_index(node_indices, size_, 3, i, j),
+                                               element]
+      end
     end
   end
 
@@ -175,25 +179,27 @@ function prolong2mortars!(cache, u,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
   # temporary buffer for projections
-  @unpack fstar_tmp1_threaded = cache
+  @unpack fstar_tmp_threaded = cache
   @unpack element_ids, node_indices = cache.mortars
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
 
   @threaded for mortar in eachmortar(dg, cache)
-    fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
+    fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
     small_indices = node_indices[1, mortar]
     large_indices = node_indices[2, mortar]
 
     # Copy solution small to small
-    for pos in 1:4, j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      # Use Tuple `node_indices` and `evaluate_index` to copy values
-      # from the correct face and in the correct orientation
-      cache.mortars.u[1, v, pos, i, j, mortar] = u[v, evaluate_index(small_indices, size_, 1, i, j),
-                                                      evaluate_index(small_indices, size_, 2, i, j),
-                                                      evaluate_index(small_indices, size_, 3, i, j),
-                                                      element_ids[pos, mortar]]
+    for pos in 1:4, j in eachnode(dg), i in eachnode(dg)
+      for v in eachvariable(equations)
+        # Use Tuple `node_indices` and `evaluate_index` to copy values
+        # from the correct face and in the correct orientation
+        cache.mortars.u[1, v, pos, i, j, mortar] = u[v, evaluate_index(small_indices, size_, 1, i, j),
+                                                        evaluate_index(small_indices, size_, 2, i, j),
+                                                        evaluate_index(small_indices, size_, 3, i, j),
+                                                        element_ids[pos, mortar]]
+      end
     end
 
     # Buffer to copy solution values of the large element in the correct orientation
@@ -201,13 +207,15 @@ function prolong2mortars!(cache, u,
     u_buffer = cache.u_threaded[Threads.threadid()]
 
     # Copy solution of large element face to buffer in the correct orientation
-    for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      # Use Tuple `node_indices` and `evaluate_index` to copy values
-      # from the correct face and in the correct orientation
-      u_buffer[v, i, j] = u[v, evaluate_index(large_indices, size_, 1, i, j),
-                               evaluate_index(large_indices, size_, 2, i, j),
-                               evaluate_index(large_indices, size_, 3, i, j),
-                               element_ids[5, mortar]]
+    for j in eachnode(dg), i in eachnode(dg)
+      for v in eachvariable(equations)
+        # Use Tuple `node_indices` and `evaluate_index` to copy values
+        # from the correct face and in the correct orientation
+        u_buffer[v, i, j] = u[v, evaluate_index(large_indices, size_, 1, i, j),
+                                 evaluate_index(large_indices, size_, 2, i, j),
+                                 evaluate_index(large_indices, size_, 3, i, j),
+                                 element_ids[5, mortar]]
+      end
     end
 
     # Interpolate large element face data from buffer to small face locations
@@ -215,22 +223,22 @@ function prolong2mortars!(cache, u,
                             mortar_l2.forward_lower,
                             mortar_l2.forward_lower,
                             u_buffer,
-                            fstar_tmp1)
+                            fstar_tmp)
     multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
                             mortar_l2.forward_upper,
                             mortar_l2.forward_lower,
                             u_buffer,
-                            fstar_tmp1)
+                            fstar_tmp)
     multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
                             mortar_l2.forward_lower,
                             mortar_l2.forward_upper,
                             u_buffer,
-                            fstar_tmp1)
+                            fstar_tmp)
     multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
                             mortar_l2.forward_upper,
                             mortar_l2.forward_upper,
                             u_buffer,
-                            fstar_tmp1)
+                            fstar_tmp)
   end
 
   return nothing
@@ -243,7 +251,7 @@ function calc_mortar_flux!(surface_flux_values,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
   @unpack u, element_ids, node_indices = cache.mortars
-  @unpack fstar_threaded, fstar_tmp1_threaded = cache
+  @unpack fstar_threaded, fstar_tmp_threaded = cache
   @unpack surface_flux = surface_integral
 
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
@@ -251,7 +259,7 @@ function calc_mortar_flux!(surface_flux_values,
   @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-    fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
+    fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
@@ -279,7 +287,7 @@ function calc_mortar_flux!(surface_flux_values,
 
     mortar_fluxes_to_elements!(surface_flux_values,
                                mesh, equations, mortar_l2, dg, cache,
-                               mortar, fstar, u_buffer, fstar_tmp1)
+                               mortar, fstar, u_buffer, fstar_tmp)
   end
 
   return nothing
@@ -301,13 +309,15 @@ end
   size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
 
   # Copy solution small to small
-  for pos in 1:4, j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-    # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-    # to left and right element storage in the correct orientation
-    surface_index1 = evaluate_index_surface(small_indices, size_, 1, i, j)
-    surface_index2 = evaluate_index_surface(small_indices, size_, 2, i, j)
-    surface_flux_values[v, surface_index1, surface_index2, small_direction,
-                        element_ids[pos, mortar]] = fstar[v, i, j, pos]
+  for pos in 1:4, j in eachnode(dg), i in eachnode(dg)
+    for v in eachvariable(equations)
+      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+      # to left and right element storage in the correct orientation
+      surface_index1 = evaluate_index_surface(small_indices, size_, 1, i, j)
+      surface_index2 = evaluate_index_surface(small_indices, size_, 2, i, j)
+      surface_flux_values[v, surface_index1, surface_index2, small_direction,
+                          element_ids[pos, mortar]] = fstar[v, i, j, pos]
+    end
   end
 
   large_element = element_ids[5, mortar]
@@ -344,13 +354,15 @@ end
   u_buffer .*= -4
 
   # Copy interpolated flux values from buffer to large element face in the correct orientation
-  for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-    # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-    # to surface flux storage in the correct orientation
-    surface_index1 = evaluate_index_surface(large_indices, size_, 1, i, j)
-    surface_index2 = evaluate_index_surface(large_indices, size_, 2, i, j)
-    surface_flux_values[v, surface_index1, surface_index2,
-                        large_direction, large_element] = u_buffer[v, i, j]
+  for j in eachnode(dg), i in eachnode(dg)
+    for v in eachvariable(equations)
+      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+      # to surface flux storage in the correct orientation
+      surface_index1 = evaluate_index_surface(large_indices, size_, 1, i, j)
+      surface_index2 = evaluate_index_surface(large_indices, size_, 2, i, j)
+      surface_flux_values[v, surface_index1, surface_index2,
+                          large_direction, large_element] = u_buffer[v, i, j]
+    end
   end
 
   return nothing

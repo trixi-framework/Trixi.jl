@@ -17,7 +17,7 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::LobattoLegendreBasi
 end
 
 
-# Interpolate tree_node_coordinates to each quadrant
+# Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 basis::LobattoLegendreBasis)
@@ -28,6 +28,7 @@ function calc_node_coordinates!(node_coordinates,
   calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
 
+# Interpolate tree_node_coordinates to each quadrant at the specified nodes
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2},
                                 nodes::AbstractVector)
@@ -75,7 +76,8 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 
-@inline function init_interface_node_indices!(interfaces::InterfaceContainerP4est{2},
+# Initialize node_indices of interface container
+@inline function init_interface_node_indices!(interfaces::P4estInterfaceContainer{2},
                                               faces, orientation, interface_id)
   # Iterate over primary and secondary element
   for side in 1:2
@@ -109,7 +111,8 @@ end
 end
 
 
-@inline function init_boundary_node_indices!(boundaries::BoundaryContainerP4est{2},
+# Initialize node_indices of boundary container
+@inline function init_boundary_node_indices!(boundaries::P4estBoundaryContainer{2},
                                              face, boundary_id)
   if face == 0
     # Index face in negative x-direction
@@ -129,8 +132,9 @@ end
 end
 
 
+# Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
-@inline function init_mortar_node_indices!(mortars::MortarContainerP4est{2},
+@inline function init_mortar_node_indices!(mortars::P4estMortarContainer{2},
                                            faces, orientation, mortar_id)
   for side in 1:2
     # Align mortar in positive coordinate direction of small side.

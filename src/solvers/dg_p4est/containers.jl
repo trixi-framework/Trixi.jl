@@ -1,5 +1,5 @@
 # Note: This is an experimental feature and may be changed in future releases without notice.
-mutable struct ElementContainerP4est{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
+mutable struct P4estElementContainer{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
   # Physical coordinates at each node
   node_coordinates      ::Array{RealT, NDIMSP2}   # [orientation, node_i, node_j, node_k, element]
   # Jacobian matrix of the transformation
@@ -20,16 +20,16 @@ mutable struct ElementContainerP4est{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1,
   _surface_flux_values  ::Vector{uEltype}
 end
 
-@inline nelements(elements::ElementContainerP4est) = size(elements.node_coordinates, ndims(elements) + 2)
-@inline Base.ndims(::ElementContainerP4est{NDIMS}) where NDIMS = NDIMS
-@inline Base.eltype(::ElementContainerP4est{NDIMS, RealT, uEltype}) where {NDIMS, RealT, uEltype} = uEltype
+@inline nelements(elements::P4estElementContainer) = size(elements.node_coordinates, ndims(elements) + 2)
+@inline Base.ndims(::P4estElementContainer{NDIMS}) where NDIMS = NDIMS
+@inline Base.eltype(::P4estElementContainer{NDIMS, RealT, uEltype}) where {NDIMS, RealT, uEltype} = uEltype
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(elements::ElementContainerP4est, capacity)
+function Base.resize!(elements::P4estElementContainer, capacity)
   @unpack _node_coordinates, _jacobian_matrix, _contravariant_vectors,
     _inverse_jacobian, _surface_flux_values = elements
 
@@ -88,7 +88,7 @@ function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
   surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
     (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., NDIMS*2, nelements))
 
-  elements = ElementContainerP4est{NDIMS, RealT, uEltype, NDIMS+1, NDIMS+2, NDIMS+3}(
+  elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMS+1, NDIMS+2, NDIMS+3}(
     node_coordinates, jacobian_matrix, contravariant_vectors,
     inverse_jacobian, surface_flux_values,
     _node_coordinates, _jacobian_matrix, _contravariant_vectors,
@@ -99,7 +99,7 @@ function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
 end
 
 
-mutable struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
+mutable struct P4estInterfaceContainer{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
   u             ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
   element_ids   ::Matrix{Int}                   # [primary/secondary, interface]
   node_indices  ::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interface]
@@ -110,11 +110,11 @@ mutable struct InterfaceContainerP4est{NDIMS, uEltype<:Real, NDIMSP2} <: Abstrac
   _node_indices ::Vector{NTuple{NDIMS, Symbol}}
 end
 
-@inline ninterfaces(interfaces::InterfaceContainerP4est) = size(interfaces.element_ids, 2)
-@inline Base.ndims(::InterfaceContainerP4est{NDIMS}) where NDIMS = NDIMS
+@inline ninterfaces(interfaces::P4estInterfaceContainer) = size(interfaces.element_ids, 2)
+@inline Base.ndims(::P4estInterfaceContainer{NDIMS}) where NDIMS = NDIMS
 
 # See explanation of Base.resize! for the element container
-function Base.resize!(interfaces::InterfaceContainerP4est, capacity)
+function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
   @unpack _u, _element_ids, _node_indices = interfaces
 
   n_dims = ndims(interfaces)
@@ -153,7 +153,7 @@ function init_interfaces(mesh::P4estMesh, equations, basis, elements)
   _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
   node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
-  interfaces = InterfaceContainerP4est{NDIMS, uEltype, NDIMS+2}(u, element_ids, node_indices,
+  interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS+2}(u, element_ids, node_indices,
                                                                 _u, _element_ids, _node_indices)
 
   init_interfaces!(interfaces, mesh)
@@ -169,7 +169,7 @@ function init_interfaces!(interfaces, mesh::P4estMesh)
 end
 
 
-mutable struct BoundaryContainerP4est{NDIMS, uEltype<:Real, NDIMSP1} <: AbstractContainer
+mutable struct P4estBoundaryContainer{NDIMS, uEltype<:Real, NDIMSP1} <: AbstractContainer
   u           ::Array{uEltype, NDIMSP1}       # [variables, i, j, boundary]
   element_ids ::Vector{Int}                   # [boundary]
   node_indices::Vector{NTuple{NDIMS, Symbol}} # [boundary]
@@ -179,11 +179,11 @@ mutable struct BoundaryContainerP4est{NDIMS, uEltype<:Real, NDIMSP1} <: Abstract
   _u          ::Vector{uEltype}
 end
 
-@inline nboundaries(boundaries::BoundaryContainerP4est) = length(boundaries.element_ids)
-@inline Base.ndims(::BoundaryContainerP4est{NDIMS}) where NDIMS = NDIMS
+@inline nboundaries(boundaries::P4estBoundaryContainer) = length(boundaries.element_ids)
+@inline Base.ndims(::P4estBoundaryContainer{NDIMS}) where NDIMS = NDIMS
 
 # See explanation of Base.resize! for the element container
-function Base.resize!(boundaries::BoundaryContainerP4est, capacity)
+function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
   @unpack _u, element_ids, node_indices, name = boundaries
 
   n_dims = ndims(boundaries)
@@ -220,7 +220,7 @@ function init_boundaries(mesh::P4estMesh, equations, basis, elements)
   node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
   names        = Vector{Symbol}(undef, n_boundaries)
 
-  boundaries = BoundaryContainerP4est{NDIMS, uEltype, NDIMS+1}(u, element_ids,
+  boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS+1}(u, element_ids,
                                                                node_indices, names, _u)
 
   if n_boundaries > 0
@@ -296,7 +296,7 @@ end
 # │ └─────────────┴─────────────┘  └───────────────────────────┘
 # │
 # ⋅────> ξ
-mutable struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
+mutable struct P4estMortarContainer{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
   u             ::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
   element_ids   ::Matrix{Int}             # [position, mortar]
   node_indices  ::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
@@ -307,11 +307,11 @@ mutable struct MortarContainerP4est{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: A
   _node_indices ::Vector{NTuple{NDIMS, Symbol}}
 end
 
-@inline nmortars(mortars::MortarContainerP4est) = size(mortars.element_ids, 2)
-@inline Base.ndims(::MortarContainerP4est{NDIMS}) where NDIMS = NDIMS
+@inline nmortars(mortars::P4estMortarContainer) = size(mortars.element_ids, 2)
+@inline Base.ndims(::P4estMortarContainer{NDIMS}) where NDIMS = NDIMS
 
 # See explanation of Base.resize! for the element container
-function Base.resize!(mortars::MortarContainerP4est, capacity)
+function Base.resize!(mortars::P4estMortarContainer, capacity)
   @unpack _u, _element_ids, _node_indices = mortars
 
   n_dims = ndims(mortars)
@@ -352,7 +352,7 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
   _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
   node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
 
-  mortars = MortarContainerP4est{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, element_ids, node_indices,
+  mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, element_ids, node_indices,
                                                                    _u, _element_ids, _node_indices)
 
   if n_mortars > 0
@@ -421,7 +421,9 @@ function init_surfaces_iter_face(info, user_data)
   init_surfaces_iter_face_inner(info, data)
 end
 
+# 2D
 cfunction(::typeof(init_surfaces_iter_face), ::Val{2}) = @cfunction(init_surfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+# 3D
 cfunction(::typeof(init_surfaces_iter_face), ::Val{3}) = @cfunction(init_surfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 
 # Function barrier for type stability
@@ -620,7 +622,9 @@ function count_surfaces_iter_face(info, user_data)
   return nothing
 end
 
+# 2D
 cfunction(::typeof(count_surfaces_iter_face), ::Val{2}) = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+# 3D
 cfunction(::typeof(count_surfaces_iter_face), ::Val{3}) = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 
 function count_required_surfaces(mesh::P4estMesh)

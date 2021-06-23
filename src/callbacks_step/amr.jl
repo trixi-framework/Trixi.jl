@@ -341,7 +341,9 @@ function copy_to_quad_iter_volume(info, user_data)
   return nothing
 end
 
+# 2D
 cfunction(::typeof(copy_to_quad_iter_volume), ::Val{2}) = @cfunction(copy_to_quad_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+# 3D
 cfunction(::typeof(copy_to_quad_iter_volume), ::Val{3}) = @cfunction(copy_to_quad_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
@@ -556,7 +558,9 @@ function extract_levels_iter_volume(info, user_data)
   return nothing
 end
 
+# 2D
 cfunction(::typeof(extract_levels_iter_volume), ::Val{2}) = @cfunction(extract_levels_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+# 3D
 cfunction(::typeof(extract_levels_iter_volume), ::Val{3}) = @cfunction(extract_levels_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
 
 function current_element_levels(mesh::P4estMesh, solver, cache)

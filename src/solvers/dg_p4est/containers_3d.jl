@@ -18,7 +18,7 @@ function init_elements!(elements, mesh::P4estMesh{3}, basis::LobattoLegendreBasi
 end
 
 
-# Interpolate tree_node_coordinates to each quadrant
+# Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{3},
                                 basis::LobattoLegendreBasis)
@@ -29,6 +29,7 @@ function calc_node_coordinates!(node_coordinates,
   calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
 
+# Interpolate tree_node_coordinates to each quadrant at the specified nodes
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{3},
                                 nodes::AbstractVector)
@@ -68,7 +69,8 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 
-@inline function init_interface_node_indices!(interfaces::InterfaceContainerP4est{3},
+# Initialize node_indices of interface container
+@inline function init_interface_node_indices!(interfaces::P4estInterfaceContainer{3},
                                               faces, orientation, interface_id)
   # Iterate over primary and secondary element
   for side in 1:2
@@ -78,7 +80,7 @@ end
       surface_index1 = :i
       surface_index2 = :j
     else
-      surface_index1, surface_index2 = p4est_orientation_to_indices(faces[2], faces[1], orientation)
+      surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1], orientation)
     end
 
     if faces[side] == 0
@@ -106,7 +108,8 @@ end
 end
 
 
-@inline function init_boundary_node_indices!(boundaries::BoundaryContainerP4est{3},
+# Initialize node_indices of boundary container
+@inline function init_boundary_node_indices!(boundaries::P4estBoundaryContainer{3},
                                              face, boundary_id)
   if face == 0
     # Index face in negative x-direction
@@ -132,8 +135,9 @@ end
 end
 
 
+# Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
-@inline function init_mortar_node_indices!(mortars::MortarContainerP4est{3},
+@inline function init_mortar_node_indices!(mortars::P4estMortarContainer{3},
                                            faces, orientation, mortar_id)
   for side in 1:2
     # Align mortar at small side.
@@ -142,7 +146,7 @@ end
       surface_index1 = :i
       surface_index2 = :j
     else
-      surface_index1, surface_index2 = p4est_orientation_to_indices(faces[2], faces[1], orientation)
+      surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1], orientation)
     end
 
     if faces[side] == 0
@@ -173,7 +177,7 @@ end
 # Convert p4est orientation code to node indices.
 # Return node indices that index "my side" wrt "other side",
 # i.e., i and j are indices of other side.
-function p4est_orientation_to_indices(my_face, other_face, orientation_code)
+function orientation_to_indices_p4est(my_face, other_face, orientation_code)
   # my_face and other_face are the face directions (zero-based)
   # of "my side" and "other side" respectively.
   # Face corner 0 of the face with the lower face direction connects to a corner of the other face.
