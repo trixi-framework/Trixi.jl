@@ -46,7 +46,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   # Types of errors to be calcuated
   errors = Dict(:l2 => Float64[], :linf => Float64[])
 
-  initial_resolution = extract_initial_resolution(elixir)
+  initial_resolution = extract_initial_resolution(elixir, kwargs)
 
   # run simulations and extract errors
   for iter in 1:iterations
@@ -175,17 +175,29 @@ function find_assignment(expr, destination)
 end
 
 # searches the parameter that specifies the mesh reslution in the elixir
-function extract_initial_resolution(elixir)
+function extract_initial_resolution(elixir, kwargs)
   code = read(elixir, String)
   expr = Meta.parse("begin $code end")
 
   try
     # get the initial_refinement_level from the elixir
     initial_refinement_level = find_assignment(expr, :initial_refinement_level)
+
+    if haskey(kwargs, :initial_refinement_level)
+      return kwargs[:initial_refinement_level]
+    else
+      return initial_refinement_level
+    end
   catch e
     if isa(e, UndefVarError)
       # get cells_per_dimension from the elixir
       cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
+
+      if haskey(kwargs, :cells_per_dimension)
+        return kwargs[:cells_per_dimension]
+      else
+        return cells_per_dimension
+      end
     else
       throw(e)
     end
