@@ -205,3 +205,157 @@ end
 #       x = semi.cache.elements.node_coordinates[1, :, :, :] |> vec
 #       y = semi.cache.elements.node_coordinates[2, :, :, :] |> vec
 #       scatter(x, y, sol.u[end])
+
+
+# Special rhs evaluations for the incompressible Euler equations
+function rhs!(du, u, t,
+              mesh::TreeMesh{2},
+              equations::IncompressibleEulerEquations2D,
+              initial_condition, boundary_conditions, source_terms,
+              dg::DG, cache)
+  # Reset du
+  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+
+  # Calculate volume integral
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
+
+  # # Prolong solution to interfaces
+  # @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+  #   cache, u, mesh, equations, dg.surface_integral, dg)
+  #
+  # # Prolong solution to boundaries
+  # @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
+  #   cache, u, mesh, equations, dg.surface_integral, dg)
+
+  # Calculate surface integrals
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
+
+  # Apply Jacobian from mapping to reference element
+  @trixi_timeit timer() "Jacobian" apply_jacobian!(
+    du, mesh, equations, dg, cache)
+
+  # Calculate source terms
+  @trixi_timeit timer() "source terms" calc_sources!(
+    du, u, t, source_terms, equations, dg, cache)
+
+  return nothing
+end
+
+
+# Special volume integral for the incompressible Euler equations
+function calc_volume_integral!(du, u,
+                               mesh::TreeMesh{2},
+                               nonconservative_terms::Val{false},
+                               equations::IncompressibleEulerEquations2D,
+                               volume_integral::VolumeIntegralStrongForm,
+                               dg::FDSBP, cache)
+  D = dg.basis # SBP derivative operator
+
+  dudx = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  dudy = zeros(eltype(u), nnodes(dg), nnodes(dg))
+
+  dvdx = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  dvdy = zeros(eltype(u), nnodes(dg), nnodes(dg))
+
+  dpdx = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  dpdy = zeros(eltype(u), nnodes(dg), nnodes(dg))
+
+  duudx = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  dvvdy = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  duvdx = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  duvdy = zeros(eltype(u), nnodes(dg), nnodes(dg))
+
+  v1v1 = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  v2v2 = zeros(eltype(u), nnodes(dg), nnodes(dg))
+  v1v2 = zeros(eltype(u), nnodes(dg), nnodes(dg))
+
+  for element in eachelement(dg, cache)
+    v1 = view(u, 1, :, :, element)
+    v2 = view(u, 2, :, :, element)
+    p  = view(u, 3, :, :, element)
+
+    @. v1v1 = v1*v1
+    @. v2v2 = v2*v2
+    @. v1v2 = v1*v2
+
+    for j in eachnode(dg)
+      mul!(view(dudx, :, j) , D, view(v1, :, j))
+      mul!(view(dvdx, :, j) , D, view(v2, :, j))
+      mul!(view(dpdx, :, j) , D, view(p, :, j) )
+      mul!(view(duudx, :, j), D, view(v1v1, :, j))
+      mul!(view(duvdx, :, j), D, view(v1v2, :, j))
+    end
+
+    for i in eachnode(dg)
+      mul!(view(dvdy, i, :) , D, view(v1, i, :))
+      mul!(view(dvdy, i, :) , D, view(v2, i, :))
+      mul!(view(dpdy, i, :) , D, view(p, i, :) )
+      mul!(view(duvdy, i, :), D, view(v1v2, i, :))
+      mul!(view(dvvdy, i, :), D, view(v2v2, i, :))
+    end
+
+    @. du[1,:,:,element] = 0.5*(v1*dudx + duudx + v2*dudy + duvdy) + dpdx
+    @. du[2,:,:,element] = 0.5*(v1*dvdx + duvdx + v2*dvdy + dvvdy) + dpdy
+    @. du[3,:,:,element] = dudx + dvdy
+
+  end
+
+  return nothing
+end
+
+
+# Special surface integral for the incompressible Euler equations
+#   FIXME: hacked version of the surface integral. Assumes only a single
+#          element, so there are no interior surfaces
+#   OBS! This is a hacky wall type boundary condition
+function calc_surface_integral!(du, u, mesh::TreeMesh{2},
+                                equations::IncompressibleEulerEquations2D,
+                                surface_integral::SurfaceIntegralStrongForm,
+                                dg::FDSBP, cache)
+  inv_weight_left  = inv(left_boundary_weight(dg.basis))
+  inv_weight_right = inv(right_boundary_weight(dg.basis))
+
+  sat_contribution = zeros(eltype(u), 3)
+
+  @threaded for element in eachelement(dg, cache)
+    for l in eachnode(dg)
+      # along the bottom
+      u_node, v_node, _ = get_node_vars(u, equations, dg, l, 1, element)
+      w_n = -v_node
+      sat_contribution[1] = -0.5 * inv_weight_left * u_node * w_n
+      sat_contribution[2] = -0.5 * inv_weight_left * v_node * w_n
+      sat_contribution[3] = -inv_weight_left * w_n
+      add_to_node_vars!(du, sat_contribution, equations, dg, l, 1, element)
+
+      # along the right
+      u_node, v_node, _ = get_node_vars(u, equations, dg, nnodes(dg), l, element)
+      w_n = u_node
+      sat_contribution[1] = -0.5 * inv_weight_right * u_node * w_n
+      sat_contribution[2] = -0.5 * inv_weight_right * v_node * w_n
+      sat_contribution[3] = -inv_weight_right * w_n
+      add_to_node_vars!(du, sat_contribution, equations, dg, nnodes(dg), l, element)
+
+      # along the top
+      u_node, v_node, _ = get_node_vars(u, equations, dg, l, nnodes(dg), element)
+      w_n = v_node
+      sat_contribution[1] = -0.5 * inv_weight_right * u_node * w_n
+      sat_contribution[2] = -0.5 * inv_weight_right * v_node * w_n
+      sat_contribution[3] = -inv_weight_right * w_n
+      add_to_node_vars!(du, sat_contribution, equations, dg, l, nnodes(dg), element)
+
+      # along the left
+      u_node, v_node, _ = get_node_vars(u, equations, dg, 1, l, element)
+      w_n = -u_node
+      sat_contribution[1] = -0.5 * inv_weight_left * u_node * w_n
+      sat_contribution[2] = -0.5 * inv_weight_left * v_node * w_n
+      sat_contribution[3] = -inv_weight_left * w_n
+      add_to_node_vars!(du, sat_contribution, equations, dg, 1, l, element)
+    end
+  end
+
+  return nothing
+end
