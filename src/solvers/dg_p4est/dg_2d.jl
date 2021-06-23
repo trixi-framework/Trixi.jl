@@ -178,13 +178,15 @@ function prolong2mortars!(cache, u,
     large_indices = node_indices[2, mortar]
 
     # Copy solution small to small
-    for pos in 1:2, i in eachnode(dg)
-      for v in eachvariable(equations)
-        # Use Tuple `node_indices` and `evaluate_index` to copy values
-        # from the correct face and in the correct orientation
-        cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_indices, size_, 1, i),
-                                                     evaluate_index(small_indices, size_, 2, i),
-                                                     element_ids[pos, mortar]]
+    for pos in 1:2
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          # Use Tuple `node_indices` and `evaluate_index` to copy values
+          # from the correct face and in the correct orientation
+          cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_indices, size_, 1, i),
+                                                       evaluate_index(small_indices, size_, 2, i),
+                                                       element_ids[pos, mortar]]
+        end
       end
     end
 
@@ -237,18 +239,20 @@ function calc_mortar_flux!(surface_flux_values,
 
     # Use Tuple `node_indices` and `evaluate_index` to access node indices
     # at the correct face and in the correct orientation to get normal vectors
-    for pos in 1:2, i in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
+    for pos in 1:2
+      for i in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
 
-      normal_vector = get_normal_vector(small_direction, cache,
-                                        evaluate_index(small_indices, size_, 1, i),
-                                        evaluate_index(small_indices, size_, 2, i),
-                                        element_ids[pos, mortar])
+        normal_vector = get_normal_vector(small_direction, cache,
+                                          evaluate_index(small_indices, size_, 1, i),
+                                          evaluate_index(small_indices, size_, 2, i),
+                                          element_ids[pos, mortar])
 
-      flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
+        flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
 
-      # Copy flux to buffer
-      set_node_vars!(fstar[pos], flux_, equations, dg, i)
+        # Copy flux to buffer
+        set_node_vars!(fstar[pos], flux_, equations, dg, i)
+      end
     end
 
     # Buffer to interpolate flux values of the large element to before copying
@@ -279,14 +283,16 @@ end
   size_ = (nnodes(dg), nnodes(dg))
 
   # Copy solution small to small
-  for pos in 1:2, i in eachnode(dg)
-    for v in eachvariable(equations)
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to left and right element storage in the correct orientation
-      surface_index = evaluate_index_surface(small_indices, size_, 1, i)
-      surface_flux_values[v, surface_index,
-                          small_direction,
-                          element_ids[pos, mortar]] = fstar[pos][v, i]
+  for pos in 1:2
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+        # to left and right element storage in the correct orientation
+        surface_index = evaluate_index_surface(small_indices, size_, 1, i)
+        surface_flux_values[v, surface_index,
+                            small_direction,
+                            element_ids[pos, mortar]] = fstar[pos][v, i]
+      end
     end
   end
 
