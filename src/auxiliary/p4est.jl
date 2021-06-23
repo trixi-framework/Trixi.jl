@@ -21,7 +21,7 @@ end
 function unsafe_wrap_sc(::Type{T}, sc_array) where T
   element_count = sc_array.elem_count
 
-  return [unsafe_load_sc(T, sc_array, i) for i in 0:element_count-1]
+  return [unsafe_load_sc(T, sc_array, i) for i in 1:element_count]
 end
 
 
@@ -31,7 +31,7 @@ function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
 
   @assert element_size == sizeof(T)
 
-  return unsafe_load(reinterpret(Ptr{T}, sc_array.array), i)
+  return unsafe_load(Ptr{T}(sc_array.array), i)
 end
 
 

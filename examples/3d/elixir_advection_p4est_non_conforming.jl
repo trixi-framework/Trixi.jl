@@ -34,7 +34,7 @@ end
 # Refine recursively until each bottom left quadrant of a tree has level 2
 # The mesh will be rebalanced before the simulation starts
 refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p8est_quadrant_t}))
-Trixi.p8est_refine(mesh.p4est, true, refine_fn_c, C_NULL)
+Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)

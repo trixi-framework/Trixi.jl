@@ -19,6 +19,12 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh
 
   function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
                             current_filename, unsaved_changes) where NDIMS
+    if NDIMS == 2
+      @assert p4est isa Ptr{p4est_t}
+    elseif NDIMS == 3
+      @assert p4est isa Ptr{p8est_t}
+    end
+
     mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(p4est), NDIMS+2, length(nodes)}(
       p4est, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes)
 
@@ -576,10 +582,10 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
 
   for tree in 1:size(tree_to_vertex, 2)
     # Tree vertices are stored in Z-order, ignore z-coordinate in 2D, zero-based indexing
-    data_in[:, 1, 1] .= vertices[1:2, tree_to_vertex[1, tree] + 1]
-    data_in[:, 2, 1] .= vertices[1:2, tree_to_vertex[2, tree] + 1]
-    data_in[:, 1, 2] .= vertices[1:2, tree_to_vertex[3, tree] + 1]
-    data_in[:, 2, 2] .= vertices[1:2, tree_to_vertex[4, tree] + 1]
+    @views data_in[:, 1, 1] .= vertices[1:2, tree_to_vertex[1, tree] + 1]
+    @views data_in[:, 2, 1] .= vertices[1:2, tree_to_vertex[2, tree] + 1]
+    @views data_in[:, 1, 2] .= vertices[1:2, tree_to_vertex[3, tree] + 1]
+    @views data_in[:, 2, 2] .= vertices[1:2, tree_to_vertex[4, tree] + 1]
 
     # Interpolate corner coordinates to specified nodes
     multiply_dimensionwise!(
@@ -619,14 +625,14 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 5},
 
   for tree in 1:size(tree_to_vertex, 2)
     # Tree vertices are stored in Z-order, zero-based indexing
-    data_in[:, 1, 1, 1] .= vertices[:, tree_to_vertex[1, tree] + 1]
-    data_in[:, 2, 1, 1] .= vertices[:, tree_to_vertex[2, tree] + 1]
-    data_in[:, 1, 2, 1] .= vertices[:, tree_to_vertex[3, tree] + 1]
-    data_in[:, 2, 2, 1] .= vertices[:, tree_to_vertex[4, tree] + 1]
-    data_in[:, 1, 1, 2] .= vertices[:, tree_to_vertex[5, tree] + 1]
-    data_in[:, 2, 1, 2] .= vertices[:, tree_to_vertex[6, tree] + 1]
-    data_in[:, 1, 2, 2] .= vertices[:, tree_to_vertex[7, tree] + 1]
-    data_in[:, 2, 2, 2] .= vertices[:, tree_to_vertex[8, tree] + 1]
+    @views data_in[:, 1, 1, 1] .= vertices[:, tree_to_vertex[1, tree] + 1]
+    @views data_in[:, 2, 1, 1] .= vertices[:, tree_to_vertex[2, tree] + 1]
+    @views data_in[:, 1, 2, 1] .= vertices[:, tree_to_vertex[3, tree] + 1]
+    @views data_in[:, 2, 2, 1] .= vertices[:, tree_to_vertex[4, tree] + 1]
+    @views data_in[:, 1, 1, 2] .= vertices[:, tree_to_vertex[5, tree] + 1]
+    @views data_in[:, 2, 1, 2] .= vertices[:, tree_to_vertex[6, tree] + 1]
+    @views data_in[:, 1, 2, 2] .= vertices[:, tree_to_vertex[7, tree] + 1]
+    @views data_in[:, 2, 2, 2] .= vertices[:, tree_to_vertex[8, tree] + 1]
 
     # Interpolate corner coordinates to specified nodes
     multiply_dimensionwise!(
