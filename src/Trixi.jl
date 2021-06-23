@@ -191,20 +191,20 @@ function __init__()
     using .Plots: plot, plot!, savefig
   end
 
-  @require StructArrays="09ab397b-f2b6-538f-b94a-2f83cf4a842a" begin
-    using .StructArrays: StructArrays, StructArray
-  end
-
+  # require both StructArrays and StartUpDG for triangular mesh solvers
   @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
+    @require StructArrays="09ab397b-f2b6-538f-b94a-2f83cf4a842a" begin
+      using .StructArrays: StructArrays, StructArray
 
-    using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
-    using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
-
-    include("solvers/dg_tri/mesh.jl")
-    export AbstractMeshData,VertexMappedMesh
-    
-    include("solvers/dg_tri/dg.jl")
-    include("solvers/dg_tri/analysis.jl")
+      using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
+      using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
+  
+      include("solvers/dg_tri/mesh.jl")
+      export AbstractMeshData,VertexMappedMesh
+      
+      include("solvers/dg_tri/dg.jl")
+      include("solvers/dg_tri/analysis.jl")  
+    end 
   end
 
 end
