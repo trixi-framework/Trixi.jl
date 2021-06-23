@@ -47,12 +47,20 @@ end
 function compute_coefficients!(u::StructArray, initial_condition, t,
                                mesh::AbstractMeshData{Dim}, equations, dg::DG{<:RefElemData{Dim}}, cache) where {Dim}
     md = mesh.md
-    for i in Base.OneTo(ndofs(mesh, dg, cache)) 
-        xyz_i = SVector{Dim}(getindex.(md.xyz, i))
-        u[i] = initial_condition(xyz_i, t, equations) # todo: switch to L2 projection?
+    rd = dg.basis
+    @unpack u_values = cache
+
+    num_quad_nodes = length(u_values) 
+    for i in Base.OneTo(num_quad_nodes) 
+        xyz_i = SVector{Dim}(getindex.(md.xyzq, i))
+        u_values[i] = initial_condition(xyz_i, t, equations) 
     end
+
+    # compute L2 projection
+    StructArrays.foreachfield(mul_by!(rd.Pq), u, u_values)
 end
 
+# interpolates from solution coefficients to face quadrature points
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, 
                              surface_integral, dg::DG{<:RefElemData})
     rd = dg.basis        
