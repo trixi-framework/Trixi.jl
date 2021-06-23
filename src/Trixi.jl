@@ -204,6 +204,7 @@ function __init__()
     export AbstractMeshData,VertexMappedMesh
     
     include("solvers/dg_tri/dg.jl")
+    include("solvers/dg_tri/analysis.jl")
   end
 
 end
