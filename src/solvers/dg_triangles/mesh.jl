@@ -2,7 +2,9 @@
 abstract type AbstractMeshData{Dim} end
 
 """
-VertexMappedMesh describes a mesh which is constructed by an reference-to-physical 
+    VertexMappedMesh
+
+`VertexMappedMesh` describes a mesh which is constructed by an reference-to-physical 
 mapping which can be constructed using only the vertex positions. 
 
 Wraps `MeshData` and `boundary_faces` in a dispatchable mesh type.
