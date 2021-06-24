@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # overload this function for specific callbacks which use element element variables
 # that should be saved
@@ -42,21 +48,24 @@ end
 # * `GlmSpeedCallback` must come after computing time step size because it affects the value of c_h
 # * `LBMCollisionCallback` must come after computing time step size because it is already part of
 #    the next time step calculation
-include_optimized("summary.jl")
-include_optimized("steady_state.jl")
-include_optimized("analysis.jl")
-include_optimized("alive.jl")
-include_optimized("save_restart.jl")
-include_optimized("save_solution.jl")
-include_optimized("time_series.jl")
-include_optimized("visualization.jl")
+include("summary.jl")
+include("steady_state.jl")
+include("analysis.jl")
+include("alive.jl")
+include("save_restart.jl")
+include("save_solution.jl")
+include("time_series.jl")
+include("visualization.jl")
 
-include_optimized("amr.jl")
-include_optimized("stepsize.jl")
-include_optimized("glm_speed.jl")
-include_optimized("lbm_collision.jl")
+include("amr.jl")
+include("stepsize.jl")
+include("glm_speed.jl")
+include("lbm_collision.jl")
 
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`
-include_optimized("trivial.jl")
+include("trivial.jl")
+
+
+end # @muladd

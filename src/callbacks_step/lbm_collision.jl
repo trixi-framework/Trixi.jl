@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     LBMCollisionCallback()
@@ -55,5 +61,8 @@ end
   return nothing
 end
 
-include_optimized("lbm_collision_dg2d.jl")
-include_optimized("lbm_collision_dg3d.jl")
+include("lbm_collision_dg2d.jl")
+include("lbm_collision_dg3d.jl")
+
+
+end # @muladd

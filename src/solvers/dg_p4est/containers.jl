@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Note: This is an experimental feature and may be changed in future releases without notice.
 mutable struct ElementContainerP4est{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
@@ -508,4 +514,7 @@ end
 end
 
 
-include_optimized("containers_2d.jl")
+include("containers_2d.jl")
+
+
+end # @muladd

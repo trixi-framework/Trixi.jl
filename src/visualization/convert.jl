@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
 #
@@ -158,3 +164,6 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
 
   return unstructured_data
 end
+
+
+end # @muladd

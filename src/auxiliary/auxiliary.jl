@@ -1,6 +1,12 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
-include_optimized("containers.jl")
-include_optimized("math.jl")
+
+include("containers.jl")
+include("math.jl")
 
 
 # Enable debug timings `@trixi_timeit timer() "name" stuff...`.
@@ -232,3 +238,6 @@ function init_p4est()
 
   return nothing
 end
+
+
+end # @muladd

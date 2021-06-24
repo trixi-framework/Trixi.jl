@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh},
@@ -158,3 +164,6 @@ function save_solution_file(u, time, dt, timestep,
 
   return filename
 end
+
+
+end # @muladd

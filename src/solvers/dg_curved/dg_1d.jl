@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 function rhs!(du, u, t,
               mesh::CurvedMesh{1}, equations,
@@ -106,3 +112,6 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
   end
 end
+
+
+end # @muladd

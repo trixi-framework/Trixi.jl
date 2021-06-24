@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # General interface methods for SummationByPartsOperators.jl and Trixi.jl
 # TODO: FD. Move to another file
@@ -205,3 +211,6 @@ end
 #       x = semi.cache.elements.node_coordinates[1, :, :, :] |> vec
 #       y = semi.cache.elements.node_coordinates[2, :, :, :] |> vec
 #       scatter(x, y, sol.u[end])
+
+
+end # @muladd

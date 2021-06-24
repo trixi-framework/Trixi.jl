@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # everything related to a DG semidiscretization in 1D,
 # currently limited to Lobatto-Legendre nodes
@@ -486,3 +492,6 @@ function calc_sources!(du, u, t, source_terms,
 
   return nothing
 end
+
+
+end # @muladd

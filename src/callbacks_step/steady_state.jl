@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     SteadyStateCallback(; abstol=1.0e-8, reltol=1.0e-6)
@@ -70,6 +76,9 @@ function (steady_state_callback::SteadyStateCallback)(du, u, semi::AbstractSemid
   steady_state_callback(du, u, mesh_equations_solver_cache(semi)...)
 end
 
-include_optimized("steady_state_dg1d.jl")
-include_optimized("steady_state_dg2d.jl")
-include_optimized("steady_state_dg3d.jl")
+include("steady_state_dg1d.jl")
+include("steady_state_dg2d.jl")
+include("steady_state_dg3d.jl")
+
+
+end # @muladd

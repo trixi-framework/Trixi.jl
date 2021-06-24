@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     SaveRestartCallback(; interval=0,
@@ -125,4 +131,7 @@ function load_restart_file(semi::AbstractSemidiscretization, restart_file)
 end
 
 
-include_optimized("save_restart_dg.jl")
+include("save_restart_dg.jl")
+
+
+end # @muladd

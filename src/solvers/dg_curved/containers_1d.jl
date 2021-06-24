@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBasis)
@@ -76,3 +82,6 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{1})
 
   return left_neighbors
 end
+
+
+end # @muladd

@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
     IdealGlmMhdMulticomponentEquations1D
@@ -422,3 +428,6 @@ end
 
   return SVector{ncomponents(equations), real(equations)}(u[i+7]*v for i in eachcomponent(equations))
  end
+
+
+end # @muladd

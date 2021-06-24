@@ -1,7 +1,13 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
-include_optimized("abstract_tree.jl")
-include_optimized("serial_tree.jl")
-include_optimized("parallel_tree.jl")
+
+include("abstract_tree.jl")
+include("serial_tree.jl")
+include("parallel_tree.jl")
 
 
 get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
@@ -202,9 +208,12 @@ function total_volume(mesh::TreeMesh)
 end
 
 
-include_optimized("parallel.jl")
-include_optimized("curved_mesh.jl")
-include_optimized("surface_interpolant.jl")
-include_optimized("unstructured_quad_mesh.jl")
-include_optimized("p4est_mesh.jl")
-include_optimized("mesh_io.jl")
+include("parallel.jl")
+include("curved_mesh.jl")
+include("surface_interpolant.jl")
+include("unstructured_quad_mesh.jl")
+include("p4est_mesh.jl")
+include("mesh_io.jl")
+
+
+end # @muladd

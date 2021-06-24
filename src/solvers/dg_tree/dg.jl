@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 abstract type AbstractVolumeIntegral end
 
@@ -333,8 +339,8 @@ AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 
 # Include utilities
 include("interpolation.jl")
-include_optimized("l2projection.jl")
-include_optimized("basis_lobatto_legendre.jl")
+include("l2projection.jl")
+include("basis_lobatto_legendre.jl")
 
 """
     DGSEM(; RealT=Float64, polydeg::Integer,
@@ -431,20 +437,23 @@ end
 
 
 # indicators used for shock-capturing and AMR
-include_optimized("indicators.jl")
-include_optimized("indicators_1d.jl")
-include_optimized("indicators_2d.jl")
-include_optimized("indicators_3d.jl")
+include("indicators.jl")
+include("indicators_1d.jl")
+include("indicators_2d.jl")
+include("indicators_3d.jl")
 
 # 1D DG implementation
-include_optimized("containers_1d.jl")
-include_optimized("dg_1d.jl")
+include("containers_1d.jl")
+include("dg_1d.jl")
 
 # 2D DG implementation
-include_optimized("containers_2d.jl")
-include_optimized("dg_2d.jl")
-include_optimized("dg_2d_parallel.jl")
+include("containers_2d.jl")
+include("dg_2d.jl")
+include("dg_2d_parallel.jl")
 
 # 3D DG implementation
-include_optimized("containers_3d.jl")
-include_optimized("dg_3d.jl")
+include("containers_3d.jl")
+include("dg_3d.jl")
+
+
+end # @muladd

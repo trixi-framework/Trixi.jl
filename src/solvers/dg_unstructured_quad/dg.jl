@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @inline function get_one_sided_surface_node_vars(u, equations, solver::DG, j, indices...)
   # There is a cut-off at `n == 10` inside of the method
@@ -14,8 +20,11 @@ end
 
 
 # 2D unstructured DG implementation
-include_optimized("mappings_geometry_curved_2d.jl")
-include_optimized("mappings_geometry_straight_2d.jl")
-include_optimized("containers_2d.jl")
-include_optimized("sort_boundary_conditions.jl")
-include_optimized("dg_2d.jl")
+include("mappings_geometry_curved_2d.jl")
+include("mappings_geometry_straight_2d.jl")
+include("containers_2d.jl")
+include("sort_boundary_conditions.jl")
+include("dg_2d.jl")
+
+
+end # @muladd

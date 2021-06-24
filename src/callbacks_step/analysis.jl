@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
@@ -485,7 +491,10 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
 
 # specialized implementations specific to some solvers
-include_optimized("analysis_dg1d.jl")
-include_optimized("analysis_dg2d.jl")
-include_optimized("analysis_dg2d_parallel.jl")
-include_optimized("analysis_dg3d.jl")
+include("analysis_dg1d.jl")
+include("analysis_dg2d.jl")
+include("analysis_dg2d_parallel.jl")
+include("analysis_dg3d.jl")
+
+
+end # @muladd

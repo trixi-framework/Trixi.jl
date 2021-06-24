@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # mapping formula from a point (xi, eta) in reference space [-1,1]^2 to a point (x,y)
 # in physical coordinate space for a quadrilateral element with straight sides
@@ -105,3 +111,6 @@ function calc_normal_directions!(normal_directions, element, nodes, corners)
 
   return normal_directions
 end
+
+
+end # @muladd

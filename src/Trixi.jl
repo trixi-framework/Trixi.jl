@@ -55,13 +55,17 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
   SummationByPartsOperators, derivative_operator
 
 
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-function include_optimized(filename)
-  include(expr -> quote @muladd begin $expr end end, filename)
-end
+# TODO: include_optimized
+# This should be used everywhere (except to `include("interpolations.jl")`)
+# once the upstream issue https://github.com/timholy/Revise.jl/issues/634
+# is fixed; tracked in https://github.com/trixi-framework/Trixi.jl/issues/664.
+# # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# # Since these FMAs can increase the performance of many numerical algorithms,
+# # we need to opt-in explicitly.
+# # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+# function include_optimized(filename)
+#   include(expr -> quote @muladd begin $expr end end, filename)
+# end
 
 
 # Define the entry points of our type hierarchy, e.g.
@@ -69,26 +73,26 @@ end
 # Placing them here allows us to make use of them for dispatch even for
 # other stuff defined very early in our include pipeline, e.g.
 #     IndicatorLöhner(semi::AbstractSemidiscretization)
-include_optimized("basic_types.jl")
+include("basic_types.jl")
 
 # Include all top-level source files
-include_optimized("auxiliary/auxiliary.jl")
-include_optimized("auxiliary/mpi.jl")
-include_optimized("equations/equations.jl")
-include_optimized("mesh/mesh.jl")
-include_optimized("solvers/solvers.jl")
-include_optimized("semidiscretization/semidiscretization.jl")
-include_optimized("semidiscretization/semidiscretization_hyperbolic.jl")
-include_optimized("callbacks_step/callbacks_step.jl")
-include_optimized("callbacks_stage/callbacks_stage.jl")
-include_optimized("semidiscretization/semidiscretization_euler_gravity.jl")
-include_optimized("time_integration/time_integration.jl")
+include("auxiliary/auxiliary.jl")
+include("auxiliary/mpi.jl")
+include("equations/equations.jl")
+include("mesh/mesh.jl")
+include("solvers/solvers.jl")
+include("semidiscretization/semidiscretization.jl")
+include("semidiscretization/semidiscretization_hyperbolic.jl")
+include("callbacks_step/callbacks_step.jl")
+include("callbacks_stage/callbacks_stage.jl")
+include("semidiscretization/semidiscretization_euler_gravity.jl")
+include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
-include_optimized("auxiliary/special_elixirs.jl")
+include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
-include_optimized("visualization/visualization.jl")
+include("visualization/visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
@@ -203,7 +207,7 @@ function __init__()
 end
 
 
-include_optimized("auxiliary/precompile.jl")
+include("auxiliary/precompile.jl")
 _precompile_manual_()
 
 

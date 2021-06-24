@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     TimeSeriesCallback(semi, point_coordinates;
@@ -196,5 +202,8 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 end
 
 
-include_optimized("time_series_dg.jl")
-include_optimized("time_series_dg2d.jl")
+include("time_series_dg.jl")
+include("time_series_dg2d.jl")
+
+
+end # @muladd

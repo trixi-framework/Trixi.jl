@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
@@ -622,3 +628,6 @@ function max_discrete_metric_identities(dg::DGSEM, cache)
 
   return max_metric_ids
 end
+
+
+end # @muladd

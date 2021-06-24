@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
     CompressibleEulerEquations1D
@@ -672,3 +678,6 @@ end
 @inline function energy_internal(cons, equations::CompressibleEulerEquations1D)
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
+
+
+end # @muladd

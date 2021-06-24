@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 function rhs!(du, u, t,
               mesh::CurvedMesh{2}, equations,
@@ -310,3 +316,6 @@ function apply_jacobian!(du,
 
   return nothing
 end
+
+
+end # @muladd
