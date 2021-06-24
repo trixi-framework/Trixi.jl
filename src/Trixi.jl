@@ -200,11 +200,11 @@ function __init__()
       using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
       using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
   
-      include("solvers/dg_tri/mesh.jl")
+      include("solvers/dg_triangles/mesh.jl")
       export AbstractMeshData,VertexMappedMesh
       
-      include("solvers/dg_tri/dg.jl")
-      include("solvers/dg_tri/analysis.jl")  
+      include("solvers/dg_triangles/dg.jl")
+      include("solvers/dg_triangles/analysis.jl")  
     end 
   end
 
