@@ -45,7 +45,8 @@ function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DG{<:RefEl
 end
 
 function compute_coefficients!(u::StructArray, initial_condition, t,
-                 mesh::AbstractMeshData{Dim}, equations, dg::DG{<:RefElemData{Dim}}, cache) where {Dim}
+                               mesh::AbstractMeshData{Dim}, equations, 
+                               dg::DG{<:RefElemData{Dim}}, cache) where {Dim}
   md = mesh.md
   rd = dg.basis
   @unpack u_values = cache
