@@ -1,3 +1,5 @@
+# !!! warning "Experimental features"
+
 using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 

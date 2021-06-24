@@ -3,20 +3,30 @@
 using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 
-rd = RefElemData(Tri(), N=4) # equivalent to a "basis"
+rd = RefElemData(Tri(),SBP(), N=4)
 dg = DG(rd, nothing #= mortar =#, 
-        SurfaceIntegralWeakForm(FluxHLL()), VolumeIntegralWeakForm())
+        SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralWeakForm())
 
-equations = CompressibleEulerEquations2D(1.4)
+v_mean_global = (0.25, 0.25)
+c_mean_global = 1.0
+rho_mean_global = 1.0
+equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-VX, VY, EToV = StartUpDG.uniform_mesh(rd.elementType, 8)
-mesh = VertexMappedMesh(VX, VY, EToV, rd, is_periodic=(true,true))
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms) 
+# example where we tag two separate boundary segments of the mesh
+VX, VY, EToV = StartUpDG.uniform_mesh(Tri(), 8)
+mesh = VertexMappedMesh(VX, VY, EToV, rd)
 
-tspan = (0.0, .1)
+boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = (; :entire_boundary => boundary_condition_convergence_test)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
+                                    source_terms = source_terms, 
+                                    boundary_conditions = boundary_conditions) 
+
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -33,4 +43,5 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = .5*dt0, save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
 
+# u = sol.u[end]
 l2,linf = analysis_callback(sol)
