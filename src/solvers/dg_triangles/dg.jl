@@ -25,14 +25,21 @@ const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar,
 # this is necessary for pretty printing
 Base.real(rd::RefElemData{Dims, Elem, ApproxType, Nfaces, RealT}) where {Dims, Elem, ApproxType, Nfaces, RealT} = RealT
 
-function ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache)
-  rd = dg.basis
-  return rd.Np * mesh.md.num_elements
-end
-wrap_array(u_ode::StructArray, semi::AbstractSemidiscretization) = u_ode
-wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
+# iteration over quantities in a single element
+eachfacenode(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq)
+eachquadnode(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq)
+
+# iteration over all elements in a mesh
+eachelement(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(mesh.md.num_elements)
+
+# iteration over quantities over the entire mesh (dofs, quad nodes, face nodes). 
+ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = dg.basis.Np * mesh.md.num_elements
+eachdoftotal(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(ndofs(mesh,dg,cache))
+eachquadnodetotal(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+eachfacenodetotal(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
+wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, 
                       mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) where {Keys,ValueTypes<:Tuple{Any,Any}}
   return boundary_conditions
@@ -45,14 +52,12 @@ function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DG{<:RefEl
 end
 
 function compute_coefficients!(u::StructArray, initial_condition, t,
-                               mesh::AbstractMeshData{Dim}, equations, 
-                               dg::DG{<:RefElemData{Dim}}, cache) where {Dim}
+                        mesh::AbstractMeshData{Dim}, equations, dg::DG{<:RefElemData{Dim}}, cache) where {Dim}
   md = mesh.md
   rd = dg.basis
   @unpack u_values = cache
 
-  num_quad_nodes = length(u_values) 
-  for i in Base.OneTo(num_quad_nodes) 
+  for i in eachquadnodetotal(mesh,dg,cache)
     xyz_i = SVector{Dim}(getindex.(md.xyzq, i))
     u_values[i] = initial_condition(xyz_i, t, equations) 
   end
@@ -84,6 +89,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
 
   nvars = nvariables(equations)
 
+  # todo: factor common storage into a struct (MeshDataCache?) for reuse 
   # storage for volume quadrature values, face quadrature values, flux values
   u_values = StructArray{SVector{nvars, RealT}}(ntuple(_->zeros(rd.Nq, md.num_elements), nvars))
   u_face_values = StructArray{SVector{nvars, RealT}}(ntuple(_->zeros(rd.Nfq, md.num_elements), nvars))
@@ -108,7 +114,7 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
   StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
 
   # todo: dispatch on curved/non-curved mesh types. This only works for affine meshes (accessing rxJ[1,e],...)
-  for e in Base.OneTo(md.num_elements)
+  for e in eachelement(mesh,dg,cache)
     flux_values .= flux.(view(u_values,:,e), 1, equations)
     StructArrays.foreachfield(mul_by_accum!(invMQrTrW, rxJ[1,e]), view(du,:,e), flux_values)
     StructArrays.foreachfield(mul_by_accum!(invMQsTrW, sxJ[1,e]), view(du,:,e), flux_values)
@@ -130,10 +136,10 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
   @unpack u_face_values, flux_face_values = cache 
 
   num_face_nodes = length(u_face_values)
-  for i in Base.OneTo(num_face_nodes)
+  for face_node_index in eachfacenodetotal(mesh, dg, cache)
 
     # inner (idM -> minus) and outer (idP -> plus) indices 
-    idM, idP = mapM[i], mapP[i]    
+    idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM = u_face_values[idM]
       
     # compute flux if node is not a boundary node
@@ -171,8 +177,8 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   rd = dg.basis
   md = mesh.md
   @unpack flux_face_values = cache
-  for e in Base.OneTo(md.num_elements)
-    for i in Base.OneTo(rd.Nfq)
+  for e in eachelement(mesh, dg, cache)
+    for i in eachfacenode(mesh, dg, cache)
       du[rd.Fmask[i],e] += flux_face_values[i,e] * rd.wf[i] / rd.wq[rd.Fmask[i]]
     end    
   end
@@ -234,7 +240,7 @@ end
 # todo: specialize for modal DG on curved meshes using WADG
 function invert_jacobian!(du, mesh::Mesh, equations, dg::DG{<:RefElemData}, 
                           cache) where {Mesh <: AbstractMeshData} 
-  for i in Base.OneTo(ndofs(mesh,dg,cache))
+  for i in eachdoftotal(mesh, dg, cache)
     du[i] *= -cache.invJ[i]
   end
 end
@@ -251,11 +257,12 @@ function calc_sources!(du, u, t, source_terms,
   md = mesh.md
   @unpack Pq = rd
   @unpack u_values, flux_values = cache
-  for e in Base.OneTo(md.num_elements)
+  for e in eachelement(mesh, dg, cache)
     u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
 
     # todo: why do these lines allocate?
-    for i in Base.OneTo(rd.Nq)
+    for i in eachquadnode(mesh, dg, cache)
+      # getindex.(md.xyzq, i, e) is a tuple containing (xq[i,e], yq[i,e])
       flux_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations) 
     end
     StructArrays.foreachfield(mul_by_accum!(Pq), view(du, :, e), flux_values)
