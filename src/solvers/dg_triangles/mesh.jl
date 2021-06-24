@@ -21,7 +21,7 @@ Trixi.ndims(::VertexMappedMesh{Dim}) where {Dim} = Dim
 
 - `VXYZ` is a tuple of vectors of vertex coordinates
 - `EToV` is a matrix containing element-to-vertex connectivities for each element
-- `is_on_boundary` specifies boundary using Dict{Symbol,<:Function}
+- `is_on_boundary` specifies boundary using a `Dict{Symbol,<:Function}`
 - `is_periodic` is a tuple of booleans specifying periodicity = true/false in the (x,y,z) direction.
 """
 VertexMappedMesh(VX,VY,EToV,rd,args...;kwargs...) = VertexMappedMesh((VX,VY),EToV,rd,args...;kwargs...)
