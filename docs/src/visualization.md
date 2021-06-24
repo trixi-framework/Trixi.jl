@@ -246,7 +246,7 @@ Then create and plot a [`PlotData1D`](@ref) object along a circle with radius on
 pd = PlotData1D(sol, curve=circle(1.0, (1.0, 1.0), 100))
 plot(pd)
 ```
-This gives you following plot:
+This gives you the following plot:
 ![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
 
 Creating a plot like this has its downsides. For one, it is unclear what to put on the abscissa
