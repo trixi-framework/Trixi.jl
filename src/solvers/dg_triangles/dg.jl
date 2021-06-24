@@ -29,8 +29,8 @@ function ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache)
   rd = dg.basis
   return rd.Np * mesh.md.num_elements
 end
-Trixi.wrap_array(u_ode::StructArray, semi::Trixi.AbstractSemidiscretization) = u_ode
-Trixi.wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
+wrap_array(u_ode::StructArray, semi::AbstractSemidiscretization) = u_ode
+wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
 
 # interface with semidiscretization_hyperbolic
 function Trixi.digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, 
