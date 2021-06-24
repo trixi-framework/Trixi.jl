@@ -23,7 +23,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms, 
                                     boundary_conditions = boundary_conditions) 
 
-tspan = (0.0, .1)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -42,4 +42,3 @@ summary_callback() # print the timer summary
 
 # u = sol.u[end]
 l2,linf = analysis_callback(sol)
-
