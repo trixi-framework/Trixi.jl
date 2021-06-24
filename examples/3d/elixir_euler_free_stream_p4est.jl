@@ -13,10 +13,16 @@ boundary_conditions = Dict(
   :all => BoundaryConditionDirichlet(initial_condition)
 )
 
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+# Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
+# The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
+# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralWeakForm())
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
+# The mapping will be interpolated at tree level, and then refined without changing
+# the geometry interpolant. This can yield problematic geometries if the unrefined mesh
+# is not fine enough.
 function mapping(xi_, eta_, zeta_)
   # Transform input variables between -1 and 1 onto [0,3]
   xi = 1.5 * xi_ + 1.5
@@ -43,26 +49,26 @@ mesh_file = joinpath(@__DIR__, "cube_unstructured_1.inp")
 isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/d45c8ac1e248618885fa7cc31a50ab40/raw/37fba24890ab37cfa49c39eae98b44faf4502882/cube_unstructured_1.inp",
                               mesh_file)
 
-mesh = P4estMesh{3}(mesh_file, polydeg=3,
+# Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
+mesh = P4estMesh{3}(mesh_file, polydeg=2,
                     mapping=mapping,
-                    initial_refinement_level=1)
+                    initial_refinement_level=0)
 
-# TODO P4EST FSP
-# # Refine bottom left quadrant of each tree to level 2
-# function refine_fn(p8est, which_tree, quadrant)
-#   if quadrant.x == 0 && quadrant.y == 0 && quadrant.z == 0 && quadrant.level < 2 && convert(Int, which_tree) == 0
-#     # return true (refine)
-#     return Cint(1)
-#   else
-#     # return false (don't refine)
-#     return Cint(0)
-#   end
-# end
+# Refine bottom left quadrant of each second tree to level 2
+function refine_fn(p8est, which_tree, quadrant)
+  if iseven(convert(Int, which_tree)) && quadrant.x == 0 && quadrant.y == 0 && quadrant.z == 0 && quadrant.level < 2
+    # return true (refine)
+    return Cint(1)
+  else
+    # return false (don't refine)
+    return Cint(0)
+  end
+end
 
-# Refine recursively until each bottom left quadrant of a tree has level 2
-# The mesh will be rebalanced before the simulation starts
-# refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p8est_quadrant_t}))
-# Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
+# Refine recursively until each bottom left quadrant of every second tree has level 2.
+# The mesh will be rebalanced before the simulation starts.
+refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p8est_quadrant_t}))
+Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
 
@@ -92,7 +98,7 @@ stepsize_callback = StepsizeCallback(cfl=1.2)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # save_restart, save_solution,
+                        save_restart, save_solution,
                         stepsize_callback)
 
 
