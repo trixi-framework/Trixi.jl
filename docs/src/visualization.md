@@ -226,7 +226,7 @@ possible to create a plot along any curve you want. To do so, you first need to
 create a list of 2D/3D points that define your curve. Then you can
 create a [`PlotData1D`](@ref) with the keyword argument `curve` set to your list.
 
-Lets do an example of this on the basic advection equation from above and try to create
+Let's give an example of this with the basic advection equation from above by creating
 a plot along the circle marked in green:
 ![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/122980179-a7e19280-d398-11eb-82a8-b7a998d23277.PNG)
 
