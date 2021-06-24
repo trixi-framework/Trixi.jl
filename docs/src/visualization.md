@@ -249,9 +249,9 @@ plot(pd)
 This gives you following plot:
 ![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
 
-Creating a plot like this has it´s downside. For one it is unclear, what to put on the x-axis
-of the plot. To still be able to create a plot properly the arc length of given curve is used.
-Also with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
+Creating a plot like this has its downsides. For one, it is unclear what to put on the abscissa
+of the plot. By default, the arc length of the given curve is used.
+Also, with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
 
 ### Visualizing results during a simulation
 To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
