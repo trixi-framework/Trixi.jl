@@ -429,15 +429,15 @@ include("indicators_1d.jl")
 include("indicators_2d.jl")
 include("indicators_3d.jl")
 
+# Container data structures
+include("containers.jl")
+
 # 1D DG implementation
-include("containers_1d.jl")
 include("dg_1d.jl")
 
 # 2D DG implementation
-include("containers_2d.jl")
 include("dg_2d.jl")
 include("dg_2d_parallel.jl")
 
 # 3D DG implementation
-include("containers_3d.jl")
 include("dg_3d.jl")

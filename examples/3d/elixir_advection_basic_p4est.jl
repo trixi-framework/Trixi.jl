@@ -2,55 +2,32 @@
 using OrdinaryDiffEq
 using Trixi
 
-
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advectionvelocity = (1.0, 1.0, 1.0)
+equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
-# Create DG solver with polynomial degree = 4 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
+# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-# Deformed rectangle that looks like a waving flag,
-# lower and upper faces are sinus curves, left and right are vertical lines.
-f1(s) = SVector(-1.0, s - 1.0)
-f2(s) = SVector( 1.0, s + 1.0)
-f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
-f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
+coordinates_min = (-1.5, -0.9, 0.0) # minimum coordinates (min(x), min(y), min(z))
+coordinates_max = ( 0.5,  1.1, 4.0) # maximum coordinates (max(x), max(y), max(z))
 
-# Create P4estMesh with 3 x 2 trees and 6 x 4 elements,
-# approximate the geometry with a smaller polydeg for testing.
-trees_per_dimension = (3, 2)
-mesh = P4estMesh(trees_per_dimension, polydeg=2,
-                 faces=(f1, f2, f3, f4),
+# Create P4estMesh with 8 x 10 x 16 elements (note `refinement_level=1`)
+trees_per_dimension = (4, 5, 8)
+mesh = P4estMesh(trees_per_dimension, polydeg=3,
+                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
                  initial_refinement_level=1)
-
-# Refine bottom left quadrant of each tree to level 4
-function refine_fn(p4est, which_tree, quadrant)
-  if quadrant.x == 0 && quadrant.y == 0 && quadrant.level < 4
-    # return true (refine)
-    return Cint(1)
-  else
-    # return false (don't refine)
-    return Cint(0)
-  end
-end
-
-# Refine recursively until each bottom left quadrant of a tree has level 4
-# The mesh will be rebalanced before the simulation starts
-refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p4est_quadrant_t}))
-Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
-
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 0.2
-ode = semidiscretize(semi, (0.0, 0.2));
+# Create ODE problem with time span from 0.0 to 1.0
+ode = semidiscretize(semi, (0.0, 1.0));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -59,15 +36,19 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=100)
 
+# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
+
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl=1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_restart, save_solution, stepsize_callback)
 
 
 ###############################################################################
