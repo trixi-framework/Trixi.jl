@@ -460,7 +460,7 @@ When visualizing data from a two-dimensional simulation, a 1D slice is extracted
 `slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0)`.
 Both of these values are ignored when visualizing 1D data.
-This applies analogosly to three-dimensonal simulations, where `slice` may be `xy:`, `:xz`, or `:yz`.
+This applies analogously to three-dimensonal simulations, where `slice` may be `xy:`, `:xz`, or `:yz`.
 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
 This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
