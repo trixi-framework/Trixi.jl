@@ -14,7 +14,7 @@ struct VertexMappedMesh{Dim,Nboundaries,Tv,Ti} <: AbstractMeshData{Dim}
   boundary_faces::Dict{Symbol,Vector{Int}}
 end
 
-Trixi.ndims(::VertexMappedMesh{Dim}) where {Dim} = Dim
+Base.ndims(::VertexMappedMesh{Dim}) where {Dim} = Dim
 
 """
   function VertexMappedMesh(VXYZ::NTuple{Dim,Vector{Tv}},EToV,rd::RefElemData;
