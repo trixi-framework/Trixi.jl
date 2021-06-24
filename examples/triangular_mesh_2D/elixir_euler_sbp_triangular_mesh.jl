@@ -3,7 +3,7 @@
 using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 
-rd = RefElemData(Tri(),SBP(), N=4)
+rd = RefElemData(Tri(), SBP(), N=4)
 dg = DG(rd, nothing #= mortar =#, 
         SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralWeakForm())
 
@@ -43,5 +43,4 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = .5*dt0, save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
 
-# u = sol.u[end]
 l2,linf = analysis_callback(sol)
