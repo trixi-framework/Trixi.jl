@@ -2,7 +2,8 @@ using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 
 rd = RefElemData(Tri(), N=4)
-dg = DG(rd, (), SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralWeakForm())
+dg = DG(rd, nothing #= mortar =#, 
+        SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralWeakForm())
 
 v_mean_global = (0.25, 0.25)
 c_mean_global = 1.0
