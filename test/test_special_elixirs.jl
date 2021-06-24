@@ -28,6 +28,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_basic_curved.jl"), 2)
     @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
 
+    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_p4est_unstructured_curved.jl"), 2, initial_refinement_level=1)
+    @test isapprox(mean_eoc[:l2], [3.31], rtol=0.01)
+
     mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper-self-gravitating-gas-dynamics", "elixir_eulergravity_eoc_test.jl"), 2, tspan=(0.0, 0.1))
     @test isapprox(mean_eoc[:l2], 4 * ones(4), atol=0.4)
   end

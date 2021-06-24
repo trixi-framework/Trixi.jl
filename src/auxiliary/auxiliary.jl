@@ -212,22 +212,3 @@ macro trixi_timeit(timer_output, label, expr)
     val
   end
 end
-
-
-"""
-    init_p4est()
-
-Initialize p4est by calling `p4est_init` and setting the log level to `SC_LP_ERROR`.
-This function will check if p4est is already initialized
-and if yes, do nothing, thus it is safe to call it multiple times.
-"""
-function init_p4est()
-  if p4est_package_id()[] >= 0
-    return nothing
-  end
-
-  # Initialize p4est with log level ERROR to prevent a lot of output in AMR simulations
-  p4est_init(C_NULL, SC_LP_ERROR)
-
-  return nothing
-end

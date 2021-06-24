@@ -44,14 +44,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
   @trixi_testset "elixir_euler_free_stream_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_curved.jl"),
       l2   = [2.8815700334367128e-15, 9.361915278236651e-15, 9.95614203619935e-15, 1.6809941842374106e-14, 1.4815037041566735e-14],
-      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 3.1896707497480747e-13, 6.092903959142859e-13])
+      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 2.0627943797535409e-13, 2.8954616482224083e-13])
   end
 
   @trixi_testset "elixir_euler_free_stream_curved.jl with FluxRotated(flux_lax_friedrichs)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_curved.jl"),
       surface_flux=FluxRotated(flux_lax_friedrichs),
       l2   = [2.8815700334367128e-15, 9.361915278236651e-15, 9.95614203619935e-15, 1.6809941842374106e-14, 1.4815037041566735e-14],
-      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 3.1896707497480747e-13, 6.092903959142859e-13])
+      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 2.0627943797535409e-13, 2.8954616482224083e-13])
   end
 
   @trixi_testset "elixir_euler_nonperiodic_curved.jl" begin
