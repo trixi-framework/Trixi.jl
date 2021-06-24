@@ -2,7 +2,8 @@ using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 
 rd = RefElemData(Tri(), N=4)
-dg = DG(rd, (), SurfaceIntegralWeakForm(FluxHLL()), VolumeIntegralWeakForm())
+dg = DG(rd, nothing #= mortar =#, 
+        SurfaceIntegralWeakForm(FluxHLL()), VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
@@ -42,4 +43,3 @@ summary_callback() # print the timer summary
 
 # u = sol.u[end]
 l2,linf = analysis_callback(sol)
-
