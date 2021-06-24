@@ -63,7 +63,7 @@ end
 
 # interpolates from solution coefficients to face quadrature points
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, 
-               surface_integral, dg::DG{<:RefElemData})
+                             surface_integral, dg::DG{<:RefElemData})
   rd = dg.basis    
   @unpack u_face_values = cache
   StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
