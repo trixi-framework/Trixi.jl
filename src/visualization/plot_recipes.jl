@@ -463,7 +463,7 @@ Both of these values are ignored when visualizing 1D data.
 This applies analogosly to three-dimensonal simulations, where `slice` may be `xy:`, `:xz`, or `:yz`.
 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
-This is done with the attribute `curve`. It can be set to a list of 2D/3D points
+This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
 
 !!! warning "Experimental implementation"
