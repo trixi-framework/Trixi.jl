@@ -36,7 +36,7 @@ isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/a07
                               mesh_file)
 
 # Map the unstructured mesh with the mapping above
-mesh = P4estMesh(mesh_file, polydeg=3, mapping=mapping, initial_refinement_level=1)
+mesh = P4estMesh{2}(mesh_file, polydeg=3, mapping=mapping, initial_refinement_level=1)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=Dict(
