@@ -1,3 +1,4 @@
+# !!! warning "Experimental features"
 
 abstract type AbstractMeshData{Dim} end
 
@@ -17,9 +18,9 @@ end
 Base.ndims(::VertexMappedMesh{Dim}) where {Dim} = Dim
 
 """
-  function VertexMappedMesh(VXYZ::NTuple{Dim,Vector{Tv}},EToV,rd::RefElemData;
-                            is_on_boundary=nothing,
-                            is_periodic::NTuple{Dim,Bool}=ntuple(_->false,Dim)) where {Dim,Tv}
+  VertexMappedMesh(VXYZ::NTuple{Dim,Vector{Tv}},EToV,rd::RefElemData;
+                   is_on_boundary=nothing,
+                   is_periodic::NTuple{Dim,Bool}=ntuple(_->false,Dim)) where {Dim,Tv}
 
 - `VXYZ` is a tuple of vectors of vertex coordinates
 - `EToV` is a matrix containing element-to-vertex connectivities for each element
