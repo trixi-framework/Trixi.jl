@@ -33,7 +33,7 @@ wrap_array(u_ode::StructArray, semi::AbstractSemidiscretization) = u_ode
 wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
 
 # interface with semidiscretization_hyperbolic
-function Trixi.digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, 
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, 
                       mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) where {Keys,ValueTypes<:Tuple{Any,Any}}
   return boundary_conditions
 end
