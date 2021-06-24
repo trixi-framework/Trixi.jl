@@ -250,6 +250,7 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
 end
 
+# Calculate the arc length of a curve given by ndims x npoints point coordinates (piece-wise linear approximation)
 function calc_arc_length(coordinates)
   arc_length = 0
   for i in 1:size(coordinates)[2]-1
