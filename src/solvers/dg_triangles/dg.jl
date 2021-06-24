@@ -25,7 +25,7 @@ const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar,
 # this is necessary for pretty printing
 Base.real(rd::RefElemData{Dims, Elem, ApproxType, Nfaces, RealT}) where {Dims, Elem, ApproxType, Nfaces, RealT} = RealT
 
-function Trixi.ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache)
+function ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache)
   rd = dg.basis
   return rd.Np * mesh.md.num_elements
 end
@@ -284,4 +284,3 @@ function rhs!(du, u, t, mesh, equations,
 
   return nothing
 end
-
