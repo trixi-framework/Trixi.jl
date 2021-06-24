@@ -18,7 +18,7 @@ function calc_error_norms(func, u::StructArray, t, analyzer,
   # `pointwise_error` is a StructArray{SVector{nvariables(equations),real(dg)}}, so to square each entry 
   # we need to apply a double broadcast (x->x.^2). 
   pointwise_error = func.(u_values, equations) - func.(u_exact_values, equations) # todo: for loop to avoid allocations
-  component_l2_errors = sum(md.wJq .* (x->x.^2).(pointwise_error)) 
+  component_l2_errors = sqrt.(sum(md.wJq .* (x->x.^2).(pointwise_error)))
   component_linf_errors = maximum((x->abs.(x)).(pointwise_error))
 
   return component_l2_errors, component_linf_errors
