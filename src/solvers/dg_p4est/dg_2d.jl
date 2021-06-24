@@ -36,14 +36,16 @@ function prolong2interfaces!(cache, u,
 
     # Use Tuple `node_indices` and `evaluate_index` to copy values
     # from the correct face and in the correct orientation
-    for i in eachnode(dg), v in eachvariable(equations)
-      interfaces.u[1, v, i, interface] = u[v, evaluate_index(primary_indices, size_, 1, i),
-                                              evaluate_index(primary_indices, size_, 2, i),
-                                              primary_element]
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, evaluate_index(primary_indices, size_, 1, i),
+                                                evaluate_index(primary_indices, size_, 2, i),
+                                                primary_element]
 
-      interfaces.u[2, v, i, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i),
-                                              evaluate_index(secondary_indices, size_, 2, i),
-                                              secondary_element]
+        interfaces.u[2, v, i, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i),
+                                                evaluate_index(secondary_indices, size_, 2, i),
+                                                secondary_element]
+      end
     end
   end
 
@@ -54,8 +56,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
                               nonconservative_terms::Val{false},
-                              equations, surface_integral,
-                              dg::DG, cache)
+                              equations, surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, element_ids, node_indices = cache.interfaces
 
@@ -87,11 +88,11 @@ function calc_interface_flux!(surface_flux_values,
       # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
       # to left and right element storage in the correct orientation
       for v in eachvariable(equations)
-        surface_index = evaluate_index_surface(primary_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, primary_direction, primary_element] = flux_[v]
+        surf_i = evaluate_index_surface(primary_indices, size_, 1, i)
+        surface_flux_values[v, surf_i, primary_direction, primary_element] = flux_[v]
 
-        surface_index = evaluate_index_surface(secondary_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, secondary_direction, secondary_element] = -flux_[v]
+        surf_i = evaluate_index_surface(secondary_indices, size_, 1, i)
+        surface_flux_values[v, surf_i, secondary_direction, secondary_element] = -flux_[v]
       end
     end
   end
@@ -101,8 +102,8 @@ end
 
 
 function prolong2boundaries!(cache, u,
-                             mesh::P4estMesh{2}, equations,
-                             surface_integral, dg::DG)
+                             mesh::P4estMesh{2},
+                             equations, surface_integral, dg::DG)
   @unpack boundaries = cache
 
   size_ = (nnodes(dg), nnodes(dg))
@@ -113,10 +114,12 @@ function prolong2boundaries!(cache, u,
 
     # Use Tuple `node_indices` and `evaluate_index` to copy values
     # from the correct face and in the correct orientation
-    for i in eachnode(dg), v in eachvariable(equations)
-      boundaries.u[v, i, boundary] = u[v, evaluate_index(node_indices, size_, 1, i),
-                                          evaluate_index(node_indices, size_, 2, i),
-                                          element]
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        boundaries.u[v, i, boundary] = u[v, evaluate_index(node_indices, size_, 1, i),
+                                            evaluate_index(node_indices, size_, 2, i),
+                                            element]
+      end
     end
   end
 
@@ -125,8 +128,8 @@ end
 
 
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
-                             mesh::P4estMesh, equations,
-                             surface_integral, dg::DG)
+                             mesh::P4estMesh{2},
+                             equations, surface_integral, dg::DG)
   @unpack boundaries = cache
   @unpack surface_flux_values, node_coordinates = cache.elements
   @unpack surface_flux = surface_integral
@@ -161,8 +164,8 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
       # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
       # to left and right element storage in the correct orientation
       for v in eachvariable(equations)
-        surface_index = evaluate_index_surface(node_indices, size_, 1, i)
-        surface_flux_values[v, surface_index, direction, element] = flux_[v]
+        surf_i = evaluate_index_surface(node_indices, size_, 1, i)
+        surface_flux_values[v, surf_i, direction, element] = flux_[v]
       end
     end
   end
@@ -182,12 +185,16 @@ function prolong2mortars!(cache, u,
     large_indices = node_indices[2, mortar]
 
     # Copy solution small to small
-    for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)
-      # Use Tuple `node_indices` and `evaluate_index` to copy values
-      # from the correct face and in the correct orientation
-      cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_indices, size_, 1, i),
-                                                   evaluate_index(small_indices, size_, 2, i),
-                                                   element_ids[pos, mortar]]
+    for pos in 1:2
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          # Use Tuple `node_indices` and `evaluate_index` to copy values
+          # from the correct face and in the correct orientation
+          cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_indices, size_, 1, i),
+                                                       evaluate_index(small_indices, size_, 2, i),
+                                                       element_ids[pos, mortar]]
+        end
+      end
     end
 
     # Buffer to copy solution values of the large element in the correct orientation
@@ -195,12 +202,14 @@ function prolong2mortars!(cache, u,
     u_buffer = cache.u_threaded[Threads.threadid()]
 
     # Copy solution of large element face to buffer in the correct orientation
-    for i in eachnode(dg), v in eachvariable(equations)
-      # Use Tuple `node_indices` and `evaluate_index` to copy values
-      # from the correct face and in the correct orientation
-      u_buffer[v, i] = u[v, evaluate_index(large_indices, size_, 1, i),
-                            evaluate_index(large_indices, size_, 2, i),
-                            element_ids[3, mortar]]
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        # Use Tuple `node_indices` and `evaluate_index` to copy values
+        # from the correct face and in the correct orientation
+        u_buffer[v, i] = u[v, evaluate_index(large_indices, size_, 1, i),
+                              evaluate_index(large_indices, size_, 2, i),
+                              element_ids[3, mortar]]
+      end
     end
 
     # Interpolate large element face data from buffer to small face locations
@@ -237,18 +246,20 @@ function calc_mortar_flux!(surface_flux_values,
 
     # Use Tuple `node_indices` and `evaluate_index` to access node indices
     # at the correct face and in the correct orientation to get normal vectors
-    for pos in 1:2, i in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
+    for pos in 1:2
+      for i in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
 
-      normal_vector = get_normal_vector(small_direction, cache,
-                                        evaluate_index(small_indices, size_, 1, i),
-                                        evaluate_index(small_indices, size_, 2, i),
-                                        element_ids[pos, mortar])
+        normal_vector = get_normal_vector(small_direction, cache,
+                                          evaluate_index(small_indices, size_, 1, i),
+                                          evaluate_index(small_indices, size_, 2, i),
+                                          element_ids[pos, mortar])
 
-      flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
+        flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
 
-      # Copy flux to buffer
-      set_node_vars!(fstar[pos], flux_, equations, dg, i)
+        # Copy flux to buffer
+        set_node_vars!(fstar[pos], flux_, equations, dg, i)
+      end
     end
 
     # Buffer to interpolate flux values of the large element to before copying
@@ -279,13 +290,17 @@ end
   size_ = (nnodes(dg), nnodes(dg))
 
   # Copy solution small to small
-  for pos in 1:2, i in eachnode(dg), v in eachvariable(equations)
-    # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-    # to left and right element storage in the correct orientation
-    surface_index = evaluate_index_surface(small_indices, size_, 1, i)
-    surface_flux_values[v, surface_index,
-                        small_direction,
-                        element_ids[pos, mortar]] = fstar[pos][v, i]
+  for pos in 1:2
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+        # to left and right element storage in the correct orientation
+        surface_index = evaluate_index_surface(small_indices, size_, 1, i)
+        surface_flux_values[v, surface_index,
+                            small_direction,
+                            element_ids[pos, mortar]] = fstar[pos][v, i]
+      end
+    end
   end
 
   large_element = element_ids[3, mortar]
@@ -306,19 +321,23 @@ end
   u_buffer .*= -2
 
   # Copy interpolated flux values from buffer to large element face in the correct orientation
-  for i in eachnode(dg), v in eachvariable(equations)
-    # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-    # to surface flux storage in the correct orientation
-    surface_index = evaluate_index_surface(large_indices, size_, 1, i)
-    surface_flux_values[v, surface_index, large_direction, large_element] = u_buffer[v, i]
+  for i in eachnode(dg)
+    for v in eachvariable(equations)
+      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
+      # to surface flux storage in the correct orientation
+      surface_index = evaluate_index_surface(large_indices, size_, 1, i)
+      surface_flux_values[v, surface_index, large_direction, large_element] = u_buffer[v, i]
+    end
   end
 
   return nothing
 end
 
 
-function calc_surface_integral!(du, u, mesh::P4estMesh,
-                                equations, surface_integral::SurfaceIntegralWeakForm,
+function calc_surface_integral!(du, u,
+                                mesh::P4estMesh{2},
+                                equations,
+                                surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements

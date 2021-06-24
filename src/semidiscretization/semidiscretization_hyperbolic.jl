@@ -59,7 +59,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       initial_cache=NamedTuple())
 
   cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
-  _boundary_conditions = digest_boundary_conditions(boundary_conditions, cache)
+  _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
@@ -88,27 +88,27 @@ end
 
 
 # allow passing named tuples of BCs constructed in an arbitrary order
-digest_boundary_conditions(boundary_conditions, cache) = boundary_conditions
+digest_boundary_conditions(boundary_conditions, mesh, solver, cache) = boundary_conditions
 
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh, solver, cache) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
   @unpack x_neg, x_pos = boundary_conditions
   (; x_neg, x_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh, solver, cache) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
   @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, cache) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh, solver, cache) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
   @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
 # sort the boundary conditions from a dictionary and into tuples
-function digest_boundary_conditions(boundary_conditions::Dict, cache)
+function digest_boundary_conditions(boundary_conditions::Dict, mesh, solver, cache)
   UnstructuredQuadSortedBoundaryTypes(boundary_conditions, cache)
 end
 
-function digest_boundary_conditions(boundary_conditions::AbstractArray, cache)
+function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver, cache)
   throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
@@ -142,32 +142,9 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", semi.equations |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
-    if semi.boundary_conditions isa UnstructuredQuadSortedBoundaryTypes
-      @unpack boundary_dictionary = semi.boundary_conditions
-      summary_line(io, "boundary conditions", length(boundary_dictionary))
-      for (boundary_name, boundary_condition) in boundary_dictionary
-        summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
-      end
-    else # non dictionary boundary conditions container
-      summary_line(io, "boundary conditions", 2*ndims(semi))
-      if (semi.boundary_conditions isa Tuple ||
-          semi.boundary_conditions isa NamedTuple ||
-          semi.boundary_conditions isa AbstractArray)
-        bcs = semi.boundary_conditions
-      else
-        bcs = collect(semi.boundary_conditions for _ in 1:(2*ndims(semi)))
-      end
-      summary_line(increment_indent(io), "negative x", bcs[1])
-      summary_line(increment_indent(io), "positive x", bcs[2])
-      if ndims(semi) > 1
-        summary_line(increment_indent(io), "negative y", bcs[3])
-        summary_line(increment_indent(io), "positive y", bcs[4])
-      end
-      if ndims(semi) > 2
-        summary_line(increment_indent(io), "negative z", bcs[5])
-        summary_line(increment_indent(io), "positive z", bcs[6])
-      end
-    end
+
+    print_boundary_conditions(io, semi)
+
     summary_line(io, "source terms", semi.source_terms)
     summary_line(io, "solver", semi.solver |> typeof |> nameof)
     summary_line(io, "total #DOFs", ndofs(semi))
@@ -175,6 +152,38 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
   end
 end
 
+# type alias for dispatch in printing of boundary conditions
+const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} = 
+      SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, 
+                                   SourceTerms, Solver} where {Equations, InitialCondition, SourceTerms}
+
+# generic fallback: print the type of semi.boundary_condition.
+print_boundary_conditions(io, semi::SemiHypMeshBCSolver) = summary_line(io, "boundary conditions", typeof(semi.boundary_conditions))
+
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:UnstructuredQuadSortedBoundaryTypes})
+  @unpack boundary_conditions = semi
+  @unpack boundary_dictionary = boundary_conditions
+  summary_line(io, "boundary conditions", length(boundary_dictionary))
+  for (boundary_name, boundary_condition) in boundary_dictionary
+    summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
+  end  
+end
+
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:Union{Tuple,NamedTuple,AbstractArray}})
+  summary_line(io, "boundary conditions", 2*ndims(semi))
+  bcs = semi.boundary_conditions
+
+  summary_line(increment_indent(io), "negative x", bcs[1])
+  summary_line(increment_indent(io), "positive x", bcs[2])
+  if ndims(semi) > 1
+    summary_line(increment_indent(io), "negative y", bcs[3])
+    summary_line(increment_indent(io), "positive y", bcs[4])
+  end
+  if ndims(semi) > 2
+    summary_line(increment_indent(io), "negative z", bcs[5])
+    summary_line(increment_indent(io), "positive z", bcs[6])
+  end
+end
 
 @inline Base.ndims(semi::SemidiscretizationHyperbolic) = ndims(semi.mesh)
 

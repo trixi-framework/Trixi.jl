@@ -158,7 +158,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
   p4est_file = joinpath(output_directory, p4est_filename)
 
   # Save the complete connectivity/p4est data to disk.
-  p4est_save(p4est_file, mesh.p4est, false)
+  save_p4est!(p4est_file, mesh.p4est)
 
   # Open file (clobber existing content)
   h5open(filename, "w") do file
@@ -243,13 +243,15 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
       end
     end
 
-    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
+    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false,
+                      mapping_as_string=mapping_as_string)
   elseif mesh_type == "UnstructuredQuadMesh"
     mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
       return read(attributes(file)["mesh_filename"]),
              read(attributes(file)["periodicity"])
     end
-    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_, unsaved_changes=false)
+    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_,
+                                unsaved_changes=false)
   elseif mesh_type == "P4estMesh"
     p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
@@ -265,8 +267,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     # Prevent Julia crashes when p4est can't find the file
     @assert isfile(p4est_file)
 
-    conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
-    p4est = p4est_load(p4est_file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+    p4est = load_p4est(p4est_file, Val(ndims))
 
     mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
                             nodes, boundary_names, "", false)

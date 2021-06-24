@@ -1,44 +1,45 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-source_terms = source_terms_convergence_test
-
-# BCs must be passed as Dict
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(
-  :all => boundary_condition
+  :x_neg => boundary_condition,
+  :x_pos => boundary_condition,
+  :y_neg => boundary_condition,
+  :y_pos => boundary_condition,
+  :z_neg => boundary_condition,
+  :z_pos => boundary_condition
 )
 
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralWeakForm())
 
-###############################################################################
-# Get the uncurved mesh from a file (downloads the file if not available locally)
+coordinates_min = (0.0, 0.0, 0.0)
+coordinates_max = (2.0, 2.0, 2.0)
 
-# Unstructured mesh with 24 cells of the square domain [-1, 1]^n
-mesh_file = joinpath(@__DIR__, "square_unstructured_2.inp")
-isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-                              mesh_file)
+trees_per_dimension = (2, 2, 2)
 
-mesh = P4estMesh{2}(mesh_file, initial_refinement_level=0)
+mesh = P4estMesh(trees_per_dimension, polydeg=1,
+                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                 periodicity=false, initial_refinement_level=1)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms,
+                                    source_terms=source_terms_convergence_test,
                                     boundary_conditions=boundary_conditions)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -56,12 +57,14 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback)
+
+
 ###############################################################################
 # run the simulation
 

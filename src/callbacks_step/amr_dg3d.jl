@@ -6,7 +6,8 @@
 
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
+function refine!(u_ode::AbstractVector, adaptor,
+                 mesh::Union{TreeMesh{3}, P4estMesh{3}},
                  equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
   if isempty(elements_to_refine)
@@ -23,14 +24,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-    # Get new list of leaf cells
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    # re-initialize elements container
-    @unpack elements = cache
-    resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
-    @assert nelements(dg, cache) > old_n_elements
+    reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -57,24 +51,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
     @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
-  # re-initialize interfaces container
-  @unpack interfaces = cache
-  resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-  init_interfaces!(interfaces, elements, mesh)
-
-  # re-initialize boundaries container
-  @unpack boundaries = cache
-  resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-  init_boundaries!(boundaries, elements, mesh)
-
-  # re-initialize mortars container
-  @unpack mortars = cache
-  resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
-  init_mortars!(mortars, elements, mesh)
-
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(mortars) == 0
-    @assert ninterfaces(interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
+    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
   return nothing
@@ -160,7 +139,8 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
+function coarsen!(u_ode::AbstractVector, adaptor,
+                  mesh::Union{TreeMesh{3}, P4estMesh{3}},
                   equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
   if isempty(elements_to_remove)
@@ -177,14 +157,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-    # Get new list of leaf cells
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    # re-initialize elements container
-    @unpack elements = cache
-    resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
-    @assert nelements(dg, cache) < old_n_elements
+    reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -222,24 +195,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
     @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
-  # re-initialize interfaces container
-  @unpack interfaces = cache
-  resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-  init_interfaces!(interfaces, elements, mesh)
-
-  # re-initialize boundaries container
-  @unpack boundaries = cache
-  resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-  init_boundaries!(boundaries, elements, mesh)
-
-  # re-initialize mortars container
-  @unpack mortars = cache
-  resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
-  init_mortars!(mortars, elements, mesh)
-
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(mortars) == 0
-    @assert ninterfaces(interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
+    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
   return nothing
@@ -324,7 +282,9 @@ end
 
 
 # this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{3}, equations, dg::DG, cache)
+function create_cache(::Type{ControllerThreeLevel},
+                      mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                      equations, dg::DG, cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)

@@ -45,7 +45,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::CurvedMesh{3},
+                               mesh::Union{CurvedMesh{3}, P4estMesh{3}},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -543,7 +543,7 @@ end
 
 
 function apply_jacobian!(du,
-                         mesh::CurvedMesh{3},
+                         mesh::Union{CurvedMesh{3}, P4estMesh{3}},
                          equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
