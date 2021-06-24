@@ -1,3 +1,5 @@
+# !!! warning "Experimental features"
+
 # Todo: make these two functions more efficient. Both currently allocate several fairly large arrays. 
 function calc_error_norms(func, u::StructArray, t, analyzer,
                           mesh::AbstractMeshData{Dim}, equations, initial_condition,
@@ -56,7 +58,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
   # to polynomials of degree N and testing with the L2 projection of v(u) 
   # would be equivalent to testing with v(u) due to the moment-preserving 
   # property of the L2 projection.
-  dS_dt = zero(real(dg))
+  dS_dt = zero(eltype(first(du)))
   for i in Base.OneTo(length(md.wJq)) 
     dS_dt += dot(cons2entropy(u_values[i],equations), du_values[i]) * md.wJq[i]
   end
