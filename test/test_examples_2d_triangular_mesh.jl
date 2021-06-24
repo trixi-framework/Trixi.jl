@@ -1,8 +1,6 @@
 module TestExamples2DTri
 
 using Test
-# using StructArrays
-using StartUpDG
 using Trixi
 
 include("test_trixi.jl")
