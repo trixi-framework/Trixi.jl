@@ -252,9 +252,10 @@ end
 
 # Calculate the arc length of a curve given by ndims x npoints point coordinates (piece-wise linear approximation)
 function calc_arc_length(coordinates)
-  arc_length = 0
-  for i in 1:size(coordinates)[2]-1
-    arc_length = arc_length + sqrt(sum((coordinates[:,i]-coordinates[:,i+1]).^2))
+  n_points = size(coordinates)[2]
+  arc_length = zeros(n_points)
+  for i in 1:n_points-1
+    arc_length[i+1] = arc_length[i] + sqrt(sum((coordinates[:,i]-coordinates[:,i+1]).^2))
   end
   return arc_length
 end
@@ -277,7 +278,6 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 
   # Set nodes acording to the length of the curve.
   arc_length = calc_arc_length(curve)
-  nodes_on_curve = collect(range(0, arc_length, length = n_points_curve))
 
   # Setup data structures.
   data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
@@ -306,7 +306,7 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     end
   end
 
-  return nodes_on_curve, data_on_curve, nothing
+  return arc_length, data_on_curve, nothing
 end
 
 # Convert 3d unstructured data to 1d data at given curve.
@@ -327,7 +327,6 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 
   # Set nodes acording to the length of the curve.
   arc_length = calc_arc_length(curve)
-  nodes_on_curve = collect(range(0, arc_length, length = n_points_curve))
 
   # Setup data structures.
   data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
@@ -360,7 +359,7 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     end
   end
 
-  return nodes_on_curve, data_on_curve, nothing
+  return arc_length, data_on_curve, nothing
 end
 
 # Convert 3d unstructured data to 1d slice and interpolate them.
