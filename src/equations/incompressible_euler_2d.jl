@@ -29,7 +29,7 @@ A smooth initial condition used for convergence tests.
 """
 function initial_condition_pulse(x, t, equation::IncompressibleEulerEquations2D)
 
-  u = exp(-10.0*(x[1]^2 + x[2]^2))
+  u = exp(-25.0*(x[1]^2 + x[2]^2))
   v = 0.0
   p = 10.0
 
