@@ -6,7 +6,7 @@
 using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 
-rd = RefElemData(Tri(), SBP(), N=3)
+rd = RefElemData(Tri(), N=3)
 dg = DG(rd, nothing #= mortar =#, 
         SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralWeakForm())
 
