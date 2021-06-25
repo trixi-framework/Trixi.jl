@@ -40,8 +40,8 @@ eachfacenodetotal(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.O
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, 
-                      mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) where {Keys,ValueTypes<:Tuple{Any,Any}}
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMeshData, 
+                                    dg::DG{<:RefElemData}, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
   return boundary_conditions
 end
 
