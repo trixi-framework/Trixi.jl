@@ -250,8 +250,8 @@ calc_sources!(du, u, t, source_terms::Nothing,
 
 # uses quadrature + projection to compute source terms. 
 # todo: use interpolation here instead of quadrature? Would be cheaper. 
-function calc_sources!(du, u, t, source_terms, 
-                       mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData}, cache) 
+function calc_sources!(du, u, t, source_terms::SourceTerms, 
+                       mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData}, cache) where {SourceTerms}
 
   rd = dg.basis
   md = mesh.md
