@@ -191,17 +191,12 @@ end
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
-
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
-  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
+  rho, v1, v2, v3, p, B1, B2, B3, psi = cons2prim(u, equations)
   kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
   mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
-  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2] + v3 * normal_direction[3]
   B_normal = B1 * normal_direction[1] + B2 * normal_direction[2] + B3 * normal_direction[3]
@@ -336,45 +331,37 @@ Entropy conserving two-point flux by
   divergence diminishing ideal magnetohydrodynamics equations
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
+@inline function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr, equations)
 
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
   vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
   vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
-  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
-  beta_ll = 0.5*rho_ll/p_ll
-  beta_rr = 0.5*rho_rr/p_rr
+  beta_ll = 0.5 * rho_ll / p_ll
+  beta_rr = 0.5 * rho_rr / p_rr
   # for convenience store v⋅B
   vel_dot_mag_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
   vel_dot_mag_rr = v1_rr*B1_rr + v2_rr*B2_rr + v3_rr*B3_rr
 
   # Compute the necessary mean values needed for either direction
-  rho_avg  = 0.5*(rho_ll+rho_rr)
-  rho_mean = ln_mean(rho_ll,rho_rr)
-  beta_mean = ln_mean(beta_ll,beta_rr)
-  beta_avg = 0.5*(beta_ll+beta_rr)
-  v1_avg = 0.5*(v1_ll+v1_rr)
-  v2_avg = 0.5*(v2_ll+v2_rr)
-  v3_avg = 0.5*(v3_ll+v3_rr)
-  p_mean = 0.5*rho_avg/beta_avg
-  B1_avg = 0.5*(B1_ll+B1_rr)
-  B2_avg = 0.5*(B2_ll+B2_rr)
-  B3_avg = 0.5*(B3_ll+B3_rr)
-  psi_avg = 0.5*(psi_ll+psi_rr)
-  vel_norm_avg = 0.5*(vel_norm_ll+vel_norm_rr)
-  mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
-  vel_dot_mag_avg = 0.5*(vel_dot_mag_ll+vel_dot_mag_rr)
+  rho_avg = 0.5 * (rho_ll + rho_rr)
+  rho_mean  = ln_mean(rho_ll, rho_rr)
+  beta_mean = ln_mean(beta_ll, beta_rr)
+  beta_avg = 0.5 * (beta_ll + beta_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  v3_avg = 0.5 * (v3_ll + v3_rr)
+  p_mean = 0.5 * rho_avg / beta_avg
+  B1_avg = 0.5 * (B1_ll + B1_rr)
+  B2_avg = 0.5 * (B2_ll + B2_rr)
+  B3_avg = 0.5 * (B3_ll + B3_rr)
+  psi_avg = 0.5 * (psi_ll + psi_rr)
+  vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
+  mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
+  vel_dot_mag_avg = 0.5 * (vel_dot_mag_ll + vel_dot_mag_rr)
 
   # Calculate fluxes depending on orientation with specific direction averages
   if orientation == 1
@@ -450,22 +437,9 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_hindenlang(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
-  # Unpack left and right states to get velocities and pressure
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
-  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
-  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+  # Unpack left and right states
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr, equations)
 
   # Compute the necessary mean values needed for either direction
   rho_mean = ln_mean(rho_ll, rho_rr)
@@ -548,8 +522,8 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
 
   # Calculate velocities and fast magnetoacoustic wave speeds
   # left
@@ -565,11 +539,12 @@ end
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 end
 
 
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::IdealGlmMhdEquations3D)
     # Compute wave speed estimates in each direction. Requires rotation because
     # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
     norm_ = norm(normal_direction)
@@ -598,23 +573,17 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
   [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
 
   # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
-  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
 
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
-  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
-  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
 
   # Approximate the left-most and right-most eigenvalues in the Riemann fan
   if orientation == 1 # x-direction
@@ -633,8 +602,8 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
     c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
     c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
     vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
-    λ_min = min(v2_ll - c_f_ll, vel_roe - c_f_roe)
-    λ_max = max(v2_rr + c_f_rr, vel_roe + c_f_roe)
+    λ_min = min(v3_ll - c_f_ll, vel_roe - c_f_roe)
+    λ_max = max(v3_rr + c_f_rr, vel_roe + c_f_roe)
   end
 
   return λ_min, λ_max
@@ -644,17 +613,17 @@ end
 # Very naive way to approximate the edges of the Riemann fan in the normal direction
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, _, _, _, _ = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _, _, _, _, _ = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
 
   # Calculate primitive velocity variables
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
 
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
 
   # Compute wave speed estimates in each direction. Requires rotation because
   # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
@@ -748,7 +717,8 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along an interface! normal direction is super important
-function noncons_interface_flux(u_left, u_right, orientation::Integer, equations::IdealGlmMhdEquations3D)
+@inline function noncons_interface_flux(u_left, u_right, orientation::Integer,
+                                        equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
 
@@ -832,13 +802,15 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(u, equations::IdealGlmMhdEquations3D)
+@inline function cons2prim(u, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  p = (equations.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
+                                              + B1 * B1 + B2 * B2 + B3 * B3
+                                              + psi * psi))
 
   return SVector(rho, v1, v2, v3, p, B1, B2, B3, psi)
 end
@@ -884,8 +856,7 @@ end
 
 
 @inline function density(u, equations::IdealGlmMhdEquations3D)
-  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-  return rho
+  return u[1]
 end
 
 @inline function pressure(u, equations::IdealGlmMhdEquations3D)
