@@ -37,9 +37,9 @@ mesh_file = joinpath(@__DIR__, "square_unstructured_2.inp")
 isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
                               mesh_file)
 
-mesh = P4estMesh(mesh_file, polydeg=3,
-                 mapping=mapping_flag,
-                 initial_refinement_level=1)
+mesh = P4estMesh{2}(mesh_file, polydeg=3,
+                    mapping=mapping_flag,
+                    initial_refinement_level=1)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

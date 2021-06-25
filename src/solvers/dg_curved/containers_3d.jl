@@ -53,13 +53,45 @@ end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis)
-  for dim in 1:3, j in eachnode(basis), i in eachnode(basis)
-    # ∂/∂ξ
-    @views mul!(jacobian_matrix[dim, 1, :, i, j, element], basis.derivative_matrix, node_coordinates[dim, :, i, j, element])
-    # ∂/∂η
-    @views mul!(jacobian_matrix[dim, 2, i, :, j, element], basis.derivative_matrix, node_coordinates[dim, i, :, j, element])
-    # ∂/∂ζ
-    @views mul!(jacobian_matrix[dim, 3, i, j, :, element], basis.derivative_matrix, node_coordinates[dim, i, j, :, element])
+  # The code below is equivalent to the following matrix multiplications but much faster.
+  #
+  # for dim in 1:3, j in eachnode(basis), i in eachnode(basis)
+  #   # ∂/∂ξ
+  #   jacobian_matrix[dim, 1, :, i, j, element] = basis.derivative_matrix * node_coordinates[dim, :, i, j, element]
+  #   # ∂/∂η
+  #   jacobian_matrix[dim, 2, i, :, j, element] = basis.derivative_matrix * node_coordinates[dim, i, :, j, element]
+  #   # ∂/∂ζ
+  #   jacobian_matrix[dim, 3, i, j, :, element] = basis.derivative_matrix * node_coordinates[dim, i, j, :, element]
+  # end
+
+  @turbo for dim in 1:3, k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+    result = zero(eltype(jacobian_matrix))
+
+    for ii in eachnode(basis)
+      result += basis.derivative_matrix[i, ii] * node_coordinates[dim, ii, j, k, element]
+    end
+
+    jacobian_matrix[dim, 1, i, j, k, element] = result
+  end
+
+  @turbo for dim in 1:3, k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+    result = zero(eltype(jacobian_matrix))
+
+    for ii in eachnode(basis)
+      result += basis.derivative_matrix[j, ii] * node_coordinates[dim, i, ii, k, element]
+    end
+
+    jacobian_matrix[dim, 2, i, j, k, element] = result
+  end
+
+  @turbo for dim in 1:3, k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+    result = zero(eltype(jacobian_matrix))
+
+    for ii in eachnode(basis)
+      result += basis.derivative_matrix[k, ii] * node_coordinates[dim, i, j, ii, element]
+    end
+
+    jacobian_matrix[dim, 3, i, j, k, element] = result
   end
 
   return jacobian_matrix
@@ -71,57 +103,107 @@ end
 # These are called Ja^i in Kopriva's blue book.
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,6}, element,
                                      jacobian_matrix, node_coordinates, basis::LobattoLegendreBasis)
+  @unpack derivative_matrix = basis
+
   # The general form is
   # Jaⁱₙ = 0.5 * ( ∇ × (Xₘ ∇ Xₗ - Xₗ ∇ Xₘ) )ᵢ  where (n, m, l) cyclic and ∇ = (∂/∂ξ, ∂/∂η, ∂/∂ζ)ᵀ
 
-  # Calculate the first summand of the cross product in each dimension
-  for n in 1:3, j in eachnode(basis), i in eachnode(basis)
+  for n in 1:3
     # (n, m, l) cyclic
     m = (n % 3) + 1
     l = ((n + 1) % 3) + 1
 
-    # Calc only the first summand 0.5 * (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η of
-    # Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
-    @views contravariant_vectors[n, 1, i, :, j, element] = 0.5 * basis.derivative_matrix * (
-        node_coordinates[m, i, :, j, element] .* jacobian_matrix[l, 3, i, :, j, element] .-
-        node_coordinates[l, i, :, j, element] .* jacobian_matrix[m, 3, i, :, j, element])
+    # Calculate Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
+    # For each of these, the first and second summand are computed in separate loops
+    # for performance reasons.
 
-    # Calc only the first summand 0.5 * (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ of
-    # Ja²ₙ = 0.5 * [ (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ - (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ ]
-    @views contravariant_vectors[n, 2, i, j, :, element] = 0.5 * basis.derivative_matrix * (
-        node_coordinates[m, i, j, :, element] .* jacobian_matrix[l, 1, i, j, :, element] .-
-        node_coordinates[l, i, j, :, element] .* jacobian_matrix[m, 1, i, j, :, element])
+    # First summand 0.5 * (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η
+    @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+      result = zero(eltype(contravariant_vectors))
 
-    # Calc only the first summand 0.5 * (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ of
-    # Ja³ₙ = 0.5 * [ (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ - (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η ]
-    @views contravariant_vectors[n, 3, :, i, j, element] = 0.5 * basis.derivative_matrix * (
-        node_coordinates[m, :, i, j, element] .* jacobian_matrix[l, 2, :, i, j, element] .-
-        node_coordinates[l, :, i, j, element] .* jacobian_matrix[m, 2, :, i, j, element])
-  end
+      for ii in eachnode(basis)
+        # Multiply derivative_matrix to j-dimension to differentiate wrt η
+        result += 0.5 * derivative_matrix[j, ii] * (
+          node_coordinates[m, i, ii, k, element] * jacobian_matrix[l, 3, i, ii, k, element] -
+          node_coordinates[l, i, ii, k, element] * jacobian_matrix[m, 3, i, ii, k, element])
+      end
 
-  # Calculate the second summand of the cross product in each dimension
-  for n in 1:3, j in eachnode(basis), i in eachnode(basis)
-    # (n, m, l) cyclic
-    m = (n % 3) + 1
-    l = ((n + 1) % 3) + 1
+      contravariant_vectors[n, 1, i, j, k, element] = result
+    end
 
-    # Calc only the second summand -0.5 * (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ of
-    # Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
-    @views contravariant_vectors[n, 1, i, j, :, element] -= 0.5 * basis.derivative_matrix * (
-        node_coordinates[m, i, j, :, element] .* jacobian_matrix[l, 2, i, j, :, element] .-
-        node_coordinates[l, i, j, :, element] .* jacobian_matrix[m, 2, i, j, :, element])
+    # Second summand -0.5 * (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ
+    @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+      result = zero(eltype(contravariant_vectors))
 
-    # Calc only the second summand -0.5 * (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ of
-    # Ja²ₙ = 0.5 * [ (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ - (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ ]
-    @views contravariant_vectors[n, 2, :, i, j, element] -= 0.5 * basis.derivative_matrix * (
-        node_coordinates[m, :, i, j, element] .* jacobian_matrix[l, 3, :, i, j, element] .-
-        node_coordinates[l, :, i, j, element] .* jacobian_matrix[m, 3, :, i, j, element])
+      for ii in eachnode(basis)
+        # Multiply derivative_matrix to k-dimension to differentiate wrt ζ
+        result += 0.5 * derivative_matrix[k, ii] * (
+          node_coordinates[m, i, j, ii, element] * jacobian_matrix[l, 2, i, j, ii, element] -
+          node_coordinates[l, i, j, ii, element] * jacobian_matrix[m, 2, i, j, ii, element])
+      end
 
-    # Calc only the second summand -0.5 * (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η of
-    # Ja³ₙ = 0.5 * [ (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ - (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η ]
-    @views contravariant_vectors[n, 3, i, :, j, element] -= 0.5 * basis.derivative_matrix * (
-        node_coordinates[m, i, :, j, element] .* jacobian_matrix[l, 1, i, :, j, element] .-
-        node_coordinates[l, i, :, j, element] .* jacobian_matrix[m, 1, i, :, j, element])
+      contravariant_vectors[n, 1, i, j, k, element] -= result
+    end
+
+    # Calculate Ja²ₙ = 0.5 * [ (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ - (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ ]
+
+    # First summand 0.5 * (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ
+    @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+      result = zero(eltype(contravariant_vectors))
+
+      for ii in eachnode(basis)
+        # Multiply derivative_matrix to k-dimension to differentiate wrt ζ
+        result += 0.5 * derivative_matrix[k, ii] * (
+          node_coordinates[m, i, j, ii, element] * jacobian_matrix[l, 1, i, j, ii, element] -
+          node_coordinates[l, i, j, ii, element] * jacobian_matrix[m, 1, i, j, ii, element])
+      end
+
+      contravariant_vectors[n, 2, i, j, k, element] = result
+    end
+
+    # Second summand -0.5 * (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ
+    @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+      result = zero(eltype(contravariant_vectors))
+
+      for ii in eachnode(basis)
+        # Multiply derivative_matrix to i-dimension to differentiate wrt ξ
+        result += 0.5 * derivative_matrix[i, ii] * (
+          node_coordinates[m, ii, j, k, element] * jacobian_matrix[l, 3, ii, j, k, element] -
+          node_coordinates[l, ii, j, k, element] * jacobian_matrix[m, 3, ii, j, k, element])
+      end
+
+      contravariant_vectors[n, 2, i, j, k, element] -= result
+    end
+
+    # Calculate Ja³ₙ = 0.5 * [ (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ - (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η ]
+
+    # First summand 0.5 * (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ
+    @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+      result = zero(eltype(contravariant_vectors))
+
+      for ii in eachnode(basis)
+        # Multiply derivative_matrix to i-dimension to differentiate wrt ξ
+        result += 0.5 * derivative_matrix[i, ii] * (
+          node_coordinates[m, ii, j, k, element] * jacobian_matrix[l, 2, ii, j, k, element] -
+          node_coordinates[l, ii, j, k, element] * jacobian_matrix[m, 2, ii, j, k, element])
+      end
+
+      contravariant_vectors[n, 3, i, j, k, element] = result
+    end
+
+    # Second summand -0.5 * (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η
+    @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+      result = zero(eltype(contravariant_vectors))
+
+      for ii in eachnode(basis)
+        # Multiply derivative_matrix to j-dimension to differentiate wrt η
+        result += 0.5 * derivative_matrix[j, ii] * (
+          node_coordinates[m, i, ii, k, element] * jacobian_matrix[l, 1, i, ii, k, element] -
+          node_coordinates[l, i, ii, k, element] * jacobian_matrix[m, 1, i, ii, k, element])
+      end
+
+      contravariant_vectors[n, 3, i, j, k, element] -= result
+    end
   end
 
   return contravariant_vectors
@@ -130,7 +212,7 @@ end
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix, basis)
-  for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
+  @turbo for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
     # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
     inverse_jacobian[i, j, k, element] = inv(
         jacobian_matrix[1, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[3, 3, i, j, k, element] +
