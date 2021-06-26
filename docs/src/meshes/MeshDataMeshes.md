@@ -23,7 +23,7 @@ Derivatives of reference coordinates with respect to physical coordinates are ab
 
 ## Variable meanings and conventions in `StartUpDG.jl`
 
-`StartUpDG.jl` exports structs `RefElemData{Dim, ElemShape, ...}` (which contains data associated with the reference element, such as interpolation points, quadrature rules, face nodes, normals, and differentiation/interpolation/projection matrices) and `MeshData{Dim}` (which contains geometric data associated with a mesh). These are currently used for evaluating DG formulations in a matrix-free fashion. These structs contain fields similar (but not identical) to those in `Globals1D, Globals2D, Globals3D` in the Matlab codes from "Nodal Discontinuous Galerkin Methods" by Hesthaven and Warburton (2007). 
+`StartUpDG.jl` exports structs `RefElemData{Dim, ElemShape, ...}` (which contains data associated with the reference element, such as interpolation points, quadrature rules, face nodes, normals, and differentiation/interpolation/projection matrices) and `MeshData{Dim}` (which contains geometric data associated with a mesh). These are currently used for evaluating DG formulations in a matrix-free fashion. These structs contain fields similar (but not identical) to those in `Globals1D, Globals2D, Globals3D` in the Matlab codes from ["Nodal Discontinuous Galerkin Methods"](https://doi.org/10.1007/978-0-387-72067-8) by Hesthaven and Warburton (2007). 
 
 In general, we use the following code conventions:
 * variables such as `r, s,...` and `x, y,...` correspond to values at nodal interpolation points. 
@@ -47,14 +47,14 @@ Quantities in `md::MeshData`:
 * `md.xyz` is a tuple of matrices `md.x`, `md.y`, `md.z`, where column `e` contains coordinates of physical interpolation points. 
 * `md.xyzq` is a tuple of matrices `md.xq`, `md.yq`, `md.zq`, where column `e` contains coordinates of physical quadrature points. 
 * `md.rxJ, md.sxJ, ...` are matrices where column `e` contains values of ``J\frac{\partial r}{\partial x}``, ``J\frac{\partial s}{\partial x}``, etc. at nodal interpolation points on the element `e`.
-* `md.J` is a matrix where column `e` contains values of ``J`` at nodal interpolation points.
+* `md.J` is a matrix where column `e` contains values of the Jacobian ``J`` at nodal interpolation points.
 * `md.sJ` is a matrix where column `e` contains values of the face Jacobian (e.g., determinant of the geometric mapping between a physical face and a reference face) at face quadrature points.
 * `md.nxJ, md.nyJ, ...` are matrices where column `e` contains values of components of the unit normal scaled by the face Jacobian `md.sJ` at face quadrature points.
 
 For more details, please see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/). 
 ## Special options
 
-Trixi solvers on simplicial meshes use `DG` solver types with the basis field set as a `RefElemData` type. By default, `RefElemData(Tri(), N)` will generate data for a degree ``N`` polynomial approximation on a triangle. There are also several parameters which can be tweaked:
+Trixi solvers on simplicial meshes use `DG` solver types with the `basis` field set as a `RefElemData` type. By default, `RefElemData(Tri(), N)` will generate data for a degree ``N`` polynomial approximation on a triangle. There are also several parameters which can be tweaked:
 
 * `RefElemData(Tri(), N, quad_rule_vol = quad_nodes(Tri(), Nq))` will substitute in a volume quadrature rule of degree `Nq` instead of the default (which is a quadrature rule of degree `N`). Here, a degree `Nq` rule will be exact for at least degree `2*Nq` integrands (such that the mass matrix is integrated exactly).
 * `RefElemData(Tri(), N, quad_rule_face = quad_nodes(Line(), Nq))` will use a face quadrature rule of degree `Nq` rather than the default. 

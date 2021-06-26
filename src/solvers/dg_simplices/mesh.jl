@@ -18,9 +18,9 @@ end
 Base.ndims(::VertexMappedMesh{Dim}) where {Dim} = Dim
 
 """
-  VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV, rd::RefElemData;
-                   is_on_boundary = nothing,
-                   is_periodic::NTuple{Dim, Bool} = ntuple(_->false, Dim)) where {Dim, Tv}
+    VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV, rd::RefElemData;
+                     is_on_boundary = nothing,
+                     is_periodic::NTuple{Dim, Bool} = ntuple(_->false, Dim)) where {Dim, Tv}
 
 - `VXYZ` is a tuple of vectors of vertex coordinates
 - `EToV` is a matrix containing element-to-vertex connectivities for each element
@@ -40,8 +40,8 @@ function VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV::Matrix{Ti}, rd::R
 end
 
 """
-  VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV, rd::RefElemData;
-                   triangulateIO, boundary_dict::Dict{Symbol, Int})
+    VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV, rd::RefElemData;
+                     triangulateIO, boundary_dict::Dict{Symbol, Int})
 
 - `VXYZ` is a tuple of vectors of vertex coordinates
 - `EToV` is a matrix containing element-to-vertex connectivities for each element
