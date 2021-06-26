@@ -83,15 +83,15 @@ end
 # allow passing named tuples of BCs constructed in an arbitrary order
 digest_boundary_conditions(boundary_conditions, mesh, solver, cache) = boundary_conditions
 
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMesh{1}, solver, cache) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::TreeMesh{1}, solver, cache) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
   @unpack x_neg, x_pos = boundary_conditions
   (; x_neg, x_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMesh{2}, solver, cache) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::TreeMesh{2}, solver, cache) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
   @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMesh{3}, solver, cache) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::TreeMesh{3}, solver, cache) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
   @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
