@@ -19,7 +19,7 @@ boundary_conditions = Dict(
   :outside => boundary_condition,
 )
 
-mesh = Trixi.P4estMeshCubedSphere(1, 1, 0.2, 0.2,
+mesh = Trixi.P4estMeshCubedSphere(2, 2, 0.2, 0.2,
                                   polydeg=3, initial_refinement_level=0)
 
 # A semidiscretization collects data structures and functions for the spatial discretization

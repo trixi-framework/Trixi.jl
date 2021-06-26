@@ -292,12 +292,12 @@ function P4estMesh{NDIMS}(meshfile::String;
 end
 
 
-function P4estMeshCubedSphere(cells_x, cells_y, inner_radius, thickness;
+function P4estMeshCubedSphere(n_cells_x, n_cells_y, inner_radius, thickness;
                               polydeg=1, RealT=Float64,
                               initial_refinement_level=0, unsaved_changes=true)
-  conn = connectivity_cubed_sphere(cells_x, cells_y)
+  conn = connectivity_cubed_sphere(n_cells_x, n_cells_y)
 
-  n_trees = 6 * cells_x * cells_y
+  n_trees = 6 * n_cells_x * n_cells_y
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
@@ -305,7 +305,7 @@ function P4estMeshCubedSphere(cells_x, cells_y, inner_radius, thickness;
   tree_node_coordinates = Array{RealT, 5}(undef, 3,
                                           ntuple(_ -> length(nodes), 3)...,
                                           n_trees)
-  calc_tree_node_coordinates!(tree_node_coordinates, nodes, cells_x, cells_y,
+  calc_tree_node_coordinates!(tree_node_coordinates, nodes, n_cells_x, n_cells_y,
                               inner_radius, thickness)
 
   p4est = new_p4est(conn, initial_refinement_level)
@@ -645,7 +645,7 @@ function connectivity_cubed_sphere(cells_x, cells_y)
       tree_to_face[3, tree] = 8 # first face dimensions are oppositely oriented, add 6
     else # direction == 6
       target = 3
-      tree_to_tree[3, tree] = linear_indices[cell_y, end, target] - 1
+      tree_to_tree[3, tree] = linear_indices[cell_x, end, target] - 1
       tree_to_face[3, tree] = 3
     end
 
@@ -675,7 +675,7 @@ function connectivity_cubed_sphere(cells_x, cells_y)
       tree_to_face[4, tree] = 2
     else # direction == 6
       target = 4
-      tree_to_tree[4, tree] = linear_indices[end - cell_y + 1, end, target] - 1
+      tree_to_tree[4, tree] = linear_indices[end - cell_x + 1, end, target] - 1
       tree_to_face[4, tree] = 9 # first face dimensions are oppositely oriented, add 6
     end
 
@@ -875,21 +875,27 @@ end
 
 # Calculate physical coordinates of each node of a cubed sphere mesh.
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
-                                     nodes, cells_x, cells_y, inner_radius, thickness)
-  linear_indices = LinearIndices((cells_x, cells_y, 6))
+                                     nodes, n_cells_x, n_cells_y, inner_radius, thickness)
+  linear_indices = LinearIndices((n_cells_x, n_cells_y, 6))
 
   # Get cell length in reference mesh
-  dx = 2 / cells_x
-  dy = 2 / cells_y
+  dx = 2 / n_cells_x
+  dy = 2 / n_cells_y
   dz = 2
 
-  for direction in 1:6, cell_y in 1:cells_y, cell_x in 1:cells_x
+  for direction in 1:6, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
     tree = linear_indices[cell_x, cell_y, direction]
+
+    x_offset = -1 + (cell_x - 1) * dx + dx/2
+    y_offset = -1 + (cell_y - 1) * dy + dy/2
+    z_offset = -1 + (1 - 1) * dz + dz/2
 
     for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
       # node_coordinates are the mapped reference node coordinates
       node_coordinates[:, i, j, k, tree] .= cubed_sphere_mapping(
-        dx/2 * nodes[i], dy/2 * nodes[j], dz/2 * nodes[k],
+        x_offset + dx/2 * nodes[i],
+        y_offset + dy/2 * nodes[j],
+        z_offset + dz/2 * nodes[k],
         inner_radius, thickness, direction)
     end
   end
