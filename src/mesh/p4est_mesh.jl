@@ -560,89 +560,89 @@ function connectivity_cubed_sphere(cells_x, cells_y)
 
     # Subtract 1 because p4est uses zero-based indexing
     # Negative x-direction
-    if cell_x > 1
+    if cell_x > 1 # Connect to tree at the same face
       tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y, direction] - 1
       tree_to_face[1, tree] = 1
-    elseif direction == 1
-      target = 3
-      tree_to_tree[1, tree] = linear_indices[1, cell_y, target] - 1
-      tree_to_face[1, tree] = 0
-    elseif direction == 2
+    elseif direction == 1 # This is the -x face
+      target = 4
+      tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
+      tree_to_face[1, tree] = 1
+    elseif direction == 2 # This is the +x face
       target = 3
       tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
       tree_to_face[1, tree] = 1
-    elseif direction == 3
-      target = 1
-      tree_to_tree[1, tree] = linear_indices[1, cell_y, target] - 1
-      tree_to_face[1, tree] = 0
-    elseif direction == 4
+    elseif direction == 3 # This is the -y face
       target = 1
       tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
       tree_to_face[1, tree] = 1
-    elseif direction == 5
-      target = 1
+    elseif direction == 4 # This is the +y face
+      target = 2
+      tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
+      tree_to_face[1, tree] = 1
+    elseif direction == 5 # This is the -z face
+      target = 2
       tree_to_tree[1, tree] = linear_indices[cell_y, 1, target] - 1
       tree_to_face[1, tree] = 2
-    else # direction == 6
+    else # direction == 6, this is the +z face
       target = 1
-      tree_to_tree[1, tree] = linear_indices[cell_y, end, target] - 1
-      tree_to_face[1, tree] = 3
+      tree_to_tree[1, tree] = linear_indices[end - cell_y + 1, end, target] - 1
+      tree_to_face[1, tree] = 9 # first face dimensions are oppositely oriented, add 6
     end
 
     # Positive x-direction
-    if cell_x < cells_x
+    if cell_x < cells_x # Connect to tree at the same face
       tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y, direction] - 1
       tree_to_face[2, tree] = 0
-    elseif direction == 1
+    elseif direction == 1 # This is the -x face
+      target = 3
+      tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
+      tree_to_face[2, tree] = 0
+    elseif direction == 2 # This is the +x face
       target = 4
       tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
       tree_to_face[2, tree] = 0
-    elseif direction == 2
-      target = 4
-      tree_to_tree[2, tree] = linear_indices[end, cell_y, target] - 1
-      tree_to_face[2, tree] = 1
-    elseif direction == 3
+    elseif direction == 3 # This is the -y face
       target = 2
       tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
       tree_to_face[2, tree] = 0
-    elseif direction == 4
-      target = 2
-      tree_to_tree[2, tree] = linear_indices[end, cell_y, target] - 1
-      tree_to_face[2, tree] = 1
-    elseif direction == 5
-      target = 2
-      tree_to_tree[2, tree] = linear_indices[cell_y, 1, target] - 1
-      tree_to_face[2, tree] = 2
-    else # direction == 6
+    elseif direction == 4 # This is the +y face
+      target = 1
+      tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
+      tree_to_face[2, tree] = 0
+    elseif direction == 5 # This is the -z face
+      target = 1
+      tree_to_tree[2, tree] = linear_indices[end - cell_y + 1, 1, target] - 1
+      tree_to_face[2, tree] = 8 # first face dimensions are oppositely oriented, add 6
+    else # direction == 6, this is the +z face
       target = 2
       tree_to_tree[2, tree] = linear_indices[cell_y, end, target] - 1
       tree_to_face[2, tree] = 3
     end
 
     # Negative y-direction
-    if cell_y > 1
+    if cell_y > 1 # Connect to tree at the same face
       tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1, direction] - 1
       tree_to_face[3, tree] = 3
     elseif direction == 1
       target = 5
-      tree_to_tree[3, tree] = linear_indices[1, cell_x, target] - 1
-      tree_to_face[3, tree] = 0
+      tree_to_tree[3, tree] = linear_indices[end, end - cell_x + 1, target] - 1
+      tree_to_face[3, tree] = 7 # first face dimensions are oppositely oriented, add 6
     elseif direction == 2
       target = 5
-      tree_to_tree[3, tree] = linear_indices[end, cell_x, target] - 1
-      tree_to_face[3, tree] = 1
+      tree_to_tree[3, tree] = linear_indices[1, cell_x, target] - 1
+      tree_to_face[3, tree] = 0
     elseif direction == 3
       target = 5
-      tree_to_tree[3, tree] = linear_indices[cell_x, 1, target] - 1
-      tree_to_face[3, tree] = 2
+      tree_to_tree[3, tree] = linear_indices[end - cell_x + 1, 1, target] - 1
+      tree_to_face[3, tree] = 8 # first face dimensions are oppositely oriented, add 6
     elseif direction == 4
       target = 5
       tree_to_tree[3, tree] = linear_indices[cell_x, end, target] - 1
       tree_to_face[3, tree] = 3
     elseif direction == 5
       target = 3
-      tree_to_tree[3, tree] = linear_indices[cell_x, 1, target] - 1
-      tree_to_face[3, tree] = 2
+      tree_to_tree[3, tree] = linear_indices[end - cell_x + 1, 1, target] - 1
+      tree_to_face[3, tree] = 8 # first face dimensions are oppositely oriented, add 6
     else # direction == 6
       target = 3
       tree_to_tree[3, tree] = linear_indices[cell_y, end, target] - 1
@@ -650,13 +650,13 @@ function connectivity_cubed_sphere(cells_x, cells_y)
     end
 
     # Positive y-direction
-    if cell_y < cells_y
+    if cell_y < cells_y # Connect to tree at the same face
       tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1, direction] - 1
       tree_to_face[4, tree] = 2
     elseif direction == 1
       target = 6
-      tree_to_tree[4, tree] = linear_indices[1, cell_x, target] - 1
-      tree_to_face[4, tree] = 0
+      tree_to_tree[4, tree] = linear_indices[1, end - cell_x + 1, target] - 1
+      tree_to_face[4, tree] = 6 # first face dimensions are oppositely oriented, add 6
     elseif direction == 2
       target = 6
       tree_to_tree[4, tree] = linear_indices[end, cell_x, target] - 1
@@ -667,16 +667,16 @@ function connectivity_cubed_sphere(cells_x, cells_y)
       tree_to_face[4, tree] = 2
     elseif direction == 4
       target = 6
-      tree_to_tree[4, tree] = linear_indices[cell_x, end, target] - 1
-      tree_to_face[4, tree] = 3
+      tree_to_tree[4, tree] = linear_indices[end - cell_x + 1, end, target] - 1
+      tree_to_face[4, tree] = 9 # first face dimensions are oppositely oriented, add 6
     elseif direction == 5
       target = 4
       tree_to_tree[4, tree] = linear_indices[cell_x, 1, target] - 1
       tree_to_face[4, tree] = 2
     else # direction == 6
       target = 4
-      tree_to_tree[4, tree] = linear_indices[cell_y, end, target] - 1
-      tree_to_face[4, tree] = 3
+      tree_to_tree[4, tree] = linear_indices[end - cell_y + 1, end, target] - 1
+      tree_to_face[4, tree] = 9 # first face dimensions are oppositely oriented, add 6
     end
 
     # Negative z-direction
@@ -904,12 +904,12 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   y = tan(beta)
 
   # Coordinates on unit cube per direction
-  cube_coordinates = (SVector(-1, x, y),
-                      SVector( 1, x, y),
-                      SVector(x, -1, y),
-                      SVector(x,  1, y),
-                      SVector(x, y, -1),
-                      SVector(x, y,  1))
+  cube_coordinates = (SVector(-1, -x, y),
+                      SVector( 1,  x, y),
+                      SVector( x, -1, y),
+                      SVector(-x,  1, y),
+                      SVector(-x, y, -1),
+                      SVector( x, y,  1))
 
   # Radius on cube surface
   r = sqrt(1 + x^2 + y^2)
