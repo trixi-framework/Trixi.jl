@@ -132,7 +132,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
 
   @unpack surface_flux = surface_integral
   md = mesh.md
-  @unpack mapM, mapP, nxJ, nyJ, sJ = md 
+  @unpack mapM, mapP, nxJ, nyJ, Jf = md 
   @unpack u_face_values, flux_face_values = cache 
 
   num_face_nodes = length(u_face_values)
@@ -145,8 +145,8 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     # compute flux if node is not a boundary node
     if idM != idP
       uP = u_face_values[idP]
-      normal = SVector{2}(nxJ[idM], nyJ[idM]) / sJ[idM]      
-      flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * sJ[idM]
+      normal = SVector{2}(nxJ[idM], nyJ[idM]) / Jf[idM]      
+      flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
     end
   end
 end
@@ -209,7 +209,7 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   rd = dg.basis
   md = mesh.md
   @unpack u_face_values, flux_face_values = cache  
-  @unpack xyzf, nxyzJ, sJ = md
+  @unpack xyzf, nxyzJ, Jf = md
   @unpack surface_flux = dg.surface_integral
 
   # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
@@ -219,17 +219,17 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   reshape_by_face(u) = reshape(u, num_pts_per_face, num_faces_total)
   u_face_values = reshape_by_face(u_face_values)
   flux_face_values = reshape_by_face(flux_face_values)
-  sJ      = reshape_by_face(sJ)
+  Jf      = reshape_by_face(Jf)
   nxyzJ, xyzf   = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{Dim,Matrix}
     
   # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
   for f in mesh.boundary_faces[boundary_key]
     for i in Base.OneTo(num_pts_per_face)      
-      face_normal = SVector{Dim}(getindex.(nxyzJ, i, f)) / sJ[i,f]
+      face_normal = SVector{Dim}(getindex.(nxyzJ, i, f)) / Jf[i,f]
       face_coordinates = SVector{Dim}(getindex.(xyzf, i, f))
       flux_face_values[i,f] = boundary_condition(u_face_values[i,f], 
                           face_normal, face_coordinates, t,
-                          surface_flux, equations) * sJ[i,f]
+                          surface_flux, equations) * Jf[i,f]
     end
   end
   
