@@ -79,9 +79,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-      pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
-      @test_nowarn_debug plot(pd1D)
+      @testset "Create 1D plot as slice" begin
+        @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+        pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+        @test_nowarn_debug plot(pd1D)
+      end
+
+      if mesh == "TreeMesh"
+        @testset "Create 1D plot along curve" begin
+          curve = zeros(2,10)
+          curve[1,:] = range(-1,-0.5,length=10)
+          @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+          pd1D = PlotData1D(sol, curve=curve)
+          @test_nowarn_debug plot(pd1D)
+        end
+      end
     end
   end
 
@@ -189,6 +201,22 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
+
+    @testset "1D plot from 3D solution" begin
+      @testset "Create 1D plot as slice" begin
+        @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+        pd1D = PlotData1D(sol)
+        @test_nowarn_debug plot(pd1D)
+      end
+
+      @testset "Create 1D plot along curve" begin
+        curve = zeros(3,10)
+        curve[1,:] = range(-1,-0.5,length=10)
+        @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+        pd1D = PlotData1D(sol, curve=curve)
+        @test_nowarn_debug plot(pd1D)
+      end
+    end
   end
 
   @testset "plotting TimeIntegratorSolution" begin
