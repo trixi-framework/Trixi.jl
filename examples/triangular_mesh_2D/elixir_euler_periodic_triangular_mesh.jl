@@ -3,7 +3,8 @@
 using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 
-rd = RefElemData(Tri(), N=4) # equivalent to a "basis"
+polydeg = 4
+rd = RefElemData(Tri(), polydeg) # equivalent to a "basis"
 dg = DG(rd, nothing #= mortar =#, 
         SurfaceIntegralWeakForm(FluxHLL()), VolumeIntegralWeakForm())
 
