@@ -11,7 +11,7 @@ equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-initial_condition = initial_condition_constant
+initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(
@@ -19,7 +19,7 @@ boundary_conditions = Dict(
   :outside => boundary_condition,
 )
 
-mesh = Trixi.P4estMeshCubedSphere(3, 2, 0.2, 0.2,
+mesh = Trixi.P4estMeshCubedSphere(3, 2, 0.5, 0.5,
                                   polydeg=3, initial_refinement_level=0)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
