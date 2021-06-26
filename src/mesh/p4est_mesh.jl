@@ -292,12 +292,12 @@ function P4estMesh{NDIMS}(meshfile::String;
 end
 
 
-function P4estMeshCubedSphere(n_cells_x, n_cells_y, inner_radius, thickness;
+function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
                               polydeg=1, RealT=Float64,
                               initial_refinement_level=0, unsaved_changes=true)
-  conn = connectivity_cubed_sphere(n_cells_x, n_cells_y)
+  conn = connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
-  n_trees = 6 * n_cells_x * n_cells_y
+  n_trees = 6 * trees_per_face_dimension^2 * layers
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
@@ -305,7 +305,7 @@ function P4estMeshCubedSphere(n_cells_x, n_cells_y, inner_radius, thickness;
   tree_node_coordinates = Array{RealT, 5}(undef, 3,
                                           ntuple(_ -> length(nodes), 3)...,
                                           n_trees)
-  calc_tree_node_coordinates!(tree_node_coordinates, nodes, n_cells_x, n_cells_y,
+  calc_tree_node_coordinates!(tree_node_coordinates, nodes, trees_per_face_dimension, layers,
                               inner_radius, thickness)
 
   p4est = new_p4est(conn, initial_refinement_level)
@@ -537,14 +537,17 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
 end
 
 
-function connectivity_cubed_sphere(cells_x, cells_y)
-  linear_indices = LinearIndices((cells_x, cells_y, 6))
+function connectivity_cubed_sphere(trees_per_face_dimension, layers)
+  n_cells_x = n_cells_y = trees_per_face_dimension
+  n_cells_z = layers
+
+  linear_indices = LinearIndices((trees_per_face_dimension, trees_per_face_dimension, layers, 6))
 
   # Vertices represent the coordinates of the forest. This is used by p4est
   # to write VTK files.
   # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
   n_vertices = 0
-  n_trees = cells_x * cells_y * 6
+  n_trees = 6 * n_cells_x * n_cells_y * n_cells_z
   # No edge connectivity is needed
   n_edges = 0
   # No corner connectivity is needed
@@ -555,139 +558,149 @@ function connectivity_cubed_sphere(cells_x, cells_y)
   tree_to_tree = Array{p4est_topidx_t, 2}(undef, 6, n_trees)
   tree_to_face = Array{Int8, 2}(undef, 6, n_trees)
 
-  for direction in 1:6, cell_y in 1:cells_y, cell_x in 1:cells_x
-    tree = linear_indices[cell_x, cell_y, direction]
+  for direction in 1:6
+    for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
+      tree = linear_indices[cell_x, cell_y, cell_z, direction]
 
-    # Subtract 1 because p4est uses zero-based indexing
-    # Negative x-direction
-    if cell_x > 1 # Connect to tree at the same face
-      tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y, direction] - 1
-      tree_to_face[1, tree] = 1
-    elseif direction == 1 # This is the -x face
-      target = 4
-      tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
-      tree_to_face[1, tree] = 1
-    elseif direction == 2 # This is the +x face
-      target = 3
-      tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
-      tree_to_face[1, tree] = 1
-    elseif direction == 3 # This is the -y face
-      target = 1
-      tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
-      tree_to_face[1, tree] = 1
-    elseif direction == 4 # This is the +y face
-      target = 2
-      tree_to_tree[1, tree] = linear_indices[end, cell_y, target] - 1
-      tree_to_face[1, tree] = 1
-    elseif direction == 5 # This is the -z face
-      target = 2
-      tree_to_tree[1, tree] = linear_indices[cell_y, 1, target] - 1
-      tree_to_face[1, tree] = 2
-    else # direction == 6, this is the +z face
-      target = 1
-      tree_to_tree[1, tree] = linear_indices[end - cell_y + 1, end, target] - 1
-      tree_to_face[1, tree] = 9 # first face dimensions are oppositely oriented, add 6
+      # Subtract 1 because p4est uses zero-based indexing
+      # Negative x-direction
+      if cell_x > 1 # Connect to tree at the same face
+        tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y, cell_z, direction] - 1
+        tree_to_face[1, tree] = 1
+      elseif direction == 1 # This is the -x face
+        target = 4
+        tree_to_tree[1, tree] = linear_indices[end, cell_y, cell_z, target] - 1
+        tree_to_face[1, tree] = 1
+      elseif direction == 2 # This is the +x face
+        target = 3
+        tree_to_tree[1, tree] = linear_indices[end, cell_y, cell_z, target] - 1
+        tree_to_face[1, tree] = 1
+      elseif direction == 3 # This is the -y face
+        target = 1
+        tree_to_tree[1, tree] = linear_indices[end, cell_y, cell_z, target] - 1
+        tree_to_face[1, tree] = 1
+      elseif direction == 4 # This is the +y face
+        target = 2
+        tree_to_tree[1, tree] = linear_indices[end, cell_y, cell_z, target] - 1
+        tree_to_face[1, tree] = 1
+      elseif direction == 5 # This is the -z face
+        target = 2
+        tree_to_tree[1, tree] = linear_indices[cell_y, 1, cell_z, target] - 1
+        tree_to_face[1, tree] = 2
+      else # direction == 6, this is the +z face
+        target = 1
+        tree_to_tree[1, tree] = linear_indices[end - cell_y + 1, end, cell_z, target] - 1
+        tree_to_face[1, tree] = 9 # first face dimensions are oppositely oriented, add 6
+      end
+
+      # Positive x-direction
+      if cell_x < n_cells_x # Connect to tree at the same face
+        tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y, cell_z, direction] - 1
+        tree_to_face[2, tree] = 0
+      elseif direction == 1 # This is the -x face
+        target = 3
+        tree_to_tree[2, tree] = linear_indices[1, cell_y, cell_z, target] - 1
+        tree_to_face[2, tree] = 0
+      elseif direction == 2 # This is the +x face
+        target = 4
+        tree_to_tree[2, tree] = linear_indices[1, cell_y, cell_z, target] - 1
+        tree_to_face[2, tree] = 0
+      elseif direction == 3 # This is the -y face
+        target = 2
+        tree_to_tree[2, tree] = linear_indices[1, cell_y, cell_z, target] - 1
+        tree_to_face[2, tree] = 0
+      elseif direction == 4 # This is the +y face
+        target = 1
+        tree_to_tree[2, tree] = linear_indices[1, cell_y, cell_z, target] - 1
+        tree_to_face[2, tree] = 0
+      elseif direction == 5 # This is the -z face
+        target = 1
+        tree_to_tree[2, tree] = linear_indices[end - cell_y + 1, 1, cell_z, target] - 1
+        tree_to_face[2, tree] = 8 # first face dimensions are oppositely oriented, add 6
+      else # direction == 6, this is the +z face
+        target = 2
+        tree_to_tree[2, tree] = linear_indices[cell_y, end, cell_z, target] - 1
+        tree_to_face[2, tree] = 3
+      end
+
+      # Negative y-direction
+      if cell_y > 1 # Connect to tree at the same face
+        tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1, cell_z, direction] - 1
+        tree_to_face[3, tree] = 3
+      elseif direction == 1
+        target = 5
+        tree_to_tree[3, tree] = linear_indices[end, end - cell_x + 1, cell_z, target] - 1
+        tree_to_face[3, tree] = 7 # first face dimensions are oppositely oriented, add 6
+      elseif direction == 2
+        target = 5
+        tree_to_tree[3, tree] = linear_indices[1, cell_x, cell_z, target] - 1
+        tree_to_face[3, tree] = 0
+      elseif direction == 3
+        target = 5
+        tree_to_tree[3, tree] = linear_indices[end - cell_x + 1, 1, cell_z, target] - 1
+        tree_to_face[3, tree] = 8 # first face dimensions are oppositely oriented, add 6
+      elseif direction == 4
+        target = 5
+        tree_to_tree[3, tree] = linear_indices[cell_x, end, cell_z, target] - 1
+        tree_to_face[3, tree] = 3
+      elseif direction == 5
+        target = 3
+        tree_to_tree[3, tree] = linear_indices[end - cell_x + 1, 1, cell_z, target] - 1
+        tree_to_face[3, tree] = 8 # first face dimensions are oppositely oriented, add 6
+      else # direction == 6
+        target = 3
+        tree_to_tree[3, tree] = linear_indices[cell_x, end, cell_z, target] - 1
+        tree_to_face[3, tree] = 3
+      end
+
+      # Positive y-direction
+      if cell_y < n_cells_y # Connect to tree at the same face
+        tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1, cell_z, direction] - 1
+        tree_to_face[4, tree] = 2
+      elseif direction == 1
+        target = 6
+        tree_to_tree[4, tree] = linear_indices[1, end - cell_x + 1, cell_z, target] - 1
+        tree_to_face[4, tree] = 6 # first face dimensions are oppositely oriented, add 6
+      elseif direction == 2
+        target = 6
+        tree_to_tree[4, tree] = linear_indices[end, cell_x, cell_z, target] - 1
+        tree_to_face[4, tree] = 1
+      elseif direction == 3
+        target = 6
+        tree_to_tree[4, tree] = linear_indices[cell_x, 1, cell_z, target] - 1
+        tree_to_face[4, tree] = 2
+      elseif direction == 4
+        target = 6
+        tree_to_tree[4, tree] = linear_indices[end - cell_x + 1, end, cell_z, target] - 1
+        tree_to_face[4, tree] = 9 # first face dimensions are oppositely oriented, add 6
+      elseif direction == 5
+        target = 4
+        tree_to_tree[4, tree] = linear_indices[cell_x, 1, cell_z, target] - 1
+        tree_to_face[4, tree] = 2
+      else # direction == 6
+        target = 4
+        tree_to_tree[4, tree] = linear_indices[end - cell_x + 1, end, cell_z, target] - 1
+        tree_to_face[4, tree] = 9 # first face dimensions are oppositely oriented, add 6
+      end
+
+      # Negative z-direction
+      if cell_z > 1
+        tree_to_tree[5, tree] = linear_indices[cell_x, cell_y, cell_z - 1, direction] - 1
+        tree_to_face[5, tree] = 5
+      else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
+        tree_to_tree[5, tree] = tree - 1
+        tree_to_face[5, tree] = 4
+      end
+
+      # Positive z-direction
+      if cell_z < n_cells_z
+        tree_to_tree[6, tree] = linear_indices[cell_x, cell_y, cell_z + 1, direction] - 1
+        tree_to_face[6, tree] = 4
+      else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
+        tree_to_tree[6, tree] = tree - 1
+        tree_to_face[6, tree] = 5
+      end
     end
-
-    # Positive x-direction
-    if cell_x < cells_x # Connect to tree at the same face
-      tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y, direction] - 1
-      tree_to_face[2, tree] = 0
-    elseif direction == 1 # This is the -x face
-      target = 3
-      tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
-      tree_to_face[2, tree] = 0
-    elseif direction == 2 # This is the +x face
-      target = 4
-      tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
-      tree_to_face[2, tree] = 0
-    elseif direction == 3 # This is the -y face
-      target = 2
-      tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
-      tree_to_face[2, tree] = 0
-    elseif direction == 4 # This is the +y face
-      target = 1
-      tree_to_tree[2, tree] = linear_indices[1, cell_y, target] - 1
-      tree_to_face[2, tree] = 0
-    elseif direction == 5 # This is the -z face
-      target = 1
-      tree_to_tree[2, tree] = linear_indices[end - cell_y + 1, 1, target] - 1
-      tree_to_face[2, tree] = 8 # first face dimensions are oppositely oriented, add 6
-    else # direction == 6, this is the +z face
-      target = 2
-      tree_to_tree[2, tree] = linear_indices[cell_y, end, target] - 1
-      tree_to_face[2, tree] = 3
-    end
-
-    # Negative y-direction
-    if cell_y > 1 # Connect to tree at the same face
-      tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1, direction] - 1
-      tree_to_face[3, tree] = 3
-    elseif direction == 1
-      target = 5
-      tree_to_tree[3, tree] = linear_indices[end, end - cell_x + 1, target] - 1
-      tree_to_face[3, tree] = 7 # first face dimensions are oppositely oriented, add 6
-    elseif direction == 2
-      target = 5
-      tree_to_tree[3, tree] = linear_indices[1, cell_x, target] - 1
-      tree_to_face[3, tree] = 0
-    elseif direction == 3
-      target = 5
-      tree_to_tree[3, tree] = linear_indices[end - cell_x + 1, 1, target] - 1
-      tree_to_face[3, tree] = 8 # first face dimensions are oppositely oriented, add 6
-    elseif direction == 4
-      target = 5
-      tree_to_tree[3, tree] = linear_indices[cell_x, end, target] - 1
-      tree_to_face[3, tree] = 3
-    elseif direction == 5
-      target = 3
-      tree_to_tree[3, tree] = linear_indices[end - cell_x + 1, 1, target] - 1
-      tree_to_face[3, tree] = 8 # first face dimensions are oppositely oriented, add 6
-    else # direction == 6
-      target = 3
-      tree_to_tree[3, tree] = linear_indices[cell_x, end, target] - 1
-      tree_to_face[3, tree] = 3
-    end
-
-    # Positive y-direction
-    if cell_y < cells_y # Connect to tree at the same face
-      tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1, direction] - 1
-      tree_to_face[4, tree] = 2
-    elseif direction == 1
-      target = 6
-      tree_to_tree[4, tree] = linear_indices[1, end - cell_x + 1, target] - 1
-      tree_to_face[4, tree] = 6 # first face dimensions are oppositely oriented, add 6
-    elseif direction == 2
-      target = 6
-      tree_to_tree[4, tree] = linear_indices[end, cell_x, target] - 1
-      tree_to_face[4, tree] = 1
-    elseif direction == 3
-      target = 6
-      tree_to_tree[4, tree] = linear_indices[cell_x, 1, target] - 1
-      tree_to_face[4, tree] = 2
-    elseif direction == 4
-      target = 6
-      tree_to_tree[4, tree] = linear_indices[end - cell_x + 1, end, target] - 1
-      tree_to_face[4, tree] = 9 # first face dimensions are oppositely oriented, add 6
-    elseif direction == 5
-      target = 4
-      tree_to_tree[4, tree] = linear_indices[cell_x, 1, target] - 1
-      tree_to_face[4, tree] = 2
-    else # direction == 6
-      target = 4
-      tree_to_tree[4, tree] = linear_indices[end - cell_x + 1, end, target] - 1
-      tree_to_face[4, tree] = 9 # first face dimensions are oppositely oriented, add 6
-    end
-
-    # Negative z-direction
-    # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-    tree_to_tree[5, tree] = tree - 1
-    tree_to_face[5, tree] = 4
-
-    # Positive z-direction
-    # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-    tree_to_tree[6, tree] = tree - 1
-    tree_to_face[6, tree] = 5
   end
 
   tree_to_edge = C_NULL
@@ -875,28 +888,33 @@ end
 
 # Calculate physical coordinates of each node of a cubed sphere mesh.
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
-                                     nodes, n_cells_x, n_cells_y, inner_radius, thickness)
-  linear_indices = LinearIndices((n_cells_x, n_cells_y, 6))
+                                     nodes, trees_per_face_dimension, layers, inner_radius, thickness)
+  n_cells_x = n_cells_y = trees_per_face_dimension
+  n_cells_z = layers
+
+  linear_indices = LinearIndices((n_cells_x, n_cells_y, n_cells_z, 6))
 
   # Get cell length in reference mesh
   dx = 2 / n_cells_x
   dy = 2 / n_cells_y
-  dz = 2
+  dz = 2 / n_cells_z
 
-  for direction in 1:6, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
-    tree = linear_indices[cell_x, cell_y, direction]
+  for direction in 1:6
+    for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
+      tree = linear_indices[cell_x, cell_y, cell_z, direction]
 
-    x_offset = -1 + (cell_x - 1) * dx + dx/2
-    y_offset = -1 + (cell_y - 1) * dy + dy/2
-    z_offset = -1 + (1 - 1) * dz + dz/2
+      x_offset = -1 + (cell_x - 1) * dx + dx/2
+      y_offset = -1 + (cell_y - 1) * dy + dy/2
+      z_offset = -1 + (cell_z - 1) * dz + dz/2
 
-    for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-      # node_coordinates are the mapped reference node coordinates
-      node_coordinates[:, i, j, k, tree] .= cubed_sphere_mapping(
-        x_offset + dx/2 * nodes[i],
-        y_offset + dy/2 * nodes[j],
-        z_offset + dz/2 * nodes[k],
-        inner_radius, thickness, direction)
+      for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+        # node_coordinates are the mapped reference node coordinates
+        node_coordinates[:, i, j, k, tree] .= cubed_sphere_mapping(
+          x_offset + dx/2 * nodes[i],
+          y_offset + dy/2 * nodes[j],
+          z_offset + dz/2 * nodes[k],
+          inner_radius, thickness, direction)
+      end
     end
   end
 end
