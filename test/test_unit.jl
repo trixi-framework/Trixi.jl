@@ -2,7 +2,6 @@ module TestUnit
 
 using Test
 using Cassette
-using Documenter
 using Trixi
 
 include("test_trixi.jl")
