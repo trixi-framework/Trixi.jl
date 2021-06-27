@@ -1,7 +1,6 @@
 module TestVisualization
 
 using Test
-using Documenter
 using Trixi
 using Plots
 
