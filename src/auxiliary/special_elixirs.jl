@@ -17,7 +17,7 @@ providing examples with sensible default values for users.
 
 ```jldoctest
 julia> redirect_stdout(devnull) do
-         trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_advection_extended.jl"),
+         trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_extended.jl"),
                        tspan=(0.0, 0.1))
          sol.t[end]
        end
