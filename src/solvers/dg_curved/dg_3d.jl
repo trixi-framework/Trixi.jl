@@ -191,7 +191,8 @@ end
 # the physical fluxes in each Cartesian direction
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
                                     nonconservative_terms::Val{false}, element,
-                                    mesh::CurvedMesh{3}, equations, volume_flux, dg::DGSEM, cache,
+                                    mesh::Union{CurvedMesh{3}, P4estMesh{3}},
+                                    equations, volume_flux, dg::DGSEM, cache,
                                     alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.

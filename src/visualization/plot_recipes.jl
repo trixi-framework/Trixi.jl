@@ -467,6 +467,11 @@ When visualizing data from a two-dimensional simulation, a 1D slice is extracted
 `slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0)`.
 Both of these values are ignored when visualizing 1D data.
+This applies analogously to three-dimensonal simulations, where `slice` may be `xy:`, `:xz`, or `:yz`.
+
+Another way to visualize 2D/3D data is by creating a plot along a given curve.
+This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
+which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -477,7 +482,7 @@ PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array_native(u_ode, semi),
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
-                    slice=:x, point=(0.0, 0.0, 0.0))
+                    slice=:x, point=(0.0, 0.0, 0.0), curve=nothing)
 
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
@@ -489,10 +494,18 @@ function PlotData1D(u, mesh, equations, solver, cache;
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
   elseif ndims(mesh) == 2
-    x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    if curve != nothing
+      x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
     orientation_x = 0
   else # ndims(mesh) == 3
-    x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    if curve != nothing
+      x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
     orientation_x = 0
   end
 
@@ -672,10 +685,10 @@ end
 @recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=nothing,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
-                   point=(0.0, 0.0, 0.0))
+                   point=(0.0, 0.0, 0.0), curve=nothing)
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(semi) == 1
-    return PlotData1D(u, semi; solution_variables, nvisnodes)
+    return PlotData1D(u, semi; solution_variables, nvisnodes, slice, point, curve)
   else
     return PlotData2D(u, semi;
                       solution_variables, grid_lines, max_supported_level,

@@ -427,6 +427,34 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
 end
 
 
+"""
+    boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
+                             equations::CompressibleEulerEquations3D)
+
+Determine the external solution value for a slip wall condition. Sets the normal
+velocity of the the exterior fictitious element to the negative of the internal value.
+
+!!! warning "Experimental code"
+    This wall function can change any time.
+"""
+@inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquations3D)
+
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal and tangential components of the velocity
+  u_normal  = normal[1] * u_internal[2] + normal[2] * u_internal[3] + normal[3] * u_internal[4]
+  u_tangent = (u_internal[2] - u_normal * normal[1], u_internal[3] - u_normal * normal[2], u_internal[4] - u_normal * normal[3])
+
+  return SVector(u_internal[1],
+                 u_tangent[1] - u_normal * normal[1],
+                 u_tangent[2] - u_normal * normal[2],
+                 u_tangent[3] - u_normal * normal[3],
+                 u_internal[5])
+end
+
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
