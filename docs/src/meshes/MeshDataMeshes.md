@@ -81,7 +81,7 @@ of physical quadrature points.
 * `md.rxJ, md.sxJ, ...` are matrices where column `e` contains values of 
 ``J\frac{\partial r}{\partial x}``, ``J\frac{\partial s}{\partial x}``, etc. at nodal interpolation 
 points on the element `e`.
-* `md.J` is a matrix where column `e` contains values of ``J`` at nodal interpolation points.
+* `md.J` is a matrix where column `e` contains values of the Jacobian ``J`` at nodal interpolation points.
 * `md.Jf` is a matrix where column `e` contains values of the face Jacobian (e.g., determinant of 
 the geometric mapping between a physical face and a reference face) at face quadrature points.
 * `md.nxJ, md.nyJ, ...` are matrices where column `e` contains values of components of the unit 

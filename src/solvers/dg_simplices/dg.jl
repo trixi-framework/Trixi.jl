@@ -91,12 +91,12 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
 
   # todo: factor common storage into a struct (MeshDataCache?) for reuse 
   # storage for volume quadrature values, face quadrature values, flux values
-  u_values = StructArray{SVector{nvars, RealT}}(ntuple(_->zeros(rd.Nq, md.num_elements), nvars))
-  u_face_values = StructArray{SVector{nvars, RealT}}(ntuple(_->zeros(rd.Nfq, md.num_elements), nvars))
+  u_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq, md.num_elements), nvars))
+  u_face_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nfq, md.num_elements), nvars))
   flux_face_values = similar(u_face_values)
 
   # local storage for fluxes
-  flux_values = StructArray{SVector{nvars,RealT}}(ntuple(_->zeros(rd.Nq), nvars))
+  flux_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars))
   
   return (; md, invMQrTrW, invMQsTrW, invJ=inv.(md.J),
       u_values, flux_values, u_face_values, flux_face_values)
