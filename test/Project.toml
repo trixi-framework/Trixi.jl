@@ -1,6 +1,5 @@
 [deps]
 Cassette = "7057c7e9-c182-5462-911a-8362d720325c"
-Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -14,7 +13,6 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Cassette = "0.3.5"
-Documenter = "0.26, 0.27"
 ForwardDiff = "0.10"
 MPI = "0.16, 0.17, 0.18"
 OrdinaryDiffEq = "5.44 - 5.50, 5.51.1"
