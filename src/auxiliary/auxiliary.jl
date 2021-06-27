@@ -63,7 +63,8 @@ examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 """
     get_examples()
 
-Return a list of all example elixirs that are provided by Trixi.
+Return a list of all example elixirs that are provided by Trixi. See also
+[`examples_dir`](@ref) and [`default_example`](@ref).
 """
 function get_examples()
   examples = String[]
@@ -83,7 +84,7 @@ end
     default_example()
 
 Return the path to an example elixir that can be used to quickly see Trixi in action on a
-[`TreeMesh`]@(ref).
+[`TreeMesh`]@(ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
 
