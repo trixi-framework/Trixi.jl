@@ -60,8 +60,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
   @trixi_testset "elixir_euler_free_stream_p4est.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_p4est.jl"),
       l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
-      linf = [1.9539925233402755e-14, 2.9791447087035294e-13, 4.636291350834654e-13, 4.956035581926699e-13],
-      atol = 5e-13, # required to make CI tests pass on macOS
+      linf = [1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
+      atol = 1.5e-12, # required to make CI tests pass on macOS
     )
   end
 

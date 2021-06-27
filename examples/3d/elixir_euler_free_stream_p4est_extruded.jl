@@ -13,50 +13,40 @@ boundary_conditions = Dict(
   :all => BoundaryConditionDirichlet(initial_condition)
 )
 
-# Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
-# The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
-solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralWeakForm())
 
-# Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
-# The mapping will be interpolated at tree level, and then refined without changing
-# the geometry interpolant. This can yield problematic geometries if the unrefined mesh
-# is not fine enough.
-function mapping(xi_, eta_, zeta_)
+# Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D.
+# This particular mesh is unstructured in the yz-plane, but extruded in x-direction.
+# Apply the warping mapping in the yz-plane to get a curved 2D mesh that is extruded
+# in x-direction to ensure free stream preservation on a non-conforming mesh.
+# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+function mapping(xi, eta_, zeta_)
   # Transform input variables between -1 and 1 onto [0,3]
-  xi = 1.5 * xi_ + 1.5
   eta = 1.5 * eta_ + 1.5
   zeta = 1.5 * zeta_ + 1.5
 
-  y = eta + 1/6 * (cos(1.5 * pi * (2 * xi - 3)/3) *
-                   cos(0.5 * pi * (2 * eta - 3)/3) *
+  z = zeta + 1/6 * (cos(1.5 * pi * (2 * eta - 3)/3) *
                    cos(0.5 * pi * (2 * zeta - 3)/3))
 
-  x = xi + 1/6 * (cos(0.5 * pi * (2 * xi - 3)/3) *
-                  cos(2 * pi * (2 * y - 3)/3) *
-                  cos(0.5 * pi * (2 * zeta - 3)/3))
+  y = eta + 1/6 * (cos(0.5 * pi * (2 * eta - 3)/3) *
+                  cos(2 * pi * (2 * z - 3)/3))
 
-  z = zeta + 1/6 * (cos(0.5 * pi * (2 * x - 3)/3) *
-                    cos(pi * (2 * y - 3)/3) *
-                    cos(0.5 * pi * (2 * zeta - 3)/3))
-
-  return SVector(x, y, z)
+  return SVector(xi, y, z)
 end
 
-# Unstructured mesh with 68 cells of the cube domain [-1, 1]^3
-mesh_file = joinpath(@__DIR__, "cube_unstructured_1.inp")
-isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/d45c8ac1e248618885fa7cc31a50ab40/raw/37fba24890ab37cfa49c39eae98b44faf4502882/cube_unstructured_1.inp",
+# Unstructured mesh with 48 cells of the cube domain [-1, 1]^3
+mesh_file = joinpath(@__DIR__, "cube_unstructured_2.inp")
+isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/b8df0033798e4926dec515fc045e8c2c/raw/b9254cde1d1fb64b6acc8416bc5ccdd77a240227/cube_unstructured_2.inp",
                               mesh_file)
 
-# Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
-mesh = P4estMesh{3}(mesh_file, polydeg=2,
+mesh = P4estMesh{3}(mesh_file, polydeg=3,
                     mapping=mapping,
                     initial_refinement_level=0)
 
-# Refine bottom left quadrant of each second tree to level 2
+# Refine quadrants in y-direction of each tree at one edge to level 2
 function refine_fn(p8est, which_tree, quadrant)
-  if iseven(convert(Int, which_tree)) && quadrant.x == 0 && quadrant.y == 0 && quadrant.z == 0 && quadrant.level < 2
+  if convert(Int, which_tree) < 4 && quadrant.x == 0 && quadrant.y == 0 && quadrant.level < 2
     # return true (refine)
     return Cint(1)
   else
@@ -65,7 +55,7 @@ function refine_fn(p8est, which_tree, quadrant)
   end
 end
 
-# Refine recursively until each bottom left quadrant of every second tree has level 2.
+# Refine recursively until each desired quadrant has level 2.
 # The mesh will be rebalanced before the simulation starts.
 refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p8est_quadrant_t}))
 Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
@@ -105,7 +95,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), #maxiters=1,
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

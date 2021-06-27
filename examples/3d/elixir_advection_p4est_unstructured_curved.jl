@@ -19,9 +19,10 @@ boundary_conditions = Dict(
   :all => boundary_condition
 )
 
-# Mapping as described in https://arxiv.org/abs/2012.12040, but with less warping.
-# The original mapping applied to this unstructured mesh creates extreme angles,
-# which require a high resolution for proper results.
+# Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
+# The mapping will be interpolated at tree level, and then refined without changing
+# the geometry interpolant. The original mapping applied to this unstructured mesh
+# causes some Jacobians to be negative, which makes the mesh invalid.
 function mapping(xi, eta, zeta)
   # Don't transform input variables between -1 and 1 onto [0,3] to obtain curved boundaries
   # xi = 1.5 * xi_ + 1.5
