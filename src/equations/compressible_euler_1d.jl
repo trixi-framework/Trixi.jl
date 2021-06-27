@@ -6,18 +6,18 @@
 
 
 @doc raw"""
-    CompressibleEulerEquations1D
+    CompressibleEulerEquations1D(γ)
 
 The compressible Euler equations for an ideal gas with ratio of specific heats `γ`
 in one space dimension.
 """
 struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEquations{1, 3}
-  gamma::RealT
-  inv_γm1::RealT
+  gamma::RealT             # ratio of specific heats
+  inv_gamma_minus_1::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
   function CompressibleEulerEquations1D(gamma)
-    γ, inv_γm1 = promote(gamma, inv(gamma - 1))
-    new{typeof(γ)}(γ, inv_γm1)
+    γ, inv_gamma_minus_1 = promote(gamma, inv(gamma - 1))
+    new{typeof(γ)}(γ, inv_gamma_minus_1)
   end
 end
 
@@ -303,7 +303,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
   f1 = rho_avg * v1_avg
   f2 = rho_avg * v1_avg * v1_avg + p_avg
-  f3 = p_avg*v1_avg * equations.inv_γm1 + rho_avg*v1_avg*kin_avg + pv1_avg
+  f3 = p_avg*v1_avg * equations.inv_gamma_minus_1 + rho_avg*v1_avg*kin_avg + pv1_avg
 
   return SVector(f1, f2, f3)
 end
@@ -423,7 +423,7 @@ See also
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_mean * v1_avg
   f2 = f1 * v1_avg + p_avg
-  f3 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+  f3 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
 
   return SVector(f1, f2, f3)
 end
@@ -581,7 +581,7 @@ end
   s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equations.gamma - s) * equations.inv_γm1 - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) * equations.inv_gamma_minus_1 - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = -rho_p
 
@@ -601,7 +601,7 @@ end
   s = gamma - V1 + 0.5 * (V2^2) / V5
 
   # eq. (52)
-  energy_internal = ((gamma - 1) / (-V5)^gamma)^(equations.inv_γm1) * exp(-s * equations.inv_γm1)
+  energy_internal = ((gamma - 1) / (-V5)^gamma)^(equations.inv_gamma_minus_1) * exp(-s * equations.inv_gamma_minus_1)
 
   # eq. (51)
   rho    = -V5 * energy_internal
@@ -615,7 +615,7 @@ end
 @inline function prim2cons(prim, equations::CompressibleEulerEquations1D)
   rho, v1, p = prim
   rho_v1 = rho * v1
-  rho_e  = p * equations.inv_γm1 + 0.5 * (rho_v1 * v1)
+  rho_e  = p * equations.inv_gamma_minus_1 + 0.5 * (rho_v1 * v1)
   return SVector(rho, rho_v1, rho_e)
 end
 
@@ -654,7 +654,7 @@ end
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equations::CompressibleEulerEquations1D)
   # Mathematical entropy
-  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_γm1
+  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_1
 
   return S
 end

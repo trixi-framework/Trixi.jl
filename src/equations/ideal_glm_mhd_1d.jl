@@ -6,7 +6,7 @@
 
 
 @doc raw"""
-    IdealGlmMhdEquations1D
+    IdealGlmMhdEquations1D(γ)
 
 The ideal compressible GLM-MHD equations in one space dimension.
 !!! note
@@ -14,12 +14,12 @@ The ideal compressible GLM-MHD equations in one space dimension.
     is satisfied trivially in one spatial dimension.
 """
 struct IdealGlmMhdEquations1D{RealT<:Real} <: AbstractIdealGlmMhdEquations{1, 8}
-  gamma::RealT
-  inv_γm1::RealT
+  gamma::RealT             # ratio of specific heats
+  inv_gamma_minus_1::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
   function IdealGlmMhdEquations1D(gamma)
-    γ, inv_γm1 = promote(gamma, inv(gamma - 1))
-    new{typeof(γ)}(γ, inv_γm1)
+    γ, inv_gamma_minus_1 = promote(gamma, inv(gamma - 1))
+    new{typeof(γ)}(γ, inv_gamma_minus_1)
   end
 end
 

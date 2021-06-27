@@ -12,12 +12,12 @@ The compressible Euler equations for an ideal gas with ratio of specific heats `
 in three space dimensions.
 """
 struct CompressibleEulerEquations3D{RealT<:Real} <: AbstractCompressibleEulerEquations{3, 5}
-  gamma::RealT   # ratio of specific heats
-  inv_γm1::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+  gamma::RealT             # ratio of specific heats
+  inv_gamma_minus_1::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
   function CompressibleEulerEquations3D(gamma)
-    γ, inv_γm1 = promote(gamma, inv(gamma - 1))
-    new{typeof(γ)}(γ, inv_γm1)
+    γ, inv_gamma_minus_1 = promote(gamma, inv(gamma - 1))
+    new{typeof(γ)}(γ, inv_gamma_minus_1)
   end
 end
 
@@ -516,21 +516,21 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
     f2 = rho_avg * v1_avg * v1_avg + p_avg
     f3 = rho_avg * v1_avg * v2_avg
     f4 = rho_avg * v1_avg * v3_avg
-    f5 = p_avg*v1_avg * equations.inv_γm1 + rho_avg*v1_avg*kin_avg + pv1_avg
+    f5 = p_avg*v1_avg * equations.inv_gamma_minus_1 + rho_avg*v1_avg*kin_avg + pv1_avg
   elseif orientation == 2
     pv2_avg = 1/2 * (p_ll*v2_rr + p_rr*v2_ll)
     f1 = rho_avg * v2_avg
     f2 = rho_avg * v2_avg * v1_avg
     f3 = rho_avg * v2_avg * v2_avg + p_avg
     f4 = rho_avg * v2_avg * v3_avg
-    f5 = p_avg*v2_avg * equations.inv_γm1 + rho_avg*v2_avg*kin_avg + pv2_avg
+    f5 = p_avg*v2_avg * equations.inv_gamma_minus_1 + rho_avg*v2_avg*kin_avg + pv2_avg
   else
     pv3_avg = 1/2 * (p_ll*v3_rr + p_rr*v3_ll)
     f1 = rho_avg * v3_avg
     f2 = rho_avg * v3_avg * v1_avg
     f3 = rho_avg * v3_avg * v2_avg
     f4 = rho_avg * v3_avg * v3_avg + p_avg
-    f5 = p_avg*v3_avg * equations.inv_γm1 + rho_avg*v3_avg*kin_avg + pv3_avg
+    f5 = p_avg*v3_avg * equations.inv_gamma_minus_1 + rho_avg*v3_avg*kin_avg + pv3_avg
   end
 
   return SVector(f1, f2, f3, f4, f5)
@@ -702,19 +702,19 @@ See also
     f2 = f1 * v1_avg + p_avg
     f3 = f1 * v2_avg
     f4 = f1 * v3_avg
-    f5 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+    f5 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
   elseif orientation == 2
     f1 = rho_mean * v2_avg
     f2 = f1 * v1_avg
     f3 = f1 * v2_avg + p_avg
     f4 = f1 * v3_avg
-    f5 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+    f5 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
   else # orientation == 3
     f1 = rho_mean * v3_avg
     f2 = f1 * v1_avg
     f3 = f1 * v2_avg
     f4 = f1 * v3_avg + p_avg
-    f5 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 ) + 0.5 * (p_ll*v3_rr + p_rr*v3_ll)
+    f5 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 ) + 0.5 * (p_ll*v3_rr + p_rr*v3_ll)
   end
 
   return SVector(f1, f2, f3, f4, f5)
@@ -754,7 +754,7 @@ end
   f2 = f1 * v1_avg + p_avg * normal_direction[1]
   f3 = f1 * v2_avg + p_avg * normal_direction[2]
   f4 = f1 * v3_avg + p_avg * normal_direction[3]
-  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_γm1 )
+  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 )
       + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
   return SVector(f1, f2, f3, f4, f5)
@@ -1017,7 +1017,7 @@ end
   s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equations.gamma - s) * equations.inv_γm1 - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) * equations.inv_gamma_minus_1 - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = rho_p * v2
   w4 = rho_p * v3
@@ -1040,7 +1040,7 @@ end
   s = gamma - V1 + V_square/(2*V5)
 
   # eq. (52)
-  rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_γm1)*exp(-s * equations.inv_γm1)
+  rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_gamma_minus_1)*exp(-s * equations.inv_gamma_minus_1)
 
   # eq. (51)
   rho     = -rho_iota * V5
@@ -1058,7 +1058,7 @@ end
   rho_v1 = rho * v1
   rho_v2 = rho * v2
   rho_v3 = rho * v3
-  rho_e  = p * equations.inv_γm1 + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  rho_e  = p * equations.inv_gamma_minus_1 + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
@@ -1097,7 +1097,7 @@ end
 
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equations::CompressibleEulerEquations3D)
-  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_γm1
+  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_1
   # Mathematical entropy
 
   return S
