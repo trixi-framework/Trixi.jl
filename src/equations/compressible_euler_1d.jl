@@ -269,7 +269,7 @@ end
 
 
 """
-    function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
