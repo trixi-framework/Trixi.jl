@@ -53,14 +53,8 @@ installed as a regular package (with `]add Trixi`), these files are read-only an
 modified. To find out which files are available, use, e.g., `readdir`:
 
 # Examples
-```julia
-julia> readdir(examples_dir())
-5-element Array{String,1}:
- "1d"
- "2d"
- "3d"
- "README.md"
- "paper_self_gravitating_gas_dynamics"
+```@example
+readdir(examples_dir())
 ```
 """
 examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
