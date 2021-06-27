@@ -62,7 +62,7 @@ jobs:
           - 2d_threaded
           - 3d_part1
           - 3d_part2
-          - paper-self-gravitating-gas-dynamics
+          - paper_self_gravitating_gas_dynamics
           - misc
         include:
           - version: '1.6'

@@ -60,7 +60,7 @@ julia> readdir(examples_dir())
  "2d"
  "3d"
  "README.md"
- "paper-self-gravitating-gas-dynamics"
+ "paper_self_gravitating_gas_dynamics"
 ```
 """
 examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
@@ -91,7 +91,7 @@ end
 Return the path to an example elixir that can be used to quickly see Trixi in action on a
 [`TreeMesh`]@(ref).
 """
-default_example() = joinpath(examples_dir(), "2d", "elixir_advection_basic.jl")
+default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
 
 
 """
@@ -101,7 +101,8 @@ Return the path to an example elixir that can be used to quickly see Trixi in ac
 [`UnstructuredQuadMesh`]@(ref). This simulation is run on the example curved, unstructured mesh
 given in the Trixi documentation regarding unstructured meshes.
 """
-default_example_unstructured() = joinpath(examples_dir(), "2d", "elixir_euler_unstructured_quad_basic.jl")
+default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+
 
 # Print informative message at startup
 function print_startup_message()

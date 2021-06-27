@@ -10,10 +10,10 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "paper-self-gravitating-gas-dynamics")
+const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "paper_self_gravitating_gas_dynamics")
 
 # Numerical examples from the Euler-gravity paper
-@testset "paper-self-gravitating-gas-dynamics" begin
+@testset "paper_self_gravitating_gas_dynamics" begin
   @trixi_testset "elixir_euler_eoc_test.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_test.jl"),
       l2   = [0.0001740977055972079, 0.0003369355182519592, 0.0003369355182518708, 0.0006099171220334989],
