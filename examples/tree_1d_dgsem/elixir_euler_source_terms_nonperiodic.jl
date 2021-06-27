@@ -9,8 +9,6 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-source_terms = source_terms_convergence_test
-
 # you can either use a single function to impose the BCs weakly in all
 # 1*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
@@ -29,7 +27,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms,
+                                    source_terms=source_terms_convergence_test,
                                     boundary_conditions=boundary_conditions)
 
 

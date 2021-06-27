@@ -27,8 +27,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
       linf = [1.6205433861493646e-7, 1.465427772462391e-7, 5.372255111879554e-7])
   end
 
-  @trixi_testset "elixir_euler_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic.jl"),
+  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
       l2   = [3.8099996914101204e-6, 1.6745575717106341e-6, 7.732189531480852e-6],
       linf = [1.2971473393186272e-5, 9.270328934274374e-6, 3.092514399671842e-5])
   end
