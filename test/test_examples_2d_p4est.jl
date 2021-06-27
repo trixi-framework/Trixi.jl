@@ -15,14 +15,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_
       linf = [6.437440532947036e-5])
   end
 
-  @trixi_testset "elixir_advection_non_conforming_flag.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_non_conforming_flag.jl"),
+  @trixi_testset "elixir_advection_nonconforming.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
       l2   = [2.58174252995893e-5],
       linf = [2.65115939055204e-4])
   end
 
-  @trixi_testset "elixir_advection_non_conforming_flag_unstructured.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_non_conforming_flag_unstructured.jl"),
+  @trixi_testset "elixir_advection_nonconforming_unstructured.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_unstructured.jl"),
       l2   = [3.038384623519386e-3],
       linf = [6.324792487776842e-2])
   end
