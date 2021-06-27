@@ -5,10 +5,8 @@ using Trixi
 ###############################################################################
 # create a restart file
 
-elixir_file = "elixir_advection_extended_p4est.jl"
-restart_file = "restart_000047.h5"
-
-trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
+trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_basic.jl"),
+              trees_per_dimension=(2, 2, 2))
 
 
 ###############################################################################
@@ -17,10 +15,10 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 # Note: If you get a restart file from somewhere else, you need to provide
 # appropriate setups in the elixir loading a restart file
 
-restart_filename = joinpath("out", restart_file)
+restart_filename = joinpath("out", "restart_000017.h5")
 mesh = load_mesh(restart_filename)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
 tspan = (load_time(restart_filename), 2.0)
 ode = semidiscretize(semi, tspan, restart_filename);
