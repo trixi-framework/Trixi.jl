@@ -584,7 +584,8 @@ end
 
 
 """
-    flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
+    flux_kennedy_gruber(u_ll, u_rr, orientation_or_normal_direction,
+                        equations::CompressibleEulerEquations3D)
 
 Kinetic energy preserving two-point flux by
 - Kennedy and Gruber (2008)

@@ -760,6 +760,29 @@ Kinetic energy preserving two-point flux by
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux_kennedy_gruber(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+  # Average each factor of products in flux
+  rho_avg = 0.5 * (rho_ll + rho_rr)
+  v1_avg  = 0.5 * (v1_ll + v1_rr)
+  v2_avg  = 0.5 * (v2_ll + v2_rr)
+  v3_avg  = 0.5 * (v3_ll + v3_rr)
+  v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2] + v3_avg * normal_direction[3]
+  p_avg = 0.5 * (p_ll + p_rr)
+  e_avg = 0.5 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_avg * v_dot_n_avg
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  Float64 = f1 * e_avg + p_avg * v_dot_n_avg
+
+  return SVector(f1, f2, f3, f4)
+end
+
 
 """
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
