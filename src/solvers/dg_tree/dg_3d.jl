@@ -298,7 +298,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, CurvedMesh{3}},
+                               mesh::Union{TreeMesh{3}, CurvedMesh{3}, P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
