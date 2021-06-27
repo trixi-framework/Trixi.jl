@@ -11,7 +11,11 @@ In general, the elixirs are sorted by
 - the spatial dimension,
 - and the discretization type
 
-at the top level. Inside each folder, the elixirs are sorted by the equations.
+at the top level. Inside each folder, the elixirs are sorted by the equations,
+then the setup, and then, optionally, configuration details. For example,
+`elixir_euler_kelvin_helmholtz_instability_amr.jl` indicates an *elixir* for the
+compressible *Euler* equations, running the *Kelvin-Helmholtz instability* setup
+with adaptive mesh refinement (*AMR*) enabled.
 
 There are also a few files that were configured such that they lend themselves
 to doing convergence tests with `convergence_test`, i.e., to determine the
