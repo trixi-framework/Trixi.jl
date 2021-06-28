@@ -128,7 +128,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{1}, CurvedMesh{1}},
+                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -434,7 +434,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
 end
 
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, CurvedMesh{1}},
+function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
@@ -452,7 +452,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, CurvedMesh{1}},
 end
 
 
-function apply_jacobian!(du, mesh::Union{TreeMesh{1}, CurvedMesh{1}},
+function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                          equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)

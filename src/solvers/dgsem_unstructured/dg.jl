@@ -11,7 +11,7 @@
 end
 
 
-@inline ndofs(mesh::UnstructuredQuadMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+@inline ndofs(mesh::UnstructuredMesh2D, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
 # 2D unstructured DG implementation

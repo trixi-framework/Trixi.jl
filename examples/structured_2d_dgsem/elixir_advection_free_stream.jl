@@ -19,19 +19,19 @@ function mapping(xi_, eta_)
   xi = 1.5 * xi_ + 1.5
   eta = 1.5 * eta_ + 1.5
 
-  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) * 
+  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) *
                    cos(0.5 * pi * (2 * eta - 3)/3))
 
-  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) * 
+  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) *
                   cos(2 * pi * (2 * y - 3)/3))
-  
+
   return SVector(x, y)
 end
 
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

@@ -1,5 +1,5 @@
 # Initialize data structures in element container
-function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBasis)
+function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, left_neighbors,
           jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
@@ -28,7 +28,7 @@ end
 # `mesh.mapping` is passed as an additional argument for type stability (function barrier)
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, mapping,
-                                mesh::CurvedMesh{2},
+                                mesh::StructuredMesh{2},
                                 basis::LobattoLegendreBasis)
   @unpack nodes = basis
 
@@ -128,7 +128,7 @@ end
 
 
 # Save id of left neighbor of every element
-function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{2}, linear_indices)
+function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{2}, linear_indices)
   # Neighbors in x-direction
   for cell_y in 1:size(mesh, 2)
     # Inner elements

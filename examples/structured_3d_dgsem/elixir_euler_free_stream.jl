@@ -36,7 +36,7 @@ end
 
 cells_per_dimension = (4, 4, 4)
 
-mesh = CurvedMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 

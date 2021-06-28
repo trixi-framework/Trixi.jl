@@ -1,6 +1,6 @@
 # Unstructured quadrilateral mesh
 
-The [`UnstructuredQuadMesh`](@ref) is an unstructured, possibly curvilinear,
+The [`UnstructuredMesh2D`](@ref) is an unstructured, possibly curvilinear,
 conforming mesh type in two space dimensions.
 Due to its curvilinear nature, (numerical) fluxes need to implement methods
 dispatching on the `normal::AbstractVector`. Rotationally invariant equations

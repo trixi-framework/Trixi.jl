@@ -43,7 +43,7 @@ mapping(xi, eta) = SVector(xi + eta, eta)
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements, periodic in both dimensions
-mesh = CurvedMesh(cells_per_dimension, mapping; periodicity=(true, true))
+mesh = StructuredMesh(cells_per_dimension, mapping; periodicity=(true, true))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_parallelogram, solver)

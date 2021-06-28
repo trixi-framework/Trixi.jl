@@ -93,7 +93,7 @@ default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_
     default_example_unstructured()
 
 Return the path to an example elixir that can be used to quickly see Trixi in action on an
-[`UnstructuredQuadMesh`]@(ref). This simulation is run on the example curved, unstructured mesh
+[`UnstructuredMesh2D`]@(ref). This simulation is run on the example curved, unstructured mesh
 given in the Trixi documentation regarding unstructured meshes.
 """
 default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")

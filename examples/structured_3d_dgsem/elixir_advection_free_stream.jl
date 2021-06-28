@@ -18,25 +18,25 @@ function mapping(xi_, eta_, zeta_)
   eta = 1.5 * eta_ + 1.5
   zeta = 1.5 * zeta_ + 1.5
 
-  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) * 
-                   cos(0.5 * pi * (2 * eta - 3)/3) * 
+  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) *
+                   cos(0.5 * pi * (2 * eta - 3)/3) *
                    cos(0.5 * pi * (2 * zeta - 3)/3))
 
-  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) * 
-                  cos(2 * pi * (2 * y - 3)/3) * 
+  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) *
+                  cos(2 * pi * (2 * y - 3)/3) *
                   cos(0.5 * pi * (2 * zeta - 3)/3))
 
-  z = zeta + 3/8 * (cos(0.5 * pi * (2 * x - 3)/3) * 
-                    cos(pi * (2 * y - 3)/3) * 
+  z = zeta + 3/8 * (cos(0.5 * pi * (2 * x - 3)/3) *
+                    cos(pi * (2 * y - 3)/3) *
                     cos(0.5 * pi * (2 * zeta - 3)/3))
-  
+
   return SVector(x, y, z)
 end
 
 cells_per_dimension = (8, 8, 8)
 
 # Create curved mesh with 8 x 8 x 8 elements
-mesh = CurvedMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant, solver)

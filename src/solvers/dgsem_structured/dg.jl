@@ -1,7 +1,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::CurvedMesh, equations::AbstractEquations, dg::DG, ::Any, ::Type{uEltype}) where {uEltype<:Real}
+function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG, ::Any, ::Type{uEltype}) where {uEltype<:Real}
   elements = init_elements(mesh, equations, dg.basis, uEltype)
 
   cache = (; elements)
@@ -20,7 +20,7 @@ end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
-                                                  mesh::CurvedMesh, equations,
+                                                  mesh::StructuredMesh, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
   @assert isperiodic(mesh, orientation)
@@ -29,7 +29,7 @@ end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t, orientation,
                                                   boundary_condition,
-                                                  mesh::CurvedMesh, equations,
+                                                  mesh::StructuredMesh, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices, surface_node_indices, element)
   @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
@@ -58,7 +58,7 @@ end
 end
 
 
-@inline ndofs(mesh::CurvedMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+@inline ndofs(mesh::StructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
 include("containers.jl")

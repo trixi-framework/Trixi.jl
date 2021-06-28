@@ -1,7 +1,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::UnstructuredQuadMesh, equations,
+function create_cache(mesh::UnstructuredMesh2D, equations,
                       dg::DG, RealT, uEltype)
 
   polydeg_ = polydeg(dg.basis)
@@ -29,7 +29,7 @@ end
 
 
 function rhs!(du, u, t,
-              mesh::UnstructuredQuadMesh, equations,
+              mesh::UnstructuredMesh2D, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -78,7 +78,7 @@ end
 
 # Calculate 2D twopoint contravariant flux (element version)
 @inline function calcflux_twopoint!(ftilde1, ftilde2, u::AbstractArray{<:Any,4}, element,
-                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
                                     equations, volume_flux, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
 
@@ -133,7 +133,7 @@ end
 
 function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{true},
-                                            mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh},
+                                            mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
                                             equations, dg::DG, cache)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
@@ -144,7 +144,7 @@ end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{false}, element,
-                                    mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh}, equations,
+                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
@@ -212,7 +212,7 @@ end
 # prolong the solution into the convenience array in the interior interface container
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
 function prolong2interfaces!(cache, u,
-                             mesh::UnstructuredQuadMesh,
+                             mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
   @unpack interfaces = cache
 
@@ -267,7 +267,7 @@ end
 # compute the numerical flux interface coupling between two elements on an unstructured
 # quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
-                              mesh::UnstructuredQuadMesh,
+                              mesh::UnstructuredMesh2D,
                               nonconservative_terms::Val{false}, equations,
                               surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
@@ -321,7 +321,7 @@ end
 # compute the numerical flux interface with nonconservative terms coupling between two elements
 # on an unstructured quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
-                              mesh::UnstructuredQuadMesh,
+                              mesh::UnstructuredMesh2D,
                               nonconservative_terms::Val{true}, equations,
                               surface_integral, dg::DG, cache)
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -433,7 +433,7 @@ end
 
 # move the approximate solution onto physical boundaries within a "right-handed" element
 function prolong2boundaries!(cache, u,
-                             mesh::UnstructuredQuadMesh,
+                             mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
 
@@ -466,7 +466,7 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{UnstructuredQuadMesh, P4estMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh},
                              equations, surface_integral, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
@@ -474,7 +474,7 @@ end
 
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::Union{UnstructuredQuadMesh, P4estMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh},
                              equations, surface_integral, dg::DG)
   @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
@@ -488,7 +488,7 @@ end
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N,Any},
                                      BC_indices::NTuple{N,Vector{Int}},
-                                     mesh::Union{UnstructuredQuadMesh, P4estMesh},
+                                     mesh::Union{UnstructuredMesh2D, P4estMesh},
                                      equations, surface_integral, dg::DG) where {N}
   # Extract the boundary condition type and index vector
   boundary_condition = first(BCs)
@@ -511,14 +511,14 @@ end
 
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     mesh::Union{UnstructuredQuadMesh, P4estMesh},
+                                     mesh::Union{UnstructuredMesh2D, P4estMesh},
                                      equations, surface_integral, dg::DG)
   nothing
 end
 
 
 function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
-                             mesh::UnstructuredQuadMesh, equations,
+                             mesh::UnstructuredMesh2D, equations,
                              surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack element_id, element_side_id = cache.boundaries
@@ -544,7 +544,7 @@ end
 # inlined version of the boundary flux calculation along a physical interface where the
 # boundary flux values are set according to a particular `boundary_condition` function
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::UnstructuredQuadMesh, equations,
+                                     mesh::UnstructuredMesh2D, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index, boundary_index)
   @unpack normal_directions = cache.elements
@@ -571,9 +571,9 @@ end
 
 
 # Note! The local side numbering for the unstructured quadrilateral element implementation differs
-#       from the structured TreeMesh or CurvedMesh local side numbering:
+#       from the structured TreeMesh or StructuredMesh local side numbering:
 #
-#      TreeMesh/CurvedMesh sides   versus   UnstructuredMesh sides
+#      TreeMesh/StructuredMesh sides   versus   UnstructuredMesh sides
 #                  4                                  3
 #          -----------------                  -----------------
 #          |               |                  |               |
@@ -584,7 +584,7 @@ end
 #          -----------------                  -----------------
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
-function calc_surface_integral!(du, u, mesh::UnstructuredQuadMesh,
+function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
@@ -612,7 +612,7 @@ end
 # that the approxmiation will be free-stream preserving (i.e. a constant solution remains constant)
 # on a curvilinear mesh.
 #   Note! Independent of the equation system and is only a check on the discrete mapping terms.
-#         Can be used for a metric identities check on CurvedMesh{2} or UnstructuredQuadMesh
+#         Can be used for a metric identities check on StructuredMesh{2} or UnstructuredMesh2D
 function max_discrete_metric_identities(dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements

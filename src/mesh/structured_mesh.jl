@@ -1,5 +1,5 @@
 """
-    CurvedMesh{NDIMS} <: AbstractMesh{NDIMS}
+    StructuredMesh{NDIMS} <: AbstractMesh{NDIMS}
 
 A structured curved mesh.
 
@@ -9,7 +9,7 @@ can be used as domain faces.
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
+mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
   mapping::Any # Not relevant for performance
   mapping_as_string::String
@@ -20,9 +20,9 @@ end
 
 
 """
-    CurvedMesh(cells_per_dimension, mapping, RealT; unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
+    StructuredMesh(cells_per_dimension, mapping, RealT; unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
 
-Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
+Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
@@ -40,7 +40,7 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
                                The code string must define the mapping function with the name `mapping`.
                                This will be changed in the future, see https://github.com/trixi-framework/Trixi.jl/issues/541.
 """
-function CurvedMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true,
+function StructuredMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true,
                     mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
   NDIMS = length(cells_per_dimension)
 
@@ -56,14 +56,14 @@ function CurvedMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=tru
     periodicity = Tuple(periodicity)
   end
 
-  return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping, mapping_as_string, periodicity, "", unsaved_changes)
+  return StructuredMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping, mapping_as_string, periodicity, "", unsaved_changes)
 end
 
 
 """
-    CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
+    StructuredMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
 
-Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
+Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
@@ -79,7 +79,7 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function CurvedMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicity=true)
+function StructuredMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicity=true)
   NDIMS = length(cells_per_dimension)
 
   validate_faces(faces)
@@ -97,14 +97,14 @@ function CurvedMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicit
   # without knowing the face functions
   mapping_as_string = "$faces_definition; faces = $(string(faces)); mapping = transfinite_mapping(faces)"
 
-  return CurvedMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
+  return StructuredMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
 
 """
-    CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
+    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
-Create a CurvedMesh that represents a uncurved structured mesh with a rectangular domain.
+Create a StructuredMesh that represents a uncurved structured mesh with a rectangular domain.
 
 # Arguments
 - `cells_per_dimension::NTuple{NDIMS, Int}`: the number of cells in each dimension.
@@ -113,7 +113,7 @@ Create a CurvedMesh that represents a uncurved structured mesh with a rectangula
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
+function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
   NDIMS = length(cells_per_dimension)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
@@ -121,7 +121,7 @@ function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max; perio
   mapping_as_string = "coordinates_min = $coordinates_min; " *
                       "coordinates_max = $coordinates_max; " *
                       "mapping = coordinates2mapping(coordinates_min, coordinates_max)"
-  return CurvedMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
+  return StructuredMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
 
@@ -288,27 +288,27 @@ end
 
 
 # Check if mesh is periodic
-isperiodic(mesh::CurvedMesh) = all(mesh.periodicity)
-isperiodic(mesh::CurvedMesh, dimension) = mesh.periodicity[dimension]
+isperiodic(mesh::StructuredMesh) = all(mesh.periodicity)
+isperiodic(mesh::StructuredMesh, dimension) = mesh.periodicity[dimension]
 
-@inline Base.ndims(::CurvedMesh{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
-Base.size(mesh::CurvedMesh) = mesh.cells_per_dimension
-Base.size(mesh::CurvedMesh, i) = mesh.cells_per_dimension[i]
-Base.axes(mesh::CurvedMesh) = map(Base.OneTo, mesh.cells_per_dimension)
-Base.axes(mesh::CurvedMesh, i) = Base.OneTo(mesh.cells_per_dimension[i])
+@inline Base.ndims(::StructuredMesh{NDIMS}) where {NDIMS} = NDIMS
+@inline Base.real(::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+Base.size(mesh::StructuredMesh) = mesh.cells_per_dimension
+Base.size(mesh::StructuredMesh, i) = mesh.cells_per_dimension[i]
+Base.axes(mesh::StructuredMesh) = map(Base.OneTo, mesh.cells_per_dimension)
+Base.axes(mesh::StructuredMesh, i) = Base.OneTo(mesh.cells_per_dimension[i])
 
 
-function Base.show(io::IO, mesh::CurvedMesh)
-  print(io, "CurvedMesh{", ndims(mesh), ", ", real(mesh), "}")
+function Base.show(io::IO, mesh::StructuredMesh)
+  print(io, "StructuredMesh{", ndims(mesh), ", ", real(mesh), "}")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh)
+function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "CurvedMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
+    summary_header(io, "StructuredMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}")
     summary_line(io, "size", size(mesh))
 
     summary_line(io, "mapping", "")

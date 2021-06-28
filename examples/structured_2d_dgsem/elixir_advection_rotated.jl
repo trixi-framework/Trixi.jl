@@ -72,7 +72,7 @@ mapping(xi, eta) = T * SVector(2 * xi, eta)
 cells_per_dimension = (32, 19)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

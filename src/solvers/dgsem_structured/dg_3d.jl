@@ -1,5 +1,5 @@
 function rhs!(du, u, t,
-              mesh::CurvedMesh{3}, equations,
+              mesh::StructuredMesh{3}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -38,7 +38,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{CurvedMesh{3}, P4estMesh{3}},
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -91,7 +91,7 @@ end
 
 # Calculate 3D twopoint contravariant flux (element version)
 @inline function calcflux_twopoint!(ftilde1, ftilde2, ftilde3, u::AbstractArray{<:Any,5}, element,
-                                    mesh::CurvedMesh{3}, equations, volume_flux, dg::DGSEM, cache)
+                                    mesh::StructuredMesh{3}, equations, volume_flux, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
 
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -175,7 +175,7 @@ end
 
 function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
                                             nonconservative_terms::Val{true},
-                                            mesh::CurvedMesh{3},
+                                            mesh::StructuredMesh{3},
                                             equations, dg::DG, cache)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
@@ -190,7 +190,7 @@ end
 # the physical fluxes in each Cartesian direction
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
                                     nonconservative_terms::Val{false}, element,
-                                    mesh::Union{CurvedMesh{3}, P4estMesh{3}},
+                                    mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     equations, volume_flux, dg::DGSEM, cache,
                                     alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
@@ -295,7 +295,7 @@ end
 end
 
 
-function calc_interface_flux!(cache, u, mesh::CurvedMesh{3},
+function calc_interface_flux!(cache, u, mesh::StructuredMesh{3},
                               nonconservative_terms, # can be Val{true}/Val{false}
                               equations, surface_integral, dg::DG)
   @unpack elements = cache
@@ -332,7 +332,7 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::CurvedMesh{3},
+                                      mesh::StructuredMesh{3},
                                       nonconservative_terms::Val{false}, equations,
                                       surface_integral, dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
@@ -398,7 +398,7 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::CurvedMesh{3},
+                                      mesh::StructuredMesh{3},
                                       nonconservative_terms::Val{true}, equations,
                                       surface_integral, dg::DG, cache)
   # See comment on `calc_interface_flux!` with `nonconservative_terms::Val{false}`
@@ -470,13 +470,13 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::CurvedMesh{3}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{3}, equations, surface_integral, dg::DG)
   @assert isperiodic(mesh)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             mesh::CurvedMesh{3}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{3}, equations, surface_integral, dg::DG)
   calc_boundary_flux!(cache, u, t,
                       (boundary_condition, boundary_condition, boundary_condition,
                        boundary_condition, boundary_condition, boundary_condition),
@@ -485,7 +485,7 @@ end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             mesh::CurvedMesh{3}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{3}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
 
@@ -564,7 +564,7 @@ end
 
 
 function apply_jacobian!(du,
-                         mesh::Union{CurvedMesh{3}, P4estMesh{3}},
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                          equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
