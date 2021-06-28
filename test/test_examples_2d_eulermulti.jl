@@ -6,7 +6,7 @@ using Trixi
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
 @testset "Compressible Euler Multicomponent" begin
   # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
@@ -46,14 +46,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [2.48820395e-01, 2.48311640e-01, 9.35790843e-01, 1.72574990e-02, 3.45149980e-02, 6.90299959e-02, 1.38059992e-01])
   end
 
-  @trixi_testset "elixir_eulermulti_eoc_ec.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_eoc_ec.jl"),
+  @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
       l2   = [1.15269058e-04, 1.15269058e-04, 1.66578747e-04, 4.61097337e-05, 9.22194673e-05],
       linf = [5.05618608e-04, 5.05618608e-04, 7.87591809e-04, 2.06476960e-04, 4.12953919e-04])
   end
 
-  @trixi_testset "elixir_eulermulti_eoc_es.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_eoc_es.jl"),
+  @trixi_testset "elixir_eulermulti_convergence_es.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
       l2   = [1.74779183e-06, 1.74779183e-06, 5.62550396e-06, 6.15682712e-07, 1.23136542e-06],
       linf = [1.51966473e-05, 1.51966473e-05, 5.51065526e-05, 5.58096521e-06, 1.11619304e-05])
   end

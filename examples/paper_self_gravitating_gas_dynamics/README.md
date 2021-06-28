@@ -13,14 +13,14 @@ https://doi.org/10.5281/zenodo.3996575.
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_euler_eoc_test.jl", 4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_euler_convergence.jl", 4)
 ```
 
 **polydeg = 4**:
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_euler_eoc_test.jl", 4, polydeg=4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_euler_convergence.jl", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.2, Table 3, EOC tests hyperbolic diffusion
@@ -28,14 +28,14 @@ julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_eul
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_hypdiff_eoc_test.jl", 4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_hypdiff_convergence.jl", 4)
 ```
 
 **polydeg = 4**:
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_hypdiff_eoc_test.jl", 4, polydeg=4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_hypdiff_convergence.jl", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 4, EOC tests coupled Euler-gravity
@@ -43,14 +43,14 @@ julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_hyp
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_eoc_test.jl", 4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_convergence.jl", 4)
 ```
 
 **polydeg = 4**:
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_eoc_test.jl", 4, polydeg=4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_convergence.jl", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 5, EOC tests coupled Euler-gravity (update gravity once per step)
@@ -60,7 +60,7 @@ This is only available in Trixi `v0.2`.
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_jeans_instability.jl")
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_jeans_instability.jl")
 ```
 
 ## Sec. 4.2.1, Figure 4, Jeans energies with Euler/CK45 and gravity/CK45 (update gravity once per step)
@@ -70,7 +70,7 @@ This is only available in Trixi `v0.2`.
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_jeans_instability.jl",
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_jeans_instability.jl",
                       parameters=ParametersEulerGravity(background_density=1.5e7,
                                                         gravitational_constant=6.674e-8,
                                                         cfl=2.4,
@@ -84,7 +84,7 @@ One must also shrink the analysis interval in the above command, e.g.,
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_jeans_instability.jl",
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_jeans_instability.jl",
                      analysis_interval=1)
 ```
 to generate necessary data for the plots to look nice. Then run the python
@@ -99,14 +99,14 @@ to generate the figure.
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl", tspan=(0.0, 0.5))
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl", tspan=(0.0, 0.5))
 ```
 
 **T = 1.0:**
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl")
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl")
 ```
 
 ## Sec. 4.2.2, Figure 7a, T=0.5, Sedov + gravity with Euler/CK45 and gravity/RK3S*
@@ -114,14 +114,14 @@ julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulerg
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl", tspan=(0.0, 0.5))
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl", tspan=(0.0, 0.5))
 ```
 
 **Uniform mesh:**
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl",
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl",
                      amr_callback=TrivialCallback(), initial_refinement_level=8, t_end=0.5)
 ```
 
@@ -130,14 +130,14 @@ julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulerg
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl")
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl")
 ```
 
 **Uniform mesh:**
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl",
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl",
                      amr_callback=TrivialCallback(), initial_refinement_level=8)
 ```
 
@@ -146,14 +146,14 @@ julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulerg
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl")
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl")
 ```
 
 **Uniform mesh:**
 ```julia
 julia> using Trixi
 
-julia> trixi_include("examples/paper-self-gravitating-gas-dynamics/elixir_eulergravity_sedov_blast_wave.jl",
+julia> trixi_include("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_sedov_blast_wave.jl",
                      amr_callback=TrivialCallback(), initial_refinement_level=8)
 ```
 

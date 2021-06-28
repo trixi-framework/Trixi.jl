@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # create a restart file
 
-trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_basic_curved.jl"), 
+trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_basic.jl"),
               cells_per_dimension=(4, 4, 4))
 
 

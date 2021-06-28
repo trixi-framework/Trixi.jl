@@ -10,61 +10,61 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "paper-self-gravitating-gas-dynamics")
+const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "paper_self_gravitating_gas_dynamics")
 
 # Numerical examples from the Euler-gravity paper
-@testset "paper-self-gravitating-gas-dynamics" begin
-  @trixi_testset "elixir_euler_eoc_test.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_test.jl"),
+@testset "paper_self_gravitating_gas_dynamics" begin
+  @trixi_testset "elixir_euler_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
       l2   = [0.0001740977055972079, 0.0003369355182519592, 0.0003369355182518708, 0.0006099171220334989],
       linf = [0.001079347149189669, 0.0018836938381321389, 0.001883693838132583, 0.003971575376718217])
   end
 
-  @trixi_testset "elixir_euler_eoc_test.jl with polydeg=4" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_test.jl"),
+  @trixi_testset "elixir_euler_convergence.jl with polydeg=4" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
       l2   = [1.7187201161597772e-5, 2.678065111772951e-5, 2.678065111783027e-5, 4.952504160091526e-5],
       linf = [0.0001501749544159381, 0.00016549482504535362, 0.00016549482504601976, 0.0004372960291432193],
       polydeg = 4)
   end
 
 
-  @trixi_testset "elixir_hypdiff_eoc_test.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_eoc_test.jl"),
+  @trixi_testset "elixir_hypdiff_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_convergence.jl"),
       l2   = [0.003154024896093942, 0.012394432074951856, 0.02185973823794725],
       linf = [0.01731850928579215, 0.07843510773347553, 0.11242300176349201])
   end
 
-  @trixi_testset "elixir_hypdiff_eoc_test.jl with polydeg=4" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_eoc_test.jl"),
+  @trixi_testset "elixir_hypdiff_convergence.jl with polydeg=4" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_convergence.jl"),
       l2   = [0.0002511283012128458, 0.0008808243846610255, 0.0016313343228567005],
       linf = [0.0017290715087938668, 0.003129184465704738, 0.01000728849316701],
       polydeg = 4)
   end
 
 
-  @trixi_testset "elixir_eulergravity_eoc_test.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
+  @trixi_testset "elixir_eulergravity_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
       linf = [0.0015813032944647087, 0.0020494288423820173, 0.0020494288423824614, 0.004793821195083758],
       tspan = (0.0, 0.1))
   end
 
-  @trixi_testset "elixir_eulergravity_eoc_test.jl with polydeg=4" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
+  @trixi_testset "elixir_eulergravity_convergence.jl with polydeg=4" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [1.9537712148648045e-5, 2.7564396197947587e-5, 2.7564396197967635e-5, 5.688838772067586e-5],
       linf = [0.00012335710672761735, 0.00020086268350816283, 0.00020086268350727465, 0.0004962155455632278],
       tspan = (0.0, 0.1), polydeg = 4)
   end
 
-  @trixi_testset "elixir_eulergravity_eoc_test.jl with 1st order RK3S*" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
+  @trixi_testset "elixir_eulergravity_convergence.jl with 1st order RK3S*" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [0.00024871265138959434, 0.000337007710281087, 0.0003370077102811394, 0.0007231525515231289],
       linf = [0.0015813032941613958, 0.002049428843978518, 0.0020494288439798503, 0.004793821198143977],
       tspan = (0.0, 0.1), timestep_gravity=Trixi.timestep_gravity_erk51_3Sstar!)
   end
 
-  @trixi_testset "elixir_eulergravity_eoc_test.jl with 3rd order RK3S*" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
+  @trixi_testset "elixir_eulergravity_convergence.jl with 3rd order RK3S*" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [0.0002487126513894034, 0.00033700771023049785, 0.00033700771023048245, 0.0007231525514158737],
       linf = [0.0015813032943847727, 0.002049428842844314, 0.0020494288428452023, 0.004793821195971937],
       tspan = (0.0, 0.1), timestep_gravity=Trixi.timestep_gravity_erk53_3Sstar!)

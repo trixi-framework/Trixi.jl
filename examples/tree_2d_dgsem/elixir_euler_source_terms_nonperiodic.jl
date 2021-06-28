@@ -9,8 +9,6 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-source_terms = source_terms_convergence_test
-
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
@@ -21,12 +19,17 @@ boundary_conditions = (x_neg=boundary_condition,
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (2.0, 2.0)
-mesh = CurvedMesh((16, 16), coordinates_min, coordinates_max, periodicity=false)
+
+coordinates_min = (0, 0)
+coordinates_max = (2, 2)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level=4,
+                n_cells_max=10_000,
+                periodicity=false)
+
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms,
+                                    source_terms=source_terms_convergence_test,
                                     boundary_conditions=boundary_conditions)
 
 
