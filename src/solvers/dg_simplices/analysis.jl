@@ -1,6 +1,5 @@
 # !!! warning "Experimental features"
 
-# Todo: make these two functions more efficient. Both currently allocate several fairly large arrays. 
 function calc_error_norms(func, u::StructArray, t, analyzer,
                           mesh::AbstractMeshData{Dim}, equations, initial_condition,
                           dg::DG{<:RefElemData{Dim}}, cache, cache_analysis) where {Dim}
@@ -9,19 +8,17 @@ function calc_error_norms(func, u::StructArray, t, analyzer,
   @unpack u_values = cache
 
   # interpolate u to quadrature points
-  StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u) 
+  StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)   
 
-  # convert md.xyz::NTuple{Dim,Matrix} to StructArray for broadcasting
-  xyzq = StructArray{SVector{Dim,real(dg)}}(md.xyzq)
-  u_exact_values = initial_condition.(xyzq, t, equations) # todo: move to cache
-
-  # `pointwise_error` is a StructArray{SVector{nvariables(equations),real(dg)}}, so to square each entry 
-  # we need to apply a double broadcast (x->x.^2). 
-  pointwise_error = func.(u_values, equations) - func.(u_exact_values, equations) # todo: for loop to avoid allocations
-  component_l2_errors = sqrt.(sum(md.wJq .* (x->x.^2).(pointwise_error)))
-  component_linf_errors = maximum((x->abs.(x)).(pointwise_error))
-
-  return component_l2_errors, component_linf_errors
+  component_l2_errors = zero(eltype(u_values))
+  component_linf_errors = similar(component_l2_errors)
+  for i in each_quad_node_global(mesh, dg, cache)
+    u_exact = initial_condition(getindex.(md.xyzq, i), t, equations)
+    error_at_node = func(u_values[i], equations) - func(u_exact, equations)
+    component_l2_errors += md.wJq[i] * error_at_node.^2
+    component_linf_errors = max.(component_linf_errors, abs.(error_at_node))
+  end   
+  return sqrt.(component_l2_errors), component_linf_errors
 end
 
 function integrate(func::Func, u,
@@ -49,15 +46,14 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
   @unpack u_values = cache
 
   # interpolate u, du to quadrature points
-  du_values = similar(u_values) # todo: move to cache
+  du_values = similar(u_values) # Todo: simplices. Can we move this to the analysis cache somehow?
   StructArrays.foreachfield(mul_by!(rd.Vq), du_values, du) 
   StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u) 
 
-  # compute ∫v(u) * du/dt = ∫dS/dt. We can directly compute v(u) instead of 
-  # computing the entropy projection here, since the RHS will be projected 
-  # to polynomials of degree N and testing with the L2 projection of v(u) 
-  # would be equivalent to testing with v(u) due to the moment-preserving 
-  # property of the L2 projection.
+  # compute ∫v(u) * du/dt = ∫dS/dt. We can directly compute v(u) instead of computing the entropy 
+  # projection here, since the RHS will be projected to polynomials of degree N and testing with 
+  # the L2 projection of v(u) would be equivalent to testing with v(u) due to the moment-preserving 
+  # property of the L2 projection. 
   dS_dt = zero(eltype(first(du)))
   for i in Base.OneTo(length(md.wJq)) 
     dS_dt += dot(cons2entropy(u_values[i],equations), du_values[i]) * md.wJq[i]
@@ -68,11 +64,12 @@ end
 function create_cache_analysis(analyzer, mesh::AbstractMeshData,
                                equations, dg::DG{<:RefElemData}, cache,
                                RealT, uEltype)
-  return (; )               
+  md = mesh.md
+
+  return (; )
 end
 
-## todo: what else is required in the interface for AnalysisCallback?
 SolutionAnalyzer(rd::RefElemData) = rd
 
 # can we add mesh as an argument to this?
-nelements(solver::DG{<:RefElemData}, cache) = size(cache.u_values,2) 
+nelements(solver::DG{<:RefElemData}, cache) = size(cache.u_values, 2) 

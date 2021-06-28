@@ -1,7 +1,6 @@
 # !!! warning "Experimental features"
 
-# todo: replace mul! by Octavian.matmul!
-# todo: add @threaded 
+# Todo: simplices. Investigate replacing `mul!` by `Octavian.matmul!` for additional speedup.
 
 # out <- A*x
 mul_by!(A) = let A = A 
@@ -89,7 +88,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
 
   nvars = nvariables(equations)
 
-  # todo: factor common storage into a struct (MeshDataCache?) for reuse 
+  # Todo: simplices. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
   # storage for volume quadrature values, face quadrature values, flux values
   u_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq, md.num_elements), nvars))
   u_face_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nfq, md.num_elements), nvars))
@@ -113,8 +112,8 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
   # interpolate to quadrature points
   StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
 
-  # todo: dispatch on curved/non-curved mesh types. This only works for affine meshes (accessing rxJ[1,e],...)
-  for e in eachelement(mesh,dg,cache)
+  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  @threaded for e in eachelement(mesh, dg, cache)
     flux_values .= flux.(view(u_values,:,e), 1, equations)
     StructArrays.foreachfield(mul_by_accum!(invMQrTrW, rxJ[1,e]), view(du,:,e), flux_values)
     StructArrays.foreachfield(mul_by_accum!(invMQsTrW, sxJ[1,e]), view(du,:,e), flux_values)
@@ -237,10 +236,10 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
 end
    
-# todo: specialize for modal DG on curved meshes using WADG
+# Todo: simplices. Specialize for modal DG on curved meshes using WADG
 function invert_jacobian!(du, mesh::Mesh, equations, dg::DG{<:RefElemData}, 
                           cache) where {Mesh <: AbstractMeshData} 
-  for i in eachdoftotal(mesh, dg, cache)
+  @threaded for i in each_dof_global(mesh, dg, cache)
     du[i] *= -cache.invJ[i]
   end
 end
@@ -249,7 +248,6 @@ calc_sources!(du, u, t, source_terms::Nothing,
               mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData}, cache) = nothing
 
 # uses quadrature + projection to compute source terms. 
-# todo: use interpolation here instead of quadrature? Would be cheaper. 
 function calc_sources!(du, u, t, source_terms::SourceTerms, 
                        mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData}, cache) where {SourceTerms}
 
