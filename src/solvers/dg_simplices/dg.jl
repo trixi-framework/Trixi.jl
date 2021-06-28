@@ -24,18 +24,18 @@ const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar,
 # this is necessary for pretty printing
 Base.real(rd::RefElemData{Dims, Elem, ApproxType, Nfaces, RealT}) where {Dims, Elem, ApproxType, Nfaces, RealT} = RealT
 
-# iteration over quantities in a single element
-eachfacenode(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq)
-eachquadnode(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq)
-
 # iteration over all elements in a mesh
+ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = dg.basis.Np * mesh.md.num_elements
 eachelement(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(mesh.md.num_elements)
 
+# iteration over quantities in a single element
+each_face_node(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq)
+each_quad_node(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq)
+
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes). 
-ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = dg.basis.Np * mesh.md.num_elements
-eachdoftotal(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(ndofs(mesh,dg,cache))
-eachquadnodetotal(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
-eachfacenodetotal(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
+each_dof_global(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(ndofs(mesh, dg, cache))
+each_quad_node_global(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+each_face_node_global(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
