@@ -13,7 +13,7 @@ for elixir in [joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_exten
                joinpath(examples_dir(), "structured_2d_dgsem", "elixir_advection_extended.jl"),
                joinpath(examples_dir(), "structured_2d_dgsem", "elixir_advection_nonperiodic.jl"),
                joinpath(examples_dir(), "structured_2d_dgsem", "elixir_euler_ec.jl"),
-               joinpath(examples_dir(), "strcutured_2d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
+               joinpath(examples_dir(), "structured_2d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
                joinpath(examples_dir(), "structured_2d_dgsem", "elixir_mhd_ec.jl"),
                joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"), # this is the only elixir working for polydeg=3
                joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_advection_extended.jl"),
