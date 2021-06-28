@@ -13,14 +13,14 @@ https://doi.org/10.5281/zenodo.3996575.
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_euler_eoc.jl", 4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_euler_convergence.jl", 4)
 ```
 
 **polydeg = 4**:
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_euler_eoc.jl", 4, polydeg=4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_euler_convergence.jl", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.2, Table 3, EOC tests hyperbolic diffusion
@@ -28,14 +28,14 @@ julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eul
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_hypdiff_eoc.jl", 4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_hypdiff_convergence.jl", 4)
 ```
 
 **polydeg = 4**:
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_hypdiff_eoc.jl", 4, polydeg=4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_hypdiff_convergence.jl", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 4, EOC tests coupled Euler-gravity
@@ -43,14 +43,14 @@ julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_hyp
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_eoc.jl", 4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_convergence.jl", 4)
 ```
 
 **polydeg = 4**:
 ```julia
 julia> using Trixi
 
-julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_eoc.jl", 4, polydeg=4)
+julia> convergence_test("examples/paper_self_gravitating_gas_dynamics/elixir_eulergravity_convergence.jl", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 5, EOC tests coupled Euler-gravity (update gravity once per step)

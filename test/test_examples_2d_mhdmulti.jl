@@ -22,8 +22,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [2.34445200e-01, 2.34641311e-01, 1.18747959e-01, 5.33819926e-01, 6.20443752e-02, 6.20664068e-02, 9.73946982e-02, 4.75640645e-03, 6.21579619e-02, 1.24315924e-01])
   end
 
-  @trixi_testset "elixir_mhdmulti_eoc.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_eoc.jl"),
+  @trixi_testset "elixir_mhdmulti_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_convergence.jl"),
       l2   = [2.59813133e-04, 2.59813133e-04, 4.80423374e-04, 3.28657614e-04, 3.67440987e-04, 3.67440987e-04, 4.99348315e-04, 3.88655564e-04, 5.37357512e-05, 1.07471502e-04, 2.14943005e-04],
       linf = [1.54109844e-03, 1.54109844e-03, 2.39709057e-03, 1.01030991e-03, 1.88632092e-03, 1.88632092e-03, 2.59329609e-03, 1.08934177e-03, 2.13125874e-04, 4.26251747e-04, 8.52503495e-04])
   end

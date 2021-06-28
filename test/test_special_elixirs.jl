@@ -16,23 +16,23 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 @testset "Special elixirs" begin
   @testset "Convergence test" begin
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 3)
-    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
+    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 3)
+    @test isapprox(mean_convergence[:l2], [4.0], rtol=0.01)
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 3)
-    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
+    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 3)
+    @test isapprox(mean_convergence[:l2], [4.0], rtol=0.01)
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic_unstructured.jl"), 3)
-    @test isapprox(mean_eoc[:l2], [3.54, 3.50, 3.50, 3.52], rtol=0.01)
+    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic_unstructured.jl"), 3)
+    @test isapprox(mean_convergence[:l2], [3.54, 3.50, 3.50, 3.52], rtol=0.01)
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_advection_basic.jl"), 2)
-    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
+    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_advection_basic.jl"), 2)
+    @test isapprox(mean_convergence[:l2], [4.0], rtol=0.01)
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_3d_dgsem", "elixir_advection_unstructured_curved.jl"), 2, initial_refinement_level=1)
-    @test isapprox(mean_eoc[:l2], [3.31], rtol=0.01)
+    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_3d_dgsem", "elixir_advection_unstructured_curved.jl"), 2, initial_refinement_level=1)
+    @test isapprox(mean_convergence[:l2], [3.31], rtol=0.01)
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper_self_gravitating_gas_dynamics", "elixir_eulergravity_eoc.jl"), 2, tspan=(0.0, 0.1))
-    @test isapprox(mean_eoc[:l2], 4 * ones(4), atol=0.4)
+    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper_self_gravitating_gas_dynamics", "elixir_eulergravity_convergence.jl"), 2, tspan=(0.0, 0.1))
+    @test isapprox(mean_convergence[:l2], 4 * ones(4), atol=0.4)
   end
 
 

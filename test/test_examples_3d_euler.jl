@@ -15,8 +15,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       linf = [0.034894790428615874, 0.033835365548322116, 0.033835365548322116, 0.03383536554832034, 0.06785765131417065])
   end
 
-  @trixi_testset "elixir_euler_eoc_pure_fv.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_pure_fv.jl"),
+  @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
       l2   = [0.037182410351406,  0.032062252638283974, 0.032062252638283974, 0.03206225263828395,  0.12228177813586687],
       linf = [0.0693648413632646, 0.0622101894740843,   0.06221018947408474,  0.062210189474084965, 0.24196451799555962])
   end
@@ -28,8 +28,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       volume_integral=VolumeIntegralFluxDifferencing(flux_central))
   end
 
-  @trixi_testset "elixir_euler_eoc.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc.jl"),
+  @trixi_testset "elixir_euler_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
       l2   = [0.0003637241020254405, 0.0003955570866382718, 0.0003955570866383613, 0.00039555708663834417, 0.0007811613481640202],
       linf = [0.0024000660244674066, 0.0029635410025339315, 0.0029635410025292686, 0.002963541002525938, 0.007191437359396424])
   end
