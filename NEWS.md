@@ -17,9 +17,9 @@ for human readability.
   - Lattice-Boltzmann equations
 - Composable `FluxPlusDissipation` and `FluxLaxFriedrichs()`, `FluxHLL()` with adaptable
   wave speed estimates were added in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493)
-- New structured, curvilinear, conforming mesh type `CurvedMesh` (experimental)
-- New unstructured, curvilinear, conforming mesh type `UnstructuredQuadMesh` in 2D (experimental)
-- New unstructured, curvilinear, adaptive (non-conforming) mesh type `P4estMesh` in 2D (experimental)
+- New structured, curvilinear, conforming mesh type `StructuredMesh` (experimental)
+- New unstructured, curvilinear, conforming mesh type `UnstructuredMesh2D` in 2D (experimental)
+- New unstructured, curvilinear, adaptive (non-conforming) mesh type `P4estMesh` in 2D and 3D (experimental)
 - Experimental support for finite difference (FD) summation-by-parts (SBP) methods via
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
 - Experimental support for modal DG and SBP-DG methods on triangular meshes via [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl)
