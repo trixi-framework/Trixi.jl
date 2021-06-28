@@ -331,7 +331,7 @@ Entropy conserving two-point flux by
   divergence diminishing ideal magnetohydrodynamics equations
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-@inline function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
+function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr, equations)
@@ -416,7 +416,7 @@ end
 
 
 """
-    flux_hindenlang(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
+    flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction, equations::IdealGlmMhdEquations3D)
 
 Entropy conserving and kinetic energy preserving two-point flux of
 Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
@@ -515,6 +515,64 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
             - (v2_ll * B3_ll * B2_rr + v2_rr * B3_rr * B2_ll)
             + equations.c_h * (B3_ll * psi_rr + B3_rr * psi_ll) ) )
   end
+
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
+end
+
+@inline function flux_hindenlang(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
+  # Unpack left and right states
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr, equations)
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
+  B_dot_n_ll = B1_ll * normal_direction[1] + B2_ll * normal_direction[2] + B3_ll * normal_direction[3]
+  B_dot_n_rr = B1_rr * normal_direction[1] + B2_rr * normal_direction[2] + B3_rr * normal_direction[3]
+
+  # Compute the necessary mean values needed for either direction
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg  = 0.5 * ( v1_ll +  v1_rr)
+  v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+  v3_avg  = 0.5 * ( v3_ll +  v3_rr)
+  p_avg   = 0.5 * (  p_ll +   p_rr)
+  psi_avg = 0.5 * (psi_ll + psi_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+  magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2] + v3_avg * normal_direction[3])
+  f2 = ( f1 * v1_avg + (p_avg + magnetic_square_avg) * normal_direction[1]
+        - 0.5 * (B_dot_n_ll * B1_rr + B_dot_n_rr * B1_ll) )
+  f3 = ( f1 * v2_avg + (p_avg + magnetic_square_avg) * normal_direction[2]
+        - 0.5 * (B_dot_n_ll * B2_rr + B_dot_n_rr * B2_ll) )
+  f4 = ( f1 * v3_avg + (p_avg + magnetic_square_avg) * normal_direction[3]
+        - 0.5 * (B_dot_n_ll * B3_rr + B_dot_n_rr * B3_ll) )
+  #f5 below
+  f6 = ( equations.c_h * psi_avg * normal_direction[1]
+        + 0.5 * (v_dot_n_ll * B1_ll - v1_ll * B_dot_n_ll +
+                 v_dot_n_rr * B1_rr - v1_rr * B_dot_n_rr) )
+  f7 = ( equations.c_h * psi_avg * normal_direction[2]
+        + 0.5 * (v_dot_n_ll * B2_ll - v2_ll * B_dot_n_ll +
+                 v_dot_n_rr * B2_rr - v2_rr * B_dot_n_rr) )
+  f8 = ( equations.c_h * psi_avg * normal_direction[3]
+        + 0.5 * (v_dot_n_ll * B3_ll - v3_ll * B_dot_n_ll +
+                 v_dot_n_rr * B3_rr - v3_rr * B_dot_n_rr) )
+  f9 = equations.c_h * 0.5 * (B_dot_n_ll + B_dot_n_rr)
+  # total energy flux is complicated and involves the previous components
+  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 )
+        + 0.5 * (
+          +   p_ll * v_dot_n_rr +  p_rr * v_dot_n_ll
+          + (v_dot_n_ll * B1_ll * B1_rr + v_dot_n_rr * B1_rr * B1_ll)
+          + (v_dot_n_ll * B2_ll * B2_rr + v_dot_n_rr * B2_rr * B2_ll)
+          + (v_dot_n_ll * B3_ll * B3_rr + v_dot_n_rr * B3_rr * B3_ll)
+          - (v1_ll * B_dot_n_ll * B1_rr + v1_rr * B_dot_n_rr * B1_ll)
+          - (v2_ll * B_dot_n_ll * B2_rr + v2_rr * B_dot_n_rr * B2_ll)
+          - (v3_ll * B_dot_n_ll * B3_rr + v3_rr * B_dot_n_rr * B3_ll)
+          + equations.c_h * (B_dot_n_ll * psi_rr + B_dot_n_rr * psi_ll) ) )
 
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
