@@ -60,14 +60,8 @@ installed as a regular package (with `]add Trixi`), these files are read-only an
 modified. To find out which files are available, use, e.g., `readdir`:
 
 # Examples
-```julia
-julia> readdir(examples_dir())
-5-element Array{String,1}:
- "1d"
- "2d"
- "3d"
- "README.md"
- "paper-self-gravitating-gas-dynamics"
+```@example
+readdir(examples_dir())
 ```
 """
 examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
@@ -76,7 +70,8 @@ examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 """
     get_examples()
 
-Return a list of all example elixirs that are provided by Trixi.
+Return a list of all example elixirs that are provided by Trixi. See also
+[`examples_dir`](@ref) and [`default_example`](@ref).
 """
 function get_examples()
   examples = String[]
@@ -96,19 +91,20 @@ end
     default_example()
 
 Return the path to an example elixir that can be used to quickly see Trixi in action on a
-[`TreeMesh`]@(ref).
+[`TreeMesh`]@(ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
-default_example() = joinpath(examples_dir(), "2d", "elixir_advection_basic.jl")
+default_example() = joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
 
 
 """
     default_example_unstructured()
 
 Return the path to an example elixir that can be used to quickly see Trixi in action on an
-[`UnstructuredQuadMesh`]@(ref). This simulation is run on the example curved, unstructured mesh
+[`UnstructuredMesh2D`]@(ref). This simulation is run on the example curved, unstructured mesh
 given in the Trixi documentation regarding unstructured meshes.
 """
-default_example_unstructured() = joinpath(examples_dir(), "2d", "elixir_euler_unstructured_quad_basic.jl")
+default_example_unstructured() = joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+
 
 # Print informative message at startup
 function print_startup_message()

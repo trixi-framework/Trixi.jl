@@ -138,7 +138,7 @@ function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
 end
 
 
-function PlotData2D(u, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, solver, cache;
+function PlotData2D(u, mesh::Union{StructuredMesh,UnstructuredMesh2D}, equations, solver, cache;
                     solution_variables=nothing, grid_lines=true, kwargs...)
   @unpack node_coordinates = cache.elements
 

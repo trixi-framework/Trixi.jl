@@ -6,7 +6,7 @@ using Trixi
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1d_dgsem")
 
 @testset "Compressible Euler" begin
   @trixi_testset "elixir_euler_source_terms.jl" begin
@@ -15,8 +15,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       linf = [1.6205433861493646e-7, 1.465427772462391e-7, 5.372255111879554e-7])
   end
 
-  @trixi_testset "elixir_euler_convergence_test_pure_fv.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_test_pure_fv.jl"),
+  @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
       l2   = [0.019355699748523896, 0.022326984561234497, 0.02523665947241734],
       linf = [0.02895961127645519,  0.03293442484199227,  0.04246098278632804])
   end
@@ -41,8 +41,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       initial_condition = initial_condition_constant)
   end
 
-  @trixi_testset "elixir_euler_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic.jl"),
+  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
       l2   = [3.8099996914101204e-6, 1.6745575717106341e-6, 7.732189531480852e-6],
       linf = [1.2971473393186272e-5, 9.270328934274374e-6, 3.092514399671842e-5])
   end

@@ -22,7 +22,7 @@ providing examples with sensible default values for users.
 
 ```jldoctest
 julia> redirect_stdout(devnull) do
-         trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_advection_extended.jl"),
+         trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_extended.jl"),
                        tspan=(0.0, 0.1))
          sol.t[end]
        end
@@ -216,7 +216,7 @@ function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwarg
 end
 
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
-# works for CurvedMesh
+# works for StructuredMesh
 function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, iter; kwargs) where {NDIMS}
   new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
 

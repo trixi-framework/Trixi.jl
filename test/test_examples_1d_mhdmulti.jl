@@ -6,7 +6,7 @@ using Trixi
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1d_dgsem")
 
 @testset "MHD Multicomponent" begin
 
@@ -22,8 +22,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       linf = [5.25859519e-01, 1.11130058e+00, 0.00000000e+00, 1.46798145e+00, 1.11022302e-16, 1.86689645e+00, 0.00000000e+00, 7.63433974e-02, 1.52686795e-01, 3.05373590e-01])
   end
 
-  @trixi_testset "elixir_mhdmulti_eoc.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_eoc.jl"),
+  @trixi_testset "elixir_mhdmulti_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_convergence.jl"),
       l2   = [1.70884468e-05, 3.33778117e-04, 3.33778117e-04, 3.60816702e-05, 4.13046273e-17, 3.33548882e-04, 3.33548882e-04, 1.30233539e-05, 2.60467077e-05, 5.20934154e-05],
       linf = [2.34173129e-05, 1.23807753e-03, 1.23807753e-03, 1.07512068e-04, 1.11022302e-16, 1.22960686e-03, 1.22960686e-03, 2.01157231e-05, 4.02314461e-05, 8.04628923e-05])
     end

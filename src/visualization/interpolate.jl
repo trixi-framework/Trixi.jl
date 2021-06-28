@@ -589,7 +589,7 @@ function calc_vertices(coordinates, levels, length_level_0)
 end
 
 
-# Calculate the vertices to plot each grid line for CurvedMesh
+# Calculate the vertices to plot each grid line for StructuredMesh
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
@@ -685,11 +685,11 @@ function calc_vertices(node_coordinates, mesh)
 end
 
 
-# Calculate the vertices to plot each grid line for UnstructuredQuadMesh
+# Calculate the vertices to plot each grid line for UnstructuredMesh2D
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function calc_vertices(node_coordinates, mesh::UnstructuredQuadMesh)
+function calc_vertices(node_coordinates, mesh::UnstructuredMesh2D)
   @unpack n_elements = mesh
   @assert size(node_coordinates, 1) == 2 "only works in 2D"
 
