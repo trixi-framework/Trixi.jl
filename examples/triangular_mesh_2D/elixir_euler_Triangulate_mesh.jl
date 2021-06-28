@@ -4,7 +4,7 @@ using Triangulate
 using StartUpDG, StructArrays
 using Trixi, OrdinaryDiffEq
 
-polydeg = 4
+polydeg = 3
 rd = RefElemData(Tri(), polydeg)
 dg = DG(rd, nothing #= mortar =#, 
         SurfaceIntegralWeakForm(FluxHLL()), VolumeIntegralWeakForm())
@@ -14,7 +14,7 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 # example where we tag two separate boundary segments of the mesh
-meshIO = square_domain() # pre-defined Triangulate geometry in StartUpDG
+meshIO = StartUpDG.square_hole_domain(.25) # pre-defined Triangulate geometry in StartUpDG
 mesh = VertexMappedMesh(meshIO, rd, Dict(:bottom=>1, :right=>2, :top=>3, :left=>4))
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
