@@ -56,7 +56,7 @@ function compute_coefficients!(u::StructArray, initial_condition, t,
   rd = dg.basis
   @unpack u_values = cache
 
-  for i in eachquadnodetotal(mesh,dg,cache)
+  @threaded for i in each_quad_node_global(mesh, dg, cache)
     xyz_i = SVector{Dim}(getindex.(md.xyzq, i))
     u_values[i] = initial_condition(xyz_i, t, equations) 
   end
@@ -97,7 +97,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
   # local storage for fluxes
   flux_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars))
   
-  return (; md, invMQrTrW, invMQsTrW, invJ=inv.(md.J),
+  return (; md, invMQrTrW, invMQsTrW, invJ = inv.(md.J),
       u_values, flux_values, u_face_values, flux_face_values)
 end
 
@@ -134,8 +134,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
   @unpack mapM, mapP, nxJ, nyJ, Jf = md 
   @unpack u_face_values, flux_face_values = cache 
 
-  num_face_nodes = length(u_face_values)
-  for face_node_index in eachfacenodetotal(mesh, dg, cache)
+  @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
 
     # inner (idM -> minus) and outer (idP -> plus) indices 
     idM, idP = mapM[face_node_index], mapP[face_node_index]
@@ -176,8 +175,8 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   rd = dg.basis
   md = mesh.md
   @unpack flux_face_values = cache
-  for e in eachelement(mesh, dg, cache)
-    for i in eachfacenode(mesh, dg, cache)
+  @threaded for e in eachelement(mesh, dg, cache)
+    for i in each_face_node(mesh, dg, cache)
       du[rd.Fmask[i],e] += flux_face_values[i,e] * rd.wf[i] / rd.wq[rd.Fmask[i]]
     end    
   end
@@ -255,12 +254,10 @@ function calc_sources!(du, u, t, source_terms::SourceTerms,
   md = mesh.md
   @unpack Pq = rd
   @unpack u_values, flux_values = cache
-  for e in eachelement(mesh, dg, cache)
+  @threaded for e in eachelement(mesh, dg, cache)
     u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
 
-    # todo: why do these lines allocate?
-    for i in eachquadnode(mesh, dg, cache)
-      # getindex.(md.xyzq, i, e) is a tuple containing (xq[i,e], yq[i,e])
+    for i in each_quad_node(mesh, dg, cache)
       flux_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations) 
     end
     StructArrays.foreachfield(mul_by_accum!(Pq), view(du, :, e), flux_values)
