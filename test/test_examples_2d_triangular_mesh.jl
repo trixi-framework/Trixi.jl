@@ -8,26 +8,34 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "triangular_mesh_2D")
 
-@testset "Triangular mesh tests" begin
-  @trixi_testset "Euler equations" begin
+@testset "Triangular mesh tests" begin    
+    # @test true # dummy test
+
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangular_mesh.jl"),
+    l2 = [7.687514677136661e-5, 8.844681835345058e-5, 8.844681835367038e-5, 0.0002667915678724591], 
+    linf = [0.00023033713406972467, 0.0001967281286732181, 0.00019672812868742895, 0.0004570579510136952]
+  )
+
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic_triangular_mesh.jl"),
+    l2 = [8.367502030645914e-5, 9.408647487246263e-5, 9.408647487253276e-5, 0.0002719897210980286], 
+    linf = [0.00023033745877265588, 0.000196525001662895, 0.00019652500166067455, 0.000456252647166977]
+  )
+
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quadrilateral_mesh.jl"),
+    l2 = [1.679658191261153e-5, 1.975052944338864e-5, 1.9750529443605503e-5, 6.243039564033164e-5], 
+    linf = [4.21194288451332e-5, 4.386421462854173e-5, 4.386421466406887e-5, 9.206169546338572e-5]
+  )
     
-    @test true # dummy test
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_ape_sbp_triangular_mesh.jl"),
+    l2 = [0.025428732930900345, 0.02542873293089407, 0.01783409907430894, 0.0, 0.0, 0.0, 0.0], 
+    linf = [0.04266081414305489, 0.04266081414679457, 0.03468583245492329, 0.0, 2.3455572625e-314, 2.3455070497e-314, 0.0]
+  )
 
-    # @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangular_mesh.jl"),
-    #   l2 = [6.27122850947113e-11, 6.791612221354976e-11, 6.791612221249498e-11, 6.466533604304294e-10], 
-    #   linf = [1.8523039727380564e-5, 1.6923451381156696e-5, 1.71384595346602e-5, 4.586131120554171e-5]
-    # )
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_Triangulate_mesh.jl"),
+    l2 = [0.0001016711916046445, 0.00011071422293274785, 0.00011212482087451142, 0.00035893791736543447], 
+    linf = [0.00035073781634786805, 0.00039815763002271076, 0.00041642100745109545, 0.0009481311054404529]
+  )
 
-    # @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic_triangular_mesh.jl"),
-    #   l2 = [6.943606879787733e-11, 7.474517827181276e-11, 7.474517827154942e-11, 6.637284410683966e-10], 
-    #   linf = [1.8302801320757567e-5, 1.6548179149200593e-5, 1.6886330820753415e-5, 4.5056371695828545e-5]
-    # )
-
-    # @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_ape_triangular_mesh.jl"),
-    #   l2 = [4.293692357434845e-6, 4.293692357445338e-6, 2.069046541101411e-6, 3.978858062534657e-32, 3.978858062534657e-32, 6.3661729000554515e-31, 6.3661729000554515e-31], 
-    #   linf = [0.005093360833536398, 0.0010859409295087552, 0.00012810312361999365, 1.6653345369377348e-16, 1.6653345369377348e-16, 6.661338147750939e-16, 6.661338147750939e-16]
-    # )
-    end
 end
 
 end # module
