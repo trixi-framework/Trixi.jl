@@ -36,6 +36,7 @@ using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 import MPI
+using Octavian: matmul! 
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
