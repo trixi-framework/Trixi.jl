@@ -22,7 +22,7 @@ isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrew
                                        default_mesh_file)
 mesh_file = default_mesh_file
 
-mesh = UnstructuredQuadMesh(mesh_file, periodicity=true)
+mesh = UnstructuredMesh2D(mesh_file, periodicity=true)
 
 ###############################################################################
 # create the semi discretization object

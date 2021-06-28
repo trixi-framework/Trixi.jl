@@ -1,5 +1,5 @@
 function rhs!(du, u, t,
-              mesh::CurvedMesh{1}, equations,
+              mesh::StructuredMesh{1}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -35,7 +35,7 @@ function rhs!(du, u, t,
 end
 
 
-function calc_interface_flux!(cache, u, mesh::CurvedMesh{1},
+function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
                               equations, surface_integral, dg::DG)
   @unpack surface_flux = surface_integral
 
@@ -61,20 +61,20 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::CurvedMesh{1}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{1}, equations, surface_integral, dg::DG)
   @assert isperiodic(mesh)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             mesh::CurvedMesh{1}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{1}, equations, surface_integral, dg::DG)
   calc_boundary_flux!(cache, u, t, (boundary_condition, boundary_condition),
                       mesh, equations, surface_integral, dg)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             mesh::CurvedMesh{1}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{1}, equations, surface_integral, dg::DG)
   @unpack surface_flux = surface_integral
   @unpack surface_flux_values, node_coordinates = cache.elements
 

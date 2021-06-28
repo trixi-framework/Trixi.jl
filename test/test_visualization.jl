@@ -18,8 +18,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Run 2D tests with elixirs for both mesh types
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
-    "CurvedMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
-    "UnstructuredQuadMesh" => ("unstructured_2d_dgsem", "elixir_euler_wall_bc.jl")
+    "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
+    "UnstructuredMesh2D" => ("unstructured_2d_dgsem", "elixir_euler_wall_bc.jl")
   )
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)

@@ -1,5 +1,5 @@
 function rhs!(du, u, t,
-              mesh::CurvedMesh{2}, equations,
+              mesh::StructuredMesh{2}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -38,7 +38,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
+                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -79,7 +79,7 @@ end
 
 
 function calc_interface_flux!(cache, u,
-                              mesh::CurvedMesh{2},
+                              mesh::StructuredMesh{2},
                               nonconservative_terms, # can be Val{true}/Val{false}
                               equations, surface_integral, dg::DG)
   @unpack elements = cache
@@ -109,7 +109,7 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::CurvedMesh{2},
+                                      mesh::StructuredMesh{2},
                                       nonconservative_terms::Val{false}, equations,
                                       surface_integral, dg::DG, cache)
   # This is slow for LSA, but for some reason faster for Euler (see #519)
@@ -165,7 +165,7 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::CurvedMesh{2},
+                                      mesh::StructuredMesh{2},
                                       nonconservative_terms::Val{true}, equations,
                                       surface_integral, dg::DG, cache)
   # See comment on `calc_interface_flux!` with `nonconservative_terms::Val{false}`
@@ -227,13 +227,13 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::CurvedMesh{2}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{2}, equations, surface_integral, dg::DG)
   @assert isperiodic(mesh)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             mesh::CurvedMesh{2}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{2}, equations, surface_integral, dg::DG)
   calc_boundary_flux!(cache, u, t,
                       (boundary_condition, boundary_condition,
                        boundary_condition, boundary_condition),
@@ -242,7 +242,7 @@ end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
-                             mesh::CurvedMesh{2}, equations, surface_integral, dg::DG)
+                             mesh::StructuredMesh{2}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
 
@@ -297,7 +297,7 @@ end
 
 
 function apply_jacobian!(du,
-                         mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
+                         mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                          equations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 

@@ -22,7 +22,7 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 f1() = SVector(0.0)
 f2() = SVector(2.0)
-mesh = CurvedMesh((16,), (f1, f2), periodicity=false)
+mesh = StructuredMesh((16,), (f1, f2), periodicity=false)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

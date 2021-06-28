@@ -17,7 +17,7 @@ end
 
 
 # Create element container and initialize element data
-function init_elements(mesh::CurvedMesh{NDIMS, RealT},
+function init_elements(mesh::StructuredMesh{NDIMS, RealT},
                        equations::AbstractEquations,
                        basis, ::Type{uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
 

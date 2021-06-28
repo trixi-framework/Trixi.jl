@@ -1,9 +1,9 @@
 """
-    UnstructuredQuadMesh{RealT<:Real} <: AbstractMesh{2}
+    UnstructuredMesh2D{RealT<:Real} <: AbstractMesh{2}
 
 An unstructured (possibly curved) quadrilateral mesh.
 
-    UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false)
+    UnstructuredMesh2D(filename; RealT=Float64, periodicity=false)
 
 All mesh information, neighbour coupling, and boundary curve information is read in
 from a mesh file `filename`.
@@ -11,7 +11,7 @@ from a mesh file `filename`.
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-mutable struct UnstructuredQuadMesh{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
+mutable struct UnstructuredMesh2D{RealT<:Real, CurvedSurfaceT<:CurvedSurface{RealT}} <: AbstractMesh{2}
   filename             ::String
   n_corners            ::Int
   n_surfaces           ::Int # total number of surfaces
@@ -34,7 +34,7 @@ end
 # constructor for an unstructured mesh read in from a file
 # TODO: this mesh file parsing and construction of the mesh skeleton can likely be improved in terms
 #       of performance
-function UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false, unsaved_changes=true)
+function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_changes=true)
 
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
@@ -86,7 +86,7 @@ function UnstructuredQuadMesh(filename; RealT=Float64, periodicity=false, unsave
     n_interfaces = n_surfaces - n_boundaries
   end
 
-  return UnstructuredQuadMesh{RealT, CurvedSurfaceT}(
+  return UnstructuredMesh2D{RealT, CurvedSurfaceT}(
     filename, n_corners, n_surfaces, n_interfaces, n_boundaries,
     n_elements, mesh_polydeg, corner_nodes,
     interface_info, boundary_names, periodicity,
@@ -220,25 +220,25 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
   return n_boundaries
 end
 
-@inline Base.ndims(::UnstructuredQuadMesh) = 2
-@inline Base.real(::UnstructuredQuadMesh{RealT}) where {RealT} = RealT
+@inline Base.ndims(::UnstructuredMesh2D) = 2
+@inline Base.real(::UnstructuredMesh2D{RealT}) where {RealT} = RealT
 
 # Check if mesh is periodic
-isperiodic(mesh::UnstructuredQuadMesh) = mesh.periodicity
+isperiodic(mesh::UnstructuredMesh2D) = mesh.periodicity
 
-Base.length(mesh::UnstructuredQuadMesh) = mesh.n_elements
+Base.length(mesh::UnstructuredMesh2D) = mesh.n_elements
 
 
-function Base.show(io::IO, ::UnstructuredQuadMesh{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
-  print(io, "UnstructuredQuadMesh{2, ", RealT, ", ", CurvedSurfaceT, "}")
+function Base.show(io::IO, ::UnstructuredMesh2D{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
+  print(io, "UnstructuredMesh2D{2, ", RealT, ", ", CurvedSurfaceT, "}")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
+function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredMesh2D{RealT, CurvedSurfaceT}) where {RealT, CurvedSurfaceT}
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "UnstructuredQuadMesh{" * string(2) * ", " * string(RealT) * ", " * string(CurvedSurfaceT) * "}")
+    summary_header(io, "UnstructuredMesh2D{" * string(2) * ", " * string(RealT) * ", " * string(CurvedSurfaceT) * "}")
     summary_line(io, "mesh file", mesh.filename)
     summary_line(io, "number of elements", length(mesh))
     summary_line(io, "faces", mesh.n_surfaces)

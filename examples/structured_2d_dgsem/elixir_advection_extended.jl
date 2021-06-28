@@ -28,7 +28,7 @@ coordinates_max = ( 0.5, 5.3) # maximum coordinates (max(x), max(y))
 cells_per_dimension = (19, 37)
 
 # Create curved mesh with 19 x 37 elements
-mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

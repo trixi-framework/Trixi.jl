@@ -37,7 +37,7 @@ end
 cells_per_dimension = (8, 8)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

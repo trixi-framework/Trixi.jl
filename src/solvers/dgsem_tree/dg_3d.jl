@@ -30,15 +30,15 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, CurvedMesh{3}}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
 end
 
-function create_cache(mesh::Union{TreeMesh{3}, CurvedMesh{3}}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{3}, CurvedMesh{3}}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
 
   A = Array{uEltype, 5}
   f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -282,7 +282,7 @@ end
 
 function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
                                             nonconservative_terms::Val{false},
-                                            mesh::Union{TreeMesh{3}, CurvedMesh{3}},
+                                            mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                                             equations, dg::DG, cache)
   return nothing
 end
@@ -298,7 +298,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, CurvedMesh{3}, P4estMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -369,7 +369,7 @@ end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
                                     nonconservative_terms::Val{true}, element,
-                                    mesh::Union{TreeMesh{3}, CurvedMesh{3}},
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                                     equations, volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split_transpose = dg.basis
   @unpack f1_threaded, f2_threaded, f3_threaded = cache
@@ -1158,7 +1158,7 @@ end
 end
 
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, CurvedMesh{3}},
+function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                                 equations, surface_integral, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements

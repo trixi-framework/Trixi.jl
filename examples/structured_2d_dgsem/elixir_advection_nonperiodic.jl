@@ -18,7 +18,7 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5.0, -5.0)
 coordinates_max = ( 5.0,  5.0)
-mesh = CurvedMesh((16, 16), coordinates_min, coordinates_max, periodicity=false)
+mesh = StructuredMesh((16, 16), coordinates_min, coordinates_max, periodicity=false)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

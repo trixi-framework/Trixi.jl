@@ -201,9 +201,4 @@ function total_volume(mesh::TreeMesh)
 end
 
 
-include("parallel.jl")
-include("curved_mesh.jl")
-include("surface_interpolant.jl")
-include("unstructured_quad_mesh.jl")
-include("p4est_mesh.jl")
-include("mesh_io.jl")
+include("parallel_tree_mesh.jl")

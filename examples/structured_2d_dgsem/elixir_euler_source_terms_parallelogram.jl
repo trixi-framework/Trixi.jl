@@ -22,7 +22,7 @@ mapping(xi, eta) = SVector(xi + eta, eta)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

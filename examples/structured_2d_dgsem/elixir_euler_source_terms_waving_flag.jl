@@ -20,7 +20,7 @@ f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
+mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4))
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

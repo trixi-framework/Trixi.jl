@@ -211,7 +211,7 @@ function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwarg
 end
 
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
-# works for CurvedMesh
+# works for StructuredMesh
 function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, iter; kwargs) where {NDIMS}
   new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
 

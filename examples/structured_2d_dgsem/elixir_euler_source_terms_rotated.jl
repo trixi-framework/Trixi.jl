@@ -130,7 +130,7 @@ mapping(xi, eta) = T * SVector(xi, eta)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_source_terms, solver,

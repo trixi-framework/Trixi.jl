@@ -87,9 +87,9 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
-# Then, within Trixi2Vtk, the CurvedMesh and its node coordinates are reconstructured from
+# Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::CurvedMesh, output_directory)
+function save_mesh_file(mesh::StructuredMesh, output_directory)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -110,9 +110,9 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
-# Then, within Trixi2Vtk, the UnstructuredQuadMesh and its node coordinates are reconstructured
+# Then, within Trixi2Vtk, the UnstructuredMesh2D and its node coordinates are reconstructured
 # from these attributes for plotting purposes
-function save_mesh_file(mesh::UnstructuredQuadMesh, output_directory)
+function save_mesh_file(mesh::UnstructuredMesh2D, output_directory)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -200,7 +200,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
     mesh = TreeMesh(SerialTree{ndims}, max(n_cells, n_cells_max))
     load_mesh!(mesh, mesh_file)
-  elseif mesh_type == "CurvedMesh"
+  elseif mesh_type == "StructuredMesh"
     size_, mapping_as_string = h5open(mesh_file, "r") do file
       return read(attributes(file)["size"]),
              read(attributes(file)["mapping"])
@@ -237,14 +237,14 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
       end
     end
 
-    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false,
+    mesh = StructuredMesh(size, mapping; RealT=RealT, unsaved_changes=false,
                       mapping_as_string=mapping_as_string)
-  elseif mesh_type == "UnstructuredQuadMesh"
+  elseif mesh_type == "UnstructuredMesh2D"
     mesh_filename, periodicity_ = h5open(mesh_file, "r") do file
       return read(attributes(file)["mesh_filename"]),
              read(attributes(file)["periodicity"])
     end
-    mesh = UnstructuredQuadMesh(mesh_filename; RealT=RealT, periodicity=periodicity_,
+    mesh = UnstructuredMesh2D(mesh_filename; RealT=RealT, periodicity=periodicity_,
                                 unsaved_changes=false)
   elseif mesh_type == "P4estMesh"
     p4est_filename, tree_node_coordinates,
