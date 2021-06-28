@@ -17,6 +17,26 @@ end
 
 Base.ndims(::VertexMappedMesh{Dim}) where {Dim} = Dim
 
+function Base.show(io::IO, mesh::VertexMappedMesh{Dim, ElemType, Nb, RealT}) where {Dim, ElemType, Nb, RealT}
+  @nospecialize mesh
+  print(io, "$ElemType VertexMappedMesh with Dim = $Dim and RealT = $RealT.")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", mesh::VertexMappedMesh{Dim, ElemType, Nb, RealT}) where {Dim, ElemType, Nb, RealT}
+  @nospecialize mesh  
+  if get(io, :compact, false)
+    show(io, mesh)
+  else
+    summary_header(io, "VertexMappedMesh{$Dim, $ElemType, $Nb, $RealT}, ")
+    summary_line(io, "number of elements", mesh.md.num_elements)
+    summary_line(io, "number of boundaries", length(mesh.boundary_faces))
+    for (boundary_name, faces) in mesh.boundary_faces
+      summary_line(increment_indent(io), "nfaces on $boundary_name", length(faces))
+    end  
+    summary_footer(io)
+  end
+end
+
 """
     VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV, rd::RefElemData;
                      is_on_boundary = nothing,
