@@ -29,7 +29,7 @@ for elixir in [joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_exten
                joinpath(examples_dir(), "structured_3d_dgsem", "elixir_euler_ec.jl"),
                joinpath(examples_dir(), "structured_3d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
                joinpath(examples_dir(), "structured_3d_dgsem", "elixir_mhd_ec.jl"),
-               joinpath(examples_dir(), "p4est_3d_dgsem", "elixir_advection_extended.jl"),]
+               joinpath(examples_dir(), "p4est_3d_dgsem", "elixir_advection_basic.jl"),]
   benchname = basename(dirname(elixir)) * "/" * basename(elixir)
   SUITE[benchname] = BenchmarkGroup()
   for polydeg in [3, 7]
