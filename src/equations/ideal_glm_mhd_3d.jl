@@ -11,13 +11,13 @@
 The ideal compressible GLM-MHD equations in three space dimensions.
 """
 mutable struct IdealGlmMhdEquations3D{RealT<:Real} <: AbstractIdealGlmMhdEquations{3, 9}
-  gamma::RealT             # ratio of specific heats
-  inv_gamma_minus_1::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
-  c_h::RealT               # GLM cleaning speed
+  gamma::RealT               # ratio of specific heats
+  inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+  c_h::RealT                 # GLM cleaning speed
 
   function IdealGlmMhdEquations3D(gamma, c_h)
-    γ, inv_gamma_minus_1, c_h = promote(gamma, inv(gamma - 1), c_h)
-    new{typeof(γ)}(γ, inv_gamma_minus_1, c_h)
+    γ, inv_gamma_minus_one, c_h = promote(gamma, inv(gamma - 1), c_h)
+    new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
   end
 end
 
@@ -160,7 +160,7 @@ end
     f2 = rho_v1*v1 + p + mag_en - B1^2
     f3 = rho_v1*v2 - B1*B2
     f4 = rho_v1*v3 - B1*B3
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_1 + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
+    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
     f6 = equations.c_h*psi
     f7 = v1*B2 - v2*B1
     f8 = v1*B3 - v3*B1
@@ -170,7 +170,7 @@ end
     f2 = rho_v2*v1 - B2*B1
     f3 = rho_v2*v2 + p + mag_en - B2^2
     f4 = rho_v2*v3 - B2*B3
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_1 + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
+    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
     f6 = v2*B1 - v1*B2
     f7 = equations.c_h*psi
     f8 = v2*B3 - v3*B2
@@ -180,7 +180,7 @@ end
     f2 = rho_v3*v1 - B3*B1
     f3 = rho_v3*v2 - B3*B2
     f4 = rho_v3*v3 + p + mag_en - B3^2
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_1 + 2*mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B3
+    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B3
     f6 = v3*B1 - v1*B3
     f7 = v3*B2 - v2*B3
     f8 = equations.c_h*psi
@@ -493,7 +493,7 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
     f9 = equations.c_h * 0.5 * (B1_ll + B1_rr)
     # total energy flux is complicated and involves the previous components
-    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 )
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
           + 0.5 * (
             +   p_ll * v1_rr +  p_rr * v1_ll
             + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
@@ -512,7 +512,7 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     f8 = 0.5 * (v2_ll * B3_ll - v3_ll * B2_ll + v2_rr * B3_rr - v3_rr * B2_rr)
     f9 = equations.c_h * 0.5 * (B2_ll + B2_rr)
     # total energy flux is complicated and involves the previous components
-    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 )
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
           + 0.5 * (
             +   p_ll * v2_rr +  p_rr * v2_ll
             + (v2_ll * B1_ll * B1_rr + v2_rr * B1_rr * B1_ll)
@@ -531,7 +531,7 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     f8 = equations.c_h * psi_avg
     f9 = equations.c_h * 0.5 * (B3_ll + B3_rr)
     # total energy flux is complicated and involves the previous components
-    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 )
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
           + 0.5 * (
             +   p_ll * v3_rr +  p_rr * v3_ll
             + (v3_ll * B1_ll * B1_rr + v3_rr * B1_rr * B1_ll)
@@ -854,7 +854,7 @@ end
   s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equations.gamma - s) * equations.inv_gamma_minus_1 - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = rho_p * v2
   w4 = rho_p * v3
@@ -875,7 +875,7 @@ end
   rho_v1 = rho * v1
   rho_v2 = rho * v2
   rho_v3 = rho * v3
-  rho_e = p * equations.inv_gamma_minus_1 + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
+  rho_e = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
                                   0.5 * (B1^2 + B2^2 + B3^2) + 0.5 * psi^2
 
   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
@@ -1024,7 +1024,7 @@ end
 
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equations::IdealGlmMhdEquations3D)
-  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_1
+  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_one
 
   return S
 end
