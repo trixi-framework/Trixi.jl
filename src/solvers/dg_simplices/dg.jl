@@ -4,17 +4,17 @@
 
 # out <- A*x
 mul_by!(A) = let A = A 
-  @inline (out, x)->mul!(out, A, x) 
+  @inline (out, x)->matmul!(out, A, x) 
 end
 
 # out <- out + A * x 
 mul_by_accum!(A) = let A = A 
-  @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out))) 
+  @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out))) 
 end
 
 #  out <- out + α * A * x 
 mul_by_accum!(A, α) = let A = A 
-  @inline (out, x)->mul!(out, A, x, α, one(eltype(out))) 
+  @inline (out, x)->matmul!(out, A, x, α, one(eltype(out))) 
 end
 
 const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar, 
