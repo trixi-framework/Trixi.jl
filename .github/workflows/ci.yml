@@ -63,7 +63,7 @@ jobs:
           - 2d_part1
           - 2d_part2
           - 2d_part3
-          - 2d_triangles
+          - simplices
           - 2d_mpi
           - 2d_threaded
           - 3d_part1
