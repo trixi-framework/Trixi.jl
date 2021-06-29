@@ -11,7 +11,7 @@ function calc_error_norms(func, u::StructArray, t, analyzer,
   StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)   
 
   component_l2_errors = zero(eltype(u_values))
-  component_linf_errors = similar(component_l2_errors)
+  component_linf_errors = zero(eltype(u_values))
   for i in each_quad_node_global(mesh, dg, cache)
     u_exact = initial_condition(getindex.(md.xyzq, i), t, equations)
     error_at_node = func(u_values[i], equations) - func(u_exact, equations)
