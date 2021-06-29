@@ -442,6 +442,77 @@ velocity of the the exterior fictitious element to the negative of the internal 
 end
 
 
+"""
+    initial_condition_khi(x, t, equations::CompressibleEulerEquations3D)
+
+The classical Kelvin-Helmholtz instability based on
+- https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+"""
+function initial_condition_khi(x, t, equations::CompressibleEulerEquations3D)
+  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+  # change discontinuity to tanh
+  # typical resolution 128^2, 256^2
+  # domain size is [-0.5,0.5]^2
+  dens0 = 1.0 # outside density
+  dens1 = 2.0 # inside density
+  velx0 = -0.5 # outside velocity
+  velx1 = 0.5 # inside velocity
+  slope = 50 # used for tanh instead of discontinuous initial condition
+  # pressure equilibrium
+  p     = 2.5
+  # density
+  rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+  if iszero(t) # initial condition
+    #  y velocity v2 is only white noise
+    v2  = 0.01*(rand(Float64,1)[1]-0.5)
+    #  x velocity is also augmented with noise
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+  else # background values to compute reference values for CI
+    v2 = 0.0
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+  end
+
+  return prim2cons(SVector(rho, v1, v2, 0, p), equations)
+end
+
+
+"""
+    initial_condition_khi_sphere(x, t, equations::CompressibleEulerEquations3D)
+
+The classical Kelvin-Helmholtz instability based on
+- https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+"""
+function initial_condition_khi_sphere(x, t, equations::CompressibleEulerEquations3D)
+  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+  # change discontinuity to tanh
+  # typical resolution 128^2, 256^2
+  # domain size is [-0.5,0.5]^2
+  dens0 = 1.0 # outside density
+  dens1 = 2.0 # inside density
+  velx0 = -0.5 # outside velocity
+  velx1 = 0.5 # inside velocity
+  slope = 50 # used for tanh instead of discontinuous initial condition
+  # pressure equilibrium
+  p     = 2.5
+
+  # density
+  rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+  if iszero(t) # initial condition
+    #  y velocity v2 is only white noise
+    v2  = 0.01*(rand(Float64,1)[1]-0.5)
+    #  x velocity is also augmented with noise
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+  else # background values to compute reference values for CI
+    v2 = 0.0
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+  end
+
+  tangent_vector = (-x[3], x[1])
+
+  return prim2cons(SVector(rho, v1 * tangent_vector[1], v2, v1 * tangent_vector[2], p), equations)
+end
+
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
