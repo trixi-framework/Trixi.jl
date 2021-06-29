@@ -292,7 +292,7 @@ end
 end
 
 
-# Calculate the nonconservative terms from Powell and Galilean invariance for UnstructuredQuadMesh
+# Calculate the nonconservative terms from Powell and Galilean invariance for UnstructuredMesh2D
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element, contravariant_vectors,
                                                     equations::IdealGlmMhdEquations2D, dg, cache)

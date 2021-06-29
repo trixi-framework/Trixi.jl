@@ -2,7 +2,6 @@ module TestUnit
 
 using Test
 using Cassette
-using Documenter
 using Trixi
 
 include("test_trixi.jl")
@@ -516,7 +515,7 @@ Cassette.@context Ctx
 
   @testset "TimeSeriesCallback" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
-                                     joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
+                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
     point_data_1 = time_series.affect!.point_data[1]
