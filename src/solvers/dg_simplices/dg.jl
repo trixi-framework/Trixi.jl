@@ -7,14 +7,17 @@ mul_by!(A) = let A = A
   @inline (out, x)->matmul!(out, A, x) 
 end
 
+# Don't use `matmul!` for the following 2 functions: 5-arg `matmul!` hangs when applied to vector 
+# arguments. See https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/103. 
+
 # out <- out + A * x 
 mul_by_accum!(A) = let A = A 
-  @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out))) 
+  @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out))) 
 end
 
 #  out <- out + α * A * x 
 mul_by_accum!(A, α) = let A = A 
-  @inline (out, x)->matmul!(out, A, x, α, one(eltype(out))) 
+  @inline (out, x)->mul!(out, A, x, α, one(eltype(out))) 
 end
 
 const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar, 
