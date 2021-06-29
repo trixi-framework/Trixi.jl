@@ -22,7 +22,7 @@ for human readability.
 - New unstructured, curvilinear, adaptive (non-conforming) mesh type `P4estMesh` in 2D and 3D (experimental)
 - Experimental support for finite difference (FD) summation-by-parts (SBP) methods via
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
-- New support for modal DG and SBP-DG methods on triangular meshes via [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) (experimental).
+- New support for modal DG and SBP-DG methods on triangular and tetrahedral meshes via [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) (experimental). 
 
 #### Changed
 
