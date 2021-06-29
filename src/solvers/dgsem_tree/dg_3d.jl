@@ -410,7 +410,7 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, CurvedMesh{3}, P4estMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -464,7 +464,7 @@ end
 
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,5}, u::AbstractArray{<:Any,5},
-                            mesh::Union{TreeMesh{3}, CurvedMesh{3}, P4estMesh{3}},
+                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_threaded, fstar2_threaded, fstar3_threaded = cache
   @unpack inverse_weights = dg.basis
