@@ -1,14 +1,13 @@
 module TestVisualization
 
 using Test
-using Documenter
 using Trixi
 using Plots
 
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
@@ -18,14 +17,15 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "Visualization tests" begin
   # Run 2D tests with elixirs for both mesh types
   test_examples_2d = Dict(
-    "TreeMesh" => "elixir_euler_blast_wave_amr.jl",
-    "CurvedMesh" => "elixir_euler_source_terms_waving_flag.jl",
-    "UnstructuredQuadMesh" => "elixir_euler_unstructured_quad_wall_bc.jl"
+    "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
+    "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
+    "UnstructuredMesh2D" => ("unstructured_2d_dgsem", "elixir_euler_wall_bc.jl")
   )
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", test_examples_2d[mesh]),
+    directory, elixir = test_examples_2d[mesh]
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), directory, elixir),
                                      tspan=(0,0.1))
 
     # Constructor
@@ -79,15 +79,27 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-      pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
-      @test_nowarn_debug plot(pd1D)
+      @testset "Create 1D plot as slice" begin
+        @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+        pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+        @test_nowarn_debug plot(pd1D)
+      end
+
+      if mesh == "TreeMesh"
+        @testset "Create 1D plot along curve" begin
+          curve = zeros(2,10)
+          curve[1,:] = range(-1,-0.5,length=10)
+          @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+          pd1D = PlotData1D(sol, curve=curve)
+          @test_nowarn_debug plot(pd1D)
+        end
+      end
     end
   end
 
   @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
     # Run Trixi
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_blast_wave.jl"),
                                      tspan=(0,0.1))
 
     # Constructor
@@ -165,7 +177,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "plot time series" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
-                                     joinpath(examples_dir(), "2d", "elixir_ape_gaussian_source.jl"),
+                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
     @test_nowarn_debug plot(time_series, 1)
@@ -173,7 +185,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @testset "adapt_to_mesh_level" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"),
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
     @test adapt_to_mesh_level(sol, 5) isa Tuple
 
@@ -186,13 +198,29 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @testset "plot 3D" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
+
+    @testset "1D plot from 3D solution" begin
+      @testset "Create 1D plot as slice" begin
+        @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+        pd1D = PlotData1D(sol)
+        @test_nowarn_debug plot(pd1D)
+      end
+
+      @testset "Create 1D plot along curve" begin
+        curve = zeros(3,10)
+        curve[1,:] = range(-1,-0.5,length=10)
+        @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+        pd1D = PlotData1D(sol, curve=curve)
+        @test_nowarn_debug plot(pd1D)
+      end
+    end
   end
 
   @testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"))
     @test_nowarn_debug plot(sol)
   end
 
@@ -206,7 +234,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @test_nowarn_debug trixi_include(@__MODULE__,
-                               joinpath(examples_dir(), "2d", "elixir_advection_amr_visualization.jl"),
+                               joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_visualization.jl"),
                                visualization = VisualizationCallback(interval=20,
                                                clims=(0,1),
                                                plot_creator=Trixi.save_plot),

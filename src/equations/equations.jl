@@ -113,7 +113,7 @@ struct BoundaryConditionDirichlet{B}
   boundary_value_function::B
 end
 
-# Dirichlet-type boundary condition for use with TreeMesh or CurvedMesh
+# Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation_or_normal,
                                                                   direction,
                                                                   x, t,
@@ -130,7 +130,7 @@ end
   return flux
 end
 
-# Dirichlet-type boundary condition for use with UnstructuredQuadMesh
+# Dirichlet-type boundary condition for use with UnstructuredMesh2D
 # Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,

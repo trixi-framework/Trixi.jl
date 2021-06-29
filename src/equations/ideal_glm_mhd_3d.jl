@@ -254,7 +254,7 @@ end
 end
 
 
-# Calculate the nonconservative terms from Powell and Galilean invariance for CurvedMesh{3}
+# Calculate the nonconservative terms from Powell and Galilean invariance for StructuredMesh{3}
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, contravariant_vectors,
                                                     equations::IdealGlmMhdEquations3D, dg, cache)
