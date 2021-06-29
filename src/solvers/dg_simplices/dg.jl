@@ -64,9 +64,8 @@ function compute_coefficients!(u::StructArray, initial_condition, t,
   rd = dg.basis
   @unpack u_values = cache
 
-  @threaded for i in each_quad_node_global(mesh, dg, cache)
-    xyz_i = SVector{Dim}(getindex.(md.xyzq, i))
-    u_values[i] = initial_condition(xyz_i, t, equations) 
+  @threaded for i in each_quad_node_global(mesh, dg, cache)    
+    u_values[i] = initial_condition(getindex.(md.xyzq, i), t, equations) 
   end
 
   # compute L2 projection
@@ -103,10 +102,10 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
   flux_face_values = similar(u_face_values)
 
   # local storage for fluxes
-  flux_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars))
+  flux_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
   
   return (; md, invMQrTrW, invMQsTrW, invJ = inv.(md.J),
-      u_values, flux_values, u_face_values, flux_face_values)
+      u_values, flux_values_threaded, u_face_values, flux_face_values)
 end
 
 function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegralWeakForm,
@@ -114,7 +113,7 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
 
   rd = dg.basis  
   md = mesh.md
-  @unpack invMQrTrW, invMQsTrW, u_values, flux_values = cache
+  @unpack invMQrTrW, invMQsTrW, u_values, flux_values_threaded = cache
   @unpack rxJ, sxJ, ryJ, syJ = md # geometric terms
 
   # interpolate to quadrature points
@@ -122,6 +121,9 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
+    
+    flux_values = flux_values_threaded[Threads.threadid()]
+
     flux_values .= flux.(view(u_values,:,e), 1, equations)
     StructArrays.foreachfield(mul_by_accum!(invMQrTrW, rxJ[1,e]), view(du,:,e), flux_values)
     StructArrays.foreachfield(mul_by_accum!(invMQsTrW, sxJ[1,e]), view(du,:,e), flux_values)
@@ -132,10 +134,8 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
   end
 end
 
-# calc_interface_flux!(cache, dg.surface_integral, mesh, equations, dg)
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm, 
-                mesh::VertexMappedMesh, equations, 
-                dg::DG{<:RefElemData{2}}) 
+                mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{2}}) 
 
   @unpack surface_flux = surface_integral
   md = mesh.md
@@ -261,8 +261,11 @@ function calc_sources!(du, u, t, source_terms::SourceTerms,
   rd = dg.basis
   md = mesh.md
   @unpack Pq = rd
-  @unpack u_values, flux_values = cache
+  @unpack u_values, flux_values_threaded = cache
   @threaded for e in eachelement(mesh, dg, cache)
+
+    flux_values = flux_values_threaded[Threads.threadid()]
+
     u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
 
     for i in each_quad_node(mesh, dg, cache)
