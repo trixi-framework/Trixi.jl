@@ -9,7 +9,6 @@ include("test_trixi.jl")
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "triangular_mesh_2D")
 
 @testset "Triangular mesh tests" begin    
-    # @test true # dummy test
 
   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangular_mesh.jl"),
     l2 = [7.687514677136661e-5, 8.844681835345058e-5, 8.844681835367038e-5, 0.0002667915678724591], 
