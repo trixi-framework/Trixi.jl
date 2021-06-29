@@ -1,7 +1,5 @@
 # !!! warning "Experimental features"
 
-# Todo: simplices. Investigate replacing `mul!` by `Octavian.matmul!` for additional speedup.
-
 # out <- A*x
 mul_by!(A) = let A = A 
   @inline (out, x)->matmul!(out, A, x) 
@@ -12,8 +10,8 @@ mul_by!(A::UniformScaling) = let A = A
   @inline (out, x)->out .= x
 end
   
-# Don't use `matmul!` for the following 2 functions until 5-arg `matmul!` hanging bug
-# is fixed. See https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/103. 
+# # Todo: simplices. Use `matmul!` for the following 2 functions until 5-arg `matmul!` once 
+# the hanging bug is fixed (see https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/103). 
 
 # out <- out + A * x 
 mul_by_accum!(A) = let A = A 
