@@ -18,7 +18,7 @@ abstract type AbstractEquations{NDIMS, NVARS} end
 """
     AbstractMesh{NDIMS}
 
-An abstract supertype of specific mesh types such as `TreeMesh` or `CurvedMesh`.
+An abstract supertype of specific mesh types such as `TreeMesh` or `StructuredMesh`.
 The type parameters encode the number of spatial dimensions (`NDIMS`).
 """
 abstract type AbstractMesh{NDIMS} end

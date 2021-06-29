@@ -16,7 +16,7 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{1},
 end
 
 
-function create_cache_analysis(analyzer, mesh::CurvedMesh{1},
+function create_cache_analysis(analyzer, mesh::StructuredMesh{1},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
@@ -36,7 +36,7 @@ end
 
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::CurvedMesh{1}, equations, initial_condition,
+                          mesh::StructuredMesh{1}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -110,7 +110,7 @@ end
 
 
 function integrate_via_indices(func::Func, u,
-                               mesh::CurvedMesh{1}, equations, dg::DGSEM, cache,
+                               mesh::StructuredMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -161,7 +161,7 @@ end
 
 
 function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{1},CurvedMesh{1}},
+                   mesh::Union{TreeMesh{1},StructuredMesh{1}},
                    equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, element)
@@ -171,7 +171,7 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{1},CurvedMesh{1}}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, element)
