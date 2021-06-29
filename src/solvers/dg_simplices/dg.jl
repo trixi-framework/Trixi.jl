@@ -7,8 +7,13 @@ mul_by!(A) = let A = A
   @inline (out, x)->matmul!(out, A, x) 
 end
 
-# Don't use `matmul!` for the following 2 functions: 5-arg `matmul!` hangs when applied to vector 
-# arguments. See https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/103. 
+# specialize for SBP operators since matmul! doesn't work for `UniformScaling` types
+mul_by!(A::UniformScaling) = let A = A
+  @inline (out, x)->out .= x
+end
+  
+# Don't use `matmul!` for the following 2 functions until 5-arg `matmul!` hanging bug
+# is fixed. See https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/103. 
 
 # out <- out + A * x 
 mul_by_accum!(A) = let A = A 
@@ -163,18 +168,18 @@ end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:] 
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral, 
-                             dg::DG{<:RefElemData{Dim, <:AbstractElemShape, SBP}}) where {Dim}
+                             dg::DG{<:RefElemData{Dim, <:AbstractElemShape, <:SBP}}) where {Dim}
   rd = dg.basis    
   @unpack Fmask = rd
   @unpack u_face_values = cache
   StructArrays.foreachfield((out, u)->out .= view(u, Fmask, :), u_face_values, u)
 end
 
-# # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to 
-# # du[Fmask,:] .= u ./ rd.wq[rd.Fmask] 
+# Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to 
+# du[Fmask,:] .= u ./ rd.wq[rd.Fmask] 
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, 
                                 mesh::VertexMappedMesh, equations, 
-                                dg::DG{<:RefElemData{2,<:AbstractElemShape, SBP}}, cache) 
+                                dg::DG{<:RefElemData{2,<:AbstractElemShape, <:SBP}}, cache) 
   rd = dg.basis
   md = mesh.md
   @unpack flux_face_values = cache
@@ -220,8 +225,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   reshape_by_face(u) = reshape(u, num_pts_per_face, num_faces_total)
   u_face_values = reshape_by_face(u_face_values)
   flux_face_values = reshape_by_face(flux_face_values)
-  Jf      = reshape_by_face(Jf)
-  nxyzJ, xyzf   = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{Dim,Matrix}
+  Jf = reshape_by_face(Jf)
+  nxyzJ, xyzf = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{Dim,Matrix}
     
   # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
   for f in mesh.boundary_faces[boundary_key]

@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize
+using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, UniformScaling
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
