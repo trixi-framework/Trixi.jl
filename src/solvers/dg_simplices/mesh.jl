@@ -48,6 +48,7 @@ end
 - `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 VertexMappedMesh(VX, VY, EToV, rd, args...; kwargs...) = VertexMappedMesh((VX, VY), EToV, rd, args...; kwargs...)
+VertexMappedMesh(VX, VY, VZ, EToV, rd, args...; kwargs...) = VertexMappedMesh((VX, VY, VZ), EToV, rd, args...; kwargs...)
 
 function VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV::Matrix{Ti}, rd::RefElemData;
                           is_on_boundary = nothing,

@@ -30,6 +30,8 @@ const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar,
 # this is necessary for pretty printing
 Base.real(rd::RefElemData{Dims, Elem, ApproxType, Nfaces, RealT}) where {Dims, Elem, ApproxType, Nfaces, RealT} = RealT
 
+eachdim(mesh::AbstractMeshData{Dim}, dg::DG{<:RefElemData{Dim}}, cache) where {Dim} = Base.OneTo(Dim)
+
 # iteration over all elements in a mesh
 ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = dg.basis.Np * mesh.md.num_elements
 eachelement(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(mesh.md.num_elements)
@@ -78,18 +80,20 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
   StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype) where {DG <: DGWeakForm{2}}
+function create_cache(mesh::VertexMappedMesh, equations, dg::DG, 
+                      RealT, uEltype) where {DG <: DGWeakForm{Dim}} where {Dim}
 
   rd = dg.basis
   md = mesh.md
-  # mass matrix, differentiation matrices
-  @unpack M, Dr, Ds = rd
+
   # volume quadrature weights, volume interpolation matrix
   @unpack wq, Vq = rd 
 
-  # ∫f(u) * dv/dx_i = (Vq*Dr)'*diagm(wq)*(rxJ.*f(Vq*u)) + (Vq*Ds)'*diagm(wq)*(sxJ.*f(Vq*u))
-  invMQrTrW = -M\((Vq*Dr)'*diagm(wq))
-  invMQsTrW = -M\((Vq*Ds)'*diagm(wq))
+  # mass matrix, differentiation matrices
+  @unpack M, Drst = rd
+
+  # ∫f(u) * dv/dx_i = ∑_j (Vq*D_i)'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
+  invMQrstTrW = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
 
   nvars = nvariables(equations)
 
@@ -102,17 +106,17 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG, RealT, uEltype)
   # local storage for fluxes
   flux_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
   
-  return (; md, invMQrTrW, invMQsTrW, invJ = inv.(md.J),
+  return (; md, invMQrstTrW, invJ = inv.(md.J),
       u_values, flux_values_threaded, u_face_values, flux_face_values)
 end
 
 function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegralWeakForm,
-                 mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{2}}, cache)
+                 mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{Dim}}, cache) where {Dim}
 
   rd = dg.basis  
   md = mesh.md
-  @unpack invMQrTrW, invMQsTrW, u_values, flux_values_threaded = cache
-  @unpack rxJ, sxJ, ryJ, syJ = md # geometric terms
+  @unpack invMQrstTrW, u_values, flux_values_threaded = cache
+  @unpack rstxyzJ = md # geometric terms
 
   # interpolate to quadrature points
   StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
@@ -121,23 +125,22 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
   @threaded for e in eachelement(mesh, dg, cache)
     
     flux_values = flux_values_threaded[Threads.threadid()]
-
-    flux_values .= flux.(view(u_values,:,e), 1, equations)
-    StructArrays.foreachfield(mul_by_accum!(invMQrTrW, rxJ[1,e]), view(du,:,e), flux_values)
-    StructArrays.foreachfield(mul_by_accum!(invMQsTrW, sxJ[1,e]), view(du,:,e), flux_values)
-
-    flux_values .= flux.(view(u_values,:,e),2,equations)
-    StructArrays.foreachfield(mul_by_accum!(invMQrTrW, ryJ[1,e]), view(du,:,e), flux_values)
-    StructArrays.foreachfield(mul_by_accum!(invMQsTrW, syJ[1,e]), view(du,:,e), flux_values)
+    for i in eachdim(mesh, dg, cache) 
+      flux_values .= flux.(view(u_values,:,e), i, equations)
+      for j in eachdim(mesh, dg, cache)
+        StructArrays.foreachfield(mul_by_accum!(invMQrstTrW[j], rstxyzJ[i,j][1,e]), 
+                                  view(du,:,e), flux_values)
+      end
+    end
   end
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm, 
-                mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{2}}) 
+                mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{Dim}}) where {Dim}
 
   @unpack surface_flux = surface_integral
   md = mesh.md
-  @unpack mapM, mapP, nxJ, nyJ, Jf = md 
+  @unpack mapM, mapP, nxyzJ, Jf = md 
   @unpack u_face_values, flux_face_values = cache 
 
   @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
@@ -149,7 +152,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     # compute flux if node is not a boundary node
     if idM != idP
       uP = u_face_values[idP]
-      normal = SVector{2}(nxJ[idM], nyJ[idM]) / Jf[idM]      
+      normal = SVector{Dim}(getindex.(nxyzJ, idM)) / Jf[idM]      
       flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
     end
   end
@@ -159,7 +162,7 @@ end
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, 
                 mesh::VertexMappedMesh, equations, 
-                dg::DG{<:RefElemData{2}}, cache) 
+                dg::DG{<:RefElemData}, cache) 
   rd = dg.basis
   StructArrays.foreachfield(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
 end
@@ -177,7 +180,7 @@ end
 # du[Fmask,:] .= u ./ rd.wq[rd.Fmask] 
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, 
                                 mesh::VertexMappedMesh, equations, 
-                                dg::DG{<:RefElemData{2,<:AbstractElemShape, <:SBP}}, cache) 
+                                dg::DG{<:RefElemData{Dim,<:AbstractElemShape, <:SBP}}, cache) where {Dim}
   rd = dg.basis
   md = mesh.md
   @unpack flux_face_values = cache
