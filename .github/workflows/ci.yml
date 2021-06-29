@@ -35,6 +35,7 @@ on:
       - 'utils/**'
   workflow_dispatch:
 
+# Cancel redundant CI tests automatically
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
