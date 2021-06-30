@@ -1084,7 +1084,7 @@ end
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equations::CompressibleEulerEquations3D)
+@inline function energy_kinetic(u, equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, _ = u
   return 0.5 * (rho_v1^2 + rho_v2^2 +rho_v3^2) / rho
 end

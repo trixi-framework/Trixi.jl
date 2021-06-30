@@ -265,7 +265,7 @@ Cassette.@context Ctx
     end
   end
 
-  @timed_testset "containers" begin
+  @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
       data::Vector{Int}

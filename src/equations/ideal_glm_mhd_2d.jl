@@ -558,7 +558,7 @@ end
                  v_dot_n_rr * B3_rr - v3_rr * B_dot_n_rr)
   f9 = equations.c_h * 0.5 * (B_dot_n_ll + B_dot_n_rr)
   # total energy flux is complicated and involves the previous components
-  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_1 )
+  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
         + 0.5 * (
           +   p_ll * v_dot_n_rr +  p_rr * v_dot_n_ll
           + (v_dot_n_ll * B1_ll * B1_rr + v_dot_n_rr * B1_rr * B1_ll)
