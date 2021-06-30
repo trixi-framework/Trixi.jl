@@ -259,7 +259,7 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 You can build the documentation of Trixi.jl locally by running
 ```bash
-julia --project=docs docs/make.jl
+julia --project=docs -e 'using Pkg; Pkg.instantiate(); include("docs/make.jl")'
 ```
 from the Trixi.jl main directory. Then, you can look at the html files generated in
 `docs/build`.
