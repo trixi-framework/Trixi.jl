@@ -565,6 +565,47 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   tree_to_tree = Array{p4est_topidx_t, 2}(undef, 6, n_trees)
   tree_to_face = Array{Int8, 2}(undef, 6, n_trees)
 
+  # Illustration of the local coordinates of each face. ξ and η are the first
+  # local coordinates of each face. The third local coordinate ζ is always
+  # pointing outwards, which yields a right-handed coordinate system for each face.
+  #               ┌────────────────────────────────────────────────────┐
+  #              ╱│                                                   ╱│
+  #             ╱ │                       ξ <───┐                    ╱ │
+  #            ╱  │                            ╱                    ╱  │
+  #           ╱   │                4 (+y)     V                    ╱   │
+  #          ╱    │                          η                    ╱    │
+  #         ╱     │                                              ╱     │
+  #        ╱      │                                             ╱      │
+  #       ╱       │                                            ╱       │
+  #      ╱        │                                           ╱        │
+  #     ╱         │                    5 (-z)   η            ╱         │
+  #    ╱          │                             ↑           ╱          │
+  #   ╱           │                             │          ╱           │
+  #  ╱            │                       ξ <───┘         ╱            │
+  # ┌────────────────────────────────────────────────────┐    2 (+x)   │
+  # │             │                                      │             │
+  # │             │                                      │      ξ      │
+  # │             │                                      │      ↑      │
+  # │    1 (-x)   │                                      │      │      │
+  # │             │                                      │      │      │
+  # │     ╱│      │                                      │     ╱       │
+  # │    V │      │                                      │    V        │
+  # │   η  ↓      │                                      │   η         │
+  # │      ξ      └──────────────────────────────────────│─────────────┘
+  # │            ╱             6 (+z)                    │            ╱
+  # │           ╱           ↑                            │           ╱
+  # │          ╱            │                            │          ╱
+  # │         ╱             └───> ξ                      │         ╱
+  # │        ╱                                           │        ╱
+  # │       ╱                                            │       ╱
+  # │      ╱                                             │      ╱
+  # │     ╱                      ┌───> ξ                 │     ╱
+  # │    ╱                      ╱                        │    ╱
+  # │   ╱                      V      3 (-y)             │   ╱
+  # │  ╱                      η                          │  ╱
+  # │ ╱                                                  │ ╱
+  # │╱                                                   │╱
+  # └────────────────────────────────────────────────────┘
   for direction in 1:6
     for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
       tree = linear_indices[cell_x, cell_y, cell_z, direction]
