@@ -89,7 +89,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
   # volume quadrature weights, volume interpolation matrix
   @unpack wq, Vq = rd 
 
-  # mass matrix, differentiation matrices
+  # mass matrix, tuple of differentiation matrices
   @unpack M, Drst = rd
 
   # ∫f(u) * dv/dx_i = ∑_j (Vq*D_i)'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
