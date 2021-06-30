@@ -319,23 +319,12 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
   [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr = u_rr
+  rho_ll, rho_v1_ll, _ = u_ll
+  rho_rr, rho_v1_rr, _ = u_rr
 
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
-  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll)
-
+  # Calculate primitive variables
+  v1_ll = rho_v1_ll / rho_ll
   v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
-  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
-  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr)
 
   # Approximate the left-most and right-most eigenvalues in the Riemann fan
   c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
@@ -358,13 +347,14 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(u, equations::IdealGlmMhdEquations1D)
+@inline function cons2prim(u, equations::IdealGlmMhdEquations1D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  p = (equations.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - 0.5*(B1^2 + B2^2 + B3^2))
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
+                                              + B1 * B1 + B2 * B2 + B3 * B3))
 
   return SVector(rho, v1, v2, v3, p, B1, B2, B3)
 end
