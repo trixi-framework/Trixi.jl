@@ -93,6 +93,8 @@ There are three ways to map the mesh to the physical domain.
 2. Specify a `Tuple` `faces` of functions that parametrize each face.
 3. Create a rectangular mesh by specifying `coordinates_min` and `coordinates_max`.
 
+Non-periodic boundaries will be called `:x_neg`, `:x_pos`, `:y_neg`, `:y_pos`, `:z_neg`, `:z_pos`.
+
 # Arguments
 - `trees_per_dimension::NTupleE{NDIMS, Int}`: the number of trees in each dimension.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
@@ -252,6 +254,8 @@ Import an uncurved, unstructured, conforming mesh from an Abaqus mesh file (`.in
 map the mesh with the specified mapping, and create a `P4estMesh` from the curved mesh.
 
 Cells in the mesh file will be imported as trees in the `P4estMesh`.
+The mesh will only have one boundary `:all`, as distinguishing different boundaries
+is non-trivial.
 
 # Arguments
 - `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.
@@ -299,8 +303,32 @@ function P4estMesh{NDIMS}(meshfile::String;
 end
 
 
+"""
+    P4estMesh(trees_per_face_dimension, layers, inner_radius, thickness;
+              polydeg, RealT=Float64,
+              initial_refinement_level=0, unsaved_changes=true)
+
+Build a "Cubed Sphere" mesh as `P4estMesh` with
+`6 * trees_per_face_dimension^2 * layers` trees.
+
+The mesh will have two boundaries, `:inside` and `:outside`.
+
+# Arguments
+- `trees_per_face_dimension::Integer`: the number of trees in the first two local dimensions of
+                                       each face.
+- `layers::Integer`: the number of trees in the third local dimension of each face, i.e., the number
+                     of layers of the sphere.
+- `inner_radius::Integer`: the inner radius of the sphere.
+- `thickness::Integer`: the thickness of the sphere. The outer radius will be `inner_radius + thickness`.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+"""
 function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
-                              polydeg=1, RealT=Float64,
+                              polydeg, RealT=Float64,
                               initial_refinement_level=0, unsaved_changes=true)
   conn = connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
@@ -592,20 +620,20 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   # │    V │      │                                      │    V        │
   # │   η  ↓      │                                      │   η         │
   # │      ξ      └──────────────────────────────────────│─────────────┘
-  # │            ╱             6 (+z)                    │            ╱
-  # │           ╱           ↑                            │           ╱
-  # │          ╱            │                            │          ╱
-  # │         ╱             └───> ξ                      │         ╱
+  # │            ╱         η   6 (+z)                    │            ╱
+  # │           ╱          ↑                             │           ╱
+  # │          ╱           │                             │          ╱
+  # │         ╱            └───> ξ                       │         ╱
   # │        ╱                                           │        ╱
-  # │       ╱                                            │       ╱
-  # │      ╱                                             │      ╱
-  # │     ╱                      ┌───> ξ                 │     ╱
-  # │    ╱                      ╱                        │    ╱
-  # │   ╱                      V      3 (-y)             │   ╱
-  # │  ╱                      η                          │  ╱
-  # │ ╱                                                  │ ╱
-  # │╱                                                   │╱
-  # └────────────────────────────────────────────────────┘
+  # │       ╱                                            │       ╱ Global coordinates:
+  # │      ╱                                             │      ╱        y
+  # │     ╱                      ┌───> ξ                 │     ╱         ↑
+  # │    ╱                      ╱                        │    ╱          │
+  # │   ╱                      V      3 (-y)             │   ╱           │
+  # │  ╱                      η                          │  ╱            └─────> x
+  # │ ╱                                                  │ ╱            ╱
+  # │╱                                                   │╱            V
+  # └────────────────────────────────────────────────────┘            z
   for direction in 1:6
     for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
       tree = linear_indices[cell_x, cell_y, cell_z, direction]
