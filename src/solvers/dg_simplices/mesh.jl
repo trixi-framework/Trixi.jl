@@ -57,7 +57,7 @@ function VertexMappedMesh(VXYZ::NTuple{Dim, Vector{Tv}}, EToV::Matrix{Ti}, rd::R
   md = MeshData(VXYZ..., EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)  
-  return VertexMappedMesh{Dim, length(boundary_faces), typeof(rd.elementType), Tv, Ti}(md, boundary_faces)
+  return VertexMappedMesh{Dim, typeof(rd.elementType), length(boundary_faces), Tv, Ti}(md, boundary_faces)
 end
 
 """
@@ -74,5 +74,5 @@ function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict:
   VX, VY, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
   md = MeshData(VX, VY, EToV, rd)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)  
-  return VertexMappedMesh{2, length(boundary_faces), typeof(rd.elementType), eltype(VX), eltype(EToV)}(md, boundary_faces)
+  return VertexMappedMesh{2, typeof(rd.elementType), length(boundary_faces), eltype(VX), eltype(EToV)}(md, boundary_faces)
 end
