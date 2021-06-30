@@ -161,8 +161,8 @@ end
     u_node = get_node_vars(u, equations, dg, i, j, element)
 
     # pull the contravariant vectors in each coordinate direction
-    Ja11_node, Ja12_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-    Ja21_node, Ja22_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
 
     # All diagonal entries of `derivative_split` are zero. Thus, we can skip
     # the computation of the diagonal terms. In addition, we use the symmetry
@@ -173,12 +173,11 @@ end
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
       # pull the contravariant vectors and compute the average
-      Ja11_node_ii, Ja12_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
-      Ja11_avg = 0.5 * (Ja11_node + Ja11_node_ii)
-      Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
+      Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+      Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
       # compute the contravariant sharp flux in the direction of the
       # averaged contravariant vector
-      fluxtilde1 = volume_flux(u_node, u_node_ii, SVector(Ja11_avg, Ja12_avg), equations)
+      fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
       multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, element)
       multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, element)
     end
@@ -187,12 +186,11 @@ end
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
       # pull the contravariant vectors and compute the average
-      Ja21_node_jj, Ja22_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, element)
-      Ja21_avg = 0.5 * (Ja21_node + Ja21_node_jj)
-      Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
+      Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, element)
+      Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
       # compute the contravariant sharp flux in the direction of the
       # averaged contravariant vector
-      fluxtilde2 = volume_flux(u_node, u_node_jj, SVector(Ja21_avg, Ja22_avg), equations)
+      fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
       multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  element)
       multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, element)
     end

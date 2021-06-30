@@ -431,7 +431,8 @@ end
 
 
 """
-    flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction, equations::IdealGlmMhdEquations2D)
+    flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction,
+                    equations::IdealGlmMhdEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux of
 Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
@@ -515,7 +516,8 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
-@inline function flux_hindenlang(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations2D)
+@inline function flux_hindenlang(u_ll, u_rr, normal_direction::AbstractVector,
+                                 equations::IdealGlmMhdEquations2D)
   # Unpack left and right states
   rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr, equations)

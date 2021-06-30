@@ -634,6 +634,8 @@ end
 
 @inline function flux_kennedy_gruber(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
   # Unpack left and right state
+  rho_e_ll = last(u_ll)
+  rho_e_rr = last(u_rr)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
@@ -652,7 +654,7 @@ end
   v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2] + v3_avg * normal_direction[3]
   p_avg = 0.5 * ((equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2)) +
                  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2)))
-  e_avg = 0.5 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
+  e_avg = 0.5 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
   # Calculate fluxes depending on normal_direction
   f1 = rho_avg * v_dot_n_avg
@@ -721,7 +723,8 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations3D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerEquations3D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Hendrik Ranocha (2018)
