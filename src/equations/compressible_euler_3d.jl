@@ -793,19 +793,8 @@ end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::CompressibleEulerEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr,  rho_e_rr = u_rr
-
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll  
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
-
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr  
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]

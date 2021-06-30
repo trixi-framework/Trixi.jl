@@ -30,7 +30,7 @@ const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar,
 # this is necessary for pretty printing
 Base.real(rd::RefElemData{Dims, Elem, ApproxType, Nfaces, RealT}) where {Dims, Elem, ApproxType, Nfaces, RealT} = RealT
 
-eachdim(mesh::AbstractMeshData{Dim}, dg::DG{<:RefElemData{Dim}}, cache) where {Dim} = Base.OneTo(Dim)
+eachdim(mesh::AbstractMeshData{Dim}) where {Dim} = Base.OneTo(Dim)
 
 # iteration over all elements in a mesh
 ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = dg.basis.Np * mesh.md.num_elements
@@ -125,9 +125,9 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
   @threaded for e in eachelement(mesh, dg, cache)
     
     flux_values = flux_values_threaded[Threads.threadid()]
-    for i in eachdim(mesh, dg, cache) 
+    for i in eachdim(mesh) 
       flux_values .= flux.(view(u_values,:,e), i, equations)
-      for j in eachdim(mesh, dg, cache)
+      for j in eachdim(mesh)
         StructArrays.foreachfield(mul_by_accum!(invMQrstTrW[j], rstxyzJ[i,j][1,e]), 
                                   view(du,:,e), flux_values)
       end

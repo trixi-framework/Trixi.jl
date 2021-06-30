@@ -202,7 +202,7 @@ function __init__()
       using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
   
       include("solvers/dg_simplices/mesh.jl")
-      export AbstractMeshData,VertexMappedMesh
+      export AbstractMeshData, VertexMappedMesh
       
       include("solvers/dg_simplices/dg.jl")
       include("solvers/dg_simplices/analysis.jl")  

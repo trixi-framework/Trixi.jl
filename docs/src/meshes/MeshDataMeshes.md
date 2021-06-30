@@ -1,7 +1,7 @@
 # Unstructured simplicial meshes
 
 Support for simplicial meshes uses the [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) 
-package. These meshes are constructed by specifying a list of vertex coordinates `VX, VY, VZ` 
+package. These meshes are constructed by specifying a list of vertex coordinates `VX`, `VY`, `VZ` 
 and a connectivity matrix `EToV` where `EToV[e,:]` gives the vertices which correspond to element `e`. 
 
 We make a few simplifying assumptions about simplicial meshes:
