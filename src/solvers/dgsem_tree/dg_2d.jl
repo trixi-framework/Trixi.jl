@@ -1082,7 +1082,6 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2
       for v in eachvariable(equations)
         # surface at -x
         du[v, 1,          l, element] -= surface_flux_values[v, l, 1, element] * boundary_interpolation[1,          1]
-        println(boundary_interpolation[1,          1])
         # surface at +x
         du[v, nnodes(dg), l, element] += surface_flux_values[v, l, 2, element] * boundary_interpolation[nnodes(dg), 2]
         # surface at -y
