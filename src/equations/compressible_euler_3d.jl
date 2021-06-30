@@ -6,9 +6,9 @@
 
 
 @doc raw"""
-    CompressibleEulerEquations3D(γ)
+    CompressibleEulerEquations3D(gamma)
 
-The compressible Euler equations for an ideal gas with ratio of specific heats `γ`
+The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
 in three space dimensions.
 """
 struct CompressibleEulerEquations3D{RealT<:Real} <: AbstractCompressibleEulerEquations{3, 5}

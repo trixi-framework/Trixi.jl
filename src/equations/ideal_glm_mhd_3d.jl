@@ -6,9 +6,10 @@
 
 
 @doc raw"""
-    IdealGlmMhdEquations3D(γ)
+    IdealGlmMhdEquations3D(gamma)
 
-The ideal compressible GLM-MHD equations in three space dimensions.
+The ideal compressible GLM-MHD equations for an ideal gas with ratio of
+specific heats `gamma` in three space dimensions.
 """
 mutable struct IdealGlmMhdEquations3D{RealT<:Real} <: AbstractIdealGlmMhdEquations{3, 9}
   gamma::RealT               # ratio of specific heats

@@ -6,9 +6,9 @@
 
 
 @doc raw"""
-    CompressibleEulerEquations1D(γ)
+    CompressibleEulerEquations1D(gamma)
 
-The compressible Euler equations for an ideal gas with ratio of specific heats `γ`
+The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
 in one space dimension.
 """
 struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEquations{1, 3}

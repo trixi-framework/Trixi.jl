@@ -6,9 +6,9 @@
 
 
 @doc raw"""
-    CompressibleEulerEquations2D(γ)
+    CompressibleEulerEquations2D(gamma)
 
-The compressible Euler equations for an ideal gas with ratio of specific heats `γ`
+The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
 in two space dimensions.
 """
 struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}

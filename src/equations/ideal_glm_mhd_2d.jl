@@ -6,9 +6,10 @@
 
 
 @doc raw"""
-    IdealGlmMhdEquations2D(γ)
+    IdealGlmMhdEquations2D(gamma)
 
-The ideal compressible GLM-MHD equations in two space dimensions.
+The ideal compressible GLM-MHD equations for an ideal gas with ratio of
+specific heats `gamma` in two space dimensions.
 """
 mutable struct IdealGlmMhdEquations2D{RealT<:Real} <: AbstractIdealGlmMhdEquations{2, 9}
   gamma::RealT               # ratio of specific heats
