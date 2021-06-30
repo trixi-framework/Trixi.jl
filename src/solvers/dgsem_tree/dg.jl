@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 abstract type AbstractVolumeIntegral end
 
@@ -316,6 +322,16 @@ end
   return nothing
 end
 
+# Use this function instead of `add_to_node_vars` to speed up
+# multiply-and-add-to-node-vars operations
+# See https://github.com/trixi-framework/Trixi.jl/pull/643
+@inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG, indices...)
+  for v in eachvariable(equations)
+    u[v, indices...] = u[v, indices...] + factor * u_node[v]
+  end
+  return nothing
+end
+
 
 # Used for analyze_solution
 SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
@@ -441,3 +457,5 @@ include("dg_2d_parallel.jl")
 
 # 3D DG implementation
 include("dg_3d.jl")
+
+end # @muladd

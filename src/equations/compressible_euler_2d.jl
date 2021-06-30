@@ -1,11 +1,24 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
-    CompressibleEulerEquations2D
+    CompressibleEulerEquations2D(gamma)
 
-The compressible Euler equations for an ideal gas in two space dimensions.
+The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
+in two space dimensions.
 """
 struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
-  gamma::RealT
+  gamma::RealT               # ratio of specific heats
+  inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+
+  function CompressibleEulerEquations2D(gamma)
+    γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
+    new{typeof(γ)}(γ, inv_gamma_minus_one)
+  end
 end
 
 
@@ -677,13 +690,13 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
     f1 = rho_avg * v1_avg
     f2 = rho_avg * v1_avg * v1_avg + p_avg
     f3 = rho_avg * v1_avg * v2_avg
-    f4 = p_avg*v1_avg/(equations.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
+    f4 = p_avg*v1_avg * equations.inv_gamma_minus_one + rho_avg*v1_avg*kin_avg + pv1_avg
   else
     pv2_avg = 1/2 * (p_ll*v2_rr + p_rr*v2_ll)
     f1 = rho_avg * v2_avg
     f2 = rho_avg * v2_avg * v1_avg
     f3 = rho_avg * v2_avg * v2_avg + p_avg
-    f4 = p_avg*v2_avg/(equations.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg
+    f4 = p_avg*v2_avg * equations.inv_gamma_minus_one + rho_avg*v2_avg*kin_avg + pv2_avg
   end
 
   return SVector(f1, f2, f3, f4)
@@ -787,7 +800,7 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Ranocha (2018)
@@ -813,8 +826,12 @@ See also
   p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2))
 
   # Compute the necessary mean values
-  rho_mean   = ln_mean(rho_ll, rho_rr)
-  rho_p_mean = ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
   v1_avg = 0.5 * (v1_ll + v1_rr)
   v2_avg = 0.5 * (v2_ll + v2_rr)
   p_avg  = 0.5 * (p_ll + p_rr)
@@ -825,13 +842,49 @@ See also
     f1 = rho_mean * v1_avg
     f2 = f1 * v1_avg + p_avg
     f3 = f1 * v2_avg
-    f4 = f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+    f4 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
   else
     f1 = rho_mean * v2_avg
     f2 = f1 * v1_avg
     f3 = f1 * v2_avg + p_avg
-    f4 = f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+    f4 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
   end
+
+  return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2))
+  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2))
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+  # Compute the necessary mean values
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2])
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+        + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
   return SVector(f1, f2, f3, f4)
 end
@@ -1096,7 +1149,7 @@ end
   s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equations.gamma - s) / (equations.gamma-1) - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = rho_p * v2
   w4 = -rho_p
@@ -1117,7 +1170,7 @@ end
   s = gamma - V1 + (V2^2 + V3^2)/(2*V5)
 
   # eq. (52)
-  rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
+  rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_gamma_minus_one)*exp(-s * equations.inv_gamma_minus_one)
 
   # eq. (51)
   rho      = -rho_iota * V5
@@ -1135,7 +1188,7 @@ end
   rho, v1, v2, p = prim
   rho_v1 = rho * v1
   rho_v2 = rho * v2
-  rho_e  = p/(equations.gamma-1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
+  rho_e  = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
   return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
@@ -1199,7 +1252,7 @@ end
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equations::CompressibleEulerEquations2D)
   # Mathematical entropy
-  S = -entropy_thermodynamic(cons, equations) * cons[1] / (equations.gamma - 1)
+  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_one
 
   return S
 end
@@ -1224,3 +1277,6 @@ end
 @inline function energy_internal(cons, equations::CompressibleEulerEquations2D)
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
+
+
+end # @muladd

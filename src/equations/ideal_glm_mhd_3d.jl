@@ -1,12 +1,25 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
-    IdealGlmMhdEquations3D
+    IdealGlmMhdEquations3D(gamma)
 
-The ideal compressible GLM-MHD equations in three space dimensions.
+The ideal compressible GLM-MHD equations for an ideal gas with ratio of
+specific heats `gamma` in three space dimensions.
 """
 mutable struct IdealGlmMhdEquations3D{RealT<:Real} <: AbstractIdealGlmMhdEquations{3, 9}
-  gamma::RealT
-  c_h::RealT # GLM cleaning speed
+  gamma::RealT               # ratio of specific heats
+  inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+  c_h::RealT                 # GLM cleaning speed
+
+  function IdealGlmMhdEquations3D(gamma, c_h)
+    γ, inv_gamma_minus_one, c_h = promote(gamma, inv(gamma - 1), c_h)
+    new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
+  end
 end
 
 function IdealGlmMhdEquations3D(gamma; initial_c_h=convert(typeof(gamma), NaN))
@@ -148,7 +161,7 @@ end
     f2 = rho_v1*v1 + p + mag_en - B1^2
     f3 = rho_v1*v2 - B1*B2
     f4 = rho_v1*v3 - B1*B3
-    f5 = (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
+    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
     f6 = equations.c_h*psi
     f7 = v1*B2 - v2*B1
     f8 = v1*B3 - v3*B1
@@ -158,7 +171,7 @@ end
     f2 = rho_v2*v1 - B2*B1
     f3 = rho_v2*v2 + p + mag_en - B2^2
     f4 = rho_v2*v3 - B2*B3
-    f5 = (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
+    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
     f6 = v2*B1 - v1*B2
     f7 = equations.c_h*psi
     f8 = v2*B3 - v3*B2
@@ -168,7 +181,7 @@ end
     f2 = rho_v3*v1 - B3*B1
     f3 = rho_v3*v2 - B3*B2
     f4 = rho_v3*v3 + p + mag_en - B3^2
-    f5 = (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B3
+    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B3
     f6 = v3*B1 - v1*B3
     f7 = v3*B2 - v2*B3
     f8 = equations.c_h*psi
@@ -422,16 +435,16 @@ Entropy conserving and kinetic energy preserving two-point flux of
 Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
 
 ## References
-- Hindenlang (2019)
+- Florian Hindenlang, Gregor Gassner (2019)
   A new entropy conservative two-point flux for ideal MHD equations derived from
   first principles.
   Presented at HONOM 2019: European workshop on high order numerical methods
   for evolutionary PDEs, theory and applications
-- Ranocha (2018)
+- Hendrik Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
   [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
-- Ranocha (2020)
+- Hendrik Ranocha (2020)
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
@@ -455,8 +468,12 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
   p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
 
   # Compute the necessary mean values needed for either direction
-  rho_mean   = ln_mean(rho_ll, rho_rr)
-  rho_p_mean = ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
   v1_avg  = 0.5 * ( v1_ll +  v1_rr)
   v2_avg  = 0.5 * ( v2_ll +  v2_rr)
   v3_avg  = 0.5 * ( v3_ll +  v3_rr)
@@ -477,13 +494,14 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
     f9 = equations.c_h * 0.5 * (B1_ll + B1_rr)
     # total energy flux is complicated and involves the previous components
-    f5 = ( f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) )
-          + 0.5 * ( p_ll * v1_rr +  p_rr * v1_ll)
-          + 0.5 * (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
-          + 0.5 * (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
-          - 0.5 * (v2_ll * B1_ll * B2_rr + v2_rr * B1_rr * B2_ll)
-          - 0.5 * (v3_ll * B1_ll * B3_rr + v3_rr * B1_rr * B3_ll)
-          + 0.5 * equations.c_h * (B1_ll * psi_rr + B1_rr * psi_ll) )
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+          + 0.5 * (
+            +   p_ll * v1_rr +  p_rr * v1_ll
+            + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
+            + (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
+            - (v2_ll * B1_ll * B2_rr + v2_rr * B1_rr * B2_ll)
+            - (v3_ll * B1_ll * B3_rr + v3_rr * B1_rr * B3_ll)
+            + equations.c_h * (B1_ll * psi_rr + B1_rr * psi_ll) ) )
   elseif orientation == 2
     f1 = rho_mean * v2_avg
     f2 = f1 * v1_avg                               - 0.5 * (B2_ll * B1_rr + B2_rr * B1_ll)
@@ -495,13 +513,14 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     f8 = 0.5 * (v2_ll * B3_ll - v3_ll * B2_ll + v2_rr * B3_rr - v3_rr * B2_rr)
     f9 = equations.c_h * 0.5 * (B2_ll + B2_rr)
     # total energy flux is complicated and involves the previous components
-    f5 = ( f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) )
-          + 0.5 * ( p_ll * v2_rr +  p_rr * v2_ll)
-          + 0.5 * (v2_ll * B1_ll * B1_rr + v2_rr * B1_rr * B1_ll)
-          + 0.5 * (v2_ll * B3_ll * B3_rr + v2_rr * B3_rr * B3_ll)
-          - 0.5 * (v1_ll * B2_ll * B1_rr + v1_rr * B2_rr * B1_ll)
-          - 0.5 * (v3_ll * B2_ll * B3_rr + v3_rr * B2_rr * B3_ll)
-          + 0.5 * equations.c_h * (B2_ll * psi_rr + B2_rr * psi_ll) )
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+          + 0.5 * (
+            +   p_ll * v2_rr +  p_rr * v2_ll
+            + (v2_ll * B1_ll * B1_rr + v2_rr * B1_rr * B1_ll)
+            + (v2_ll * B3_ll * B3_rr + v2_rr * B3_rr * B3_ll)
+            - (v1_ll * B2_ll * B1_rr + v1_rr * B2_rr * B1_ll)
+            - (v3_ll * B2_ll * B3_rr + v3_rr * B2_rr * B3_ll)
+            + equations.c_h * (B2_ll * psi_rr + B2_rr * psi_ll) ) )
   else # orientation == 3
     f1 = rho_mean * v3_avg
     f2 = f1 * v1_avg                               - 0.5 * (B3_ll * B1_rr + B3_rr * B1_ll)
@@ -513,14 +532,14 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     f8 = equations.c_h * psi_avg
     f9 = equations.c_h * 0.5 * (B3_ll + B3_rr)
     # total energy flux is complicated and involves the previous components
-    f5 = ( f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) )
-          + 0.5 * ( p_ll * v3_rr +  p_rr * v3_ll)
-          + 0.5 * (v3_ll * B1_ll * B1_rr + v3_rr * B1_rr * B1_ll)
-          + 0.5 * (v3_ll * B2_ll * B2_rr + v3_rr * B2_rr * B2_ll)
-          - 0.5 * (v1_ll * B3_ll * B1_rr + v1_rr * B3_rr * B1_ll)
-          - 0.5 * (v2_ll * B3_ll * B2_rr + v2_rr * B3_rr * B2_ll)
-          + 0.5 * equations.c_h * (B3_ll * psi_rr + B3_rr * psi_ll) )
-
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+          + 0.5 * (
+            +   p_ll * v3_rr +  p_rr * v3_ll
+            + (v3_ll * B1_ll * B1_rr + v3_rr * B1_rr * B1_ll)
+            + (v3_ll * B2_ll * B2_rr + v3_rr * B2_rr * B2_ll)
+            - (v1_ll * B3_ll * B1_rr + v1_rr * B3_rr * B1_ll)
+            - (v2_ll * B3_ll * B2_rr + v2_rr * B3_rr * B2_ll)
+            + equations.c_h * (B3_ll * psi_rr + B3_rr * psi_ll) ) )
   end
 
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
@@ -836,7 +855,7 @@ end
   s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equations.gamma - s) / (equations.gamma-1) - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = rho_p * v2
   w4 = rho_p * v3
@@ -857,7 +876,7 @@ end
   rho_v1 = rho * v1
   rho_v2 = rho * v2
   rho_v3 = rho * v3
-  rho_e = p/(equations.gamma-1) + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
+  rho_e = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
                                   0.5 * (B1^2 + B2^2 + B3^2) + 0.5 * psi^2
 
   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
@@ -1006,7 +1025,7 @@ end
 
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equations::IdealGlmMhdEquations3D)
-  S = -entropy_thermodynamic(cons, equations) * cons[1] / (equations.gamma - 1)
+  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_one
 
   return S
 end
@@ -1046,3 +1065,6 @@ end
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations3D)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end
+
+
+end # @muladd

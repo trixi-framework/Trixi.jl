@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Retrieve number of variables from equation instance
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
@@ -315,3 +321,5 @@ include("acoustic_perturbation_2d.jl")
 # IncompressibleEulerEquations
 abstract type AbstractIncompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("incompressible_euler_2d.jl")
+
+end # @muladd

@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # everything related to a DG semidiscretization in 2D,
 # currently limited to Lobatto-Legendre nodes
@@ -182,14 +188,12 @@ function calc_volume_integral!(du, u,
 
       flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, element)
       end
 
       flux2 = flux(u_node, 2, equations)
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, element)
       end
     end
   end
@@ -277,34 +281,25 @@ end
   for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
 
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-poitn flux
+    # computations.
+
     # x direction
-    # use consistency of the volume flux to make this evaluation cheaper
-    flux1 = flux(u_node, 1, equations)
-    integral_contribution = alpha * derivative_split[i, i] * flux1
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
-    # use symmetry of the volume flux for the remaining terms
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = alpha * derivative_split[i, ii] * flux1
-      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
-      integral_contribution = alpha * derivative_split[ii, i] * flux1
-      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, j, element)
     end
 
     # y direction
-    # use consistency of the volume flux to make this evaluation cheaper
-    flux2 = flux(u_node, 2, equations)
-    integral_contribution = alpha * derivative_split[j, j] * flux2
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
-    # use symmetry of the volume flux for the remaining terms
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
       flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-      integral_contribution = alpha * derivative_split[j, jj] * flux2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
-      integral_contribution = alpha * derivative_split[jj, j] * flux2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2, equations, dg, i, j,  element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2, equations, dg, i, jj, element)
     end
   end
 end
@@ -1139,3 +1134,6 @@ function calc_sources!(du, u, t, source_terms,
 
   return nothing
 end
+
+
+end # @muladd

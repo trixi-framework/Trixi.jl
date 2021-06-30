@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 function rhs!(du, u, t,
               mesh::StructuredMesh{2}, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -56,20 +63,16 @@ function calc_volume_integral!(du, u,
       # first contravariant vector Ja^1 and the flux vector
       Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
       contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
-
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * contravariant_flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations, dg, ii, j, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
       # second contravariant vector Ja^2 and the flux vector
       Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
       contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
-
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * contravariant_flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations, dg, i, jj, element)
       end
     end
   end
@@ -313,3 +316,6 @@ function apply_jacobian!(du,
 
   return nothing
 end
+
+
+end # @muladd
