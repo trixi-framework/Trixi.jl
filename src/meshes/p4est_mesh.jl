@@ -1003,7 +1003,7 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   x = tan(alpha)
   y = tan(beta)
 
-  # Coordinates on unit cube per direction
+  # Coordinates on unit cube per direction, see illustration above at connectivity_cubed_sphere
   cube_coordinates = (SVector(-1, -x, y),
                       SVector( 1,  x, y),
                       SVector( x, -1, y),
