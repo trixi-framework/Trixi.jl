@@ -75,7 +75,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
       l2   = [10733.63378538114, 13356.780607423452, 1.6722844879795038e-6, 26834.076821148774],
       linf = [15194.296424901113, 18881.481685044182, 6.809726988008751e-6, 37972.99700513482],
-      tspan = (0.0, 0.1))
+      tspan = (0.0, 0.1),
+      atol = 4.0e-6 # the background field is reatively large, so this corresponds to our usual atol
+      )
   end
 
   @trixi_testset "elixir_eulergravity_jeans_instability.jl with RK3S*" begin
@@ -83,6 +85,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       l2   = [10734.598193238024, 13358.217234481384, 1.911011743371934e-6, 26836.487841241516],
       linf = [15195.661004798487, 18883.512035906537, 7.867948710816926e-6, 37976.408478975296],
       tspan = (0.0, 0.1),
+      atol = 4.0e-6, # the background field is reatively large, so this corresponds to our usual atol
       parameters=ParametersEulerGravity(background_density=1.5e7,
                                         gravitational_constant=6.674e-8,
                                         cfl=2.4,

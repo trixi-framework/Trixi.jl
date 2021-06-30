@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 summary_callback(integrator) = false # when used as condition; never call the summary callback during the simulation
 summary_callback(u, t, integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
@@ -195,3 +201,6 @@ function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Conditi
   println(io)
   return nothing
 end
+
+
+end # @muladd

@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Abstract base type for time integration schemes of storage class `3S*`
 abstract type SimpleAlgorithm3Sstar end
@@ -232,3 +238,6 @@ function Base.resize!(integrator::SimpleIntegrator3Sstar, new_size)
   resize!(integrator.u_tmp1, new_size)
   resize!(integrator.u_tmp2, new_size)
 end
+
+
+end # @muladd
