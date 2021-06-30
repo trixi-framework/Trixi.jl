@@ -316,6 +316,8 @@ Kinetic energy preserving two-point flux by
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
+  rho_e_ll = last(u_ll)
+  rho_e_rr = last(u_rr)
   rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
