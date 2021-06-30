@@ -122,15 +122,15 @@ julia> scatter!(real.(λ), imag.(λ));
 
 julia> λ = eigvals(J);
 
-julia> 1.0e-18 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
+julia> -1.0e-16 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
 true
 
-julia> 5.0e-14 < maximum(real, λ) < 5.0e-13
+julia> -5.0e-13 < maximum(real, λ) < 5.0e-13
 true
 
 julia> λ, V = eigen(J);
 
-julia> 90_000 < cond(V) < 100_000
+julia> 80_000 < cond(V) < 110_000
 true
 ```
 Note that the condition number of the eigenvector matrix increases but is still smaller than for the
@@ -393,8 +393,8 @@ julia> J_fd = jacobian_fd(semi);
 
 julia> J_ad = jacobian_ad_forward(semi);
 
-julia> round(norm(J_fd - J_ad) / size(J_fd, 1), sigdigits=2)
-6.7e-7
+julia> norm(J_fd - J_ad) / size(J_fd, 1) < 7.0e-7
+true
 ```
 This discrepancy is of the expected order of magnitude for central finite difference approximations.
 

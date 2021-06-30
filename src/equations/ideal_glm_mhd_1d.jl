@@ -1,13 +1,28 @@
-@doc raw"""
-    IdealGlmMhdEquations1D
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
-The ideal compressible GLM-MHD equations in one space dimension.
+
+@doc raw"""
+    IdealGlmMhdEquations1D(gamma)
+
+The ideal compressible GLM-MHD equations for an ideal gas with ratio of
+specific heats `gamma` in one space dimension.
+
 !!! note
     There is no divergence cleaning variable `psi` because the divergence-free constraint
     is satisfied trivially in one spatial dimension.
 """
 struct IdealGlmMhdEquations1D{RealT<:Real} <: AbstractIdealGlmMhdEquations{1, 8}
-  gamma::RealT
+  gamma::RealT               # ratio of specific heats
+  inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+
+  function IdealGlmMhdEquations1D(gamma)
+    γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
+    new{typeof(γ)}(γ, inv_gamma_minus_one)
+  end
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = Val(false)
@@ -557,3 +572,6 @@ end
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations1D)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end
+
+
+end # @muladd

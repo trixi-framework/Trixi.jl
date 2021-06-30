@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     StepsizeCallback(; cfl=1.0)
@@ -100,3 +106,6 @@ end
 include("stepsize_dg1d.jl")
 include("stepsize_dg2d.jl")
 include("stepsize_dg3d.jl")
+
+
+end # @muladd
