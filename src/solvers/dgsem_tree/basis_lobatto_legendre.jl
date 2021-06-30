@@ -19,7 +19,7 @@ struct LobattoLegendreBasis{RealT<:Real, NNODES,
   derivative_matrix         ::DerivativeMatrix # strong form derivative matrix
   derivative_split          ::DerivativeMatrix # strong form derivative matrix minus boundary terms
   derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
-  derivative_dhat           ::DerivativeMatrix # weak form matrix "dhat",
+  derivative_dhat           ::DerivativeMatrix # weak form matrix "dhat" (-M^{-1} D^T M),
                                                # negative adjoint wrt the SBP dot product
 end
 

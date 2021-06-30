@@ -299,83 +299,84 @@ end
                               mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                               equations, volume_flux_fv, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
+  @unpack weights, derivative_matrix = dg.basis
 
   fstar1[:, 1,            :, :] .= zero(eltype(fstar1))
   fstar1[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1))
 
-  for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-    u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
-    u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
+  for k in eachnode(dg), j in eachnode(dg)
+    normal = get_contravariant_vector(1, contravariant_vectors, 1, j, k, element)
 
-    flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
-    flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
-    flux3 = volume_flux_fv(u_ll, u_rr, 3, equations)
+    for i in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
+      u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
 
-    # Average first contravariant vectors (x-direction)
-    Ja11_ll, Ja12_ll, Ja13_ll = get_contravariant_vector(1, contravariant_vectors, i-1, j, k, element)
-    Ja11_rr, Ja12_rr, Ja13_rr = get_contravariant_vector(1, contravariant_vectors, i,   j, k, element)
+      flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
+      flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
+      flux3 = volume_flux_fv(u_ll, u_rr, 3, equations)
 
-    Ja11 = 0.5 * (Ja11_ll + Ja11_rr)
-    Ja12 = 0.5 * (Ja12_ll + Ja12_rr)
-    Ja13 = 0.5 * (Ja13_ll + Ja13_rr)
+      for ii in 1:nnodes(dg)
+        normal += weights[i-1] * derivative_matrix[i-1, ii] * get_contravariant_vector(1, contravariant_vectors, ii, j, k, element)
+      end
 
-    # Compute the contravariant flux by taking the scalar product of the
-    # first contravariant vector Ja^1 and the flux vector
-    contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
+      # Compute the contravariant flux by taking the scalar product of the
+      # normal vector and the flux vector
+      contravariant_flux1 = normal[1] * flux1 + normal[2] * flux2 + normal[3] * flux3
 
-    set_node_vars!(fstar1, contravariant_flux1, equations, dg, i, j, k)
+      set_node_vars!(fstar1, contravariant_flux1, equations, dg, i, j, k)
+    end
   end
 
   fstar2[:, :, 1           , :] .= zero(eltype(fstar2))
   fstar2[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2))
 
-  for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-    u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
-    u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
+  for k in eachnode(dg), i in eachnode(dg)
+    normal = get_contravariant_vector(2, contravariant_vectors, i, 1, k, element)
 
-    flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
-    flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
-    flux3 = volume_flux_fv(u_ll, u_rr, 3, equations)
+    for j in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
+      u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
 
-    # Average second contravariant vectors (y-direction)
-    Ja21_ll, Ja22_ll, Ja23_ll = get_contravariant_vector(2, contravariant_vectors, i, j-1, k, element)
-    Ja21_rr, Ja22_rr, Ja23_rr = get_contravariant_vector(2, contravariant_vectors, i, j,   k, element)
+      flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
+      flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
+      flux3 = volume_flux_fv(u_ll, u_rr, 3, equations)
 
-    Ja21 = 0.5 * (Ja21_ll + Ja21_rr)
-    Ja22 = 0.5 * (Ja22_ll + Ja22_rr)
-    Ja23 = 0.5 * (Ja23_ll + Ja23_rr)
+      for ii in 1:nnodes(dg)
+        normal += weights[j-1] * derivative_matrix[j-1, ii] * get_contravariant_vector(2, contravariant_vectors, i, ii, k, element)
+      end
 
-    # Compute the contravariant flux by taking the scalar product of the
-    # second contravariant vector Ja^2 and the flux vector
-    contravariant_flux1 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
+      # Compute the contravariant flux by taking the scalar product of the
+      # normal vector and the flux vector
+      contravariant_flux1 = normal[1] * flux1 + normal[2] * flux2 + normal[3] * flux3
 
-    set_node_vars!(fstar2, contravariant_flux1, equations, dg, i, j, k)
+      set_node_vars!(fstar2, contravariant_flux1, equations, dg, i, j, k)
+    end
   end
 
   fstar3[:, :, :, 1           ] .= zero(eltype(fstar3))
   fstar3[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3))
 
-  for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-    u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
-    u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
+  for j in eachnode(dg), i in eachnode(dg)
+    normal = get_contravariant_vector(3, contravariant_vectors, i, j, 1, element)
 
-    flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
-    flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
-    flux3 = volume_flux_fv(u_ll, u_rr, 3, equations)
+    for k in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
+      u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
 
-    # Average third contravariant vectors (z-direction)
-    Ja31_ll, Ja32_ll, Ja33_ll = get_contravariant_vector(3, contravariant_vectors, i, j, k-1, element)
-    Ja31_rr, Ja32_rr, Ja33_rr = get_contravariant_vector(3, contravariant_vectors, i, j, k,   element)
+      flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
+      flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
+      flux3 = volume_flux_fv(u_ll, u_rr, 3, equations)
 
-    Ja31 = 0.5 * (Ja31_ll + Ja31_rr)
-    Ja32 = 0.5 * (Ja32_ll + Ja32_rr)
-    Ja33 = 0.5 * (Ja33_ll + Ja33_rr)
+      for ii in 1:nnodes(dg)
+        normal += weights[k-1] * derivative_matrix[k-1, ii] * get_contravariant_vector(3, contravariant_vectors, i, j, ii, element)
+      end
 
-    # Compute the contravariant flux by taking the scalar product of the
-    # third contravariant vector Ja^3 and the flux vector
-    contravariant_flux1 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
+      # Compute the contravariant flux by taking the scalar product of the
+      # normal vector and the flux vector
+      contravariant_flux1 = normal[1] * flux1 + normal[2] * flux2 + normal[3] * flux3
 
-    set_node_vars!(fstar3, contravariant_flux1, equations, dg, i, j, k)
+      set_node_vars!(fstar3, contravariant_flux1, equations, dg, i, j, k)
+    end
   end
 
   return nothing
