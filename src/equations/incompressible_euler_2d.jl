@@ -4,7 +4,7 @@
 
 better comment goes here
 """
-struct IncompressibleEulerEquations2D <: AbstractCompressibleEulerEquations{2, 3} end
+struct IncompressibleEulerEquations2D <: AbstractIncompressibleEulerEquations{2, 3} end
 
 
 varnames(::typeof(cons2cons), ::IncompressibleEulerEquations2D) = ("v1", "v2", "p")
