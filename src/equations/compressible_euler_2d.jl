@@ -650,7 +650,8 @@ end
 
 
 """
-    function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction,
+                    equations::CompressibleEulerEquations2D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
@@ -694,9 +695,35 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux_shima_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  v_dot_n_avg = 1/2 * (v_dot_n_ll + v_dot_n_rr)
+  p_avg   = 1/2 * (  p_ll +   p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_avg * v_dot_n_avg
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = ( f1 * velocity_square_avg + p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
+        + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
+
+  return SVector(f1, f2, f3, f4)
+end
+
 
 """
-    flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_kennedy_gruber(u_ll, u_rr, orientation_or_normal_direction,
+                        equations::CompressibleEulerEquations2D)
 
 Kinetic energy preserving two-point flux by
 - Kennedy and Gruber (2008)
@@ -730,6 +757,30 @@ Kinetic energy preserving two-point flux by
     f3 = rho_avg * v2_avg * v2_avg + p_avg
     f4 = (rho_avg * e_avg + p_avg) * v2_avg
   end
+
+  return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_kennedy_gruber(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
+  # Unpack left and right state
+  rho_e_ll = last(u_ll)
+  rho_e_rr = last(u_rr)
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+  # Average each factor of products in flux
+  rho_avg = 0.5 * (rho_ll + rho_rr)
+  v1_avg  = 0.5 * (v1_ll + v1_rr)
+  v2_avg  = 0.5 * (v2_ll + v2_rr)
+  v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2]
+  p_avg = 0.5 * (p_ll + p_rr)
+  e_avg = 0.5 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_avg * v_dot_n_avg
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = f1 * e_avg + p_avg * v_dot_n_avg
 
   return SVector(f1, f2, f3, f4)
 end
@@ -781,7 +832,8 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Hendrik Ranocha (2018)

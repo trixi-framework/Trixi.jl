@@ -269,7 +269,7 @@ end
 
 
 """
-    function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
@@ -385,7 +385,7 @@ See also
 - Hendrik Ranocha (2020)
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
-[Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
   # Unpack left and right state

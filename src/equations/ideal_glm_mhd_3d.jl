@@ -416,7 +416,8 @@ end
 
 
 """
-    flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction, equations::IdealGlmMhdEquations3D)
+    flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction,
+                    equations::IdealGlmMhdEquations3D)
 
 Entropy conserving and kinetic energy preserving two-point flux of
 Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
