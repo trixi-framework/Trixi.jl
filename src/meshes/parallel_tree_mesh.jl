@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
     partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
 
@@ -32,10 +39,10 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
 
     # Check if all children of the last parent are leaves
     if allow_coarsening &&
-        all(id -> is_leaf(mesh.tree, id), @view mesh.tree.child_ids[:, parent_id]) && 
+        all(id -> is_leaf(mesh.tree, id), @view mesh.tree.child_ids[:, parent_id]) &&
         d < length(n_leaves_per_rank) - 1
 
-      # To keep children of parent together if they are all leaves, 
+      # To keep children of parent together if they are all leaves,
       # all children are added to this rank
       additional_cells = (last_id+1):mesh.tree.child_ids[end, parent_id]
       if length(additional_cells) > 0
@@ -53,7 +60,7 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
 
     mesh.n_cells_by_rank[d] = last_id - mesh.first_cell_by_rank[d] + 1
     mesh.tree.mpi_ranks[mesh.first_cell_by_rank[d]:last_id] .= d
-    
+
     # Set first cell of next rank
     if d < length(n_leaves_per_rank) - 1
       mesh.first_cell_by_rank[d+1] = mesh.first_cell_by_rank[d] + mesh.n_cells_by_rank[d]
@@ -91,3 +98,6 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{true})
   # Construct and return filename
   return joinpath(dirname, mesh_file)
 end
+
+
+end # @muladd

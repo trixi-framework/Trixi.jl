@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 abstract type AbstractVolumeIntegral end
 
@@ -37,7 +43,7 @@ symmetric two-point volume fluxes. Based upon the theory developed by
   High-order entropy stable finite difference schemes for nonlinear
   conservation laws: Finite domains
   [doi: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
-- Ranocha (2017)
+- Hendrik Ranocha (2017)
   Comparison of Some Entropy Conservative Numerical Fluxes for the Euler Equations
   [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
   [doi: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
@@ -316,6 +322,16 @@ end
   return nothing
 end
 
+# Use this function instead of `add_to_node_vars` to speed up
+# multiply-and-add-to-node-vars operations
+# See https://github.com/trixi-framework/Trixi.jl/pull/643
+@inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG, indices...)
+  for v in eachvariable(equations)
+    u[v, indices...] = u[v, indices...] + factor * u_node[v]
+  end
+  return nothing
+end
+
 
 # Used for analyze_solution
 SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
@@ -442,3 +458,5 @@ include("dg_2d_parallel.jl")
 # 3D DG implementation
 include("dg_3d.jl")
 
+
+end # @muladd

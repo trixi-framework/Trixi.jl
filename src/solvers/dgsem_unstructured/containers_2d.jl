@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
@@ -299,3 +305,6 @@ function init_boundaries!(boundaries, edge_information, boundary_names, elements
 
   return nothing
 end
+
+
+end # @muladd
