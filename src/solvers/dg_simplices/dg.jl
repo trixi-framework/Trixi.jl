@@ -5,9 +5,9 @@ mul_by!(A) = let A = A
   @inline (out, x)->matmul!(out, A, x) 
 end
 
-# specialize for SBP operators since matmul! doesn't work for `UniformScaling` types
+# specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
 mul_by!(A::UniformScaling) = let A = A
-  @inline (out, x)->out .= x
+  @inline (out, x)->mul!(out, A, x)
 end
   
 # # Todo: simplices. Use `matmul!` for the following 2 functions until 5-arg `matmul!` once 
