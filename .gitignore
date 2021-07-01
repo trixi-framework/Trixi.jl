@@ -21,3 +21,5 @@ coverage_report/
 **/solution_*.txt
 **/restart_*.txt
 .vscode/
+
+.DS_Store

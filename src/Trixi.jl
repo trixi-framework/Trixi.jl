@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, dot, mul!, norm, cross, normalize
+using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, UniformScaling
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -36,6 +36,7 @@ using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 import MPI
+using Octavian: matmul! 
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
@@ -205,6 +206,23 @@ function __init__()
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
   end
+
+  # require both StructArrays and StartUpDG for triangular mesh solvers
+  @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
+    @require StructArrays="09ab397b-f2b6-538f-b94a-2f83cf4a842a" begin
+      using .StructArrays: StructArrays, StructArray
+
+      using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
+      using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
+  
+      include("solvers/dg_simplices/mesh.jl")
+      export AbstractMeshData, VertexMappedMesh
+      
+      include("solvers/dg_simplices/dg.jl")
+      include("solvers/dg_simplices/analysis.jl")  
+    end 
+  end
+
 end
 
 

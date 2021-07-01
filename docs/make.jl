@@ -54,6 +54,7 @@ makedocs(
                 "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
                 "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                 "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
+                "Simplicial mesh" => joinpath("meshes", "mesh_data_meshes.md"),
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
