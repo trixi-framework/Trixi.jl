@@ -153,8 +153,8 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 end
 
 # type alias for dispatch in printing of boundary conditions
-const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} = 
-      SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, 
+const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} =
+      SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions,
                                    SourceTerms, Solver} where {Equations, InitialCondition, SourceTerms}
 
 # generic fallback: print the type of semi.boundary_condition.
@@ -166,7 +166,7 @@ function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh,
   summary_line(io, "boundary conditions", length(boundary_dictionary))
   for (boundary_name, boundary_condition) in boundary_dictionary
     summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
-  end  
+  end
 end
 
 function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:Union{Tuple,NamedTuple,AbstractArray}})
@@ -229,6 +229,23 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
   put!(semi.performance_counter, runtime)
 
   return nothing
+end
+
+#
+# OBS! specific wrapper of the rhs function for the incompressible Euler 2D solvers
+function space_approximation(u_ode, semi::SemidiscretizationHyperbolic, t)
+  @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+
+  #u = reshape(u_ode, (nvariables(equations), nnodes(solver), nnodes(solver), nelements(solver, cache)))
+  u  = wrap_array(u_ode, mesh, equations, solver, cache)
+  du = similar(u)
+
+  time_start = time_ns()
+  @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
+  runtime = time_ns() - time_start
+  put!(semi.performance_counter, runtime)
+
+  return reshape(du, :)
 end
 
 

@@ -324,17 +324,17 @@ function calc_volume_integral!(du, u,
     @. v1v2 = v1*v2
 
     for j in eachnode(dg)
-      mul!(view(dv1dx, :, j) , D, view(v1, :, j))
-      mul!(view(dv2dx, :, j) , D, view(v2, :, j))
-      mul!(view(dpdx, :, j) , D, view(p, :, j) )
+      mul!(view(dv1dx  , :, j), D, view(v1  , :, j))
+      mul!(view(dv2dx  , :, j), D, view(v2  , :, j))
+      mul!(view(dpdx   , :, j), D, view(p   , :, j))
       mul!(view(dv1v1dx, :, j), D, view(v1v1, :, j))
       mul!(view(dv1v2dx, :, j), D, view(v1v2, :, j))
     end
 
     for i in eachnode(dg)
-      mul!(view(dv2dy, i, :) , D, view(v1, i, :))
-      mul!(view(dv2dy, i, :) , D, view(v2, i, :))
-      mul!(view(dpdy, i, :) , D, view(p, i, :) )
+      mul!(view(dv1dy  , i, :), D, view(v1  , i, :))
+      mul!(view(dv2dy  , i, :), D, view(v2  , i, :))
+      mul!(view(dpdy   , i, :), D, view(p   , i, :))
       mul!(view(dv1v2dy, i, :), D, view(v1v2, i, :))
       mul!(view(dv2v2dy, i, :), D, view(v2v2, i, :))
     end
@@ -342,7 +342,6 @@ function calc_volume_integral!(du, u,
     @. du[1,:,:,element] = 0.5*(v1*dv1dx + dv1v1dx + v2*dv1dy + dv1v2dy) + dpdx
     @. du[2,:,:,element] = 0.5*(v1*dv2dx + dv1v2dx + v2*dv2dy + dv2v2dy) + dpdy
     @. du[3,:,:,element] = dv1dx + dv2dy
-
   end
 
   return nothing
@@ -362,7 +361,7 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
 
   @threaded for element in eachelement(dg, cache)
     for l in eachnode(dg)
-      # along the bottom
+      # along the bottom (surface at -y)
       u_node, v_node, _ = get_node_vars(u, equations, dg, l, 1, element)
       w_n = -v_node
       sat_contribution = (-0.5 * inv_weight_left * u_node * w_n,
@@ -370,23 +369,23 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
                           -inv_weight_left * w_n)
       add_to_node_vars!(du, sat_contribution, equations, dg, l, 1, element)
 
-      # along the right
+      # along the right (surface at +x)
       u_node, v_node, _ = get_node_vars(u, equations, dg, nnodes(dg), l, element)
       w_n = u_node
-      sat_contribution = (-0.5 * inv_weight_left * u_node * w_n,
-                          -0.5 * inv_weight_left * v_node * w_n,
-                          -inv_weight_left * w_n)
+      sat_contribution = (-0.5 * inv_weight_right * u_node * w_n,
+                          -0.5 * inv_weight_right * v_node * w_n,
+                          -inv_weight_right * w_n)
       add_to_node_vars!(du, sat_contribution, equations, dg, nnodes(dg), l, element)
 
-      # along the top
+      # along the top (surface at +y)
       u_node, v_node, _ = get_node_vars(u, equations, dg, l, nnodes(dg), element)
       w_n = v_node
-      sat_contribution = (-0.5 * inv_weight_left * u_node * w_n,
-                          -0.5 * inv_weight_left * v_node * w_n,
-                          -inv_weight_left * w_n)
+      sat_contribution = (-0.5 * inv_weight_right * u_node * w_n,
+                          -0.5 * inv_weight_right * v_node * w_n,
+                          -inv_weight_right * w_n)
       add_to_node_vars!(du, sat_contribution, equations, dg, l, nnodes(dg), element)
 
-      # along the left
+      # along the left (surface at -x)
       u_node, v_node, _ = get_node_vars(u, equations, dg, 1, l, element)
       w_n = -u_node
       sat_contribution = (-0.5 * inv_weight_left * u_node * w_n,
