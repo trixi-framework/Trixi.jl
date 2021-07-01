@@ -14,8 +14,8 @@ comment:
   after_n_builds: 20
 
 coverage:
-  range: 70..95
-  round: down
+  range: 90..100
+  round: nearest
   precision: 2
 
 github_checks:
