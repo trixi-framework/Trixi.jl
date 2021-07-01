@@ -633,14 +633,11 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
-
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
-  rho, rho_v1, rho_v2, rho_e = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  rho_e = last(u)
+  rho, v1, v2, p = cons2prim(u, equations)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   rho_v_normal = rho * v_normal
@@ -653,29 +650,25 @@ end
 
 
 """
-    function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction,
+                    equations::CompressibleEulerEquations2D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
-- Kuya, Totani and Kawai (2018)
+- Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
   [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+
 The modification is in the energy flux to guarantee pressure equilibrium and was developed by
 - Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
+  [DOI: 10.1016/j.jcp.2020.110060](https://doi.org/10.1016/j.jcp.2020.110060)
 """
 @inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  p_ll  = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
-  p_rr  = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
   rho_avg = 1/2 * (rho_ll + rho_rr)
@@ -702,9 +695,35 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux_shima_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  v_dot_n_avg = 1/2 * (v_dot_n_ll + v_dot_n_rr)
+  p_avg   = 1/2 * (  p_ll +   p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_avg * v_dot_n_avg
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = ( f1 * velocity_square_avg + p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
+        + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
+
+  return SVector(f1, f2, f3, f4)
+end
+
 
 """
-    flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_kennedy_gruber(u_ll, u_rr, orientation_or_normal_direction,
+                        equations::CompressibleEulerEquations2D)
 
 Kinetic energy preserving two-point flux by
 - Kennedy and Gruber (2008)
@@ -714,21 +733,17 @@ Kinetic energy preserving two-point flux by
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
+  rho_e_ll = last(u_ll)
+  rho_e_rr = last(u_rr)
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
   rho_avg = 1/2 * (rho_ll + rho_rr)
-  v1_avg = 1/2 * (v1_ll + v1_rr)
-  v2_avg = 1/2 * (v2_ll + v2_rr)
-  p_avg = 1/2 * ((equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2)) +
-                 (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2)))
-  e_avg = 1/2 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  p_avg   = 1/2 * (  p_ll +   p_rr)
+  e_avg   = 1/2 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
   # Calculate fluxes depending on orientation
   if orientation == 1
@@ -746,6 +761,30 @@ Kinetic energy preserving two-point flux by
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux_kennedy_gruber(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
+  # Unpack left and right state
+  rho_e_ll = last(u_ll)
+  rho_e_rr = last(u_rr)
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+  # Average each factor of products in flux
+  rho_avg = 0.5 * (rho_ll + rho_rr)
+  v1_avg  = 0.5 * (v1_ll + v1_rr)
+  v2_avg  = 0.5 * (v2_ll + v2_rr)
+  v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2]
+  p_avg = 0.5 * (p_ll + p_rr)
+  e_avg = 0.5 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_avg * v_dot_n_avg
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = f1 * e_avg + p_avg * v_dot_n_avg
+
+  return SVector(f1, f2, f3, f4)
+end
+
 
 """
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
@@ -758,28 +797,21 @@ Entropy conserving two-point flux by
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  p_ll =  (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
-  p_rr =  (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
-  beta_ll = 0.5*rho_ll/p_ll
-  beta_rr = 0.5*rho_rr/p_rr
-  specific_kin_ll = 0.5*(v1_ll^2 + v2_ll^2)
-  specific_kin_rr = 0.5*(v1_rr^2 + v2_rr^2)
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  beta_ll = 0.5 * rho_ll / p_ll
+  beta_rr = 0.5 * rho_rr / p_rr
+  specific_kin_ll = 0.5 * (v1_ll^2 + v2_ll^2)
+  specific_kin_rr = 0.5 * (v1_rr^2 + v2_rr^2)
 
   # Compute the necessary mean values
-  rho_avg  = 0.5*(rho_ll+rho_rr)
-  rho_mean = ln_mean(rho_ll,rho_rr)
-  beta_mean = ln_mean(beta_ll,beta_rr)
-  beta_avg = 0.5*(beta_ll+beta_rr)
-  v1_avg = 0.5*(v1_ll+v1_rr)
-  v2_avg = 0.5*(v2_ll+v2_rr)
-  p_mean = 0.5*rho_avg/beta_avg
+  rho_avg = 0.5 * (rho_ll + rho_rr)
+  rho_mean  = ln_mean(rho_ll, rho_rr)
+  beta_mean = ln_mean(beta_ll, beta_rr)
+  beta_avg = 0.5 * (beta_ll + beta_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_mean = 0.5 * rho_avg / beta_avg
   velocity_square_avg = specific_kin_ll + specific_kin_rr
 
   # Calculate fluxes depending on orientation
@@ -800,30 +832,24 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
-- Ranocha (2018)
+- Hendrik Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
   [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
 See also
-- Ranocha (2020)
+- Hendrik Ranocha (2020)
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2))
-  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2))
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
   # Compute the necessary mean values
   rho_mean = ln_mean(rho_ll, rho_rr)
@@ -855,15 +881,8 @@ end
 
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2))
-  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2))
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
   v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
@@ -919,18 +938,10 @@ end
 
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
-
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations2D)
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
   if orientation == 1 # x-direction
     λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
@@ -943,20 +954,10 @@ end
   return λ_min, λ_max
 end
 
-
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::CompressibleEulerEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
-
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -1116,10 +1117,7 @@ end
 
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations2D)
-  rho, rho_v1, rho_v2, rho_e = u
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  rho, v1, v2, p = cons2prim(u, equations)
   c = sqrt(equations.gamma * p / rho)
 
   return abs(v1) + c, abs(v2) + c
@@ -1132,7 +1130,7 @@ end
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p = (equations.gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
   return SVector(rho, v1, v2, p)
 end
