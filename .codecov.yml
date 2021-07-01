@@ -14,7 +14,7 @@ comment:
   after_n_builds: 20
 
 coverage:
-  range: 90..100
+  range: 80..95 # set 95% and above as solid green, everything below 80% as red
   round: nearest
   precision: 2
 
