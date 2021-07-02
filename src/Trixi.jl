@@ -32,6 +32,7 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 import ForwardDiff
 using HDF5: h5open, attributes
+using LazyArrays: LazyArray, @~
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
@@ -45,6 +46,7 @@ using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
+using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack
 using UnPack: @pack!
@@ -207,20 +209,17 @@ function __init__()
     using .Plots: plot, plot!, savefig
   end
 
-  # require both StructArrays and StartUpDG for triangular mesh solvers
+  # require StartUpDG for triangular mesh solvers
   @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
-    @require StructArrays="09ab397b-f2b6-538f-b94a-2f83cf4a842a" begin
-      using .StructArrays: StructArrays, StructArray
+    using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
+    using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
 
-      using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
-      using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
-  
-      include("solvers/dg_simplices/mesh.jl")
-      export AbstractMeshData, VertexMappedMesh
-      
-      include("solvers/dg_simplices/dg.jl")
-      include("solvers/dg_simplices/analysis.jl")  
-    end 
+    include("solvers/dg_simplices/mesh.jl")
+    export AbstractMeshData, VertexMappedMesh
+    
+    include("solvers/dg_simplices/dg.jl")
+    include("solvers/dg_simplices/fluxdiff.jl")
+    include("solvers/dg_simplices/analysis.jl")  
   end
 
 end
