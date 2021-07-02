@@ -1,7 +1,7 @@
 # Adding a new equation: nonconservative linear advection
 
 If you want to use Trixi for your own research, you might be interested in
-a new physics model that's not already included in Trixi.jl. In this tutorial,
+a new physics model that is not present in Trixi.jl. In this tutorial,
 we will implement the nonconservative linear advection equation
 ```math
 \partial_t u(t,x) + a(x) \partial_x u(t,x) = 0
@@ -193,8 +193,8 @@ julia> 0.00029610274971929974 / 1.8602959063280523e-5
 
 ## Summary of the code
 
-To sum up, here is the complete code that we used (without the callbacks since
-these create a lot of unnecessary output in the doctests of this tutorial).
+Here is the complete code that we used (without the callbacks since these
+create a lot of unnecessary output in the doctests of this tutorial).
 
 ```jldoctest; output = false
 # Define new physics
@@ -305,6 +305,6 @@ plot(sol)
 
 # output
 
-Plot{Plots.GRBackend() n=1}
+Plot{Plots.GRBackend() n=2}
 
 ```
