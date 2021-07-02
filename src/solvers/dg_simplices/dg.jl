@@ -90,10 +90,14 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
   @unpack wq, Vq = rd 
 
   # mass matrix, tuple of differentiation matrices
-  @unpack M, Drst = rd
+  @unpack M, Drst, Pq = rd
 
   # ∫f(u) * dv/dx_i = ∑_j (Vq*D_i)'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
   invMQrstTrW = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
+
+  # for use with flux differencing schemes
+  Qrst = map(D->Pq'*M*D*Pq, Drst) 
+  Qrst_skew_Tr = map(A -> -.5*(A-A'), Qrst)
 
   nvars = nvariables(equations)
 
@@ -104,18 +108,18 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
   flux_face_values = similar(u_face_values)
 
   # local storage for fluxes
-  flux_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
+  local_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
   
-  return (; md, invMQrstTrW, invJ = inv.(md.J),
-      u_values, flux_values_threaded, u_face_values, flux_face_values)
+  return (; md, invMQrstTrW, Qrst_skew_Tr, invJ = inv.(md.J),
+      u_values, local_values_threaded, u_face_values, flux_face_values)
 end
 
-function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegralWeakForm,
+function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralWeakForm,
                  mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{Dim}}, cache) where {Dim}
 
   rd = dg.basis  
   md = mesh.md
-  @unpack invMQrstTrW, u_values, flux_values_threaded = cache
+  @unpack invMQrstTrW, u_values, local_values_threaded = cache
   @unpack rstxyzJ = md # geometric terms
 
   # interpolate to quadrature points
@@ -124,7 +128,7 @@ function calc_volume_integral!(du,u::StructArray, volume_integral::VolumeIntegra
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
     
-    flux_values = flux_values_threaded[Threads.threadid()]
+    flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh) 
       flux_values .= flux.(view(u_values,:,e), i, equations)
       for j in eachdim(mesh)
@@ -262,23 +266,23 @@ function calc_sources!(du, u, t, source_terms::SourceTerms,
   rd = dg.basis
   md = mesh.md
   @unpack Pq = rd
-  @unpack u_values, flux_values_threaded = cache
+  @unpack u_values, local_values_threaded = cache
   @threaded for e in eachelement(mesh, dg, cache)
 
-    flux_values = flux_values_threaded[Threads.threadid()]
+    source_values = local_values_threaded[Threads.threadid()]
 
     u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
 
     for i in each_quad_node(mesh, dg, cache)
-      flux_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations) 
+      source_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations) 
     end
-    StructArrays.foreachfield(mul_by_accum!(Pq), view(du, :, e), flux_values)
+    StructArrays.foreachfield(mul_by_accum!(Pq), view(du, :, e), source_values)
   end
 end
 
 function rhs!(du, u, t, mesh, equations, 
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG{<:RefElemData}, cache)
+              initial_condition, boundary_conditions::BC, source_terms::Source,
+              dg::DG{<:RefElemData}, cache) where {BC, Source}
 
   @trixi_timeit timer() "Reset du/dt" fill!(du,zero(eltype(du)))
 
