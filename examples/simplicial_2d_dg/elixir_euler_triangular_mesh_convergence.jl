@@ -3,7 +3,7 @@
 # run using 
 # convergence_test(joinpath(examples_dir(), "triangular_mesh_2D", "elixir_euler_triangular_mesh_convergence.jl"), 4)
 
-using StartUpDG, StructArrays
+using StartUpDG
 using Trixi, OrdinaryDiffEq
 
 polydeg = 3

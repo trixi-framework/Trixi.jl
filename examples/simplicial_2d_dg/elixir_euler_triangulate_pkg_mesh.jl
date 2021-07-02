@@ -1,7 +1,7 @@
 # !!! warning "Experimental features"
 
 using Triangulate
-using StartUpDG, StructArrays
+using StartUpDG
 using Trixi, OrdinaryDiffEq
 
 polydeg = 3
