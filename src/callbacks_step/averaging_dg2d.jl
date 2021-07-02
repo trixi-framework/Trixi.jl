@@ -1,0 +1,105 @@
+function initialize_mean_values(mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
+                                dg::DG, cache)
+  uEltype = eltype(cache.elements)
+  v_mean = zeros(uEltype, (ndims(equations), nnodes(dg), nnodes(dg), nelements(cache.elements)))
+  c_mean = zeros(uEltype, (nnodes(dg), nnodes(dg), nelements(cache.elements)))
+  rho_mean = zeros(uEltype, size(c_mean))
+  vorticity_mean = zeros(uEltype, size(c_mean))
+
+  return (; v_mean, c_mean, rho_mean, vorticity_mean)
+end
+
+function create_cache(::Type{AveragingCallback}, mesh::TreeMesh{2},
+                      equations::AbstractCompressibleEulerEquations{2}, dg::DG, cache)
+  # Cache vorticity from previous time step
+  uEltype = eltype(cache.elements)
+  vorticity_prev = zeros(uEltype, (nnodes(dg), nnodes(dg), nelements(cache.elements)))
+  return (; vorticity_prev)
+end
+
+function initialize_cache!(averaging_callback_cache, u, t,
+                           mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
+                           dg::DG, cache)
+  @unpack derivative_matrix = dg.basis
+  @unpack vorticity_prev = averaging_callback_cache
+
+  # Calculate vorticity for initial solution
+  @threaded for element in eachelement(cache.elements)
+    for j in eachnode(dg), i in eachnode(dg)
+      dv2_dx = 0.0
+      for ii in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, ii, j, element)
+        v2 = u_node[3] / u_node[1]
+        dv2_dx += derivative_matrix[i, ii] * v2
+      end
+
+      dv1_dy = 0.0
+      for jj in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, jj, element)
+        v1 = u_node[2] / u_node[1]
+        dv1_dy += derivative_matrix[j, jj] * v1
+      end
+      vorticity_prev[i, j, element] = (dv2_dx - dv1_dy) * cache.elements.inverse_jacobian[element]
+    end
+  end
+
+  return nothing
+end
+
+
+# Update mean values using the trapezoidal rule
+function calc_means!(mean_values, averaging_callback_cache, u, u_prev, integration_constant,
+                     mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2}, dg::DG,
+                     cache)
+  @unpack v_mean, c_mean, rho_mean, vorticity_mean = mean_values
+  @unpack vorticity_prev = averaging_callback_cache
+  @unpack derivative_matrix = dg.basis
+
+  @threaded for element in eachelement(cache.elements)
+    for j in eachnode(dg), i in eachnode(dg)
+      # Calculate vorticity
+      dv2_dx = 0.0
+      for ii in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, ii, j, element)
+        v2 = u_node[3] / u_node[1]
+        dv2_dx += derivative_matrix[i, ii] * v2
+      end
+
+      dv1_dy = 0.0
+      for jj in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, jj, element)
+        v1 = u_node[2] / u_node[1]
+        dv1_dy += derivative_matrix[j, jj] * v1
+      end
+      vorticity = (dv2_dx - dv1_dy) * cache.elements.inverse_jacobian[element]
+      vorticity_prev_node = vorticity_prev[i, j, element]
+      vorticity_prev[i, j, element] = vorticity # Cache current velocity for the next time step
+
+
+      u_node_prim = cons2prim(get_node_vars(u, equations, dg, i, j, element), equations)
+      u_prev_node_prim = cons2prim(get_node_vars(u_prev, equations, dg, i, j, element), equations)
+
+      rho = u_node_prim[1]
+      v1 = u_node_prim[2]
+      v2 = u_node_prim[3]
+      p = u_node_prim[4]
+
+      rho_prev = u_prev_node_prim[1]
+      v1_prev = u_prev_node_prim[2]
+      v2_prev = u_prev_node_prim[3]
+      p_prev = u_prev_node_prim[4]
+
+      c = sqrt(equations.gamma * p / rho)
+      c_prev = sqrt(equations.gamma * p_prev / rho_prev)
+
+      # Calculate the contribution to the mean values using the trapezoidal rule
+      vorticity_mean[i, j, element] += integration_constant * (vorticity_prev_node + vorticity)
+      v_mean[1, i, j, element]      += integration_constant * (v1_prev + v1)
+      v_mean[2, i, j, element]      += integration_constant * (v2_prev + v2)
+      c_mean[i, j, element]         += integration_constant * (c_prev + c)
+      rho_mean[i, j, element]       += integration_constant * (rho_prev + rho)
+    end
+  end
+
+  return nothing
+end

@@ -56,6 +56,9 @@ include("stepsize.jl")
 include("glm_speed.jl")
 include("lbm_collision.jl")
 
+# TODO: Comments + documentation
+include("averaging.jl")
+include("ape_euler_coupling.jl")
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`

@@ -409,6 +409,24 @@ function refine_box!(t::AbstractTree{1}, coordinates_min::Real, coordinates_max:
 end
 
 
+# Refine all leaf cells with coordinates in a given sphere
+function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS, <:Real}, radius::Real) where NDIMS
+  @assert radius >= 0 "Radius is negative."
+
+  # Find all leaf cells within sphere
+  cells = filter_leaf_cells(t) do cell_id
+    return all(sum((cell_coordinates(t, cell_id) - center).^2) < radius^2)
+  end
+
+  # Refine cells
+  refine!(t, cells)
+end
+
+# Convenience function to allow passing center as a tuple
+function refine_sphere!(t::AbstractTree{NDIMS}, center::NTuple{NDIMS, <:Real}, radius::Real) where NDIMS
+  refine_sphere!(t, SVector(center), radius)
+end
+
 # For the given cell ids, check if neighbors need to be refined to restore a rebalanced tree.
 #
 # Note 1: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
