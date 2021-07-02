@@ -1,6 +1,6 @@
 # !!! warning "Experimental features"
 
-using StartUpDG, StructArrays
+using StartUpDG
 using Trixi, OrdinaryDiffEq
 
 polydeg = 3
