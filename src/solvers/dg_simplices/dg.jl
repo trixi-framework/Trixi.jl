@@ -23,10 +23,6 @@ mul_by_accum!(A, α) = let A = A
   @inline (out, x)->mul!(out, A, x, α, one(eltype(out))) 
 end
 
-const DGWeakForm{Dims, ElemType} = DG{<:RefElemData{Dims, ElemType}, Mortar, 
-                    <:SurfaceIntegralWeakForm,
-                    <:VolumeIntegralWeakForm} where {Mortar}
-
 # this is necessary for pretty printing
 Base.real(rd::RefElemData{Dims, Elem, ApproxType, Nfaces, RealT}) where {Dims, Elem, ApproxType, Nfaces, RealT} = RealT
 
@@ -81,7 +77,7 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DG, 
-                      RealT, uEltype) where {DG <: Union{DGWeakForm{Dim}, SBPDGFluxDiff{Dim}}} where {Dim}
+                      RealT, uEltype) where {DG <: Union{DGWeakForm, SBPDGFluxDiff}}
 
   rd = dg.basis
   md = mesh.md
