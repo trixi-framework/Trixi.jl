@@ -1,6 +1,6 @@
 # !!! warning "Experimental features"
 
-function calc_error_norms(func, u::StructArray, t, analyzer,
+function calc_error_norms(func, u, t, analyzer,
                           mesh::AbstractMeshData{Dim}, equations, initial_condition,
                           dg::DG{<:RefElemData{Dim}}, cache, cache_analysis) where {Dim}
   rd = dg.basis
@@ -71,5 +71,7 @@ end
 
 SolutionAnalyzer(rd::RefElemData) = rd
 
-# can we add mesh as an argument to this?
+# TODO: simplices. 
+# Analysis routines assume a function of this form; should modify to include arguments of the form 
+# `nelements(solver, mesh, cache)` instead.
 nelements(solver::DG{<:RefElemData}, cache) = size(cache.u_values, 2) 
