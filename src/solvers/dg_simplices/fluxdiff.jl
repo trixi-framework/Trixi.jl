@@ -73,7 +73,7 @@ function create_cache(mesh::VertexMappedMesh{Dim}, equations, dg::DG,
   rd = dg.basis
   @unpack md = mesh
   
-  # Todo: simplices. Fix this when StartUpDG v0.11.0 releases
+  # Todo: simplices. Fix this when StartUpDG v0.11.0 releases: new API `Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)`
   if Dim==2
     Qr_hybridized, Qs_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized) 
@@ -81,8 +81,8 @@ function create_cache(mesh::VertexMappedMesh{Dim}, equations, dg::DG,
     Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized) 
   end
-  Qrst_skew_Tr = map(A->-.5*(A-A'), Qrst_hybridized)
-  # Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
+  Qrst_skew_Tr = map(A -> -.5*(A-A'), Qrst_hybridized)
+
 
   nvars = nvariables(equations)
 
