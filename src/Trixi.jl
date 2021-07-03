@@ -212,7 +212,7 @@ function __init__()
   # require StartUpDG for triangular mesh solvers
   @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
     using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
-    using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
+    using .StartUpDG: Line, Tri, Tet, Quad, Hex, AbstractElemShape
 
     include("solvers/dg_simplices/mesh.jl")
     export AbstractMeshData, VertexMappedMesh
