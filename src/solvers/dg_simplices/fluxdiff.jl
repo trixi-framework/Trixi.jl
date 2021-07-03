@@ -20,7 +20,7 @@ faster traversal since matrices are column major in Julia.
   end
 end
 
-function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::AbstractMeshData{2}, dg, cache) 
+function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::VertexMappedMesh{2, Tri}, dg, cache) 
   @unpack Qrst_skew_Tr = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   QrskewTr, QsskewTr = Qrst_skew_Tr
@@ -31,7 +31,7 @@ function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::Abstr
   end
 end
 
-function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::AbstractMeshData{3}, dg, cache) 
+function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::VertexMappedMesh{3, Tet}, dg, cache) 
   @unpack Qrst_skew_Tr = cache
   QrskewTr, QsskewTr, QtskewTr = Qrst_skew_Tr
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
