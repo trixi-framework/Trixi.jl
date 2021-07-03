@@ -14,11 +14,6 @@ equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-IC_const(x,t,eq::CompressibleEulerEquations3D) = SVector{5}(2.,.1,.2,.3,2.5)
-initial_condition = IC_const
-source_terms = nothing
-
-
 # example where we tag two separate boundary segments of the mesh
 top_boundary(x, y, z, tol=50*eps()) = abs(y - 1) < tol 
 rest_of_boundary(x, y, z, tol=50*eps()) = !top_boundary(x, y, z, tol)
@@ -34,7 +29,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms, 
                                     boundary_conditions = boundary_conditions) 
 
-tspan = (0.0, .1)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -46,16 +41,9 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-u = ode.u0
-du = similar(u)
-Trixi.rhs!(du, u, 0.0, mesh, equations, initial_condition, boundary_conditions, source_terms, dg, semi.cache)
+dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt = 0.5*dt0, save_everystep=false, callback=callbacks);
+summary_callback() # print the timer summary
 
-using LinearAlgebra: norm
-norm(norm.(du))
-
-# dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-#             dt = .5*dt0, save_everystep=false, callback=callbacks);
-# summary_callback() # print the timer summary
-
-# l2,linf = analysis_callback(sol)
+l2,linf = analysis_callback(sol)

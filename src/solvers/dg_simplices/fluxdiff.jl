@@ -32,14 +32,14 @@ end
 
 function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::AbstractMeshData{3}, dg, cache) 
   @unpack Qrst_skew_Tr = cache
-  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   QrskewTr, QsskewTr, QtskewTr = Qrst_skew_Tr
+  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   if orientation == 1
-    return LazyArray(@~ @. 2 * (rxJ[1,elem]*QrskewTr + sxJ[1,elem]*QsskewTr) + txJ[1,elem]*QtskewTr)
+    return LazyArray(@~ @. 2 * (rxJ[1,elem]*QrskewTr + sxJ[1,elem]*QsskewTr + txJ[1,elem]*QtskewTr))
   elseif orientation == 2
-    return LazyArray(@~ @. 2 * (ryJ[1,elem]*QrskewTr + syJ[1,elem]*QsskewTr) + tyJ[1,elem]*QtskewTr)
+    return LazyArray(@~ @. 2 * (ryJ[1,elem]*QrskewTr + syJ[1,elem]*QsskewTr + tyJ[1,elem]*QtskewTr))
   elseif orientation == 3
-    return LazyArray(@~ @. 2 * (rzJ[1,elem]*QrskewTr + szJ[1,elem]*QsskewTr) + tzJ[1,elem]*QtskewTr)
+    return LazyArray(@~ @. 2 * (rzJ[1,elem]*QrskewTr + szJ[1,elem]*QsskewTr + tzJ[1,elem]*QtskewTr))
   end
 end
 
