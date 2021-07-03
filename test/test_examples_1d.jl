@@ -203,7 +203,7 @@ end
   # Since there is no native support for variable coefficients, we use two
   # variables: one for the basic unknown `u` and another one for the coefficient `a`
   struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1 #= spatial dimension =#,
-                                                                    2 #= two variables (u,a) =#}
+                                                                     2 #= two variables (u,a) =#}
   end
 
   varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advectionvelocity")

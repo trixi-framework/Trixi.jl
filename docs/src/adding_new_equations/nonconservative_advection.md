@@ -147,7 +147,7 @@ plot(sol)
 
 You should see a plot of the final solution that looks as follows.
 
-![tutorial_nonconservative_advection]()
+![tutorial_nonconservative_advection](https://user-images.githubusercontent.com/12693098/124343365-1f9a9300-dbcb-11eb-93a5-0f75db2a99f8.png)
 
 We can check whether everything fits together by refining the grid and comparing
 the numerical errors. First, we look at the error using the grid resolution
@@ -180,7 +180,7 @@ sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
 summary_callback()
 ```
 
-As expected, the new error si roughly reduced by a factor of 16, corresponding
+As expected, the new error is roughly reduced by a factor of 16, corresponding
 to an experimental order of convergence of 4 (for polynomials of degree 3).
 ```julia
 julia> analysis_callback(sol).l2 |> first
