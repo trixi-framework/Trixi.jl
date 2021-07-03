@@ -3,7 +3,7 @@
 using StartUpDG
 using Trixi, OrdinaryDiffEq
 
-polydeg = 3
+polydeg = 4
 rd = RefElemData(Tet(), polydeg)
 
 volume_flux = flux_ranocha
@@ -15,10 +15,10 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 # example where we tag two separate boundary segments of the mesh
-top_boundary(x, y, z, tol=50*eps()) = abs(y - 1) < tol 
+top_boundary(x, y, z, tol=50*eps()) = abs(z - 1) < tol 
 rest_of_boundary(x, y, z, tol=50*eps()) = !top_boundary(x, y, z, tol)
 is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
-VX, VY, VZ, EToV = StartUpDG.uniform_mesh(Tet(), 4)
+VX, VY, VZ, EToV = StartUpDG.uniform_mesh(Tet(), 2)
 mesh = VertexMappedMesh(VX, VY, VZ, EToV, rd, is_on_boundary = is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
