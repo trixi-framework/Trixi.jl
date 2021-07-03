@@ -31,7 +31,7 @@ We use the convention that coordinates on the reference element are ``r`` in 1D,
 or ``r, s, t`` in 3D. Physical coordinates use the standard conventions ``x``, ``x, y``, and 
 ``x, y, z`` in 1D, 2D, and 3D. 
 
-!["Ref-to-physical mapping"](https://jlchan.github.io/StartUpDG.jl/dev/assets/mapping_diagram.png)
+!["Ref-to-physical mapping"](https://user-images.githubusercontent.com/1156048/124361389-a2841380-dbf4-11eb-8ee4-33e71109c8bb.png)
 
 Derivatives of reference coordinates with respect to physical coordinates are abbreviated, e.g., 
 ``\frac{\partial r}{\partial x} = r_x``. Additionally, ``J`` is used to denote the determinant of 
@@ -88,6 +88,7 @@ the geometric mapping between a physical face and a reference face) at face quad
 normal scaled by the face Jacobian `md.Jf` at face quadrature points.
 
 For more details, please see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/). 
+
 ## Special options
 
 Trixi solvers on simplicial meshes use `DG` solver types with the basis field set as a `RefElemData` 
