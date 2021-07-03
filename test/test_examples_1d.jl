@@ -196,9 +196,6 @@ end
   # Define new physics
   using Trixi
   using Trixi: AbstractEquations, get_node_vars
-  import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
-                have_nonconservative_terms, calcflux_twopoint_nonconservative!,
-                noncons_interface_flux
 
   # Since there is no native support for variable coefficients, we use two
   # variables: one for the basic unknown `u` and another one for the coefficient `a`
@@ -206,16 +203,16 @@ end
                                                                      2 #= two variables (u,a) =#}
   end
 
-  varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advectionvelocity")
+  Trixi.varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advectionvelocity")
 
-  default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
+  Trixi.default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
 
 
   # The conservative part of the flux is zero
-  flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
+  Trixi.flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
 
   # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-  function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
+  function Trixi.max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
     _, advectionvelocity_ll = u_ll
     _, advectionvelocity_rr = u_rr
 
@@ -224,13 +221,13 @@ end
 
 
   # We use nonconservative terms
-  have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
+  Trixi.have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 
   # OBS! This is scaled by 1/2 because it will cancel later with the factor of 2
   # the flux differencing volume integral
-  function calcflux_twopoint_nonconservative!(f1, u, element,
-                                              equations::NonconservativeLinearAdvectionEquation,
-                                              dg, cache)
+  function Trixi.calcflux_twopoint_nonconservative!(f1, u, element,
+                                                    equations::NonconservativeLinearAdvectionEquation,
+                                                    dg, cache)
     for i in eachnode(dg)
       _, advectionvelocity = get_node_vars(u, equations, dg, i, element)
 
@@ -243,8 +240,8 @@ end
     return nothing
   end
 
-  function noncons_interface_flux(u_left, u_right, orientation, mode,
-                                  equations::NonconservativeLinearAdvectionEquation)
+  function Trixi.noncons_interface_flux(u_left, u_right, orientation, mode,
+                                        equations::NonconservativeLinearAdvectionEquation)
     _, advectionvelocity = u_left
     scalar, _            = u_right
 
@@ -257,15 +254,14 @@ end
 
 
   # Create a simulation setup
-  import .NonconservativeLinearAdvection
   using Trixi
   using OrdinaryDiffEq
 
-  equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation()
+  equation = NonconservativeLinearAdvectionEquation()
 
   # You can derive the exact solution for this setup using the method of
   # characteristics
-  function initial_condition_sine(x, t, equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
+  function initial_condition_sine(x, t, equation::NonconservativeLinearAdvectionEquation)
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advectionvelocity = 2 + cos(x[1])
