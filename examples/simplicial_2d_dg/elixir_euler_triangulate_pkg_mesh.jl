@@ -13,8 +13,10 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-# example where we tag two separate boundary segments of the mesh
 meshIO = StartUpDG.square_hole_domain(.25) # pre-defined Triangulate geometry in StartUpDG
+
+# the pre-defined Triangulate geometry in StartUpDG has integer boundary tags. this routine 
+# assigns boundary faces based on these integer boundary tags.
 mesh = VertexMappedMesh(meshIO, rd, Dict(:bottom=>1, :right=>2, :top=>3, :left=>4))
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)

@@ -16,10 +16,10 @@ equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_me
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-# example where we tag two separate boundary segments of the mesh
 VX, VY, EToV = StartUpDG.uniform_mesh(Tri(), 8)
 mesh = VertexMappedMesh(VX, VY, EToV, rd)
 
+# If no boundary tags are specified, VertexMappedMesh will add the tag `:entire_boundary`
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :entire_boundary => boundary_condition_convergence_test)
 
