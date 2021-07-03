@@ -194,8 +194,6 @@ end
   # Same setup as docs/src/adding_new_equations/nonconservative_advection.md
 
   # Define new physics
-  module NonconservativeLinearAdvection
-
   using Trixi
   using Trixi: AbstractEquations, get_node_vars
   import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
@@ -231,8 +229,8 @@ end
   # OBS! This is scaled by 1/2 because it will cancel later with the factor of 2
   # the flux differencing volume integral
   function calcflux_twopoint_nonconservative!(f1, u, element,
-                                                    equations::NonconservativeLinearAdvectionEquation,
-                                                    dg, cache)
+                                              equations::NonconservativeLinearAdvectionEquation,
+                                              dg, cache)
     for i in eachnode(dg)
       _, advectionvelocity = get_node_vars(u, equations, dg, i, element)
 
@@ -246,7 +244,7 @@ end
   end
 
   function noncons_interface_flux(u_left, u_right, orientation, mode,
-                                        equations::NonconservativeLinearAdvectionEquation)
+                                  equations::NonconservativeLinearAdvectionEquation)
     _, advectionvelocity = u_left
     scalar, _            = u_right
 
@@ -255,7 +253,6 @@ end
     return SVector(0.5 * advectionvelocity * scalar, zero(scalar))
   end
 
-  end # module
 
 
 
