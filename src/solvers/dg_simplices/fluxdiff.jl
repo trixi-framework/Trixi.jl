@@ -6,16 +6,17 @@ Computes the flux difference ∑_j Aij * f(u_i, u_j) and accumulates the result 
 - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for 
 faster traversal since matrices are column major in Julia. 
 """
-function hadamard_sum_ATr!(du, ATr, volume_flux::VF, u, skip_index=(i,j)->false) where {VF}
-  for i in axes(ATr,2)
+@inline @muladd function hadamard_sum_ATr!(du, ATr, volume_flux::VF, u, skip_index=(i,j)->false) where {VF}
+  rows,cols = axes(ATr)
+  for i in cols
     ui = u[i]
     val_i = du[i]
-    for j in axes(ATr,1)
-      if skip_index(i,j) != true
-        val_i += ATr[j,i] * volume_flux(ui, u[j])
+    for j in rows
+      if !skip_index(i,j)                
+          val_i += ATr[j,i] * volume_flux(ui, u[j])
       end
     end
-    du[i] = val_i
+    du[i] = val_i 
   end
 end
 
@@ -50,14 +51,14 @@ function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegr
   @unpack local_values_threaded = cache
 
   volume_flux_oriented(i) = let i=i, equations=equations 
-    (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
+    @inline (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
   end
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
-    u_local = view(u, :, e)
     rhs_local = local_values_threaded[Threads.threadid()]
     fill!(rhs_local, zero(eltype(rhs_local)))
+    u_local = view(u, :, e)
     for i in eachdim(mesh) 
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
       hadamard_sum_ATr!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local)
@@ -133,18 +134,20 @@ function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegr
   @unpack entropy_projected_u_values, rhs_local_threaded, Ph = cache
 
   volume_flux_oriented(i) = let i=i, equations=equations 
-    (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
+    @inline (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
   end
+
+  # skips subblock of Qi_skew_Tr which we know is zero by construction
+  skip_index(i,j) = i > rd.Nq && j > rd.Nq
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
-    u_local = view(entropy_projected_u_values, :, e)
     rhs_local = rhs_local_threaded[Threads.threadid()]
     fill!(rhs_local, zero(eltype(rhs_local)))
-    for i in eachdim(mesh) 
+    u_local = view(entropy_projected_u_values, :, e)
+    for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum_ATr!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, 
-                        (i,j)->i > rd.Nq && j > rd.Nq)
+      hadamard_sum_ATr!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, skip_index)
     end
     StructArrays.foreachfield(mul_by_accum!(Ph), view(du, :, e), rhs_local)
   end 
