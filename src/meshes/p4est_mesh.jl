@@ -431,7 +431,7 @@ function connectivity_structured(n_cells_x, n_cells_y, periodicity)
   tree_to_corner = C_NULL
   # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need corner connectivity, so this is a trivial case.
-  ctt_offset = Array{p4est_topidx_t}([0])
+  ctt_offset = zeros(p4est_topidx_t, 1)
 
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
@@ -546,14 +546,14 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
   tree_to_edge = C_NULL
   # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need edge connectivity, so this is a trivial case.
-  ett_offset = Array{p4est_topidx_t}([0])
+  ett_offset = zeros(p4est_topidx_t, 1)
   edge_to_tree = C_NULL
   edge_to_edge = C_NULL
 
   tree_to_corner = C_NULL
   # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need corner connectivity, so this is a trivial case.
-  ctt_offset = Array{p4est_topidx_t}([0])
+  ctt_offset = zeros(p4est_topidx_t, 1)
 
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
@@ -782,14 +782,14 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   tree_to_edge = C_NULL
   # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need edge connectivity, so this is a trivial case.
-  ett_offset = Array{p4est_topidx_t}([0])
+  ett_offset = zeros(p4est_topidx_t, 1)
   edge_to_tree = C_NULL
   edge_to_edge = C_NULL
 
   tree_to_corner = C_NULL
   # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need corner connectivity, so this is a trivial case.
-  ctt_offset = Array{p4est_topidx_t}([0])
+  ctt_offset = zeros(p4est_topidx_t, 1)
 
   corner_to_tree = C_NULL
   corner_to_corner = C_NULL
@@ -995,6 +995,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
   end
 end
 
+# Map the computational coordinates xi, eta, zeta to the specified side of a cubed sphere
+# with the specified inner radius and thickness.
 function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   alpha = xi * pi/4
   beta = eta * pi/4
@@ -1003,7 +1005,7 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   x = tan(alpha)
   y = tan(beta)
 
-  # Coordinates on unit cube per direction, see illustration above at connectivity_cubed_sphere
+  # Coordinates on unit cube per direction, see illustration above in the function connectivity_cubed_sphere
   cube_coordinates = (SVector(-1, -x, y),
                       SVector( 1,  x, y),
                       SVector( x, -1, y),
