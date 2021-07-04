@@ -2,7 +2,7 @@
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::AbstractMeshData{NDIMS}, equations, initial_condition,
-                          dg::DG{<:RefElemData{NDIMS}}, cache, cache_analysis) where {NDIMS}
+                          dg::MultiDG{NDIMS}, cache, cache_analysis) where {NDIMS}
   rd = dg.basis
   md = mesh.md
   @unpack u_values = cache
@@ -23,7 +23,7 @@ end
 
 function integrate(func::Func, u,
                    mesh::AbstractMeshData,
-                   equations, dg::DG{<:RefElemData}, cache; normalize=true) where {Func}
+                   equations, dg::MultiDG, cache; normalize=true) where {Func}
   rd = dg.basis
   md = mesh.md
   @unpack u_values = cache
@@ -39,7 +39,7 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache)
+                 mesh::AbstractMeshData, equations, dg::MultiDG, cache)
 
   rd = dg.basis
   md = mesh.md
@@ -62,7 +62,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function create_cache_analysis(analyzer, mesh::AbstractMeshData,
-                               equations, dg::DG{<:RefElemData}, cache,
+                               equations, dg::MultiDG, cache,
                                RealT, uEltype)
   md = mesh.md
 
@@ -74,4 +74,4 @@ SolutionAnalyzer(rd::RefElemData) = rd
 # TODO: simplices.
 # Analysis routines assume a function of this form; should modify to include arguments of the form
 # `nelements(solver, mesh, cache)` instead.
-nelements(solver::DG{<:RefElemData}, cache) = size(cache.u_values, 2)
+nelements(solver::MultiDG, cache) = size(cache.u_values, 2)

@@ -23,9 +23,11 @@ mul_by_accum!(A, α) = let A = A
   @inline (out, x)->mul!(out, A, x, α, one(eltype(out)))
 end
 
-const DGWeakForm{NDIMS, ElemType} = DG{<:RefElemData{NDIMS, ElemType}, Mortar,
-                    <:SurfaceIntegralWeakForm,
-                    <:VolumeIntegralWeakForm} where {Mortar}
+const MultiDG{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
+  DG{<:RefElemData{NDIMS, ElemType, ApproxType}, Mortar, SurfaceIntegral, VolumeIntegral} where {Mortar}
+
+const MultiDGWeakForm{NDIMS, ElemType, ApproxType} =
+  MultiDG{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm}
 
 # this is necessary for pretty printing
 Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS, Elem, ApproxType, Nfaces, RealT} = RealT
@@ -33,33 +35,33 @@ Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS,
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
 # iteration over all elements in a mesh
-@inline ndofs(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = dg.basis.Np * mesh.md.num_elements
-@inline eachelement(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(mesh.md.num_elements)
+@inline ndofs(mesh::AbstractMeshData, dg::MultiDG, cache) = dg.basis.Np * mesh.md.num_elements
+@inline eachelement(mesh::AbstractMeshData, dg::MultiDG, cache) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
-@inline each_face_node(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq)
-@inline each_quad_node(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq)
+@inline each_face_node(mesh::AbstractMeshData, dg::MultiDG, cache) = Base.OneTo(dg.basis.Nfq)
+@inline each_quad_node(mesh::AbstractMeshData, dg::MultiDG, cache) = Base.OneTo(dg.basis.Nq)
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
-@inline each_dof_global(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(ndofs(mesh, dg, cache))
-@inline each_quad_node_global(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
-@inline each_face_node_global(mesh::AbstractMeshData, dg::DG{<:RefElemData}, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
+@inline each_dof_global(mesh::AbstractMeshData, dg::MultiDG, cache) = Base.OneTo(ndofs(mesh, dg, cache))
+@inline each_quad_node_global(mesh::AbstractMeshData, dg::MultiDG, cache) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+@inline each_face_node_global(mesh::AbstractMeshData, dg::MultiDG, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
-wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache) = u_ode
+wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::MultiDG, cache) = u_ode
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMeshData,
-                                    dg::DG{<:RefElemData}, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
+                                    dg::MultiDG, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
   return boundary_conditions
 end
 
-function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DG{<:RefElemData}, cache)
+function allocate_coefficients(mesh::AbstractMeshData, equations, dg::MultiDG, cache)
   md = mesh.md
   nvars = nvariables(equations)
   return StructArray{SVector{nvars, real(dg)}}(ntuple(_->similar(md.x),nvars))
 end
 
 function compute_coefficients!(u::StructArray, initial_condition, t,
-                        mesh::AbstractMeshData{NDIMS}, equations, dg::DG{<:RefElemData{NDIMS}}, cache) where {NDIMS}
+                        mesh::AbstractMeshData{NDIMS}, equations, dg::MultiDG{NDIMS}, cache) where {NDIMS}
   md = mesh.md
   rd = dg.basis
   @unpack u_values = cache
@@ -74,14 +76,14 @@ end
 
 # interpolates from solution coefficients to face quadrature points
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
-                             surface_integral, dg::DG{<:RefElemData})
+                             surface_integral, dg::MultiDG)
   rd = dg.basis
   @unpack u_face_values = cache
   StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
-                      RealT, uEltype) where {DG <: DGWeakForm{NDIMS}} where {NDIMS}
+                      RealT, uEltype) where {DG <: MultiDGWeakForm{NDIMS, ElemType}} where {NDIMS, ElemType}
 
   rd = dg.basis
   md = mesh.md
@@ -115,7 +117,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
 end
 
 function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralWeakForm,
-                 mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{NDIMS}}, cache) where {NDIMS}
+                 mesh::VertexMappedMesh, equations, dg::MultiDG{NDIMS}, cache) where {NDIMS}
 
   rd = dg.basis
   md = mesh.md
@@ -140,7 +142,7 @@ function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegr
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData{NDIMS}}) where {NDIMS}
+                mesh::VertexMappedMesh, equations, dg::MultiDG{NDIMS}) where {NDIMS}
 
   @unpack surface_flux = surface_integral
   md = mesh.md
@@ -166,14 +168,14 @@ end
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                 mesh::VertexMappedMesh, equations,
-                dg::DG{<:RefElemData}, cache)
+                dg::MultiDG, cache)
   rd = dg.basis
   StructArrays.foreachfield(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral,
-                             dg::DG{<:RefElemData{NDIMS, <:AbstractElemShape, <:SBP}}) where {NDIMS}
+                             dg::MultiDG{NDIMS, <:AbstractElemShape, <:SBP}) where {NDIMS}
   rd = dg.basis
   @unpack Fmask = rd
   @unpack u_face_values = cache
@@ -184,7 +186,7 @@ end
 # du[Fmask,:] .= u ./ rd.wq[rd.Fmask]
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::VertexMappedMesh, equations,
-                                dg::DG{<:RefElemData{NDIMS,<:AbstractElemShape, <:SBP}}, cache) where {NDIMS}
+                                dg::MultiDG{NDIMS,<:AbstractElemShape, <:SBP}, cache) where {NDIMS}
   rd = dg.basis
   md = mesh.md
   @unpack flux_face_values = cache
@@ -197,10 +199,10 @@ end
 
 # do nothing for periodic (default) boundary conditions
 calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
-                    mesh, equations, dg::DG{<:RefElemData}) = nothing
+                    mesh, equations, dg::MultiDG) = nothing
 
 # "lispy tuple programming" instead of for loop for type stability
-function calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg::DG{<:RefElemData})
+function calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg::MultiDG)
 
   # peel off first boundary condition
   calc_single_boundary_flux!(cache, t, first(boundary_conditions), first(keys(boundary_conditions)),
@@ -212,10 +214,10 @@ end
 
 # terminate recursion
 calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple{(),Tuple{}},
-                    mesh, equations, dg::DG{<:RefElemData}) = nothing
+                    mesh, equations, dg::MultiDG) = nothing
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
-                                    mesh, equations, dg::DG{<:RefElemData{NDIMS}}) where {NDIMS}
+                                    mesh, equations, dg::MultiDG{NDIMS}) where {NDIMS}
 
   rd = dg.basis
   md = mesh.md
@@ -249,7 +251,7 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 end
 
 # Todo: simplices. Specialize for modal DG on curved meshes using WADG
-function invert_jacobian!(du, mesh::Mesh, equations, dg::DG{<:RefElemData},
+function invert_jacobian!(du, mesh::Mesh, equations, dg::MultiDG,
                           cache) where {Mesh <: AbstractMeshData}
   @threaded for i in each_dof_global(mesh, dg, cache)
     du[i] *= -cache.invJ[i]
@@ -257,11 +259,11 @@ function invert_jacobian!(du, mesh::Mesh, equations, dg::DG{<:RefElemData},
 end
 
 calc_sources!(du, u, t, source_terms::Nothing,
-              mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData}, cache) = nothing
+              mesh::VertexMappedMesh, equations, dg::MultiDG, cache) = nothing
 
 # uses quadrature + projection to compute source terms.
 function calc_sources!(du, u, t, source_terms::SourceTerms,
-                       mesh::VertexMappedMesh, equations, dg::DG{<:RefElemData}, cache) where {SourceTerms}
+                       mesh::VertexMappedMesh, equations, dg::MultiDG, cache) where {SourceTerms}
 
   rd = dg.basis
   md = mesh.md
@@ -282,7 +284,7 @@ end
 
 function rhs!(du, u, t, mesh, equations,
               initial_condition, boundary_conditions::BC, source_terms::Source,
-              dg::DG{<:RefElemData}, cache) where {BC, Source}
+              dg::MultiDG, cache) where {BC, Source}
 
   @trixi_timeit timer() "Reset du/dt" fill!(du,zero(eltype(du)))
 
