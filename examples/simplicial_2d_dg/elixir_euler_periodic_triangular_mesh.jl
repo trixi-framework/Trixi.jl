@@ -5,17 +5,17 @@ using Trixi, OrdinaryDiffEq
 
 polydeg = 3
 rd = RefElemData(Tri(), polydeg) # equivalent to a "basis"
-dg = DG(rd, nothing #= mortar =#, 
+dg = DG(rd, nothing #= mortar =#,
         SurfaceIntegralWeakForm(FluxHLL()), VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-VX, VY, EToV = StartUpDG.uniform_mesh(rd.elementType, 8)
-mesh = VertexMappedMesh(VX, VY, EToV, rd, is_periodic=(true,true))
+vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(rd.elementType, 8)
+mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, is_periodic=(true,true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms) 
+                                    source_terms = source_terms)
 
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)

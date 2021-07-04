@@ -5,8 +5,8 @@ abstract type AbstractMeshData{NDIMS, ElemType} end
 """
     VertexMappedMesh{NDIMS, ElemType, Nboundaries, Tv, Ti} <: AbstractMeshData{NDIMS, ElemType}
 
-`VertexMappedMesh` describes a mesh which is constructed by an reference-to-physical 
-mapping which can be constructed using only the vertex positions. 
+`VertexMappedMesh` describes a mesh which is constructed by an reference-to-physical
+mapping which can be constructed using only the vertex positions.
 
 Wraps `MeshData` and `boundary_faces` in a dispatchable mesh type.
 """
@@ -32,49 +32,51 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::VertexMappedMesh{NDIMS, Ele
     summary_line(io, "number of boundaries", length(mesh.boundary_faces))
     for (boundary_name, faces) in mesh.boundary_faces
       summary_line(increment_indent(io), "nfaces on $boundary_name", length(faces))
-    end  
+    end
     summary_footer(io)
   end
 end
 
 """
-    VertexMappedMesh(VXYZ::NTuple{NDIMS, Vector{Tv}}, EToV, rd::RefElemData;
+    VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV, rd::RefElemData;
                      is_on_boundary = nothing,
                      is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
-- `VXYZ` is a tuple of vectors of vertex coordinates
+- `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
-- `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the 
+- `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
 reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
-function VertexMappedMesh(VXYZ::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
+function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                           is_on_boundary = nothing,
                           is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
 
-  md = MeshData(VXYZ..., EToV, rd)
+  md = MeshData(vertex_coordinates..., EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic)
-  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)  
+  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
   return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
 """
-  VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int}) 
+  VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
 - `triangulateIO` is a `TriangulateIO` mesh representation
-- `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the 
+- `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
 reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 - `boundary_dict` is a `Dict{Symbol, Int}` which associates each integer `TriangulateIO` boundary tag with a Symbol
 """
-function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int}) 
+function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
-  VX, VY, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
-  md = MeshData(VX, VY, EToV, rd)
-  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)  
+  vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
+  md = MeshData(vertex_coordinates_x, vertex_coordinates_y, EToV, rd)
+  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
   return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
-VertexMappedMesh(VX, VY, EToV, rd, args...; kwargs...) = VertexMappedMesh((VX, VY), EToV, rd, args...; kwargs...)
-VertexMappedMesh(VX, VY, VZ, EToV, rd, args...; kwargs...) = VertexMappedMesh((VX, VY, VZ), EToV, rd, args...; kwargs...)
+VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, args...; kwargs...) =
+  VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y), EToV, rd, args...; kwargs...)
+VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z, EToV, rd, args...; kwargs...) =
+  VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z), EToV, rd, args...; kwargs...)
 
