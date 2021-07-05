@@ -46,7 +46,10 @@ makedocs(
             "Visualization" => "visualization.md",
         ],
         "Tutorials" => [
-            "Adding a new equation" => "adding_a_new_equation.md",
+            "Adding a new equation" => [
+                "Scalar conservation law" => joinpath("adding_new_equations", "cubic_conservation_law.md"),
+                "Nonconservative equation" => joinpath("adding_new_equations", "nonconservative_advection.md")
+            ],
             "Differentiable programming" => "differentiable_programming.md",
         ],
         "Basic building blocks" => [
