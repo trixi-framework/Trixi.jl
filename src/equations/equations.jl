@@ -318,5 +318,8 @@ include("lattice_boltzmann_3d.jl")
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
 
+# IncompressibleEulerEquations
+abstract type AbstractIncompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("incompressible_euler_2d.jl")
 
 end # @muladd
