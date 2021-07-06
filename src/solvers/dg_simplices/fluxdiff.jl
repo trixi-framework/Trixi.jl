@@ -1,26 +1,26 @@
 """
-  function hadamard_sum_ATr!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
+    hadamard_sum_ATr!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
 
-Computes the flux difference ∑_j Aij * f(u_i, u_j) and accumulates the result into `du`. 
+Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`. 
 - `du`, `u` are vectors
 - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for 
-faster traversal since matrices are column major in Julia. 
+  faster traversal since matrices are column major in Julia. 
 """
-@inline @muladd function hadamard_sum_ATr!(du, ATr, volume_flux::VF, u, skip_index=(i,j)->false) where {VF}
-  rows,cols = axes(ATr)
+@inline function hadamard_sum_ATr!(du, ATr, volume_flux::VF, u, skip_index=(i,j)->false) where {VF}
+  rows, cols = axes(ATr)
   for i in cols
-    ui = u[i]
-    val_i = du[i]
+    u_i = u[i]
+    du_i = du[i]
     for j in rows
       if !skip_index(i,j)                
-          val_i += ATr[j,i] * volume_flux(ui, u[j])
+          du_i += ATr[j,i] * volume_flux(u_i, u[j])
       end
     end
-    du[i] = val_i 
+    du[i] = du_i 
   end
 end
 
-function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::VertexMappedMesh{2, Tri}, dg, cache) 
+function build_lazy_physical_derivative(element::Int, orientation::Int, mesh::VertexMappedMesh{2, Tri}, dg, cache) 
   @unpack Qrst_skew_Tr = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   QrskewTr, QsskewTr = Qrst_skew_Tr
@@ -45,7 +45,7 @@ function build_lazy_physical_derivative(elem::Int, orientation::Int, mesh::Verte
 end
 
 function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralFluxDifferencing,
-                 mesh::VertexMappedMesh, equations, dg::DG, cache) where {DG <: SBPDGFluxDiff}
+                               mesh::VertexMappedMesh, equations, dg::DG, cache) where {DG <: SBPDGFluxDiff}
 
   rd = dg.basis  
   @unpack local_values_threaded = cache
@@ -75,10 +75,10 @@ function create_cache(mesh::VertexMappedMesh{Dim}, equations, dg::DG,
   @unpack md = mesh
   
   # Todo: simplices. Fix this when StartUpDG v0.11.0 releases: new API `Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)`
-  if Dim==2
+  if Dim == 2
     Qr_hybridized, Qs_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized) 
-  elseif Dim==3
+  elseif Dim == 3
     Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized) 
   end
@@ -127,7 +127,7 @@ function entropy_projection!(cache, u::StructArray, mesh::VertexMappedMesh,
 end
 
 function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralFluxDifferencing,
-                 mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, cache) 
+                               mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, cache) 
 
   rd = dg.basis 
   md = mesh.md
@@ -177,6 +177,5 @@ function rhs!(du, u::StructArray, t, mesh, equations,
 
   return nothing
 end
-
 
 
