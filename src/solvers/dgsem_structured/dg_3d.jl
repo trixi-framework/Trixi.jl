@@ -104,6 +104,7 @@ end
                                                                i, j, k, element)
     Ja31_node, Ja32_node, Ja33_node = get_contravariant_vector(3, contravariant_vectors,
                                                                i, j, k, element)
+
     # diagonal (consistent) part not needed since diagonal of
     # dg.basis.derivative_split_transpose is zero!
     set_node_vars!(ftilde1, zero(u_node), equations, dg, i, i, j, k)

@@ -16,6 +16,7 @@
 end
 
 
+# TODO: Clean-up meshes. Can be generalized for all meshes and DG methods?
 @inline ndofs(mesh::UnstructuredMesh2D, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
