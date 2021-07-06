@@ -1,7 +1,7 @@
 # Structured mesh
 
 The [`StructuredMesh`](@ref) is a structured, curvilinear, conforming
-mesh type.
+mesh type available for one-, two-, and three-dimensional simulations.
 
 Due to its curvilinear nature, (numerical) fluxes need to implement methods
 dispatching on the `normal::AbstractVector`. Rotationally invariant equations
