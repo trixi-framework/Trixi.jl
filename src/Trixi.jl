@@ -217,7 +217,7 @@ function __init__()
     include("solvers/dg_simplices/mesh.jl")
     export AbstractMeshData, VertexMappedMesh
 
-    include("solvers/dg_simplices/type_aliases.jl")
+    include("solvers/dg_simplices/types_and_traits.jl")
     include("solvers/dg_simplices/dg.jl")
     include("solvers/dg_simplices/fluxdiff.jl")
     include("solvers/dg_simplices/analysis.jl")
