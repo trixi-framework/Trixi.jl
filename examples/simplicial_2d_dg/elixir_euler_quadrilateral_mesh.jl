@@ -16,7 +16,7 @@ source_terms = source_terms_convergence_test
 top_boundary(x,y,tol=50*eps()) = abs(y-1)<tol
 rest_of_boundary(x,y,tol=50*eps()) = !top_boundary(x,y,tol)
 is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
-vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(rd.elementType, 8)
+vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(rd.elementType, 4)
 mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, is_on_boundary = is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)

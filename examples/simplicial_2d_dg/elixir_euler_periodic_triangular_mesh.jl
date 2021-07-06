@@ -12,7 +12,7 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(rd.elementType, 8)
+vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(rd.elementType, 4)
 mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, is_periodic=(true,true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms)

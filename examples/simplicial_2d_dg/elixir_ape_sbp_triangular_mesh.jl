@@ -16,7 +16,7 @@ equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_me
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(Tri(), 8)
+vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(Tri(), 4)
 mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd)
 
 # If no boundary tags are specified, VertexMappedMesh will add the tag `:entire_boundary`

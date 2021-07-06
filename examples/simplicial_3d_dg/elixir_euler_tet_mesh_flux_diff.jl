@@ -3,11 +3,11 @@
 using StartUpDG
 using Trixi, OrdinaryDiffEq
 
-polydeg = 4
+polydeg = 3
 rd = RefElemData(Tet(), polydeg)
 
 volume_flux = flux_ranocha
-dg = DG(rd, nothing #= mortar =#, 
+dg = DG(rd, nothing #= mortar =#,
         SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralFluxDifferencing(volume_flux))
 
 equations = CompressibleEulerEquations3D(1.4)
@@ -15,7 +15,7 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 # example where we tag two separate boundary segments of the mesh
-top_boundary(x, y, z, tol=50*eps()) = abs(z - 1) < tol 
+top_boundary(x, y, z, tol=50*eps()) = abs(z - 1) < tol
 rest_of_boundary(x, y, z, tol=50*eps()) = !top_boundary(x, y, z, tol)
 is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
 VX, VY, VZ, EToV = StartUpDG.uniform_mesh(Tet(), 2)
@@ -26,8 +26,8 @@ boundary_conditions = (; :top => boundary_condition_convergence_test,
                         :rest => boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms, 
-                                    boundary_conditions = boundary_conditions) 
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
