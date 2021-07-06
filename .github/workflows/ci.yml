@@ -139,7 +139,6 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src,examples
-        # Codecov is disabled since it does not produce accurate measurements for parallel jobs
       - uses: codecov/codecov-action@v1
         with:
           file: ./lcov.info
@@ -147,19 +146,26 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-      - uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.run_id }}
-          parallel: true
-          path-to-lcov: ./lcov.info
+      # Coveralls is disabled since it is just annoying for parallel builds, see, e.g.,
+      # https://github.com/trixi-framework/Trixi.jl/issues/691
+      # https://github.com/coverallsapp/github-action/issues/47
+      # https://github.com/coverallsapp/github-action/issues/67
+      # - uses: coverallsapp/github-action@master
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.run_id }}
+      #     parallel: true
+      #     path-to-lcov: ./lcov.info
 
   finish:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - name: Coveralls Finished
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
+      # Coveralls is disabled since it is just annoying for parallel builds,
+      # see https://github.com/trixi-framework/Trixi.jl/issues/691
+      # - name: Coveralls Finished
+      #   uses: coverallsapp/github-action@master
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     parallel-finished: true
+      - run: echo "Finished testing Trixi"
