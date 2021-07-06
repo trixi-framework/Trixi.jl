@@ -41,10 +41,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-# u = ode.u0
-# du = similar(u)
-# Trixi.rhs!(du, u, 0.0, mesh, equations, initial_condition, boundary_conditions, source_terms, dg, semi.cache)
-
 dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = 0.5*dt0, save_everystep=false, callback=callbacks);
