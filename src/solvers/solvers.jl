@@ -5,12 +5,7 @@
 @muladd begin
 
 
-include("dgsem_tree/dg.jl")
-include("dgsem_structured/dg.jl")
-include("dgsem_unstructured/dg.jl")
-include("dgsem_p4est/dg.jl")
-include("dg_common.jl")
-include("fdsbp_tree/fdsbp_2d.jl")
+include("dg.jl")
 
 
 end # @muladd
