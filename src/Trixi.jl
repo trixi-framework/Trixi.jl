@@ -218,7 +218,6 @@ function __init__()
     export AbstractMeshData, VertexMappedMesh
     
     include("solvers/dg_simplices/dg.jl")
-    # include("solvers/dg_simplices/fluxdiff.jl")
     include("solvers/dg_simplices/analysis.jl")  
   end
 

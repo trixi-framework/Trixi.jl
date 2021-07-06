@@ -140,9 +140,11 @@ macro timed_testset(name, expr)
   @assert name isa String
   quote
     @time @testset $name $expr
-    flush(stdout)
-    @info("Testset " * $name * " finished.\n")
-    flush(stdout)
+    if Trixi.mpi_isroot()
+      flush(stdout)
+      @info("Testset " * $name * " finished.\n")
+      flush(stdout)
+    end
   end
 end
 
@@ -167,7 +169,7 @@ macro trixi_testset(name, expr)
   # loading structured, curvilinear meshes. Thus, we need to use a plain
   # module name here.
   quote
-    @eval module TrixiTestModule
+    @time @eval module TrixiTestModule
       using Test
       using Trixi
       include(@__FILE__)
@@ -179,7 +181,12 @@ macro trixi_testset(name, expr)
       catch
         nothing
       end
-      @timed_testset $name $expr
+      @testset $name $expr
+    end
+    if Trixi.mpi_isroot()
+      flush(stdout)
+      @info("Testset " * $name * " finished.\n")
+      flush(stdout)
     end
     nothing
   end
