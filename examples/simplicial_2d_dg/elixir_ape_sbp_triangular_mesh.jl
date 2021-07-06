@@ -5,7 +5,7 @@ using Trixi, OrdinaryDiffEq
 
 polydeg = 3
 rd = RefElemData(Tri(), SBP(), polydeg)
-dg = DG(rd, nothing #= mortar =#, 
+dg = DG(rd, nothing #= mortar =#,
         SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralWeakForm())
 
 v_mean_global = (0.25, 0.25)
@@ -16,16 +16,16 @@ equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_me
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-# example where we tag two separate boundary segments of the mesh
-VX, VY, EToV = StartUpDG.uniform_mesh(Tri(), 8)
-mesh = VertexMappedMesh(VX, VY, EToV, rd)
+vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(Tri(), 8)
+mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd)
 
+# If no boundary tags are specified, VertexMappedMesh will add the tag `:entire_boundary`
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :entire_boundary => boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms, 
-                                    boundary_conditions = boundary_conditions) 
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
