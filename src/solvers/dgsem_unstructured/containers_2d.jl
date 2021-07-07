@@ -5,9 +5,8 @@
 @muladd begin
 
 
-# TODO: Clean-up meshes. Remove type parameters `NVARS, POLYDEG`
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
-struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
+struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real}
   node_coordinates     ::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
   jacobian_matrix      ::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
   inverse_jacobian     ::Array{RealT, 3}   # [nnodes, nnodes, nelement]
@@ -19,33 +18,34 @@ end
 
 # construct an empty curved element container to be filled later with geometries in the
 # unstructured mesh constructor
-function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
-
-  nnodes = POLYDEG + 1
+function UnstructuredElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
-  node_coordinates      = fill(nan_RealT, (2, nnodes, nnodes, capacity))
-  jacobian_matrix       = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
-  inverse_jacobian      = fill(nan_RealT, (nnodes, nnodes, capacity))
-  contravariant_vectors = fill(nan_RealT, (2, 2, nnodes, nnodes, capacity))
-  normal_directions     = fill(nan_RealT, (2, nnodes, 4, capacity))
-  surface_flux_values   = fill(nan_uEltype, (NVARS, nnodes, 4, capacity))
+  node_coordinates      = fill(nan_RealT, (2, n_nodes, n_nodes, capacity))
+  jacobian_matrix       = fill(nan_RealT, (2, 2, n_nodes, n_nodes, capacity))
+  inverse_jacobian      = fill(nan_RealT, (n_nodes, n_nodes, capacity))
+  contravariant_vectors = fill(nan_RealT, (2, 2, n_nodes, n_nodes, capacity))
+  normal_directions     = fill(nan_RealT, (2, n_nodes, 4, capacity))
+  surface_flux_values   = fill(nan_uEltype, (n_variables, n_nodes, 4, capacity))
 
-  return UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(node_coordinates,
-                                                                        jacobian_matrix,
-                                                                        inverse_jacobian,
-                                                                        contravariant_vectors,
-                                                                        normal_directions,
-                                                                        surface_flux_values)
+  return UnstructuredElementContainer2D{RealT, uEltype}(node_coordinates,
+                                                        jacobian_matrix,
+                                                        inverse_jacobian,
+                                                        contravariant_vectors,
+                                                        normal_directions,
+                                                        surface_flux_values)
 end
 
 
-@inline nelements(elements::UnstructuredElementContainer2D) = size(elements.inverse_jacobian, 3)
-
+@inline nelements(elements::UnstructuredElementContainer2D) = size(elements.surface_flux_values, 4)
 @inline eachelement(elements::UnstructuredElementContainer2D) = Base.OneTo(nelements(elements))
 
-Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uEltype} = uEltype
+@inline nvariables(elements::UnstructuredElementContainer2D) = size(elements.surface_flux_values, 1)
+@inline nnodes(elements::UnstructuredElementContainer2D) = size(elements.surface_flux_values, 2)
+
+Base.real(elements::UnstructuredElementContainer2D) = eltype(elements.node_coordinates)
+Base.eltype(elements::UnstructuredElementContainer2D) = eltype(elements.surface_flux_values)
 
 
 @inline function get_surface_normal(vec, indices...)
@@ -55,7 +55,8 @@ Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uElt
 end
 
 function init_elements(mesh::UnstructuredMesh2D, equations, basis, RealT, uEltype)
-  elements = UnstructuredElementContainer2D{RealT, uEltype, nvariables(equations), polydeg(basis)}(mesh.n_elements)
+  elements = UnstructuredElementContainer2D{RealT, uEltype}(
+    mesh.n_elements, nvariables(equations), nnodes(basis))
   init_elements!(elements, mesh, basis)
   return elements
 end
@@ -96,9 +97,8 @@ function init_element!(elements, element, nodes, corners_or_surface_curves)
 end
 
 
-# TODO: Clean-up meshes. Remove type parameters `NVARS, POLYDEG`
 # generic container for the interior interfaces of an unstructured mesh
-struct UnstructuredInterfaceContainer2D{uEltype<:Real, NVARS, POLYDEG}
+struct UnstructuredInterfaceContainer2D{uEltype<:Real}
   u                ::Array{uEltype, 4} # [primary/secondary, variables, i, interfaces]
   start_index      ::Vector{Int}       # [interfaces]
   index_increment  ::Vector{Int}       # [interfaces]
@@ -107,46 +107,45 @@ struct UnstructuredInterfaceContainer2D{uEltype<:Real, NVARS, POLYDEG}
 end
 
 
-# construct an empty curved interface container to be filled later with neighbour information in the
-# unstructured mesh constructor
-function UnstructuredInterfaceContainer2D{uEltype, NVARS, POLYDEG}(capacity::Integer) where {uEltype<:Real, NVARS, POLYDEG}
+# Construct an empty curved interface container to be filled later with neighbour
+# information in the unstructured mesh constructor
+function UnstructuredInterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
 
-  n_nodes = POLYDEG + 1
   nan_uEltype = convert(uEltype, NaN)
 
-  u                = fill(nan_uEltype, (2, NVARS, n_nodes, capacity))
+  u                = fill(nan_uEltype, (2, n_variables, n_nodes, capacity))
   start_index      = fill(typemin(Int), capacity)
   index_increment  = fill(typemin(Int), capacity)
   element_ids      = fill(typemin(Int), (2, capacity))
   element_side_ids = fill(typemin(Int), (2, capacity))
 
-  return UnstructuredInterfaceContainer2D{uEltype, NVARS, POLYDEG}(u, start_index, index_increment,
-                                                                   element_ids, element_side_ids)
+  return UnstructuredInterfaceContainer2D{uEltype}(
+    u, start_index, index_increment, element_ids, element_side_ids)
 end
 
 
 @inline ninterfaces(interfaces::UnstructuredInterfaceContainer2D) = length(interfaces.start_index)
+@inline nnodes(interfaces::UnstructuredInterfaceContainer2D) = size(interfaces.u, 3)
 
 
-Base.eltype(::UnstructuredInterfaceContainer2D{uEltype}) where {uEltype} = uEltype
+function init_interfaces(mesh::UnstructuredMesh2D, elements::UnstructuredElementContainer2D)
 
-
-function init_interfaces(uEltype, mesh, nvars, polydeg)
-
-  interfaces = UnstructuredInterfaceContainer2D{uEltype, nvars, polydeg}(mesh.n_interfaces)
+  interfaces = UnstructuredInterfaceContainer2D{eltype(elements)}(
+    mesh.n_interfaces, nvariables(elements), nnodes(elements))
 
   # extract and save the appropriate neighbour information from the mesh skeleton
-  init_interfaces!(interfaces, mesh.neighbour_information, mesh.boundary_names, polydeg,
+  init_interfaces!(interfaces, mesh.neighbour_information, mesh.boundary_names,
                    mesh.n_elements, Val(isperiodic(mesh)))
 
   return interfaces
 end
 
 
-function init_interfaces!(interfaces, edge_information, boundary_names, polydeg, n_elements,
+function init_interfaces!(interfaces, edge_information, boundary_names, n_elements,
                           periodic::Val{false})
 
-  n_surfaces = size(edge_information,2)
+  n_nodes = nnodes(interfaces)
+  n_surfaces = size(edge_information, 2)
   intr_count = 1
   for j in 1:n_surfaces
     if edge_information[4,j] > 0
@@ -159,10 +158,10 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
       interfaces.start_index[intr_count] = 1
       interfaces.index_increment[intr_count] = 1
       if edge_information[6,j] < 0
-      # coordinate system in the secondary element is "flipped" compared to the primary element.
-      # Adjust the start and increment indexes such that the secondary element coordinate system
-      # can match the primary neighbour when surface coupling is computed
-        interfaces.start_index[intr_count] = polydeg + 1
+        # coordinate system in the secondary element is "flipped" compared to the primary element.
+        # Adjust the start and increment indexes such that the secondary element coordinate system
+        # can match the primary neighbour when surface coupling is computed
+        interfaces.start_index[intr_count] = n_nodes
         interfaces.index_increment[intr_count] = -1
       end
       intr_count += 1
@@ -173,10 +172,11 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
 end
 
 
-function init_interfaces!(interfaces, edge_information, boundary_names, polydeg, n_elements,
+function init_interfaces!(interfaces, edge_information, boundary_names, n_elements,
                           periodic::Val{true})
 
-  n_surfaces = size(edge_information,2)
+  n_nodes = nnodes(interfaces)
+  n_surfaces = size(edge_information, 2)
   # for now this set a fully periodic domain
   #   TODO: possibly adjust to be able to set periodic in only the x or y direction
   for j in 1:n_surfaces
@@ -193,7 +193,7 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
         # coordinate system in the secondary element is "flipped" compared to the primary element.
         # Adjust the start and increment indexes such that the secondary element coordinate system
         # can match the primary neighbour when surface coupling is computed
-        interfaces.start_index[j] = polydeg + 1
+        interfaces.start_index[j] = n_nodes
         interfaces.index_increment[j] = -1
       end
     else
@@ -230,10 +230,9 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
 end
 
 
-# TODO: Clean-up meshes. Remove type parameters `NVARS, POLYDEG`
 # TODO: Clean-up meshes. Find a better name since it's also used for other meshes
 # generic container for the boundary interfaces of an unstructured mesh
-struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
+struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real}
   u               ::Array{uEltype, 3} # [variables, i, boundaries]
   element_id      ::Vector{Int}       # [boundaries]
   element_side_id ::Vector{Int}       # [boundaries]
@@ -242,31 +241,31 @@ struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDE
 end
 
 
-# construct an empty curved boundary container to be filled later with neighbour information in the
-# unstructured mesh constructor
-function UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity::Integer) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
+# construct an empty curved boundary container to be filled later with neighbour
+# information in the unstructured mesh constructor
+function UnstructuredBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_nodes) where {RealT<:Real, uEltype<:Real}
 
-  n_nodes = POLYDEG + 1
   nan_RealT = convert(RealT, NaN)
   nan_uEltype = convert(uEltype, NaN)
 
-  u                = fill(nan_uEltype, (NVARS, n_nodes, capacity))
+  u                = fill(nan_uEltype, (n_variables, n_nodes, capacity))
   element_id       = fill(typemin(Int), capacity)
   element_side_id  = fill(typemin(Int), capacity)
   node_coordinates = fill(nan_RealT, (2, n_nodes, capacity))
   name             = fill(:empty, capacity)
 
-  return UnstructuredBoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}(u, element_id, element_side_id,
-                                                                         node_coordinates, name)
+  return UnstructuredBoundaryContainer2D{RealT, uEltype}(
+    u, element_id, element_side_id, node_coordinates, name)
 end
 
 
 @inline nboundaries(boundaries::UnstructuredBoundaryContainer2D) = length(boundaries.name)
 
 
-function init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg)
+function init_boundaries(mesh::UnstructuredMesh2D, elements::UnstructuredElementContainer2D)
 
-  boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg}(mesh.n_boundaries)
+  boundaries = UnstructuredBoundaryContainer2D{real(elements), eltype(elements)}(
+    mesh.n_boundaries, nvariables(elements), nnodes(elements))
 
   # extract and save the appropriate boundary information provided any physical boundaries exist
   if mesh.n_boundaries > 0
@@ -276,7 +275,8 @@ function init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg)
 end
 
 
-function init_boundaries!(boundaries, edge_information, boundary_names, elements)
+function init_boundaries!(boundaries::UnstructuredBoundaryContainer2D, edge_information,
+                          boundary_names, elements)
 
   n_surfaces = size(edge_information,2)
   bndy_count = 1
