@@ -11,14 +11,11 @@
 function create_cache(mesh::UnstructuredMesh2D, equations,
                       dg::DG, RealT, uEltype)
 
-  polydeg_ = polydeg(dg.basis)
-  nvars = nvariables(equations)
-
   elements = init_elements(mesh, equations, dg.basis, RealT, uEltype)
 
-  interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
+  interfaces = init_interfaces(mesh, elements)
 
-  boundaries = init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg_)
+  boundaries = init_boundaries(mesh, elements)
 
   cache = (; elements, interfaces, boundaries)
 
