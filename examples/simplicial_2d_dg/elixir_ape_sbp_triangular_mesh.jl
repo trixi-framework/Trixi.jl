@@ -43,5 +43,3 @@ dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = .5*dt0, save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-l2,linf = analysis_callback(sol)

@@ -24,8 +24,8 @@ boundary_conditions = (; :top => boundary_condition_convergence_test,
                         :rest => boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms, 
-                                    boundary_conditions = boundary_conditions) 
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
@@ -43,5 +43,3 @@ dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = 0.5*dt0, save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-l2,linf = analysis_callback(sol)

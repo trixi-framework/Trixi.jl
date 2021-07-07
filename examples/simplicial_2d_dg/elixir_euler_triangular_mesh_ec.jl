@@ -6,9 +6,9 @@ using Trixi, OrdinaryDiffEq
 polydeg = 3
 rd = RefElemData(Tri(), polydeg)
 
-volume_flux = flux_ranocha
 dg = DG(rd, nothing #= mortar =#,
-        SurfaceIntegralWeakForm(FluxLaxFriedrichs()), VolumeIntegralFluxDifferencing(volume_flux))
+        SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
+        VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
@@ -29,7 +29,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_conditions)
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -45,5 +45,3 @@ dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = 0.5*dt0, save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-l2,linf = analysis_callback(sol)
