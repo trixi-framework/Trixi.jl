@@ -27,7 +27,7 @@ function MultiDG(; polydeg::Integer,
                    surface_integral=SurfaceIntegralWeakForm(surface_flux),
                    volume_integral=VolumeIntegralWeakForm())
   rd = RefElemData(elem_type, approximation_type, polydeg)
-  return MultiDG(rd, surface_integral, volume_integral)
+  return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
 # type aliases for dispatch purposes
