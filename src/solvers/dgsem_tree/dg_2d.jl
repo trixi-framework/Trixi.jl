@@ -36,15 +36,18 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                      equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                      nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                      nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
 
   A = Array{uEltype, 4}
   f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -416,24 +419,23 @@ end
 end
 
 
-"""
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-                 nonconservative_terms::Val{false}, equations, volume_flux_fv, dg, element)
 
-Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
-
-# Arguments
-- `fstar1_L::AbstractArray{<:Real, 3}`:
-- `fstar1_R::AbstractArray{<:Real, 3}`:
-- `fstar2_L::AbstractArray{<:Real, 3}`:
-- `fstar2_R::AbstractArray{<:Real, 3}`:
-- `u_leftright::AbstractArray{<:Real, 4}`
-- `nonconservative_terms::Bool`
-- `equations`
-- `volume_flux_fv`
-- `dg::DGSEM`
-- `element::Integer`
-"""
+#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+#                  nonconservative_terms::Val{false}, equations, volume_flux_fv, dg, element)
+#
+# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
+#
+# # Arguments
+# - `fstar1_L::AbstractArray{<:Real, 3}`:
+# - `fstar1_R::AbstractArray{<:Real, 3}`:
+# - `fstar2_L::AbstractArray{<:Real, 3}`:
+# - `fstar2_R::AbstractArray{<:Real, 3}`:
+# - `u_leftright::AbstractArray{<:Real, 4}`
+# - `nonconservative_terms::Bool`
+# - `equations`
+# - `volume_flux_fv`
+# - `dg::DGSEM`
+# - `element::Integer`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
                               nonconservative_terms::Val{false}, equations, volume_flux_fv,
                               dg::DGSEM, element)
@@ -467,24 +469,22 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   return nothing
 end
 
-"""
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-                 nonconservative_terms::Val{true}, equations, volume_flux_fv, dg, element)
-
-Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
-
-# Arguments
-- `fstar1_L::AbstractArray{<:Real, 3}`:
-- `fstar1_R::AbstractArray{<:Real, 3}`:
-- `fstar2_L::AbstractArray{<:Real, 3}`:
-- `fstar2_R::AbstractArray{<:Real, 3}`:
-- `u_leftright::AbstractArray{<:Real, 4}`
-- `nonconservative_terms::Bool`
-- `equations`
-- `volume_flux_fv`
-- `dg::DGSEM`
-- `element::Integer`
-"""
+#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+#                  nonconservative_terms::Val{true}, equations, volume_flux_fv, dg, element)
+#
+# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
+#
+# # Arguments
+# - `fstar1_L::AbstractArray{<:Real, 3}`:
+# - `fstar1_R::AbstractArray{<:Real, 3}`:
+# - `fstar2_L::AbstractArray{<:Real, 3}`:
+# - `fstar2_R::AbstractArray{<:Real, 3}`:
+# - `u_leftright::AbstractArray{<:Real, 4}`
+# - `nonconservative_terms::Bool`
+# - `equations`
+# - `volume_flux_fv`
+# - `dg::DGSEM`
+# - `element::Integer`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
                               nonconservative_terms::Val{true}, equations, volume_flux_fv,
                               dg::DGSEM, element)
@@ -565,7 +565,8 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
   end
 
   return nothing
- end
+end
+
 
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
