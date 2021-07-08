@@ -561,28 +561,32 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
 function calc_vertices(coordinates, levels, length_level_0)
-  @assert size(coordinates, 1) == 2 "only works in 2D"
+  ndim = size(coordinates, 1)
+  @assert ndim == 2 "only works in 2D"
 
   # Initialize output arrays
   n_elements = length(levels)
-  ndim = 2
-  x = Matrix{Float64}(undef, 2^ndim+1, n_elements)
-  y = Matrix{Float64}(undef, 2^ndim+1, n_elements)
+  n_points = 2^ndim+2
+  x = Vector{Float64}(undef, n_points*n_elements)
+  y = Vector{Float64}(undef, n_points*n_elements)
 
   # Calculate vertices for all coordinates at once
   for element_id in 1:n_elements
     length = length_level_0 / 2^levels[element_id]
-    x[1, element_id] = coordinates[1, element_id] - 1/2 * length
-    x[2, element_id] = coordinates[1, element_id] + 1/2 * length
-    x[3, element_id] = coordinates[1, element_id] + 1/2 * length
-    x[4, element_id] = coordinates[1, element_id] - 1/2 * length
-    x[5, element_id] = coordinates[1, element_id] - 1/2 * length
+    index = n_points*(element_id-1)
+    x[index+1] = coordinates[1, element_id] - 1/2 * length
+    x[index+2] = coordinates[1, element_id] + 1/2 * length
+    x[index+3] = coordinates[1, element_id] + 1/2 * length
+    x[index+4] = coordinates[1, element_id] - 1/2 * length
+    x[index+5] = coordinates[1, element_id] - 1/2 * length
+    x[index+6] = NaN
 
-    y[1, element_id] = coordinates[2, element_id] - 1/2 * length
-    y[2, element_id] = coordinates[2, element_id] - 1/2 * length
-    y[3, element_id] = coordinates[2, element_id] + 1/2 * length
-    y[4, element_id] = coordinates[2, element_id] + 1/2 * length
-    y[5, element_id] = coordinates[2, element_id] - 1/2 * length
+    y[index+1] = coordinates[2, element_id] - 1/2 * length
+    y[index+2] = coordinates[2, element_id] - 1/2 * length
+    y[index+3] = coordinates[2, element_id] + 1/2 * length
+    y[index+4] = coordinates[2, element_id] + 1/2 * length
+    y[index+5] = coordinates[2, element_id] - 1/2 * length
+    y[index+6] = NaN
   end
 
   return x, y
