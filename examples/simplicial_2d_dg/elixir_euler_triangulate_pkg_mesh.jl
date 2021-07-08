@@ -6,7 +6,7 @@ using Trixi, OrdinaryDiffEq
 
 polydeg = 3
 rd = RefElemData(Tri(), polydeg)
-dg = DG(rd, nothing #= mortar =#, 
+dg = DG(rd, nothing #= mortar =#,
         SurfaceIntegralWeakForm(FluxHLL()), VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -29,7 +29,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_conditions)
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

@@ -17,7 +17,7 @@ mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, is
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms)
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
