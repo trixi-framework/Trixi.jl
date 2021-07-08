@@ -52,6 +52,7 @@ different features on different mesh types.
 | Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |          2D, 3D          |
 | Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |        curvilinear       |
 | Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |     *h*-nonconforming    |
+| Element type                                                 |      hypercube     |         hypercube        |           hypercube          |         hypercube        |
 | Adaptive mesh refinement ([`AMRCallback`](@ref))             | :heavy_check_mark: | :heavy_multiplication_x: |   :heavy_multiplication_x:   |    :heavy_check_mark:    |
 | Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |         arbitrary        |
 | Weak form ([`VolumeIntegralWeakForm`](@ref))                 | :heavy_check_mark: |    :heavy_check_mark:    |      :heavy_check_mark:      |    :heavy_check_mark:    |
