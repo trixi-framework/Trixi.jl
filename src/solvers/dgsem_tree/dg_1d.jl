@@ -44,10 +44,15 @@ function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{false}, equa
   NamedTuple()
 end
 
-# TODO: MHD in 1D
-# function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{true}, equations,
-#                       ::VolumeIntegralFluxDifferencing, dg, uEltype)
-# end
+function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{true}, equations,
+                      ::VolumeIntegralFluxDifferencing, dg, uEltype)
+
+  prototype = Array{uEltype, 3}(undef,
+                nvariables(equations), nnodes(dg), nnodes(dg))
+  f1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+
+  return (; f1_threaded)
+end
 
 
 function create_cache(mesh::TreeMesh{1}, equations,
@@ -155,20 +160,65 @@ function calc_volume_integral!(du, u,
 end
 
 
+# Calculate 1D twopoint flux (element version)
+@inline function calcflux_twopoint!(f1, u::AbstractArray{<:Any,3}, element,
+                                    mesh::TreeMesh{1}, equations, volume_flux, dg::DG, cache)
+
+  for i in eachnode(dg)
+    # Pull the solution values at the node i,j
+    u_node = get_node_vars(u, equations, dg, i, element)
+    # diagonal (consistent) part not needed since diagonal of
+    # dg.basis.derivative_split_transpose is zero!
+    set_node_vars!(f1, zero(u_node), equations, dg, i, i)
+
+    # Flux in x-direction
+    for ii in (i+1):nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i,  element)
+      u_rr = get_node_vars(u, equations, dg, ii, element)
+      flux = volume_flux(u_ll, u_rr, 1, equations) # 1-> x-direction
+      set_node_vars!(f1, flux, equations, dg, i, ii)
+      set_node_vars!(f1, flux, equations, dg, ii, i)
+    end
+  end
+
+  calcflux_twopoint_nonconservative!(f1, u, element,
+                                     have_nonconservative_terms(equations),
+                                     mesh, equations, dg, cache)
+end
+
+function calcflux_twopoint_nonconservative!(f1, u::AbstractArray{<:Any,3}, element,
+                                            nonconservative_terms::Val{false},
+                                            mesh::TreeMesh{1},
+                                            equations, dg::DG, cache)
+  return nothing
+end
+
+function calcflux_twopoint_nonconservative!(f1, u::AbstractArray{<:Any,3}, element,
+                                            nonconservative_terms::Val{true},
+                                            mesh::TreeMesh{1},
+                                            equations, dg::DG, cache)
+  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
+  #      For now, just dispatch to an existing function for the IdealMhdEquations
+  calcflux_twopoint_nonconservative!(f1, u, element, equations, dg, cache)
+end
+
+
 function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
   @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
+    split_form_kernel!(du, u, element, mesh, nonconservative_terms, equations,
+                       volume_integral.volume_flux, dg, cache)
   end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,3}, u,
+                                    element, mesh::TreeMesh{1},
                                     nonconservative_terms::Val{false}, equations,
                                     volume_flux, dg::DGSEM, cache,
-                                    element, alpha=true)
+                                    alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -192,6 +242,34 @@ end
   end
 end
 
+@inline function split_form_kernel!(du::AbstractArray{<:Any,3}, u,
+                                    element, mesh::TreeMesh{1},
+                                    nonconservative_terms::Val{true}, equations,
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
+  @unpack derivative_split_transpose = dg.basis
+  @unpack f1_threaded = cache
+
+  # Choose thread-specific pre-allocated container
+  f1 = f1_threaded[Threads.threadid()]
+
+  # Calculate volume fluxes (one more dimension than weak form)
+  calcflux_twopoint!(f1, u, element, mesh, equations, volume_flux, dg, cache)
+
+  # Calculate volume integral in one element
+  for i in eachnode(dg)
+    for v in eachvariable(equations)
+      # Use local accumulator to improve performance
+      acc = zero(eltype(du))
+      for l in eachnode(dg)
+        acc += derivative_split_transpose[l, i] * f1[v, l, i]
+      end
+      du[v, i, element] += alpha * acc
+    end
+  end
+
+  return nothing
+end
+
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
@@ -211,7 +289,8 @@ function calc_volume_integral!(du, u,
   # Loop over pure DG elements
   @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
     element = element_ids_dg[idx_element]
-    split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element)
+    split_form_kernel!(du, u, element, mesh, nonconservative_terms, equations,
+                       volume_flux_dg, dg, cache)
   end
 
   # Loop over blended DG-FV elements
@@ -220,7 +299,8 @@ function calc_volume_integral!(du, u,
     alpha_element = alpha[element]
 
     # Calculate DG volume integral contribution
-    split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element, 1 - alpha_element)
+    split_form_kernel!(du, u, element, mesh, nonconservative_terms, equations,
+                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
     fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, alpha_element)
@@ -332,11 +412,45 @@ function calc_interface_flux!(surface_flux_values,
   end
 end
 
-# TODO: MHD in 1D
-# function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
-#                               nonconservative_terms::Val{true}, equations,
-#                               dg::DG, cache)
-# end
+function calc_interface_flux!(surface_flux_values,
+                              mesh::TreeMesh{1},
+                              nonconservative_terms::Val{true}, equations,
+                              surface_integral, dg::DG, cache)
+  @unpack surface_flux = surface_integral
+  @unpack u, neighbor_ids, orientations = cache.interfaces
+
+  @threaded for interface in eachinterface(dg, cache)
+    # Get neighboring elements
+    left_neighbor  = neighbor_ids[1, interface]
+    right_neighbor = neighbor_ids[2, interface]
+
+    # Determine interface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    left_direction  = 2 * orientations[interface]
+    right_direction = 2 * orientations[interface] - 1
+
+    # Call pointwise Riemann solver
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface)
+    f = surface_flux(u_ll, u_rr, orientations[interface], equations)
+
+    # Compute the nonconservative numerical "flux" along an interface
+    # Done twice because left/right orientation matters så
+    # 1 -> primary element and 2 -> secondary element
+    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
+
+    # Call pointwise nonconservative term
+    noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[interface], :weak, equations)
+    noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[interface], :weak, equations)
+
+    # Copy flux to left and right element storage
+    for v in eachvariable(equations)
+      surface_flux_values[v, left_direction,  left_neighbor]  = (f[v] + noncons_primary[v])
+      surface_flux_values[v, right_direction, right_neighbor] = (f[v] + noncons_secondary[v])
+    end
+  end
+
+  return nothing
+end
 
 
 function prolong2boundaries!(cache, u,

@@ -46,7 +46,10 @@ makedocs(
             "Visualization" => "visualization.md",
         ],
         "Tutorials" => [
-            "Adding a new equation" => "adding_a_new_equation.md",
+            "Adding a new equation" => [
+                "Scalar conservation law" => joinpath("adding_new_equations", "cubic_conservation_law.md"),
+                "Nonconservative equation" => joinpath("adding_new_equations", "nonconservative_advection.md")
+            ],
             "Differentiable programming" => "differentiable_programming.md",
         ],
         "Basic building blocks" => [
@@ -55,6 +58,7 @@ makedocs(
                 "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                 "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
                 "Simplicial mesh" => joinpath("meshes", "mesh_data_meshes.md"),
+                "P4est-based mesh" => joinpath("meshes", "p4est_mesh.md"),
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
