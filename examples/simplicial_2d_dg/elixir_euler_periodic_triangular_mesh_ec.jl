@@ -36,9 +36,3 @@ dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt = 0.5*dt0, save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-u = sol.u[end]
-du = similar(u)
-Trixi.rhs!(du, u, semi, tspan[end])
-entropy_timederivative = Trixi.analyze(:entropy_timederivative, du, u, tspan[end],
-                                       mesh, equations, dg, semi.cache)
