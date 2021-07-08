@@ -47,17 +47,17 @@ new features. This allows rapid prototyping of new ideas and is one of the main
 design goals behind Trixi. Below is a brief overview of the availability of
 different features on different mesh types.
 
-| Feature                                                      | [`TreeMesh`](@ref) | [`StructuredMesh`](@ref) | [`UnstructuredMesh2D`](@ref) |    [`P4estMesh`](@ref)   |
-|--------------------------------------------------------------|:------------------:|:------------------------:|:----------------------------:|:------------------------:|
-| Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |          2D, 3D          |
-| Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |        curvilinear       |
-| Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |     *h*-nonconforming    |
-| Element type                                                 |      hypercube     |         hypercube        |           hypercube          |         hypercube        |
-| Adaptive mesh refinement ([`AMRCallback`](@ref))             | :heavy_check_mark: | :heavy_multiplication_x: |   :heavy_multiplication_x:   |    :heavy_check_mark:    |
-| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |         arbitrary        |
-| Weak form ([`VolumeIntegralWeakForm`](@ref))                 | :heavy_check_mark: |    :heavy_check_mark:    |      :heavy_check_mark:      |    :heavy_check_mark:    |
-| Flux differencing ([`VolumeIntegralFluxDifferencing`](@ref)) | :heavy_check_mark: |    :heavy_check_mark:    |      :heavy_check_mark:      |    :heavy_check_mark:    |
-| Shock capturing ([`VolumeIntegralShockCapturingHG`](@ref))   | :heavy_check_mark: | :heavy_multiplication_x: |   :heavy_multiplication_x:   | :heavy_multiplication_x: |
+| Feature                                                      | [`TreeMesh`](@ref) | [`StructuredMesh`](@ref) | [`UnstructuredMesh2D`](@ref) | [`P4estMesh`](@ref) |
+|--------------------------------------------------------------|:------------------:|:------------------------:|:----------------------------:|:-------------------:|
+| Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |        2D, 3D       |
+| Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |     curvilinear     |
+| Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |  *h*-nonconforming  |
+| Element type                                                 |      hypercube     |         hypercube        |           hypercube          |      hypercube      |
+| Adaptive mesh refinement ([`AMRCallback`](@ref))             |          ✅         |             ❌            |               ❌              |          ✅          |
+| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |
+| Weak form ([`VolumeIntegralWeakForm`](@ref))                 |          ✅         |             ✅            |               ✅              |          ✅          |
+| Flux differencing ([`VolumeIntegralFluxDifferencing`](@ref)) |          ✅         |             ✅            |               ✅              |          ✅          |
+| Shock capturing ([`VolumeIntegralShockCapturingHG`](@ref))   |          ✅         |             ❌            |               ❌              |          ❌          |
 
 
 ## Time integration methods
