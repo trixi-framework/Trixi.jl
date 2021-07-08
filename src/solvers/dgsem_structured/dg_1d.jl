@@ -46,7 +46,7 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
                               equations, surface_integral, dg::DG)
   @unpack surface_flux = surface_integral
 
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     left_element = cache.elements.left_neighbors[1, element]
 
     if left_element > 0 # left_element = 0 at bounaries
@@ -102,14 +102,14 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
   # Positive x-direction
   direction = 2
 
-  u_rr = get_node_vars(u, equations, dg, nnodes(dg), nelements(dg, cache))
-  x = get_node_coords(node_coordinates, equations, dg, nnodes(dg), nelements(dg, cache))
+  u_rr = get_node_vars(u, equations, dg, nnodes(dg), nelements(mesh, dg, cache))
+  x = get_node_coords(node_coordinates, equations, dg, nnodes(dg), nelements(mesh, dg, cache))
 
   flux = boundary_conditions[direction](u_rr, orientation, direction, x, t, surface_flux, equations)
 
   # Copy flux to left and right element storage
   for v in eachvariable(equations)
-    surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
+    surface_flux_values[v, direction, nelements(mesh, dg, cache)] = flux[v]
   end
 end
 

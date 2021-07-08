@@ -15,18 +15,18 @@ function refine!(u_ode::AbstractVector, adaptor,
   end
 
   # Determine for each existing element whether it needs to be refined
-  needs_refinement = falses(nelements(dg, cache))
+  needs_refinement = falses(nelements(mesh, dg, cache))
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
-  old_n_elements = nelements(dg, cache)
+  old_n_elements = nelements(mesh, dg, cache)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(mesh, dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or refine them
@@ -48,12 +48,12 @@ function refine!(u_ode::AbstractVector, adaptor,
     # If everything is correct, we should have processed all elements.
     # Depending on whether the last element processed above had to be refined or not,
     # the counter `element_id` can have two different values at the end.
-    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    @assert element_id == nelements(mesh, dg, cache) + 1 || element_id == nelements(mesh, dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(mesh, dg, cache) = $(nelements(mesh, dg, cache))"
   end # GC.@preserve old_u_ode
 
   # Sanity check
   if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
-    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(mesh, dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
   return nothing
@@ -148,18 +148,18 @@ function coarsen!(u_ode::AbstractVector, adaptor,
   end
 
   # Determine for each old element whether it needs to be removed
-  to_be_removed = falses(nelements(dg, cache))
+  to_be_removed = falses(nelements(mesh, dg, cache))
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
-  old_n_elements = nelements(dg, cache)
+  old_n_elements = nelements(mesh, dg, cache)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(mesh, dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or coarsen them
@@ -192,12 +192,12 @@ function coarsen!(u_ode::AbstractVector, adaptor,
       end
     end
     # If everything is correct, we should have processed all elements.
-    @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    @assert element_id == nelements(mesh, dg, cache) + 1 "element_id = $element_id, nelements(mesh, dg, cache) = $(nelements(mesh, dg, cache))"
   end # GC.@preserve old_u_ode
 
   # Sanity check
   if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
-    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(mesh, dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
   return nothing
@@ -286,7 +286,7 @@ function create_cache(::Type{ControllerThreeLevel},
                       mesh::Union{TreeMesh{3}, P4estMesh{3}},
                       equations, dg::DG, cache)
 
-  controller_value = Vector{Int}(undef, nelements(dg, cache))
+  controller_value = Vector{Int}(undef, nelements(mesh, dg, cache))
   return (; controller_value)
 end
 

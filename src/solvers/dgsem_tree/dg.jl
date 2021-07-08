@@ -14,7 +14,7 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
   empty!(element_ids_dg)
   empty!(element_ids_dgfv)
 
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     # Clip blending factor for values close to zero (-> pure DG)
     dg_only = isapprox(alpha[element], 0, atol=1e-12)
     if dg_only

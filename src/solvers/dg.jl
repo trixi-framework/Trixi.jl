@@ -261,30 +261,90 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 
 @inline Base.real(dg::DG) = real(dg.basis)
 
-@inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
-
 
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
   get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg, cache)
 end
 
 
-# TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
-# TODO: Clean-up meshes. These should be deprecated and get the new signature `eachelement(mesh, dg, cache)`
-@inline eachnode(dg::DG)             = Base.OneTo(nnodes(dg))
-@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
-@inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
-@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
-@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
-@inline eachmpiinterface(dg::DG, cache) = Base.OneTo(nmpiinterfaces(dg, cache))
+const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh}
 
-@inline nnodes(dg::DG)             = nnodes(dg.basis)
-@inline nelements(dg::DG, cache)   = nelements(cache.elements)
-@inline nelementsglobal(dg::DG, cache) = mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
-@inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
-@inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
-@inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
-@inline nmpiinterfaces(dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
+@inline ndofs(mesh::MeshesDGSEM, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+
+# TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
+@inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
+@inline nnodes(dg::DG)   = nnodes(dg.basis)
+
+# FIXME: Deprecations introduced in v0.3
+@noinline function eachelement(dg::DG, cache)
+  Base.depwarn("`eachelement(solver, cache)` is deprecated, use `eachelement(mesh, solver, cache)` instead.", :eachelement)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  eachelement(mesh, dg, cache)
+end
+@noinline function eachinterface(dg::DG, cache)
+  Base.depwarn("`eachinterface(solver, cache)` is deprecated, use `eachinterface(mesh, solver, cache)` instead.", :eachinterface)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  eachinterface(mesh, dg, cache)
+end
+@noinline function eachboundary(dg::DG, cache)
+  Base.depwarn("`eachboundary(solver, cache)` is deprecated, use `eachboundary(mesh, solver, cache)` instead.", :eachboundary)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  eachboundary(mesh, dg, cache)
+end
+@noinline function eachmortar(dg::DG, cache)
+  Base.depwarn("`eachmortar(solver, cache)` is deprecated, use `eachmortar(mesh, solver, cache)` instead.", :eachmortar)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  eachmortar(mesh, dg, cache)
+end
+@noinline function eachmpiinterface(dg::DG, cache)
+  Base.depwarn("`eachmpiinterface(solver, cache)` is deprecated, use `eachmpiinterface(mesh, solver, cache)` instead.", :eachmpiinterface)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  eachmpiinterface(mesh, dg, cache)
+end
+
+@noinline function nelements(dg::DG, cache)
+  Base.depwarn("`nelements(solver, cache)` is deprecated, use `nelements(mesh, solver, cache)` instead.", :nelements)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  nelements(mesh, dg, cache)
+end
+@noinline function nelementsglobal(dg::DG, cache)
+  Base.depwarn("`nelementsglobal(solver, cache)` is deprecated, use `nelementsglobal(mesh, solver, cache)` instead.", :nelementsglobal)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  nelementsglobal(mesh, dg, cache)
+end
+@noinline function ninterfaces(dg::DG, cache)
+  Base.depwarn("`ninterfaces(solver, cache)` is deprecated, use `ninterfaces(mesh, solver, cache)` instead.", :ninterfaces)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  ninterfaces(mesh, dg, cache)
+end
+@noinline function nboundaries(dg::DG, cache)
+  Base.depwarn("`nboundaries(solver, cache)` is deprecated, use `nboundaries(mesh, solver, cache)` instead.", :nboundaries)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  nboundaries(mesh, dg, cache)
+end
+@noinline function nmortars(dg::DG, cache)
+  Base.depwarn("`nmortars(solver, cache)` is deprecated, use `nmortars(mesh, solver, cache)` instead.", :nmortars)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  nmortars(mesh, dg, cache)
+end
+@noinline function nmpiinterfaces(dg::DG, cache)
+  Base.depwarn("`nmpiinterfaces(solver, cache)` is deprecated, use `nmpiinterfaces(mesh, solver, cache)` instead.", :nmpiinterfaces)
+  mesh = TreeMesh(0.0, 1.0, n_cells_max=1, initial_refinement_level=0)
+  nmpiinterfaces(mesh, dg, cache)
+end
+
+@inline eachelement(     mesh, dg::DG, cache) = Base.OneTo(nelements(     mesh, dg, cache))
+@inline eachinterface(   mesh, dg::DG, cache) = Base.OneTo(ninterfaces(   mesh, dg, cache))
+@inline eachboundary(    mesh, dg::DG, cache) = Base.OneTo(nboundaries(   mesh, dg, cache))
+@inline eachmortar(      mesh, dg::DG, cache) = Base.OneTo(nmortars(      mesh, dg, cache))
+@inline eachmpiinterface(mesh, dg::DG, cache) = Base.OneTo(nmpiinterfaces(mesh, dg, cache))
+
+@inline nelements(      mesh::MeshesDGSEM, dg::DG, cache) = nelements(cache.elements)
+@inline nelementsglobal(mesh::MeshesDGSEM, dg::DG, cache) = mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(mesh, dg, cache)
+@inline ninterfaces(    mesh::MeshesDGSEM, dg::DG, cache) = ninterfaces(cache.interfaces)
+@inline nboundaries(    mesh::MeshesDGSEM, dg::DG, cache) = nboundaries(cache.boundaries)
+@inline nmortars(       mesh::MeshesDGSEM, dg::DG, cache) = nmortars(cache.mortars)
+@inline nmpiinterfaces( mesh::MeshesDGSEM, dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
 
 
 # The following functions assume an array-of-structs memory layout
@@ -360,18 +420,18 @@ include("dgsem/dgsem.jl")
 
 
 
-function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
+function allocate_coefficients(mesh::MeshesDGSEM, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
   # cf. wrap_array
-  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+  zeros(eltype(cache.elements), nvariables(equations) * ndofs(mesh, dg, cache))
 end
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DGSEM, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::MeshesDGSEM, equations, dg::DGSEM, cache)
   @boundscheck begin
-    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+    @assert length(u_ode) == nvariables(equations) * ndofs(mesh, dg, cache)
   end
   # We would like to use
-  #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+  #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(mesh, dg, cache)))
   # but that results in
   #     ERROR: LoadError: cannot resize array with shared data
   # when we resize! `u_ode` during AMR.
@@ -398,35 +458,35 @@ end
     #     is probably the best option since everything will be handed over to
     #     Chris Elrod, one of the best performance software engineers for Julia.
     PtrArray(pointer(u_ode),
-             (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
-            #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+             (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(mesh, dg, cache)))
+            #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(mesh, dg, cache)))
   else
     # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
     unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(mesh, dg, cache)))
   end
 end
 
 # General fallback
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::MeshesDGSEM, equations, dg::DG, cache)
   wrap_array_native(u_ode, mesh, equations, dg, cache)
 end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
 # for interfacing with external C libraries (MPI, HDF5, visualization),
 # writing solution files etc.
-@inline function wrap_array_native(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DG, cache)
+@inline function wrap_array_native(u_ode::AbstractVector, mesh::MeshesDGSEM, equations, dg::DG, cache)
   @boundscheck begin
-    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+    @assert length(u_ode) == nvariables(equations) * ndofs(mesh, dg, cache)
   end
   unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-              (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+              (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(mesh, dg, cache)))
 end
 
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG, cache)
 
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     for i in eachnode(dg)
       x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, element)
       u_node = func(x_node, t, equations)
@@ -437,7 +497,7 @@ end
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg::DG, cache)
 
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
       u_node = func(x_node, t, equations)
@@ -448,7 +508,7 @@ end
 
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG, cache)
 
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, k, element)
       u_node = func(x_node, t, equations)

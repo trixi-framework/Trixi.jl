@@ -9,7 +9,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{1}, equations, dg::DGSEM, cache)
   @unpack weights = dg.basis
 
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     # determine minimum value
     value_min = typemax(eltype(u))
     for i in eachnode(dg)

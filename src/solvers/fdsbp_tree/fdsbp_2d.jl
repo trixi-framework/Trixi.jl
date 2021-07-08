@@ -53,9 +53,9 @@ function calc_volume_integral!(du, u,
     # `reinterpret(reshape, ...)` removes the leading dimension only if more
     # than one variable is used.
     u_vectors  = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+                         nnodes(dg), nnodes(dg), nelements(mesh, dg, cache))
     du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
-                         nnodes(dg), nnodes(dg), nelements(dg, cache))
+                         nnodes(dg), nnodes(dg), nelements(mesh, dg, cache))
   else
     u_vectors  = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
     du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du)
@@ -63,7 +63,7 @@ function calc_volume_integral!(du, u,
 
   # Use the tensor product structure to compute the discrete derivatives of
   # the fluxes line-by-line and add them to `du` for each element.
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     f_element = f_threaded[Threads.threadid()]
     u_element = view(u_vectors,  :, :, element)
 
@@ -88,14 +88,14 @@ end
 
 function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,
                           surface_integral, dg::DG)
-  @assert isempty(eachmortar(dg, cache))
+  @assert isempty(eachmortar(mesh, dg, cache))
 end
 
 function calc_mortar_flux!(surface_flux_values, mesh,
                            nonconservative_terms, equations,
                            mortar::Nothing,
                            surface_integral, dg::DG, cache)
-  @assert isempty(eachmortar(dg, cache))
+  @assert isempty(eachmortar(mesh, dg, cache))
 end
 
 
@@ -106,7 +106,7 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
   inv_weight_right = inv(right_boundary_weight(dg.basis))
   @unpack surface_flux_values = cache.elements
 
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     for l in eachnode(dg)
       # surface at -x
       u_node = get_node_vars(u, equations, dg, 1, l, element)
@@ -156,7 +156,7 @@ function integrate_via_indices(func::Func, u,
   integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
   # Use quadrature to numerically integrate over entire domain
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     volume_jacobian_ = volume_jacobian(element, mesh, cache)
     for j in eachnode(dg), i in eachnode(dg)
       integral += volume_jacobian_ * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
@@ -183,7 +183,7 @@ function calc_error_norms(func, u, t, analyzer,
   linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     # Calculate errors at each node
     volume_jacobian_ = volume_jacobian(element, mesh, cache)
 

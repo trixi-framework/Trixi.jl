@@ -63,7 +63,7 @@ function calc_error_norms(func, u, t, analyzer,
   linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, element), x_tmp1)
@@ -100,7 +100,7 @@ function calc_error_norms(func, u, t, analyzer,
   total_volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, element), x_tmp1)
@@ -134,7 +134,7 @@ function integrate_via_indices(func::Func, u,
   integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
   # Use quadrature to numerically integrate over entire domain
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     volume_jacobian_ = volume_jacobian(element, mesh, cache)
     for j in eachnode(dg), i in eachnode(dg)
       integral += volume_jacobian_ * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
@@ -160,7 +160,7 @@ function integrate_via_indices(func::Func, u,
   total_volume = zero(real(mesh))
 
   # Use quadrature to numerically integrate over entire domain
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
       integral += volume_jacobian * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
@@ -236,7 +236,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
   # integrate over all elements to get the divergence-free condition errors
   linf_divb = zero(eltype(u))
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       divb = zero(eltype(u))
       for k in eachnode(dg)
@@ -259,7 +259,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
   # integrate over all elements to get the divergence-free condition errors
   linf_divb = zero(eltype(u))
-  for element in eachelement(dg, cache)
+  for element in eachelement(mesh, dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       divb = zero(eltype(u))
       for k in eachnode(dg)

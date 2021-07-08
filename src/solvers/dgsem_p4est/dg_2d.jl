@@ -27,7 +27,7 @@ function prolong2interfaces!(cache, u,
 
   size_ = (nnodes(dg), nnodes(dg))
 
-  @threaded for interface in eachinterface(dg, cache)
+  @threaded for interface in eachinterface(mesh, dg, cache)
     primary_element   = interfaces.element_ids[1, interface]
     secondary_element = interfaces.element_ids[2, interface]
 
@@ -62,7 +62,7 @@ function calc_interface_flux!(surface_flux_values,
 
   size_ = (nnodes(dg), nnodes(dg))
 
-  @threaded for interface in eachinterface(dg, cache)
+  @threaded for interface in eachinterface(mesh, dg, cache)
     # Get neighboring elements
     primary_element   = element_ids[1, interface]
     secondary_element = element_ids[2, interface]
@@ -108,7 +108,7 @@ function prolong2boundaries!(cache, u,
 
   size_ = (nnodes(dg), nnodes(dg))
 
-  @threaded for boundary in eachboundary(dg, cache)
+  @threaded for boundary in eachboundary(mesh, dg, cache)
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
 
@@ -180,7 +180,7 @@ function prolong2mortars!(cache, u,
 
   size_ = (nnodes(dg), nnodes(dg))
 
-  @threaded for mortar in eachmortar(dg, cache)
+  @threaded for mortar in eachmortar(mesh, dg, cache)
     small_indices = node_indices[1, mortar]
     large_indices = node_indices[2, mortar]
 
@@ -236,7 +236,7 @@ function calc_mortar_flux!(surface_flux_values,
 
   size_ = (nnodes(dg), nnodes(dg))
 
-  @threaded for mortar in eachmortar(dg, cache)
+  @threaded for mortar in eachmortar(mesh, dg, cache)
     # Choose thread-specific pre-allocated container
     fstar = (fstar_lower_threaded[Threads.threadid()],
              fstar_upper_threaded[Threads.threadid()])
@@ -343,7 +343,7 @@ function calc_surface_integral!(du, u,
   @unpack surface_flux_values = cache.elements
 
   # Note that all fluxes have been computed with outward-pointing normal vectors
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(mesh, dg, cache)
     for l in eachnode(dg)
       for v in eachvariable(equations)
         # surface at -x

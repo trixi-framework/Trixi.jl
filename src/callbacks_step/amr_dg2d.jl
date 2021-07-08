@@ -15,7 +15,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
   end
 
   # Retain current solution data
-  old_n_elements = nelements(dg, cache)
+  old_n_elements = nelements(mesh, dg, cache)
   old_cell_ids = copy(cache.elements.cell_ids)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
@@ -25,7 +25,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
 
     @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(mesh, dg, cache))
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
     # Get new list of leaf cells
@@ -48,7 +48,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
 
       # Loop over all elements in new container and either copy them from old container
       # or receive them with MPI
-      for element in eachelement(dg, cache)
+      for element in eachelement(mesh, dg, cache)
         cell_id = cache.elements.cell_ids[element]
         if cell_id in old_cell_ids
           old_element_id = searchsortedfirst(old_cell_ids, cell_id)
@@ -78,18 +78,18 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
   end
 
   # Determine for each existing element whether it needs to be refined
-  needs_refinement = falses(nelements(dg, cache))
+  needs_refinement = falses(nelements(mesh, dg, cache))
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
-  old_n_elements = nelements(dg, cache)
+  old_n_elements = nelements(mesh, dg, cache)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(mesh, dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or refine them
@@ -109,12 +109,12 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     # If everything is correct, we should have processed all elements.
     # Depending on whether the last element processed above had to be refined or not,
     # the counter `element_id` can have two different values at the end.
-    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    @assert element_id == nelements(mesh, dg, cache) + 1 || element_id == nelements(mesh, dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(mesh, dg, cache) = $(nelements(mesh, dg, cache))"
   end # GC.@preserve old_u_ode
 
   # Sanity check
   if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
-    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(mesh, dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
   return nothing
@@ -197,18 +197,18 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4est
   end
 
   # Determine for each old element whether it needs to be removed
-  to_be_removed = falses(nelements(dg, cache))
+  to_be_removed = falses(nelements(mesh, dg, cache))
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
-  old_n_elements = nelements(dg, cache)
+  old_n_elements = nelements(mesh, dg, cache)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(mesh, dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or coarsen them
@@ -239,12 +239,12 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4est
       end
     end
     # If everything is correct, we should have processed all elements.
-    @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    @assert element_id == nelements(mesh, dg, cache) + 1 "element_id = $element_id, nelements(mesh, dg, cache) = $(nelements(mesh, dg, cache))"
   end # GC.@preserve old_u_ode
 
   # Sanity check
   if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
-    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(mesh, dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
   return nothing
@@ -309,13 +309,13 @@ end
 # this method is called when an `ControllerThreeLevel` is constructed
 function create_cache(::Type{ControllerThreeLevel}, mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations, dg::DG, cache)
 
-  controller_value = Vector{Int}(undef, nelements(dg, cache))
+  controller_value = Vector{Int}(undef, nelements(mesh, dg, cache))
   return (; controller_value)
 end
 
 function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2}, equations, dg::DG, cache)
 
-  controller_value = Vector{Int}(undef, nelements(dg, cache))
+  controller_value = Vector{Int}(undef, nelements(mesh, dg, cache))
   return (; controller_value)
 end
 
