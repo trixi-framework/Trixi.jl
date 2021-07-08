@@ -93,9 +93,11 @@ the memory/allocs are (roughly) the same, there doesn't seem to be a significant
 You can also make it more detailed by benchmarking only, e.g., the calculation of the volume terms, but whether that's necessary depends on the modifications you made and their (potential) impact.
 
 Some more detailed description of manual profiling and benchmarking as well as
-resulting performance improvements of Trixi are given in the following blog post.
+resulting performance improvements of Trixi are given in the following blog posts.
 - [Improving performance of AMR with p4est](https://ranocha.de/blog/Optimizing_p4est_AMR/),
   cf. [#638](https://github.com/trixi-framework/Trixi.jl/pull/638)
+- [Improving performance of EC methods](https://ranocha.de/blog/Optimizing_EC_Trixi/),
+  cf. [#643](https://github.com/trixi-framework/Trixi.jl/pull/643)
 
 
 ## Automated benchmarking
