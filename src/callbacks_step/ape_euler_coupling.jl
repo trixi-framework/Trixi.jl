@@ -41,18 +41,17 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   ape_euler_coupling.integrator_euler = init(ode_euler, alg, save_everystep=false, dt=1.0) # dt will be overwritten
 
   # Set mean values in u_ode according to `AveragingCallback`
-  # TODO: Perhaps make this dimension-agnostic
   u_ape = wrap_array(u_ode, semi_ape)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack mean_values = ape_euler_coupling.averaging_callback.affect!
-  #initialize_mean_values!(u, mean_values, mesh, equations, solver, cache)
   @views @. u_ape[4:5, .., :] = mean_values.v_mean
   @views @. u_ape[6, .., :] = mean_values.c_mean
   @views @. u_ape[7, .., :] = mean_values.rho_mean
+
   # Calculate gradient of squared mean speed of sound for the q_cons source term
   calc_gradient_c_mean_square!(semi.cache.grad_c_mean_sq, u_ape, mesh, equations, solver, cache)
 
-  # Adjust stepsize, perform one CFD step and calculate acoustic sources
+  # Adjust stepsize, advance the flow solver by one time step
   cb.affect!(integrator)
 
   return nothing

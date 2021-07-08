@@ -51,31 +51,6 @@ function vorticity(x, t, vortex_pair::VortexPair)
 end
 
 
-function mean_velocity(x, tspan, nsamples, vortex_pair)
-  v1_sum = 0.0
-  v2_sum = 0.0
-
-  for t in range(tspan..., length=nsamples)
-    v = velocity(x, t, vortex_pair)
-    v1_sum += v[1]
-    v2_sum += v[2]
-  end
-
-  return v1_sum / nsamples, v2_sum / nsamples
-end
-
-function mean_vorticity(x, tspan, nsamples, vortex_pair)
-  ω_sum = 0.0
-
-  for t in range(tspan..., length=nsamples)
-    ω = vorticity(x, t, vortex_pair)
-    ω_sum += ω
-  end
-
-  return ω_sum / nsamples
-end
-
-
 struct InitialCondition{RealT<:Real}
   vortex_pair::VortexPair{RealT}
 end
@@ -214,30 +189,6 @@ function (bc::BoundaryCondition)(u_inner, orientation, direction, x, t,
   return flux
 end
 
-
-function calc_analytical_mean_values!(averaging_callback, tspan, nsamples, vortex_pair::VortexPair,
-                                      mesh, equations, dg::DG, cache)
-  @unpack v_mean, c_mean, rho_mean, vorticity_mean = averaging_callback.affect!.mean_values
-  @unpack c0, rho0 = vortex_pair
-
-  Trixi.@threaded for element in eachelement(cache.elements)
-    for j in eachnode(dg), i in eachnode(dg)
-      x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
-      v_mean_node = mean_velocity(x, tspan, nsamples, vortex_pair)
-      ω_mean_node = mean_vorticity(x, tspan, nsamples, vortex_pair)
-
-      v_mean[1, i, j, element] = v_mean_node[1]
-      v_mean[2, i, j, element] = v_mean_node[2]
-      c_mean[i, j, element] = c0
-      rho_mean[i, j, element] = rho0
-      vorticity_mean[i, j, element] = ω_mean_node
-    end
-  end
-
-
-  return nothing
-end
-
 end # module
 
 
@@ -252,22 +203,22 @@ mach = 1/9
 c0 = 1.0
 r0 = 1.0
 circulation = 4 * pi * r0 * c0 * mach
-rho = 1.0 #1.14 / circulation
+rho = 1.0
 
 rc = 2/9 * r0 * 1.0
 
 vortex_pair = VortexPairSetup.VortexPair(r0, rc, c0, circulation, rho)
 
 # Shared mesh for both semidiscretizations
-coordinates_min = (-60.0*r0, -60.0*r0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 60.0*r0,  60.0*r0) # maximum coordinates (max(x), max(y))
+coordinates_min = (-135*r0, -135*r0) # minimum coordinates (min(x), min(y))
+coordinates_max = ( 135*r0,  135*r0) # maximum coordinates (max(x), max(y))
 refinement_patches = (
-  #(type="sphere", center=(0.0, 0.0), radius=85.0*r0),
+  (type="sphere", center=(0.0, 0.0), radius=85.0*r0),
   (type="sphere", center=(0.0, 0.0), radius=20.0*r0),
   (type="sphere", center=(0.0, 0.0), radius=10.0*r0),
   (type="sphere", center=(0.0, 0.0), radius=5.0*r0)
 )
-initial_refinement_level=6
+initial_refinement_level=7
 n_cells_max=500_000
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=initial_refinement_level,
@@ -280,13 +231,14 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 ###############################################################################
 # semidiscretization Euler equations
+
 gamma = 1.4
 equations_euler = CompressibleEulerEquations2D(gamma)
 
 initial_condition_euler = VortexPairSetup.InitialCondition(vortex_pair)
 
-sponge_layer_euler = VortexPairSetup.SpongeLayer(sponge_layer_min=(-60.0*r0, 40.0*r0, -60.0*r0, 40.0*r0),
-                                                 sponge_layer_max=(-40.0*r0, 60.0*r0, -40.0*r0, 60.0*r0),
+sponge_layer_euler = VortexPairSetup.SpongeLayer(sponge_layer_min=(-135*r0, 115*r0, -135*r0, 115*r0),
+                                                 sponge_layer_max=(-115*r0, 135*r0, -115*r0, 135*r0),
                                                  reference_values=(rho, rho * c0^2 / gamma)) # (rho0, p0)# / gamma-1)) # (rho0, rho_e with p0, v=0)
 
 boundary_condition_euler = VortexPairSetup.BoundaryCondition(rho, (rho * c0^2 / gamma) / (gamma-1))
@@ -300,8 +252,8 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 equations_ape = AcousticPerturbationEquations2D(v_mean_global=(13.0, 26.0), c_mean_global=39.0,
                                                 rho_mean_global=52.0) # global mean values will be overwritten
 
-sponge_layer_ape = VortexPairSetup.SpongeLayer(sponge_layer_min=(-60.0*r0, 25.0*r0, -60.0*r0, 25.0*r0),
-                                               sponge_layer_max=(-25.0*r0, 60.0*r0, -25.0*r0, 60.0*r0),
+sponge_layer_ape = VortexPairSetup.SpongeLayer(sponge_layer_min=(-135*r0, 100*r0, -135*r0, 100*r0),
+                                               sponge_layer_max=(-100*r0, 135*r0, -100*r0, 135*r0),
                                                reference_values=(0.0,))
 
 semi_ape = SemidiscretizationHyperbolic(mesh, equations_ape, initial_condition_constant, solver,
@@ -310,26 +262,23 @@ semi_ape = SemidiscretizationHyperbolic(mesh, equations_ape, initial_condition_c
 
 ###############################################################################
 # ODE solvers, callbacks etc. for averaging the flow field
+
 T_r = 8 * pi^2 * r0^2 / circulation # Rotational period of the vortex pair
 T_a = T_r / 2 # Acoustic period of the vortex pair
 
 # Create ODE problem
-tspan1 = (0.0, 5.0)#*T_r)#T_r * 5/4)#56.5/c0 * 3/4)#3.0*T_a)
+tspan1 = (0.0, 5.0*T_r)
 ode_averaging = semidiscretize(semi_euler, tspan1)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
 
-analysis_interval=2000
+analysis_interval=5000
 alive = AliveCallback(analysis_interval=analysis_interval)
 
-tspan_averaging = tspan1#(1.0*T_r, 5.0*T_r)
+tspan_averaging = (1.0*T_r, 5.0*T_r)
 averaging_callback = AveragingCallback(semi_euler, tspan=tspan_averaging)
-
-#visualization_averaging = VisualizationCallback(interval=3000000, variable_names=["p"],
-#                                                xlims=(-15.0, 15.0), ylims=(-15.0, 15.0),
-#                                                clims=(0.4, 0.8))
 
 cfl = 1.0
 stepsize_callback = StepsizeCallback(cfl=cfl)
@@ -350,11 +299,12 @@ summary_callback()
 
 ###############################################################################
 # set up coupled semidiscretization
+
 source_region(x) = sum(x.^2) < 6.0^2 ? true : false # calculate sources within radius 6 around origin
-# gradually reduce acoustic sources to zero, starting at radius 5
+# gradually reduce acoustic source term amplitudes to zero, starting at radius 5
 weights(x) = sum(x.^2) < 5.0^2 ? 1.0 : cospi(0.5 * (norm(x) - 5.0))
 
-semi = SemidiscretizationApeEuler(semi_ape, semi_euler, source_region=source_region, weights=weights)
+semi = SemidiscretizationApeEuler(semi_ape, semi_euler, source_region=source_region)#, weights=weights)
 cfl_ape = 1.0
 cfl_euler = 1.0
 #VortexPairSetup.calc_analytical_mean_values!(averaging_callback, (50.0/c0, 400.0/c0), 10000, vortex_pair,
@@ -365,21 +315,17 @@ ape_euler_coupling = ApeEulerCouplingCallback(cfl_ape, cfl_euler, averaging_call
 # ODE solvers, callbacks etc. for the coupled simulation
 
 # Create ODE problem
-tspan = (0.0, 2.0)#*T_r)#0.75*T_r)#2.0*T_a)
+tspan = (0.0, 7.0*T_a)
 ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
 
-analysis_interval = 2000
+analysis_interval = 5000
 alive = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=1000000)
 save_solution = SaveSolutionCallback(interval=1000000)
-
-#visualization = VisualizationCallback(interval=100, variable_names=["p_prime"],
-#                                      xlims=(-10.0*r0, 10.0*r0), ylims=(-10.0*r0, 10.0*r0))
-#                                      clims=(-0.0002, 0.0002), c=:grayC)
 
 callbacks = CallbackSet(summary_callback, alive, save_solution, ape_euler_coupling)
 
@@ -389,18 +335,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 
 # Print the timer summary
 summary_callback()
-
-using Test
-l2 = [0.001682825380977573, 0.0011274789563504486, 0.0007928302955663231, 13.000007400471429, 26.00000338888037, 37.99621176196417, 50.99617464728102]
-linf = [0.3918020359854586, 0.1845615842896976, 0.08444505857269993, 13.424911766757615, 26.478768819297454, 38.071568561799715, 51.26246567648751]
-
-l2_measured, linf_measured = analysis_callback(sol)
-
-@testset "Tests" begin
-  for (l2_expected, l2_actual) in zip(l2, l2_measured)
-    @test isapprox(l2_expected, l2_actual)
-  end
-  for (linf_expected, linf_actual) in zip(linf, linf_measured)
-    @test isapprox(linf_expected, linf_actual)
-  end
-end

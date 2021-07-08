@@ -26,6 +26,7 @@ struct SemidiscretizationApeEuler{SemiApe, SemiEuler, SourceRegion, Weights, Cac
   end
 end
 
+# TODO: Default `weights` are based on potentially solver-specific cache structure
 function SemidiscretizationApeEuler(semi_ape::SemiApe, semi_euler::SemiEuler;
                                     source_region, weights=x -> one(eltype(semi_ape.cache.elements))) where
     {Mesh, SemiApe<:SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
