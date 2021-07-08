@@ -5,6 +5,7 @@
 @muladd begin
 
 
+# TODO: Clean-up meshes. Remove type parameters `NVARS, POLYDEG`
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
   node_coordinates     ::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
@@ -53,27 +54,26 @@ Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uElt
   return surface_vector
 end
 
-
-function init_elements(RealT, uEltype, mesh, dg_nodes, nvars, polydeg)
-  elements = UnstructuredElementContainer2D{RealT, uEltype, nvars, polydeg}(mesh.n_elements)
-  init_elements!(elements, mesh, dg_nodes)
+function init_elements(mesh::UnstructuredMesh2D, equations, basis, RealT, uEltype)
+  elements = UnstructuredElementContainer2D{RealT, uEltype, nvariables(equations), polydeg(basis)}(mesh.n_elements)
+  init_elements!(elements, mesh, basis)
   return elements
 end
 
 
-function init_elements!(elements::UnstructuredElementContainer2D, mesh, dg_nodes)
+function init_elements!(elements::UnstructuredElementContainer2D, mesh, basis)
   four_corners = zeros(eltype(mesh.corners), 4, 2)
 
   # loop through elements and call the correct constructor based on whether the element is curved
   for element in eachelement(elements)
     if mesh.element_is_curved[element]
-      init_element!(elements, element, dg_nodes, view(mesh.surface_curves, :, element))
+      init_element!(elements, element, basis.nodes, view(mesh.surface_curves, :, element))
     else # straight sided element
       for i in 1:4, j in 1:2
         # pull the (x,y) values of these corners out of the global corners array
         four_corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
       end
-      init_element!(elements, element, dg_nodes, four_corners)
+      init_element!(elements, element, basis.nodes, four_corners)
     end
   end
 end
@@ -96,6 +96,7 @@ function init_element!(elements, element, nodes, corners_or_surface_curves)
 end
 
 
+# TODO: Clean-up meshes. Remove type parameters `NVARS, POLYDEG`
 # generic container for the interior interfaces of an unstructured mesh
 struct UnstructuredInterfaceContainer2D{uEltype<:Real, NVARS, POLYDEG}
   u                ::Array{uEltype, 4} # [primary/secondary, variables, i, interfaces]
@@ -229,6 +230,8 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
 end
 
 
+# TODO: Clean-up meshes. Remove type parameters `NVARS, POLYDEG`
+# TODO: Clean-up meshes. Find a better name since it's also used for other meshes
 # generic container for the boundary interfaces of an unstructured mesh
 struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
   u               ::Array{uEltype, 3} # [variables, i, boundaries]

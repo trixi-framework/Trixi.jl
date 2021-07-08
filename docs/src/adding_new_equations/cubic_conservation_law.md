@@ -1,4 +1,4 @@
-# Adding a new equation
+# Adding a new equation: scalar conservation laws
 
 If you want to use Trixi for your own research, you might be interested in
 a new physics model that's not already included in Trixi.jl. In this tutorial,
