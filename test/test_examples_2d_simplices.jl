@@ -54,15 +54,15 @@ end
 end
 
 @testset "2D simplicial flux differencing" begin
-  @trixi_testset "elixir_euler_triangular_mesh_flux_diff.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangular_mesh_flux_diff.jl"),
+  @trixi_testset "elixir_euler_triangular_mesh_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangular_mesh_ec.jl"),
       l2 = [0.0023756965829858814, 0.002810713803967761, 0.0028107138039682894, 0.008040750705578132],
       linf = [0.004397202318891624, 0.00446064886127262, 0.004460648861263294, 0.012346721614063583]
     )
   end
 
-  @trixi_testset "elixir_euler_sbp_triangular_mesh_flux_diff.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sbp_triangular_mesh_flux_diff.jl"),
+  @trixi_testset "elixir_euler_sbp_triangular_mesh_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sbp_triangular_mesh_ec.jl"),
       l2 = [0.0019514080401385394, 0.00341875398076509, 0.0034187539807649155, 0.011829447744071755],
       linf = [0.004078990424579931, 0.007257990068658904, 0.007257990068565867, 0.027380769039135444]
     )

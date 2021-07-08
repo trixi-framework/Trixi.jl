@@ -29,7 +29,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_conditions)
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
