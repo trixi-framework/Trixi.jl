@@ -52,7 +52,7 @@ different features on different mesh types.
 | Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |        2D, 3D       |
 | Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |     curvilinear     |
 | Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |  *h*-nonconforming  |
-| Element type                                                 |  line, quadᵃ, hexᵃ |     line, quadᵃ, hexᵃ    |             quadᵃ            |  line, quadᵃ, hexᵃ  |
+| Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |
 | Adaptive mesh refinement ([`AMRCallback`](@ref))             |          ✅         |             ❌            |               ❌              |          ✅          |
 | Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |
 | Weak form ([`VolumeIntegralWeakForm`](@ref))                 |          ✅         |             ✅            |               ✅              |          ✅          |
