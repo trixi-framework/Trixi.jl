@@ -34,10 +34,9 @@ function mapping(xi_, eta_)
   return SVector(x, y)
 end
 
+# Create curved mesh with 8 x 8 elements
 cells_per_dimension = (8, 8)
-
-# Create curved mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=(false, true))
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
