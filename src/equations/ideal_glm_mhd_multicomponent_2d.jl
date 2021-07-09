@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
     IdealGlmMhdMulticomponentEquations2D
@@ -204,7 +210,8 @@ end
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element,
-                                                    equations::IdealGlmMhdMulticomponentEquations2D, dg, cache)
+                                                    equations::IdealGlmMhdMulticomponentEquations2D,
+                                                    dg, cache)
   for j in eachnode(dg), i in eachnode(dg)
     rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)
 
@@ -641,3 +648,6 @@ end
 
   return SVector{ncomponents(equations), real(equations)}(u[i+8]*v for i in eachcomponent(equations))
  end
+
+
+end # @muladd

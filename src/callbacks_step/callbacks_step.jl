@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # overload this function for specific callbacks which use element element variables
 # that should be saved
@@ -30,8 +36,8 @@ end
 # * `SteadyStateCallback` may mark a time step as the last step, which is needed by other callbacks
 # * `AnalysisCallback` may also do some checks that mark a step as the last one
 # * `AliveCallback` belongs to `AnalysisCallback` and should thus be nearby
-# * `SaveRestartCallback`/`SaveSolutionCallback` should save the current solution state before it is
-#   potentially degraded by AMR
+# * `SaveRestartCallback`, `SaveSolutionCallback`, and `TimeSeriesCallback` should save the current
+#    solution state before it is potentially degraded by AMR
 # * `VisualizationCallback` similarly should be called before the mesh is adapted
 #
 # From here on, the remaining callbacks essentially already belong to the next time step iteration:
@@ -48,6 +54,7 @@ include("analysis.jl")
 include("alive.jl")
 include("save_restart.jl")
 include("save_solution.jl")
+include("time_series.jl")
 include("visualization.jl")
 
 include("amr.jl")
@@ -59,3 +66,6 @@ include("lbm_collision.jl")
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`
 include("trivial.jl")
+
+
+end # @muladd

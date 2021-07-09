@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     ndofs(semi::AbstractSemidiscretization)
@@ -289,6 +295,12 @@ function wrap_array(u_ode, semi::AbstractSemidiscretization)
   wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
+# Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
+# for writing solution files etc.
+function wrap_array_native(u_ode, semi::AbstractSemidiscretization)
+  wrap_array_native(u_ode, mesh_equations_solver_cache(semi)...)
+end
+
 
 
 # TODO: Taal, document interface?
@@ -306,3 +318,6 @@ end
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
 # - rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
 #
+
+
+end # @muladd

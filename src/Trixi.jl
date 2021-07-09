@@ -18,13 +18,13 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: dot, mul!, norm, cross, normalize
+using LinearAlgebra: diag, dot, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-import DiffEqBase: CallbackSet, DiscreteCallback,
+import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
@@ -33,20 +33,39 @@ using CodeTracking: code_string
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
+using LoopVectorization: LoopVectorization, @turbo, indices
+using LoopVectorization.ArrayInterface: static_length
 import MPI
+using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
+using P4est
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
-using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
+using StrideArrays: PtrArray, StrideArray, StaticInt
+using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
-# Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
-# Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.
-using Tullio: @tullio
-using LoopVectorization
+# finite difference SBP operators
+using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
+import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
+@reexport using SummationByPartsOperators:
+  SummationByPartsOperators, derivative_operator
+
+
+# TODO: include_optimized
+# This should be used everywhere (except to `include("interpolations.jl")`)
+# once the upstream issue https://github.com/timholy/Revise.jl/issues/634
+# is fixed; tracked in https://github.com/trixi-framework/Trixi.jl/issues/664.
+# # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# # Since these FMAs can increase the performance of many numerical algorithms,
+# # we need to opt-in explicitly.
+# # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+# function include_optimized(filename)
+#   include(expr -> quote @muladd begin $expr end end, filename)
+# end
 
 using Flux
 
@@ -60,8 +79,9 @@ include("basic_types.jl")
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
+include("auxiliary/p4est.jl")
 include("equations/equations.jl")
-include("mesh/mesh.jl")
+include("meshes/meshes.jl")
 include("solvers/solvers.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
@@ -90,8 +110,8 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
-       flux_ec,
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang,
+       flux_kennedy_gruber, flux_shima_etal, flux_ec,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
@@ -137,13 +157,15 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh, CurvedMesh, UnstructuredQuadMesh
+export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
-       VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
+       VolumeIntegralWeakForm, VolumeIntegralStrongForm,
+       VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        MortarL2
 
 export nelements, nnodes, nvariables,
@@ -155,7 +177,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
-       SaveRestartCallback, SaveSolutionCallback, VisualizationCallback,
+       SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback,
        TrivialCallback
@@ -177,6 +199,8 @@ export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_leve
 
 function __init__()
   init_mpi()
+
+  init_p4est()
 
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin

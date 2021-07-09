@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
@@ -20,7 +26,7 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -169,17 +175,16 @@ function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack dt, t, iter = integrator
-  u = wrap_array(integrator.u, mesh, equations, solver, cache)
 
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
-  @timeit_debug timer() "analyze solution" begin
+  @trixi_timeit timer() "analyze solution" begin
     # General information
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(solver))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *
@@ -189,7 +194,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
+    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
 
     # Level information (only show for AMR)
     print_amr_information(integrator.opts.callback, mesh, solver, cache)
@@ -208,7 +213,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
     du_ode = first(get_tmp_cache(integrator))
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
-    du = wrap_array(du_ode, mesh, equations, solver, cache)
+    u  = wrap_array(integrator.u, mesh, equations, solver, cache)
+    du = wrap_array(du_ode,       mesh, equations, solver, cache)
     l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
 
     mpi_println("─"^100)
@@ -370,9 +376,32 @@ function print_amr_information(callbacks, mesh, solver, cache)
   end
 
   for level = max_level:-1:min_level+1
-    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(==(level), levels)))
   end
-  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(==(min_level), levels)))
+
+  return nothing
+end
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
+
+  # Return early if there is nothing to print
+  uses_amr(callbacks) || return nothing
+
+  elements_per_level = zeros(P4EST_MAXLEVEL + 1)
+
+  for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+    elements_per_level .+= tree.quadrants_per_level
+  end
+
+  min_level = findfirst(i -> i > 0, elements_per_level) - 1
+  max_level = findlast(i -> i > 0, elements_per_level) - 1
+
+  for level = max_level:-1:min_level+1
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level + 1]))
+  end
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level + 1]))
 
   return nothing
 end
@@ -466,3 +495,6 @@ include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
+
+
+end # @muladd

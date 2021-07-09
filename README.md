@@ -2,13 +2,14 @@
 
 [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
+[![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
-[![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
+[![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.32.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+<!-- [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.43.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl) -->
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
-<!-- [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl) -->
+<!-- [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main) -->
 
 <p align="center">
   <img width="300px" src="docs/src/assets/logo.png">
@@ -64,7 +65,7 @@ by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
@@ -93,7 +94,7 @@ within the cloned directory:
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
 julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Plots")' # Install postprocessing tools
+julia -e 'import Pkg; Pkg.add(["Trixi2Vtk", "Plots"])' # Install postprocessing tools
 julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
 ```
 If you installed Trixi this way, you always have to start Julia with the `--project`
@@ -158,13 +159,17 @@ If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following
 [paper](https://arxiv.org/abs/2008.10593):
 ```bibtex
-@online{schlottkelakemper2020purely,
+@article{schlottkelakemper2021purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
          self-gravitating gas dynamics},
   author={Schlottke-Lakemper, Michael and Winters, Andrew R and
           Ranocha, Hendrik and Gassner, Gregor J},
-  year={2020},
-  month={08},
+  journal={Journal of Computational Physics},
+  pages={110467},
+  year={2021},
+  month={06},
+  publisher={Elsevier},
+  doi={10.1016/j.jcp.2021.110467},
   eprint={2008.10593},
   eprinttype={arXiv},
   eprintclass={math.NA}
@@ -200,3 +205,6 @@ The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 Trixi is licensed under the MIT license (see [LICENSE.md](LICENSE.md)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+To get in touch with the developers,
+[join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
+or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).

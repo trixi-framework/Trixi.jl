@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
     LinearScalarAdvectionEquation2D
@@ -222,16 +228,17 @@ end
 end
 
 
-# Calculate 1D flux for a single point in direction of a normal vector
-@inline function flux(u, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation2D)
-  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+  a = dot(equation.advectionvelocity, normal_direction) # velocity in normal direction
   return a * u
 end
 
 
-# Calculate maximum wave speed in direction of a normal vector for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation2D)
-  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+# Calculate maximum wave speed in the normal direction for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+  a = dot(equation.advectionvelocity, normal_direction) # velocity in normal direction
   return abs(a)
 end
 
@@ -258,3 +265,6 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
 @inline energy_total(u, equation::LinearScalarAdvectionEquation2D) = energy_total(u[1], equation)
+
+
+end # @muladd

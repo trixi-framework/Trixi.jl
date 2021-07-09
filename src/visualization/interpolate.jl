@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
 #
@@ -52,36 +59,36 @@ function cell2node(cell_centered_data)
 end
 
 
-# Convert 3d unstructured data to 2d slice.
+# Convert 3d unstructured data to 2d data.
 # Additional to the new unstructured data updated coordinates, levels and
 # center coordinates are returned.
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
-                               length_level_0, center_level_0, slice_axis,
-                               slice_axis_intercept)
-
-  if slice_axis === :x
-    slice_axis_dimension = 1
+function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
+                               length_level_0, center_level_0, slice,
+                               point)
+  if slice === :yz
+    slice_dimension = 1
     other_dimensions = [2, 3]
-  elseif slice_axis === :y
-    slice_axis_dimension = 2
+  elseif slice === :xz
+    slice_dimension = 2
     other_dimensions = [1, 3]
-  elseif slice_axis === :z
-    slice_axis_dimension = 3
+  elseif slice === :xy
+    slice_dimension = 3
     other_dimensions = [1, 2]
   else
-    error("illegal dimension '$slice_axis', supported dimensions are :x, :y, and :z")
+    error("illegal dimension '$slice', supported dimensions are :yz, :xz, and :xy")
   end
 
-  # Limits of domain in slice_axis dimension
-  lower_limit = center_level_0[slice_axis_dimension] - length_level_0 / 2
-  upper_limit = center_level_0[slice_axis_dimension] + length_level_0 / 2
+  # Limits of domain in slice dimension
+  lower_limit = center_level_0[slice_dimension] - length_level_0 / 2
+  upper_limit = center_level_0[slice_dimension] + length_level_0 / 2
 
-  if slice_axis_intercept < lower_limit || slice_axis_intercept > upper_limit
-    error(string("Slice plane $slice_axis = $slice_axis_intercept outside of domain. ",
-        "$slice_axis must be between $lower_limit and $upper_limit"))
+  @assert length(point) >= 3 "Point must be three-dimensional."
+  if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
+    error(string("Slice plane is outside of domain.",
+        " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
   end
 
   # Extract data shape information
@@ -104,12 +111,12 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   # Save vandermonde matrices in a Dict to prevent redundant generation
   vandermonde_to_2d = Dict()
 
-  # Permute dimensions such that the slice axis dimension is always the
+  # Permute dimensions such that the slice dimension is always the
   # third dimension of the array. Below we can always interpolate in the
   # third dimension.
-  if slice_axis === :x
+  if slice === :yz
     unstructured_data = permutedims(unstructured_data, [2, 3, 1, 4, 5])
-  elseif slice_axis === :y
+  elseif slice === :xz
     unstructured_data = permutedims(unstructured_data, [1, 3, 2, 4, 5])
   end
 
@@ -124,10 +131,10 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
     # slice plane lies between two cells.
     # The second check is needed if the slice plane is at the upper border of
     # the domain due to this.
-    if !((min_coordinate[slice_axis_dimension] <= slice_axis_intercept &&
-          max_coordinate[slice_axis_dimension] > slice_axis_intercept) ||
-        (slice_axis_intercept == upper_limit &&
-          max_coordinate[slice_axis_dimension] == upper_limit))
+    if !((min_coordinate[slice_dimension] <= point[slice_dimension] &&
+          max_coordinate[slice_dimension] > point[slice_dimension]) ||
+        (point[slice_dimension] == upper_limit &&
+          max_coordinate[slice_dimension] == upper_limit))
       # Continue for loop if they don't intersect
       continue
     end
@@ -141,7 +148,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
 
     # Construct vandermonde matrix (or load from Dict if possible)
     normalized_intercept =
-        (slice_axis_intercept - min_coordinate[slice_axis_dimension]) /
+        (point[slice_dimension] - min_coordinate[slice_dimension]) /
         element_length * 2 - 1
 
     if haskey(vandermonde_to_2d, normalized_intercept)
@@ -176,6 +183,276 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   return unstructured_data, new_coordinates, new_levels, center_level_0
 end
 
+# Convert 2d unstructured data to 1d slice and interpolate them.
+function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+
+  if slice === :x
+    slice_dimension = 2
+    other_dimension = 1
+  elseif slice === :y
+    slice_dimension = 1
+    other_dimension = 2
+  else
+    error("illegal dimension '$slice', supported dimensions are :x and :y")
+  end
+
+  # Set up data structures to stroe new 1D data.
+  @views new_unstructured_data = similar(unstructured_data[1, ..])
+  @views new_nodes = similar(original_nodes[1, 1, ..])
+
+  n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  # Test if point lies in the domain.
+  lower_limit = original_nodes[1, 1, 1, 1]
+  upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_elements]
+
+  @assert length(point) >= 2 "Point must be two-dimensional."
+  if point[slice_dimension] < lower_limit || point[slice_dimension] > upper_limit
+    error(string("Slice axis is outside of domain. ",
+        " point[$slice_dimension]=$(point[slice_dimension]) must be between $lower_limit and $upper_limit"))
+  end
+
+  # Count the amount of new elements.
+  new_id = 0
+
+  # Permute dimensions so that the slice dimension is always in the correct place for later use.
+  if slice === :y
+    original_nodes = permutedims(original_nodes, [1, 3, 2, 4])
+    unstructured_data = permutedims(unstructured_data, [2, 1, 3, 4])
+  end
+
+  # Iterate over all elements to find the ones that lie on the slice axis.
+  for element_id in 1:n_elements
+    min_coordinate = original_nodes[:, 1, 1, element_id]
+    max_coordinate = original_nodes[:, n_nodes_in, n_nodes_in, element_id]
+    element_length = max_coordinate - min_coordinate
+
+    # Test if the element is on the slice axis. If not just continue with the next element.
+    if !((min_coordinate[slice_dimension] <= point[slice_dimension] &&
+        max_coordinate[slice_dimension] > point[slice_dimension]) ||
+        (point[slice_dimension] == upper_limit && max_coordinate[slice_dimension] == upper_limit))
+
+        continue
+    end
+
+    new_id += 1
+
+    # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
+    normalized_intercept =
+          (point[slice_dimension] - min_coordinate[slice_dimension]) /
+          element_length[1] * 2 - 1
+    vandermonde = polynomial_interpolation_matrix(nodes_in, normalized_intercept)
+
+    # Interpolate to each node of new 1D element.
+    for v in 1:n_variables
+      for node in 1:n_nodes_in
+        new_unstructured_data[node, new_id, v] = (vandermonde*unstructured_data[node, :, element_id, v])[1]
+      end
+    end
+
+    new_nodes[:, new_id] = original_nodes[other_dimension, :, 1, element_id]
+  end
+
+  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
+end
+
+# Calculate the arc length of a curve given by ndims x npoints point coordinates (piece-wise linear approximation)
+function calc_arc_length(coordinates)
+  n_points = size(coordinates)[2]
+  arc_length = zeros(n_points)
+  for i in 1:n_points-1
+    arc_length[i+1] = arc_length[i] + sqrt(sum((coordinates[:,i]-coordinates[:,i+1]).^2))
+  end
+  return arc_length
+end
+
+# Convert 2d unstructured data to 1d data at given curve.
+function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+
+  n_points_curve = size(curve)[2]
+  n_nodes, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  # Check if input is correct.
+  min = original_nodes[:, 1, 1, 1]
+  max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_elements]
+  @assert size(curve) == (2, size(curve)[2]) "Coordinates along curve must be 2xn dimensional."
+  for element in 1:n_points_curve
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
+            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+  end
+
+  # Set nodes acording to the length of the curve.
+  arc_length = calc_arc_length(curve)
+
+  # Setup data structures.
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_points_curve, n_variables)
+
+  # For each coordinate find the corresponding element with its id.
+  element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
+
+  # Iterate over all found elements.
+  for element in 1:n_points_curve
+
+    min_coordinate = original_nodes[:, 1, 1, element_ids[element]]
+    max_coordinate = original_nodes[:, n_nodes, n_nodes, element_ids[element]]
+    element_length = max_coordinate - min_coordinate
+
+    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
+
+    # Interpolate to a single point in each element.
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
+    vandermonde_y = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
+    for v in 1:n_variables
+      for i in 1:n_nodes
+        temp_data[i, element, v] = (vandermonde_y*unstructured_data[i, :, element_ids[element], v])[1]
+      end
+      data_on_curve[element, v] = (vandermonde_x*temp_data[:, element, v])[]
+    end
+  end
+
+  return arc_length, data_on_curve, nothing
+end
+
+# Convert 3d unstructured data to 1d data at given curve.
+function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+
+  n_points_curve = size(curve)[2]
+  n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  # Check if input is correct.
+  min = original_nodes[:, 1, 1, 1, 1]
+  max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, n_elements]
+  @assert size(curve) == (3, n_points_curve) "Coordinates along curve must be 3xn dimensional."
+  for element in 1:n_points_curve
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
+            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+  end
+
+  # Set nodes acording to the length of the curve.
+  arc_length = calc_arc_length(curve)
+
+  # Setup data structures.
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_nodes+1, n_points_curve, n_variables)
+
+  # For each coordinate find the corresponding element with its id.
+  element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
+
+  # Iterate over all found elements.
+  for element in 1:n_points_curve
+
+    min_coordinate = original_nodes[:, 1, 1, 1, element_ids[element]]
+    max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, element_ids[element]]
+    element_length = max_coordinate - min_coordinate
+
+    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
+
+    # Interpolate to a single point in each element.
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
+    vandermonde_y = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
+    vandermonde_z = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[3])
+    for v in 1:n_variables
+      for i in 1:n_nodes
+        for ii in 1:n_nodes
+          temp_data[i, ii, element, v] = (vandermonde_z*unstructured_data[i, ii, :, element_ids[element], v])[1]
+        end
+        temp_data[i, n_nodes+1, element, v] = (vandermonde_y*temp_data[i, 1:n_nodes, element, v])[1]
+      end
+      data_on_curve[element, v] = (vandermonde_x*temp_data[:, n_nodes+1, element, v])[1]
+    end
+  end
+
+  return arc_length, data_on_curve, nothing
+end
+
+# Convert 3d unstructured data to 1d slice and interpolate them.
+function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+
+  if slice === :x
+    slice_dimension = 1
+    other_dimensions = [2,3]
+  elseif slice === :y
+    slice_dimension = 2
+    other_dimensions = [1,3]
+  elseif slice === :z
+    slice_dimension = 3
+    other_dimensions = [1,2]
+  else
+    error("illegal dimension '$slice', supported dimensions are :x, :y and :z")
+  end
+
+  # Set up data structures to stroe new 1D data.
+  @views new_unstructured_data = similar(unstructured_data[1, 1, ..])
+  @views temp_unstructured_data = similar(unstructured_data[1, ..])
+  @views new_nodes = similar(original_nodes[1, 1, 1,..])
+
+  n_nodes_in, _, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  # Test if point lies in the domain.
+  lower_limit = original_nodes[1, 1, 1, 1, 1]
+  upper_limit = original_nodes[1, n_nodes_in, n_nodes_in, n_nodes_in, n_elements]
+
+  @assert length(point) >= 3 "Point must be three-dimensional."
+  if prod(point[other_dimensions] .< lower_limit) || prod(point[other_dimensions] .> upper_limit)
+    error(string("Slice axis is outside of domain. ",
+        " point[$other_dimensions]=$(point[other_dimensions]) must be between $lower_limit and $upper_limit"))
+  end
+
+  # Count the amount of new elements.
+  new_id = 0
+
+  # Permute dimensions so that the slice dimensions are always the in correct places for later use.
+  if slice === :x
+    original_nodes = permutedims(original_nodes, [1, 3, 4, 2, 5])
+    unstructured_data = permutedims(unstructured_data, [2, 3, 1, 4, 5])
+  elseif slice === :y
+    original_nodes = permutedims(original_nodes, [1, 2, 4, 3, 5])
+    unstructured_data = permutedims(unstructured_data, [1, 3, 2, 4, 5])
+  end
+
+  # Iterate over all elements to find the ones that lie on the slice axis.
+  for element_id in 1:n_elements
+    min_coordinate = original_nodes[:, 1, 1, 1, element_id]
+    max_coordinate = original_nodes[:, n_nodes_in, n_nodes_in, n_nodes_in, element_id]
+    element_length = max_coordinate - min_coordinate
+
+    # Test if the element is on the slice axis. If not just continue with the next element.
+    if !((prod(min_coordinate[other_dimensions] .<= point[other_dimensions]) &&
+        prod(max_coordinate[other_dimensions] .> point[other_dimensions])) ||
+        (point[other_dimensions] == upper_limit && prod(max_coordinate[other_dimensions] .== upper_limit)))
+
+        continue
+    end
+
+    new_id += 1
+
+    # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
+    normalized_intercept =
+          (point[other_dimensions] .- min_coordinate[other_dimensions]) /
+          element_length[1] * 2 .- 1
+    vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_intercept[1])
+    vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_intercept[2])
+
+    # Interpolate to each node of new 1D element.
+    for v in 1:n_variables
+      for i in 1:n_nodes_in
+        for ii in 1:n_nodes_in
+          temp_unstructured_data[i, ii, new_id, v] = (vandermonde_ii*unstructured_data[ii, :, i, element_id, v])[1]
+        end
+        new_unstructured_data[i, new_id, v] = (vandermonde_i*temp_unstructured_data[i, :, new_id, v])[1]
+      end
+    end
+
+    new_nodes[:, new_id] = original_nodes[slice_dimension, 1, 1, :, element_id]
+  end
+
+  return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
+end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
 #
@@ -312,7 +589,7 @@ function calc_vertices(coordinates, levels, length_level_0)
 end
 
 
-# Calculate the vertices to plot each grid line for CurvedMesh
+# Calculate the vertices to plot each grid line for StructuredMesh
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
@@ -408,11 +685,11 @@ function calc_vertices(node_coordinates, mesh)
 end
 
 
-# Calculate the vertices to plot each grid line for UnstructuredQuadMesh
+# Calculate the vertices to plot each grid line for UnstructuredMesh2D
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function calc_vertices(node_coordinates, mesh::UnstructuredQuadMesh)
+function calc_vertices(node_coordinates, mesh::UnstructuredMesh2D)
   @unpack n_elements = mesh
   @assert size(node_coordinates, 1) == 2 "only works in 2D"
 
@@ -449,3 +726,6 @@ function calc_vertices(node_coordinates, mesh::UnstructuredQuadMesh)
 
   return x, y
 end
+
+
+end # @muladd

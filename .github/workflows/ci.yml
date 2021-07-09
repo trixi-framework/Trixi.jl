@@ -6,6 +6,7 @@ on:
       - main
     paths-ignore:
       - 'AUTHORS.md'
+      - 'CITATION.bib'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
       - 'NEWS.md'
@@ -20,6 +21,7 @@ on:
   pull_request:
     paths-ignore:
       - 'AUTHORS.md'
+      - 'CITATION.bib'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
       - 'NEWS.md'
@@ -32,6 +34,11 @@ on:
       - 'docs/**'
       - 'utils/**'
   workflow_dispatch:
+
+# Cancel redundant CI tests automatically
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -55,9 +62,12 @@ jobs:
           - 1d
           - 2d_part1
           - 2d_part2
-          - 2d_parallel
-          - 3d
-          - paper-self-gravitating-gas-dynamics
+          - 2d_part3
+          - 2d_mpi
+          - 2d_threaded
+          - 3d_part1
+          - 3d_part2
+          - paper_self_gravitating_gas_dynamics
           - misc
         include:
           - version: '1.6'
@@ -71,7 +81,15 @@ jobs:
           - version: '1.6'
             os: macOS-latest
             arch: x64
-            trixi_test: 2d_parallel
+            trixi_test: 2d_part3
+          - version: '1.6'
+            os: macOS-latest
+            arch: x64
+            trixi_test: 2d_mpi
+          - version: '1.6'
+            os: macOS-latest
+            arch: x64
+            trixi_test: 2d_threaded
           - version: '1.6'
             os: windows-latest
             arch: x64
@@ -83,7 +101,15 @@ jobs:
           - version: '1.6'
             os: windows-latest
             arch: x64
-            trixi_test: 2d_parallel
+            trixi_test: 2d_part3
+          - version: '1.6'
+            os: windows-latest
+            arch: x64
+            trixi_test: 2d_mpi
+          - version: '1.6'
+            os: windows-latest
+            arch: x64
+            trixi_test: 2d_threaded
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -108,13 +134,9 @@ jobs:
         env:
           PYTHON: ""
           TRIXI_TEST: ${{ matrix.trixi_test }}
-      # The following step is inspired by the setup of
-      # - uses: julia-actions/julia-processcoverage@v1/
-      # but checks also the examples folder, since the elixirs
-      # contained therein are considered to be a part of Trixi.
-      - run: julia --color=yes -e 'using Pkg; Pkg.activate("coveragetempenv", shared=true); Pkg.add(PackageSpec(name="CoverageTools")); using CoverageTools; pf = process_folder(); append!(pf, process_folder("examples")); LCOV.writefile("lcov.info", pf)'
-        shell: bash
-        # Codecov is disabled since it does not produce accurate measurements for parallel jobs
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: src,examples
       - uses: codecov/codecov-action@v1
         with:
           file: ./lcov.info
@@ -122,19 +144,26 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-      - uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.run_id }}
-          parallel: true
-          path-to-lcov: ./lcov.info
+      # Coveralls is disabled since it is just annoying for parallel builds, see, e.g.,
+      # https://github.com/trixi-framework/Trixi.jl/issues/691
+      # https://github.com/coverallsapp/github-action/issues/47
+      # https://github.com/coverallsapp/github-action/issues/67
+      # - uses: coverallsapp/github-action@master
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.run_id }}
+      #     parallel: true
+      #     path-to-lcov: ./lcov.info
 
   finish:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - name: Coveralls Finished
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
+      # Coveralls is disabled since it is just annoying for parallel builds,
+      # see https://github.com/trixi-framework/Trixi.jl/issues/691
+      # - name: Coveralls Finished
+      #   uses: coverallsapp/github-action@master
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     parallel-finished: true
+      - run: echo "Finished testing Trixi"

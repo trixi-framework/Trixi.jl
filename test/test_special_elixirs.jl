@@ -6,6 +6,8 @@ using Trixi
 
 import ForwardDiff
 
+include("test_trixi.jl")
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
@@ -16,28 +18,46 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 @testset "Special elixirs" begin
   @testset "Convergence test" begin
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"), 3)
-    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
+    @timed_testset "tree_2d_dgsem" begin
+      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 3, initial_refinement_level=2)
+      @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
+    end
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended_curved.jl"), 3)
-    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
+    @timed_testset "structured_2d_dgsem" begin
+      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 3, cells_per_dimension=(5, 9))
+      @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
+    end
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_basic_curved.jl"), 2)
-    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
+    @timed_testset "p4est_2d_dgsem" begin
+      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic_unstructured.jl"), 2)
+      @test isapprox(mean_convergence[:linf], [3.5, 3.9, 3.9, 3.7], rtol=0.05)
+    end
 
-    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper-self-gravitating-gas-dynamics", "elixir_eulergravity_eoc_test.jl"), 2, tspan=(0.0, 0.1))
-    @test isapprox(mean_eoc[:l2], 4 * ones(4), atol=0.4)
+    @timed_testset "structured_3d_dgsem" begin
+      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_advection_basic.jl"), 2, cells_per_dimension=(3, 4, 5))
+      @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
+    end
+
+    @timed_testset "p4est_3d_dgsem" begin
+      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_3d_dgsem", "elixir_advection_unstructured_curved.jl"), 2, initial_refinement_level=0)
+      @test isapprox(mean_convergence[:l2], [3.0], rtol=0.05)
+    end
+
+    @timed_testset "paper_self_gravitating_gas_dynamics" begin
+      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper_self_gravitating_gas_dynamics", "elixir_eulergravity_convergence.jl"), 2, tspan=(0.0, 0.25), initial_refinement_level=1)
+      @test isapprox(mean_convergence[:l2], 4 * ones(4), atol=0.4)
+    end
   end
 
 
-  @testset "Test linear structure (2D)" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"),
+  @timed_testset "Test linear structure (2D)" begin
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=2)
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_hypdiff_lax_friedrichs.jl"),
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=2)
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
@@ -52,8 +72,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 
   @testset "Test Jacobian of DG (2D)" begin
-    @testset "Linear advection" begin
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"),
+    @timed_testset "Linear advection" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"),
                     tspan=(0.0, 0.0), initial_refinement_level=2)
       A, _ = linear_structure(semi)
 
@@ -68,9 +88,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
       @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
     end
 
-    @testset "Compressible Euler equations" begin
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_euler_density_wave.jl"),
-                    tspan=(0.0, 0.0), initial_refinement_level=2)
+    @timed_testset "Compressible Euler equations" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_density_wave.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=1)
 
       J = jacobian_ad_forward(semi)
       λ = eigvals(J)
@@ -80,27 +100,24 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
       λ = eigvals(J)
       @test maximum(real, λ) < 7.0e-3
 
-
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_euler_shockcapturing.jl"),
-                    tspan=(0.0, 0.0), initial_refinement_level=1)
       # This does not work yet because of the indicators...
-      @test_skip jacobian_ad_forward(semi)
+      @test_skip begin
+        trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_shockcapturing.jl"),
+          tspan=(0.0, 0.0), initial_refinement_level=1)
+        jacobian_ad_forward(semi)
+      end
     end
 
-    @testset "MHD" begin
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_mhd_alfven_wave.jl"),
-                    tspan=(0.0, 0.0), initial_refinement_level=1)
-      @test_nowarn jacobian_ad_forward(semi)
-
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_mhd_alfven_wave_mortar.jl"),
-                    tspan=(0.0, 0.0), initial_refinement_level=1)
+    @timed_testset "MHD" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_mhd_alfven_wave_mortar.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=0)
       @test_nowarn jacobian_ad_forward(semi)
     end
   end
 
 
-  @testset "Test linear structure (3D)" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_extended.jl"),
+  @timed_testset "Test linear structure (3D)" begin
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_advection_extended.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=1)
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
@@ -108,8 +125,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
 
-  @testset "Test Jacobian of DG (3D)" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_extended.jl"),
+  @timed_testset "Test Jacobian of DG (3D)" begin
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_advection_extended.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=1)
     A, _ = linear_structure(semi)
 
@@ -126,7 +143,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 
   @testset "AD using ForwardDiff" begin
-    @testset "Euler equations 1D" begin
+    @timed_testset "Euler equations 1D" begin
       function entropy_at_final_time(k) # k is the wave number of the initial condition
         equations = CompressibleEulerEquations1D(1.4)
         mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level=3, n_cells_max=10^4)
@@ -155,7 +172,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
       ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
     end
 
-    @testset "Linear advection 2D" begin
+    @timed_testset "Linear advection 2D" begin
       function energy_at_final_time(k) # k is the wave number of the initial condition
         equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
         mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)

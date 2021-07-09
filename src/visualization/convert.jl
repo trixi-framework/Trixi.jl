@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
 #
 # Returns a tuple with
@@ -12,7 +19,7 @@
 function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
                      unstructured_data, n_nodes,
                      grid_lines=false, max_supported_level=11, nvisnodes=nothing,
-                     slice_axis=:z, slice_axis_intercept=0)
+                     slice=:xy, point=(0.0, 0.0, 0.0))
   # Determine resolution for data interpolation
   max_level = maximum(levels)
   if max_level > max_supported_level
@@ -36,9 +43,9 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
 
   if ndims == 3
     (unstructured_data, coordinates, levels,
-        center_level_0) = unstructured_2d_to_3d(unstructured_data,
-        coordinates, levels, length_level_0, center_level_0, slice_axis,
-        slice_axis_intercept)
+        center_level_0) = unstructured_3d_to_2d(unstructured_data,
+        coordinates, levels, length_level_0, center_level_0, slice,
+        point)
   end
 
   # Normalize element coordinates: move center to (0, 0) and domain size to [-1, 1]²
@@ -117,7 +124,7 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     end
   end
   # Return results after data is reshaped
-  return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars)
+  return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars), vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
 end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
@@ -157,3 +164,6 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
 
   return unstructured_data
 end
+
+
+end # @muladd

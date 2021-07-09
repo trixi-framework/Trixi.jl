@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Convenience type to allow dispatch on solution objects that were created by Trixi
 #
 # This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
@@ -56,7 +63,7 @@ end
     PlotData2D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-               slice_axis=:z, slice_axis_intercept=0)
+               slice=:xy, point=(0.0, 0.0, 0.0))
 
 Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
@@ -72,8 +79,8 @@ nodes to be used. If it is `nothing`, twice the number of solution DG nodes are 
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
-`slice_axis` specifies the axis orthogonal to the slice plane and may be `:x`, `:y`, or `:z`. The
-point on the slice axis where it intersects with the slice plane is given in `slice_axis_intercept`.
+`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
 
 !!! warning "Experimental implementation"
@@ -97,14 +104,14 @@ julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
 
-PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi),
+PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 
 function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice_axis=:z, slice_axis_intercept=0)
+                    slice=:xy, point=(0.0, 0.0, 0.0))
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -121,17 +128,17 @@ function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
                                                              ndims(mesh), unstructured_data,
                                                              nnodes(solver), grid_lines,
                                                              max_supported_level, nvisnodes,
-                                                             slice_axis, slice_axis_intercept)
+                                                             slice, point)
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  orientation_x, orientation_y = _get_orientations(mesh, slice_axis)
+  orientation_x, orientation_y = _get_orientations(mesh, slice)
 
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
                     orientation_x, orientation_y)
 end
 
 
-function PlotData2D(u, mesh::Union{CurvedMesh,UnstructuredQuadMesh}, equations, solver, cache;
+function PlotData2D(u, mesh::Union{StructuredMesh,UnstructuredMesh2D}, equations, solver, cache;
                     solution_variables=nothing, grid_lines=true, kwargs...)
   @unpack node_coordinates = cache.elements
 
@@ -173,15 +180,15 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
-# Convert `slice_axis` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
-function _get_orientations(mesh, slice_axis)
-  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice_axis === :z)
+# Convert `slice` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
+function _get_orientations(mesh, slice)
+  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice === :xy)
     orientation_x = 1
     orientation_y = 2
-  elseif ndims(mesh) == 3 && slice_axis === :y
+  elseif ndims(mesh) == 3 && slice === :xz
     orientation_x = 1
     orientation_y = 3
-  elseif ndims(mesh) == 3 && slice_axis === :x
+  elseif ndims(mesh) == 3 && slice === :yz
     orientation_x = 2
     orientation_y = 3
   else
@@ -456,32 +463,53 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes in the DG elements are used.
 
+When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
+`slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0)`.
+Both of these values are ignored when visualizing 1D data.
+This applies analogously to three-dimensonal simulations, where `slice` may be `xy:`, `:xz`, or `:yz`.
+
+Another way to visualize 2D/3D data is by creating a plot along a given curve.
+This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
+which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
+
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi),
+PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 
 function PlotData1D(u, mesh, equations, solver, cache;
-                    solution_variables=nothing, nvisnodes=nothing)
+                    solution_variables=nothing, nvisnodes=nothing,
+                    slice=:x, point=(0.0, 0.0, 0.0), curve=nothing)
 
-  @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
-
   variable_names = SVector(varnames(solution_variables_, equations))
-  original_nodes = cache.elements.node_coordinates
 
+  original_nodes = cache.elements.node_coordinates
   unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
-  x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
   if ndims(mesh) == 1
+    x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
-  else
+  elseif ndims(mesh) == 2
+    if curve != nothing
+      x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
+    orientation_x = 0
+  else # ndims(mesh) == 3
+    if curve != nothing
+      x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
     orientation_x = 0
   end
 
-  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]),
+  return PlotData1D(x, data, variable_names, mesh_vertices_x,
                     orientation_x)
 end
 
@@ -496,6 +524,25 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
     This is an experimental feature and may change in future releases.
 """
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
+
+function PlotData1D(time_series_callback::TimeSeriesCallback, point_id::Integer)
+  @unpack time, variable_names, point_data = time_series_callback
+
+  n_solution_variables = length(variable_names)
+  data = Matrix{Float64}(undef, length(time), n_solution_variables)
+  reshaped = reshape(point_data[point_id], n_solution_variables, length(time))
+  for v in 1:n_solution_variables
+    @views data[:, v] = reshaped[v, :]
+  end
+
+  mesh_vertices_x = Vector{Float64}(undef, 0)
+
+  return PlotData1D(time, data, SVector(variable_names), mesh_vertices_x, 0)
+end
+
+function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
+  return PlotData1D(cb.affect!, point_id)
+end
 
 # Store multiple PlotData1D objects in one PlotDataSeries1D.
 # This is used for multi-variable equations.
@@ -637,14 +684,26 @@ end
 #       constructor.
 @recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=nothing,
-                   grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
-                   slice_axis_intercept=0)
+                   grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
+                   point=(0.0, 0.0, 0.0), curve=nothing)
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(semi) == 1
-    return PlotData1D(u, semi; solution_variables, nvisnodes)
+    return PlotData1D(u, semi; solution_variables, nvisnodes, slice, point, curve)
   else
     return PlotData2D(u, semi;
                       solution_variables, grid_lines, max_supported_level,
-                      nvisnodes, slice_axis, slice_axis_intercept)
+                      nvisnodes, slice, point)
   end
 end
+
+
+@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
+  return cb.affect!, point_id
+end
+
+@recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
+  return PlotData1D(time_series_callback, point_id)
+end
+
+
+end # @muladd

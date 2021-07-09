@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Retrieve number of variables from equation instance
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
@@ -52,6 +58,9 @@ end
 
 
 @inline Base.ndims(::AbstractEquations{NDIMS}) where NDIMS = NDIMS
+
+# equations act like scalars in broadcasting
+Base.broadcastable(equations::AbstractEquations) = Ref(equations)
 
 
 """
@@ -110,7 +119,7 @@ struct BoundaryConditionDirichlet{B}
   boundary_value_function::B
 end
 
-# Dirichlet-type boundary condition for use with TreeMesh or CurvedMesh
+# Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, orientation_or_normal,
                                                                   direction,
                                                                   x, t,
@@ -127,7 +136,7 @@ end
   return flux
 end
 
-# Dirichlet-type boundary condition for use with UnstructuredQuadMesh
+# Dirichlet-type boundary condition for use with UnstructuredMesh2D
 # Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
@@ -161,7 +170,7 @@ julia> BoundaryConditionWall(boundary_state_slip_wall)
 
 !!! warning "Experimental code"
     This boundary condition can change any time and is currently only implemented for the
-    [`CompressibleEulerEquations2D`](@ref).
+    [`CompressibleEulerEquations2D`](@ref) and [`AcousticPerturbationEquations2D`](@ref).
 """
 struct BoundaryConditionWall{B}
   boundary_value_function::B
@@ -308,3 +317,6 @@ include("lattice_boltzmann_3d.jl")
 # Acoustic perturbation equations
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
+
+
+end # @muladd
