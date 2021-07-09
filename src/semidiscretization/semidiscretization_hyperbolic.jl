@@ -105,7 +105,7 @@ end
 
 # sort the boundary conditions from a dictionary and into tuples
 function digest_boundary_conditions(boundary_conditions::Dict, mesh, solver, cache)
-  UnstructuredQuadSortedBoundaryTypes(boundary_conditions, cache)
+  UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
 end
 
 function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver, cache)
@@ -153,20 +153,20 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 end
 
 # type alias for dispatch in printing of boundary conditions
-const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} = 
-      SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, 
+const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} =
+      SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions,
                                    SourceTerms, Solver} where {Equations, InitialCondition, SourceTerms}
 
 # generic fallback: print the type of semi.boundary_condition.
 print_boundary_conditions(io, semi::SemiHypMeshBCSolver) = summary_line(io, "boundary conditions", typeof(semi.boundary_conditions))
 
-function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:UnstructuredQuadSortedBoundaryTypes})
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:UnstructuredSortedBoundaryTypes})
   @unpack boundary_conditions = semi
   @unpack boundary_dictionary = boundary_conditions
   summary_line(io, "boundary conditions", length(boundary_dictionary))
   for (boundary_name, boundary_condition) in boundary_dictionary
     summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
-  end  
+  end
 end
 
 function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:Union{Tuple,NamedTuple,AbstractArray}})
