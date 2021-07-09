@@ -29,7 +29,7 @@ end
 
 
 function (limiter!::PositivityPreservingLimiterZhangShu)(
-    u_ode, f, semi::AbstractSemidiscretization, t)
+    u_ode, integrator, semi::AbstractSemidiscretization, t)
   u = wrap_array(u_ode, semi)
   @trixi_timeit timer() "positivity-preserving limiter" limiter_zhang_shu!(
     u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
