@@ -16,10 +16,6 @@
 end
 
 
-# TODO: Clean-up meshes. Can be generalized for all meshes and DG methods?
-@inline ndofs(mesh::UnstructuredMesh2D, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
-
-
 # 2D unstructured DG implementation
 include("mappings_geometry_curved_2d.jl")
 include("mappings_geometry_straight_2d.jl")
