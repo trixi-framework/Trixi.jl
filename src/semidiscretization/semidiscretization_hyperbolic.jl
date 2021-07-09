@@ -91,7 +91,18 @@ end
 digest_boundary_conditions(boundary_conditions, mesh, solver, cache) = boundary_conditions
 
 # general fallback
-digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic, mesh, solver, cache) = boundary_conditions
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh, solver, cache) = boundary_conditions
+
+# resolve ambiguities with definitions below
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache) = boundary_conditions
+
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache) = boundary_conditions
+
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache) = boundary_conditions
 
 # allow passing a single BC that get converted into a tuple of BCs
 # on (mapped) hypercube domains
