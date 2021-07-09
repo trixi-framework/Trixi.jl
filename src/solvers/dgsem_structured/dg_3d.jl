@@ -52,7 +52,7 @@ function calc_volume_integral!(du, u,
   @unpack derivative_dhat = dg.basis
   @unpack contravariant_vectors = cache.elements
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -269,7 +269,7 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{3},
                               equations, surface_integral, dg::DG)
   @unpack elements = cache
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
     # Faster version of "for orientation in (1, 2, 3)"
 
@@ -536,7 +536,7 @@ function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                          equations, dg::DG, cache)
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       factor = -cache.elements.inverse_jacobian[i, j, k, element]
 

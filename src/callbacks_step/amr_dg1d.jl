@@ -14,11 +14,11 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
   end
 
   # Determine for each existing element whether it needs to be refined
-  needs_refinement = falses(nelements(mesh, dg, cache))
+  needs_refinement = falses(nelements(dg, cache))
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
-  old_n_elements = nelements(mesh, dg, cache)
+  old_n_elements = nelements(dg, cache)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
@@ -30,9 +30,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     @unpack elements = cache
     resize!(elements, length(leaf_cell_ids))
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
-    @assert nelements(mesh, dg, cache) > old_n_elements
+    @assert nelements(dg, cache) > old_n_elements
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(mesh, dg, cache))
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or refine them
@@ -52,7 +52,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # If everything is correct, we should have processed all elements.
     # Depending on whether the last element processed above had to be refined or not,
     # the counter `element_id` can have two different values at the end.
-    @assert element_id == nelements(mesh, dg, cache) + 1 || element_id == nelements(mesh, dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(mesh, dg, cache) = $(nelements(mesh, dg, cache))"
+    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
   # re-initialize interfaces container
@@ -67,7 +67,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
 
   # Sanity check
   if isperiodic(mesh.tree)
-    @assert ninterfaces(interfaces) == 1 * nelements(mesh, dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+    @assert ninterfaces(interfaces) == 1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
   end
 
   return nothing
@@ -128,11 +128,11 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
   end
 
   # Determine for each old element whether it needs to be removed
-  to_be_removed = falses(nelements(mesh, dg, cache))
+  to_be_removed = falses(nelements(dg, cache))
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
-  old_n_elements = nelements(mesh, dg, cache)
+  old_n_elements = nelements(dg, cache)
   old_u_ode = copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
@@ -144,9 +144,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     @unpack elements = cache
     resize!(elements, length(leaf_cell_ids))
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
-    @assert nelements(mesh, dg, cache) < old_n_elements
+    @assert nelements(dg, cache) < old_n_elements
 
-    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(mesh, dg, cache))
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or coarsen them
@@ -177,7 +177,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
       end
     end
     # If everything is correct, we should have processed all elements.
-    @assert element_id == nelements(mesh, dg, cache) + 1 "element_id = $element_id, nelements(mesh, dg, cache) = $(nelements(mesh, dg, cache))"
+    @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
   # re-initialize interfaces container
@@ -192,7 +192,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
 
   # Sanity check
   if isperiodic(mesh.tree)
-    @assert ninterfaces(interfaces) == 1 * nelements(mesh, dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+    @assert ninterfaces(interfaces) == 1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
   end
 
   return nothing
@@ -243,13 +243,13 @@ end
 # this method is called when an `ControllerThreeLevel` is constructed
 function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations, dg::DG, cache)
 
-  controller_value = Vector{Int}(undef, nelements(mesh, dg, cache))
+  controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
 
 function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{1}, equations, dg::DG, cache)
 
-  controller_value = Vector{Int}(undef, nelements(mesh, dg, cache))
+  controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
 

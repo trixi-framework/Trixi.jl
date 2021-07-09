@@ -34,7 +34,7 @@ function get_elements_by_coordinates!(element_ids, coordinates, mesh::TreeMesh, 
   found_elements = 0
 
   # Iterate over all elements
-  for element in eachelement(mesh, dg, cache)
+  for element in eachelement(dg, cache)
     # Get cell id
     cell_id = cell_ids[element]
 

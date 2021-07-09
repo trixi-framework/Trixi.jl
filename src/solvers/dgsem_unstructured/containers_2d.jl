@@ -230,6 +230,7 @@ function init_interfaces!(interfaces, edge_information, boundary_names, n_elemen
 end
 
 
+# TODO: Clean-up meshes. Find a better name since it's also used for other meshes
 # generic container for the boundary interfaces of an unstructured mesh
 struct UnstructuredBoundaryContainer2D{RealT<:Real, uEltype<:Real}
   u               ::Array{uEltype, 3} # [variables, i, boundaries]

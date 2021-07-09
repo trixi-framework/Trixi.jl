@@ -32,16 +32,16 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
-  resize!(alpha, nelements(mesh, dg, cache))
+  resize!(alpha, nelements(dg, cache))
   if alpha_smooth
-    resize!(alpha_tmp, nelements(mesh, dg, cache))
+    resize!(alpha_tmp, nelements(dg, cache))
   end
 
   # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     indicator  = indicator_threaded[Threads.threadid()]
     modal      = modal_threaded[Threads.threadid()]
 
@@ -94,7 +94,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
     alpha_tmp .= alpha
 
     # Loop over interfaces
-    for interface in eachinterface(mesh, dg, cache)
+    for interface in eachinterface(dg, cache)
       # Get neighboring element ids
       left  = cache.interfaces.neighbor_ids[1, interface]
       right = cache.interfaces.neighbor_ids[2, interface]
@@ -132,9 +132,9 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
                                    kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
   @unpack alpha, indicator_threaded = löhner.cache
-  resize!(alpha, nelements(mesh, dg, cache))
+  resize!(alpha, nelements(dg, cache))
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     indicator = indicator_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
@@ -182,9 +182,9 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3},
                                        equations, dg::DGSEM, cache;
                                        kwargs...)
   @unpack alpha, indicator_threaded = indicator_max.cache
-  resize!(alpha, nelements(mesh, dg, cache))
+  resize!(alpha, nelements(dg, cache))
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     indicator = indicator_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes

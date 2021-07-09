@@ -87,7 +87,7 @@ function prolong2interfaces!(cache, u,
                              equations, surface_integral, dg::DG)
   @unpack interfaces = cache
 
-  @threaded for interface in eachinterface(mesh, dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     primary_element   = interfaces.element_ids[1, interface]
     secondary_element = interfaces.element_ids[2, interface]
 
@@ -146,7 +146,7 @@ function calc_interface_flux!(surface_flux_values,
   @unpack normal_directions = cache.elements
 
 
-  @threaded for interface in eachinterface(mesh, dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     # Get neighboring elements
     primary_element   = element_ids[1, interface]
     secondary_element = element_ids[2, interface]
@@ -203,7 +203,7 @@ function calc_interface_flux!(surface_flux_values,
   noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_threaded
   noncons_diamond_secondary_threaded = cache.noncons_diamond_lower_threaded
 
-  @threaded for interface in eachinterface(mesh, dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar_primary             = fstar_primary_threaded[Threads.threadid()]
     fstar_secondary           = fstar_secondary_threaded[Threads.threadid()]
@@ -308,7 +308,7 @@ function prolong2boundaries!(cache, u,
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
 
-  @threaded for boundary in eachboundary(mesh, dg, cache)
+  @threaded for boundary in eachboundary(dg, cache)
     element = boundaries.element_id[boundary]
     side    = boundaries.element_side_id[boundary]
 
@@ -339,7 +339,7 @@ end
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::Union{UnstructuredMesh2D, P4estMesh},
                              equations, surface_integral, dg::DG)
-  @assert isempty(eachboundary(mesh, dg, cache))
+  @assert isempty(eachboundary(dg, cache))
 end
 
 
@@ -460,7 +460,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for l in eachnode(dg), v in eachvariable(equations)
       # surface contribution along local sides 2 and 4 (fixed x and y varies)
       du[v, 1,          l, element] += ( surface_flux_values[v, l, 4, element]
@@ -495,7 +495,7 @@ function max_discrete_metric_identities(dg::DGSEM, cache)
 
   max_metric_ids = zero(eltype(contravariant_vectors))
 
-  for i in 1:ndims_, element in eachelement(mesh, dg, cache)
+  for i in 1:ndims_, element in eachelement(dg, cache)
     # compute D*Ja_1^i + Ja_2^i*D^T
     @views mul!(metric_id_dx, derivative_matrix, contravariant_vectors[i, 1, :, :, element])
     @views mul!(metric_id_dy, contravariant_vectors[i, 2, :, :, element], derivative_matrix')

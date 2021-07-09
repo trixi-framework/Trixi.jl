@@ -215,7 +215,7 @@ function calc_volume_integral!(du, u,
                                dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -308,7 +308,7 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     split_form_kernel!(du, u, nonconservative_terms, element,
                        mesh, equations, volume_integral.volume_flux, dg, cache)
   end
@@ -437,7 +437,7 @@ function calc_volume_integral!(du, u,
   @unpack volume_flux_fv = volume_integral
 
   # Calculate LGL FV volume integral
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, true)
   end
 
@@ -512,7 +512,7 @@ function prolong2interfaces!(cache, u,
   @unpack interfaces = cache
   @unpack orientations = interfaces
 
-  @threaded for interface in eachinterface(mesh, dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     left_element  = interfaces.neighbor_ids[1, interface]
     right_element = interfaces.neighbor_ids[2, interface]
 
@@ -547,7 +547,7 @@ function calc_interface_flux!(surface_flux_values,
   @unpack surface_flux = surface_integral
   @unpack u, neighbor_ids, orientations = cache.interfaces
 
-  @threaded for interface in eachinterface(mesh, dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     # Get neighboring elements
     left_id  = neighbor_ids[1, interface]
     right_id = neighbor_ids[2, interface]
@@ -582,7 +582,7 @@ function calc_interface_flux!(surface_flux_values,
   noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_left_threaded
   noncons_diamond_secondary_threaded = cache.noncons_diamond_upper_right_threaded
 
-  @threaded for interface in eachinterface(mesh, dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar                     = fstar_threaded[Threads.threadid()]
     noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
@@ -636,7 +636,7 @@ function prolong2boundaries!(cache, u,
   @unpack boundaries = cache
   @unpack orientations, neighbor_sides = boundaries
 
-  @threaded for boundary in eachboundary(mesh, dg, cache)
+  @threaded for boundary in eachboundary(dg, cache)
     element = boundaries.neighbor_ids[boundary]
 
     if orientations[boundary] == 1
@@ -686,7 +686,7 @@ end
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
-  @assert isempty(eachboundary(mesh, dg, cache))
+  @assert isempty(eachboundary(dg, cache))
 end
 
 # TODO: Taal dimension agnostic
@@ -778,7 +778,7 @@ function prolong2mortars!(cache, u,
   # temporary buffer for projections
   @unpack fstar_tmp1_threaded = cache
 
-  @threaded for mortar in eachmortar(mesh, dg, cache)
+  @threaded for mortar in eachmortar(dg, cache)
     fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
     lower_left_element  = cache.mortars.neighbor_ids[1, mortar]
@@ -911,7 +911,7 @@ function calc_mortar_flux!(surface_flux_values,
            fstar_lower_left_threaded, fstar_lower_right_threaded,
            fstar_tmp1_threaded) = cache
 
-  @threaded for mortar in eachmortar(mesh, dg, cache)
+  @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar_upper_left  = fstar_upper_left_threaded[Threads.threadid()]
     fstar_upper_right = fstar_upper_right_threaded[Threads.threadid()]
@@ -948,7 +948,7 @@ function calc_mortar_flux!(surface_flux_values,
            noncons_diamond_lower_left_threaded, noncons_diamond_lower_right_threaded,
            fstar_tmp1_threaded) = cache
 
-  @threaded for mortar in eachmortar(mesh, dg, cache)
+  @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar_upper_left  = fstar_upper_left_threaded[Threads.threadid()]
     fstar_upper_right = fstar_upper_right_threaded[Threads.threadid()]
@@ -1153,7 +1153,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for m in eachnode(dg), l in eachnode(dg)
       for v in eachvariable(equations)
         # surface at -x
@@ -1179,7 +1179,7 @@ end
 function apply_jacobian!(du, mesh::TreeMesh{3},
                          equations, dg::DG, cache)
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -1202,7 +1202,7 @@ end
 function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{3}, dg::DG, cache)
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, k, element)
       x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, k, element)

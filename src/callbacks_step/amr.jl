@@ -199,7 +199,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
   if mpi_isparallel()
     # Collect lambda for all elements
-    lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
+    lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
     # Use parent because n_elements_by_rank is an OffsetArray
     recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
     MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -587,12 +587,12 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
                                             kwargs...)
 
   @unpack controller_value = controller.cache
-  resize!(controller_value, nelements(mesh, dg, cache))
+  resize!(controller_value, nelements(dg, cache))
 
   alpha = controller.indicator(u, equations, dg, cache; kwargs...)
   current_levels = current_element_levels(mesh, dg, cache)
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     current_level = current_levels[element]
 
     # set target level
@@ -715,14 +715,14 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
                                                     kwargs...)
 
   @unpack controller_value = controller.cache
-  resize!(controller_value, nelements(mesh, dg, cache))
+  resize!(controller_value, nelements(dg, cache))
 
   alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
   alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
 
   current_levels = current_element_levels(mesh, dg, cache)
 
-  @threaded for element in eachelement(mesh, dg, cache)
+  @threaded for element in eachelement(dg, cache)
     current_level = current_levels[element]
 
     # set target level

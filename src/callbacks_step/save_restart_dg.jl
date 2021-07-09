@@ -24,7 +24,7 @@ function save_restart_file(u, time, dt, timestep,
     attributes(file)["equations"] = get_name(equations)
     attributes(file)["polydeg"] = polydeg(dg)
     attributes(file)["n_vars"] = nvariables(equations)
-    attributes(file)["n_elements"] = nelements(mesh, dg, cache)
+    attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
@@ -64,7 +64,7 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, Unstructu
     if read(attributes(file)["polydeg"]) != polydeg(dg)
       error("restart mismatch: polynomial degree in solver differs from value in restart file")
     end
-    if read(attributes(file)["n_elements"]) != nelements(mesh, dg, cache)
+    if read(attributes(file)["n_elements"]) != nelements(dg, cache)
       error("restart mismatch: number of elements in solver differs from value in restart file")
     end
 
@@ -118,7 +118,7 @@ function save_restart_file(u, time, dt, timestep,
     attributes(file)["equations"] = get_name(equations)
     attributes(file)["polydeg"] = polydeg(dg)
     attributes(file)["n_vars"] = nvariables(equations)
-    attributes(file)["n_elements"] = nelements(mesh, dg, cache)
+    attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
@@ -175,7 +175,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
     if read(attributes(file)["polydeg"]) != polydeg(dg)
       error("restart mismatch: polynomial degree in solver differs from value in restart file")
     end
-    if read(attributes(file)["n_elements"]) != nelements(mesh, dg, cache)
+    if read(attributes(file)["n_elements"]) != nelements(dg, cache)
       error("restart mismatch: number of elements in solver differs from value in restart file")
     end
 
