@@ -267,7 +267,7 @@ T_r = 8 * pi^2 * r0^2 / circulation # Rotational period of the vortex pair
 T_a = T_r / 2 # Acoustic period of the vortex pair
 
 # Create ODE problem
-tspan1 = (0.0, 5.0*T_r)
+tspan1 = (0.0, 400.0)
 ode_averaging = semidiscretize(semi_euler, tspan1)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -277,7 +277,7 @@ summary_callback = SummaryCallback()
 analysis_interval=5000
 alive = AliveCallback(analysis_interval=analysis_interval)
 
-tspan_averaging = (1.0*T_r, 5.0*T_r)
+tspan_averaging = (50.0, 400.0)
 averaging_callback = AveragingCallback(semi_euler, tspan=tspan_averaging)
 
 cfl = 1.0
@@ -304,11 +304,9 @@ source_region(x) = sum(x.^2) < 6.0^2 ? true : false # calculate sources within r
 # gradually reduce acoustic source term amplitudes to zero, starting at radius 5
 weights(x) = sum(x.^2) < 5.0^2 ? 1.0 : cospi(0.5 * (norm(x) - 5.0))
 
-semi = SemidiscretizationApeEuler(semi_ape, semi_euler, source_region=source_region)#, weights=weights)
+semi = SemidiscretizationApeEuler(semi_ape, semi_euler, source_region=source_region, weights=weights)
 cfl_ape = 1.0
 cfl_euler = 1.0
-#VortexPairSetup.calc_analytical_mean_values!(averaging_callback, (50.0/c0, 400.0/c0), 10000, vortex_pair,
-#                                             Trixi.mesh_equations_solver_cache(semi)...)
 ape_euler_coupling = ApeEulerCouplingCallback(cfl_ape, cfl_euler, averaging_callback)
 
 ###############################################################################
@@ -324,10 +322,12 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 5000
 alive = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=1000000)
-save_solution = SaveSolutionCallback(interval=1000000)
 
-callbacks = CallbackSet(summary_callback, alive, save_solution, ape_euler_coupling)
+output_directory="out/"
+save_solution = SaveSolutionCallback(interval=2300, output_directory=output_directory)
+save_restart = SaveRestartCallback(interval=2300, output_directory=output_directory)
+
+callbacks = CallbackSet(summary_callback, alive, save_solution, save_restart, ape_euler_coupling)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
