@@ -275,7 +275,10 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 @inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
 @inline nnodes(dg::DG)   = nnodes(dg.basis)
 
-# TODO: Clean-up meshes. These should be deprecated and get the new signature `eachelement(mesh, dg, cache)`
+# This is used in some more general analysis code and needs to dispatch on the
+# `mesh` for some combinations of mesh/solver.
+@inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
+
 @inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
 @inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
 @inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
