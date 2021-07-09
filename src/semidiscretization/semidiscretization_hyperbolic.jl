@@ -87,18 +87,68 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype=real(semi.solver),
 end
 
 
-# allow passing named tuples of BCs constructed in an arbitrary order
+# general fallback
 digest_boundary_conditions(boundary_conditions, mesh, solver, cache) = boundary_conditions
 
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh, solver, cache) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
+# general fallback
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic, mesh, solver, cache) = boundary_conditions
+
+# allow passing a single BC that get converted into a tuple of BCs
+# on (mapped) hypercube domains
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache)
+  (; x_neg=boundary_conditions, x_pos=boundary_conditions)
+end
+
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache)
+  (; x_neg=boundary_conditions, x_pos=boundary_conditions,
+     y_neg=boundary_conditions, y_pos=boundary_conditions)
+end
+
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache)
+  (; x_neg=boundary_conditions, x_pos=boundary_conditions,
+     y_neg=boundary_conditions, y_pos=boundary_conditions,
+     z_neg=boundary_conditions, z_pos=boundary_conditions)
+end
+
+# allow passing a tuple of BCs that get converted into a named tuple to make it
+# self-documenting on (mapped) hypercube domains
+function digest_boundary_conditions(boundary_conditions::NTuple{2, Any},
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache)
+  (; x_neg=boundary_conditions[1], x_pos=boundary_conditions[2])
+end
+
+function digest_boundary_conditions(boundary_conditions::NTuple{4, Any},
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache)
+  (; x_neg=boundary_conditions[1], x_pos=boundary_conditions[2],
+     y_neg=boundary_conditions[3], y_pos=boundary_conditions[4])
+end
+
+function digest_boundary_conditions(boundary_conditions::NTuple{6, Any},
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache)
+  (; x_neg=boundary_conditions[1], x_pos=boundary_conditions[2],
+     y_neg=boundary_conditions[3], y_pos=boundary_conditions[4],
+     z_neg=boundary_conditions[5], z_pos=boundary_conditions[6])
+end
+
+# allow passing named tuples of BCs constructed in an arbitrary order
+# on (mapped) hypercube domains
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache) where {Keys, ValueTypes<:NTuple{2,Any}}
   @unpack x_neg, x_pos = boundary_conditions
   (; x_neg, x_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh, solver, cache) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache) where {Keys, ValueTypes<:NTuple{4,Any}}
   @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh, solver, cache) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache) where {Keys, ValueTypes<:NTuple{6,Any}}
   @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
