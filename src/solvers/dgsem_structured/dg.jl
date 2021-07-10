@@ -65,9 +65,6 @@ end
 end
 
 
-@inline ndofs(mesh::StructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
-
-
 include("containers.jl")
 include("dg_1d.jl")
 include("dg_2d.jl")
