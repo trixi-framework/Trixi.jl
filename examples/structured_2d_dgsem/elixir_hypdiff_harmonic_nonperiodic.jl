@@ -15,10 +15,9 @@ solver = DGSEM(polydeg=4, surface_flux=flux_godunov)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=30_000,
-                periodicity=false)
+cells_per_dimension = (8, 8)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity=false)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
