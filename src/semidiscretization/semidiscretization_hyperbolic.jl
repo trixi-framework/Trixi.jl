@@ -221,7 +221,7 @@ const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} =
 # generic fallback: print the type of semi.boundary_condition.
 print_boundary_conditions(io, semi::SemiHypMeshBCSolver) = summary_line(io, "boundary conditions", typeof(semi.boundary_conditions))
 
-function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:UnstructuredSortedBoundaryTypes})
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:UnstructuredSortedBoundaryTypes})
   @unpack boundary_conditions = semi
   @unpack boundary_dictionary = boundary_conditions
   summary_line(io, "boundary conditions", length(boundary_dictionary))
@@ -230,7 +230,7 @@ function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh,
   end
 end
 
-function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:AbstractMesh, <:Union{Tuple,NamedTuple,AbstractArray}})
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Union{TreeMesh, StructuredMesh}, <:Union{Tuple,NamedTuple,AbstractArray}})
   summary_line(io, "boundary conditions", 2*ndims(semi))
   bcs = semi.boundary_conditions
 
