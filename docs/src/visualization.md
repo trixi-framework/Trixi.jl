@@ -349,7 +349,7 @@ solution time. A comprehensive list of all possible arguments for
 `trixi2vtk` can be found in the [Trixi2Vtk.jl API](@ref).
 
 Further information regarding the development of Trixi2Vtk can be found in the
-[development section](@id trixi2vtk-dev).
+[development section](@ref trixi2vtk-dev).
 
 
 ## Trixi2Img
