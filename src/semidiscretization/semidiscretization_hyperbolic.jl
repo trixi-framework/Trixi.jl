@@ -230,6 +230,15 @@ function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:Unstru
   end
 end
 
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:NamedTuple})
+  @unpack boundary_conditions = semi
+  summary_line(io, "boundary conditions", length(boundary_conditions))
+  bc_names = keys(boundary_conditions)
+  for (i, bc_name) in enumerate(bc_names)
+    summary_line(increment_indent(io), String(bc_name), typeof(boundary_conditions[i]))
+  end
+end
+
 function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Union{TreeMesh, StructuredMesh}, <:Union{Tuple,NamedTuple,AbstractArray}})
   summary_line(io, "boundary conditions", 2*ndims(semi))
   bcs = semi.boundary_conditions
