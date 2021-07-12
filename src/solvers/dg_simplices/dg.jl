@@ -29,7 +29,9 @@ const MultiDG{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
 const MultiDGWeakForm{NDIMS, ElemType, ApproxType} =
   MultiDG{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm}
 
-# this is necessary for pretty printing
+# these are necessary for pretty printing
+polydeg(dg::MultiDG) = dg.basis.N
+Base.summary(io::IO, dg::DG) where {DG <: MultiDG} = print(io, "MultiDG(polydeg=$(polydeg(dg)))")
 Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS, Elem, ApproxType, Nfaces, RealT} = RealT
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
