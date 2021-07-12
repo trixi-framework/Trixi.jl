@@ -37,7 +37,7 @@ using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 import MPI
-using Octavian: matmul! 
+using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
@@ -214,11 +214,11 @@ function __init__()
     using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
     using .StartUpDG: Line, Tri, Quad, Hex, AbstractElemShape
 
-    include("solvers/dg_simplices/mesh.jl")
+    include("meshes/dg_multi_meshes.jl")
     export AbstractMeshData, VertexMappedMesh
-    
+
     include("solvers/dg_simplices/dg.jl")
-    include("solvers/dg_simplices/analysis.jl")  
+    include("callbacks_step/analysis_dg_multi.jl")
   end
 
 end
