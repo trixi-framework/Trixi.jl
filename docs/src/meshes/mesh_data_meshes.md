@@ -9,7 +9,7 @@ We make a few simplifying assumptions about simplicial meshes:
 * meshes consist of a single type of element
 * meshes are _conforming_ (e.g., each face of an element is shared with at most one other element).
 * the geometric mapping from reference to physical elements is polynomial (currently, only affine
-mappings are supported).
+  mappings are supported).
 
 ## `AbstractMeshData` wrapper type
 
@@ -29,8 +29,8 @@ segment names (symbols) and list of faces which lie on that boundary segment.
 ## Variable naming conventions
 
 We use the convention that coordinates on the reference element are ``r`` in 1D, ``r, s`` in 2D,
-or ``r, s, t`` in 3D. Physical coordinates use the standard conventions ``x``, ``x, y``, and
-``x, y, z`` in 1D, 2D, and 3D.
+or ``r, s, t`` in 3D. Physical coordinates use the standard conventions ``x`` (1D), 
+``x, y`` (2D), and ``x, y, z`` (3D).
 
 !["Ref-to-physical mapping"](https://user-images.githubusercontent.com/1156048/124361389-a2841380-dbf4-11eb-8ee4-33e71109c8bb.png)
 
@@ -46,47 +46,47 @@ and differentiation/interpolation/projection matrices) and `MeshData{NDIMS}` (wh
 data associated with a mesh). These are currently used for evaluating DG formulations in a matrix-free
 fashion. These structs contain fields similar (but not identical) to those in
 `Globals1D, Globals2D, Globals3D` in the Matlab codes from "Nodal Discontinuous Galerkin Methods"
-by Hesthaven and Warburton (2007).
+by [Hesthaven and Warburton (2007)](https://doi.org/10.1007/978-0-387-72067-8).
 
 In general, we use the following code conventions:
 * variables such as `r, s,...` and `x, y,...` correspond to values at nodal interpolation points.
 * variables ending in `q` (e.g., `rq, sq,...` and `xq, yq,...`) correspond to values at volume
-quadrature points.
+  quadrature points.
 * variables ending in `f` (e.g., `rf, sf,...` and `xf, yf,...`) correspond to values at face
-quadrature points.
+  quadrature points.
 * variables ending in `p` (e.g., `rp, sp,...`) correspond to "plotting" points, which are usually
-a fine grid of equispaced points.
+  a fine grid of equispaced points.
 * `V` matrices correspond to interpolation matrices from nodal interpolation points, e.g., `Vq`
-interpolates to volume quadrature points, `Vf` interpolates to face quadrature points.
+  interpolates to volume quadrature points, `Vf` interpolates to face quadrature points.
 * geometric quantities in `MeshData` are stored as matrices of dimension
-``\text{number of points per element } \times \text{number of elements}``.
+  ``\text{number of points per element} \times \text{number of elements}``.
 
 Quantities in `rd::RefElemData`:
 * `rd.Np, rd.Nq, rd.Nf`: the number of nodal interpolation points, volume quadrature points, and
-face quadrature points on the reference element, respectively.
+  face quadrature points on the reference element, respectively.
 * `rd.Vq`: interpolation matrices from values at nodal interpolation points to volume quadrature points
 * `rd.wq`: volume quadrature weights on the reference element
 * `rd.Vf`: interpolation matrices from values at nodal interpolation points to face quadrature points
 * `rd.wf`: a vector containing face quadrature weights on the reference element
 * `rd.M`: the quadrature-based mass matrix, computed via `rd.Vq' * diagm(rd.wq) * rd.Vq`.
 * `rd.Pq`: a quadrature-based ``L^2`` projection matrix `rd.Pq = rd.M \ rd.Vq' * diagm(rd.wq)`
-which maps between values at quadrature points and values at nodal points.
+  which maps between values at quadrature points and values at nodal points.
 * `Dr, Ds, Dt` matrices are nodal differentiation matrices with respect to the ``r,s,t`` coordinates,
-e.g., `Dr*f.(r,s)` approximates the derivative of ``f(r,s)`` at nodal points.
+  e.g., `Dr*f.(r,s)` approximates the derivative of ``f(r,s)`` at nodal points.
 
 Quantities in `md::MeshData`:
 * `md.xyz` is a tuple of matrices `md.x`, `md.y`, `md.z`, where column `e` contains coordinates of
-physical interpolation points.
+  physical interpolation points.
 * `md.xyzq` is a tuple of matrices `md.xq`, `md.yq`, `md.zq`, where column `e` contains coordinates
-of physical quadrature points.
+  of physical quadrature points.
 * `md.rxJ, md.sxJ, ...` are matrices where column `e` contains values of
-``J\frac{\partial r}{\partial x}``, ``J\frac{\partial s}{\partial x}``, etc. at nodal interpolation
-points on the element `e`.
+  ``J\frac{\partial r}{\partial x}``, ``J\frac{\partial s}{\partial x}``, etc. at nodal interpolation
+  points on the element `e`.
 * `md.J` is a matrix where column `e` contains values of the Jacobian ``J`` at nodal interpolation points.
 * `md.Jf` is a matrix where column `e` contains values of the face Jacobian (e.g., determinant of
-the geometric mapping between a physical face and a reference face) at face quadrature points.
+  the geometric mapping between a physical face and a reference face) at face quadrature points.
 * `md.nxJ, md.nyJ, ...` are matrices where column `e` contains values of components of the unit
-normal scaled by the face Jacobian `md.Jf` at face quadrature points.
+  normal scaled by the face Jacobian `md.Jf` at face quadrature points.
 
 For more details, please see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
 
@@ -120,6 +120,7 @@ Some key elixirs to look at:
 
 * `elixir_euler_triangular_mesh.jl`: basic weak form DG discretization on a uniform triangular mesh.
 * `elixir_euler_periodic_triangular_mesh.jl`: same as above, but enforces periodicity in the ``x,y`` directions.
-* `elixir_euler_triangulate_pkg_mesh.jl`: uses a `TriangulateIO` unstructured mesh generated by `Triangulate.jl`.
+* `elixir_euler_triangulate_pkg_mesh.jl`: uses a `TriangulateIO` unstructured mesh generated by 
+  [Triangulate.jl](https://github.com/JuliaGeometry/Triangulate.jl).
 * `elixir_ape_sbp_triangular_mesh.jl`: uses a multi-dimensional SBP discretization in weak form.
 * `elixir_euler_tet_mesh.jl`: basic weak form DG discretization on a uniform tet mesh.
