@@ -6,9 +6,10 @@ using Trixi, OrdinaryDiffEq
 polydeg = 3
 rd = RefElemData(Tri(), polydeg)
 
+flux_ec = flux_ranocha
 dg = DG(rd, nothing #= mortar =#,
-        SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
-        VolumeIntegralFluxDifferencing(flux_ranocha))
+        SurfaceIntegralWeakForm(flux_ec),
+        VolumeIntegralFluxDifferencing(flux_ec))
 
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
