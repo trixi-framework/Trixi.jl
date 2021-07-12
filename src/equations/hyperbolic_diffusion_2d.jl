@@ -238,14 +238,6 @@ end
   return SVector(f1, f2, f3)
 end
 
-
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
-  λ_max = sqrt(equations.nu * equations.inv_Tr)
-end
-
-
-# Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
@@ -260,17 +252,19 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
+  sqrt(equations.nu * equations.inv_Tr)
+end
+
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
-  λ_max = sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
+  sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
 
-# TODO: Could add a `rotate_to_x` and `rotate_from_x` in order to use this numerical surface flux
-#       in the FluxRotated functionality
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
-  phi_ll, p_ll, q_ll = u_ll
-  phi_rr, p_rr, q_rr = u_rr
+  phi_ll, q1_ll, q2_ll = u_ll
+  phi_rr, q1_rr, q2_rr = u_rr
   f_ll = flux(u_ll, orientation, equations)
   f_rr = flux(u_rr, orientation, equations)
 
@@ -279,12 +273,29 @@ end
   λ_max = sqrt(equations.nu * equations.inv_Tr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
   if orientation == 1 # x-direction
-    f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr - p_ll)
+    f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (q1_rr - q1_ll)
     f3 = 1/2 * (f_ll[3] + f_rr[3])
   else # y-direction
     f2 = 1/2 * (f_ll[2] + f_rr[2])
-    f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr - q_ll)
+    f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q2_rr - q2_ll)
   end
+
+  return SVector(f1, f2, f3)
+end
+
+@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  # Obtain left and right fluxes
+  phi_ll, q1_ll, q2_ll = u_ll
+  phi_rr, q1_rr, q2_rr = u_rr
+  f_ll = flux(u_ll, normal_direction, equations)
+  f_rr = flux(u_rr, normal_direction, equations)
+
+  # this is an optimized version of the application of the upwind dissipation matrix:
+  #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
+  λ_max = sqrt(equations.nu * equations.inv_Tr)
+  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll) * sqrt(normal_direction[1]^2 + normal_direction[2]^2)
+  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (q1_rr - q1_ll) * normal_direction[1]
+  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q2_rr - q2_ll) * normal_direction[2]
 
   return SVector(f1, f2, f3)
 end
