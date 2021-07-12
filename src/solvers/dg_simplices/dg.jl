@@ -231,7 +231,14 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
   num_pts_per_face = rd.Nfq ÷ rd.Nfaces
   num_faces_total = rd.Nfaces * md.num_elements
-  reshape_by_face(u) = reshape(u, num_pts_per_face, num_faces_total)
+
+  # This function was originally defined as
+  # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
+  # This results in allocations due to https://github.com/JuliaLang/julia/issues/36313.
+  # To avoid allocations, we use Tim Holy's suggestion:
+  # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
+  reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
+
   u_face_values = reshape_by_face(u_face_values)
   flux_face_values = reshape_by_face(flux_face_values)
   Jf = reshape_by_face(Jf)
