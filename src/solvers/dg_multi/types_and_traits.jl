@@ -18,7 +18,7 @@ Create a discontinuous Galerkin method which uses
 
 Optional:
 - approximation type of `approximation_type` (default is `Polynomial()`; `SBP()` also supported for
-`Tri()`, `Quad()`, and `Hex()` element types).
+  `Tri()`, `Quad()`, and `Hex()` element types).
 """
 function MultiDG(; polydeg::Integer,
                    elem_type::AbstractElemShape,
