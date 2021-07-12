@@ -71,7 +71,4 @@ end
 
 SolutionAnalyzer(rd::RefElemData) = rd
 
-# TODO: simplices.
-# Analysis routines assume a function of this form; should modify to include arguments of the form
-# `nelements(solver, mesh, cache)` instead.
-nelements(solver::MultiDG, cache) = size(cache.u_values, 2)
+nelements(mesh::AbstractMeshData, solver::MultiDG, cache) = mesh.md.num_elements
