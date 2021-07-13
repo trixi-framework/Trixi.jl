@@ -566,14 +566,14 @@ function calc_vertices(coordinates, levels, length_level_0)
 
   # Initialize output arrays
   n_elements = length(levels)
-  n_points = 2^ndim+2
-  x = Vector{Float64}(undef, n_points*n_elements)
-  y = Vector{Float64}(undef, n_points*n_elements)
+  n_points_per_element = 2^ndim+2
+  x = Vector{Float64}(undef, n_points_per_element*n_elements)
+  y = Vector{Float64}(undef, n_points_per_element*n_elements)
 
   # Calculate vertices for all coordinates at once
   for element_id in 1:n_elements
     length = length_level_0 / 2^levels[element_id]
-    index = n_points*(element_id-1)
+    index = n_points_per_element*(element_id-1)
     x[index+1] = coordinates[1, element_id] - 1/2 * length
     x[index+2] = coordinates[1, element_id] + 1/2 * length
     x[index+3] = coordinates[1, element_id] + 1/2 * length
