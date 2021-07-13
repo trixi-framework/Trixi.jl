@@ -195,7 +195,11 @@ end
 """
     IndicatorNNPP
 
-Artificial neural network based indicator used for shock-capturing or AMR
+Artificial neural network based indicator used for shock-capturing or AMR.
+
+!!! warning "Experimental implementation"                                                           
+This is an experimental feature and may change in future releases.
+
 """
 struct IndicatorNNPP{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
   alpha_max::RealT
@@ -324,7 +328,7 @@ end
 function Base.show(io::IO, indicator::IndicatorNNRH)
   @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorNNPP(")
+  print(io, "IndicatorNNRH(")
   print(io, indicator.variable)
   print(io, ", alpha_max=", indicator.alpha_max)
   print(io, ", alpha_min=", indicator.alpha_min)

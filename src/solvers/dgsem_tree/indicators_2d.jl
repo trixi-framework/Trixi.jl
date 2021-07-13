@@ -297,12 +297,12 @@ function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,4},
     X[4] = nnodes(dg) 
 
     # Scale input data
-    X = X ./max(maximum(abs.(X)),1)
-
+    X = X ./ max(maximum(abs.(X)),1)
+    probability_troubled_cell = network(X)[1] 
     if alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if network(X)[1] > 0.5
-        alpha_element = network(X)[1]
+      if probability_troubled_cell > 0.5
+        alpha_element = probability_troubled_cell
       else
         alpha_element = 0
       end
@@ -316,14 +316,14 @@ function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,4},
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
-      if network(X)[1] > 0.5
+      if probability_troubled_cell > 0.5
         alpha[element] = 1
       else
         alpha[element] = 0
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
-      alpha_element = network(X)[1]
+      alpha_element = probability_troubled_cell
     end
 
   end
@@ -384,8 +384,8 @@ end
 
 
 function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,4},
-                                                   equations, dg::DGSEM, cache;
-                                                   kwargs...)
+                                         equations, dg::DGSEM, cache;
+                                         kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_nnrh
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, mesh = indicator_nnrh.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -504,12 +504,12 @@ function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,4},
     end
   
     # Scale input data
-    X = X ./max(maximum(abs.(X)),1)
-
+    X = X ./ max(maximum(abs.(X)),1)
+    probability_troubled_cell = network(X)[1] 
     if alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if network(X)[1] > 0.5
-        alpha_element = network(X)[1]
+      if probability_troubled_cell > 0.5
+        alpha_element = probability_troubled_cell
       else
         alpha_element = 0
       end
@@ -523,14 +523,14 @@ function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,4},
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
-      if network(X)[1] > 0.5
+      if probability_troubled_cell > 0.5
         alpha[element] = 1
       else
         alpha[element] = 0
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
-      alpha_element = network(X)[1]
+      alpha_element = probability_troubled_cell
     end
   end
 
@@ -590,8 +590,8 @@ end
 
 
 function (indicator_cnn::IndicatorCNN)(u::AbstractArray{<:Any,4},
-                                                   equations, dg::DGSEM, cache;
-                                                   kwargs...)
+                                       equations, dg::DGSEM, cache;
+                                       kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_cnn
   @unpack alpha, alpha_tmp, indicator_threaded = indicator_cnn.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -630,12 +630,12 @@ function (indicator_cnn::IndicatorCNN)(u::AbstractArray{<:Any,4},
     X[:,:,1,1] = data_cnn[:,:]
 
     # Scale input data
-    X = X ./max(maximum(abs.(X)),1)
-
+    X = X ./ max(maximum(abs.(X)),1)
+    probability_troubled_cell = network(X)[1] 
     if alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if network(X)[1] > 0.5
-        alpha_element = network(X)[1]
+      if probability_troubled_cell > 0.5
+        alpha_element = probability_troubled_cell
       else
         alpha_element = 0
       end
@@ -649,14 +649,14 @@ function (indicator_cnn::IndicatorCNN)(u::AbstractArray{<:Any,4},
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
-      if network(X)[1] > 0.5
+      if probability_troubled_cell > 0.5
         alpha[element] = 1
       else
         alpha[element] = 0
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
-      alpha_element = network(X)[1]
+      alpha_element = probability_troubled_cell
     end
 
   end

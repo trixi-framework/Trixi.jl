@@ -220,8 +220,8 @@ end
 
 
 function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,3},
-                                                   equations, dg::DGSEM, cache;
-                                                   kwargs...)
+                                         equations, dg::DGSEM, cache;
+                                         kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_nnpp
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_nnpp.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -268,19 +268,19 @@ function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,3},
 
     elseif size(Flux.params(network)[1],2) == 3
       # Calculate energy in lower modes and polynomial degree for the network input
-    	X = zeros(3,1)
-      X[1] = (total_energy - total_energy_clip1)/total_energy
-      X[2] = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
-      X[3] = nnodes(dg) 
+      X1 = (total_energy - total_energy_clip1)/total_energy
+      X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+      X3 = nnodes(dg) 
+      X = SVector(X1, X2, X3)
     end
 
     # Scale input data
-    X = X ./max(maximum(abs.(X)),1)
-
+    X = X ./ max(maximum(abs.(X)),1)
+    probability_troubled_cell = network(X)[1] 
     if alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if network(X)[1] > 0.5
-        alpha_element = network(X)[1]
+      if probability_troubled_cell > 0.5
+        alpha_element = probability_troubled_cell
       else
         alpha_element = 0
       end
@@ -294,14 +294,14 @@ function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,3},
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
-      if network(X)[1] > 0.5
+      if probability_troubled_cell > 0.5
         alpha[element] = 1
       else
         alpha[element] = 0
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
-      alpha_element = network(X)[1]
+      alpha_element = probability_troubled_cell
     end
   end
 
@@ -345,8 +345,8 @@ end
 
 
 function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,3},
-                                                   equations, dg::DGSEM, cache;
-                                                   kwargs...)
+                                         equations, dg::DGSEM, cache;
+                                         kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_nnrh
   @unpack alpha, alpha_tmp, indicator_threaded, mesh = indicator_nnrh.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -397,34 +397,34 @@ function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,3},
       indicator[i] = indicator_nnrh.variable(u_local, equations)
     end
 
-    X = Array{Float64}(undef, 5)
+    
     # Cell average and interface values of the cell
-    X[2] = sum(indicator)/nnodes(dg)
-    X[4] = indicator[1]
-    X[5] = indicator[end]
+    X2 = sum(indicator)/nnodes(dg)
+    X4 = indicator[1]
+    X5 = indicator[end]
   
     # Calculate indicator variables from left neighboring cell at Gauss-Lobatto nodes 
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, neighbor_ids[1])
       indicator[i] = indicator_nnrh.variable(u_local, equations)
     end
-    X[1] = sum(indicator)/nnodes(dg)
+    X1 = sum(indicator)/nnodes(dg)
 
     # Calculate indicator variables from right neighboring cell at Gauss-Lobatto nodes 
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, neighbor_ids[2])
       indicator[i] = indicator_nnrh.variable(u_local, equations)
     end
-    X[3] = sum(indicator)/nnodes(dg)
- 
+    X3 = sum(indicator)/nnodes(dg)
+    X = SVector(X1, X2, X3, X4, X5)
 
     # Scale input data
-    X = X ./max(maximum(abs.(X)),1)
-
+    X = X ./ max(maximum(abs.(X)),1)
+    probability_troubled_cell = network(X)[1] 
     if alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if network(X)[1] > 0.5
-        alpha_element = network(X)[1]
+      if probability_troubled_cell > 0.5
+        alpha_element = probability_troubled_cell
       else
         alpha_element = 0
       end
@@ -438,14 +438,14 @@ function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,3},
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
-      if network(X)[1] > 0.5
+      if probability_troubled_cell > 0.5
         alpha[element] = 1
       else
         alpha[element] = 0
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
-      alpha_element = network(X)[1]
+      alpha_element = probability_troubled_cell
     end
   end
 

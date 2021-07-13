@@ -30,6 +30,7 @@ import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
+using Flux
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
@@ -67,7 +68,7 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 #   include(expr -> quote @muladd begin $expr end end, filename)
 # end
 
-using Flux
+
 
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
