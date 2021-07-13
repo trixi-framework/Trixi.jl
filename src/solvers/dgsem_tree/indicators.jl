@@ -273,11 +273,12 @@ end
     IndicatorNNRH
 
 Artificial neural network based indicator used for shock-capturing or AMR
-  - Ray, Hesthaven (2018/2019)
-  "An artificial neural network as a troubled-cell indicator"
-  doi: https://doi.org/10.1016/j.jcp.2018.04.029
-  "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
-  doi: https://doi.org/10.1016/j.jcp.2019.07.043
+  - Ray, Hesthaven (2018)
+    "An artificial neural network as a troubled-cell indicator"
+    [doi:10.1016/j.jcp.2018.04.029](https://doi.org/10.1016/j.jcp.2018.04.029)
+  - Ray, Hesthaven (2019)
+    "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
+    [doi:10.1016/j.jcp.2019.07.043](https://doi.org/10.1016/j.jcp.2019.07.043)
 """
 struct IndicatorNNRH{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
   alpha_max::RealT

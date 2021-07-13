@@ -244,8 +244,8 @@ end
 
 
 function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,4},
-                                                   equations, dg::DGSEM, cache;
-                                                   kwargs...)
+                                         equations, dg::DGSEM, cache;
+                                         kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_nnpp
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_nnpp.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -290,11 +290,11 @@ function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,4},
 
     
     # Calculate energy in lower modes and polynomial degree for the network input
-    X = zeros(4,1)
-    X[1] = (total_energy - total_energy_clip1)/total_energy
-    X[2] = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
-    X[3] = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2 
-    X[4] = nnodes(dg) 
+    X1 = (total_energy - total_energy_clip1)/total_energy
+    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+    X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
+    X4 = nnodes(dg)
+    X = SVector(X1, X2, X3, X4)
 
     # Scale input data
     X = X ./max(maximum(abs.(X)),1)
@@ -577,8 +577,6 @@ function create_cache(::Type{IndicatorCNN}, equations::AbstractEquations{2}, bas
 
   A = Array{real(basis), ndims(equations)}
   indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  #modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  #modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   return (; alpha, alpha_tmp, indicator_threaded) #, modal_threaded, modal_tmp1_threaded)
 end
