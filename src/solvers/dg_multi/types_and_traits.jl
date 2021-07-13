@@ -4,6 +4,11 @@
 const MultiDG{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
   DG{<:RefElemData{NDIMS, ElemType, ApproxType}, Mortar, SurfaceIntegral, VolumeIntegral} where {Mortar}
 
+# these are necessary for pretty printing
+polydeg(dg::MultiDG) = dg.basis.N
+Base.summary(io::IO, dg::DG) where {DG <: MultiDG} = print(io, "MultiDG(polydeg=$(polydeg(dg)))")
+Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS, Elem, ApproxType, Nfaces, RealT} = RealT
+
 """
     MultiDG(; polydeg::Integer,
               elem_type::AbstractElemShape,

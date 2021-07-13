@@ -214,7 +214,7 @@ function __init__()
     using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
     using .StartUpDG: Line, Tri, Quad, Hex, Tet, AbstractElemShape
 
-    include("solvers/dg_multi/mesh.jl")
+    include("meshes/dg_multi_meshes.jl")
     export AbstractMeshData, VertexMappedMesh
 
     include("solvers/dg_multi/types_and_traits.jl")
@@ -222,7 +222,7 @@ function __init__()
 
     include("solvers/dg_multi/dg.jl")
     include("solvers/dg_multi/fluxdiff.jl")
-    include("solvers/dg_multi/analysis.jl")
+    include("callbacks_step/analysis_dg_multi.jl")
   end
 
 end

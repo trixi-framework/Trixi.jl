@@ -23,6 +23,17 @@ mul_by_accum!(A, α) = let A = A
   @inline (out, x)->mul!(out, A, x, α, one(eltype(out)))
 end
 
+const MultiDG{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
+  DG{<:RefElemData{NDIMS, ElemType, ApproxType}, Mortar, SurfaceIntegral, VolumeIntegral} where {Mortar}
+
+const MultiDGWeakForm{NDIMS, ElemType, ApproxType} =
+  MultiDG{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm}
+
+# these are necessary for pretty printing
+polydeg(dg::MultiDG) = dg.basis.N
+Base.summary(io::IO, dg::DG) where {DG <: MultiDG} = print(io, "MultiDG(polydeg=$(polydeg(dg)))")
+Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS, Elem, ApproxType, Nfaces, RealT} = RealT
+
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
 # iteration over all elements in a mesh
@@ -74,7 +85,7 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
-                      RealT, uEltype) where {DG <: Union{MultiDGWeakForm{NDIMS, ElemType}, SBPDGFluxDiff}} where {NDIMS, ElemType}
+                      RealT, uEltype) where {DG <: MultiDGWeakForm{NDIMS, ElemType}} where {NDIMS, ElemType}
 
   rd = dg.basis
   md = mesh.md
@@ -247,7 +258,6 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
   # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
   # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
 end
-
 
 # Todo: simplices. Specialize for modal DG on curved meshes using WADG
 function invert_jacobian!(du, mesh::Mesh, equations, dg::MultiDG,

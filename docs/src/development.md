@@ -271,7 +271,7 @@ arbitrary stuff to the Trixi website, including malicious code).
 
 
 
-## Developing Trixi2Vtk (@id trixi2vtk-dev)
+## [Developing Trixi2Vtk](@id trixi2vtk-dev)
 
 Trixi2Vtk has Trixi as dependency and uses Trixi's implementation to, e.g., load mesh files.
 When developing Trixi2Vtk, one may want to change functions in Trixi to allow them to be reused

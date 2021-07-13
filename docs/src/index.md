@@ -49,7 +49,7 @@ by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
