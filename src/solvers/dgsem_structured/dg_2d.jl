@@ -149,7 +149,7 @@ end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{false}, element,
-                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D}, equations,
+                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
@@ -193,6 +193,72 @@ end
       multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, element)
     end
   end
+end
+
+
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
+                              mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, nonconservative_terms::Val{false},
+                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+  @unpack contravariant_vectors = cache.elements
+  @unpack weights, derivative_matrix = dg.basis
+
+  fstar1_L[:, 1,            :, :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :]    .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :]    .= zero(eltype(fstar1_R))
+
+  for j in eachnode(dg)
+    normal = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
+
+    for i in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i-1, j, element)
+      u_rr = get_node_vars(u, equations, dg, i,   j, element)
+
+      flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
+      flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
+
+      for ii in 1:nnodes(dg)
+        normal += weights[i-1] * derivative_matrix[i-1, ii] * get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+      end
+
+      # Compute the contravariant flux by taking the scalar product of the
+      # normal vector and the flux vector
+      contravariant_flux1 = normal[1] * flux1 + normal[2] * flux2
+
+      set_node_vars!(fstar1_L, contravariant_flux1, equations, dg, i, j)
+      set_node_vars!(fstar1_R, contravariant_flux1, equations, dg, i, j)
+    end
+  end
+
+  fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           ] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
+
+  for i in eachnode(dg)
+    normal = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+
+    for j in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j-1, element)
+      u_rr = get_node_vars(u, equations, dg, i, j,   element)
+
+      flux1 = volume_flux_fv(u_ll, u_rr, 1, equations)
+      flux2 = volume_flux_fv(u_ll, u_rr, 2, equations)
+
+      for ii in 1:nnodes(dg)
+        normal += weights[j-1] * derivative_matrix[j-1, ii] * get_contravariant_vector(2, contravariant_vectors, i, ii, element)
+      end
+
+      # Compute the contravariant flux by taking the scalar product of the
+      # normal vector and the flux vector
+      contravariant_flux1 = normal[1] * flux1 + normal[2] * flux2
+
+      set_node_vars!(fstar2_L, contravariant_flux1, equations, dg, i, j)
+      set_node_vars!(fstar2_R, contravariant_flux1, equations, dg, i, j)
+    end
+  end
+
+  return nothing 
 end
 
 
