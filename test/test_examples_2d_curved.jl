@@ -176,6 +176,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
       tspan = (0.0, 0.3))
   end
 
+  @trixi_testset "elixir_euler_sedov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [3.31660326e-01, 2.24398087e-01, 2.24398087e-01, 1.25705111e+00],
+      linf = [9.06289591e-01, 9.60138464e-01, 9.60138464e-01, 6.12198921e+00],
+      tspan = (0.0, 0.3))
+  end
+
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [0.8799744480157664, 0.8535008397034816, 0.7851383019164209],

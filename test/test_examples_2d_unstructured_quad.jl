@@ -51,6 +51,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "unstru
       tspan = (0.0, 1.0))
   end
 
+  @trixi_testset "elixir_euler_sedov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [2.20053051e-01, 1.69186944e-01, 1.69186944e-01, 1.21554645e+00],
+      linf = [7.50858524e-01, 7.80182343e-01, 7.80182343e-01, 6.11777281e+00],
+      tspan = (0.0, 0.3))
+  end
+
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [0.00023219572238346008],
