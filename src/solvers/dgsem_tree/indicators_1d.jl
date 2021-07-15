@@ -127,7 +127,7 @@ function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEqua
 end
 
 
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
+function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3}, mesh, 
                                    equations, dg::DGSEM, cache;
                                    kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"

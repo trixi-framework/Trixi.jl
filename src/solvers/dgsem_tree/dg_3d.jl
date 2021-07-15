@@ -438,7 +438,7 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, true)
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, true)
   end
 
   return nothing
