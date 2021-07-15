@@ -202,10 +202,10 @@ end
   @unpack contravariant_vectors = cache.elements
   @unpack weights, derivative_matrix = dg.basis
 
-  fstar1_L[:, 1,            :, :] .= zero(eltype(fstar1_L))
-  fstar1_L[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_L))
-  fstar1_R[:, 1,            :]    .= zero(eltype(fstar1_R))
-  fstar1_R[:, nnodes(dg)+1, :]    .= zero(eltype(fstar1_R))
+  fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
 
   for j in eachnode(dg)
     normal = get_contravariant_vector(1, contravariant_vectors, 1, j, element)

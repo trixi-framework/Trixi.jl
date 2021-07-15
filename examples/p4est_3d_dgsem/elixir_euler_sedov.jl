@@ -1,11 +1,12 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_sedov_blast_wave
 
@@ -13,28 +14,41 @@ initial_condition = initial_condition_sedov_blast_wave
 # Get the DG approximation space
 
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(3)
+volume_flux = flux_ranocha 
+basis = LobattoLegendreBasis(5)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
-                                         alpha_smooth=false,
+                                         alpha_smooth=true,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
-
-solver = DGSEM(polydeg=3, surface_flux=surface_flux, volume_integral=volume_integral)
-
+                                               
+solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=volume_integral)  
 
 ###############################################################################
-# Get the curved quad mesh from a mapping function
+# Get the curved quad mesh from a file
 
-mapping(xi, eta) = SVector(xi, eta)
+# Mapping as described in https://arxiv.org/abs/2012.12040
+function mapping(xi, eta, zeta)
+  y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
 
-cells_per_dimension = (16, 16)
+  x = xi + 0.125 * (cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta))
 
-mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=true)
+  z = zeta + 0.125 * (cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta))
+
+  return SVector(x, y, z)
+end
+
+coordinates_min = (-1.0, -1.0, -1.0)
+coordinates_max = ( 1.0,  1.0,  1.0)
+
+trees_per_dimension = (4, 4, 4)
+mesh = P4estMesh(trees_per_dimension,
+                 polydeg=4, initial_refinement_level=0,
+                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                 periodicity=true)
 
 ###############################################################################
 # create the semi discretization object
@@ -49,16 +63,16 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 300
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=300,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.1)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

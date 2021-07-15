@@ -5,16 +5,19 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = initial_condition_sedov_blast_wave
+#initial_condition = initial_condition_weak_blast_wave
 
 ###############################################################################
 # Get the DG approximation space
 
+initial_condition = initial_condition_sedov_blast_wave
+
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(3)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
@@ -23,16 +26,26 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
+                                               
+solver = DGSEM(polydeg=3, surface_flux=surface_flux, volume_integral=volume_integral)  
 
-solver = DGSEM(polydeg=3, surface_flux=surface_flux, volume_integral=volume_integral)
+################################################################################
+# Get the curved quad mesh from a file
 
+# Mapping as described in https://arxiv.org/abs/2012.12040
+#mapping(xi, eta, zeta) = SVector(xi, eta, zeta)
 
-###############################################################################
-# Get the curved quad mesh from a mapping function
+function mapping(xi, eta, zeta)
+  y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
 
-mapping(xi, eta) = SVector(xi, eta)
+  x = xi + 0.125 * (cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta))
 
-cells_per_dimension = (16, 16)
+  z = zeta + 0.125 * (cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta))
+
+  return SVector(x, y, z)
+end
+
+cells_per_dimension = (4, 4, 4)
 
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=true)
 
@@ -49,12 +62,12 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 300
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=300,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
