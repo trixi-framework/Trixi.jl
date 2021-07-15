@@ -485,9 +485,9 @@ end
 # - `volume_flux_fv`
 # - `dg::DGSEM`
 # - `element::Integer`
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4}, mesh::TreeMesh{2},
                               nonconservative_terms::Val{true}, equations, volume_flux_fv,
-                              dg::DGSEM, element)
+                              dg::DGSEM, element, cache)
   # Fluxes in x
   #############
 

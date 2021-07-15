@@ -418,7 +418,7 @@ function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquation
 end
 
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5},
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5}, mesh, 
                                        equations, dg::DGSEM, cache;
                                        kwargs...)
   @unpack alpha, indicator_threaded = indicator_max.cache
