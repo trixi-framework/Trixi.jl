@@ -193,7 +193,6 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   omegarcoslat = OmegaEarth*rcoslat
   uS = -omegarcoslat+sqrt(omegarcoslat^2+rcoslat*bigU)
   uS = uS + evaluate_exponential(lon,lat,zLoc)
-  uS = zLoc
   vS = 0.0
   wS = 0.0
   v1, v2, v3 = VelSphToCa(uS,vS,wS,lon,lat)
