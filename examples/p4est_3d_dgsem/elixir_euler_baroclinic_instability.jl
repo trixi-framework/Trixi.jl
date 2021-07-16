@@ -295,8 +295,9 @@ boundary_conditions = Dict(
   :outside => boundary_condition_slip_wall,
 )
 
-surface_flux = flux_lax_friedrichs
-volume_flux  = flux_ranocha
+# surface_flux = flux_lax_friedrichs
+surface_flux = FluxRotated(flux_mars)
+volume_flux  = flux_kennedy_gruber
 solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 mesh = Trixi.P4estMeshCubedSphere(8, 4, 6371220.0, 16500.0,
