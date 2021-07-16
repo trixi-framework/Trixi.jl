@@ -30,6 +30,7 @@ import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
+using Flux
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
@@ -66,6 +67,7 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 # function include_optimized(filename)
 #   include(expr -> quote @muladd begin $expr end end, filename)
 # end
+
 
 
 # Define the entry points of our type hierarchy, e.g.
@@ -184,7 +186,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
 export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNNPP, IndicatorNNRH, IndicatorCNN
 
 export PositivityPreservingLimiterZhangShu
 
