@@ -242,26 +242,49 @@ DampF(alpha) = sin(0.5*pi*alpha)^2
   return SVector(du1, du2, du3, du4, du5)
 end
 
-# function flux_mars(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
-#   sRho_L = 1 / u_ll[1]
-#   sRho_R = 1 / u_rr[1]
-#   Vel_L = u_ll[2:4] * sRho_L
-#   Vel_R = u_rr[2:4] * sRho_R
-#   p_L = (equations.gamma - 1) * (u_ll[5] - 0.5 * sum(U_ll[2:4] * Vel_L[1:3]))
-#   p_R = (equations.gamma - 1) * (u_rr[5] - 0.5 * sum(U_rr[2:4] * Vel_R[1:3]))
-#   rhoM = 0.5 * (u_ll[1] + U_RR(1,i,j))
-#   pM = 0.5*(p_L + p_R) -0.5*cS*RhoM*(Vel_R(1) - Vel_L(1))
-#   vM = 0.5*(Vel_R(1) + Vel_L(1)) -1.0/(2.0*rhoM*cS)*(p_R - p_L)
-#   IF (vM >= 0) THEN
-#     F(:,i,j) = U_LL(:,i,j)*vM
-#     F(2,i,j) = F(2,i,j) + pM
-#     F(5,i,j) = F(5,i,j) + pM*vM
-#   ELSE
-#     F(:,i,j) = U_RR(:,i,j)*vM
-#     F(2,i,j) = F(2,i,j) + pM
-#     F(5,i,j) = F(5,i,j) + pM*vM
-#   END IF
-# end
+function flux_mars(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
+  # This only works in x-direction
+  @assert orientation == 1
+
+  cS = 360
+
+  sRho_L = 1 / u_ll[1]
+  sRho_R = 1 / u_rr[1]
+
+  Vel_L_1 = u_ll[2] * sRho_L
+  Vel_L_2 = u_ll[3] * sRho_L
+  Vel_L_3 = u_ll[4] * sRho_L
+  Vel_R_1 = u_rr[2] * sRho_R
+  Vel_R_2 = u_rr[3] * sRho_R
+  Vel_R_3 = u_rr[4] * sRho_R
+
+  p_L = (equations.gamma - 1) * (u_ll[5] - 0.5 * (u_ll[2] * Vel_L_1 + u_ll[3] * Vel_L_2 + u_ll[4] * Vel_L_3))
+  p_R = (equations.gamma - 1) * (u_rr[5] - 0.5 * (u_rr[2] * Vel_R_1 + u_rr[3] * Vel_R_2 + u_rr[4] * Vel_R_3))
+  rhoM = 0.5 * (u_ll[1] + u_rr[1])
+  pM = 0.5*(p_L + p_R) -0.5*cS*rhoM*(Vel_R_1 - Vel_L_1)
+  vM = 0.5*(Vel_R_1 + Vel_L_1) -1.0/(2.0*rhoM*cS)*(p_R - p_L)
+  if vM >= 0
+    f1 = u_ll[1] * vM
+    f2 = u_ll[2] * vM
+    f3 = u_ll[3] * vM
+    f4 = u_ll[4] * vM
+    f5 = u_ll[5] * vM
+
+    f2 += pM
+    f5 += pM*vM
+  else
+    f1 = u_rr[1] * vM
+    f2 = u_rr[2] * vM
+    f3 = u_rr[3] * vM
+    f4 = u_rr[4] * vM
+    f5 = u_rr[5] * vM
+
+    f2 += pM
+    f5 += pM*vM
+  end
+
+  return SVector(f1, f2, f3, f4, f5)
+end
 
 initial_condition = initial_condition_baroclinic_instability
 
