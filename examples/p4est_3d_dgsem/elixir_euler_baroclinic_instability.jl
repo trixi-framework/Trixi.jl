@@ -277,7 +277,7 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
 solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = Trixi.P4estMeshCubedSphere(8, 4, 6371200.0, 16500.0,
+mesh = Trixi.P4estMeshCubedSphere(8, 4, 6371220.0, 16500.0,
                                   polydeg=5, initial_refinement_level=0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
