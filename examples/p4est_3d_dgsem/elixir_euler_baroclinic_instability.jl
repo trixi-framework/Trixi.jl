@@ -207,7 +207,7 @@ DampF(alpha) = sin(0.5*pi*alpha)^2
 @inline function source_terms_baroclinic_instability(u, x, t, equations::CompressibleEulerEquations3D)
   RadEarth = 6371220.0 # Earth radius
   OmegaEarth = 7.29212E-5 # Coriolis parameter
-  Height = 16500.0 # Atmosphere height
+  Height = 30000.0 # Atmosphere height
   Grav = 9.81
   Cpd = 1004.0e0 # Specific heat by constant pressure
   Cvd = 717.0e0 # Specific heat by constant volume
@@ -300,7 +300,7 @@ surface_flux = FluxRotated(flux_mars)
 volume_flux  = flux_kennedy_gruber
 solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = Trixi.P4estMeshCubedSphere(8, 4, 6371220.0, 16500.0,
+mesh = Trixi.P4estMeshCubedSphere(8, 4, 6371220.0, 30000.0,
                                   polydeg=5, initial_refinement_level=0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
