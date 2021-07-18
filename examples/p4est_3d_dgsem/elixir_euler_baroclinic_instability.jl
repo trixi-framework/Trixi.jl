@@ -288,8 +288,8 @@ end
 
 initial_condition = initial_condition_baroclinic_instability
 
-# boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
-boundary_condition_slip_wall = BoundaryConditionDirichlet(initial_condition)
+boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
+# boundary_condition_slip_wall = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(
   :inside  => boundary_condition_slip_wall,
   :outside => boundary_condition_slip_wall,
