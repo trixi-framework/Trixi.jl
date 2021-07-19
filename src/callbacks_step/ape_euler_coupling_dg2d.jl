@@ -1,5 +1,5 @@
 function calc_gradient_c_mean_square!(grad_c_mean_sq, u, mesh, equations::AcousticPerturbationEquations2D,
-                                      dg::DG, cache)
+                                      dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
 
   @threaded for element in eachelement(dg, cache)
@@ -27,7 +27,7 @@ end
 
 
 function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_ape, vorticity_mean,
-                                source_region, weights, mesh, equations, dg::DG, cache)
+                                source_region, weights, mesh, equations, dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
   @unpack node_coordinates = cache.elements
 

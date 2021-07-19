@@ -44,7 +44,7 @@ end
 
 # TODO: Where should this function live?
 function create_cache(::Type{SemidiscretizationApeEuler}, mesh,
-                      equations::AcousticPerturbationEquations2D, dg::DG, cache)
+                      equations::AcousticPerturbationEquations2D, dg::DGSEM, cache)
   grad_c_mean_sq = zeros(eltype(cache.elements), (ndims(equations), nnodes(dg), nnodes(dg),
                                                   nelements(cache.elements)))
   acoustic_source_terms = zeros(eltype(cache.elements), size(grad_c_mean_sq))
@@ -64,10 +64,10 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationApeEu
     show(io, semi)
   else
     summary_header(io, "SemidiscretizationApeEuler")
-    #summary_line(io, "semidiscretization Acoustic Perturbation", semi.semi_ape |> typeof |> nameof)
-    #show(increment_indent(io), mime, semi.semi_ape)
-    #summary_line(io, "semidiscretization Euler", semi.semi_euler |> typeof |> nameof)
-    #show(increment_indent(io), mime, semi.semi_euler)
+    summary_line(io, "semidiscretization Euler", semi.semi_euler |> typeof |> nameof)
+    show(increment_indent(io), mime, semi.semi_euler)
+    summary_line(io, "semidiscretization acoustics", semi.semi_ape |> typeof |> nameof)
+    show(increment_indent(io), mime, semi.semi_ape)
     summary_footer(io)
   end
 end
@@ -135,7 +135,7 @@ end
 
 
 function calc_conservative_source_term!(du_ape, u_ape, grad_c_mean_sq,
-                                        mesh::TreeMesh{2}, equations, dg::DG, cache)
+                                        mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
   @threaded for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u_ape, equations, dg, i, j, element)

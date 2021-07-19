@@ -1,5 +1,5 @@
 function initialize_mean_values(mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
-                                dg::DG, cache)
+                                dg::DGSEM, cache)
   uEltype = eltype(cache.elements)
   v_mean = zeros(uEltype, (ndims(equations), nnodes(dg), nnodes(dg), nelements(cache.elements)))
   c_mean = zeros(uEltype, (nnodes(dg), nnodes(dg), nelements(cache.elements)))
@@ -10,7 +10,7 @@ function initialize_mean_values(mesh::TreeMesh{2}, equations::AbstractCompressib
 end
 
 function create_cache(::Type{AveragingCallback}, mesh::TreeMesh{2},
-                      equations::AbstractCompressibleEulerEquations{2}, dg::DG, cache)
+                      equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM, cache)
   # Cache vorticity from previous time step
   uEltype = eltype(cache.elements)
   vorticity_prev = zeros(uEltype, (nnodes(dg), nnodes(dg), nelements(cache.elements)))
@@ -19,7 +19,7 @@ end
 
 function initialize_cache!(averaging_callback_cache, u, t,
                            mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
-                           dg::DG, cache)
+                           dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
   @unpack vorticity_prev = averaging_callback_cache
 
@@ -49,7 +49,7 @@ end
 
 # Update mean values using the trapezoidal rule
 function calc_means!(mean_values, averaging_callback_cache, u, u_prev, integration_constant,
-                     mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2}, dg::DG,
+                     mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM,
                      cache)
   @unpack v_mean, c_mean, rho_mean, vorticity_mean = mean_values
   @unpack vorticity_prev = averaging_callback_cache
