@@ -26,20 +26,20 @@ function initialize_cache!(averaging_callback_cache, u, t,
   # Calculate vorticity for initial solution
   @threaded for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
-      dv2_dx = 0.0
+      v2_x = 0.0 # derivative of v2 in x direction
       for ii in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, ii, j, element)
         v2 = u_node[3] / u_node[1]
-        dv2_dx += derivative_matrix[i, ii] * v2
+        v2_x += derivative_matrix[i, ii] * v2
       end
 
-      dv1_dy = 0.0
+      v1_y = 0.0 # derivative of v1 in y direction
       for jj in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, jj, element)
         v1 = u_node[2] / u_node[1]
-        dv1_dy += derivative_matrix[j, jj] * v1
+        v1_y += derivative_matrix[j, jj] * v1
       end
-      vorticity_prev[i, j, element] = (dv2_dx - dv1_dy) * cache.elements.inverse_jacobian[element]
+      vorticity_prev[i, j, element] = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
     end
   end
 
@@ -58,20 +58,20 @@ function calc_means!(mean_values, averaging_callback_cache, u, u_prev, integrati
   @threaded for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       # Calculate vorticity
-      dv2_dx = 0.0
+      v2_x = 0.0 # derivative of v2 in x direction
       for ii in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, ii, j, element)
         v2 = u_node[3] / u_node[1]
-        dv2_dx += derivative_matrix[i, ii] * v2
+        v2_x += derivative_matrix[i, ii] * v2
       end
 
-      dv1_dy = 0.0
+      v1_y = 0.0 # derivative of v1 in y direction
       for jj in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, jj, element)
         v1 = u_node[2] / u_node[1]
-        dv1_dy += derivative_matrix[j, jj] * v1
+        v1_y += derivative_matrix[j, jj] * v1
       end
-      vorticity = (dv2_dx - dv1_dy) * cache.elements.inverse_jacobian[element]
+      vorticity = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
       vorticity_prev_node = vorticity_prev[i, j, element]
       vorticity_prev[i, j, element] = vorticity # Cache current velocity for the next time step
 

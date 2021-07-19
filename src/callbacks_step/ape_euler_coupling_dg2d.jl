@@ -39,20 +39,21 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_ape, vorticity
       # Only calculate sources on nodes that lie within the acoustic source region
       if source_region(x)
         # Calculate vorticity
-        dv2_dx = 0.0
+        v2_x = 0.0 # derivative of v2 in x direction
         for ii in eachnode(dg)
-          # TODO: Use get_node_vars instead?
-          v2 = u_euler[3, ii, j, element] / u_euler[1, ii, j, element]
-          dv2_dx += derivative_matrix[i, ii] * v2
+          u_euler_node = get_node_vars(u_euler, equations, dg, ii, j, element)
+          v2 = u_euler_node[3] / u_euler_node[1]
+          v2_x += derivative_matrix[i, ii] * v2
         end
 
-        dv1_dy = 0.0
+        v1_y = 0.0 # derivative of v1 in y direction
         for jj in eachnode(dg)
-          v1 = u_euler[2, i, jj, element] / u_euler[1, i, jj, element]
-          dv1_dy += derivative_matrix[j, jj] * v1
+          u_euler_node = get_node_vars(u_euler, equations, dg, i, jj, element)
+          v1 = u_euler_node[2] / u_euler_node[1]
+          v1_y += derivative_matrix[j, jj] * v1
         end
 
-        vorticity = (dv2_dx - dv1_dy) * cache.elements.inverse_jacobian[element]
+        vorticity = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
 
         prim_euler = cons2prim(get_node_vars(u_euler, equations, dg, i, j, element), equations)
         v1 = prim_euler[2]
