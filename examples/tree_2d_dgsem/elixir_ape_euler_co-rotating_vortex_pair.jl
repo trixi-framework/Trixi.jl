@@ -313,10 +313,10 @@ source_region(x) = sum(x.^2) < 6.0^2 # calculate sources within radius 6 around 
 # gradually reduce acoustic source term amplitudes to zero, starting at radius 5
 weights(x) = sum(x.^2) < 5.0^2 ? 1.0 : cospi(0.5 * (norm(x) - 5.0))
 
-semi = SemidiscretizationApeEuler(semi_ape, semi_euler, source_region=source_region, weights=weights)
+semi = SemidiscretizationEulerAcoustics(semi_ape, semi_euler, source_region=source_region, weights=weights)
 cfl_ape = 1.0
 cfl_euler = 1.0
-ape_euler_coupling = ApeEulerCouplingCallback(cfl_ape, cfl_euler, averaging_callback)
+ape_euler_coupling = EulerAcousticsCouplingCallback(cfl_ape, cfl_euler, averaging_callback)
 
 ###############################################################################
 # ODE solvers, callbacks etc. for the coupled simulation

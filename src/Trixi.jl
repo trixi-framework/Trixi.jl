@@ -87,8 +87,8 @@ include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
+include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("semidiscretization/semidiscretization_ape_euler.jl")
 include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
@@ -177,11 +177,11 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
-export SemidiscretizationApeEuler
+export SemidiscretizationEulerAcoustics
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
-       AveragingCallback, ApeEulerCouplingCallback,
+       AveragingCallback, EulerAcousticsCouplingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback,
        TrivialCallback

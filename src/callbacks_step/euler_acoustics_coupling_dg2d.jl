@@ -1,5 +1,5 @@
-function calc_gradient_c_mean_square!(grad_c_mean_sq, u, mesh, equations::AcousticPerturbationEquations2D,
-                                      dg::DGSEM, cache)
+function calc_gradient_c_mean_square!(grad_c_mean_sq, u, mesh,
+                                      equations::AcousticPerturbationEquations2D, dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
 
   @threaded for element in eachelement(dg, cache)
@@ -26,8 +26,9 @@ function calc_gradient_c_mean_square!(grad_c_mean_sq, u, mesh, equations::Acoust
 end
 
 
-function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_ape, vorticity_mean,
-                                source_region, weights, mesh, equations, dg::DGSEM, cache)
+function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vorticity_mean,
+                                source_region, weights, mesh,
+                                equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
   @unpack node_coordinates = cache.elements
 
@@ -58,15 +59,17 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_ape, vorticity
         prim_euler = cons2prim(get_node_vars(u_euler, equations, dg, i, j, element), equations)
         v1 = prim_euler[2]
         v2 = prim_euler[3]
-        v1_mean = u_ape[4, i, j, element]
-        v2_mean = u_ape[5, i, j, element]
+        v1_mean = u_acoustics[4, i, j, element]
+        v2_mean = u_acoustics[5, i, j, element]
 
         vorticity_prime = vorticity - vorticity_mean[i, j, element]
         v1_prime = v1 - v1_mean
         v2_prime = v2 - v2_mean
 
-        acoustic_source_terms[1, i, j, element] -= -vorticity_prime * v2_mean - vorticity_mean[i, j, element] * v2_prime
-        acoustic_source_terms[2, i, j, element] -=  vorticity_prime * v1_mean + vorticity_mean[i, j, element] * v1_prime
+        acoustic_source_terms[1, i, j, element] -= -vorticity_prime * v2_mean -
+                                                    vorticity_mean[i, j, element] * v2_prime
+        acoustic_source_terms[2, i, j, element] -=  vorticity_prime * v1_mean +
+                                                    vorticity_mean[i, j, element] * v1_prime
 
         # Apply acoustic source weighting function
         acoustic_source_terms[1, i, j, element] *= weights(x)

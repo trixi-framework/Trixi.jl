@@ -56,15 +56,14 @@ include("save_restart.jl")
 include("save_solution.jl")
 include("time_series.jl")
 include("visualization.jl")
+include("averaging.jl")
 
 include("amr.jl")
 include("stepsize.jl")
 include("glm_speed.jl")
 include("lbm_collision.jl")
+include("euler_acoustics_coupling.jl")
 
-# TODO: Comments + documentation
-include("averaging.jl")
-include("ape_euler_coupling.jl")
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`
