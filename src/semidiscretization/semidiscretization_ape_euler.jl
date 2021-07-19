@@ -54,7 +54,19 @@ end
 
 
 function Base.show(io::IO, semi::SemidiscretizationApeEuler)
-  print(io, "SemidiscretizationApeEuler")
+  @nospecialize semi # reduce precompilation time
+
+  print(io, "SemidiscretizationApeEuler(")
+  print(io,       semi.semi_ape)
+  print(io, ", ", semi.semi_euler)
+  print(io, ", ", semi.source_region)
+  print(io, ", ", semi.weights)
+  print(io, ", cache(")
+  for (idx, key) in enumerate(keys(semi.cache))
+    idx > 1 && print(io, " ")
+    print(io, key)
+  end
+  print(io, "))")
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationApeEuler)
@@ -68,6 +80,8 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationApeEu
     show(increment_indent(io), mime, semi.semi_euler)
     summary_line(io, "semidiscretization acoustics", semi.semi_ape |> typeof |> nameof)
     show(increment_indent(io), mime, semi.semi_ape)
+    summary_line(io, "acoustic source region", semi.source_region |> typeof |> nameof)
+    summary_line(io, "acoustic source weights", semi.weights |> typeof |> nameof)
     summary_footer(io)
   end
 end

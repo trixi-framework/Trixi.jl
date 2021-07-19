@@ -8,11 +8,23 @@ end
 
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:ApeEulerCouplingCallback})
+  @nospecialize cb # reduce precompilation time
+  ape_euler_coupling = cb.affect!
 
+  print(io, "ApeEulerCouplingCallback(")
+  print(io,       ape_euler_coupling.stepsize_callback_ape)
+  print(io, ", ", ape_euler_coupling.stepsize_callback_euler)
+  print(io, ", ", ape_euler_coupling.averaging_callback, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:ApeEulerCouplingCallback})
+  @nospecialize cb # reduce precompilation time
+  ape_euler_coupling = cb.affect!
 
+  summary_header(io, "ApeEulerCouplingCallback")
+  summary_line(io, "APE StepsizeCallback", ape_euler_coupling.stepsize_callback_ape)
+  summary_line(io, "Euler StepsizeCallback", ape_euler_coupling.stepsize_callback_euler)
+  summary_line(io, "mean values", ape_euler_coupling.averaging_callback)
 end
 
 
@@ -28,6 +40,8 @@ function ApeEulerCouplingCallback(cfl_ape::Real, cfl_euler::Real,
                           initialize=initialize!)
 end
 
+# This is called before the main loop and initializes the flow solver and calculates the gradient
+# of the squared mean speed of sound which is needed for the conservation source term
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:ApeEulerCouplingCallback}
   ape_euler_coupling = cb.affect!
   semi = integrator.p

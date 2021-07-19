@@ -6,10 +6,16 @@ end
 
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
-  print(io, "AveragingCallback")
+  @nospecialize cb # reduce precompilation time
+  averaging_callback = cb.affect!
+  @unpack tspan = averaging_callback
+
+  print(io, "AveragingCallback(tspan=", tspan)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AveragingCallback})
+  @nospecialize cb # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, cb)
   else

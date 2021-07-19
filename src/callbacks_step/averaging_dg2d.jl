@@ -1,3 +1,4 @@
+# Create arrays with DGSEM-specific structure to store the mean values and set them all to 0
 function initialize_mean_values(mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
                                 dg::DGSEM, cache)
   uEltype = eltype(cache.elements)
@@ -9,6 +10,8 @@ function initialize_mean_values(mesh::TreeMesh{2}, equations::AbstractCompressib
   return (; v_mean, c_mean, rho_mean, vorticity_mean)
 end
 
+# Create cache which holds the vorticity for the previous time step. This is needed due to the
+# trapezoidal rule
 function create_cache(::Type{AveragingCallback}, mesh::TreeMesh{2},
                       equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM, cache)
   # Cache vorticity from previous time step
@@ -17,7 +20,8 @@ function create_cache(::Type{AveragingCallback}, mesh::TreeMesh{2},
   return (; vorticity_prev)
 end
 
-function initialize_cache!(averaging_callback_cache, u, t,
+# Calculate vorticity for the initial solution and store it in the cache
+function initialize_cache!(averaging_callback_cache, u,
                            mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
                            dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
