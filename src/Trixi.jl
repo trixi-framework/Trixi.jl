@@ -26,6 +26,7 @@ using Reexport: @reexport
 
 import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
+                   AbstractODEIntegrator, init, step!, check_error,
                    get_du, get_tmp_cache, u_modified!,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
 using CodeTracking: code_string
@@ -86,6 +87,7 @@ include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
+include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
 include("time_integration/time_integration.jl")
 
@@ -175,8 +177,11 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
+export SemidiscretizationEulerAcoustics
+
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
+       AveragingCallback, EulerAcousticsCouplingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback,
        TrivialCallback
