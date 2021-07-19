@@ -417,7 +417,7 @@ end
 
 # Refine all leaf cells with coordinates in a given sphere
 function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS, <:Real}, radius::Real) where NDIMS
-  @assert radius >= 0 "Radius is negative."
+  @assert radius >= 0 "Radius must be positive."
 
   # Find all leaf cells within sphere
   cells = filter_leaf_cells(t) do cell_id

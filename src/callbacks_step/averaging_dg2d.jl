@@ -52,9 +52,9 @@ end
 
 
 # Update mean values using the trapezoidal rule
-function calc_means!(mean_values, averaging_callback_cache, u, u_prev, integration_constant,
-                     mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM,
-                     cache)
+function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, integration_constant,
+                           mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
+                           dg::DGSEM, cache)
   @unpack v_mean, c_mean, rho_mean, vorticity_mean = mean_values
   @unpack vorticity_prev = averaging_callback_cache
   @unpack derivative_matrix = dg.basis

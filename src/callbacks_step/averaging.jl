@@ -48,7 +48,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @trixi_timeit timer() "averaging" initialize_cache!(averaging_callback.cache, u, t,
+  @trixi_timeit timer() "averaging" initialize_cache!(averaging_callback.cache, u,
                                                       mesh, equations, solver, cache)
 
   # avoid re-evaluating possible FSAL stages
@@ -74,8 +74,9 @@ function (averaging_callback::AveragingCallback)(integrator)
 
   integration_constant = 0.5 * dt / (tspan[2] - tspan[1]) # .5 due to trapezoidal rule
 
-  @trixi_timeit timer() "averaging" calc_means!(mean_values, averaging_callback.cache, u, u_prev,
-                                                integration_constant, mesh, equations, solver, cache)
+  @trixi_timeit timer() "averaging" calc_mean_values!(mean_values, averaging_callback.cache,
+                                                      u, u_prev, integration_constant,
+                                                      mesh, equations, solver, cache)
 
   return nothing
 end
