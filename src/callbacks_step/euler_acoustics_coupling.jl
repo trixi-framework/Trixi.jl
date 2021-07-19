@@ -11,7 +11,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingC
   @nospecialize cb # reduce precompilation time
   euler_acoustics_coupling = cb.affect!
 
-  print(io, "ApeEulerCouplingCallback(")
+  print(io, "EulerAcousticsCouplingCallback(")
   print(io,       euler_acoustics_coupling.stepsize_callback_acoustics)
   print(io, ", ", euler_acoustics_coupling.stepsize_callback_euler)
   print(io, ", ", euler_acoustics_coupling.averaging_callback, ")")
@@ -21,19 +21,19 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Eul
   @nospecialize cb # reduce precompilation time
   euler_acoustics_coupling = cb.affect!
 
-  summary_header(io, "ApeEulerCouplingCallback")
+  summary_header(io, "EulerAcousticsCouplingCallback")
   summary_line(io, "acoustics StepsizeCallback", euler_acoustics_coupling.stepsize_callback_acoustics)
   summary_line(io, "Euler StepsizeCallback", euler_acoustics_coupling.stepsize_callback_euler)
   summary_line(io, "mean values", euler_acoustics_coupling.averaging_callback)
+  summary_footer(io)
 end
 
 
 function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real,
                                   averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback})
 
-  euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics)}(StepsizeCallback(cfl_acoustics),
-                                                                 StepsizeCallback(cfl_euler),
-                                                                 averaging_callback, nothing)
+  euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics)}(
+    StepsizeCallback(cfl_acoustics), StepsizeCallback(cfl_euler), averaging_callback, nothing)
   condition = (u, t, integrator) -> true
 
   return DiscreteCallback(condition, euler_acoustics_coupling, save_positions=(false, false),
@@ -42,14 +42,14 @@ end
 
 # This is called before the main loop and initializes the flow solver and calculates the gradient
 # of the squared mean speed of sound which is needed for the conservation source term
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator_acoustics) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
   euler_acoustics_coupling = cb.affect!
-  semi = integrator.p
+  semi = integrator_acoustics.p
   @unpack semi_acoustics, semi_euler = semi
 
   # Set up ODE Integrator for Euler equations
-  tspan = integrator.sol.prob.tspan
-  alg = integrator.alg
+  tspan = integrator_acoustics.sol.prob.tspan
+  alg = integrator_acoustics.alg
 
   ode_euler = semidiscretize(semi_euler, tspan)
   euler_acoustics_coupling.integrator_euler = init(ode_euler, alg, save_everystep=false, dt=1.0) # dt will be overwritten
@@ -67,7 +67,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
     semi.cache.grad_c_mean_sq, u_acoustics, mesh, equations, solver, cache)
 
   # Adjust stepsize, advance the flow solver by one time step
-  cb.affect!(integrator)
+  cb.affect!(integrator_acoustics)
 
   return nothing
 end
