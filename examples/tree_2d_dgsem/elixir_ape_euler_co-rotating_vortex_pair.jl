@@ -274,7 +274,7 @@ ode_averaging = semidiscretize(semi_euler, tspan1)
 # and resets the timers
 summary_callback = SummaryCallback()
 
-analysis_interval=5000
+analysis_interval = 5000
 alive = AliveCallback(analysis_interval=analysis_interval)
 
 tspan_averaging = (50.0, 400.0)
@@ -321,13 +321,15 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 5000
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 alive = AliveCallback(analysis_interval=analysis_interval)
 
 output_directory="out/"
 save_solution = SaveSolutionCallback(interval=2300, output_directory=output_directory)
 save_restart = SaveRestartCallback(interval=2300, output_directory=output_directory)
 
-callbacks = CallbackSet(summary_callback, alive, save_solution, save_restart, ape_euler_coupling)
+callbacks = CallbackSet(summary_callback, alive, analysis_callback, save_solution, save_restart,
+                        ape_euler_coupling)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
