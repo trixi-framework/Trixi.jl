@@ -2,27 +2,22 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, SourceRegion, 
   semi_acoustics::SemiAcoustics
   semi_euler::SemiEuler
   source_region::SourceRegion # function to determine whether a point x lies in the acoustic source region
-  weights::Weights # weighting function for the acoustic source terms, default is 1.0 everywhere
+  weights::Weights # weighting function for the acoustic source terms on a point x, default is 1.0
   performance_counter::PerformanceCounter
   cache::Cache
 
   function SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, SourceRegion, Weights, Cache}(
-      semi_acoustics::SemiAcoustics, semi_euler::SemiEuler, source_region::SourceRegion, weights::Weights,
-      cache::Cache) where {SemiAcoustics, SemiEuler, SourceRegion, Weights, Cache}
-
-    mesh_acoustics, equations_acoustics, solver_acoustics, _ = mesh_equations_solver_cache(semi_acoustics)
-    mesh_euler, equations_euler, solver_euler, _ = mesh_equations_solver_cache(semi_euler)
+    semi_acoustics, semi_euler, source_region, weights, cache) where {SemiAcoustics, SemiEuler,
+                                                                      SourceRegion, Weights, Cache}
 
     # Currently both semidiscretizations need to use a shared mesh
-    @assert mesh_acoustics == mesh_euler
+    @assert semi_acoustics.mesh == semi_euler.mesh
 
     @assert ndims(semi_acoustics) == ndims(semi_euler)
     @assert polydeg(semi_acoustics.solver) == polydeg(semi_euler.solver)
 
     performance_counter = PerformanceCounter()
-    new{SemiAcoustics, SemiEuler, typeof(source_region), typeof(weights), Cache}(semi_acoustics, semi_euler,
-                                                                           source_region, weights,
-                                                                           performance_counter, cache)
+    new(semi_acoustics, semi_euler, source_region, weights, performance_counter, cache)
   end
 end
 
@@ -32,14 +27,12 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics, semi_eu
                                           weights=x -> one(eltype(semi_acoustics.cache.elements))) where
     {Mesh, SemiAcoustics<:SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
      SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
-  # Vector for the Euler solution
-  u_ode = allocate_coefficients(mesh_equations_solver_cache(semi_euler)...)
 
-  cache = (; u_ode, create_cache(SemidiscretizationEulerAcoustics,
-                                 mesh_equations_solver_cache(semi_acoustics)...)...)
+  cache = create_cache(SemidiscretizationEulerAcoustics,
+                       mesh_equations_solver_cache(semi_acoustics)...)
 
   return SemidiscretizationEulerAcoustics{typeof(semi_acoustics), typeof(semi_euler),
-                                    typeof(source_region), typeof(weights), typeof(cache)}(
+                                          typeof(source_region), typeof(weights), typeof(cache)}(
     semi_acoustics, semi_euler, source_region, weights, cache)
 end
 
