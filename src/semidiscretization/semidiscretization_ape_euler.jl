@@ -118,9 +118,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationApeEuler, t)
     end
   end
 
-  @trixi_timeit timer() "calc conservative source term" begin
+  @trixi_timeit timer() "calc conservation source term" begin
     if ndims(semi_ape) == 2
-      calc_conservative_source_term!(du_ape, u_ape, cache.grad_c_mean_sq,
+      calc_conservation_source_term!(du_ape, u_ape, cache.grad_c_mean_sq,
                                      mesh_equations_solver_cache(semi_ape)...)
     else
       error("ndims $(ndims(semi_ape)) is not supported")
@@ -134,8 +134,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationApeEuler, t)
 end
 
 
-function calc_conservative_source_term!(du_ape, u_ape, grad_c_mean_sq,
-                                        mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
+function calc_conservation_source_term!(du_ape, u_ape, grad_c_mean_sq,
+                                        mesh::TreeMesh{2}, equations::AcousticPerturbationEquations2D,
+                                        dg::DGSEM, cache)
   @threaded for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u_ape, equations, dg, i, j, element)

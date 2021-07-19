@@ -49,7 +49,8 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   @views @. u_ape[7, .., :] = mean_values.rho_mean
 
   # Calculate gradient of squared mean speed of sound for the q_cons source term
-  calc_gradient_c_mean_square!(semi.cache.grad_c_mean_sq, u_ape, mesh, equations, solver, cache)
+  @trixi_timeit timer() "calc conservation source term" calc_gradient_c_mean_square!(
+    semi.cache.grad_c_mean_sq, u_ape, mesh, equations, solver, cache)
 
   # Adjust stepsize, advance the flow solver by one time step
   cb.affect!(integrator)
