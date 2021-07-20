@@ -7,7 +7,7 @@
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors,
+  @unpack node_coordinates, left_neighbors, right_neighbors,
           jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
@@ -25,7 +25,9 @@ function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendr
     calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
   end
 
-  initialize_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
+  initialize_left_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
+
+  initialize_right_neighbor_connectivity!(right_neighbors, mesh, linear_indices)
 
   return nothing
 end
@@ -135,7 +137,7 @@ end
 
 
 # Save id of left neighbor of every element
-function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{2}, linear_indices)
+function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{2}, linear_indices)
   # Neighbors in x-direction
   for cell_y in 1:size(mesh, 2)
     # Inner elements
@@ -172,6 +174,47 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{
 
   return left_neighbors
 end
+
+
+# Save id of left neighbor of every element
+function initialize_right_neighbor_connectivity!(right_neighbors, mesh::StructuredMesh{2}, linear_indices)
+  # Neighbors in x-direction
+  for cell_y in 1:size(mesh, 2)
+    # Inner elements
+    for cell_x in 1:size(mesh, 1)-1
+      element = linear_indices[cell_x, cell_y]
+      right_neighbors[1, element] = linear_indices[cell_x + 1, cell_y]
+    end
+
+    if isperiodic(mesh, 1)
+      # Periodic boundary
+      right_neighbors[1, linear_indices[end, cell_y]] = linear_indices[1, cell_y]
+    else
+      # Use boundary conditions
+      right_neighbors[1, linear_indices[end, cell_y]] = 0
+    end
+  end
+
+  # Neighbors in y-direction
+  for cell_x in 1:size(mesh, 1)
+    # Inner elements
+    for cell_y in 1:size(mesh, 2)-1
+      element = linear_indices[cell_x, cell_y]
+      right_neighbors[2, element] = linear_indices[cell_x, cell_y + 1]
+    end
+
+    if isperiodic(mesh, 2)
+      # Periodic boundary
+      right_neighbors[2, linear_indices[cell_x, end]] = linear_indices[cell_x, 1]
+    else
+      # Use boundary conditions
+      right_neighbors[2, linear_indices[cell_x, end]] = 0
+    end
+  end
+
+  return right_neighbors
+end
+
 
 
 end # @muladd
