@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
@@ -415,7 +421,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
   return has_changed
 end
 
-function reinitialize_boundaries!(boundary_conditions::UnstructuredQuadSortedBoundaryTypes, cache)
+function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes, cache)
   # Reinitialize boundary types container because boundaries may have changed.
   initialize!(boundary_conditions, cache)
 end
@@ -754,3 +760,6 @@ end
 include("amr_dg1d.jl")
 include("amr_dg2d.jl")
 include("amr_dg3d.jl")
+
+
+end # @muladd

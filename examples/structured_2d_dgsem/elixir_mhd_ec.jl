@@ -31,8 +31,8 @@ initial_condition = initial_condition_shifted_weak_blast_wave
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = flux_derigs_etal
-solver = DGSEM(polydeg=5, surface_flux=FluxRotated(flux_derigs_etal),
+volume_flux = flux_hindenlang
+solver = DGSEM(polydeg=5, surface_flux=flux_hindenlang,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################

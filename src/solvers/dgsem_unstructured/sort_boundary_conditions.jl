@@ -1,5 +1,12 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
-    UnstructuredQuadSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
+    UnstructuredSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
 
 General container to sort the boundary conditions by type for the unstructured quadrilateral solver.
 It stores a set of global indices for each boundary condition type to expedite computation
@@ -9,7 +16,7 @@ set by the user in the elixir file is also stored for printing.
 !!! warning "Experimental code"
     This boundary condition container is experimental and can change any time.
 """
-mutable struct UnstructuredQuadSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
+mutable struct UnstructuredSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
   boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionWall
   boundary_indices::NTuple{N, Vector{Int}} # integer vectors containing global boundary indices
   boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
@@ -19,20 +26,20 @@ end
 # constructor that "eats" the original boundary condition dictionary and sorts the information
 # from the `UnstructuredBoundaryContainer2D` in cache.boundaries according to the boundary types
 # and stores the associated global boundary indexing in NTuple
-function UnstructuredQuadSortedBoundaryTypes(boundary_conditions::Dict, cache)
+function UnstructuredSortedBoundaryTypes(boundary_conditions::Dict, cache)
   # extract the unique boundary function routines from the dictionary
   boundary_condition_types = Tuple(unique(collect(values(boundary_conditions))))
   n_boundary_types = length(boundary_condition_types)
   boundary_indices = ntuple(_ -> [], n_boundary_types)
 
-  container = UnstructuredQuadSortedBoundaryTypes{n_boundary_types, typeof(boundary_condition_types)}(
+  container = UnstructuredSortedBoundaryTypes{n_boundary_types, typeof(boundary_condition_types)}(
     boundary_condition_types, boundary_indices, boundary_conditions)
 
   initialize!(container, cache)
 end
 
 
-function initialize!(boundary_types_container::UnstructuredQuadSortedBoundaryTypes{N}, cache) where N
+function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N}, cache) where N
   @unpack boundary_dictionary, boundary_condition_types = boundary_types_container
 
   unique_names = unique(cache.boundaries.name)
@@ -69,3 +76,6 @@ function initialize!(boundary_types_container::UnstructuredQuadSortedBoundaryTyp
 
   return boundary_types_container
 end
+
+
+end # @muladd

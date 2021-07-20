@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # everything related to a DG semidiscretization in 2D,
 # currently limited to Lobatto-Legendre nodes
@@ -30,15 +36,18 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                      equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                      nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                      nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
 
   A = Array{uEltype, 4}
   f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -182,14 +191,12 @@ function calc_volume_integral!(du, u,
 
       flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, element)
       end
 
       flux2 = flux(u_node, 2, equations)
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, element)
       end
     end
   end
@@ -277,34 +284,25 @@ end
   for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
 
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-poitn flux
+    # computations.
+
     # x direction
-    # use consistency of the volume flux to make this evaluation cheaper
-    flux1 = flux(u_node, 1, equations)
-    integral_contribution = alpha * derivative_split[i, i] * flux1
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
-    # use symmetry of the volume flux for the remaining terms
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = alpha * derivative_split[i, ii] * flux1
-      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
-      integral_contribution = alpha * derivative_split[ii, i] * flux1
-      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  j, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, j, element)
     end
 
     # y direction
-    # use consistency of the volume flux to make this evaluation cheaper
-    flux2 = flux(u_node, 2, equations)
-    integral_contribution = alpha * derivative_split[j, j] * flux2
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
-    # use symmetry of the volume flux for the remaining terms
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
       flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-      integral_contribution = alpha * derivative_split[j, jj] * flux2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
-      integral_contribution = alpha * derivative_split[jj, j] * flux2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2, equations, dg, i, j,  element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2, equations, dg, i, jj, element)
     end
   end
 end
@@ -421,24 +419,23 @@ end
 end
 
 
-"""
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-                 nonconservative_terms::Val{false}, equations, volume_flux_fv, dg, element)
 
-Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
-
-# Arguments
-- `fstar1_L::AbstractArray{<:Real, 3}`:
-- `fstar1_R::AbstractArray{<:Real, 3}`:
-- `fstar2_L::AbstractArray{<:Real, 3}`:
-- `fstar2_R::AbstractArray{<:Real, 3}`:
-- `u_leftright::AbstractArray{<:Real, 4}`
-- `nonconservative_terms::Bool`
-- `equations`
-- `volume_flux_fv`
-- `dg::DGSEM`
-- `element::Integer`
-"""
+#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+#                  nonconservative_terms::Val{false}, equations, volume_flux_fv, dg, element)
+#
+# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
+#
+# # Arguments
+# - `fstar1_L::AbstractArray{<:Real, 3}`:
+# - `fstar1_R::AbstractArray{<:Real, 3}`:
+# - `fstar2_L::AbstractArray{<:Real, 3}`:
+# - `fstar2_R::AbstractArray{<:Real, 3}`:
+# - `u_leftright::AbstractArray{<:Real, 4}`
+# - `nonconservative_terms::Bool`
+# - `equations`
+# - `volume_flux_fv`
+# - `dg::DGSEM`
+# - `element::Integer`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
                               nonconservative_terms::Val{false}, equations, volume_flux_fv,
                               dg::DGSEM, element)
@@ -472,24 +469,22 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   return nothing
 end
 
-"""
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-                 nonconservative_terms::Val{true}, equations, volume_flux_fv, dg, element)
-
-Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
-
-# Arguments
-- `fstar1_L::AbstractArray{<:Real, 3}`:
-- `fstar1_R::AbstractArray{<:Real, 3}`:
-- `fstar2_L::AbstractArray{<:Real, 3}`:
-- `fstar2_R::AbstractArray{<:Real, 3}`:
-- `u_leftright::AbstractArray{<:Real, 4}`
-- `nonconservative_terms::Bool`
-- `equations`
-- `volume_flux_fv`
-- `dg::DGSEM`
-- `element::Integer`
-"""
+#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+#                  nonconservative_terms::Val{true}, equations, volume_flux_fv, dg, element)
+#
+# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
+#
+# # Arguments
+# - `fstar1_L::AbstractArray{<:Real, 3}`:
+# - `fstar1_R::AbstractArray{<:Real, 3}`:
+# - `fstar2_L::AbstractArray{<:Real, 3}`:
+# - `fstar2_R::AbstractArray{<:Real, 3}`:
+# - `u_leftright::AbstractArray{<:Real, 4}`
+# - `nonconservative_terms::Bool`
+# - `equations`
+# - `volume_flux_fv`
+# - `dg::DGSEM`
+# - `element::Integer`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
                               nonconservative_terms::Val{true}, equations, volume_flux_fv,
                               dg::DGSEM, element)
@@ -570,7 +565,8 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
   end
 
   return nothing
- end
+end
+
 
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
@@ -735,25 +731,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
   @assert isempty(eachboundary(dg, cache))
 end
 
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
-  @unpack surface_flux_values = cache.elements
-  @unpack n_boundaries_per_direction = cache.boundaries
-
-  # Calculate indices
-  lasts = accumulate(+, n_boundaries_per_direction)
-  firsts = lasts - n_boundaries_per_direction .+ 1
-
-  # Calc boundary fluxes in each direction
-  for direction in eachindex(firsts)
-    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition,
-                                     equations, surface_integral, dg, cache,
-                                     direction, firsts[direction], lasts[direction])
-  end
-end
-
-function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tuple},
+function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
@@ -1138,3 +1116,6 @@ function calc_sources!(du, u, t, source_terms,
 
   return nothing
 end
+
+
+end # @muladd

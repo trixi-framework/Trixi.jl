@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Convenience type to allow dispatch on solution objects that were created by Trixi
 #
 # This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
@@ -355,7 +362,7 @@ end
 
   # Set series properties
   seriestype := :path
-  linecolor := :black
+  linecolor := :grey
   linewidth := 1
 
   # Return data for plotting
@@ -378,7 +385,7 @@ end
 
   # Set series properties
   seriestype --> :path
-  linecolor --> :black
+  linecolor --> :grey
   linewidth --> 1
 
   # Return data for plotting
@@ -697,3 +704,6 @@ end
 @recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
   return PlotData1D(time_series_callback, point_id)
 end
+
+
+end # @muladd

@@ -8,8 +8,8 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = flux_chandrashekar
-solver = DGSEM(polydeg=3, surface_flux=flux_chandrashekar,
+volume_flux = flux_ranocha
+solver = DGSEM(polydeg=3, surface_flux=flux_ranocha,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2, -2)
