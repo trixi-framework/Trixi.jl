@@ -134,6 +134,13 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
+  if typeof(equations) <:  HyperbolicNavierStokesEquations1D
+    # Calculate precondition matrix
+    @trixi_timeit timer() "precondtion matrix" calc_precondition_matrix!(
+      du, u, t, equations, dg, cache)
+  end
+
+
   return nothing
 end
 
@@ -588,6 +595,26 @@ function calc_sources!(du, u, t, source_terms,
 
   return nothing
 end
+
+function calc_precondition_matrix!(du, u, t,
+                       equations::HyperbolicNavierStokesEquations1D, dg::DG, cache)
+
+  @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
+
+  @threaded for element in eachelement(dg, cache)
+    for i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, element)
+      p = (gamma-1)*(u_local[3]-0.5*u_local[2]^2/u_local[1])
+      T = gamma*p/u_local[1]
+      mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
+      mu_v = 4/3 * mu     # viscosity of stress
+      mu_h = gamma*mu/Pr  # viscosity of heat flux
+      p4 = mu_v^2 / (L^2 * u_local[1])
+      p5 = mu_h^2 / (L^2 * u_local[1])
+      p_local = SVector(one(p4), one(p4), one(p4), p4, p5)
+      multiply_node_vars!(du, p_local, equations, dg, i, element)
+    end
+  end
 
 
 end # @muladd
