@@ -36,7 +36,7 @@ using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 import MPI
-using GeometryBasics: GeometryBasics, Mesh, normal_mesh 
+using GeometryBasics: GeometryBasics, Mesh, normal_mesh
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
@@ -205,7 +205,7 @@ function __init__()
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
   end
-                
+
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/makie_visualization.jl")
     using .Makie: Makie, Attributes, mesh, mesh!, plot!, @recipe, lines!, @lift
