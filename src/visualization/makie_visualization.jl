@@ -1,7 +1,7 @@
 """
 function compute_triangle_area(tri)
 
-Computes the area of a triangle given `tri`, which is a tuple of three points (vectors). 
+Computes the area of a triangle given `tri`, which is a tuple of three points (vectors).
 Formula from https://en.wikipedia.org/wiki/Shoelace_formula
 """
 function compute_triangle_area(tri)
@@ -11,15 +11,15 @@ end
 
 """
     function plotting_triangulation(reference_plotting_coordinates)
-    
-Computes a triangulation of the points in `reference_plotting_coordinates`, which is a tuple containing 
-vectors of plotting points on the reference element (e.g., reference_plotting_coordinates = (r,s)). The 
+
+Computes a triangulation of the points in `reference_plotting_coordinates`, which is a tuple containing
+vectors of plotting points on the reference element (e.g., reference_plotting_coordinates = (r,s)). The
 reference element is assumed to be [-1,1]^d.
 
-Returns `t` which is a `3 x N_tri` Matrix{Int} containing indices of triangles in the triangulation of 
-the plotting points, with zero-volume triangles removed. 
+Returns `t` which is a `3 x N_tri` Matrix{Int} containing indices of triangles in the triangulation of
+the plotting points, with zero-volume triangles removed.
 
-For example, r[t[1,i]] returns the first reference coordinate of the 1st point on the ith triangle. 
+For example, r[t[1,i]] returns the first reference coordinate of the 1st point on the ith triangle.
 """
 function plotting_triangulation(reference_plotting_coordinates,tol=50*eps())
 
@@ -30,12 +30,12 @@ function plotting_triangulation(reference_plotting_coordinates,tol=50*eps())
     t = triout.trianglelist
 
     # filter out sliver triangles
-    has_volume = fill(true,size(t,2))
-    for i in axes(t,2)
-        ids = @view t[:,i]
-        x_points = @view triout.pointlist[1,ids]
-        y_points = @view triout.pointlist[2,ids]
-        area = compute_triangle_area(zip(x_points,y_points))
+    has_volume = fill(true, size(t,2))
+    for i in axes(t, 2)
+        ids = @view t[:, i]
+        x_points = @view triout.pointlist[1, ids]
+        y_points = @view triout.pointlist[2, ids]
+        area = compute_triangle_area(zip(x_points, y_points))
         if abs(area) < tol
             has_volume[i] = false
         end
@@ -46,13 +46,13 @@ end
 """
     function plotting_interpolation_matrix(dg; kwargs...)
 
-Interpolation matrix which maps discretization nodes to a set of plotting nodes. 
-Defaults to the identity matrix of size `length(solver.basis.nodes)`, and interpolates 
-to equispaced nodes for DGSEM (set by kwarg `nvisnodes` in the plotting function). 
+Interpolation matrix which maps discretization nodes to a set of plotting nodes.
+Defaults to the identity matrix of size `length(solver.basis.nodes)`, and interpolates
+to equispaced nodes for DGSEM (set by kwarg `nvisnodes` in the plotting function).
 
-Example: 
+Example:
 ```julia
-A = plotting_interpolation_matrix(dg) 
+A = plotting_interpolation_matrix(dg)
 A*dg.basis.nodes # => vector of nodes at which to plot the solution
 ```
 """
@@ -71,12 +71,12 @@ Arguments:
 - sol: TrixiODESolution
 - variable_to_plot: index of solution field to plot
 
-Example: 
+Example:
 ```julia
 tri = Trixi.generate_plotting_triangulation(sol,1)
-Makie.mesh(tri,color=getindex.(tri.position,3)) 
+Makie.mesh(tri,color=getindex.(tri.position,3))
 ```
-The color is specified to be the z-value of the solution, which there does not seem to be a default solution for yet. 
+The color is specified to be the z-value of the solution, which there does not seem to be a default solution for yet.
 """
 function generate_plotting_triangulation(sol::TrixiODESolution, variable_to_plot::Int; nvisnodes=5)
 
@@ -86,50 +86,50 @@ function generate_plotting_triangulation(sol::TrixiODESolution, variable_to_plot
 
     # make solution
     u = sol.u[end]
-    u = Trixi.wrap_array(u,mesh,equations,dg,cache)
+    u = Trixi.wrap_array(u, mesh, equations, dg, cache)
 
     n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
-    n_elements = nelements(dg,cache)
-    
+    n_elements = nelements(dg, cache)
+
     # build nodes on reference element (seems to be the right ordering)
     r1D = dg.basis.nodes
-    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
-    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D])
+    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D])
 
     # reference plotting nodes
     Vp1D = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
-    Vp = kron(Vp1D,Vp1D) 
-    n_plot_nodes = size(Vp,1)
+    Vp = kron(Vp1D, Vp1D)
+    n_plot_nodes = size(Vp, 1)
 
     # create triangulation for plotting nodes
-    rp,sp = (x->Vp*x).((r,s)) # interpolate dg nodes to plotting nodes
+    rp,sp = (x->Vp*x).((r, s)) # interpolate dg nodes to plotting nodes
 
     # construct a triangulation of the plotting nodes
-    t = permutedims(plotting_triangulation((rp,sp)))
-    makie_triangles = Makie.to_triangles(t) 
+    t = permutedims(plotting_triangulation((rp, sp)))
+    makie_triangles = Makie.to_triangles(t)
 
-    # trimesh[i] holds the GeometryBasics.Mesh containing solution plotting 
-    # information on the ith element. 
-    trimesh = Vector{GeometryBasics.Mesh{3,Float32}}(undef,n_elements)
-    coordinates_tmp = zeros(Float32,n_nodes,3)
-    coordinates = zeros(Float32,n_plot_nodes,3)
+    # trimesh[i] holds the GeometryBasics.Mesh containing solution plotting
+    # information on the ith element.
+    trimesh = Vector{GeometryBasics.Mesh{3,Float32}}(undef, n_elements)
+    coordinates_tmp = zeros(Float32, n_nodes, 3)
+    coordinates = zeros(Float32, n_plot_nodes, 3)
     for element in Trixi.eachelement(dg, cache)
 
         # extract x,y coordinates and solutions on each element
         sk = 1
         for j in Trixi.eachnode(dg), i in Trixi.eachnode(dg)
-            u_node = Trixi.get_node_vars(u,semi.equations,dg,i,j,element)
+            u_node = Trixi.get_node_vars(u,semi.equations, dg, i, j, element)
             xy_node = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
             coordinates_tmp[sk,1:2] .= xy_node
             coordinates_tmp[sk,3] = u_node[variable_to_plot]
             sk += 1
-        end    
+        end
 
         # interpolates both xy coordinates and solution values to plotting points
-        mul!(coordinates,Vp,coordinates_tmp)
-        
-        trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates),makie_triangles)
+        mul!(coordinates, Vp, coordinates_tmp)
+
+        trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
     end
 
     # merge meshes on each element into one large mesh
@@ -137,26 +137,26 @@ function generate_plotting_triangulation(sol::TrixiODESolution, variable_to_plot
     return plotting_mesh
 end
 
-function generate_plotting_wireframe(sol::TrixiODESolution,variable_to_plot::Int; nvisnodes=5)
+function generate_plotting_wireframe(sol::TrixiODESolution, variable_to_plot::Int; nvisnodes=5)
 
     semi = sol.prob.p
     @unpack equations, mesh, cache = semi
     dg = semi.solver
-   
+
     n_nodes_1D = length(dg.basis.nodes)
     n_nodes = n_nodes_1D^2
     n_elements = nelements(dg,cache)
 
     # reference interpolation operators
-    Vp1D = plotting_interpolation_matrix(dg; nvisnodes = nvisnodes)   
-    
-    # reconstruct reference nodes (assumes 2D ordering on reference quad is x_i,y_j with i first). 
+    Vp1D = plotting_interpolation_matrix(dg; nvisnodes = nvisnodes)
+
+    # reconstruct reference nodes (assumes 2D ordering on reference quad is x_i,y_j with i first).
     r1D = dg.basis.nodes
-    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
-    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D]) 
+    r = vec([r1D[i] for i = 1:n_nodes_1D, j = 1:n_nodes_1D])
+    s = vec([r1D[j] for i = 1:n_nodes_1D, j = 1:n_nodes_1D])
 
     # extract indices of local face nodes
-    tol = 50*eps() 
+    tol = 50*eps()
     face_1 = findall(@. abs(s+1) < tol)
     face_2 = findall(@. abs(r-1) < tol)
     face_3 = findall(@. abs(s-1) < tol)
@@ -174,28 +174,28 @@ function generate_plotting_wireframe(sol::TrixiODESolution,variable_to_plot::Int
             xy_node = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
             x[sk,element] = xy_node[1]
             y[sk,element] = xy_node[2]
-            sol_to_plot[sk,element] = u_node[variable_to_plot]
+            sol_to_plot[sk, element] = u_node[variable_to_plot]
             sk += 1
-        end    
+        end
     end
 
-    # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot. 
-    # The resulting arrays are then reshaped so that xf,yf,sol_f are Matrix types of size 
+    # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
+    # The resulting arrays are then reshaped so that xf,yf,sol_f are Matrix types of size
     # (Number of face plotting nodes) x (Number of faces).
-    function face_first_reshape(x,n_nodes_1D,n_nodes,n_elements)
+    function face_first_reshape(x, n_nodes_1D, n_nodes, n_elements)
         n_reference_faces = 4 # hardcoded for quads
-        xf = view(reshape(x,n_nodes,n_elements),vec(Fmask),:)
-        return reshape(xf,n_nodes_1D,n_elements * n_reference_faces)
+        xf = view(reshape(x, n_nodes, n_elements), vec(Fmask), :)
+        return reshape(xf, n_nodes_1D, n_elements * n_reference_faces)
     end
-    xf,yf,sol_f = face_first_reshape.((x,y,sol_to_plot),n_nodes_1D,n_nodes,n_elements)
+    xf, yf, sol_f = face_first_reshape.((x, y, sol_to_plot), n_nodes_1D, n_nodes, n_elements)
 
     # this line does three things:
     # - interpolates face nodal points to plotting points
     # - use NaNs to break up lines corresponding to each face
     # - converts the final array to a vector
-    xfp,yfp,ufp = map(xf->vec(vcat(Vp1D*xf,fill(NaN,1,size(xf,2)))),(xf,yf,sol_f)) 
+    xfp, yfp, ufp = map(xf->vec(vcat(Vp1D*xf, fill(NaN, 1, size(xf, 2)))), (xf, yf, sol_f))
 
-    return Makie.Point.(xfp,yfp,ufp)
+    return Makie.Point.(xfp, yfp, ufp)
 end
 
 function trixi_plot(sol::TrixiODESolution; variable_to_plot_in = 1, nvisnodes=5)
@@ -221,21 +221,21 @@ function trixi_plot(sol::TrixiODESolution; variable_to_plot_in = 1, nvisnodes=5)
 
     ax = Makie.LScene(fig[1,2],scenekw = (show_axis = false,))
 
-    # interactive menu variable_to_plot 
-    menu.selection[] = variable_to_plot_in 
-    menu.i_selected[] = variable_to_plot_in # initialize a menu 
+    # interactive menu variable_to_plot
+    menu.selection[] = variable_to_plot_in
+    menu.i_selected[] = variable_to_plot_in # initialize a menu
 
     # these lines get re-run whenever variable_to_plot[] is updated
     plotting_mesh = Makie.@lift(Trixi.generate_plotting_triangulation(sol, $(menu.selection), nvisnodes = nvisnodes))
-    solution_z = Makie.@lift(getindex.($plotting_mesh.position,3)) 
-    Makie.mesh!(ax,plotting_mesh,color=solution_z,nvisnodes=nvisnodes)
+    solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
+    Makie.mesh!(ax, plotting_mesh, color=solution_z, nvisnodes=nvisnodes)
 
-    # mesh overlay    
+    # mesh overlay
     wire_points = Makie.@lift(Trixi.generate_plotting_wireframe(sol, $(menu.selection), nvisnodes = nvisnodes))
-    wire_mesh_top = Makie.lines!(ax,wire_points,color=:white) 
-    wire_mesh_bottom = Makie.lines!(ax,wire_points,color=:white) 
-    Makie.translate!(wire_mesh_top,0,0,1e-3)
-    Makie.translate!(wire_mesh_bottom,0,0,-1e-3)
+    wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
+    wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
+    Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
+    Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
 
     # mesh below the solution
     function compute_z_offset(solution_z)
@@ -244,18 +244,18 @@ function trixi_plot(sol::TrixiODESolution; variable_to_plot_in = 1, nvisnodes=5)
         return zmin - .25*zrange
     end
     z_offset = Makie.@lift(compute_z_offset($solution_z))
-    get_flat_points(wire_points,z_offset) = [Makie.Point(point.data[1:2]...,z_offset) for point in wire_points]
-    flat_wire_points = Makie.@lift get_flat_points($wire_points,$z_offset)
-    wire_mesh_flat = Makie.lines!(ax,flat_wire_points,color=:black) 
+    get_flat_points(wire_points, z_offset) = [Makie.Point(point.data[1:2]..., z_offset) for point in wire_points]
+    flat_wire_points = Makie.@lift get_flat_points($wire_points, $z_offset)
+    wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
 
     # reset colorbar each time solution changes
     Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap = :viridis, flipaxis = false)
 
     # syncs the toggle to the mesh
-    Makie.connect!(wire_mesh_top.visible, toggle_sol_mesh.active) 
+    Makie.connect!(wire_mesh_top.visible, toggle_sol_mesh.active)
     Makie.connect!(wire_mesh_bottom.visible, toggle_sol_mesh.active)
     Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
 
     # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
-    fig 
+    fig
 end
