@@ -8,7 +8,7 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "simplicial_2d_dg")
 
-@testset "2D simplicial mesh tests" begin
+@testset "2D simplicial mesh" begin
   @trixi_testset "elixir_euler_triangular_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangular_mesh.jl"),
       l2 = [0.0013463253573454718, 0.0014235911638071127, 0.0014235911638076826, 0.00472192381034704],

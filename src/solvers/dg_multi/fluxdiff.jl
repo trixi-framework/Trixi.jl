@@ -50,8 +50,8 @@ function build_lazy_physical_derivative(element::Int, orientation::Int,
   end
 end
 
-function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralFluxDifferencing,
-                               mesh::VertexMappedMesh, equations, dg::DG, cache) where {DG <: SBPDGFluxDiff}
+function calc_volume_integral!(du, u::StructArray, volume_integral,
+                               mesh::VertexMappedMesh, equations, dg::SBPDGFluxDiff, cache)
 
   rd = dg.basis
   @unpack local_values_threaded = cache
@@ -72,8 +72,7 @@ function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegr
 end
 
 
-function create_cache(mesh::VertexMappedMesh{Dim}, equations, dg::DG,
-                      RealT, uEltype) where {DG <: PolyDGFluxDiff} where {Dim}
+function create_cache(mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -86,7 +85,7 @@ function create_cache(mesh::VertexMappedMesh{Dim}, equations, dg::DG,
     Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized)
   end
-  Qrst_skew_Tr = map(A -> -.5*(A-A'), Qrst_hybridized)
+  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
 
 
   nvars = nvariables(equations)
@@ -109,8 +108,8 @@ function create_cache(mesh::VertexMappedMesh{Dim}, equations, dg::DG,
   local_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
 
   return (; md, Qrst_skew_Tr, VhP, Ph, invJ = inv.(md.J),
-      entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
-      u_values, u_face_values, rhs_local_threaded, flux_face_values, local_values_threaded)
+            entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
+            u_values, u_face_values, rhs_local_threaded, flux_face_values, local_values_threaded)
 end
 
 function entropy_projection!(cache, u::StructArray, mesh::VertexMappedMesh,
@@ -154,16 +153,15 @@ function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegr
   end
 end
 
-function rhs!(du, u::StructArray, t, mesh, equations,
-              initial_condition, boundary_conditions::BC, source_terms::Source,
-              dg::PolyDGFluxDiff, cache) where {BC, Source}
+function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
+              source_terms, dg::PolyDGFluxDiff, cache)
 
-  @trixi_timeit timer() "Reset du/dt" fill!(du,zero(eltype(du)))
+  @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
 
   @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh, equations, dg)
 
   @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(du, u, dg.volume_integral,
-                                    mesh, equations, dg, cache)
+                                                                      mesh, equations, dg, cache)
 
   # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
   @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral, mesh, equations, dg)
@@ -178,5 +176,4 @@ function rhs!(du, u::StructArray, t, mesh, equations,
 
   return nothing
 end
-
 
