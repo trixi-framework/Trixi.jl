@@ -1,12 +1,12 @@
 """
-    hadamard_sum_ATr!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
+    hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
 
 Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`.
 - `du`, `u` are vectors
 - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for
   faster traversal since matrices are column major in Julia.
 """
-@inline function hadamard_sum_ATr!(du, ATr, volume_flux::VF, u, skip_index=(i,j)->false) where {VF}
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
@@ -20,7 +20,21 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
   end
 end
 
-# For MultiDG implementations, we construct "physical" differentiation operators by taking linear
+# Version of function without `skip_index`, as mentioned in
+# https://github.com/trixi-framework/Trixi.jl/pull/695/files#r670403097
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux::VF, u) where {VF}
+  rows, cols = axes(ATr)
+  for i in cols
+    u_i = u[i]
+    du_i = du[i]
+    for j in rows
+      du_i += ATr[j,i] * volume_flux(u_i, u[j])
+    end
+    du[i] = du_i
+  end
+end
+
+# For DGMulti implementations, we construct "physical" differentiation operators by taking linear
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
 # We use LazyArrays.jl for lazy evaluation of physical differentiation operators, so that we can
 # compute linear combinations of differentiation operators on-the-fly in an allocation-free manner.
@@ -50,7 +64,7 @@ function build_lazy_physical_derivative(element::Int, orientation::Int,
   end
 end
 
-function calc_volume_integral!(du, u::StructArray, volume_integral,
+function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::SBPDGFluxDiff, cache)
 
   rd = dg.basis
@@ -65,7 +79,7 @@ function calc_volume_integral!(du, u::StructArray, volume_integral,
     u_local = view(u, :, e)
     for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum_ATr!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local)
+      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local)
     end
     view(du, :, e) .+= rhs_local ./ rd.wq
   end
@@ -78,10 +92,10 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, Rea
   @unpack md = mesh
 
   # Todo: simplices. Fix this when StartUpDG v0.11.0 releases: new API `Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)`
-  if Dim == 2
+  if ndims(mesh) == 2
     Qr_hybridized, Qs_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized)
-  elseif Dim == 3
+  elseif ndims(mesh) == 3
     Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized)
   end
@@ -112,7 +126,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, Rea
             u_values, u_face_values, rhs_local_threaded, flux_face_values, local_values_threaded)
 end
 
-function entropy_projection!(cache, u::StructArray, mesh::VertexMappedMesh,
+function entropy_projection!(cache, u, mesh::VertexMappedMesh,
                              equations, dg::DG) where {DG <: PolyDGFluxDiff}
 
   rd = dg.basis
@@ -147,14 +161,14 @@ function calc_volume_integral!(du, u::StructArray, volume_integral,
     u_local = view(entropy_projected_u_values, :, e)
     for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum_ATr!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, skip_index)
+      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, skip_index)
     end
     StructArrays.foreachfield(mul_by_accum!(Ph), view(du, :, e), rhs_local)
   end
 end
 
-function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
-              source_terms, dg::PolyDGFluxDiff, cache)
+function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
+              source_terms::Source, dg::PolyDGFluxDiff, cache) where {Source, BC}
 
   @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
 
