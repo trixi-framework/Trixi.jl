@@ -56,36 +56,35 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dg_mul
     )
   end
 
-  # # 2D quad mesh tests
-  # @trixi_testset "elixir_euler_quadrilateral_mesh.jl" begin
-  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quadrilateral_mesh.jl"),
-  #     l2 = [0.0002909691660845978, 0.0002811425883546657, 0.0002811425883549579, 0.0010200600240538172],
-  #     linf = [0.0004970396373780162, 0.0004059109438805386, 0.00040591094388231497, 0.0014247618507141624]
-  #   )
-  # end
+  # 2D quad mesh tests
+  @trixi_testset "elixir_euler_quadrilateral_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quadrilateral_mesh.jl"),
+      l2 = [0.0002909691660845978, 0.0002811425883546657, 0.0002811425883549579, 0.0010200600240538172],
+      linf = [0.0004970396373780162, 0.0004059109438805386, 0.00040591094388231497, 0.0014247618507141624]
+    )
+  end
 
-  # # 3d tet/hex tests
-  # @trixi_testset "elixir_euler_tetrahedral_mesh.jl" begin
-  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_tetrahedral_mesh.jl"),
-  #     l2 = [0.0010029534292051608, 0.0011682205957721673, 0.001072975385793516, 0.000997247778892257, 0.0039364354651358294],
-  #     linf = [0.003660737033303718, 0.005625620600749226, 0.0030566354814669516, 0.0041580358824311325, 0.019326660236036464]
-  #   )
-  # end
+  # 3d tet/hex tests
+  @trixi_testset "elixir_euler_tetrahedral_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_tetrahedral_mesh.jl"),
+      l2 = [0.0010029534292051608, 0.0011682205957721673, 0.001072975385793516, 0.000997247778892257, 0.0039364354651358294],
+      linf = [0.003660737033303718, 0.005625620600749226, 0.0030566354814669516, 0.0041580358824311325, 0.019326660236036464]
+    )
+  end
 
-  # @trixi_testset "elixir_euler_tetrahedral_mesh_ec.jl" begin
-  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_tetrahedral_mesh_ec.jl"),
-  #     l2 = [0.10199177415993853, 0.11613427360212616, 0.11026702646784316, 0.10994524014778534, 0.2582449717237713],
-  #     linf = [0.2671818932369674, 0.2936313498471166, 0.34636540613352573, 0.2996048158961957, 0.7082318124804874]
-  #   )
-  # end
+  @trixi_testset "elixir_euler_tetrahedral_mesh_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_tetrahedral_mesh_ec.jl"),
+      l2 = [0.10199177415993853, 0.11613427360212616, 0.11026702646784316, 0.10994524014778534, 0.2582449717237713],
+      linf = [0.2671818932369674, 0.2936313498471166, 0.34636540613352573, 0.2996048158961957, 0.7082318124804874]
+    )
+  end
 
-  # @trixi_testset "elixir_euler_hexahedral_mesh.jl" begin
-  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_hexahedral_mesh.jl"),
-  #     l2 = [0.00030580190715769566, 0.00040146357607439464, 0.00040146357607564597, 0.000401463576075708, 0.0015749412434154315],
-  #     linf = [0.00036910287847780054, 0.00042659774184228283, 0.0004265977427213574, 0.00042659774250686233, 0.00143803344597071]
-  #   )
-  # end
-
+  @trixi_testset "elixir_euler_hexahedral_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_hexahedral_mesh.jl"),
+      l2 = [0.00030580190715769566, 0.00040146357607439464, 0.00040146357607564597, 0.000401463576075708, 0.0015749412434154315],
+      linf = [0.00036910287847780054, 0.00042659774184228283, 0.0004265977427213574, 0.00042659774250686233, 0.00143803344597071]
+    )
+  end
 
 end
 
