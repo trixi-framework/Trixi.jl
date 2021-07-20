@@ -129,7 +129,7 @@ function entropy_projection!(cache, u::StructArray, mesh::VertexMappedMesh,
   entropy_projected_u_values .= entropy2cons.(projected_entropy_var_values, equations)
 end
 
-function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralFluxDifferencing,
+function calc_volume_integral!(du, u::StructArray, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, cache)
 
   rd = dg.basis
@@ -176,4 +176,3 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions,
 
   return nothing
 end
-
