@@ -124,3 +124,8 @@ Some key elixirs to look at:
   [Triangulate.jl](https://github.com/JuliaGeometry/Triangulate.jl).
 * `elixir_ape_sbp_triangular_mesh.jl`: uses a multi-dimensional SBP discretization in weak form.
 * `elixir_euler_tet_mesh.jl`: basic weak form DG discretization on a uniform tet mesh.
+
+We also have support for flux differencing on simplicial meshes:
+* `elixir_euler_triangular_mesh_ec.jl`: Modal DG discretization with flux differencing on a uniform triangular mesh.
+* `elixir_euler_sbp_triangular_mesh_ec.jl`: SBP-DG discretization with flux differencing on a uniform triangular mesh.
+* `elixir_euler_tet_mesh_ec.jl`: Modal DG discretization with flux differencing on a uniform tetrahedral mesh.
