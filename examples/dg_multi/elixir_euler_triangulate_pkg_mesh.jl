@@ -1,36 +1,33 @@
 # !!! warning "Experimental features"
 
-using StartUpDG
+using Triangulate
 using Trixi, OrdinaryDiffEq
 
-polydeg = 3
-rd = RefElemData(Tri(), polydeg)
-
-flux_ec = flux_ranocha
-dg = DG(rd, nothing #= mortar =#,
-        SurfaceIntegralWeakForm(flux_ec),
-        VolumeIntegralFluxDifferencing(flux_ec))
+dg = DGMulti(; polydeg = 3, elem_type = Tri(),
+               surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+               volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-# example where we tag two separate boundary segments of the mesh
-top_boundary(x,y,tol=50*eps()) = abs(y-1)<tol
-rest_of_boundary(x,y,tol=50*eps()) = !top_boundary(x,y,tol)
-is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
-VX, VY, EToV = StartUpDG.uniform_mesh(Tri(), 4)
-mesh = VertexMappedMesh(VX, VY, EToV, rd, is_on_boundary = is_on_boundary)
+meshIO = StartUpDG.square_hole_domain(.25) # pre-defined Triangulate geometry in StartUpDG
+
+# the pre-defined Triangulate geometry in StartUpDG has integer boundary tags. this routine
+# assigns boundary faces based on these integer boundary tags.
+mesh = VertexMappedMesh(meshIO, dg, Dict(:bottom=>1, :right=>2, :top=>3, :left=>4))
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :top => boundary_condition_convergence_test,
-                        :rest => boundary_condition_convergence_test)
+boundary_conditions = (; :bottom => boundary_condition_convergence_test,
+                         :right => boundary_condition_convergence_test,
+                         :top => boundary_condition_convergence_test,
+                         :left => boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_conditions)
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -42,7 +39,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-dt0 = StartUpDG.estimate_h(rd,mesh.md) / StartUpDG.inverse_trace_constant(rd)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt = 0.5*dt0, save_everystep=false, callback=callbacks);
+            dt = 0.5 * estimate_dt(dg, mesh), save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
