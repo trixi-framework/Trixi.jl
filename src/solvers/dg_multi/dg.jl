@@ -115,7 +115,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
 end
 
 function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralWeakForm,
-                 mesh::VertexMappedMesh, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                 mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
