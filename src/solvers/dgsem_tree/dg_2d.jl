@@ -174,6 +174,12 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
 
+  if typeof(equations) <:  HyperbolicNavierStokesEquations2D
+    # Calculate precondition matrix
+    @trixi_timeit timer() "precondtion matrix" calc_precondition_matrix!(
+      du, u, t, equations, dg, cache)
+  end
+
   return nothing
 end
 
@@ -1111,6 +1117,29 @@ function calc_sources!(du, u, t, source_terms,
       x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
       du_local = source_terms(u_local, x_local, t, equations)
       add_to_node_vars!(du, du_local, equations, dg, i, j, element)
+    end
+  end
+
+  return nothing
+end
+
+function calc_precondition_matrix!(du, u, t,
+                       equations::HyperbolicNavierStokesEquations2D, dg::DG, cache)
+
+  @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
+
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      p = (gamma-1)*(u_local[4]-0.5*(u_local[2]^2+u_local[3]^2)/u_local[1])
+      T = abs(gamma*p/u_local[1])
+      mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
+      mu_v = 4/3 * mu     # viscosity of stress
+      mu_h = gamma*mu/Pr  # viscosity of heat flux
+      p_tau = mu_v^2 / (L^2 * u_local[1])
+      p_q = mu_h^2 / (L^2 * u_local[1])
+      factors = SVector(one(p_tau), one(p_tau), one(p_tau), one(p_tau), p_tau, p_tau, p_tau, p_q, p_q)
+      multiply_node_vars!(du, factors, equations, dg, i, j, element)
     end
   end
 
