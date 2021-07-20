@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
@@ -173,7 +179,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
-  @timed timer() "analyze solution" begin
+  @trixi_timeit timer() "analyze solution" begin
     # General information
     mpi_println()
     mpi_println("─"^100)
@@ -188,7 +194,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
+    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
 
     # Level information (only show for AMR)
     print_amr_information(integrator.opts.callback, mesh, solver, cache)
@@ -489,3 +495,6 @@ include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
+
+
+end # @muladd

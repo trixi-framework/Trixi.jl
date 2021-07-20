@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Abstract base type - all containers that want to use these features must inherit from it
 abstract type AbstractContainer end
@@ -320,3 +326,6 @@ end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
   raw_copy!(c, c, from, from, destination)
 end
+
+
+end # @muladd

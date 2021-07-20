@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     TimeSeriesCallback(semi, point_coordinates;
@@ -135,7 +141,7 @@ end
 # Convenience constructor that converts a vector of points into a Trixi-style coordinate array
 function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates::AbstractVector;
                             kwargs...)
-  # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims] 
+  # Coordinates are usually stored in [ndims, n_points], but here as [n_points, ndims]
   n_points = length(point_coordinates)
   point_coordinates_ = Matrix{eltype(eltype(point_coordinates))}(undef, n_points, ndims(mesh))
 
@@ -162,7 +168,7 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
   # Create record if in correct interval (needs to be checked since the callback is also called
   # after the final step for storing the data on disk, indepdendent of the current interval)
   if integrator.iter % interval == 0
-    @timed timer() "time series" begin
+    @trixi_timeit timer() "time series" begin
       # Store time and step
       push!(time_series_callback.time, integrator.t)
       push!(time_series_callback.step, iter)
@@ -198,3 +204,6 @@ end
 
 include("time_series_dg.jl")
 include("time_series_dg2d.jl")
+
+
+end # @muladd

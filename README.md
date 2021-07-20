@@ -2,13 +2,14 @@
 
 [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
+[![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
-[![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
+[![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.39.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+<!-- [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.43.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl) -->
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
-<!-- [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl) -->
+<!-- [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main) -->
 
 <p align="center">
   <img width="300px" src="docs/src/assets/logo.png">
@@ -22,6 +23,8 @@ focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
+* Experimental support for curvilinear structured and unstructured meshes
+  (see also the [overview in the documentation](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations))
 * Native support for 1D, 2D, and 3D simulations
 * High-order accuracy in space in time
 * Nodal discontinuous Galerkin spectral element methods
@@ -64,7 +67,7 @@ by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
@@ -93,7 +96,7 @@ within the cloned directory:
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
 julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Plots")' # Install postprocessing tools
+julia -e 'import Pkg; Pkg.add(["Trixi2Vtk", "Plots"])' # Install postprocessing tools
 julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
 ```
 If you installed Trixi this way, you always have to start Julia with the `--project`
@@ -178,8 +181,8 @@ with the help of Trixi, please cite the following
 In addition, you can also refer to Trixi directly as
 ```bibtex
 @misc{schlottkelakemper2020trixi,
-  title={{T}rixi.jl: A tree-based numerical simulation framework
-         for hyperbolic {PDE}s written in {J}ulia},
+  title={{T}rixi.jl: {A}daptive high-order numerical simulations
+         of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
           Ranocha, Hendrik and Winters, Andrew R},
   year={2020},
@@ -204,3 +207,6 @@ The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 Trixi is licensed under the MIT license (see [LICENSE.md](LICENSE.md)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+To get in touch with the developers,
+[join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
+or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).

@@ -24,7 +24,7 @@ using Printf: @printf, @sprintf, println
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-import DiffEqBase: CallbackSet, DiscreteCallback,
+import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
@@ -56,6 +56,20 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator
 
+
+# TODO: include_optimized
+# This should be used everywhere (except to `include("interpolations.jl")`)
+# once the upstream issue https://github.com/timholy/Revise.jl/issues/634
+# is fixed; tracked in https://github.com/trixi-framework/Trixi.jl/issues/664.
+# # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# # Since these FMAs can increase the performance of many numerical algorithms,
+# # we need to opt-in explicitly.
+# # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+# function include_optimized(filename)
+#   include(expr -> quote @muladd begin $expr end end, filename)
+# end
+
+
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
 # Placing them here allows us to make use of them for dispatch even for
@@ -66,8 +80,9 @@ include("basic_types.jl")
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
+include("auxiliary/p4est.jl")
 include("equations/equations.jl")
-include("mesh/mesh.jl")
+include("meshes/meshes.jl")
 include("solvers/solvers.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
@@ -142,7 +157,7 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh, CurvedMesh, UnstructuredQuadMesh, P4estMesh
+export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,

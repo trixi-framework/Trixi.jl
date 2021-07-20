@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
@@ -69,7 +75,7 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
 end
 
 
-function max_dt(u, t, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
+function max_dt(u, t, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                 constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
@@ -102,7 +108,7 @@ function max_dt(u, t, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh
 end
 
 
-function max_dt(u, t, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh{2}},
+function max_dt(u, t, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                 constant_speed::Val{true}, equations, dg::DG, cache)
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
@@ -127,3 +133,6 @@ function max_dt(u, t, mesh::Union{CurvedMesh{2}, UnstructuredQuadMesh, P4estMesh
 
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
+
+
+end # @muladd

@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     SaveRestartCallback(; interval=0,
@@ -58,7 +64,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
-  @timed timer() "I/O" begin
+  @trixi_timeit timer() "I/O" begin
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, restart_callback.output_directory)
       mesh.unsaved_changes = false
@@ -85,7 +91,7 @@ function (restart_callback::SaveRestartCallback)(integrator)
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
-  @timed timer() "I/O" begin
+  @trixi_timeit timer() "I/O" begin
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, restart_callback.output_directory, iter)
       mesh.unsaved_changes = false
@@ -126,3 +132,6 @@ end
 
 
 include("save_restart_dg.jl")
+
+
+end # @muladd

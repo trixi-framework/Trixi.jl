@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
                             dg::DGSEM, cache, old_mpi_ranks_per_cell)
@@ -16,7 +23,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # nicely with non-base array types
     old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
-    @timed timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
+    @trixi_timeit timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -24,7 +31,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-    @timed timer() "exchange data" begin
+    @trixi_timeit timer() "exchange data" begin
       # Collect MPI requests for MPI_Waitall
       requests = Vector{MPI.Request}()
 
@@ -59,43 +66,6 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
       MPI.Waitall!(requests)
     end
   end # GC.@preserve old_u_ode
-end
-
-
-function reinitialize_containers!(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
-  # Get new list of leaf cells
-  leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-  # re-initialize elements container
-  @unpack elements = cache
-  resize!(elements, length(leaf_cell_ids))
-  init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
-
-  # re-initialize interfaces container
-  @unpack interfaces = cache
-  resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-  init_interfaces!(interfaces, elements, mesh)
-
-  # re-initialize boundaries container
-  @unpack boundaries = cache
-  resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-  init_boundaries!(boundaries, elements, mesh)
-
-  # re-initialize mortars container
-  @unpack mortars = cache
-  resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
-  init_mortars!(mortars, elements, mesh)
-
-  if mpi_isparallel()
-    # re-initialize mpi_interfaces container
-    @unpack mpi_interfaces = cache
-    resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
-    init_mpi_interfaces!(mpi_interfaces, elements, mesh)
-
-    # re-initialize mpi cache
-    @unpack mpi_cache = cache
-    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
-  end
 end
 
 
@@ -349,3 +319,5 @@ function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2}, e
   return (; controller_value)
 end
 
+
+end # @muladd

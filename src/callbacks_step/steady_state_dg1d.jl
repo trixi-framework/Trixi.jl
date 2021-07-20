@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{1},
                                                       equations, dg::DG, cache)
@@ -15,3 +21,6 @@ function (steady_state_callback::SteadyStateCallback)(du, u, mesh::AbstractMesh{
 
   return terminate
 end
+
+
+end # @muladd

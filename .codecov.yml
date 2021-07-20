@@ -7,14 +7,15 @@
 # [number of additional OS] = 2 (Windows, MacOS)
 # parallel jobs in ci.yml
 codecov:
+  branch: main
   notify:
     after_n_builds: 20
 comment:
   after_n_builds: 20
 
 coverage:
-  range: 70..95
-  round: down
+  range: 80..95 # set 95% and above as solid green, everything below 80% as red
+  round: nearest
   precision: 2
 
 github_checks:

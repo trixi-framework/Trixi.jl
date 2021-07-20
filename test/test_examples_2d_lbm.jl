@@ -6,10 +6,10 @@ using Trixi
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
 @testset "Lattice-Boltzmann" begin
-  @testset "elixir_lbm_constant.jl" begin
+  @trixi_testset "elixir_lbm_constant.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_constant.jl"),
       l2   = [4.888991832247047e-15, 4.8856380534982224e-15, 5.140829677785587e-16,
               7.340293204570167e-16, 2.0559494114924474e-15, 6.125746684189216e-16,
@@ -19,7 +19,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
               4.3021142204224816e-16, 8.881784197001252e-16, 1.0436096431476471e-14])
   end
 
-  @testset "elixir_lbm_couette.jl" begin
+  @trixi_testset "elixir_lbm_couette.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_couette.jl"),
       l2   = [0.0007899749117603378, 7.0995283148275575e-6, 0.0007454191223764233,
               1.6482025869100257e-5, 0.00012684365365448903, 0.0001198942846383015,
@@ -30,7 +30,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       tspan = (0.0, 1.0))
   end
 
-  @testset "elixir_lbm_lid_driven_cavity.jl" begin
+  @trixi_testset "elixir_lbm_lid_driven_cavity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_lid_driven_cavity.jl"),
       l2   = [0.0013628495945172754, 0.00021475256243322154, 0.0012579141312268184,
               0.00036542734715110765, 0.00024127756258120715, 0.00022899415795341014,
