@@ -57,7 +57,6 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator
 
-
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
 # once the upstream issue https://github.com/timholy/Revise.jl/issues/634
@@ -195,6 +194,20 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
+# DGMulti solvers
+using StartUpDG
+@reexport using StartUpDG: StartUpDG, RefElemData, MeshData, Polynomial, SBP
+@reexport using StartUpDG: Line, Tri, Quad, Hex, Tet, AbstractElemShape
+
+include("solvers/dg_multi/types_and_traits.jl")
+export DGMulti
+include("meshes/dg_multi_meshes.jl")
+export AbstractMeshData, VertexMappedMesh
+include("solvers/dg_multi/dg.jl")
+export estimate_dt
+include("solvers/dg_multi/flux_differencing.jl")
+include("callbacks_step/analysis_dg_multi.jl")
+
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
@@ -208,23 +221,6 @@ function __init__()
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
   end
-
-  # require StartUpDG for triangular mesh solvers
-  @require StartUpDG="472ebc20-7c99-4d4b-9470-8fde4e9faa0f" begin
-    using .StartUpDG: RefElemData, MeshData, Polynomial, SBP
-    using .StartUpDG: Line, Tri, Quad, Hex, Tet, AbstractElemShape
-
-    include("meshes/dg_multi_meshes.jl")
-    export AbstractMeshData, VertexMappedMesh
-
-    include("solvers/dg_multi/types_and_traits.jl")
-    export MultiDG
-
-    include("solvers/dg_multi/dg.jl")
-    include("solvers/dg_multi/fluxdiff.jl")
-    include("callbacks_step/analysis_dg_multi.jl")
-  end
-
 end
 
 
