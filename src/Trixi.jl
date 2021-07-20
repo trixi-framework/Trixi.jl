@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, dot, mul!, norm, cross, normalize
+using LinearAlgebra: diag, dot, mul!, norm, cross, normalize, I
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -36,6 +36,7 @@ using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 import MPI
+using GeometryBasics: GeometryBasics, Mesh, normal_mesh
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
@@ -45,6 +46,7 @@ using Requires
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+using Triangulate: Triangulate, TriangulateIO, triangulate
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
@@ -94,7 +96,6 @@ include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
-
 
 # export types/functions that define the public API of Trixi
 
@@ -195,7 +196,6 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
-
 function __init__()
   init_mpi()
 
@@ -204,6 +204,12 @@ function __init__()
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
+  end
+
+  @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
+    include("visualization/makie_visualization.jl")
+    using .Makie: Makie, Attributes, mesh, mesh!, plot!, @recipe, lines!, @lift
+    export trixi_plot
   end
 end
 

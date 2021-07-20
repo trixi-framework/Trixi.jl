@@ -293,7 +293,7 @@ end
 # Visualize a single variable in a 2D plot (default: heatmap)
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pds::PlotDataSeries2D)
+RecipesBase.@recipe function f(pds::PlotDataSeries2D)
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
@@ -320,7 +320,7 @@ end
 # Visualize a single variable in a 2D plot. Only works for `scatter` right now.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
@@ -350,7 +350,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pm::PlotMesh2D)
+RecipesBase.@recipe function f(pm::PlotMesh2D)
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -373,7 +373,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -396,7 +396,7 @@ end
 # Plot all available variables at once for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pd::PlotData2D)
+RecipesBase.@recipe function f(pd::PlotData2D)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
 
@@ -602,7 +602,7 @@ end
 getmesh(pd::PlotData1D) = PlotMesh1D(pd)
 
 # Plot a single variable.
-@recipe function f(pds::PlotDataSeries1D)
+RecipesBase.@recipe function f(pds::PlotDataSeries1D)
   @unpack plot_data, variable_id = pds
   @unpack x, data, variable_names, orientation_x = plot_data
 
@@ -619,7 +619,7 @@ getmesh(pd::PlotData1D) = PlotMesh1D(pd)
 end
 
 # Plot the mesh as vertical lines from a PlotMesh1D object.
-@recipe function f(pm::PlotMesh1D)
+RecipesBase.@recipe function f(pm::PlotMesh1D)
   @unpack plot_data = pm
   @unpack x, mesh_vertices_x = plot_data
 
@@ -637,7 +637,7 @@ end
 end
 
 # This plots all variables by creating a subplot for each of them.
-@recipe function f(pd::PlotData1D)
+RecipesBase.@recipe function f(pd::PlotData1D)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
@@ -675,14 +675,14 @@ end
 # The plot is created by a PlotData1D or PlotData2D object.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(sol::TrixiODESolution)
+RecipesBase.@recipe function f(sol::TrixiODESolution)
   # Redirect everything to the recipe below
   return sol.u[end], sol.prob.p
 end
 
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
-@recipe function f(u, semi::AbstractSemidiscretization;
+RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=nothing,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
                    point=(0.0, 0.0, 0.0), curve=nothing)
@@ -697,11 +697,11 @@ end
 end
 
 
-@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
+RecipesBase.@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return cb.affect!, point_id
 end
 
-@recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
+RecipesBase.@recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
   return PlotData1D(time_series_callback, point_id)
 end
 
