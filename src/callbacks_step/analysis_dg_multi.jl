@@ -2,7 +2,7 @@
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::AbstractMeshData{NDIMS}, equations, initial_condition,
-                          dg::MultiDG{NDIMS}, cache, cache_analysis) where {NDIMS}
+                          dg::DGMulti{NDIMS}, cache, cache_analysis) where {NDIMS}
   rd = dg.basis
   md = mesh.md
   @unpack u_values = cache
@@ -23,7 +23,7 @@ end
 
 function integrate(func::Func, u,
                    mesh::AbstractMeshData,
-                   equations, dg::MultiDG, cache; normalize=true) where {Func}
+                   equations, dg::DGMulti, cache; normalize=true) where {Func}
   rd = dg.basis
   md = mesh.md
   @unpack u_values = cache
@@ -39,7 +39,7 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::AbstractMeshData, equations, dg::MultiDG, cache)
+                 mesh::AbstractMeshData, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
@@ -62,7 +62,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function create_cache_analysis(analyzer, mesh::AbstractMeshData,
-                               equations, dg::MultiDG, cache,
+                               equations, dg::DGMulti, cache,
                                RealT, uEltype)
   md = mesh.md
 
@@ -71,4 +71,4 @@ end
 
 SolutionAnalyzer(rd::RefElemData) = rd
 
-nelements(mesh::AbstractMeshData, solver::MultiDG, cache) = mesh.md.num_elements
+nelements(mesh::AbstractMeshData, solver::DGMulti, cache) = mesh.md.num_elements

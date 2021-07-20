@@ -1,16 +1,16 @@
 
-# `MultiDG` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
+# `DGMulti` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
 # the use of multi-dimensional operators in the solver.
-const MultiDG{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
+const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
   DG{<:RefElemData{NDIMS, ElemType, ApproxType}, Mortar, SurfaceIntegral, VolumeIntegral} where {Mortar}
 
 # these are necessary for pretty printing
-polydeg(dg::MultiDG) = dg.basis.N
-Base.summary(io::IO, dg::DG) where {DG <: MultiDG} = print(io, "MultiDG(polydeg=$(polydeg(dg)))")
+polydeg(dg::DGMulti) = dg.basis.N
+Base.summary(io::IO, dg::DG) where {DG <: DGMulti} = print(io, "DGMulti(polydeg=$(polydeg(dg)))")
 Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS, Elem, ApproxType, Nfaces, RealT} = RealT
 
 """
-    MultiDG(; polydeg::Integer,
+    DGMulti(; polydeg::Integer,
               elem_type::AbstractElemShape,
               approximation_type=Polynomial(),
               surface_flux=flux_central,
@@ -22,10 +22,10 @@ Create a discontinuous Galerkin method which uses
 - element type `elem_type` (`Tri()`, `Quad()`, `Tet()`, and `Hex()` currently supported)
 
 Optional:
-- approximation type of `approximation_type` (default is `Polynomial()`; `SBP()` also supported for
-  `Tri()`, `Quad()`, and `Hex()` element types).
+- `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`, `Quad()`,
+  and `Hex()` element types).
 """
-function MultiDG(; polydeg::Integer,
+function DGMulti(; polydeg::Integer,
                    elem_type::AbstractElemShape,
                    approximation_type=Polynomial(),
                    surface_flux=flux_central,
@@ -36,14 +36,17 @@ function MultiDG(; polydeg::Integer,
 end
 
 # type aliases for dispatch purposes
-const MultiDGWeakForm{NDIMS, ElemType, ApproxType} =
-  MultiDG{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm}
+const DGMultiWeakForm{ElemType, ApproxType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
+
+const DGMultiFluxDiff{ElemType, ApproxType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
 
 const PolyDGFluxDiff{NDIMS, ElemType} =
-  MultiDG{NDIMS, ElemType, Polynomial, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ElemType}
+  DGMulti{NDIMS, ElemType, Polynomial, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ElemType}
 
 const SBPDGFluxDiff{Dim, Elem} =
-  MultiDG{NDIMS, ElemType, <:SBP, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ElemType}
+  DGMulti{NDIMS, ElemType, <:SBP, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ElemType}
 
 
 # Todo: simplices. Add traits for dispatch on affine/curved meshes here.

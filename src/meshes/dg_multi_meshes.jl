@@ -60,6 +60,16 @@ function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::A
 end
 
 """
+    VertexMappedMesh(vertex_coordinates, EToV, dg::DGMulti;
+                     is_on_boundary = nothing,
+                     is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+
+Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+"""
+VertexMappedMesh(vertex_coordinates, EToV, dg::DGMulti; kwargs...) =
+  VertexMappedMesh(vertex_coordinates, EToV, dg.basis; kwargs...)
+
+"""
   VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
 - `triangulateIO` is a `TriangulateIO` mesh representation
@@ -75,6 +85,15 @@ function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict:
   return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
+"""
+  VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
+
+Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+"""
+VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
+  VertexMappedMesh(triangulateIO, dg.basis, boundary_dict)
+
+# old interface
 VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, args...; kwargs...) =
   VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y), EToV, rd, args...; kwargs...)
 VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z, EToV, rd, args...; kwargs...) =
