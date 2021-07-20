@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Abstract base type for time integration schemes of storage class `2N`
 abstract type SimpleAlgorithm2N end
@@ -119,7 +125,7 @@ function solve!(integrator::SimpleIntegrator2N)
   callbacks = integrator.opts.callback
 
   integrator.finalstep = false
-  @timed timer() "main loop" while !integrator.finalstep
+  @trixi_timeit timer() "main loop" while !integrator.finalstep
     if isnan(integrator.dt)
       error("time step size `dt` is NaN")
     end
@@ -138,7 +144,7 @@ function solve!(integrator::SimpleIntegrator2N)
 
       a_stage    = alg.a[stage]
       b_stage_dt = alg.b[stage] * integrator.dt
-      @timed timer() "Runge-Kutta step" begin
+      @trixi_timeit timer() "Runge-Kutta step" begin
         @threaded for i in eachindex(integrator.u)
           integrator.u_tmp[i] = integrator.du[i] - integrator.u_tmp[i] * a_stage
           integrator.u[i] += integrator.u_tmp[i] * b_stage_dt
@@ -193,3 +199,6 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
   resize!(integrator.du, new_size)
   resize!(integrator.u_tmp, new_size)
 end
+
+
+end # @muladd

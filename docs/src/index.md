@@ -9,6 +9,8 @@ focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
+* Experimental support for curvilinear structured and unstructured meshes
+  (see also the [overview in the documentation](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations))
 * Native support for 1D, 2D, and 3D simulations
 * High-order accuracy in space in time
 * Nodal discontinuous Galerkin spectral element methods
@@ -49,7 +51,7 @@ by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
@@ -275,8 +277,8 @@ with the help of Trixi, please cite the following
 In addition, you can also refer to Trixi directly as
 ```bibtex
 @misc{schlottkelakemper2020trixi,
-  title={{T}rixi.jl: A tree-based numerical simulation framework
-         for hyperbolic {PDE}s written in {J}ulia},
+  title={{T}rixi.jl: {A}daptive high-order numerical simulations
+         of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
           Ranocha, Hendrik and Winters, Andrew R},
   year={2020},
@@ -300,3 +302,6 @@ The full list of contributors can be found under [Authors](@ref).
 Trixi is licensed under the MIT license (see [License](@ref)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [Contributing](@ref) for more details.
+To get in touch with the developers,
+[join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
+or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).

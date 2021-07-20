@@ -1,3 +1,8 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
 
 # Note: We can't call the method below `Trixi.include` since that is created automatically
@@ -17,7 +22,7 @@ providing examples with sensible default values for users.
 
 ```jldoctest
 julia> redirect_stdout(devnull) do
-         trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_advection_extended.jl"),
+         trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_extended.jl"),
                        tspan=(0.0, 0.1))
          sol.t[end]
        end
@@ -46,7 +51,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   # Types of errors to be calcuated
   errors = Dict(:l2 => Float64[], :linf => Float64[])
 
-  initial_resolution = extract_initial_resolution(elixir)
+  initial_resolution = extract_initial_resolution(elixir, kwargs)
 
   # run simulations and extract errors
   for iter in 1:iterations
@@ -175,17 +180,29 @@ function find_assignment(expr, destination)
 end
 
 # searches the parameter that specifies the mesh reslution in the elixir
-function extract_initial_resolution(elixir)
+function extract_initial_resolution(elixir, kwargs)
   code = read(elixir, String)
   expr = Meta.parse("begin $code end")
 
   try
     # get the initial_refinement_level from the elixir
     initial_refinement_level = find_assignment(expr, :initial_refinement_level)
+
+    if haskey(kwargs, :initial_refinement_level)
+      return kwargs[:initial_refinement_level]
+    else
+      return initial_refinement_level
+    end
   catch e
     if isa(e, UndefVarError)
       # get cells_per_dimension from the elixir
       cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
+
+      if haskey(kwargs, :cells_per_dimension)
+        return kwargs[:cells_per_dimension]
+      else
+        return cells_per_dimension
+      end
     else
       throw(e)
     end
@@ -199,9 +216,12 @@ function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwarg
 end
 
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
-# works for CurvedMesh
+# works for StructuredMesh
 function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, iter; kwargs) where {NDIMS}
   new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
 
   trixi_include(mod, elixir; kwargs..., cells_per_dimension=new_cells_per_dimension)
 end
+
+
+end # @muladd

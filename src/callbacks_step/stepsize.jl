@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     StepsizeCallback(; cfl=1.0)
@@ -66,7 +72,7 @@ end
     @unpack cfl_number = stepsize_callback
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt = @timed timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
+    dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
                                                                   have_constant_speed(equations), equations,
                                                                   solver, cache)
     set_proposed_dt!(integrator, dt)
@@ -100,3 +106,6 @@ end
 include("stepsize_dg1d.jl")
 include("stepsize_dg2d.jl")
 include("stepsize_dg3d.jl")
+
+
+end # @muladd

@@ -5,9 +5,6 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
-
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
@@ -24,6 +21,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Curved mesh
   include("test_examples_3d_curved.jl")
+
+  # P4estMesh
+  include("test_examples_3d_p4est.jl")
 end
 
 

@@ -128,3 +128,66 @@ macro test_nowarn_mod(expr)
     end
   end
 end
+
+
+"""
+    @timed_testset "name of the testset" #= code to test #=
+
+Similar to `@testset`, but wraps the execution of the testset using `@time`
+and prints the name of the testset after execution.
+"""
+macro timed_testset(name, expr)
+  @assert name isa String
+  quote
+    @time @testset $name $expr
+    if Trixi.mpi_isroot()
+      flush(stdout)
+      @info("Testset " * $name * " finished.\n")
+      flush(stdout)
+    end
+  end
+end
+
+
+"""
+    @trixi_testset "name of the testset" #= code to test #=
+
+Similar to `@testset`, but wraps the code inside a temporary module to avoid
+namespace pollution. It also `include`s this file again to provide the
+definition of `@test_trixi_include`. Moreover, it records the execution time
+of the testset similarly to [`timed_testset`](@ref).
+"""
+macro trixi_testset(name, expr)
+  @assert name isa String
+  # TODO: `@eval` is evil
+  # We would like to use
+  #   mod = gensym(name)
+  #   ...
+  #   module $mod
+  # to create new module names for every test set. However, this is not
+  # compatible with the dirty hack using `@eval` to get the mapping when
+  # loading structured, curvilinear meshes. Thus, we need to use a plain
+  # module name here.
+  quote
+    @time @eval module TrixiTestModule
+      using Test
+      using Trixi
+      include(@__FILE__)
+      # We define `EXAMPLES_DIR` in (nearly) all test modules and use it to
+      # get the path to the elixirs to be tested. However, that's not required
+      # and we want to fail gracefully if it's not defined.
+      try
+        import ..EXAMPLES_DIR
+      catch
+        nothing
+      end
+      @testset $name $expr
+    end
+    if Trixi.mpi_isroot()
+      flush(stdout)
+      @info("Testset " * $name * " finished.\n")
+      flush(stdout)
+    end
+    nothing
+  end
+end

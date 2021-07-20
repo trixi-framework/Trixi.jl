@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     LBMCollisionCallback()
@@ -50,10 +56,13 @@ end
   u_ode = integrator.u
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  @timed timer() "LBM collision" apply_collision!(u, dt, collision_op, mesh, equations, solver, cache)
+  @trixi_timeit timer() "LBM collision" apply_collision!(u, dt, collision_op, mesh, equations, solver, cache)
 
   return nothing
 end
 
 include("lbm_collision_dg2d.jl")
 include("lbm_collision_dg3d.jl")
+
+
+end # @muladd

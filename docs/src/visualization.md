@@ -221,6 +221,37 @@ julia> plot(pd)
 ```
 ![1d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614340-1b879600-a93a-11eb-9a80-f46311da16b1.PNG)
 
+This convenient method of slicing is limited to axis-parallel slices, but for 2D/3D solutions it is also
+possible to create a plot along any curve you want. To do so, you first need to
+create a list of 2D/3D points that define your curve. Then you can
+create a [`PlotData1D`](@ref) with the keyword argument `curve` set to your list.
+
+Let's give an example of this with the basic advection equation from above by creating
+a plot along the circle marked in green:
+![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/122980179-a7e19280-d398-11eb-82a8-b7a998d23277.PNG)
+
+We can write a function like this, that outputs a list of points on a circle:
+```julia
+function circle(radius, center, n_points)
+    coordinates = zeros(2, n_points)
+    for i in 1:n_points
+        coordinates[:,i] = radius*[cospi(2*i/n_points), sinpi(2*i/n_points)] .+ center
+    end
+    return coordinates
+end
+```
+
+Then create and plot a [`PlotData1D`](@ref) object along a circle with radius one, center at `(1,1)`, and 100 points:
+```julia
+pd = PlotData1D(sol, curve=circle(1.0, (1.0, 1.0), 100))
+plot(pd)
+```
+This gives you the following plot:
+![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
+
+Creating a plot like this has its downsides. For one, it is unclear what to put on the abscissa
+of the plot. By default, the arc length of the given curve is used.
+Also, with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
 
 ### Visualizing results during a simulation
 To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
@@ -318,7 +349,7 @@ solution time. A comprehensive list of all possible arguments for
 `trixi2vtk` can be found in the [Trixi2Vtk.jl API](@ref).
 
 Further information regarding the development of Trixi2Vtk can be found in the
-[development section](@id trixi2vtk-dev).
+[development section](@ref trixi2vtk-dev).
 
 
 ## Trixi2Img

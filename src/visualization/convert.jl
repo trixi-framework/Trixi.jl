@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
 #
 # Returns a tuple with
@@ -65,8 +72,8 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
   if grid_lines
     mesh_vertices_x, mesh_vertices_y = calc_vertices(coordinates, levels, length_level_0)
   else
-    mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
-    mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
+    mesh_vertices_x = Vector{Float64}(undef, 0)
+    mesh_vertices_y = Vector{Float64}(undef, 0)
   end
 
   return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
@@ -157,3 +164,6 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
 
   return unstructured_data
 end
+
+
+end # @muladd

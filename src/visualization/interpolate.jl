@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
 #
@@ -250,6 +257,118 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
   return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id), new_unstructured_data[:, 1:new_id, :], nvisnodes)
 end
 
+# Calculate the arc length of a curve given by ndims x npoints point coordinates (piece-wise linear approximation)
+function calc_arc_length(coordinates)
+  n_points = size(coordinates)[2]
+  arc_length = zeros(n_points)
+  for i in 1:n_points-1
+    arc_length[i+1] = arc_length[i] + sqrt(sum((coordinates[:,i]-coordinates[:,i+1]).^2))
+  end
+  return arc_length
+end
+
+# Convert 2d unstructured data to 1d data at given curve.
+function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+
+  n_points_curve = size(curve)[2]
+  n_nodes, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  # Check if input is correct.
+  min = original_nodes[:, 1, 1, 1]
+  max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_elements]
+  @assert size(curve) == (2, size(curve)[2]) "Coordinates along curve must be 2xn dimensional."
+  for element in 1:n_points_curve
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
+            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+  end
+
+  # Set nodes acording to the length of the curve.
+  arc_length = calc_arc_length(curve)
+
+  # Setup data structures.
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_points_curve, n_variables)
+
+  # For each coordinate find the corresponding element with its id.
+  element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
+
+  # Iterate over all found elements.
+  for element in 1:n_points_curve
+
+    min_coordinate = original_nodes[:, 1, 1, element_ids[element]]
+    max_coordinate = original_nodes[:, n_nodes, n_nodes, element_ids[element]]
+    element_length = max_coordinate - min_coordinate
+
+    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
+
+    # Interpolate to a single point in each element.
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
+    vandermonde_y = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
+    for v in 1:n_variables
+      for i in 1:n_nodes
+        temp_data[i, element, v] = (vandermonde_y*unstructured_data[i, :, element_ids[element], v])[1]
+      end
+      data_on_curve[element, v] = (vandermonde_x*temp_data[:, element, v])[]
+    end
+  end
+
+  return arc_length, data_on_curve, nothing
+end
+
+# Convert 3d unstructured data to 1d data at given curve.
+function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+
+  n_points_curve = size(curve)[2]
+  n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  # Check if input is correct.
+  min = original_nodes[:, 1, 1, 1, 1]
+  max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, n_elements]
+  @assert size(curve) == (3, n_points_curve) "Coordinates along curve must be 3xn dimensional."
+  for element in 1:n_points_curve
+    @assert (prod(vcat(curve[:, n_points_curve] .>= min, curve[:, n_points_curve]
+            .<= max))) "Some coordinates from `curve` are outside of the domain.."
+  end
+
+  # Set nodes acording to the length of the curve.
+  arc_length = calc_arc_length(curve)
+
+  # Setup data structures.
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+  temp_data = Array{Float64}(undef, n_nodes, n_nodes+1, n_points_curve, n_variables)
+
+  # For each coordinate find the corresponding element with its id.
+  element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
+
+  # Iterate over all found elements.
+  for element in 1:n_points_curve
+
+    min_coordinate = original_nodes[:, 1, 1, 1, element_ids[element]]
+    max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, element_ids[element]]
+    element_length = max_coordinate - min_coordinate
+
+    normalized_coordinates = (curve[:, element] - min_coordinate)/element_length[1]*2 .-1
+
+    # Interpolate to a single point in each element.
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[1])
+    vandermonde_y = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[2])
+    vandermonde_z = polynomial_interpolation_matrix(nodes_in, normalized_coordinates[3])
+    for v in 1:n_variables
+      for i in 1:n_nodes
+        for ii in 1:n_nodes
+          temp_data[i, ii, element, v] = (vandermonde_z*unstructured_data[i, ii, :, element_ids[element], v])[1]
+        end
+        temp_data[i, n_nodes+1, element, v] = (vandermonde_y*temp_data[i, 1:n_nodes, element, v])[1]
+      end
+      data_on_curve[element, v] = (vandermonde_x*temp_data[:, n_nodes+1, element, v])[1]
+    end
+  end
+
+  return arc_length, data_on_curve, nothing
+end
+
 # Convert 3d unstructured data to 1d slice and interpolate them.
 function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
 
@@ -314,7 +433,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
 
     # Construct vandermonde matrix for interpolation of each 2D element to a 1D element.
     normalized_intercept =
-          (point[other_dimensions] - min_coordinate[other_dimensions]) /
+          (point[other_dimensions] .- min_coordinate[other_dimensions]) /
           element_length[1] * 2 .- 1
     vandermonde_i = polynomial_interpolation_matrix(nodes_in, normalized_intercept[1])
     vandermonde_ii = polynomial_interpolation_matrix(nodes_in, normalized_intercept[2])
@@ -442,35 +561,39 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
 function calc_vertices(coordinates, levels, length_level_0)
-  @assert size(coordinates, 1) == 2 "only works in 2D"
+  ndim = size(coordinates, 1)
+  @assert ndim == 2 "only works in 2D"
 
   # Initialize output arrays
   n_elements = length(levels)
-  ndim = 2
-  x = Matrix{Float64}(undef, 2^ndim+1, n_elements)
-  y = Matrix{Float64}(undef, 2^ndim+1, n_elements)
+  n_points_per_element = 2^ndim+2
+  x = Vector{Float64}(undef, n_points_per_element*n_elements)
+  y = Vector{Float64}(undef, n_points_per_element*n_elements)
 
   # Calculate vertices for all coordinates at once
   for element_id in 1:n_elements
     length = length_level_0 / 2^levels[element_id]
-    x[1, element_id] = coordinates[1, element_id] - 1/2 * length
-    x[2, element_id] = coordinates[1, element_id] + 1/2 * length
-    x[3, element_id] = coordinates[1, element_id] + 1/2 * length
-    x[4, element_id] = coordinates[1, element_id] - 1/2 * length
-    x[5, element_id] = coordinates[1, element_id] - 1/2 * length
+    index = n_points_per_element*(element_id-1)
+    x[index+1] = coordinates[1, element_id] - 1/2 * length
+    x[index+2] = coordinates[1, element_id] + 1/2 * length
+    x[index+3] = coordinates[1, element_id] + 1/2 * length
+    x[index+4] = coordinates[1, element_id] - 1/2 * length
+    x[index+5] = coordinates[1, element_id] - 1/2 * length
+    x[index+6] = NaN
 
-    y[1, element_id] = coordinates[2, element_id] - 1/2 * length
-    y[2, element_id] = coordinates[2, element_id] - 1/2 * length
-    y[3, element_id] = coordinates[2, element_id] + 1/2 * length
-    y[4, element_id] = coordinates[2, element_id] + 1/2 * length
-    y[5, element_id] = coordinates[2, element_id] - 1/2 * length
+    y[index+1] = coordinates[2, element_id] - 1/2 * length
+    y[index+2] = coordinates[2, element_id] - 1/2 * length
+    y[index+3] = coordinates[2, element_id] + 1/2 * length
+    y[index+4] = coordinates[2, element_id] + 1/2 * length
+    y[index+5] = coordinates[2, element_id] - 1/2 * length
+    y[index+6] = NaN
   end
 
   return x, y
 end
 
 
-# Calculate the vertices to plot each grid line for CurvedMesh
+# Calculate the vertices to plot each grid line for StructuredMesh
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
@@ -566,11 +689,11 @@ function calc_vertices(node_coordinates, mesh)
 end
 
 
-# Calculate the vertices to plot each grid line for UnstructuredQuadMesh
+# Calculate the vertices to plot each grid line for UnstructuredMesh2D
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function calc_vertices(node_coordinates, mesh::UnstructuredQuadMesh)
+function calc_vertices(node_coordinates, mesh::UnstructuredMesh2D)
   @unpack n_elements = mesh
   @assert size(node_coordinates, 1) == 2 "only works in 2D"
 
@@ -607,3 +730,6 @@ function calc_vertices(node_coordinates, mesh::UnstructuredQuadMesh)
 
   return x, y
 end
+
+
+end # @muladd
