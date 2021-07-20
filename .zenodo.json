@@ -1,5 +1,5 @@
 {
-    "description": "A tree-based numerical simulation framework for hyperbolic PDEs written in Julia",
+    "description": "Adaptive high-order numerical simulations of hyperbolic PDEs in Julia",
     "license": "MIT",
     "title": "Trixi.jl",
     "upload_type": "software",

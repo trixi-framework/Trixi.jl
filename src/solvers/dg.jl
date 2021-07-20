@@ -261,24 +261,30 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 
 @inline Base.real(dg::DG) = real(dg.basis)
 
-@inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
-
 
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
   get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg, cache)
 end
 
 
+const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh}
+
+@inline ndofs(mesh::MeshesDGSEM, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
-# TODO: Clean-up meshes. These should be deprecated and get the new signature `eachelement(mesh, dg, cache)`
-@inline eachnode(dg::DG)             = Base.OneTo(nnodes(dg))
+@inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
+@inline nnodes(dg::DG)   = nnodes(dg.basis)
+
+# This is used in some more general analysis code and needs to dispatch on the
+# `mesh` for some combinations of mesh/solver.
+@inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
+
 @inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
 @inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
 @inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
 @inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
 @inline eachmpiinterface(dg::DG, cache) = Base.OneTo(nmpiinterfaces(dg, cache))
 
-@inline nnodes(dg::DG)             = nnodes(dg.basis)
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
 @inline nelementsglobal(dg::DG, cache) = mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)

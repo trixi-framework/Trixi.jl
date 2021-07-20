@@ -72,8 +72,8 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
   if grid_lines
     mesh_vertices_x, mesh_vertices_y = calc_vertices(coordinates, levels, length_level_0)
   else
-    mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
-    mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
+    mesh_vertices_x = Vector{Float64}(undef, 0)
+    mesh_vertices_y = Vector{Float64}(undef, 0)
   end
 
   return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y

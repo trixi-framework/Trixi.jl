@@ -483,25 +483,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
   @assert isempty(eachboundary(dg, cache))
 end
 
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition,
-                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
-  @unpack surface_flux_values = cache.elements
-  @unpack n_boundaries_per_direction = cache.boundaries
-
-  # Calculate indices
-  lasts = accumulate(+, n_boundaries_per_direction)
-  firsts = lasts - n_boundaries_per_direction .+ 1
-
-  # Calc boundary fluxes in each direction
-  for direction in eachindex(firsts)
-    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition,
-                                     equations, surface_integral, dg, cache,
-                                     direction, firsts[direction], lasts[direction])
-  end
-end
-
-function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tuple},
+function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries

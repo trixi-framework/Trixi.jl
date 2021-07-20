@@ -421,7 +421,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
   return has_changed
 end
 
-function reinitialize_boundaries!(boundary_conditions::UnstructuredQuadSortedBoundaryTypes, cache)
+function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes, cache)
   # Reinitialize boundary types container because boundaries may have changed.
   initialize!(boundary_conditions, cache)
 end
