@@ -65,7 +65,7 @@ function build_lazy_physical_derivative(element::Int, orientation::Int,
 end
 
 function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::SBPDGFluxDiff, cache)
+                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
   @unpack local_values_threaded = cache
@@ -86,7 +86,7 @@ function calc_volume_integral!(du, u, volume_integral,
 end
 
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, RealT, uEltype)
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -100,7 +100,6 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, Rea
     Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized)
   end
   Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
-
 
   nvars = nvariables(equations)
 
@@ -126,8 +125,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, Rea
             u_values, u_face_values, rhs_local_threaded, flux_face_values, local_values_threaded)
 end
 
-function entropy_projection!(cache, u, mesh::VertexMappedMesh,
-                             equations, dg::DG) where {DG <: PolyDGFluxDiff}
+function entropy_projection!(cache, u, mesh::VertexMappedMesh,  equations, dg::DGMulti)
 
   rd = dg.basis
   @unpack Vq = rd
@@ -144,7 +142,7 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh,
 end
 
 function calc_volume_integral!(du, u::StructArray, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::PolyDGFluxDiff, cache)
+                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, cache)
 
   rd = dg.basis
   md = mesh.md
@@ -167,11 +165,16 @@ function calc_volume_integral!(du, u::StructArray, volume_integral,
   end
 end
 
+# Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume kernel, e.g.,
+# an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection`
+# is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
-              source_terms::Source, dg::PolyDGFluxDiff, cache) where {Source, BC}
+              source_terms::Source, dg::DGMultiFluxDiff{Polynomial}, cache) where {Source, BC}
 
   @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
 
+  # this function evaluates the solution at volume and face quadrature points (which was previously
+  # done in `prolong2interfaces` and `calc_volume_integral`)
   @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh, equations, dg)
 
   @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(du, u, dg.volume_integral,

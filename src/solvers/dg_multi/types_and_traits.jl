@@ -35,18 +35,11 @@ function DGMulti(; polydeg::Integer,
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
-# type aliases for dispatch purposes
-const DGMultiWeakForm{ElemType, ApproxType} =
+# Type aliases. The first parameter is `ApproxType` since it is more commonly used for dispatch.
+const DGMultiWeakForm{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
 
-const DGMultiFluxDiff{ElemType, ApproxType} =
+const DGMultiFluxDiff{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
-
-const PolyDGFluxDiff{NDIMS, ElemType} =
-  DGMulti{NDIMS, ElemType, Polynomial, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ElemType}
-
-const SBPDGFluxDiff{Dim, Elem} =
-  DGMulti{NDIMS, ElemType, <:SBP, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ElemType}
-
 
 # Todo: simplices. Add traits for dispatch on affine/curved meshes here.

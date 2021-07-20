@@ -81,7 +81,7 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
-                      RealT, uEltype) where {DG <: Union{DGMultiWeakForm, DGMultiFluxDiff{ElemType, <:SBP}}} where {ElemType}
+                      RealT, uEltype) where {DG <: Union{DGMultiWeakForm, DGMultiFluxDiff{<:SBP}}}
 
   rd = dg.basis
   md = mesh.md
