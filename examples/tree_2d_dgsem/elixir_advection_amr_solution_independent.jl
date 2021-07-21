@@ -16,7 +16,7 @@ function IndicatorSolutionIndependent(semi)
   cache = (; semi.mesh, alpha)
   return IndicatorSolutionIndependent{typeof(cache)}(cache)
 end
-function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
+function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4}, mesh, 
                                                    equations, dg, cache;
                                                    t, kwargs...)
 

@@ -26,7 +26,7 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5},
+function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5}, mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                                    equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
@@ -94,46 +94,94 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5},
   end
 
   if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
+    
+    apply_smoothing!(u, mesh, equations, dg, alpha, alpha_tmp, cache)
 
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower_left  = cache.mortars.neighbor_ids[1, mortar]
-      lower_right = cache.mortars.neighbor_ids[2, mortar]
-      upper_left  = cache.mortars.neighbor_ids[3, mortar]
-      upper_right = cache.mortars.neighbor_ids[4, mortar]
-      large       = cache.mortars.neighbor_ids[5, mortar]
-
-      # Apply smoothing
-      alpha[lower_left]  = max(alpha_tmp[lower_left],  0.5 * alpha_tmp[large], alpha[lower_left])
-      alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large], alpha[lower_right])
-      alpha[upper_left]  = max(alpha_tmp[upper_left],  0.5 * alpha_tmp[large], alpha[upper_left])
-      alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large], alpha[upper_right])
-
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left],  alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
-    end
   end
 
   return alpha
 end
 
+
+function apply_smoothing!(u::AbstractArray{<:Any, 5}, mesh::Union{TreeMesh{3}, P4estMesh{3}}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
+
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_tmp .= alpha
+
+  # Loop over interfaces
+  for interface in eachinterface(dg, cache)
+    # Get neighboring element ids
+    left  = cache.interfaces.neighbor_ids[1, interface]
+    right = cache.interfaces.neighbor_ids[2, interface]
+
+    # Apply smoothing
+    alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
+    alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
+  end
+
+  # Loop over L2 mortars
+  for mortar in eachmortar(dg, cache)
+    # Get neighboring element ids
+    lower_left  = cache.mortars.neighbor_ids[1, mortar]
+    lower_right = cache.mortars.neighbor_ids[2, mortar]
+    upper_left  = cache.mortars.neighbor_ids[3, mortar]
+    upper_right = cache.mortars.neighbor_ids[4, mortar]
+    large       = cache.mortars.neighbor_ids[5, mortar]
+
+    # Apply smoothing
+    alpha[lower_left]  = max(alpha_tmp[lower_left],  0.5 * alpha_tmp[large], alpha[lower_left])
+    alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large], alpha[lower_right])
+    alpha[upper_left]  = max(alpha_tmp[upper_left],  0.5 * alpha_tmp[large], alpha[upper_left])
+    alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large], alpha[upper_right])
+
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left],  alpha[large])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
+  end
+  
+end
+
+
+function apply_smoothing!(u::AbstractArray{<:Any, 5}, mesh::StructuredMesh{3}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
+
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_tmp .= alpha
+
+  # Loop over elements, because there is no interface container
+  for element in eachelement(dg,cache)
+    # Get neighboring element ids
+    left  = cache.elements.left_neighbors[1, element]
+    right = cache.elements.right_neighbors[1, element]
+    up    = cache.elements.left_neighbors[2, element] 
+    down  = cache.elements.right_neighbors[2, element]
+    front = cache.elements.left_neighbors[3, element]
+    back  = cache.elements.right_neighbors[3, element]
+
+    # Apply smoothing
+    alpha[left]     = max(alpha_tmp[left],    0.5 * alpha_tmp[element], alpha[left])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[left],    alpha[element])
+      
+    alpha[right]    = max(alpha_tmp[right],   0.5 * alpha_tmp[element], alpha[right])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[right],   alpha[element])
+
+    alpha[up]       = max(alpha_tmp[up],      0.5 * alpha_tmp[element], alpha[up])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[up],      alpha[element])
+
+    alpha[down]     = max(alpha_tmp[down],    0.5 * alpha_tmp[element], alpha[down])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[down],    alpha[element])
+      
+    alpha[front]    = max(alpha_tmp[front],   0.5 * alpha_tmp[element], alpha[front])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[front],   alpha[element])
+
+    alpha[back]     = max(alpha_tmp[back],    0.5 * alpha_tmp[element], alpha[back])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[back],    alpha[element])
+
+  end
+  
+end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -153,7 +201,7 @@ function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEqua
 end
 
 
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,5},
+function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,5}, mesh, 
                                    equations, dg::DGSEM, cache;
                                    kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
@@ -220,7 +268,7 @@ function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquation
 end
 
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5},
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5}, mesh, 
                                        equations, dg::DGSEM, cache;
                                        kwargs...)
   @unpack alpha, indicator_threaded = indicator_max.cache

@@ -28,8 +28,8 @@ function prolong2interfaces!(cache, u,
   size_ = (nnodes(dg), nnodes(dg))
 
   @threaded for interface in eachinterface(dg, cache)
-    primary_element   = interfaces.element_ids[1, interface]
-    secondary_element = interfaces.element_ids[2, interface]
+    primary_element   = interfaces.neighbor_ids[1, interface]
+    secondary_element = interfaces.neighbor_ids[2, interface]
 
     primary_indices   = interfaces.node_indices[1, interface]
     secondary_indices = interfaces.node_indices[2, interface]
@@ -58,14 +58,14 @@ function calc_interface_flux!(surface_flux_values,
                               nonconservative_terms::Val{false},
                               equations, surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
-  @unpack u, element_ids, node_indices = cache.interfaces
+  @unpack u, neighbor_ids, node_indices = cache.interfaces
 
   size_ = (nnodes(dg), nnodes(dg))
 
   @threaded for interface in eachinterface(dg, cache)
     # Get neighboring elements
-    primary_element   = element_ids[1, interface]
-    secondary_element = element_ids[2, interface]
+    primary_element   = neighbor_ids[1, interface]
+    secondary_element = neighbor_ids[2, interface]
 
     primary_indices   = node_indices[1, interface]
     secondary_indices = node_indices[2, interface]
@@ -109,7 +109,7 @@ function prolong2boundaries!(cache, u,
   size_ = (nnodes(dg), nnodes(dg))
 
   @threaded for boundary in eachboundary(dg, cache)
-    element       = boundaries.element_ids[boundary]
+    element       = boundaries.neighbor_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
 
     # Use Tuple `node_indices` and `evaluate_index` to copy values
@@ -140,7 +140,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
     # Use the local index to get the global boundary index from the pre-sorted list
     boundary = boundary_indexing[local_index]
 
-    element       = boundaries.element_ids[boundary]
+    element       = boundaries.neighbor_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
     direction     = indices2direction(node_indices)
 
@@ -176,7 +176,7 @@ function prolong2mortars!(cache, u,
                           mesh::P4estMesh{2}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
-  @unpack element_ids, node_indices = cache.mortars
+  @unpack neighbor_ids, node_indices = cache.mortars
 
   size_ = (nnodes(dg), nnodes(dg))
 
@@ -192,7 +192,7 @@ function prolong2mortars!(cache, u,
           # from the correct face and in the correct orientation
           cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_indices, size_, 1, i),
                                                        evaluate_index(small_indices, size_, 2, i),
-                                                       element_ids[pos, mortar]]
+                                                       neighbor_ids[pos, mortar]]
         end
       end
     end
@@ -208,7 +208,7 @@ function prolong2mortars!(cache, u,
         # from the correct face and in the correct orientation
         u_buffer[v, i] = u[v, evaluate_index(large_indices, size_, 1, i),
                               evaluate_index(large_indices, size_, 2, i),
-                              element_ids[3, mortar]]
+                              neighbor_ids[3, mortar]]
       end
     end
 
@@ -230,7 +230,7 @@ function calc_mortar_flux!(surface_flux_values,
                            nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
-  @unpack u, element_ids, node_indices = cache.mortars
+  @unpack u, neighbor_ids, node_indices = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
   @unpack surface_flux = surface_integral
 
@@ -253,7 +253,7 @@ function calc_mortar_flux!(surface_flux_values,
         normal_vector = get_normal_vector(small_direction, cache,
                                           evaluate_index(small_indices, size_, 1, i),
                                           evaluate_index(small_indices, size_, 2, i),
-                                          element_ids[pos, mortar])
+                                          neighbor_ids[pos, mortar])
 
         flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
 
@@ -279,7 +279,7 @@ end
                                             mesh::P4estMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar, u_buffer)
-  @unpack element_ids, node_indices = cache.mortars
+  @unpack neighbor_ids, node_indices = cache.mortars
 
   small_indices  = node_indices[1, mortar]
   large_indices  = node_indices[2, mortar]
@@ -298,12 +298,12 @@ end
         surface_index = evaluate_index_surface(small_indices, size_, 1, i)
         surface_flux_values[v, surface_index,
                             small_direction,
-                            element_ids[pos, mortar]] = fstar[pos][v, i]
+                            neighbor_ids[pos, mortar]] = fstar[pos][v, i]
       end
     end
   end
 
-  large_element = element_ids[3, mortar]
+  large_element = neighbor_ids[3, mortar]
 
   # Project small fluxes to large element.
   # TODO: Taal performance, see comment in dg_tree/dg_2d.jl

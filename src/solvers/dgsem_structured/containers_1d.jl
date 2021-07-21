@@ -7,7 +7,7 @@
 
 # Initialize data structures in element container
 function init_elements!(elements, mesh::StructuredMesh{1}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors,
+  @unpack node_coordinates, left_neighbors, right_neighbors,
           jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   # Calculate node coordinates, Jacobian matrix, and inverse Jacobian determinant
@@ -22,7 +22,9 @@ function init_elements!(elements, mesh::StructuredMesh{1}, basis::LobattoLegendr
   # Contravariant vectors don't make sense in 1D, they would be identical to inverse_jacobian
   fill!(contravariant_vectors, NaN)
 
-  initialize_neighbor_connectivity!(left_neighbors, mesh)
+  initialize_left_neighbor_connectivity!(left_neighbors, mesh)
+
+  initialize_right_neighbor_connectivity!(right_neighbors, mesh)
 
   return nothing
 end
@@ -65,7 +67,7 @@ end
 
 
 # Save id of left neighbor of every element
-function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{1})
+function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{1})
   # Neighbors in x-direction
   # Inner elements
   for cell_x in 2:size(mesh, 1)
@@ -81,6 +83,26 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{
   end
 
   return left_neighbors
+end
+
+
+# Save id of right neighbor of every element
+function initialize_right_neighbor_connectivity!(right_neighbors, mesh::StructuredMesh{1})
+  # Neighbors in x-direction
+  # Inner elements
+  for cell_x in 1:size(mesh, 1)-1
+    right_neighbors[1, cell_x] = cell_x + 1
+  end
+
+  if isperiodic(mesh)
+    # Periodic boundary
+    right_neighbors[1, end] = size(mesh, 1)
+  else
+    # Use boundary conditions
+    right_neighbors[1, end] = 0
+  end
+
+  return right_neighbors
 end
 
 
