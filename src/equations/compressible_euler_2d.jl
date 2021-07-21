@@ -348,8 +348,11 @@ end
 """
     initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
 
-The classical Kelvin-Helmholtz instability based on
-- https://arxiv.org/pdf/2102.06017.pdf
+A version of the classical Kelvin-Helmholtz instability based on
+- Andrés M. Rueda-Ramírez, Gregor J. Gassner (2021)
+  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations 
+  of the Euler Equations
+  [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
 """
 function initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
   # change discontinuity to tanh
