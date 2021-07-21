@@ -24,7 +24,7 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3}, mesh,
+function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3}, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                                    equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
@@ -89,25 +89,57 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3}, me
   end
 
   if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
+  
+    apply_smoothing!(u, mesh, equations, dg, alpha, alpha_tmp, cache)
 
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
   end
 
   return alpha
 end
 
+
+function apply_smoothing!(u::AbstractArray{<:Any, 3}, mesh::TreeMesh{1}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
+
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_tmp .= alpha
+
+  # Loop over interfaces
+  for interface in eachinterface(dg, cache)
+    # Get neighboring element ids
+    left  = cache.interfaces.neighbor_ids[1, interface]
+    right = cache.interfaces.neighbor_ids[2, interface]
+
+    # Apply smoothing
+    alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
+    alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
+  end
+  
+end
+
+
+function apply_smoothing!(u::AbstractArray{<:Any, 3}, mesh::StructuredMesh{1}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
+
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_tmp .= alpha
+
+  # Loop over elements, because there is no interface container
+  for element in eachelement(dg,cache)
+    # Get neighboring element ids
+    left  = cache.elements.left_neighbors[1, element]
+    right = cache.elements.right_neighbors[1, element]
+
+    # Apply smoothing
+    alpha[left]     = max(alpha_tmp[left],    0.5 * alpha_tmp[element], alpha[left])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[left],    alpha[element])
+    
+    alpha[right]    = max(alpha_tmp[right],   0.5 * alpha_tmp[element], alpha[right])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[right],   alpha[element])
+      
+  end
+  
+end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
