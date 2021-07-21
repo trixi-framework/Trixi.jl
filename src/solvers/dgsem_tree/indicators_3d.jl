@@ -26,7 +26,7 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5}, mesh::TreeMesh{3},
+function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5}, mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                                    equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
@@ -94,264 +94,94 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5}, me
   end
 
   if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
+    
+    apply_smoothing!(u, mesh, equations, dg, alpha, alpha_tmp, cache)
 
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower_left  = cache.mortars.neighbor_ids[1, mortar]
-      lower_right = cache.mortars.neighbor_ids[2, mortar]
-      upper_left  = cache.mortars.neighbor_ids[3, mortar]
-      upper_right = cache.mortars.neighbor_ids[4, mortar]
-      large       = cache.mortars.neighbor_ids[5, mortar]
-
-      # Apply smoothing
-      alpha[lower_left]  = max(alpha_tmp[lower_left],  0.5 * alpha_tmp[large], alpha[lower_left])
-      alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large], alpha[lower_right])
-      alpha[upper_left]  = max(alpha_tmp[upper_left],  0.5 * alpha_tmp[large], alpha[upper_left])
-      alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large], alpha[upper_right])
-
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left],  alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
-    end
   end
 
   return alpha
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5}, mesh::StructuredMesh{3},
-                                                   equations, dg::DGSEM, cache;
-                                                   kwargs...)
-  @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
-          modal_tmp1_threaded, modal_tmp2_threaded = indicator_hg.cache
-  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-  #       or just `resize!` whenever we call the relevant methods as we do now?
-  resize!(alpha, nelements(dg, cache))
-  if alpha_smooth
-    resize!(alpha_tmp, nelements(dg, cache))
+function apply_smoothing!(u::AbstractArray{<:Any, 5}, mesh::Union{TreeMesh{3}, P4estMesh{3}}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
+
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_tmp .= alpha
+
+  # Loop over interfaces
+  for interface in eachinterface(dg, cache)
+    # Get neighboring element ids
+    left  = cache.interfaces.neighbor_ids[1, interface]
+    right = cache.interfaces.neighbor_ids[2, interface]
+
+    # Apply smoothing
+    alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
+    alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
   end
 
-  # magic parameters
-  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-  parameter_s = log((1 - 0.0001)/0.0001)
+  # Loop over L2 mortars
+  for mortar in eachmortar(dg, cache)
+    # Get neighboring element ids
+    lower_left  = cache.mortars.neighbor_ids[1, mortar]
+    lower_right = cache.mortars.neighbor_ids[2, mortar]
+    upper_left  = cache.mortars.neighbor_ids[3, mortar]
+    upper_right = cache.mortars.neighbor_ids[4, mortar]
+    large       = cache.mortars.neighbor_ids[5, mortar]
 
-  @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
-    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
-    modal_tmp2 = modal_tmp2_threaded[Threads.threadid()]
+    # Apply smoothing
+    alpha[lower_left]  = max(alpha_tmp[lower_left],  0.5 * alpha_tmp[large], alpha[lower_left])
+    alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large], alpha[lower_right])
+    alpha[upper_left]  = max(alpha_tmp[upper_left],  0.5 * alpha_tmp[large], alpha[upper_left])
+    alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large], alpha[upper_right])
 
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, k, element)
-      indicator[i, j, k] = indicator_hg.variable(u_local, equations)
-    end
-
-    # Convert to modal representation
-    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1, modal_tmp2)
-
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      total_energy += modal[i, j, k]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for k in 1:(nnodes(dg)-1), j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
-      total_energy_clip1 += modal[i, j, k]^2
-    end
-    total_energy_clip2 = zero(eltype(modal))
-    for k in 1:(nnodes(dg)-2), j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
-      total_energy_clip2 += modal[i, j, k]^2
-    end
-
-    # Calculate energy in lower modes
-    energy = max((total_energy - total_energy_clip1) / total_energy,
-                 (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
-
-    alpha_element = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
-
-    # Take care of the case close to pure DG
-    if alpha_element < alpha_min
-      alpha_element = zero(alpha_element)
-    end
-
-    # Take care of the case close to pure FV
-    if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
-    end
-
-    # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha_element)
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left],  alpha[large])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
   end
+  
+end
 
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
 
-    # Loop over elements, because there is no interface container
-    for element in eachelement(dg,cache)
-      # Get neighboring element ids
-      left  = cache.elements.left_neighbors[1, element]
-      right = cache.elements.right_neighbors[1, element]
-      up    = cache.elements.left_neighbors[2, element] 
-      down  = cache.elements.right_neighbors[2, element]
-      front = cache.elements.left_neighbors[3, element]
-      back  = cache.elements.right_neighbors[3, element]
+function apply_smoothing!(u::AbstractArray{<:Any, 5}, mesh::StructuredMesh{3}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
 
-      # Apply smoothing
-      alpha[left]     = max(alpha_tmp[left],    0.5 * alpha_tmp[element], alpha[left])
-      alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[left],    alpha[element])
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_tmp .= alpha
+
+  # Loop over elements, because there is no interface container
+  for element in eachelement(dg,cache)
+    # Get neighboring element ids
+    left  = cache.elements.left_neighbors[1, element]
+    right = cache.elements.right_neighbors[1, element]
+    up    = cache.elements.left_neighbors[2, element] 
+    down  = cache.elements.right_neighbors[2, element]
+    front = cache.elements.left_neighbors[3, element]
+    back  = cache.elements.right_neighbors[3, element]
+
+    # Apply smoothing
+    alpha[left]     = max(alpha_tmp[left],    0.5 * alpha_tmp[element], alpha[left])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[left],    alpha[element])
       
-      alpha[right]    = max(alpha_tmp[right],   0.5 * alpha_tmp[element], alpha[right])
-      alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[right],   alpha[element])
+    alpha[right]    = max(alpha_tmp[right],   0.5 * alpha_tmp[element], alpha[right])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[right],   alpha[element])
 
-      alpha[up]       = max(alpha_tmp[up],      0.5 * alpha_tmp[element], alpha[up])
-      alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[up],      alpha[element])
+    alpha[up]       = max(alpha_tmp[up],      0.5 * alpha_tmp[element], alpha[up])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[up],      alpha[element])
 
-      alpha[down]     = max(alpha_tmp[down],    0.5 * alpha_tmp[element], alpha[down])
-      alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[down],    alpha[element])
+    alpha[down]     = max(alpha_tmp[down],    0.5 * alpha_tmp[element], alpha[down])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[down],    alpha[element])
       
-      alpha[front]    = max(alpha_tmp[front],   0.5 * alpha_tmp[element], alpha[front])
-      alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[front],   alpha[element])
+    alpha[front]    = max(alpha_tmp[front],   0.5 * alpha_tmp[element], alpha[front])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[front],   alpha[element])
 
-      alpha[back]     = max(alpha_tmp[back],    0.5 * alpha_tmp[element], alpha[back])
-      alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[back],    alpha[element])
-
-    end
+    alpha[back]     = max(alpha_tmp[back],    0.5 * alpha_tmp[element], alpha[back])
+    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[back],    alpha[element])
 
   end
-
-  return alpha
+  
 end
-
-
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5}, mesh::P4estMesh{3},
-                                                   equations, dg::DGSEM, cache;
-                                                   kwargs...)
-  @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
-          modal_tmp1_threaded, modal_tmp2_threaded = indicator_hg.cache
-  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-  #       or just `resize!` whenever we call the relevant methods as we do now?
-  resize!(alpha, nelements(dg, cache))
-  if alpha_smooth
-    resize!(alpha_tmp, nelements(dg, cache))
-  end
-
-  # magic parameters
-  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-  parameter_s = log((1 - 0.0001)/0.0001)
-
-  @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
-    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
-    modal_tmp2 = modal_tmp2_threaded[Threads.threadid()]
-
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, k, element)
-      indicator[i, j, k] = indicator_hg.variable(u_local, equations)
-    end
-
-    # Convert to modal representation
-    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1, modal_tmp2)
-
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      total_energy += modal[i, j, k]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for k in 1:(nnodes(dg)-1), j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
-      total_energy_clip1 += modal[i, j, k]^2
-    end
-    total_energy_clip2 = zero(eltype(modal))
-    for k in 1:(nnodes(dg)-2), j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
-      total_energy_clip2 += modal[i, j, k]^2
-    end
-
-    # Calculate energy in lower modes
-    energy = max((total_energy - total_energy_clip1) / total_energy,
-                 (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
-
-    alpha_element = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
-
-    # Take care of the case close to pure DG
-    if alpha_element < alpha_min
-      alpha_element = zero(alpha_element)
-    end
-
-    # Take care of the case close to pure FV
-    if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
-    end
-
-    # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha_element)
-  end
-
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.element_ids[1, interface]
-      right = cache.interfaces.element_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower_left  = cache.mortars.element_ids[1, mortar]
-      lower_right = cache.mortars.element_ids[2, mortar]
-      upper_left  = cache.mortars.element_ids[3, mortar]
-      upper_right = cache.mortars.element_ids[4, mortar]
-      large       = cache.mortars.element_ids[5, mortar]
-
-      # Apply smoothing
-      alpha[lower_left]  = max(alpha_tmp[lower_left],  0.5 * alpha_tmp[large], alpha[lower_left])
-      alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large], alpha[lower_right])
-      alpha[upper_left]  = max(alpha_tmp[upper_left],  0.5 * alpha_tmp[large], alpha[upper_left])
-      alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large], alpha[upper_right])
-
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left],  alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
-    end
-  end
-
-  return alpha
-end
-
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals

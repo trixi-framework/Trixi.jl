@@ -69,8 +69,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
 
   @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-      l2   = [1.19498790e-01, 7.43819689e-02, 7.54744520e-02, 7.12996608e-02, 1.18762175e+00],
-      linf = [7.09666328e-01, 4.53679455e-01, 4.28371015e-01, 4.12381704e-01, 1.46634631e+01],
+      l2   = [1.15179124e-01, 7.01638076e-02, 7.31448863e-02, 7.05931625e-02, 1.18855141e+00],
+      linf = [6.88469531e-01, 4.08144230e-01, 4.09402155e-01, 3.72576066e-01, 1.46631041e+01],
       tspan = (0.0, 0.3))
   end
 

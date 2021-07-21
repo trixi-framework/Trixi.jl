@@ -12,7 +12,8 @@ initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_ranocha
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(4)
+polydeg = 4
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
@@ -22,7 +23,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
 
-solver = DGSEM(polydeg=4, surface_flux=surface_flux, volume_integral=volume_integral)
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 ###############################################################################
 
@@ -51,9 +52,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
@@ -62,8 +60,9 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        analysis_callback, 
+                        alive_callback,
+                        save_solution,
                         stepsize_callback)
 ###############################################################################
 # run the simulation

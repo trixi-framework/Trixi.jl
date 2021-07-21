@@ -65,16 +65,17 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_
     )
   end
 
-  @trixi_testset "elixir_euler_ec.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [9.08001178e-02, 1.02930660e-01, 1.02849932e-01, 3.36800778e-01],
-      linf = [2.63388273e-01, 3.73320544e-01, 3.76462512e-01, 9.84893700e-01])
+  @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
+      l2   = [9.53984675e-02, 1.05633455e-01, 1.05636158e-01, 3.50747237e-01],
+      linf = [2.94357464e-01, 4.07893014e-01, 3.97334516e-01, 1.08142520e+00],
+      tspan = (0.0, 1.0))
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-      l2   = [3.70027893e-01, 2.43470344e-01, 2.43470344e-01, 1.28658061e+00],
-      linf = [1.10364467e+00, 1.18899606e+00, 1.18899606e+00, 6.19706101e+00],
+      l2   = [3.70025991e-01, 2.43469627e-01, 2.43469627e-01, 1.28658401e+00],
+      linf = [1.10363921e+00, 1.18898311e+00, 1.18898311e+00, 6.19710862e+00],
       tspan = (0.0, 0.3))
   end
 

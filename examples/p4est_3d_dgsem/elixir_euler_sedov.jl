@@ -10,12 +10,11 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_sedov_blast_wave
 
-###############################################################################
 # Get the DG approximation space
-
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha 
-basis = LobattoLegendreBasis(5)
+polydeg = 5
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
@@ -25,9 +24,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
                                                
-solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=volume_integral)  
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)  
 
-###############################################################################
 # Get the curved quad mesh from a file
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
@@ -50,9 +48,7 @@ mesh = P4estMesh(trees_per_dimension,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
                  periodicity=true)
 
-###############################################################################
 # create the semi discretization object
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################

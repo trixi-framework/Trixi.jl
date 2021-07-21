@@ -9,12 +9,11 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_sedov_blast_wave
 
-###############################################################################
 # Get the DG approximation space
-
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(3)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
@@ -24,7 +23,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
 
-solver = DGSEM(polydeg=3, surface_flux=surface_flux, volume_integral=volume_integral)
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 
 ###############################################################################
@@ -58,7 +57,7 @@ save_solution = SaveSolutionCallback(interval=300,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.1)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

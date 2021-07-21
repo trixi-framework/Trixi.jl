@@ -10,11 +10,11 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_sedov_blast_wave
 
-###############################################################################
 # Get the DG approximation space
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(6)
+polydeg = 6
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
@@ -24,21 +24,18 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
 
-solver = DGSEM(polydeg=6, surface_flux=surface_flux, volume_integral=volume_integral)
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 ###############################################################################
 # Get the curved quad mesh from a file
 
 default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
-#isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
-#                                       default_mesh_file)
+
 mesh_file = default_mesh_file
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity=true)
 
-###############################################################################
 # create the semi discretization object
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
@@ -58,7 +55,7 @@ save_solution = SaveSolutionCallback(interval=300,
                                      save_initial_solution=true,
                                      save_final_solution=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.1)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
