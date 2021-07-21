@@ -348,7 +348,7 @@ end
 """
     initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
 
-The classical Kelvin-Helmholtz instability based on
+A version of the classical Kelvin-Helmholtz instability based on
 - https://arxiv.org/pdf/2102.06017.pdf
 """
 function initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
