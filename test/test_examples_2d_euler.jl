@@ -104,8 +104,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
-        l2   = [0.002046113073936985, 0.002862623943300569, 0.001971116879236713, 0.004816623657677065],
-        linf = [0.024375050653856478, 0.01803061241763637, 0.009938942915093363, 0.02097211774984231],
+        l2   = [5.56898597e-02,   3.29845866e-02,   5.22436730e-02,   8.00923511e-02],
+        linf = [2.40499700e-01,   1.66109782e-01,   1.23559478e-01,   2.69558145e-01],
         tspan = (0.0, 0.2))
     else
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
@@ -122,8 +122,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
-        l2   = [0.0015773943210539198, 0.0023012411276933705, 0.0013793453564426015, 0.003239622733845669],
-        linf = [0.025791632274568155, 0.015170620391733003, 0.00958159135384009, 0.013265593557157729],
+        l2   = [5.56928413e-02,   3.31135409e-02,   5.22350998e-02,   8.00669862e-02],
+        linf = [2.53988861e-01,   1.74418201e-01,   1.23234549e-01,   2.69116662e-01],
         tspan = (0.0, 0.2))
     else
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
