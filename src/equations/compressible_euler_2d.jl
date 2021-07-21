@@ -348,35 +348,25 @@ end
 """
     initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
 
-The classical Kelvin-Helmholtz instability based on
-- https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+A version of the classical Kelvin-Helmholtz instability based on
+- Andrés M. Rueda-Ramírez, Gregor J. Gassner (2021)
+  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations 
+  of the Euler Equations
+  [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
 """
 function initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
-  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
   # change discontinuity to tanh
   # typical resolution 128^2, 256^2
-  # domain size is [-0.5,0.5]^2
-  dens0 = 1.0 # outside density
-  dens1 = 2.0 # inside density
-  velx0 = -0.5 # outside velocity
-  velx1 = 0.5 # inside velocity
-  slope = 50 # used for tanh instead of discontinuous initial condition
-  # pressure equilibrium
-  p     = 2.5
-  # density
-  rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-  if iszero(t) # initial condition
-    #  y velocity v2 is only white noise
-    v2  = 0.01*(rand(Float64,1)[1]-0.5)
-    #  x velocity is also augmented with noise
-    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
-  else # background values to compute reference values for CI
-    v2 = 0.0
-    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-  end
+  # domain size is [-1,+1]^2
+  slope = 15
+  amplitude = 0.02
+  B = tanh(slope * x[2] + 7.5) - tanh(slope * x[2] - 7.5)
+  rho = 0.5 + 0.75 * B
+  v1 = 0.5 * (B - 1)
+  v2 = 0.1 * sin(2 * pi * x[1])
+  p = 1.0
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
-
 
 """
     initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
