@@ -96,39 +96,17 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
   end
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
-    if Threads.nthreads() == 1
-      # This example uses random numbers to generate the initial condition.
-      # Hence, we can only check "errors" if everything is made reproducible.
-      # However, that's not enough to ensure reproducibility since the stream
-      # of random numbers is not guaranteed to be the same across different
-      # minor versions of Julia.
-      # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
-        l2   = [5.56898597e-02,   3.29845866e-02,   5.22436730e-02,   8.00923511e-02],
-        linf = [2.40499700e-01,   1.66109782e-01,   1.23559478e-01,   2.69558145e-01],
-        tspan = (0.0, 0.2))
-    else
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
-        tspan = (0.0, 0.2))
-    end
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
+      l2   = [5.56898597e-02,   3.29845866e-02,   5.22436730e-02,   8.00923511e-02],
+      linf = [2.40499700e-01,   1.66109782e-01,   1.23559478e-01,   2.69558145e-01],
+      tspan = (0.0, 0.2))
   end
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr.jl" begin
-    if Threads.nthreads() == 1
-      # This example uses random numbers to generate the initial condition.
-      # Hence, we can only check "errors" if everything is made reproducible.
-      # However, that's not enough to ensure reproducibility since the stream
-      # of random numbers is not guaranteed to be the same across different
-      # minor versions of Julia.
-      # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
-        l2   = [5.56928413e-02,   3.31135409e-02,   5.22350998e-02,   8.00669862e-02],
-        linf = [2.53988861e-01,   1.74418201e-01,   1.23234549e-01,   2.69116662e-01],
-        tspan = (0.0, 0.2))
-    else
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
-        tspan = (0.0, 0.2))
-    end
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
+      l2   = [5.56928413e-02,   3.31135409e-02,   5.22350998e-02,   8.00669862e-02],
+      linf = [2.53988861e-01,   1.74418201e-01,   1.23234549e-01,   2.69116662e-01],
+      tspan = (0.0, 0.2))
   end
 
   @trixi_testset "elixir_euler_vortex.jl" begin
