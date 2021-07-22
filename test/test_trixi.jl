@@ -31,8 +31,16 @@ macro test_trixi_include(elixir, args...)
     Trixi.mpi_isroot() && println("═"^100)
     Trixi.mpi_isroot() && println($elixir)
 
+    # if `maxiters` is set in tests, it is usually set to a small numer to
+    # run only a few steps - ignore possible warnings coming from that
+    if any(==(:maxiters) ∘ first, $kwargs)
+      additional_ignore_content = [r"┌ Warning: Interrupted\. Larger maxiters is needed\.\n└ @ SciMLBase .+\n"]
+    else
+      additional_ignore_content = []
+    end
+
     # evaluate examples in the scope of the module they're called from
-    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...)
+    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...) additional_ignore_content
 
     # if present, compare l2 and linf errors against reference values
     if !isnothing($l2) || !isnothing($linf)
@@ -100,7 +108,7 @@ end
 
 # Modified version of `@test_nowarn` that prints the content of `stderr` when
 # it is not empty and ignnores module replacements.
-macro test_nowarn_mod(expr)
+macro test_nowarn_mod(expr, additional_ignore_content=String[])
   quote
     let fname = tempname()
       try
@@ -113,14 +121,25 @@ macro test_nowarn_mod(expr)
         if !isempty(stderr_content)
           println("Content of `stderr`:\n", stderr_content)
         end
+
+        # Patterns matching the following ones will be ignored. Additional patterns
+        # passed as arguments can also be regular expressions, so we just use the
+        # type `Any` for `ignore_content`.
+        ignore_content = Any[
+          # TODO: Upstream (PlotUtils). This should be removed again once the
+          #       deprecated stuff is fixed upstream.
+          "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
+          "WARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n",
+        ]
+        append!(ignore_content, additional_ignore_content)
+        for pattern in ignore_content
+          stderr_content = replace(stderr_content, pattern => "")
+        end
+
         # We also ignore simple module redefinitions for convenience. Thus, we
         # check whether every line of `stderr_content` is of the form of a
         # module replacement warning.
-        # TODO: Upstream (PlotUtils). This should be removed again once the
-        #       deprecated stuff is fixed upstream.
-        if stderr_content != "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\nWARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n"
-          @test occursin(r"^(WARNING: replacing module .+\.\n)*$", stderr_content)
-        end
+        @test occursin(r"^(WARNING: replacing module .+\.\n)*$", stderr_content)
         ret
       finally
         rm(fname, force=true)
