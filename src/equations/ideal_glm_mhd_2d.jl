@@ -299,6 +299,17 @@ end
   return nothing
 end
 
+"""
+    flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                equations::IdealGlmMhdEquations2D)
+
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdEquations2D`](@ref).
+
+## References
+- TODO: nonconservative terms, add references
+"""
 @inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
                                              equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll

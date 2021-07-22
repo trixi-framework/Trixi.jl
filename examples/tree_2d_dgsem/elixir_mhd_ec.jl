@@ -9,7 +9,7 @@ equations = IdealGlmMhdEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = flux_hindenlang
+volume_flux = (flux_hindenlang, flux_nonconservative_powell)
 solver = DGSEM(polydeg=3, surface_flux=flux_hindenlang,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 

@@ -10,7 +10,7 @@ equations = IdealGlmMhdEquations2D(1.4)
 initial_condition = initial_condition_rotor
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_derigs_etal
+volume_flux  = (flux_derigs_etal, flux_nonconservative_powell)
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
