@@ -11,7 +11,7 @@ Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS,
 
 """
     DGMulti(; polydeg::Integer,
-              elem_type::AbstractElemShape,
+              element_type::AbstractElemShape,
               approximation_type=Polynomial(),
               surface_flux=flux_central,
               surface_integral=SurfaceIntegralWeakForm(surface_flux),
@@ -19,19 +19,19 @@ Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS,
 
 Create a discontinuous Galerkin method which uses
 - approximations of polynomial degree `polydeg`
-- element type `elem_type` (`Tri()`, `Quad()`, `Tet()`, and `Hex()` currently supported)
+- element type `element_type` (`Tri()`, `Quad()`, `Tet()`, and `Hex()` currently supported)
 
 Optional:
 - `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`, `Quad()`,
   and `Hex()` element types).
 """
 function DGMulti(; polydeg::Integer,
-                   elem_type::AbstractElemShape,
+                   element_type::AbstractElemShape,
                    approximation_type=Polynomial(),
                    surface_flux=flux_central,
                    surface_integral=SurfaceIntegralWeakForm(surface_flux),
                    volume_integral=VolumeIntegralWeakForm())
-  rd = RefElemData(elem_type, approximation_type, polydeg)
+  rd = RefElemData(element_type, approximation_type, polydeg)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
