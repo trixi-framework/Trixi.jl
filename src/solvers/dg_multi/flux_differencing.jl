@@ -86,7 +86,8 @@ function calc_volume_integral!(du, u, volume_integral,
 end
 
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, RealT, uEltype)
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial},
+                      RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -181,15 +182,19 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
                                                                       mesh, equations, dg, cache)
 
   # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
-  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral, mesh, equations, dg)
+  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral,
+                                                                    mesh, equations, dg)
 
-  @trixi_timeit timer() "calc_boundary_flux!" calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg)
+  @trixi_timeit timer() "calc_boundary_flux!" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                                  mesh, equations, dg)
 
-  @trixi_timeit timer() "calc_surface_integral!" calc_surface_integral!(du, u, dg.surface_integral, mesh, equations, dg, cache)
+  @trixi_timeit timer() "calc_surface_integral!" calc_surface_integral!(du, u, dg.surface_integral,
+                                                                        mesh, equations, dg, cache)
 
   @trixi_timeit timer() "invert_jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "calc_sources!" calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+  @trixi_timeit timer() "calc_sources!" calc_sources!(du, u, t, source_terms,
+                                                      mesh, equations, dg, cache)
 
   return nothing
 end
