@@ -337,6 +337,47 @@ end
   return nothing
 end
 
+# @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+#                                     nonconservative_terms::Val{true}, element,
+#                                     mesh::TreeMesh{2}, equations, volume_flux::Tuple{Any,Any}, dg::DGSEM, cache,
+#                                     alpha=true)
+#   # true * [some floating point value] == [exactly the same floating point value]
+#   # This can (hopefully) be optimized away due to constant propagation.
+#   @unpack derivative_split = dg.basis
+#   symmetric_flux, antisymmetric_flux = volume_flux
+
+#   # Calculate volume integral in one element
+#   for j in eachnode(dg), i in eachnode(dg)
+#     u_node = get_node_vars(u, equations, dg, i, j, element)
+
+#     # The diagonal terms are zero since the diagonal of `derivative_split`
+#     # is zero. We use the symmetry properties of the volume fluxes for the
+#     # remaining terms.
+
+#     # x direction
+#     for ii in (i+1):nnodes(dg)
+#       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+#       symm_flux1 = symmetric_flux(    u_node, u_node_ii, 1, equations)
+#       anti_flux1 = antisymmetric_flux(u_node, u_node_ii, 1, equations)
+#       integral_contribution = alpha * derivative_split[i, ii] * (symm_flux1 + anti_flux1)
+#       add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
+#       integral_contribution = alpha * derivative_split[ii, i] * (symm_flux1 - anti_flux1)
+#       add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+#     end
+
+#     # y direction
+#     for jj in (j+1):nnodes(dg)
+#       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+#       symm_flux2 = symmetric_flux(    u_node, u_node_jj, 2, equations)
+#       anti_flux2 = antisymmetric_flux(u_node, u_node_jj, 2, equations)
+#       integral_contribution = alpha * derivative_split[j, jj] * (symm_flux2 + anti_flux2)
+#       add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
+#       integral_contribution = alpha * derivative_split[jj, j] * (symm_flux2 - anti_flux2)
+#       add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+#     end
+#   end
+# end
+
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{true}, element,
                                     mesh::TreeMesh{2}, equations, volume_flux::Tuple{Any,Any}, dg::DGSEM, cache,
@@ -344,37 +385,35 @@ end
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
-  symmetric_flux, antisymmetric_flux = volume_flux
+  symmetric_flux, generalized_flux = volume_flux
 
-  # Calculate volume integral in one element
+  # Apply the symmetric flux as usual
+  split_form_kernel!(du, u, Val(false), element, mesh, equations, symmetric_flux, dg, cache, alpha)
+
+  # Calculate the remaining volume terms using the nonsymmetric generalized flux
   for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
 
     # The diagonal terms are zero since the diagonal of `derivative_split`
-    # is zero. We use the symmetry properties of the volume fluxes for the
-    # remaining terms.
+    # is zero. We ignore this for now.
 
     # x direction
-    for ii in (i+1):nnodes(dg)
+    integral_contribution = zero(u_node)
+    for ii in eachnode(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
-      symm_flux1 = symmetric_flux(    u_node, u_node_ii, 1, equations)
-      anti_flux1 = antisymmetric_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = alpha * derivative_split[i, ii] * (symm_flux1 + anti_flux1)
-      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
-      integral_contribution = alpha * derivative_split[ii, i] * (symm_flux1 - anti_flux1)
-      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+      flux1 = generalized_flux(u_node, u_node_ii, 1, equations)
+      integral_contribution = integral_contribution + derivative_split[i, ii] * flux1
     end
 
     # y direction
-    for jj in (j+1):nnodes(dg)
+    for jj in eachnode(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
-      symm_flux2 = symmetric_flux(    u_node, u_node_jj, 2, equations)
-      anti_flux2 = antisymmetric_flux(u_node, u_node_jj, 2, equations)
-      integral_contribution = alpha * derivative_split[j, jj] * (symm_flux2 + anti_flux2)
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
-      integral_contribution = alpha * derivative_split[jj, j] * (symm_flux2 - anti_flux2)
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+      flux2 = generalized_flux(u_node, u_node_jj, 2, equations)
+      integral_contribution = integral_contribution + derivative_split[j, jj] * flux2
     end
+
+    # The factor 0.5 cancels the factor 2 in the flux differencing form
+    multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations, dg, i, j, element)
   end
 end
 
