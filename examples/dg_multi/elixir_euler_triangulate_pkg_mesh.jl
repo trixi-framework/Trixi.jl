@@ -3,7 +3,7 @@
 using Triangulate
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(; polydeg = 3, elem_type = Tri(),
+dg = DGMulti(; polydeg = 3, element_type = Tri(),
                surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
                volume_integral = VolumeIntegralWeakForm())
 

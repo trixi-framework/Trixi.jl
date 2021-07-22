@@ -1,31 +1,21 @@
 # !!! warning "Experimental features"
 
-# run using
-# convergence_test(joinpath(examples_dir(), "triangular_mesh_2D", "elixir_euler_triangular_mesh_convergence.jl"), 4)
-
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(; polydeg = 3, elem_type = Tri(),
-               surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
+dg = DGMulti(; polydeg = 3, element_type = Tri(),
+               surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
                volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-# example where we tag two separate boundary segments of the mesh
-cells_per_dimension = (8,8) # detected by `extract_initial_resolution` for convergence tests
-vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(Tri(), cells_per_dimension...)
-mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, dg)
-
-boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :entire_boundary => boundary_condition_convergence_test)
-
+vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, 4)
+mesh = VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, dg, is_periodic=(true,true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms,
-                                    boundary_conditions = boundary_conditions)
+                                    source_terms = source_terms)
 
-tspan = (0.0, 0.25)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

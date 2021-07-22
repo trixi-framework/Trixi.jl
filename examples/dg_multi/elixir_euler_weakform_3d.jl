@@ -2,23 +2,20 @@
 
 using Trixi, OrdinaryDiffEq
 
-flux_ec = flux_ranocha
-dg = DGMulti(; polydeg = 3, elem_type = Tet(),
-               surface_integral = SurfaceIntegralWeakForm(flux_ec),
-               volume_integral = VolumeIntegralFluxDifferencing(flux_ec))
-
+dg = DGMulti(; polydeg = 3, element_type = Tet(),
+               surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+               volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 # example where we tag two separate boundary segments of the mesh
-top_boundary(x, y, z, tol=50*eps()) = abs(z - 1) < tol
+top_boundary(x, y, z, tol=50*eps()) = abs(y - 1) < tol
 rest_of_boundary(x, y, z, tol=50*eps()) = !top_boundary(x, y, z, tol)
 is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
-vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z, EToV = StartUpDG.uniform_mesh(Tet(), 2)
-mesh = VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z),
-                        EToV, dg, is_on_boundary = is_on_boundary)
+VX, VY, VZ, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, 4)
+mesh = VertexMappedMesh(VX, VY, VZ, EToV, dg, is_on_boundary = is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :top => boundary_condition_convergence_test,
@@ -28,7 +25,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_conditions)
 
-tspan = (0.0, 0.25)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
