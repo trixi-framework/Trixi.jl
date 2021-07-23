@@ -6,19 +6,19 @@ using Trixi
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dg_multi")
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmulti_2d")
 
-@testset "DGMulti" begin
-  @trixi_testset "Euler triangular mesh" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_2d.jl"),
+@testset "DGMulti 2D" begin
+  @trixi_testset "elixir_euler_weakform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       l2 = [0.0013463253573454783, 0.0014235911638070984, 0.0014235911638076622, 0.004721923810347086],
       linf = [0.0015248269221803668, 0.002070690855385582, 0.002070690855385804, 0.004913338290754687]
     )
   end
 
-  @trixi_testset "Euler triangular mesh SBP" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_2d.jl"),
+  @trixi_testset "elixir_euler_weakform.jl (SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       approximation_type = SBP(),
       l2 = [0.007465048853079056, 0.005297478943323888, 0.005297478943334149, 0.014701766352428895],
@@ -26,8 +26,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dg_mul
     )
   end
 
-  @trixi_testset "Euler quadrilateral mesh.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_2d.jl"),
+  @trixi_testset "elixir_euler_weakform.jl (Quadrilateral elements)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       element_type = Quad(),
       l2 = [0.0002909691660845978, 0.0002811425883546657, 0.0002811425883549579, 0.0010200600240538172],
@@ -35,8 +35,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dg_mul
     )
   end
 
-  @trixi_testset "Euler triangular mesh EC" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_2d.jl"),
+  @trixi_testset "elixir_euler_weakform.jl (EC) " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
@@ -45,8 +45,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dg_mul
     )
   end
 
-  @trixi_testset "Euler triangular mesh SBP EC" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_2d.jl"),
+  @trixi_testset "elixir_euler_weakform.jl (SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
@@ -56,35 +56,40 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dg_mul
     )
   end
 
-  @trixi_testset "Euler triangular mesh convergence" begin
-    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform_2d.jl"), 2)
+  @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
+    mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2], [4.2498632232077815, 4.133717042428824, 4.133717042041395, 4.086223177072245], rtol=0.05)
   end
 
-  @trixi_testset "Euler periodic triangular mesh" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic_2d.jl"),
+  @trixi_testset "elixir_euler_weakform_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
       l2 = [0.0014986508075708323, 0.001528523420746786, 0.0015285234207473158, 0.004846505183839211],
       linf = [0.0015062108658376872, 0.0019373508504645365, 0.0019373508504538783, 0.004742686826709086]
     )
   end
 
-  @trixi_testset "Euler with Triangulate.jl mesh" begin
+  @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_pkg_mesh.jl"),
       l2 = [0.00015405739868423074, 0.00014530283464035389, 0.00014870936695617315, 0.00044410650633679334],
       linf = [0.00039269979059053384, 0.0004237090504681795, 0.000577877861525522, 0.0015066603278119928]
     )
   end
+end
+
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmulti_3d")
+
+@testset "DGMulti 3D" begin
 
   # 3d tet/hex tests
-  @trixi_testset "Euler with tetrahedral mesh" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_3d.jl"),
+  @trixi_testset "elixir_euler_weakform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       l2 = [0.0010029534292051608, 0.0011682205957721673, 0.001072975385793516, 0.000997247778892257, 0.0039364354651358294],
       linf = [0.003660737033303718, 0.005625620600749226, 0.0030566354814669516, 0.0041580358824311325, 0.019326660236036464]
     )
   end
 
-  @trixi_testset "Euler with tetrahedral mesh EC" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_3d.jl"),
+  @trixi_testset "elixir_euler_weakform.jl (EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       l2 = [0.014932088450136542, 0.017080219613061526, 0.016589517840793006, 0.015905000907070196, 0.03903416208587798],
@@ -92,23 +97,23 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dg_mul
     )
   end
 
-  @trixi_testset "Euler with hexahedral mesh" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_3d.jl"),
+  @trixi_testset "elixir_euler_weakform.jl (Hexahedral elements)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       element_type = Hex(),
       l2 = [0.00030580190715769566, 0.00040146357607439464, 0.00040146357607564597, 0.000401463576075708, 0.0015749412434154315],
       linf = [0.00036910287847780054, 0.00042659774184228283, 0.0004265977427213574, 0.00042659774250686233, 0.00143803344597071]
     )
   end
 
-  @trixi_testset "Euler with tetrahedral mesh periodic" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic_3d.jl"),
+  @trixi_testset "elixir_euler_weakform_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
       l2 = [0.0010317074322517949, 0.0012277090547035293, 0.0011273991123913515, 0.0010418496196130177, 0.004058878478404962],
       linf = [0.003227752881827861, 0.005620317864620361, 0.0030514833972379307, 0.003987027618439498, 0.019282224709831652]
     )
   end
 
-  @trixi_testset "Euler with hexahedral mesh periodic" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic_3d.jl"),
+  @trixi_testset "elixir_euler_weakform_periodic.jl (Hexahedral elements)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
       element_type = Hex(),
       l2 = [0.00034230612468547436, 0.00044397204714598747, 0.0004439720471461567, 0.0004439720471464591, 0.0016639410646990126],
       linf = [0.0003674374460325147, 0.0004253921341716982, 0.0004253921340786615, 0.0004253921340831024, 0.0014333414071048267]
