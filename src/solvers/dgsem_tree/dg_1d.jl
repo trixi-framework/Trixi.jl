@@ -616,5 +616,8 @@ function calc_precondition_matrix!(du, u, t,
     end
   end
 
+  return nothing
+end
+
 
 end # @muladd
