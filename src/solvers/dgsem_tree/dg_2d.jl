@@ -483,8 +483,9 @@ function calc_volume_integral!(du, u,
 end
 
 
-@inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4}, nonconservative_terms,
-                            equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
+@inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4},
+                            nonconservative_terms, equations,
+                            volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
   @unpack inverse_weights = dg.basis
 
@@ -511,24 +512,19 @@ end
 
 
 #     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  nonconservative_terms::Val{false}, equations, volume_flux_fv, dg, element)
+#                  nonconservative_terms::Val{false}, equations,
+#                  volume_flux_fv, dg, element)
 #
 # Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
 #
 # # Arguments
-# - `fstar1_L::AbstractArray{<:Real, 3}`:
-# - `fstar1_R::AbstractArray{<:Real, 3}`:
-# - `fstar2_L::AbstractArray{<:Real, 3}`:
-# - `fstar2_R::AbstractArray{<:Real, 3}`:
-# - `u_leftright::AbstractArray{<:Real, 4}`
-# - `nonconservative_terms::Bool`
-# - `equations`
-# - `volume_flux_fv`
-# - `dg::DGSEM`
-# - `element::Integer`
+# - `fstar1_L::AbstractArray{<:Real, 3}`
+# - `fstar1_R::AbstractArray{<:Real, 3}`
+# - `fstar2_L::AbstractArray{<:Real, 3}`
+# - `fstar2_R::AbstractArray{<:Real, 3}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              nonconservative_terms::Val{false}, equations, volume_flux_fv,
-                              dg::DGSEM, element)
+                              nonconservative_terms::Val{false}, equations,
+                              volume_flux_fv, dg::DGSEM, element)
 
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
@@ -559,8 +555,10 @@ end
   return nothing
 end
 
+# TODO: nonconservative terms, remove
 #     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  nonconservative_terms::Val{true}, equations, volume_flux_fv, dg, element)
+#                  nonconservative_terms::Val{true}, equations,
+#                  volume_flux_fv, dg, element)
 #
 # Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
 #
@@ -570,14 +568,9 @@ end
 # - `fstar2_L::AbstractArray{<:Real, 3}`:
 # - `fstar2_R::AbstractArray{<:Real, 3}`:
 # - `u_leftright::AbstractArray{<:Real, 4}`
-# - `nonconservative_terms::Bool`
-# - `equations`
-# - `volume_flux_fv`
-# - `dg::DGSEM`
-# - `element::Integer`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              nonconservative_terms::Val{true}, equations, volume_flux_fv,
-                              dg::DGSEM, element)
+                              nonconservative_terms::Val{true}, equations,
+                              volume_flux_fv, dg::DGSEM, element)
   # Fluxes in x
   #############
 
@@ -652,6 +645,79 @@ end
     flux_L = noncons_interface_flux(u_ll, u_ll, 2, :inner, equations)
     # Copy to array
     set_node_vars!(fstar2_L, flux_L, equations, dg, i, nnodes(dg)+1)
+  end
+
+  return nothing
+end
+
+# TODO: nonconservative terms, remove restriction on volume_flux_fv used for
+#       dispatch for development
+#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+#                  nonconservative_terms::Val{true}, equations,
+#                  volume_flux_fv, dg, element)
+#
+# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
+#
+# # Arguments
+# - `fstar1_L::AbstractArray{<:Real, 3}`:
+# - `fstar1_R::AbstractArray{<:Real, 3}`:
+# - `fstar2_L::AbstractArray{<:Real, 3}`:
+# - `fstar2_R::AbstractArray{<:Real, 3}`:
+# - `u_leftright::AbstractArray{<:Real, 4}`
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
+                              nonconservative_terms::Val{true}, equations,
+                              volume_flux_fv::Tuple{Any,Any}, dg::DGSEM, element)
+  volume_flux, nonconservative_flux = volume_flux_fv
+
+  # Fluxes in x
+  fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
+
+  for j in eachnode(dg), i in 2:nnodes(dg)
+    u_ll = get_node_vars(u, equations, dg, i-1, j, element)
+    u_rr = get_node_vars(u, equations, dg, i,   j, element)
+
+    # Compute conservative part
+    f1 = volume_flux(u_ll, u_rr, 1, equations) # orientation 1: x direction
+
+    # Compute nonconservative part
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    f1_L = f1 + 0.5 * nonconservative_flux(u_ll, u_rr, 1, equations)
+    f1_R = f1 + 0.5 * nonconservative_flux(u_rr, u_ll, 1, equations)
+
+    # Copy to temporary storage
+    set_node_vars!(fstar1_L, f1_L, equations, dg, i, j)
+    set_node_vars!(fstar1_R, f1_R, equations, dg, i, j)
+  end
+
+  # Fluxes in y
+  fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           ] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
+
+  # Compute inner fluxes
+  for j in 2:nnodes(dg), i in eachnode(dg)
+    u_ll = get_node_vars(u, equations, dg, i, j-1, element)
+    u_rr = get_node_vars(u, equations, dg, i, j,   element)
+
+    # Compute conservative part
+    f2 = volume_flux(u_ll, u_rr, 2, equations) # orientation 2: y direction
+
+    # Compute nonconservative part
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    f2_L = f2 + 0.5 * nonconservative_flux(u_ll, u_rr, 2, equations)
+    f2_R = f2 + 0.5 * nonconservative_flux(u_rr, u_ll, 2, equations)
+
+    # Copy to temporary storage
+    set_node_vars!(fstar2_L, f2_L, equations, dg, i, j)
+    set_node_vars!(fstar2_R, f2_R, equations, dg, i, j)
   end
 
   return nothing

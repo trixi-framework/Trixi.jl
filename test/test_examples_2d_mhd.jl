@@ -39,7 +39,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
       l2   = [0.10793703703273708, 0.20177434827232335, 0.2296817363329907, 0.0, 0.2994119440979309, 0.15675567943351448, 0.24281245338083307, 0.0, 0.003548624701792127],
       linf = [0.560160833798496, 0.5098933680011135, 0.6566913038761877, 0.0, 0.9905839416293134, 0.39936698379939284, 0.6734754381366532, 0.0, 0.12739518123975463],
-      tspan = (0.0, 0.06), surface_flux = flux_hll)
+      tspan = (0.0, 0.06), surface_flux = (flux_hll, flux_nonconservative_powell))
   end
 end
 
