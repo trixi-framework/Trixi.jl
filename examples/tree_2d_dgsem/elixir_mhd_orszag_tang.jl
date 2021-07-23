@@ -9,7 +9,7 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 initial_condition = initial_condition_orszag_tang
 
-surface_flux = flux_lax_friedrichs
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
 volume_flux  = (flux_central, flux_nonconservative_powell)
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -19,7 +19,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
-                                                 volume_flux_fv=surface_flux)
+                                                 volume_flux_fv=first(surface_flux))
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0, 0)

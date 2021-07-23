@@ -9,7 +9,7 @@ equations = IdealGlmMhdEquations2D(1.4)
 
 initial_condition = initial_condition_rotor
 
-surface_flux = flux_lax_friedrichs
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
 volume_flux  = (flux_derigs_etal, flux_nonconservative_powell)
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
@@ -20,7 +20,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
-                                                 volume_flux_fv=surface_flux)
+                                                 volume_flux_fv=first(surface_flux))
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0, 0)
