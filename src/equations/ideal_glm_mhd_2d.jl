@@ -956,6 +956,7 @@ end
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
 
+  # TODO: nonconservative terms. This can obviuosly be much faster by avoiding the normalization
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
   normal_vector = normal_direction / norm_

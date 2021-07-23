@@ -402,6 +402,7 @@ end
     for ii in eachnode(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
       flux1 = generalized_flux(u_node, u_node_ii, 1, equations)
+      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[i, ii] * flux1
     end
 
@@ -409,6 +410,7 @@ end
     for jj in eachnode(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
       flux2 = generalized_flux(u_node, u_node_jj, 2, equations)
+      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[j, jj] * flux2
     end
 
