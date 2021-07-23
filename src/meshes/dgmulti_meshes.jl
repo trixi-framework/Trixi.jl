@@ -45,7 +45,7 @@ end
 - `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
 - `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
-reference element (e.g., quadrature, basis evaluation, differentiation, etc).
+  reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
