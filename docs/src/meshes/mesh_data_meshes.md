@@ -115,7 +115,7 @@ approximation on a triangle. There are also several parameters which can be twea
 
 ## Trixi elixirs on simplicial and tensor product element meshes
 
-Example elixirs on triangular, quadrilateral, tetrahedral, and simplicial meshes can be found in
+Example elixirs with triangular, quadrilateral, and tetrahedral meshes can be found in
 the `examples/dg_multi` folder. Some key elixirs to look at:
 
 * `elixir_euler_weakform_2d.jl`: basic weak form DG discretization on a uniform triangular mesh.

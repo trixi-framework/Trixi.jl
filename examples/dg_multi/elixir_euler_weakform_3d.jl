@@ -2,9 +2,9 @@
 
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(; polydeg = 3, element_type = Tet(),
-               surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
-               volume_integral = VolumeIntegralWeakForm())
+dg = DGMulti(polydeg = 3, element_type = Tet(),
+             surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+             volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test

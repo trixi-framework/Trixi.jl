@@ -13,7 +13,7 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
     du_i = du[i]
     for j in rows
       if !skip_index(i,j)
-          du_i += ATr[j,i] * volume_flux(u_i, u[j])
+          du_i = du_i + ATr[j,i] * volume_flux(u_i, u[j])
       end
     end
     du[i] = du_i
@@ -22,13 +22,13 @@ end
 
 # Version of function without `skip_index`, as mentioned in
 # https://github.com/trixi-framework/Trixi.jl/pull/695/files#r670403097
-@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux::VF, u) where {VF}
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u)
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
     du_i = du[i]
     for j in rows
-      du_i += ATr[j,i] * volume_flux(u_i, u[j])
+      du_i = du_i + ATr[j,i] * volume_flux(u_i, u[j])
     end
     du[i] = du_i
   end
@@ -38,7 +38,7 @@ end
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
 # We use LazyArrays.jl for lazy evaluation of physical differentiation operators, so that we can
 # compute linear combinations of differentiation operators on-the-fly in an allocation-free manner.
-function build_lazy_physical_derivative(element::Int, orientation::Int,
+function build_lazy_physical_derivative(element, orientation,
                                         mesh::VertexMappedMesh{2, Tri}, dg, cache)
   @unpack Qrst_skew_Tr = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
@@ -50,7 +50,7 @@ function build_lazy_physical_derivative(element::Int, orientation::Int,
   end
 end
 
-function build_lazy_physical_derivative(element::Int, orientation::Int,
+function build_lazy_physical_derivative(element, orientation,
                                         mesh::VertexMappedMesh{3, Tet}, dg, cache)
   @unpack Qrst_skew_Tr = cache
   QrskewTr, QsskewTr, QtskewTr = Qrst_skew_Tr
@@ -86,8 +86,7 @@ function calc_volume_integral!(du, u, volume_integral,
 end
 
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial},
-                      RealT, uEltype)
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -126,7 +125,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
             u_values, u_face_values, rhs_local_threaded, flux_face_values, local_values_threaded)
 end
 
-function entropy_projection!(cache, u, mesh::VertexMappedMesh,  equations, dg::DGMulti)
+function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMulti)
 
   rd = dg.basis
   @unpack Vq = rd

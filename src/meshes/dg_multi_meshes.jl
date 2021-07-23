@@ -86,7 +86,7 @@ function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict:
 end
 
 """
-  VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
+    VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
 
 Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 """
@@ -98,4 +98,3 @@ VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, args...; 
   VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y), EToV, rd, args...; kwargs...)
 VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z, EToV, rd, args...; kwargs...) =
   VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z), EToV, rd, args...; kwargs...)
-
