@@ -57,17 +57,18 @@ function compute_coefficients!(u::StructArray, initial_condition, t,
   rd = dg.basis
   @unpack u_values = cache
 
+  # evaluate the initial condition at quadrature points
   @threaded for i in each_quad_node_global(mesh, dg, cache)
     u_values[i] = initial_condition(getindex.(md.xyzq, i), t, equations)
   end
 
-  # compute L2 projection
+  # multiplying by Pq computes the L2 projection
   StructArrays.foreachfield(mul_by!(rd.Pq), u, u_values)
 end
 
 # estimates the timestep based on polynomial degree and mesh. Does not account for physics (e.g.,
 # computes an estimate of `dt` based on the advection equation with constant unit advection speed).
-function estimate_dt(dg::DGMulti, mesh::AbstractMeshData)
+function estimate_dt(mesh::AbstractMeshData, dg::DGMulti)
   rd = dg.basis # RefElemData
   return StartUpDG.estimate_h(rd, mesh.md) / StartUpDG.inverse_trace_constant(rd)
 end
