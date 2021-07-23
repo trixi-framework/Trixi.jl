@@ -15,7 +15,8 @@ Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS,
               approximation_type=Polynomial(),
               surface_flux=flux_central,
               surface_integral=SurfaceIntegralWeakForm(surface_flux),
-              volume_integral=VolumeIntegralWeakForm())
+              volume_integral=VolumeIntegralWeakForm(),
+              RefElemData_kwargs...)
 
 Create a discontinuous Galerkin method which uses
 - approximations of polynomial degree `polydeg`
@@ -24,14 +25,17 @@ Create a discontinuous Galerkin method which uses
 Optional:
 - `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`, `Quad()`,
   and `Hex()` element types).
+- `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as `quad_rule_vol`.
+  For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
 """
 function DGMulti(; polydeg::Integer,
                    element_type::AbstractElemShape,
                    approximation_type=Polynomial(),
                    surface_flux=flux_central,
                    surface_integral=SurfaceIntegralWeakForm(surface_flux),
-                   volume_integral=VolumeIntegralWeakForm())
-  rd = RefElemData(element_type, approximation_type, polydeg)
+                   volume_integral=VolumeIntegralWeakForm(),
+                   kwargs...)
+  rd = RefElemData(element_type, approximation_type, polydeg, kwargs...)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
