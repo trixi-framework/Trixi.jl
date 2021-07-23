@@ -195,18 +195,17 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 # DGMulti solvers
-using StartUpDG
-@reexport using StartUpDG: StartUpDG, RefElemData, MeshData, Polynomial, SBP
-@reexport using StartUpDG: Line, Tri, Quad, Hex, Tet, AbstractElemShape
+@reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
+using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
-include("solvers/dg_multi/types_and_traits.jl")
+include("solvers/dgmulti/types_and_traits.jl")
 export DGMulti
-include("meshes/dg_multi_meshes.jl")
+include("meshes/dgmulti_meshes.jl")
 export AbstractMeshData, VertexMappedMesh
-include("solvers/dg_multi/dg.jl")
+include("solvers/dgmulti/dg.jl")
 export estimate_dt
-include("solvers/dg_multi/flux_differencing.jl")
-include("callbacks_step/analysis_dg_multi.jl")
+include("solvers/dgmulti/flux_differencing.jl")
+include("callbacks_step/analysis_dgmulti.jl")
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
