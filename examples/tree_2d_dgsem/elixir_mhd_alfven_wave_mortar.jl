@@ -13,8 +13,8 @@ volume_flux = (flux_derigs_etal, flux_nonconservative_powell)
 solver = DGSEM(polydeg=3, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (0, 0)
-coordinates_max = (sqrt(2), sqrt(2))
+coordinates_min = (0.0, 0.0)
+coordinates_max = (sqrt(2.0), sqrt(2.0))
 refinement_patches = (
   (type="box", coordinates_min=0.25 .* coordinates_max,
                coordinates_max=0.75 .* coordinates_max),
