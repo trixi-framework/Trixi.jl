@@ -148,8 +148,8 @@ end
 
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{false}, element,
-                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D}, equations,
+                                    element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
+                                    nonconservative_terms::Val{false}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements

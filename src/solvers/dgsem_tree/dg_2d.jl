@@ -271,15 +271,16 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
   @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, element,
-                       mesh, equations, volume_integral.volume_flux, dg, cache)
+    split_form_kernel!(du, u, element, mesh,
+                       nonconservative_terms, equations,
+                       volume_integral.volume_flux, dg, cache)
   end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{false}, element,
-                                    mesh::TreeMesh{2}, equations, volume_flux, dg::DGSEM, cache,
-                                    alpha=true)
+                                    element, mesh::TreeMesh{2},
+                                    nonconservative_terms::Val{false}, equations,
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -313,9 +314,9 @@ end
 
 # TODO: nonconservative terms; remove
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{true}, element,
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
-                                    equations, volume_flux, dg::DGSEM, cache, alpha=true)
+                                    element, mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                                    nonconservative_terms::Val{true}, equations,
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split_transpose = dg.basis
   @unpack f1_threaded, f2_threaded = cache
 
@@ -344,9 +345,9 @@ end
 
 # TODO: nonconservative terms; remove
 # @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-#                                     nonconservative_terms::Val{true}, element,
-#                                     mesh::TreeMesh{2}, equations, volume_flux::Tuple{Any,Any}, dg::DGSEM, cache,
-#                                     alpha=true)
+#                                     element, mesh::TreeMesh{2},
+#                                     nonconservative_terms::Val{true}, equations,
+#                                     volume_flux::Tuple{Any,Any}, dg::DGSEM, cache, alpha=true)
 #   # true * [some floating point value] == [exactly the same floating point value]
 #   # This can (hopefully) be optimized away due to constant propagation.
 #   @unpack derivative_split = dg.basis
@@ -387,16 +388,16 @@ end
 # TODO: nonconservative terms; remove type restriction on the volume_flux
 #       used for dispatch for development
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    nonconservative_terms::Val{true}, element,
-                                    mesh::TreeMesh{2}, equations, volume_flux::Tuple{Any,Any}, dg::DGSEM, cache,
-                                    alpha=true)
+                                    element, mesh::TreeMesh{2},
+                                    nonconservative_terms::Val{true}, equations,
+                                    volume_flux::Tuple{Any,Any}, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
   symmetric_flux, generalized_flux = volume_flux
 
   # Apply the symmetric flux as usual
-  split_form_kernel!(du, u, Val(false), element, mesh, equations, symmetric_flux, dg, cache, alpha)
+  split_form_kernel!(du, u, element, mesh, Val(false), equations, symmetric_flux, dg, cache, alpha)
 
   # Calculate the remaining volume terms using the nonsymmetric generalized flux
   for j in eachnode(dg), i in eachnode(dg)
@@ -446,8 +447,9 @@ function calc_volume_integral!(du, u,
   # Loop over pure DG elements
   @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
     element = element_ids_dg[idx_element]
-    split_form_kernel!(du, u, nonconservative_terms, element,
-                       mesh, equations, volume_flux_dg, dg, cache)
+    split_form_kernel!(du, u, element, mesh,
+                       nonconservative_terms, equations,
+                       volume_flux_dg, dg, cache)
   end
 
   # Loop over blended DG-FV elements
@@ -456,8 +458,9 @@ function calc_volume_integral!(du, u,
     alpha_element = alpha[element]
 
     # Calculate DG volume integral contribution
-    split_form_kernel!(du, u, nonconservative_terms, element,
-                       mesh, equations, volume_flux_dg, dg, cache, 1 - alpha_element)
+    split_form_kernel!(du, u, element, mesh,
+                       nonconservative_terms, equations,
+                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
     fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, alpha_element)
