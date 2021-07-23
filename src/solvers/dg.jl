@@ -342,6 +342,13 @@ end
   return nothing
 end
 
+@inline function multiply_node_vars!(u, u_node, equations, solver::DG, indices...)
+  for v in eachvariable(equations)
+    u[v, indices...] *= u_node[v]
+  end
+  return nothing
+end
+
 # Use this function instead of `add_to_node_vars` to speed up
 # multiply-and-add-to-node-vars operations
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
