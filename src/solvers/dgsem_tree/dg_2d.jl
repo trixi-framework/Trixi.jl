@@ -49,6 +49,7 @@ end
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
                       nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
 
+  # TODO: nonconservative terms: clean-up and remove unused stuff
   A = Array{uEltype, 4}
   f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
@@ -206,6 +207,7 @@ end
 
 
 # Calculate 2D twopoint flux (element version)
+# TODO: nonconservative terms; remove
 @inline function calcflux_twopoint!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                     mesh::TreeMesh{2}, equations, volume_flux, dg::DG, cache)
 
@@ -245,6 +247,7 @@ function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, e
                                             nonconservative_terms::Val{false},
                                             mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
                                             equations, dg::DG, cache)
+  # TODO: nonconservative terms; remove
   return nothing
 end
 
@@ -252,8 +255,9 @@ function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, e
                                             nonconservative_terms::Val{true},
                                             mesh::TreeMesh{2},
                                             equations, dg::DG, cache)
-  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-  #      For now, just dispatch to an existing function for the IdealMhdEquations
+  # TODO: nonconservative terms; remove
+  # Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
+  # For now, just dispatch to an existing function for the IdealMhdEquations
   calcflux_twopoint_nonconservative!(f1, f2, u, element, equations, dg, cache)
 end
 
@@ -307,6 +311,7 @@ end
   end
 end
 
+# TODO: nonconservative terms; remove
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{true}, element,
                                     mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
@@ -337,6 +342,7 @@ end
   return nothing
 end
 
+# TODO: nonconservative terms; remove
 # @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
 #                                     nonconservative_terms::Val{true}, element,
 #                                     mesh::TreeMesh{2}, equations, volume_flux::Tuple{Any,Any}, dg::DGSEM, cache,
@@ -378,6 +384,8 @@ end
 #   end
 # end
 
+# TODO: nonconservative terms; remove type restriction on the volume_flux
+#       used for dispatch for development
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{true}, element,
                                     mesh::TreeMesh{2}, equations, volume_flux::Tuple{Any,Any}, dg::DGSEM, cache,
@@ -711,6 +719,7 @@ function calc_interface_flux!(surface_flux_values,
   return nothing
 end
 
+# TODO: nonconservative terms, remove
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
                               nonconservative_terms::Val{true}, equations,
@@ -760,6 +769,50 @@ function calc_interface_flux!(surface_flux_values,
             noncons_diamond_primary[v, i])
         surface_flux_values[v, i, right_neighbor_direction, right_neighbor] = (fstar[v, i] +
             noncons_diamond_secondary[v, i])
+      end
+    end
+  end
+
+  return nothing
+end
+
+# TODO: nonconservative terms, remove type restriction on surface_integral used
+#       for dispatch for development
+function calc_interface_flux!(surface_flux_values,
+                              mesh::TreeMesh{2},
+                              nonconservative_terms::Val{true}, equations,
+                              surface_integral::SurfaceIntegralWeakForm{<:Tuple{Any,Any}}, dg::DG, cache)
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+  @unpack u, neighbor_ids, orientations = cache.interfaces
+
+  @threaded for interface in eachinterface(dg, cache)
+    # Get neighboring elements
+    left_id  = neighbor_ids[1, interface]
+    right_id = neighbor_ids[2, interface]
+
+    # Determine interface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    left_direction  = 2 * orientations[interface]
+    right_direction = 2 * orientations[interface] - 1
+
+    for i in eachnode(dg)
+      # Call pointwise Riemann solver
+      orientation = orientations[interface]
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+      flux = surface_flux(u_ll, u_rr, orientation, equations)
+
+      # Compute both nonconservative fluxes
+      noncons_left  = nonconservative_flux(u_ll, u_rr, orientation, equations)
+      noncons_right = nonconservative_flux(u_rr, u_ll, orientation, equations)
+
+      # Copy flux to left and right element storage
+      for v in eachvariable(equations)
+        # Note the factor 1/2 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        surface_flux_values[v, i, left_direction,  left_id]  = flux[v] + 0.5 * noncons_left[v]
+        surface_flux_values[v, i, right_direction, right_id] = flux[v] + 0.5 * noncons_right[v]
       end
     end
   end
