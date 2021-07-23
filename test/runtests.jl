@@ -50,8 +50,8 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     include("test_examples_2d_part3.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "dg_multi"
-    include("test_examples_dg_multi.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "dgmulti"
+    include("test_examples_dgmulti.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "3d_part1"
