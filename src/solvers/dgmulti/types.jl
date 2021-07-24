@@ -46,4 +46,24 @@ const DGMultiWeakForm{ApproxType, ElemType} =
 const DGMultiFluxDiff{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
 
+
+# now that DGMulti is defined, we can define constructors for VertexMappedMesh which use dg::DGMulti
+"""
+    VertexMappedMesh(vertex_coordinates, EToV, dg::DGMulti;
+                     is_on_boundary = nothing,
+                     is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+
+Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+"""
+VertexMappedMesh(vertex_coordinates, EToV, dg::DGMulti; kwargs...) =
+  VertexMappedMesh(vertex_coordinates, EToV, dg.basis; kwargs...)
+
+"""
+    VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
+
+Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+"""
+VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
+  VertexMappedMesh(triangulateIO, dg.basis, boundary_dict)
+
 # Todo: simplices. Add traits for dispatch on affine/curved meshes here.
