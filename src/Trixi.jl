@@ -57,6 +57,11 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator
 
+# DGMulti solvers
+@reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
+using StartUpDG: RefElemData, MeshData, AbstractElemShape
+
+
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
 # once the upstream issue https://github.com/timholy/Revise.jl/issues/634
@@ -194,22 +199,10 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
-# DGMulti solvers
-@reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
-using StartUpDG: RefElemData, MeshData, AbstractElemShape
-
-include("solvers/dgmulti/types_and_traits.jl")
-export DGMulti
-include("meshes/dgmulti_meshes.jl")
-export AbstractMeshData, VertexMappedMesh
-include("solvers/dgmulti/dg.jl")
-export estimate_dt
-include("solvers/dgmulti/flux_differencing.jl")
-include("callbacks_step/analysis_dgmulti.jl")
+export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
-
 
 function __init__()
   init_mpi()
