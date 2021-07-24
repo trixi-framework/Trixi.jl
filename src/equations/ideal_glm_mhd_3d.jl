@@ -220,6 +220,7 @@ end
 end
 
 
+# TODO: nonconservative terms, remove
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
@@ -262,7 +263,7 @@ end
 end
 
 """
-    flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+    flux_nonconservative_powell(u_ll, u_rr, orientation_or_normal_direction,
                                 equations::IdealGlmMhdEquations3D)
 
 Non-symmetric two-point flux discretizing the nonconservative (source) term of
@@ -319,7 +320,36 @@ of the [`IdealGlmMhdEquations3D`](@ref).
   return f
 end
 
+@inline function flux_nonconservative_powell(u_ll, u_rr, normal_direction::AbstractVector,
+                                             equations::IdealGlmMhdEquations3D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
+  B_dot_n_rr = B1_rr * normal_direction[1] + B2_rr * normal_direction[2] + B3_rr * normal_direction[3]
+
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  f = SVector(0,
+              B1_ll      * B_dot_n_rr,
+              B2_ll      * B_dot_n_rr,
+              B3_ll      * B_dot_n_rr,
+              v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+              v1_ll      * B_dot_n_rr,
+              v2_ll      * B_dot_n_rr,
+              v3_ll      * B_dot_n_rr,
+                                        v_dot_n_ll * psi_rr)
+
+  return f
+end
+
+
+# TODO: nonconservative terms, remove
 # Calculate the nonconservative terms from Powell and Galilean invariance for StructuredMesh{3}
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, contravariant_vectors,
@@ -828,6 +858,7 @@ end
 end
 
 
+# TODO: nonconservative terms, remove
 # strong form of nonconservative flux on a side, e.g., the Powell term
 #     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
 # OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
@@ -869,7 +900,7 @@ end
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
 
-
+# TODO: nonconservative terms, remove
 # Compute surface nonconservative "flux" computation in the normal direction (3D version)
 # Note, due to the non-uniqueness of this term we cannot use any fancy rotation tricks.
 @inline function noncons_interface_flux(u_left, u_right, normal_direction::AbstractVector, mode,
