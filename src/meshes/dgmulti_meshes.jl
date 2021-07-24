@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # !!! warning "Experimental features"
 
 abstract type AbstractMeshData{NDIMS, ElemType} end
@@ -80,3 +87,6 @@ VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, args...; 
   VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y), EToV, rd, args...; kwargs...)
 VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z, EToV, rd, args...; kwargs...) =
   VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z), EToV, rd, args...; kwargs...)
+
+
+end # @muladd
