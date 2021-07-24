@@ -45,7 +45,7 @@ end
 - `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
 - `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
-reference element (e.g., quadrature, basis evaluation, differentiation, etc).
+  reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
@@ -58,6 +58,16 @@ function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::A
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
   return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
+
+"""
+    VertexMappedMesh(vertex_coordinates, EToV, dg::DGMulti;
+                     is_on_boundary = nothing,
+                     is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+
+Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+"""
+VertexMappedMesh(vertex_coordinates, EToV, dg::DGMulti; kwargs...) =
+  VertexMappedMesh(vertex_coordinates, EToV, dg.basis; kwargs...)
 
 """
   VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
@@ -75,8 +85,16 @@ function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict:
   return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
+"""
+    VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
+
+Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+"""
+VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
+  VertexMappedMesh(triangulateIO, dg.basis, boundary_dict)
+
+# old interface
 VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, args...; kwargs...) =
   VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y), EToV, rd, args...; kwargs...)
 VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z, EToV, rd, args...; kwargs...) =
   VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z), EToV, rd, args...; kwargs...)
-
