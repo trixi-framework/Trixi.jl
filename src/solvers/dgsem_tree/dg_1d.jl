@@ -342,7 +342,8 @@ function calc_volume_integral!(du, u,
                        volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
-    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, alpha_element)
+    fv_kernel!(du, u, nonconservative_terms, equations,
+               volume_flux_fv, dg, cache, element, alpha_element)
   end
 
   return nothing
@@ -358,7 +359,8 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, true)
+    fv_kernel!(du, u, nonconservative_terms, equations,
+               volume_flux_fv, dg, cache, element, true)
   end
 
   return nothing
@@ -367,13 +369,14 @@ end
 
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3},
-                            equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
+                            nonconservative_terms, equations,
+                            volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_threaded = cache
   @unpack inverse_weights = dg.basis
 
   # Calculate FV two-point fluxes
   fstar1 = fstar1_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1, u, equations, volume_flux_fv, dg, element)
+  calcflux_fv!(fstar1, u, nonconservative_terms, equations, volume_flux_fv, dg, element)
 
   # Calculate FV volume integral contribution
   for i in eachnode(dg)
@@ -388,7 +391,8 @@ end
 end
 
 @inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3},
-                              equations, volume_flux_fv, dg::DGSEM, element)
+                              nonconservative_terms::Val{false}, equations,
+                              volume_flux_fv, dg::DGSEM, element)
 
   fstar1[:, 1,           ] .= zero(eltype(fstar1))
   fstar1[:, nnodes(dg)+1,] .= zero(eltype(fstar1))

@@ -9,12 +9,12 @@ equations = IdealGlmMhdEquations3D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = flux_hindenlang
-solver = DGSEM(polydeg=3, surface_flux=flux_hindenlang,
+volume_flux = (flux_hindenlang, flux_nonconservative_powell)
+solver = DGSEM(polydeg=3, surface_flux=(flux_hindenlang, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-2, -2, -2)
-coordinates_max = ( 2,  2,  2)
+coordinates_min = (-2.0, -2.0, -2.0)
+coordinates_max = ( 2.0,  2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
                 n_cells_max=10_000)
