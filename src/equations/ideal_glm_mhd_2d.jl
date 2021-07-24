@@ -300,7 +300,7 @@ end
 end
 
 """
-    flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+    flux_nonconservative_powell(u_ll, u_rr, orientation_or_normal_direction,
                                 equations::IdealGlmMhdEquations2D)
 
 Non-symmetric two-point flux discretizing the nonconservative (source) term of
@@ -343,6 +343,34 @@ of the [`IdealGlmMhdEquations2D`](@ref).
                 v3_ll      * B2_rr,
                                      v2_ll * psi_rr)
   end
+
+  return f
+end
+
+@inline function flux_nonconservative_powell(u_ll, u_rr, normal_direction::AbstractVector,
+                                             equations::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  B_dot_n_rr = B1_rr * normal_direction[1] + B2_rr * normal_direction[2]
+
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  f = SVector(0,
+              B1_ll      * B_dot_n_rr,
+              B2_ll      * B_dot_n_rr,
+              B3_ll      * B_dot_n_rr,
+              v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+              v1_ll      * B_dot_n_rr,
+              v2_ll      * B_dot_n_rr,
+              v3_ll      * B_dot_n_rr,
+                                        v_dot_n_ll * psi_rr)
 
   return f
 end

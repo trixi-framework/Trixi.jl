@@ -394,7 +394,7 @@ end
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
-  symmetric_flux, generalized_flux = volume_flux
+  symmetric_flux, nonconservative_flux = volume_flux
 
   # Apply the symmetric flux as usual
   split_form_kernel!(du, u, element, mesh, Val(false), equations, symmetric_flux, dg, cache, alpha)
@@ -410,7 +410,7 @@ end
     integral_contribution = zero(u_node)
     for ii in eachnode(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
-      flux1 = generalized_flux(u_node, u_node_ii, 1, equations)
+      flux1 = nonconservative_flux(u_node, u_node_ii, 1, equations)
       # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[i, ii] * flux1
     end
@@ -418,7 +418,7 @@ end
     # y direction
     for jj in eachnode(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
-      flux2 = generalized_flux(u_node, u_node_jj, 2, equations)
+      flux2 = nonconservative_flux(u_node, u_node_jj, 2, equations)
       # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[j, jj] * flux2
     end

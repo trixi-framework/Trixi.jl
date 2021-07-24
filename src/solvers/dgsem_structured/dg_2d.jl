@@ -82,6 +82,7 @@ end
 
 
 # Calculate 2D twopoint contravariant flux (element version)
+# TODO: nonconservative terms, remove
 @inline function calcflux_twopoint!(ftilde1, ftilde2, u::AbstractArray{<:Any,4}, element,
                                     mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
                                     equations, volume_flux, dg::DGSEM, cache)
@@ -140,8 +141,9 @@ function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, e
                                             nonconservative_terms::Val{true},
                                             mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
                                             equations, dg::DG, cache)
-  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-  #      For now, just dispatch to an existing function for the IdealMhdEquations
+  # TODO: nonconservative terms
+  # Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
+  # For now, just dispatch to an existing function for the IdealMhdEquations
   @unpack contravariant_vectors = cache.elements
   calcflux_twopoint_nonconservative!(f1, f2, u, element, contravariant_vectors, equations, dg, cache)
 end
@@ -192,6 +194,62 @@ end
       multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  element)
       multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, element)
     end
+  end
+end
+
+# TODO: nonconservative terms, remove dispatch on volume_flux used for dispatch
+#       for development
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                    element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
+                                    nonconservative_terms::Val{true}, equations,
+                                    volume_flux::Tuple{Any,Any}, dg::DGSEM, cache, alpha=true)
+  @unpack derivative_split = dg.basis
+  @unpack contravariant_vectors = cache.elements
+  symmetric_flux, nonconservative_flux = volume_flux
+
+  # Apply the symmetric flux as usual
+  split_form_kernel!(du, u, element, mesh, Val(false), equations, symmetric_flux, dg, cache, alpha)
+
+  # Calculate the remaining volume terms using the nonsymmetric generalized flux
+  for j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+
+    # pull the contravariant vectors in each coordinate direction
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+
+    # The diagonal terms are zero since the diagonal of `derivative_split`
+    # is zero. We ignore this for now.
+
+    # x direction
+    integral_contribution = zero(u_node)
+    for ii in eachnode(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+      # pull the contravariant vectors and compute the average
+      Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+      Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+      # compute the contravariant nonconservative flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_avg, equations)
+      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
+      integral_contribution = integral_contribution + derivative_split[i, ii] * fluxtilde1
+    end
+
+    # y direction
+    for jj in eachnode(dg)
+      u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+      # pull the contravariant vectors and compute the average
+      Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, element)
+      Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+      # compute the contravariant nonconservative flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_avg, equations)
+      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
+      integral_contribution = integral_contribution + derivative_split[j, jj] * fluxtilde2
+    end
+
+    # The factor 0.5 cancels the factor 2 in the flux differencing form
+    multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations, dg, i, j, element)
   end
 end
 
@@ -280,7 +338,7 @@ end
   return nothing
 end
 
-
+# TODO: nonconservative terms, remove
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
                                       mesh::StructuredMesh{2},
@@ -336,6 +394,72 @@ end
     for v in eachvariable(equations)
       surface_flux_values[v, i, right_direction, left_element] = flux[v] + noncons_primary[v]
       surface_flux_values[v, i, left_direction, right_element] = flux[v] + noncons_secondary[v]
+    end
+  end
+
+  return nothing
+end
+
+# TODO: nonconservative terms, remove dispatch on surface_integral used for dispatch
+#       for development
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
+                                      orientation, u,
+                                      mesh::StructuredMesh{2},
+                                      nonconservative_terms::Val{true}, equations,
+                                      surface_integral::SurfaceIntegralWeakForm{<:Tuple{Any,Any}}, dg::DG, cache)
+  # See comment on `calc_interface_flux!` with `nonconservative_terms::Val{false}`
+  if left_element <= 0 # left_element = 0 at boundaries
+    return nothing
+  end
+
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+  @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+  right_direction = 2 * orientation
+  left_direction  = right_direction - 1
+
+  for i in eachnode(dg)
+    if orientation == 1
+      u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
+      u_rr = get_node_vars(u, equations, dg, 1,          i, right_element)
+
+      # If the mapping is orientation-reversing, the contravariant vectors' orientation
+      # is reversed as well. The normal vector must be oriented in the direction
+      # from `left_element` to `right_element`, or the numerical flux will be computed
+      # incorrectly (downwind direction).
+      sign_jacobian = sign(inverse_jacobian[1, i, right_element])
+
+      # First contravariant vector Ja^1 as SVector
+      normal_direction = sign_jacobian * get_contravariant_vector(1, contravariant_vectors,
+                                                                  1, i, right_element)
+    else # orientation == 2
+      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
+      u_rr = get_node_vars(u, equations, dg, i, 1,          right_element)
+
+      # See above
+      sign_jacobian = sign(inverse_jacobian[i, 1, right_element])
+
+      # Second contravariant vector Ja^2 as SVector
+      normal_direction = sign_jacobian * get_contravariant_vector(2, contravariant_vectors,
+                                                                  i, 1, right_element)
+    end
+
+    # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
+    # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
+    flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
+
+    # Compute both nonconservative fluxes
+    # Scale with sign_jacobian to ensure that the normal_direction matches that
+    # from the flux above
+    noncons_left  = sign_jacobian * nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_right = sign_jacobian * nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+
+    for v in eachvariable(equations)
+      # Note the factor 0.5 necessary for the nonconservative fluxes based on
+      # the interpretation of global SBP operators coupled discontinuously via
+      # central fluxes/SATs
+      surface_flux_values[v, i, right_direction, left_element] = flux[v] + 0.5 * noncons_left[v]
+      surface_flux_values[v, i, left_direction, right_element] = flux[v] + 0.5 * noncons_right[v]
     end
   end
 
