@@ -362,7 +362,7 @@ end
 
   # Set series properties
   seriestype := :path
-  linecolor := :black
+  linecolor := :grey
   linewidth := 1
 
   # Return data for plotting
@@ -385,7 +385,7 @@ end
 
   # Set series properties
   seriestype --> :path
-  linecolor --> :black
+  linecolor --> :grey
   linewidth --> 1
 
   # Return data for plotting

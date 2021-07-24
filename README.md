@@ -23,6 +23,8 @@ focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
+* Experimental support for curvilinear structured and unstructured meshes
+  (see also the [overview in the documentation](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations))
 * Native support for 1D, 2D, and 3D simulations
 * High-order accuracy in space in time
 * Nodal discontinuous Galerkin spectral element methods
@@ -179,8 +181,8 @@ with the help of Trixi, please cite the following
 In addition, you can also refer to Trixi directly as
 ```bibtex
 @misc{schlottkelakemper2020trixi,
-  title={{T}rixi.jl: A tree-based numerical simulation framework
-         for hyperbolic {PDE}s written in {J}ulia},
+  title={{T}rixi.jl: {A}daptive high-order numerical simulations
+         of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
           Ranocha, Hendrik and Winters, Andrew R},
   year={2020},
