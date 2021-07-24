@@ -1,27 +1,19 @@
 # !!! warning "Experimental features"
 
 # out <- A*x
-mul_by!(A) = let A = A
-  @inline (out, x)->matmul!(out, A, x)
-end
+mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 
 # specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
-mul_by!(A::UniformScaling) = let A = A
-  @inline (out, x)->mul!(out, A, x)
-end
+mul_by!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x)
 
 # # Todo: simplices. Use `matmul!` for the following 2 functions until 5-arg `matmul!` once
 # the hanging bug is fixed (see https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/103).
 
 # out <- out + A * x
-mul_by_accum!(A) = let A = A
-  @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out)))
-end
+mul_by_accum!(A) = @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out)))
 
 #  out <- out + α * A * x
-mul_by_accum!(A, α) = let A = A
-  @inline (out, x)->mul!(out, A, x, α, one(eltype(out)))
-end
+mul_by_accum!(A, α) = @inline (out, x)->mul!(out, A, x, α, one(eltype(out)))
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
