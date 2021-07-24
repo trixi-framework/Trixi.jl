@@ -58,7 +58,7 @@ different features on different mesh types.
 | Weak form ([`VolumeIntegralWeakForm`](@ref))                 |          ✅         |             ✅            |               ✅              |          ✅          |
 | Flux differencing ([`VolumeIntegralFluxDifferencing`](@ref)) |          ✅         |             ✅            |               ✅              |          ✅          |
 | Shock capturing ([`VolumeIntegralShockCapturingHG`](@ref))   |          ✅         |             ❌            |               ❌              |          ❌          |
-| Nonconservative equations                                    |          ✅         |         partially        |            partially         |       partially     |
+| Nonconservative equations                                    |          ✅         |         partially        |            partially         |            ❌          |
 
 ᵃ: quad = quadrilateral, hex = hexahedron
 
