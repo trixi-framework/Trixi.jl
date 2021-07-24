@@ -213,10 +213,9 @@ end
                                                     equations::IdealGlmMhdMulticomponentEquations2D,
                                                     dg, cache)
   for j in eachnode(dg), i in eachnode(dg)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)
-
-    rho = density(u, equations)
-
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u_node
+    rho = density(u_node, equations)
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
