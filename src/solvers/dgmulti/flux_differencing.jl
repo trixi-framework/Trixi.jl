@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
     hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
 
@@ -6,7 +13,7 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
 - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for
   faster traversal since matrices are column major in Julia.
 """
-@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index)
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
@@ -197,3 +204,6 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
 
   return nothing
 end
+
+
+end # @muladd

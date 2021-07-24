@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Initialize data structures in element container
 function init_elements!(elements, mesh::P4estMesh{3}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, jacobian_matrix,
@@ -305,3 +312,6 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
 
   return surface_index1, surface_index2
 end
+
+
+end # @muladd
