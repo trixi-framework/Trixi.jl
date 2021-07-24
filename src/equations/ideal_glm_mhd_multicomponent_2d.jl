@@ -207,6 +207,7 @@ end
 end
 
 
+# TODO: nonconservative terms, remove
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element,
@@ -461,24 +462,23 @@ end
 end
 
 
-"""
-    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
-
-Strong form of non-conservative flux on a surface (Powell and GLM terms)
-```math
-phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
-```
-!!! note
-    The non-conservative interface flux depends on the discretization. Following "modes" are available:
-    * `:weak`: 'weak' formulation of split DG already includes the contribution
-      ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
-      analogously for the Galilean nonconservative term
-    * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
-    * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
-      ``(2)-(1) - 1/2 (phi^L B^L)``
-!!! warning
-    This is non-unique along an interface! The normal direction is super important.
-"""
+# TODO: nonconservative terms, remove
+#    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
+#
+#Strong form of non-conservative flux on a surface (Powell and GLM terms)
+#```math
+#phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
+#```
+#!!! note
+#    The non-conservative interface flux depends on the discretization. Following "modes" are available:
+#    * `:weak`: 'weak' formulation of split DG already includes the contribution
+#      ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
+#      analogously for the Galilean nonconservative term
+#    * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
+#    * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
+#      ``(2)-(1) - 1/2 (phi^L B^L)``
+#!!! warning
+#    This is non-unique along an interface! The normal direction is super important.
 @inline function noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
