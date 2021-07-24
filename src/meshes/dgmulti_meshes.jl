@@ -60,7 +60,7 @@ function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::A
 end
 
 """
-  VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
+    VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
 - `triangulateIO` is a `TriangulateIO` mesh representation
 - `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
