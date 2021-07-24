@@ -63,7 +63,7 @@ end # module
 ```
 
 The implementation of nononservative terms uses a single "nonconservative flux"
-function `flux_conconservative`. It will basically be applied is a loop of the
+function `flux_conconservative`. It will basically be applied in a loop of the
 form
 ```julia
 du_m = sum(D[m, l] * flux_conconservative(u[m], u[l], 1, equations)) # orientation 1: x
