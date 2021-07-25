@@ -1015,7 +1015,7 @@ function calc_mortar_flux!(surface_flux_values,
     # Calculate fluxes
     orientation = orientations[mortar]
     calc_fstar!(fstar_upper_left,  equations, surface_flux, dg, u_upper_left,  mortar, orientation)
-    calc_fstar!(fstar_upper_right, equations, surfsurface_fluxace_integral, dg, u_upper_right, mortar, orientation)
+    calc_fstar!(fstar_upper_right, equations, surface_flux, dg, u_upper_right, mortar, orientation)
     calc_fstar!(fstar_lower_left,  equations, surface_flux, dg, u_lower_left,  mortar, orientation)
     calc_fstar!(fstar_lower_right, equations, surface_flux, dg, u_lower_right, mortar, orientation)
 
