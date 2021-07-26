@@ -220,6 +220,9 @@ end
 
     # The diagonal terms are zero since the diagonal of `derivative_split`
     # is zero. We ignore this for now.
+    # In general, nonconservative fluxes can depend on both the contravariant
+    # vectors (normal direction) at the current node and the averaged ones.
+    # Thus, we need to pass both to the nonconservative flux.
 
     # x direction
     integral_contribution = zero(u_node)
@@ -228,9 +231,8 @@ end
       # pull the contravariant vectors and compute the average
       Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
       Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
-      # compute the contravariant nonconservative flux in the direction of the
-      # averaged contravariant vector
-      fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_avg, equations)
+      # Compute the contravariant nonconservative flux.
+      fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_node, Ja1_avg, equations)
       # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[i, ii] * fluxtilde1
     end
@@ -243,7 +245,7 @@ end
       Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
       # compute the contravariant nonconservative flux in the direction of the
       # averaged contravariant vector
-      fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_avg, equations)
+      fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_node, Ja2_avg, equations)
       # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[j, jj] * fluxtilde2
     end
@@ -449,10 +451,14 @@ end
     flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
 
     # Compute both nonconservative fluxes
+    # In general, nonconservative fluxes can depend on both the contravariant
+    # vectors (normal direction) at the current node and the averaged ones.
+    # However, both are the same at watertight interfaces, so we pass the
+    # `normal_direction` twice.
     # Scale with sign_jacobian to ensure that the normal_direction matches that
     # from the flux above
-    noncons_left  = sign_jacobian * nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_right = sign_jacobian * nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+    noncons_left  = sign_jacobian * nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+    noncons_right = sign_jacobian * nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
 
     for v in eachvariable(equations)
       # Note the factor 0.5 necessary for the nonconservative fluxes based on

@@ -344,8 +344,12 @@ function calc_interface_flux!(surface_flux_values,
       flux = surface_flux(u_ll, u_rr, outward_direction, equations)
 
       # Compute both nonconservative fluxes
-      noncons_primary   = nonconservative_flux(u_ll, u_rr, outward_direction, equations)
-      noncons_secondary = nonconservative_flux(u_rr, u_ll, outward_direction, equations)
+      # In general, nonconservative fluxes can depend on both the contravariant
+      # vectors (normal direction) at the current node and the averaged ones.
+      # However, both are the same at watertight interfaces, so we pass the
+      # `outward_direction` twice.
+      noncons_primary   = nonconservative_flux(u_ll, u_rr, outward_direction, outward_direction, equations)
+      noncons_secondary = nonconservative_flux(u_rr, u_ll, outward_direction, outward_direction, equations)
 
       # Copy flux to primary and secondary element storage
       # Note the sign change for the components in the secondary element!
