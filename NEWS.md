@@ -41,5 +41,10 @@ for human readability.
   `cons2prim`
 - `varnames_cons(equations)` → `varnames(cons2cons, equations)`
 - `varnames_prim(equations)` → `varnames(cons2prim, equations)`
+- The old interface for nonconservative terms is deprecated. In particular, passing
+  only a single two-point numerical flux for nonconservative is deprecated. The new
+  interface is described in a tutorial. Now, a tuple of two numerical fluxes of the
+  form `(conservative_flux, nonconservative_flux)` needs to be passed for
+  nonconservative equations, see [#657](https://github.com/trixi-framework/Trixi.jl/pull/657).
 
 #### Removed
