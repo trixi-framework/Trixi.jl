@@ -297,7 +297,6 @@ end
       # compute the contravariant nonconservative flux in the direction of the
       # averaged contravariant vector
       fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_node, Ja1_avg, equations)
-      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[i, ii] * fluxtilde1
     end
 
@@ -310,7 +309,6 @@ end
       # compute the contravariant nonconservative flux in the direction of the
       # averaged contravariant vector
       fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_node, Ja2_avg, equations)
-      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[j, jj] * fluxtilde2
     end
 
@@ -323,7 +321,6 @@ end
       # compute the contravariant nonconservative flux in the direction of the
       # averaged contravariant vector
       fluxtilde3 = nonconservative_flux(u_node, u_node_kk, Ja3_node, Ja3_avg, equations)
-      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[k, kk] * fluxtilde3
     end
 

@@ -300,7 +300,6 @@ end
     for ii in eachnode(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, element)
       flux1 = nonconservative_flux(u_node, u_node_ii, 1, equations)
-      # TODO: nonconservative terms. Benchmark vs. derivative_split_transpose
       integral_contribution = integral_contribution + derivative_split[i, ii] * flux1
     end
 
