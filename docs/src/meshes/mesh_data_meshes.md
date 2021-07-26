@@ -1,4 +1,4 @@
-# Unstructured simplicial meshes using the `DGMulti` solver
+# Unstructured simplicial meshes and the `DGMulti` solver
 
 Trixi includes support for simplicial meshes via the `DGMulti` solver type, which is based on the
 [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) package. `DGMulti` solvers also provides
@@ -15,7 +15,7 @@ We make a few simplifying assumptions about supported meshes:
 meshes constructed using [Triangulate.jl](https://github.com/JuliaGeometry/Triangulate.jl), a wrapper
 around Jonathan Shewchuk's [Triangle](https://www.cs.cmu.edu/~quake/triangle.html) package.
 
-## The `DGMulti` type
+## The `DGMulti` solver type
 
 Trixi solvers on simplicial meshes use the `DGMulti` solver type, which allows users to specify
 `element_type` and `approximation_type` in addition to `polydeg`, `surface_flux`, `surface_integral`,
