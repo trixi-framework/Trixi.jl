@@ -9,8 +9,8 @@ equations = IdealGlmMhdEquations3D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = flux_hindenlang
-solver = DGSEM(polydeg=3, surface_flux=flux_hindenlang,
+volume_flux = flux_hindenlang_gassner
+solver = DGSEM(polydeg=3, surface_flux=flux_hindenlang_gassner,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2, -2, -2)
