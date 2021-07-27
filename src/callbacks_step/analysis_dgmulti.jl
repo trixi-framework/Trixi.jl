@@ -5,8 +5,6 @@
 @muladd begin
 
 
-# !!! warning "Experimental features"
-
 function calc_error_norms(func, u, t, analyzer,
                           mesh::AbstractMeshData{NDIMS}, equations, initial_condition,
                           dg::DGMulti{NDIMS}, cache, cache_analysis) where {NDIMS}

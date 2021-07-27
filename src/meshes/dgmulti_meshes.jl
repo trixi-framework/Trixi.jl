@@ -5,8 +5,6 @@
 @muladd begin
 
 
-# !!! warning "Experimental features"
-
 abstract type AbstractMeshData{NDIMS, ElemType} end
 
 """

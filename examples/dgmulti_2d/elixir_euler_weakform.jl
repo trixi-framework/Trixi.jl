@@ -1,4 +1,3 @@
-# !!! warning "Experimental features"
 
 using Trixi, OrdinaryDiffEq
 

@@ -14,8 +14,8 @@ installation and postprocessing procedures. Its features include:
   * Structured and unstructured meshes
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
 * High-order accuracy in space in time
-* Nodal discontinuous Galerkin spectral element methods
-  * Kinetic energy-preserving and entropy-stable split forms
+* Nodal and modal discontinuous Galerkin methods
+  * Kinetic energy-preserving and entropy-stable methods using flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
@@ -30,7 +30,6 @@ installation and postprocessing procedures. Its features include:
   * Magnetohydrodynamics equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
-  * Acoustic perturbation equations
   * Scalar advection
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)

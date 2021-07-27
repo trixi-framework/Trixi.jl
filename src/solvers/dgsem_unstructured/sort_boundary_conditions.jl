@@ -8,13 +8,10 @@
 """
     UnstructuredSortedBoundaryTypes
 
-General container to sort the boundary conditions by type for the unstructured quadrilateral solver.
+General container to sort the boundary conditions by type for the unstructured meshes/solvers.
 It stores a set of global indices for each boundary condition type to expedite computation
 during the call to `calc_boundary_flux!`. The original dictionary form of the boundary conditions
 set by the user in the elixir file is also stored for printing.
-
-!!! warning "Experimental code"
-    This boundary condition container is experimental and can change any time.
 """
 mutable struct UnstructuredSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
   boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionWall
