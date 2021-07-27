@@ -69,7 +69,7 @@ function (averaging_callback::AveragingCallback)(integrator)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
   u_prev = wrap_array(u_prev_ode, mesh, equations, solver, cache)
 
-  dt = get_proposed_dt(integrator)
+  dt = integrator.t - integrator.tprev
   tspan = averaging_callback.tspan
 
   integration_constant = 0.5 * dt / (tspan[2] - tspan[1]) # .5 due to trapezoidal rule
