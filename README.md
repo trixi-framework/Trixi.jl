@@ -27,8 +27,9 @@ installation and postprocessing procedures. Its features include:
   * Conforming and non-conforming meshes
   * Structured and unstructured meshes
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
+  * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 * High-order accuracy in space in time
-* Nodal and modal discontinuous Galerkin methods
+* Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods using flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
