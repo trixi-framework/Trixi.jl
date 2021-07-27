@@ -36,6 +36,7 @@ for human readability.
 
 - `calcflux` → `flux` ([#463](https://github.com/trixi-framework/Trixi.jl/pull/463))
 - `flux_upwind` → `flux_godunov`
+- `flux_hindenlang` → `flux_hindenlang_gassner`
 - Providing the keyword argument `solution_variables` of `SaveSolutionCallback`
   as `Symbol` is deprecated in favor of using functions like `cons2cons` and
   `cons2prim`

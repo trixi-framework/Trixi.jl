@@ -29,8 +29,8 @@ end
 initial_condition = initial_condition_shifted_weak_blast_wave
 
 # Get the DG approximation space
-volume_flux = (flux_hindenlang, flux_nonconservative_powell)
-solver = DGSEM(polydeg=5, surface_flux=(flux_hindenlang, flux_nonconservative_powell),
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+solver = DGSEM(polydeg=5, surface_flux=(flux_hindenlang_gassner, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # Get the curved quad mesh from a mapping function
