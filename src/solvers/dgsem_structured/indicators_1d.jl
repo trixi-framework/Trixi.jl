@@ -9,6 +9,9 @@ function apply_smoothing!(u, mesh::StructuredMesh{1}, equations, dg::DGSEM, alph
   # Copy alpha values such that smoothing is indpedenent of the element access order
   alpha_tmp .= alpha
 
+  # So far, alpha smoothing doesn't work for non-periodic initial conditions for structured meshes.
+  @assert !iszero(cache.elements.left_neighbors[1, 1]) "alpha smoothing for structured meshes works only with periodic initial conditions so far"
+
   # Loop over elements, because there is no interface container
   for element in eachelement(dg,cache)
     # Get neighboring element ids
