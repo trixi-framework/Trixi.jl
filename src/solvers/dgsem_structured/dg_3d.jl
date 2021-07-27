@@ -267,7 +267,7 @@ end
 # To fulfill free-stream preservation we use the explicit formula B.53 in Appendix B.4 
 # by Hennemann, Rueda-Ramirez, Hindenlang, Gassner (2020)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2] (https://arxiv.org/pdf/2008.12044)
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1, fstar2, fstar3, u,
                               mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::Val{false},
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
