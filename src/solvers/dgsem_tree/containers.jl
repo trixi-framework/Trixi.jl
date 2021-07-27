@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Dimension independent code related to containers of the DG solver
 # with the mesh type TreeMesh
@@ -43,3 +49,6 @@ end
 include("containers_1d.jl")
 include("containers_2d.jl")
 include("containers_3d.jl")
+
+
+end # @muladd

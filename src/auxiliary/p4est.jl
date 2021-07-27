@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
     init_p4est()
 
@@ -175,3 +182,6 @@ end
 function unsafe_load_tree(p8est::Ptr{p8est_t}, i=1)
   return unsafe_load_sc(p8est_tree_t, p8est.trees, i)
 end
+
+
+end # @muladd

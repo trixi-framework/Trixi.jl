@@ -6,7 +6,7 @@
 
 
 """
-    UnstructuredSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
+    UnstructuredSortedBoundaryTypes
 
 General container to sort the boundary conditions by type for the unstructured quadrilateral solver.
 It stores a set of global indices for each boundary condition type to expedite computation
