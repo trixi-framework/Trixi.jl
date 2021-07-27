@@ -416,7 +416,7 @@ end
 
 
 # Refine all leaf cells with coordinates in a given sphere
-function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS, <:Real}, radius::Real) where NDIMS
+function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS}, radius) where NDIMS
   @assert radius >= 0 "Radius must be positive."
 
   # Find all leaf cells within sphere
@@ -429,7 +429,7 @@ function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS, <:Real}, 
 end
 
 # Convenience function to allow passing center as a tuple
-function refine_sphere!(t::AbstractTree{NDIMS}, center::NTuple{NDIMS, <:Real}, radius::Real) where NDIMS
+function refine_sphere!(t::AbstractTree{NDIMS}, center::NTuple{NDIMS}, radius) where NDIMS
   refine_sphere!(t, SVector(center), radius)
 end
 
