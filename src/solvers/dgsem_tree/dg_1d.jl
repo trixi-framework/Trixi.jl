@@ -327,7 +327,8 @@ end
 
 
 
-@inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3}, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+@inline function fv_kernel!(du, u, 
+                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_threaded = cache
   @unpack inverse_weights = dg.basis
@@ -348,7 +349,8 @@ end
   return nothing
 end
 
-@inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3}, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+@inline function calcflux_fv!(fstar1, u, 
+                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               equations, volume_flux_fv, dg::DGSEM, element)
 
   fstar1[:, 1,           ] .= zero(eltype(fstar1))

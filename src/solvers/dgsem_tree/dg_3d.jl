@@ -241,7 +241,7 @@ end
 
 
 # Calculate 3D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
+@inline function calcflux_twopoint!(f1, f2, f3, u, element,
                                     mesh::TreeMesh{3}, equations, volume_flux, dg::DG, cache)
 
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -286,14 +286,14 @@ end
                                      mesh, equations, dg, cache)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
+function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
                                             nonconservative_terms::Val{false},
                                             mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                                             equations, dg::DG, cache)
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
+function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
                                             nonconservative_terms::Val{true},
                                             mesh::TreeMesh{3},
                                             equations, dg::DG, cache)
@@ -314,7 +314,7 @@ function calc_volume_integral!(du, u,
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
+@inline function split_form_kernel!(du, u,
                                     nonconservative_terms::Val{false}, element,
                                     mesh::TreeMesh{3}, equations, volume_flux, dg::DGSEM, cache,
                                     alpha=true)
@@ -357,7 +357,7 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
+@inline function split_form_kernel!(du, u,
                                     nonconservative_terms::Val{true}, element,
                                     mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                     equations, volume_flux, dg::DGSEM, cache, alpha=true)
@@ -445,7 +445,7 @@ function calc_volume_integral!(du, u,
 end
 
 
-@inline function fv_kernel!(du::AbstractArray{<:Any,5}, u::AbstractArray{<:Any,5}, 
+@inline function fv_kernel!(du, u, 
                             mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                             nonconservative_terms, equations, volume_flux_fv, 
                             dg::DGSEM, cache, element, alpha=true)
@@ -472,7 +472,7 @@ end
   return nothing
 end
 
-@inline function calcflux_fv!(fstar1, fstar2, fstar3, u::AbstractArray{<:Any,5}, mesh::TreeMesh{3},
+@inline function calcflux_fv!(fstar1, fstar2, fstar3, u, mesh::TreeMesh{3},
                               nonconservative_terms, equations, volume_flux_fv, dg::DGSEM, element, cache)
 
   fstar1[:, 1,            :, :] .= zero(eltype(fstar1))

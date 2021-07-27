@@ -26,16 +26,14 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 
 solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
-###############################################################################
 # Get the curved quad mesh from a file
-
 default_mesh_file = joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
 
 mesh_file = default_mesh_file
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity=true)
 
-# create the semi discretization object
+# create the semidiscretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################

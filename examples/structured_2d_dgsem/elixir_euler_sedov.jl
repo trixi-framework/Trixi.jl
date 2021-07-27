@@ -25,19 +25,21 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 
 solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
-
-###############################################################################
 # Get the curved quad mesh from a mapping function
+# Mapping as described in https://arxiv.org/abs/2012.12040
+function mapping(xi, eta)
+  y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta))
 
-mapping(xi, eta) = SVector(xi, eta)
-
+  x = xi + 0.125 * (cos(0.5 * pi * xi) * cos(2 * pi * y))
+      
+  return SVector(x, y)
+end
+      
 cells_per_dimension = (16, 16)
-
+      
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=true)
 
-###############################################################################
-# create the semi discretization object
-
+# create the semidiscretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################

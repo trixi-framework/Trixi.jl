@@ -82,7 +82,7 @@ end
 
 
 # Calculate 2D twopoint contravariant flux (element version)
-@inline function calcflux_twopoint!(ftilde1, ftilde2, u::AbstractArray{<:Any,4}, element,
+@inline function calcflux_twopoint!(ftilde1, ftilde2, u, element,
                                     mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
                                     equations, volume_flux, dg::DGSEM, cache)
   @unpack contravariant_vectors = cache.elements
@@ -136,7 +136,7 @@ end
 end
 
 
-function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
+function calcflux_twopoint_nonconservative!(f1, f2, u, element,
                                             nonconservative_terms::Val{true},
                                             mesh::Union{StructuredMesh{2}, UnstructuredMesh2D},
                                             equations, dg::DG, cache)
@@ -147,7 +147,7 @@ function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, e
 end
 
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+@inline function split_form_kernel!(du, u,
                                     nonconservative_terms::Val{false}, element,
                                     mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
@@ -196,16 +196,18 @@ end
 end
 
 # Computing the normal vector for the FV method on curvilinear subcells. 
-# To fulfill Freestream-Preservation we use the explicit formula B.53 in Appendix B.4 
+# To fulfill free-stream preservation we use the explicit formula B.53 in Appendix B.4 
 # by Hennemann, Rueda-Ramirez, Hindenlang, Gassner (2020)
-# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler Equations"
-# [arXiv: 2008.12044v2] (https://arxiv.org/pdf/2008.12044)
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, nonconservative_terms::Val{false},
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
   @unpack contravariant_vectors = cache.elements
   @unpack weights, derivative_matrix = dg.basis
 
+  # Performance improvement if the metric terms of the subcell FV method are only computed 
+  # once at the beginning of the simulation, instead of at every Runge-Kutta stage
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
   fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
@@ -218,15 +220,15 @@ end
       u_ll = get_node_vars(u, equations, dg, i-1, j, element)
       u_rr = get_node_vars(u, equations, dg, i,   j, element)
 
-      for ii in 1:nnodes(dg)
-        normal_direction += weights[i-1] * derivative_matrix[i-1, ii] * get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+      for m in 1:nnodes(dg)
+        normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, element)
       end
 
       # Compute the contravariant flux
-      contravariant_flux1 =  volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
 
-      set_node_vars!(fstar1_L, contravariant_flux1, equations, dg, i, j)
-      set_node_vars!(fstar1_R, contravariant_flux1, equations, dg, i, j)
+      set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j)
+      set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
     end
   end
 
@@ -242,16 +244,16 @@ end
       u_ll = get_node_vars(u, equations, dg, i, j-1, element)
       u_rr = get_node_vars(u, equations, dg, i, j,   element)
 
-      for ii in 1:nnodes(dg)
-        normal_direction += weights[j-1] * derivative_matrix[j-1, ii] * get_contravariant_vector(2, contravariant_vectors, i, ii, element)
+      for m in 1:nnodes(dg)
+        normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
       # normal vector and the flux vector
-      contravariant_flux1 = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
 
-      set_node_vars!(fstar2_L, contravariant_flux1, equations, dg, i, j)
-      set_node_vars!(fstar2_R, contravariant_flux1, equations, dg, i, j)
+      set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j)
+      set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j)
     end
   end
 

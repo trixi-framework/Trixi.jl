@@ -24,7 +24,7 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3}, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                                    equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
@@ -88,17 +88,15 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3}, me
     alpha[element] = min(alpha_max, alpha_element)
   end
 
-  if (alpha_smooth)
-  
+  if alpha_smooth
     apply_smoothing!(u, mesh, equations, dg, alpha, alpha_tmp, cache)
-
   end
 
   return alpha
 end
 
 
-function apply_smoothing!(u::AbstractArray{<:Any, 3}, mesh::TreeMesh{1}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
+function apply_smoothing!(u, mesh::TreeMesh{1}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
 
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
   # Copy alpha values such that smoothing is indpedenent of the element access order
@@ -116,31 +114,6 @@ function apply_smoothing!(u::AbstractArray{<:Any, 3}, mesh::TreeMesh{1}, equatio
   end
   
 end
-
-
-function apply_smoothing!(u::AbstractArray{<:Any, 3}, mesh::StructuredMesh{1}, equations, dg::DGSEM, alpha, alpha_tmp, cache)
-
-  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-  # Copy alpha values such that smoothing is indpedenent of the element access order
-  alpha_tmp .= alpha
-
-  # Loop over elements, because there is no interface container
-  for element in eachelement(dg,cache)
-    # Get neighboring element ids
-    left  = cache.elements.left_neighbors[1, element]
-    right = cache.elements.right_neighbors[1, element]
-
-    # Apply smoothing
-    alpha[left]     = max(alpha_tmp[left],    0.5 * alpha_tmp[element], alpha[left])
-    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[left],    alpha[element])
-    
-    alpha[right]    = max(alpha_tmp[right],   0.5 * alpha_tmp[element], alpha[right])
-    alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[right],   alpha[element])
-      
-  end
-  
-end
-
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
@@ -190,7 +163,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3}, mesh,
 
   return alpha
 end
-
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
