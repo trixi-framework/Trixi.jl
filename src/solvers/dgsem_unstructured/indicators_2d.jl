@@ -19,7 +19,6 @@
       alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
       alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
     end
-    
   end
 
 end # @muladd

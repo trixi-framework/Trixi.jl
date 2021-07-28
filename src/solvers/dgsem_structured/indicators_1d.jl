@@ -10,7 +10,7 @@ function apply_smoothing!(u, mesh::StructuredMesh{1}, equations, dg::DGSEM, alph
   alpha_tmp .= alpha
 
   # So far, alpha smoothing doesn't work for non-periodic initial conditions for structured meshes.
-  @assert !iszero(cache.elements.left_neighbors[1, 1]) "alpha smoothing for structured meshes works only with periodic initial conditions so far"
+  @assert isperiodic(mesh) "alpha smoothing for structured meshes works only with periodic initial conditions so far"
 
   # Loop over elements, because there is no interface container
   for element in eachelement(dg,cache)
@@ -21,7 +21,6 @@ function apply_smoothing!(u, mesh::StructuredMesh{1}, equations, dg::DGSEM, alph
     alpha[left]     = max(alpha_tmp[left],    0.5 * alpha_tmp[element], alpha[left])
     alpha[element]  = max(alpha_tmp[element], 0.5 * alpha_tmp[left],    alpha[element])      
   end
-  
 end
 
 end # @muladd
