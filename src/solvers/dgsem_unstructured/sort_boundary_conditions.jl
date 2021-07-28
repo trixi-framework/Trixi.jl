@@ -8,7 +8,7 @@
 """
     UnstructuredSortedBoundaryTypes
 
-General container to sort the boundary conditions by type for the unstructured meshes/solvers.
+General container to sort the boundary conditions by type for some unstructured meshes/solvers.
 It stores a set of global indices for each boundary condition type to expedite computation
 during the call to `calc_boundary_flux!`. The original dictionary form of the boundary conditions
 set by the user in the elixir file is also stored for printing.
