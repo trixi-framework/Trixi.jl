@@ -286,6 +286,29 @@ function flux_mars(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
   return SVector(f1, f2, f3, f4, f5)
 end
 
+function indicator_test(u::AbstractArray{<:Any,5},
+                        equations, dg::DGSEM, cache;
+                        kwargs...)
+  alpha = zeros(Int, nelements(dg, cache))
+
+  for element in eachelement(dg, cache)
+    # Calculate coordinates at Gauss-Lobatto nodes
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+      x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, k, element)
+      lambda, phi, r = cart_to_sphere(x)
+      if 1.1 < lambda < 3.3 && 0.45 < phi < 1.3
+        alpha[element] = 1
+      end
+    end
+  end
+
+  return alpha
+end
+
+function Trixi.get_element_variables!(element_variables, indicator::typeof(indicator_test), ::AMRCallback)
+  return nothing
+end
+
 initial_condition = initial_condition_baroclinic_instability
 
 boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
@@ -328,9 +351,18 @@ save_solution = SaveSolutionCallback(interval=100,
 
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
+amr_controller = ControllerThreeLevel(semi, indicator_test,
+                                      base_level=0,
+                                      max_level=1, max_threshold=0.6)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=typemax(Int),
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
+                        amr_callback,
                         stepsize_callback)
 
 
