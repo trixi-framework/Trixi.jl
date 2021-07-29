@@ -17,7 +17,6 @@ mul_by_accum!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x, one(eltype(
 # out <- out + A * x
 mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out)))
 
-
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out)))
 
