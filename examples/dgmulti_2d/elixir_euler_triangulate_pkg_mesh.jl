@@ -1,4 +1,3 @@
-# !!! warning "Experimental features"
 
 using Triangulate
 using Trixi, OrdinaryDiffEq

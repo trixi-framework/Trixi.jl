@@ -5,8 +5,6 @@
 @muladd begin
 
 
-# !!! warning "Experimental features"
-
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 
