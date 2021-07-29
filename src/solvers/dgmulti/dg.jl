@@ -12,15 +12,14 @@ mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 
 # specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
 mul_by!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x)
-
-# # Todo: simplices. Use `matmul!` for the following 2 functions until 5-arg `matmul!` once
-# the hanging bug is fixed (see https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/103).
+mul_by_accum!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out)))
 
 # out <- out + A * x
-mul_by_accum!(A) = @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out)))
+mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out)))
+
 
 #  out <- out + α * A * x
-mul_by_accum!(A, α) = @inline (out, x)->mul!(out, A, x, α, one(eltype(out)))
+mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out)))
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
