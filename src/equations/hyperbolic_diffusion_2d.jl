@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
     HyperbolicDiffusionEquations2D
@@ -69,7 +75,6 @@ end
     q1  = one(T)
     q2  = one(T)
   else
-    # TODO: sincospi
     sinpi_x1,  cospi_x1  = sincos(pi*x[1])
     sinpi_2x2, cospi_2x2 = sincos(pi*2*x[2])
     phi =  2 *      cospi_x1 * sinpi_2x2 + 2 # ϕ
@@ -84,7 +89,6 @@ end
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
   @unpack inv_Tr = equations
 
-  # TODO: sincospi
   x1, x2 = x
   du1 = 10 * pi^2 * cospi(x1) * sinpi(2 * x2)
   du2 = -inv_Tr * u[2]
@@ -118,7 +122,6 @@ end
     q2  = 1.0
   else
     C   = inv(sinh(pi))
-    # TODO: sincospi
     sinpi_x1, cospi_x1 = sincos(pi*x[1])
     sinpi_x2, cospi_x2 = sincos(pi*x[2])
     sinh_pix1 = sinh(pi*x[1])
@@ -235,17 +238,33 @@ end
   return SVector(f1, f2, f3)
 end
 
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  phi, q1, q2 = u
+  @unpack inv_Tr = equations
+
+  f1 = -equations.nu * (normal_direction[1] * q1 + normal_direction[2] * q2)
+  f2 = -phi * inv_Tr * normal_direction[1]
+  f3 = -phi * inv_Tr * normal_direction[2]
+
+  return SVector(f1, f2, f3)
+end
+
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
-  λ_max = sqrt(equations.nu * equations.inv_Tr)
+  sqrt(equations.nu * equations.inv_Tr)
+end
+
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
 
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
-  phi_ll, p_ll, q_ll = u_ll
-  phi_rr, p_rr, q_rr = u_rr
+  phi_ll, q1_ll, q2_ll = u_ll
+  phi_rr, q1_rr, q2_rr = u_rr
   f_ll = flux(u_ll, orientation, equations)
   f_rr = flux(u_rr, orientation, equations)
 
@@ -254,12 +273,29 @@ end
   λ_max = sqrt(equations.nu * equations.inv_Tr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
   if orientation == 1 # x-direction
-    f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr - p_ll)
+    f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (q1_rr - q1_ll)
     f3 = 1/2 * (f_ll[3] + f_rr[3])
   else # y-direction
     f2 = 1/2 * (f_ll[2] + f_rr[2])
-    f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr - q_ll)
+    f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q2_rr - q2_ll)
   end
+
+  return SVector(f1, f2, f3)
+end
+
+@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equations::HyperbolicDiffusionEquations2D)
+  # Obtain left and right fluxes
+  phi_ll, q1_ll, q2_ll = u_ll
+  phi_rr, q1_rr, q2_rr = u_rr
+  f_ll = flux(u_ll, normal_direction, equations)
+  f_rr = flux(u_rr, normal_direction, equations)
+
+  # this is an optimized version of the application of the upwind dissipation matrix:
+  #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
+  λ_max = sqrt(equations.nu * equations.inv_Tr)
+  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll) * sqrt(normal_direction[1]^2 + normal_direction[2]^2)
+  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (q1_rr - q1_ll) * normal_direction[1]
+  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q2_rr - q2_ll) * normal_direction[2]
 
   return SVector(f1, f2, f3)
 end
@@ -298,3 +334,6 @@ end
   phi, q1, q2 = u
   return 0.5 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2))
 end
+
+
+end # @muladd

@@ -17,7 +17,7 @@ Julia can be avoided by using the [Revise.jl](https://github.com/timholy/Revise.
 package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
 To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
-```julia
+```julia-repl
 (@v1.6) pkg> add Revise
 ```
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
@@ -27,7 +27,7 @@ Revise regularly, please be aware of some of the [Pitfalls when using Revise](@r
 Another recommended package for working from the REPL is
 [OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl). It can be installed
 by running
-```julia
+```julia-repl
 (@v1.6) pkg> add OhMyREPL
 ```
 and adds syntax highlighting, bracket highlighting, and other helpful
@@ -42,11 +42,11 @@ begin by executing:
 julia
 ```
 This will start the Julia REPL. Then, run
-```julia
+```julia-repl
 julia> using Revise; using Trixi
 ```
 You can run a simulation by executing
-```julia
+```julia-repl
 julia> trixi_include(default_example())
 ```
 Together, all of these commands can take some time, roughly half a minute on a
@@ -67,7 +67,7 @@ For example, to run Trixi this way, you need to start the REPL with
 julia --project=path/to/Trixi.jl/
 ```
 and execute
-```julia
+```julia-repl
 julia> using Revise; using Trixi
 ```
 to load Revise and Trixi. You can then proceed with the usual commands and run Trixi as in
@@ -129,7 +129,7 @@ than can increase your productivity in the Julia REPL.
 
 - Use the [REPL help mode](https://docs.julialang.org/en/v1/stdlib/REPL/#Help-mode)
   entered by typing `?`.
-  ```julia
+  ```julia-repl
   julia> using Trixi
 
   help?> trixi_include
@@ -154,25 +154,25 @@ than can increase your productivity in the Julia REPL.
 - You can copy and paste REPL history including `julia>` prompts into the REPL.
 - Use tab completion in the REPL, both for names of functions/types/variables and
   for function arguments.
-  ```julia
+  ```julia-repl
   julia> flux_ranocha( # and TAB
   flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D) in Trixi at ~/.julia/dev/Trixi/src/equations/1d/compressible_euler.jl:416
   flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:865
   flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D) in Trixi at ~/.julia/dev/Trixi/src/equations/3d/compressible_euler.jl:710
   ```
 - Use `methodswith` to discover methods associated to a given type etc.
-  ```julia
+  ```julia-repl
   julia> methodswith(CompressibleEulerEquations2D)
   [1] initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:38
   [...]
   ```
 - Use `@which` (or `@edit`) for method calls.
-  ```julia
+  ```julia-repl
   julia> @which trixi_include(default_example())
   trixi_include(elixir::AbstractString; kwargs...) in Trixi at ~/.julia/dev/Trixi/src/run.jl:72
   ```
 - Use `apropos` to search through the documentation and docstrings.
-  ```julia
+  ```julia-repl
   julia> apropos("MHD")
   Trixi.initial_condition_constant
   Trixi.initial_condition_rotor
@@ -259,7 +259,7 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 You can build the documentation of Trixi.jl locally by running
 ```bash
-julia --project=docs docs/make.jl
+julia --project=docs -e 'using Pkg; Pkg.instantiate(); include("docs/make.jl")'
 ```
 from the Trixi.jl main directory. Then, you can look at the html files generated in
 `docs/build`.
@@ -268,3 +268,16 @@ the new documentation are generated at `https://trixi-framework.github.io/Trixi.
 where `XXX` is the number of the PR.
 This does not work for PRs from forks for security reasons (since anyone could otherwise push
 arbitrary stuff to the Trixi website, including malicious code).
+
+
+
+## [Developing Trixi2Vtk](@id trixi2vtk-dev)
+
+Trixi2Vtk has Trixi as dependency and uses Trixi's implementation to, e.g., load mesh files.
+When developing Trixi2Vtk, one may want to change functions in Trixi to allow them to be reused
+in Trixi2Vtk.
+To use a locally modified Trixi clone instead of a Trixi release, one can tell Pkg
+to use the local source code of Trixi instead of a registered version by running
+```julia-repl
+(@v1.6) pkg> develop path/to/Trixi.jl
+```

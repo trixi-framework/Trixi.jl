@@ -8,6 +8,7 @@
 *.avi
 *.ogv
 *.mesh
+*.inp
 **/Manifest.toml
 out*/
 docs/build
@@ -20,3 +21,5 @@ coverage_report/
 **/solution_*.txt
 **/restart_*.txt
 .vscode/
+
+.DS_Store

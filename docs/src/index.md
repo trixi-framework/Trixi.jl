@@ -8,18 +8,24 @@ having an extensible design with a fast implementation, Trixi is
 focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
-* Hierarchical quadtree/octree grid with adaptive mesh refinement
-* Native support for 1D, 2D, and 3D simulations
+* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations)
+  * Cartesian and curvilinear meshes
+  * Conforming and non-conforming meshes
+  * Structured and unstructured meshes
+  * Hierarchical quadtree/octree grid with adaptive mesh refinement
+  * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 * High-order accuracy in space in time
-* Nodal discontinuous Galerkin spectral element methods
-  * Kinetic energy-preserving and entropy-stable split forms
+* Discontinuous Galerkin methods
+  * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
-* Square/cubic domains with periodic and weakly-enforced boundary conditions
+* Native support for differentiable programming
+  * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+* Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
   * Magnetohydrodynamics equations
@@ -49,7 +55,7 @@ by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
@@ -153,9 +159,8 @@ and generate a heatmap plot of the results with
 julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
-<p align="center">
-  <img width="300px" src="https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png">
-</p>
+
+![image](https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
@@ -256,13 +261,17 @@ If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following
 [paper](https://arxiv.org/abs/2008.10593):
 ```bibtex
-@online{schlottkelakemper2020purely,
+@article{schlottkelakemper2021purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
          self-gravitating gas dynamics},
   author={Schlottke-Lakemper, Michael and Winters, Andrew R and
           Ranocha, Hendrik and Gassner, Gregor J},
-  year={2020},
-  month={08},
+  journal={Journal of Computational Physics},
+  pages={110467},
+  year={2021},
+  month={06},
+  publisher={Elsevier},
+  doi={10.1016/j.jcp.2021.110467},
   eprint={2008.10593},
   eprinttype={arXiv},
   eprintclass={math.NA}
@@ -272,8 +281,8 @@ with the help of Trixi, please cite the following
 In addition, you can also refer to Trixi directly as
 ```bibtex
 @misc{schlottkelakemper2020trixi,
-  title={{T}rixi.jl: A tree-based numerical simulation framework
-         for hyperbolic {PDE}s written in {J}ulia},
+  title={{T}rixi.jl: {A}daptive high-order numerical simulations
+         of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
           Ranocha, Hendrik and Winters, Andrew R},
   year={2020},
@@ -297,3 +306,6 @@ The full list of contributors can be found under [Authors](@ref).
 Trixi is licensed under the MIT license (see [License](@ref)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [Contributing](@ref) for more details.
+To get in touch with the developers,
+[join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
+or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).

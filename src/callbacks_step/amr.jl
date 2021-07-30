@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
@@ -111,7 +117,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   amr_callback = cb.affect!
   semi = integrator.p
 
-  @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_condition
+  @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
     has_changed = amr_callback(integrator,
                                only_refine=amr_callback.adapt_initial_condition_only_refine)
@@ -132,7 +138,7 @@ end
 #   amr_callback = cb.affect!
 #   semi = ode.p
 
-#   @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_condition
+#   @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
 #     # iterate until mesh does not change anymore
 #     has_changed = true
 #     while has_changed
@@ -150,7 +156,7 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
   u_ode = integrator.u
   semi = integrator.p
 
-  @timeit_debug timer() "AMR" begin
+  @trixi_timeit timer() "AMR" begin
     has_changed = amr_callback(u_ode, semi,
                                integrator.t, integrator.iter; kwargs...)
     if has_changed
@@ -169,7 +175,7 @@ end
                                              kwargs...)
   # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
   # it when doing AMR while still dispatching on the `mesh` etc.
-  amr_callback(u_ode, mesh_equations_solver_cache(semi)..., t, iter; kwargs...)
+  amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi, t, iter; kwargs...)
 end
 
 
@@ -177,19 +183,19 @@ end
 # `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
 # passively without querying its indicator, based on the assumption that both solvers use
 # the same mesh. That's a hack and should be improved in the future once we have more examples
-# and a better understandin of such a coupling.
+# and a better understanding of such a coupling.
 # `passive_args` is expected to be an iterable of `Tuple`s of the form
 # `(p_u_ode, p_mesh, p_equations, p_dg, p_cache)`.
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
-                                     equations, dg::DG, cache,
+                                     equations, dg::DG, cache, semi,
                                      t, iter;
                                      only_refine=false, only_coarsen=false,
                                      passive_args=())
   @unpack controller, adaptor = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
-  lambda = @timeit_debug timer() "indicator" controller(u, mesh, equations, dg, cache,
-                                                        t=t, iter=iter)
+  lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
+                                                 t=t, iter=iter)
 
   if mpi_isparallel()
     # Collect lambda for all elements
@@ -218,14 +224,17 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   end
 
 
-  @timeit_debug timer() "refine" if !only_coarsen && !isempty(to_refine)
+  @trixi_timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
     # refine mesh
-    refined_original_cells = @timeit_debug timer() "mesh" refine!(mesh.tree, to_refine)
+    refined_original_cells = @trixi_timeit timer() "mesh" refine!(mesh.tree, to_refine)
+
+    # Find all indices of elements whose cell ids are in refined_original_cells
+    elements_to_refine = findall(in(refined_original_cells), cache.elements.cell_ids)
 
     # refine solver
-    @timeit_debug timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-      @timeit_debug timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, refined_original_cells)
+      @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, elements_to_refine)
     end
   else
     # If there is nothing to refine, create empty array for later use
@@ -233,7 +242,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   end
 
 
-  @timeit_debug timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+  @trixi_timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
@@ -269,7 +278,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
     # Finally, coarsen mesh
-    coarsened_original_cells = @timeit_debug timer() "mesh" coarsen!(mesh.tree, to_coarsen)
+    coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh.tree, to_coarsen)
 
     # Convert coarsened parent cell ids to the list of child cell ids that have
     # been removed, since this is the information that is expected by the solver
@@ -280,10 +289,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
       end
     end
 
+    # Find all indices of elements whose cell ids are in removed_child_cells
+    elements_to_remove = findall(in(removed_child_cells), cache.elements.cell_ids)
+
     # coarsen solver
-    @timeit_debug timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
     for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-      @timeit_debug timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, removed_child_cells)
+      @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, elements_to_remove)
     end
   else
     # If there is nothing to coarsen, create empty array for later use
@@ -299,7 +311,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
   # Dynamically balance computational load by first repartitioning the mesh and then redistributing the cells/elements
   if has_changed && mpi_isparallel() && amr_callback.dynamic_load_balancing
-    @timeit_debug timer() "dynamic load balancing" begin
+    @trixi_timeit timer() "dynamic load balancing" begin
       old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
 
       partition!(mesh)
@@ -310,6 +322,112 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
   # Return true if there were any cells coarsened or refined, otherwise false
   return has_changed
+end
+
+
+# Copy controller values to quad user data storage, will be called below
+function copy_to_quad_iter_volume(info, user_data)
+  # Load tree from global trees array, one-based indexing
+  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
+  # Global quad ID
+  quad_id = offset + info.quadid
+
+  # Access user_data = lambda
+  user_data_ptr = Ptr{Int}(user_data)
+  # Load controller_value = lambda[quad_id + 1]
+  controller_value = unsafe_load(user_data_ptr, quad_id + 1)
+
+  # Access quadrant's user data ([global quad ID, controller_value])
+  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  # Save controller value to quadrant's user data.
+  unsafe_store!(quad_data_ptr, controller_value, 2)
+
+  return nothing
+end
+
+# 2D
+cfunction(::typeof(copy_to_quad_iter_volume), ::Val{2}) = @cfunction(copy_to_quad_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+# 3D
+cfunction(::typeof(copy_to_quad_iter_volume), ::Val{3}) = @cfunction(copy_to_quad_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
+                                     equations, dg::DG, cache, semi,
+                                     t, iter;
+                                     only_refine=false, only_coarsen=false,
+                                     passive_args=())
+  @unpack controller, adaptor = amr_callback
+
+  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
+                                                 t=t, iter=iter)
+
+  @boundscheck begin
+    @assert axes(lambda) == (Base.OneTo(ncells(mesh)),) (
+      "Indicator array (axes = $(axes(lambda))) and mesh cells (axes = $(Base.OneTo(ncells(mesh)))) have different axes"
+    )
+  end
+
+  # Copy controller value of each quad to the quad's user data storage
+  iter_volume_c = cfunction(copy_to_quad_iter_volume, Val(ndims(mesh)))
+
+  # The pointer to lambda will be interpreted as Ptr{Int} above
+  @assert lambda isa Vector{Int}
+  iterate_p4est(mesh.p4est, lambda; iter_volume_c=iter_volume_c)
+
+  @trixi_timeit timer() "refine" if !only_coarsen
+    # Refine mesh
+    refined_original_cells = @trixi_timeit timer() "mesh" refine!(mesh)
+
+    # Refine solver
+    @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache,
+                                    refined_original_cells)
+    for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+      @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations,
+                                              p_dg, p_cache, refined_original_cells)
+    end
+  else
+    # If there is nothing to refine, create empty array for later use
+    refined_original_cells = Int[]
+  end
+
+  @trixi_timeit timer() "coarsen" if !only_refine
+    # Coarsen mesh
+    coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh)
+
+    # coarsen solver
+    @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache,
+                                     coarsened_original_cells)
+    for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+      @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations,
+                                               p_dg, p_cache, coarsened_original_cells)
+    end
+  else
+    # If there is nothing to coarsen, create empty array for later use
+    coarsened_original_cells = Int[]
+  end
+
+  # Store whether there were any cells coarsened or refined
+  has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+  if has_changed # TODO: Taal decide, where shall we set this?
+    # don't set it to has_changed since there can be changes from earlier calls
+    mesh.unsaved_changes = true
+
+    reinitialize_boundaries!(semi.boundary_conditions, cache)
+  end
+
+  # Return true if there were any cells coarsened or refined, otherwise false
+  return has_changed
+end
+
+function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes, cache)
+  # Reinitialize boundary types container because boundaries may have changed.
+  initialize!(boundary_conditions, cache)
+end
+
+function reinitialize_boundaries!(boundary_conditions, cache)
+  return boundary_conditions
 end
 
 
@@ -420,21 +538,62 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
 end
 
 
+function current_element_levels(mesh::TreeMesh, solver, cache)
+  cell_ids = cache.elements.cell_ids[eachelement(solver, cache)]
+
+  return mesh.tree.levels[cell_ids]
+end
+
+
+function extract_levels_iter_volume(info, user_data)
+  # Load tree from global trees array, one-based indexing
+  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  # Quadrant numbering offset of this quadrant
+  offset = tree.quadrants_offset
+  # Global quad ID
+  quad_id = offset + info.quadid
+  # Julia element ID
+  element_id = quad_id + 1
+
+  current_level = info.quad.level
+
+  # Unpack user_data = current_levels and save current element level
+  ptr = Ptr{Int}(user_data)
+  unsafe_store!(ptr, current_level, element_id)
+
+  return nothing
+end
+
+# 2D
+cfunction(::typeof(extract_levels_iter_volume), ::Val{2}) = @cfunction(extract_levels_iter_volume, Cvoid, (Ptr{p4est_iter_volume_info_t}, Ptr{Cvoid}))
+# 3D
+cfunction(::typeof(extract_levels_iter_volume), ::Val{3}) = @cfunction(extract_levels_iter_volume, Cvoid, (Ptr{p8est_iter_volume_info_t}, Ptr{Cvoid}))
+
+function current_element_levels(mesh::P4estMesh, solver, cache)
+  current_levels = Vector{Int}(undef, nelements(solver, cache))
+
+  iter_volume_c = cfunction(extract_levels_iter_volume, Val(ndims(mesh)))
+  iterate_p4est(mesh.p4est, current_levels; iter_volume_c=iter_volume_c)
+
+  return current_levels
+end
+
+
 # TODO: Taal refactor, merge the two loops of ControllerThreeLevel and IndicatorLöhner etc.?
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
 function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
-                                            mesh::TreeMesh, equations, dg::DG, cache;
+                                            mesh, equations, dg::DG, cache;
                                             kwargs...)
 
   @unpack controller_value = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
   alpha = controller.indicator(u, equations, dg, cache; kwargs...)
+  current_levels = current_element_levels(mesh, dg, cache)
 
   @threaded for element in eachelement(dg, cache)
-    cell_id = cache.elements.cell_ids[element]
-    current_level = mesh.tree.levels[cell_id]
+    current_level = current_levels[element]
 
     # set target level
     target_level = current_level
@@ -462,7 +621,6 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
 
   return controller_value
 end
-
 
 
 """
@@ -553,7 +711,7 @@ end
 
 
 function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
-                                                    mesh::TreeMesh, equations, dg::DG, cache;
+                                                    mesh, equations, dg::DG, cache;
                                                     kwargs...)
 
   @unpack controller_value = controller.cache
@@ -562,9 +720,10 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
   alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
   alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
 
+  current_levels = current_element_levels(mesh, dg, cache)
+
   @threaded for element in eachelement(dg, cache)
-    cell_id = cache.elements.cell_ids[element]
-    current_level = mesh.tree.levels[cell_id]
+    current_level = current_levels[element]
 
     # set target level
     target_level = current_level
@@ -601,3 +760,6 @@ end
 include("amr_dg1d.jl")
 include("amr_dg2d.jl")
 include("amr_dg3d.jl")
+
+
+end # @muladd

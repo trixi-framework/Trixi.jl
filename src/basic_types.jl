@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # abstract supertype of specific semidiscretizations such as
 # - SemidiscretizationHyperbolic for hyperbolic conservation laws
@@ -18,7 +24,7 @@ abstract type AbstractEquations{NDIMS, NVARS} end
 """
     AbstractMesh{NDIMS}
 
-An abstract supertype of specific mesh types such as `TreeMesh` or `CurvedMesh`.
+An abstract supertype of specific mesh types such as `TreeMesh` or `StructuredMesh`.
 The type parameters encode the number of spatial dimensions (`NDIMS`).
 """
 abstract type AbstractMesh{NDIMS} end
@@ -63,3 +69,6 @@ A singleton struct indicating periodic boundary conditions.
 const boundary_condition_periodic = BoundaryConditionPeriodic()
 
 Base.show(io::IO, ::BoundaryConditionPeriodic) = print(io, "boundary_condition_periodic")
+
+
+end # @muladd

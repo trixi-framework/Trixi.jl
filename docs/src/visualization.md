@@ -11,14 +11,23 @@ postprocessing Trixi's output files with [Trixi2Vtk](@ref).
 
 
 ## [Plots.jl [experimental]](@id Plots.jl)
-
-### Getting started
 By far the easiest and most convenient plotting approach is to use the powerful
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package to directly visualize
-Trixi's 2D/3D results from the REPL.
+Trixi's results from the REPL.
+In the following, you will find more information on a number of topics for how
+to use Plots.jl together with Trixi:
+1. [Getting started](@ref getting-started-plots-jl)
+2. [Customizing plot results via a PlotData2D object](@ref)
+3. [Plotting a 3D solution as a 2D plot](@ref)
+4. [Creating a 1D plot](@ref)
+5. [Plotting a 2D or 3D solutions as a 1D plot](@ref)
+6. [Visualizing results during a simulation](@ref)
+
 !!! note
     Plotting via Plots.jl is still considered an experimental feature and might
     change in any future releases.
+
+### [Getting started](@id getting-started-plots-jl)
 
 After running a simulation with Trixi in the REPL, load the Plots package with
 ```julia
@@ -42,9 +51,16 @@ with an output file name that ends in `.png`, e.g.,
 julia> savefig("solution-overview.png")
 ```
 
+In Trixi, two plot types are available: 2D heatmap plots and 1D line plots.
+If you use `plot(sol)`, Trixi will automatically choose the plot type that fits the dimensions
+of the `sol` input: 2D/3D data will be visualized as a heatmap, 1D data as a line plot.
+For more fine-grained control over what to plot, you can create such an object
+yourself, which can either be a [`PlotData2D`](@ref) or a [`PlotData1D`](@ref) object.
+For further details on both of these see below:
 
-### Customizing plot results via plot data objects
-For more fine-grained control over what to plot, first create a
+
+### Customizing plot results via a PlotData2D object
+ For more fine-grained control over what to plot, first create a
 [`PlotData2D`](@ref) object by executing
 ```julia
 julia> pd = PlotData2D(sol)
@@ -83,7 +99,7 @@ which modifies the previous plot to
 ![plot-rho-modified-mesh](https://user-images.githubusercontent.com/3637659/102724856-e1b2dd00-4312-11eb-83ae-e470c32f9008.png)
 
 By default, `PlotData2D` will convert the conserved variables to primitive
-variables, but this can changed by passing an appropriate conversion function in
+variables, but this can be changed by passing an appropriate conversion function in
 the `solution_variables` keyword argument, similar to the behavior of the
 [`SaveSolutionCallback`](@ref):
 ```julia
@@ -108,16 +124,21 @@ When plotted together with the mesh, this will yield the following visualization
 ![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/3637659/112101404-e0f64500-8ba6-11eb-9516-ad910c6813b2.png)
 
 
-### Plotting 3D solutions
+### Plotting a 3D solution as a 2D plot
 It is possible to plot 2D slices from 3D simulation data with the same commands
-as above. By default, plotting `sol` or creating a `PlotData2D` object from
-a 3D simulation will create a 2D slice of the solution in the xy-plane. You can
-customize this behavior by creating a `PlotData2D` object and passing
-appropriate keyword arguments to `PlotData2D`:
-* `slice_axis` specifies the axis orthogonal to the slice and can be `:x`, `:y`,
-  or `:z` (default: `:z`)
-* `slice_axis_intercept` specifies the axis coordinate of the `slice_axis` at
-  which the slice is created (default: `0.0`)
+as above:
+```julia
+julia> plot(sol) # `sol` is from a 3D simulation
+```
+By default, plotting `sol` or creating a [`PlotData2D`](@ref) object from
+a 3D simulation will create a 2D slice of the solution in the `xy`-plane. You can
+customize this behavior by explicitly creating a `PlotData2D` object and passing
+appropriate keyword arguments:
+* `slice` specifies the plane which is being sliced and can be `:xy`, `:xz`,
+  or `:yz` (default: `:xy`)
+* `point` specifies a three-dimensional point. The sliced plane is then created
+  such that it lies on the point (default: `(0.0, 0.0, 0.0)`).
+All other attributes for [`PlotData2D`](@ref) objects apply here as well.
 
 For example, to plot the velocity field orthogonal to the yz-plane at different
 x-axis locations, you can execute
@@ -129,16 +150,108 @@ julia> plots = []
 Any[]
 
 julia> for x in range(0, stop=pi/2, length=6)
-         pd = PlotData2D(sol, slice_axis=:x, slice_axis_intercept=x)
+         pd = PlotData2D(sol, slice=:yz, point=(x, 0.0, 0.0))
          push!(plots, plot(pd["v1"], clims=(-1,1), title="x = "*string(round(x, digits=2))))
        end
 
 julia> plot(plots..., layout=(2, 3), size=(750,350))
 ```
-which results in a 2x3 grid of slices orthogonal to the x-axis:
+which results in a 2x3 grid of slices of the `yz`-plane:
 
 ![plot-v1-0.0-to-0.5pi](https://user-images.githubusercontent.com/3637659/102917883-417dc500-4486-11eb-9bd3-d18efd9c8337.png)
 
+
+### Creating a 1D plot
+When plotting a 1D solution with
+```julia
+julia> plot(sol) # `sol` is from a 1D simulation
+```
+Trixi automatically creates a [`PlotData1D`](@ref) object and visualizes it as a
+line plot:
+![1d-plot](https://user-images.githubusercontent.com/3637659/119086020-1e3f4d80-ba05-11eb-873e-1b586a81e7fe.png)
+
+To customize your 1D plot, you can create a `PlotData1D` object manually as follows:
+```julia
+julia> pd = PlotData1D(sol)
+```
+In a very similar fashion to [`PlotData2D`](@ref), you can customize your plot:
+* `plot(pd)` creates the same plot as in `plot(sol)`.
+* `plot(pd["rho", "p"])` only plots specific variables. In this case `rho` and `p`.
+* `plot!(getmesh(pd))` adds mesh lines after creating a plot.
+* Any attributes from [Plots](https://docs.juliaplots.org/latest/) can be used, e.g., `plot(pd, yguide=:temperature)`.
+* `pd = PlotData1D(adapt_to_mesh_level(sol, 4)...)` adapts the mesh before plotting
+  (in this example to a mesh with refinement level 4).
+
+You can also customize the [`PlotData1D`](@ref) object itself by passing attributes
+to the [`PlotData1D`](@ref) constructor:
+* `solution_variables` specifies the variables to be plotted.
+* `nvisnodes` sets the amount of nodes per element which the solution then is interpolated on.
+
+
+### Plotting a 2D or 3D solutions as a 1D plot
+It is possible to extract a straight, axis-parallel line from a 2D or 3D solution and
+visualize it as a 1D plot. This is done by creating a [`PlotData1D`](@ref) object with a
+2D/3D solution `sol` as input:
+```julia
+julia> pd = PlotData1D(sol)
+```
+The plot is then created with:
+```julia
+julia> plot(pd)
+```
+
+By default the `x`-axis is extracted, which can be changed with following attributes:
+* `slice` specifies the axis which is being extracted and can be `:x`, `:y` or `:z`
+  (`:z` is only for 3D input and default is `:x`)
+* `point` specifies a two or three dimensional point. The sliced axis is then
+  created in such a way, that it lies on the point.
+  (default: `(0.0, 0.0)` or `(0.0, 0.0, 0.0)`)
+
+All other attributes for [`PlotData1D`](@ref) objects apply here as well.
+
+In the following, is an example for a 2D simulation of the linear scalar advection equation.
+First, we have the regular 2D heatmap plot:
+![2d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614302-0f033d80-a93a-11eb-91a1-e44de41e0795.PNG)
+
+From this, we can extract a line plot parallel to the `y`-axis going through the
+point `(1.0, 0.0)` with the following commands:
+```julia
+julia> pd = PlotData1D(sol, slice=:y, point=(1.0, 0.0))
+julia> plot(pd)
+```
+![1d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614340-1b879600-a93a-11eb-9a80-f46311da16b1.PNG)
+
+This convenient method of slicing is limited to axis-parallel slices, but for 2D/3D solutions it is also
+possible to create a plot along any curve you want. To do so, you first need to
+create a list of 2D/3D points that define your curve. Then you can
+create a [`PlotData1D`](@ref) with the keyword argument `curve` set to your list.
+
+Let's give an example of this with the basic advection equation from above by creating
+a plot along the circle marked in green:
+![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/122980179-a7e19280-d398-11eb-82a8-b7a998d23277.PNG)
+
+We can write a function like this, that outputs a list of points on a circle:
+```julia
+function circle(radius, center, n_points)
+    coordinates = zeros(2, n_points)
+    for i in 1:n_points
+        coordinates[:,i] = radius*[cospi(2*i/n_points), sinpi(2*i/n_points)] .+ center
+    end
+    return coordinates
+end
+```
+
+Then create and plot a [`PlotData1D`](@ref) object along a circle with radius one, center at `(1,1)`, and 100 points:
+```julia
+pd = PlotData1D(sol, curve=circle(1.0, (1.0, 1.0), 100))
+plot(pd)
+```
+This gives you the following plot:
+![1d-plot-along-circle](https://user-images.githubusercontent.com/72009492/118874948-c3660300-b8eb-11eb-8e5e-8ce50e21336e.PNG)
+
+Creating a plot like this has its downsides. For one, it is unclear what to put on the abscissa
+of the plot. By default, the arc length of the given curve is used.
+Also, with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
 
 ### Visualizing results during a simulation
 To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
@@ -234,6 +347,9 @@ When multiple solution/restart files are provided, Trixi2Vtk will also generate 
 uses the `time` attribute in solution/restart files to inform ParaView about the
 solution time. A comprehensive list of all possible arguments for
 `trixi2vtk` can be found in the [Trixi2Vtk.jl API](@ref).
+
+Further information regarding the development of Trixi2Vtk can be found in the
+[development section](@ref trixi2vtk-dev).
 
 
 ## Trixi2Img

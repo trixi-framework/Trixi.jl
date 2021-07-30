@@ -1,49 +1,61 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 function create_cache_analysis(analyzer, mesh::TreeMesh{3},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  u_tmp1 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  u_tmp2 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  x_tmp1 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  x_tmp2 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  u_tmp1  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  u_tmp2  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  x_tmp1  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  x_tmp2  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
 
   return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2)
 end
 
 
-function create_cache_analysis(analyzer, mesh::CurvedMesh{3},
+function create_cache_analysis(analyzer, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = zeros(uEltype,
-                  nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  u_tmp1 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  u_tmp2 = similar(u_local,
-                   nvariables(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
-  x_local = zeros(RealT,
-                  ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  x_tmp1 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(dg), nnodes(dg))
-  x_tmp2 = similar(x_local,
-                   ndims(equations), nnodes(analyzer), nnodes(analyzer), nnodes(dg))
-  jacobian_local = zeros(RealT,
-                         nnodes(analyzer), nnodes(analyzer), nnodes(analyzer))
-  jacobian_tmp1 = similar(jacobian_local,
-                          nnodes(analyzer), nnodes(dg), nnodes(dg))
-  jacobian_tmp2 = similar(jacobian_local,
-                          nnodes(analyzer), nnodes(analyzer), nnodes(dg))
+  # We use `StrideArray`s here since these buffers are used in performance-critical
+  # places and the additional information passed to the compiler makes them faster
+  # than native `Array`s.
+  u_local = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  u_tmp1  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  u_tmp2  = StrideArray(undef, uEltype,
+                        StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  x_local = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  x_tmp1  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  x_tmp2  = StrideArray(undef, RealT,
+                        StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+  jacobian_local = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+  jacobian_tmp1  = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+  jacobian_tmp2  = StrideArray(undef, RealT,
+                               StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
 
   return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2)
 end
@@ -88,9 +100,9 @@ end
 
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::CurvedMesh{3}, equations,
-                          initial_condition, dg::DGSEM, cache, cache_analysis; normalize=true)
-
+                          mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                          equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis; normalize=true)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
   @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
@@ -116,7 +128,7 @@ function calc_error_norms(func, u, t, analyzer,
       linf_error = @. max(linf_error, abs(diff))
     end
   end
-  
+
   if normalize
     # For L2 error, divide by total volume
     total_volume_ = total_volume(mesh, dg, cache)
@@ -145,8 +157,7 @@ function integrate_via_indices(func::Func, u,
 
   # Normalize with total volume
   if normalize
-    total_volume_ = total_volume(mesh)
-    integral = integral / total_volume_
+    integral = integral / total_volume(mesh)
   end
 
   return integral
@@ -154,7 +165,8 @@ end
 
 
 function integrate_via_indices(func::Func, u,
-                               mesh::CurvedMesh{3}, equations, dg::DGSEM, cache,
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                               equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -181,7 +193,7 @@ end
 
 
 function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{3},CurvedMesh{3}},
+                   mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                    equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -191,7 +203,8 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache; normalize=true)
+                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                 equations, dg::DG, cache; normalize=true)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du;
       normalize=normalize) do u, i, j, k, element, equations, dg, du
@@ -204,8 +217,8 @@ end
 
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
-                 dg::DG, cache; normalize=true)
+                 mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations::IdealGlmMhdEquations3D,
+                 dg::DGSEM, cache; normalize=true)
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix;
       normalize=normalize) do u, i, j, k, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
@@ -220,8 +233,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
-                 dg::DG, cache; normalize=true)
+                 mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations::IdealGlmMhdEquations3D,
+                 dg::DGSEM, cache; normalize=true)
   @unpack derivative_matrix, weights = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors
@@ -241,3 +254,6 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
   return linf_divb
 end
+
+
+end # @muladd

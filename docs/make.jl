@@ -1,5 +1,11 @@
 using Documenter
 import Pkg
+
+# Fix for https://github.com/trixi-framework/Trixi.jl/issues/668
+if (get(ENV, "CI", nothing) != "true") && (get(ENV, "TRIXI_DOC_DEFAULT_ENVIRONMENT", nothing) != "true")
+    push!(LOAD_PATH, dirname(@__DIR__))
+end
+
 using Trixi
 using Trixi2Vtk
 using Trixi2Img
@@ -40,7 +46,10 @@ makedocs(
             "Visualization" => "visualization.md",
         ],
         "Tutorials" => [
-            "Adding a new equation" => "adding_a_new_equation.md",
+            "Adding a new equation" => [
+                "Scalar conservation law" => joinpath("adding_new_equations", "cubic_conservation_law.md"),
+                "Nonconservative equation" => joinpath("adding_new_equations", "nonconservative_advection.md")
+            ],
             "Differentiable programming" => "differentiable_programming.md",
         ],
         "Basic building blocks" => [
@@ -48,6 +57,8 @@ makedocs(
                 "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
                 "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                 "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
+                "P4est-based mesh" => joinpath("meshes", "p4est_mesh.md"),
+                "Simplicial mesh" => joinpath("meshes", "mesh_data_meshes.md"),
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",

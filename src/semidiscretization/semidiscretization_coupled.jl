@@ -84,6 +84,11 @@ function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_cont
   println(io, "\n")
 end
 
+function summary_solver(semi::SemidiscretizationCoupled)
+  _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
+  summary(solver)
+end
+
 
 @inline Base.ndims(semi::SemidiscretizationCoupled) = ndims(semi.semis[1])
 
@@ -116,8 +121,8 @@ end
   return nothing, equations, nothing, nothing
 end
 
- 
-function calc_error_norms(func, u_ode::AbstractVector, t, analyzers, 
+
+function calc_error_norms(func, u_ode::AbstractVector, t, analyzers,
                           semi::SemidiscretizationCoupled, caches_analysis;
                           normalize=true)
   @unpack semis, u_indices = semi
@@ -126,7 +131,7 @@ function calc_error_norms(func, u_ode::AbstractVector, t, analyzers,
   op(x, y) = (x[1] + y[1], max(x[2], y[2]))
 
   l2_error, linf_error = mapreduce(op, 1:nmeshes(semi)) do i
-    calc_error_norms(func, u_ode[u_indices[i]], t, analyzers[i], 
+    calc_error_norms(func, u_ode[u_indices[i]], t, analyzers[i],
                      semis[i], caches_analysis[i]; normalize=false)
   end
 
@@ -140,28 +145,6 @@ function calc_error_norms(func, u_ode::AbstractVector, t, analyzers,
 end
 
 
-function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled; normalize=true)
-  @unpack semis, u_indices = semi
-
-  integral = sum(1:nmeshes(semi)) do i
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-    # In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
-    du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
-    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
-
-    analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
-  end
-
-  if normalize
-    # Normalize with total volume
-    total_volume_ = total_volume(semi)
-    integral = integral / total_volume_
-  end
-
-  return integral
-end
-
-
 function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCoupled; normalize=true) where {Func}
   @unpack semis, u_indices = semi
 
@@ -171,7 +154,7 @@ function integrate(func::Func, u_ode::AbstractVector, semi::SemidiscretizationCo
 
     integrate(func, u, mesh, equations, solver, cache, normalize=false)
   end
-  
+
   # Normalize with total volume
   if normalize
     total_volume_ = total_volume(semi)
@@ -199,7 +182,7 @@ function compute_coefficients(t, semi::SemidiscretizationCoupled)
     # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
     u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
   end
-  
+
   return u_ode
 end
 
@@ -245,7 +228,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
   time_start = time_ns()
 
-  @timeit_debug timer() "copy to coupled boundaries" begin
+  @trixi_timeit timer() "copy to coupled boundaries" begin
     for semi_ in semi.semis
       copy_to_coupled_boundary(semi_.boundary_conditions, u_ode, semi)
     end
@@ -292,9 +275,9 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3
   end
 
   for cell in cells, i in eachnode(solver), v in 1:size(u, 1)
-    boundary_condition.u_boundary[v, i, cell] = u[v, indexfunction(indices, size_, 1, i), 
-                                                     indexfunction(indices, size_, 2, i), 
-                                                     linear_indices[indexfunction(indices, size(mesh), 1, cell), 
+    boundary_condition.u_boundary[v, i, cell] = u[v, indexfunction(indices, size_, 1, i),
+                                                     indexfunction(indices, size_, 2, i),
+                                                     linear_indices[indexfunction(indices, size(mesh), 1, cell),
                                                                     indexfunction(indices, size(mesh), 2, cell)]]
   end
 end
@@ -323,7 +306,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5
     boundary_condition.u_boundary[v, i, j, cell_i, cell_j] = u[v, indexfunction(indices, size_, 1, i, j),
                                                                   indexfunction(indices, size_, 2, i, j),
                                                                   indexfunction(indices, size_, 3, i, j),
-                                                                  linear_indices[indexfunction(indices, size(mesh), 1, cell_i, cell_j), 
+                                                                  linear_indices[indexfunction(indices, size(mesh), 1, cell_i, cell_j),
                                                                                  indexfunction(indices, size(mesh), 2, cell_i, cell_j),
                                                                                  indexfunction(indices, size(mesh), 3, cell_i, cell_j)]]
   end

@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
     SemidiscretizationHyperbolic
 
@@ -37,7 +44,9 @@ end
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms=nothing,
                                  boundary_conditions=boundary_condition_periodic,
-                                 RealT=real(solver))
+                                 RealT=real(solver),
+                                 uEltype=RealT,
+                                 initial_cache=NamedTuple())
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
@@ -46,10 +55,11 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       boundary_conditions=boundary_condition_periodic,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
-                                      RealT=real(solver), uEltype=RealT)
+                                      RealT=real(solver), uEltype=RealT,
+                                      initial_cache=NamedTuple())
 
-  cache = create_cache(mesh, equations, solver, RealT, uEltype)
-  _boundary_conditions = digest_boundary_conditions(boundary_conditions)
+  cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
+  _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
@@ -77,23 +87,89 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype=real(semi.solver),
 end
 
 
-# allow passing named tuples of BCs constructed in an arbitrary order
-digest_boundary_conditions(boundary_conditions) = boundary_conditions
+# general fallback
+digest_boundary_conditions(boundary_conditions, mesh, solver, cache) = boundary_conditions
 
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
+# general fallback
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh, solver, cache) = boundary_conditions
+
+# resolve ambiguities with definitions below
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache) = boundary_conditions
+
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache) = boundary_conditions
+
+digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                           mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache) = boundary_conditions
+
+# allow passing a single BC that get converted into a tuple of BCs
+# on (mapped) hypercube domains
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache)
+  (; x_neg=boundary_conditions, x_pos=boundary_conditions)
+end
+
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache)
+  (; x_neg=boundary_conditions, x_pos=boundary_conditions,
+     y_neg=boundary_conditions, y_pos=boundary_conditions)
+end
+
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache)
+  (; x_neg=boundary_conditions, x_pos=boundary_conditions,
+     y_neg=boundary_conditions, y_pos=boundary_conditions,
+     z_neg=boundary_conditions, z_pos=boundary_conditions)
+end
+
+# allow passing a tuple of BCs that get converted into a named tuple to make it
+# self-documenting on (mapped) hypercube domains
+function digest_boundary_conditions(boundary_conditions::NTuple{2, Any},
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache)
+  (; x_neg=boundary_conditions[1], x_pos=boundary_conditions[2])
+end
+
+function digest_boundary_conditions(boundary_conditions::NTuple{4, Any},
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache)
+  (; x_neg=boundary_conditions[1], x_pos=boundary_conditions[2],
+     y_neg=boundary_conditions[3], y_pos=boundary_conditions[4])
+end
+
+function digest_boundary_conditions(boundary_conditions::NTuple{6, Any},
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache)
+  (; x_neg=boundary_conditions[1], x_pos=boundary_conditions[2],
+     y_neg=boundary_conditions[3], y_pos=boundary_conditions[4],
+     z_neg=boundary_conditions[5], z_pos=boundary_conditions[6])
+end
+
+# allow passing named tuples of BCs constructed in an arbitrary order
+# on (mapped) hypercube domains
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver, cache) where {Keys, ValueTypes<:NTuple{2,Any}}
   @unpack x_neg, x_pos = boundary_conditions
   (; x_neg, x_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver, cache) where {Keys, ValueTypes<:NTuple{4,Any}}
   @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos)
 end
-function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes},
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver, cache) where {Keys, ValueTypes<:NTuple{6,Any}}
   @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
-function digest_boundary_conditions(boundary_conditions::AbstractArray)
+# sort the boundary conditions from a dictionary and into tuples
+function digest_boundary_conditions(boundary_conditions::Dict, mesh, solver, cache)
+  UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
+end
+
+function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver, cache)
   throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
@@ -127,31 +203,9 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", semi.equations |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
-    if semi.boundary_conditions isa Dict
-      summary_line(io, "boundary conditions", length(semi.boundary_conditions))
-      for (boundary_name, boundary_condition) in semi.boundary_conditions
-        summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
-      end
-    else # non dictionary boundary conditions container
-      summary_line(io, "boundary conditions", 2*ndims(semi))
-      if (semi.boundary_conditions isa Tuple ||
-          semi.boundary_conditions isa NamedTuple ||
-          semi.boundary_conditions isa AbstractArray)
-        bcs = semi.boundary_conditions
-      else
-        bcs = collect(semi.boundary_conditions for _ in 1:(2*ndims(semi)))
-      end
-      summary_line(increment_indent(io), "negative x", bcs[1])
-      summary_line(increment_indent(io), "positive x", bcs[2])
-      if ndims(semi) > 1
-        summary_line(increment_indent(io), "negative y", bcs[3])
-        summary_line(increment_indent(io), "positive y", bcs[4])
-      end
-      if ndims(semi) > 2
-        summary_line(increment_indent(io), "negative z", bcs[5])
-        summary_line(increment_indent(io), "positive z", bcs[6])
-      end
-    end
+
+    print_boundary_conditions(io, semi)
+
     summary_line(io, "source terms", semi.source_terms)
     summary_line(io, "solver", semi.solver |> typeof |> nameof)
     summary_line(io, "total #DOFs", ndofs(semi))
@@ -159,6 +213,47 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
   end
 end
 
+# type alias for dispatch in printing of boundary conditions
+const SemiHypMeshBCSolver{Mesh, BoundaryConditions, Solver} =
+      SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions,
+                                   SourceTerms, Solver} where {Equations, InitialCondition, SourceTerms}
+
+# generic fallback: print the type of semi.boundary_condition.
+print_boundary_conditions(io, semi::SemiHypMeshBCSolver) = summary_line(io, "boundary conditions", typeof(semi.boundary_conditions))
+
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:UnstructuredSortedBoundaryTypes})
+  @unpack boundary_conditions = semi
+  @unpack boundary_dictionary = boundary_conditions
+  summary_line(io, "boundary conditions", length(boundary_dictionary))
+  for (boundary_name, boundary_condition) in boundary_dictionary
+    summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
+  end
+end
+
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:NamedTuple})
+  @unpack boundary_conditions = semi
+  summary_line(io, "boundary conditions", length(boundary_conditions))
+  bc_names = keys(boundary_conditions)
+  for (i, bc_name) in enumerate(bc_names)
+    summary_line(increment_indent(io), String(bc_name), typeof(boundary_conditions[i]))
+  end
+end
+
+function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Union{TreeMesh, StructuredMesh}, <:Union{Tuple,NamedTuple,AbstractArray}})
+  summary_line(io, "boundary conditions", 2*ndims(semi))
+  bcs = semi.boundary_conditions
+
+  summary_line(increment_indent(io), "negative x", bcs[1])
+  summary_line(increment_indent(io), "positive x", bcs[2])
+  if ndims(semi) > 1
+    summary_line(increment_indent(io), "negative y", bcs[3])
+    summary_line(increment_indent(io), "positive y", bcs[4])
+  end
+  if ndims(semi) > 2
+    summary_line(increment_indent(io), "negative z", bcs[5])
+    summary_line(increment_indent(io), "positive z", bcs[6])
+  end
+end
 
 @inline Base.ndims(semi::SemidiscretizationHyperbolic) = ndims(semi.mesh)
 
@@ -180,13 +275,11 @@ end
 end
 
 
-function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, 
-                          semi::SemidiscretizationHyperbolic, cache_analysis;
-                          normalize=true)
+function calc_error_norms(func, u_ode, t, analyzer, semi::SemidiscretizationHyperbolic, cache_analysis; normalize=true)
   @unpack mesh, equations, initial_condition, solver, cache = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, 
+  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition,
                    solver, cache, cache_analysis; normalize=normalize)
 end
 
@@ -209,9 +302,12 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @timeit_debug timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
+  @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 
   return nothing
 end
+
+
+end # @muladd

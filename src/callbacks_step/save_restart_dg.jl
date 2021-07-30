@@ -1,6 +1,13 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg::DG, cache,
+                           mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh},
+                           equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
 
@@ -39,11 +46,12 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 
-function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg::DG, cache, restart_file)
+function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh},
+                           equations, dg::DG, cache, restart_file)
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
   h5open(restart_file, "r") do file
     # Read attributes to perform some sanity checks
@@ -69,7 +77,6 @@ function load_restart_file(mesh::Union{SerialTreeMesh,CurvedMesh}, equations, dg
       end
 
       # Read variable
-      println("Reading variables_$v ($name)...")
       u[v, .., :] = read(file["variables_$v"])
     end
   end
@@ -144,7 +151,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
   # non-root ranks only receive data
   if !mpi_isroot()
@@ -189,3 +196,6 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
   return u_ode
 end
+
+
+end # @muladd

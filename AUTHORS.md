@@ -21,6 +21,8 @@ The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
 * Benjamin Bolm
+* Jesse Chan
+* Lars Christmann
 * Christof Czernik
 * Erik Faulhaber
 * Gregor Gassner

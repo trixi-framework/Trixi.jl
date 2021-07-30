@@ -31,8 +31,18 @@ macro test_trixi_include(elixir, args...)
     Trixi.mpi_isroot() && println("═"^100)
     Trixi.mpi_isroot() && println($elixir)
 
+    # if `maxiters` is set in tests, it is usually set to a small numer to
+    # run only a few steps - ignore possible warnings coming from that
+    if any(==(:maxiters) ∘ first, $kwargs)
+      additional_ignore_content = [
+        r"┌ Warning: Interrupted\. Larger maxiters is needed\.\n└ @ SciMLBase .+\n",
+        r"┌ Warning: Interrupted\. Larger maxiters is needed\.\n└ @ Trixi .+\n"]
+    else
+      additional_ignore_content = []
+    end
+
     # evaluate examples in the scope of the module they're called from
-    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...)
+    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...) additional_ignore_content
 
     # if present, compare l2 and linf errors against reference values
     if !isnothing($l2) || !isnothing($linf)
@@ -100,7 +110,7 @@ end
 
 # Modified version of `@test_nowarn` that prints the content of `stderr` when
 # it is not empty and ignnores module replacements.
-macro test_nowarn_mod(expr)
+macro test_nowarn_mod(expr, additional_ignore_content=String[])
   quote
     let fname = tempname()
       try
@@ -113,6 +123,21 @@ macro test_nowarn_mod(expr)
         if !isempty(stderr_content)
           println("Content of `stderr`:\n", stderr_content)
         end
+
+        # Patterns matching the following ones will be ignored. Additional patterns
+        # passed as arguments can also be regular expressions, so we just use the
+        # type `Any` for `ignore_content`.
+        ignore_content = Any[
+          # TODO: Upstream (PlotUtils). This should be removed again once the
+          #       deprecated stuff is fixed upstream.
+          "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
+          "WARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n",
+        ]
+        append!(ignore_content, additional_ignore_content)
+        for pattern in ignore_content
+          stderr_content = replace(stderr_content, pattern => "")
+        end
+
         # We also ignore simple module redefinitions for convenience. Thus, we
         # check whether every line of `stderr_content` is of the form of a
         # module replacement warning.
@@ -122,5 +147,68 @@ macro test_nowarn_mod(expr)
         rm(fname, force=true)
       end
     end
+  end
+end
+
+
+"""
+    @timed_testset "name of the testset" #= code to test #=
+
+Similar to `@testset`, but wraps the execution of the testset using `@time`
+and prints the name of the testset after execution.
+"""
+macro timed_testset(name, expr)
+  @assert name isa String
+  quote
+    @time @testset $name $expr
+    if Trixi.mpi_isroot()
+      flush(stdout)
+      @info("Testset " * $name * " finished.\n")
+      flush(stdout)
+    end
+  end
+end
+
+
+"""
+    @trixi_testset "name of the testset" #= code to test #=
+
+Similar to `@testset`, but wraps the code inside a temporary module to avoid
+namespace pollution. It also `include`s this file again to provide the
+definition of `@test_trixi_include`. Moreover, it records the execution time
+of the testset similarly to [`timed_testset`](@ref).
+"""
+macro trixi_testset(name, expr)
+  @assert name isa String
+  # TODO: `@eval` is evil
+  # We would like to use
+  #   mod = gensym(name)
+  #   ...
+  #   module $mod
+  # to create new module names for every test set. However, this is not
+  # compatible with the dirty hack using `@eval` to get the mapping when
+  # loading structured, curvilinear meshes. Thus, we need to use a plain
+  # module name here.
+  quote
+    @time @eval module TrixiTestModule
+      using Test
+      using Trixi
+      include(@__FILE__)
+      # We define `EXAMPLES_DIR` in (nearly) all test modules and use it to
+      # get the path to the elixirs to be tested. However, that's not required
+      # and we want to fail gracefully if it's not defined.
+      try
+        import ..EXAMPLES_DIR
+      catch
+        nothing
+      end
+      @testset $name $expr
+    end
+    if Trixi.mpi_isroot()
+      flush(stdout)
+      @info("Testset " * $name * " finished.\n")
+      flush(stdout)
+    end
+    nothing
   end
 end

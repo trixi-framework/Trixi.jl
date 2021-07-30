@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 #=
 The code contained in this file is inspired by an analysis performed
@@ -351,24 +357,24 @@ function _precompile_manual_()
     mortar_type = mortar_type_dgsem(RealT, nnodes_)
 
     # 1D, serial
-    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,uEltype,1,polydeg}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,uEltype}})
 
     # 2D, serial
-    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg},mortar_type})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype},mortar_type})
 
     # 2D, parallel
-    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg},mortar_type})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype},mortar_type})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype}})
 
     # 3D, serial
-    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype,1,polydeg},mortar_type})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype},mortar_type})
   end
 
   # various `show` methods
@@ -410,8 +416,8 @@ function _precompile_manual_()
       @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",adaptor_type})
 
       # we could also use more numerical fluxes and volume integral types here
-      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
-      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
+      @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",DG{basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
     end
 
     # semidiscretizations
@@ -457,5 +463,19 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(trixi_include),String})
   end
 
+  # The following precompile statements do not seem to be taken
+  # # `multiply_dimensionwise!` as used in the analysis callback
+  # for RealT in (Float64,)
+  #   # 1D version
+  #   @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 2},Matrix{RealT},SubArray{RealT, 2, Array{RealT, 3}, Tuple{Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Int}, true}})
+  #   # 2D version
+  #   @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 3},Matrix{RealT},SubArray{RealT, 3, Array{RealT, 4}, Tuple{Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Int}, true},Array{RealT, 3}})
+  #   # 3D version
+  #   @assert Base.precompile(Tuple{typeof(multiply_dimensionwise!),Array{RealT, 4},Matrix{RealT},SubArray{RealT, 4, Array{RealT, 5}, Tuple{Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Base.Slice{Base.OneTo{Int}}, Int}, true},Array{RealT, 4},Array{RealT, 4}})
+  # end
+
   return nothing
 end
+
+
+end # @muladd

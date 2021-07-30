@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
@@ -20,8 +26,7 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-mutable struct AnalysisCallback{Analyzer<:Union{SolutionAnalyzer,Tuple{Vararg{SolutionAnalyzer}}},
-                                AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -132,7 +137,7 @@ function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
 
   caches_analysis = map(semi.semis) do semi_
     mesh, equations_, solver, cache = mesh_equations_solver_cache(semi_)
-    
+
     analyzer = SolutionAnalyzer(solver; kwargs...)
     cache_analysis = create_cache_analysis(analyzer, mesh, equations_, solver, cache, RealT, uEltype)
   end
@@ -221,12 +226,12 @@ function (analysis_callback::AnalysisCallback)(integrator)
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
-  @timeit_debug timer() "analyze solution" begin
+  @trixi_timeit timer() "analyze solution" begin
     # General information
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(semi))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary_solver(semi))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *
@@ -280,25 +285,7 @@ end
 
 # These methods are just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
 # and serve as a function barrier. Additionally, they make the code easier to profile and optimize.
-function (analysis_callback::AnalysisCallback)(io, du_ode::AbstractVector, u_ode::AbstractVector, t, 
-                                               semi)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
-  du = wrap_array(du_ode, mesh, equations, solver, cache)
-
-  analysis_callback(io, du, u, u_ode, t, semi)
-end
-
-function (analysis_callback::AnalysisCallback)(io, du_ode::AbstractVector, u_ode::AbstractVector, t, 
-                                               semi::SemidiscretizationCoupled)
-  # du needs to be accessed via du[v, ..]
-  du = reshape(du_ode, 2, :)
-
-  analysis_callback(io, du, u_ode, u_ode, t, semi)
-end
-
-function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
+function (analysis_callback::AnalysisCallback)(io, du_ode, u_ode, t, semi)
   @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
   cache_analysis = analysis_callback.cache
   _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -361,12 +348,12 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     mpi_print(" max(|Uₜ|):   ")
     for v in eachvariable(equations)
       # Calculate maximum absolute value of Uₜ
-      res = maximum(abs, view(du, v, ..))
+      res = maximum(abs, view(reshape(du_ode, nvariables(equations), :), v, ..))
       if mpi_isparallel()
         # TODO: Debugging, here is a type instability
         global_res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
         if mpi_isroot()
-          res::eltype(du) = global_res[]
+          res::eltype(du_ode) = global_res[]
         end
       end
       if mpi_isroot()
@@ -411,7 +398,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   end
 
   # additional integrals
-  analyze_integrals(analysis_integrals, io, du, u, t, semi)
+  analyze_integrals(analysis_integrals, io, du_ode, u_ode, t, semi)
 
   return l2_error, linf_error
 end
@@ -435,22 +422,45 @@ function print_amr_information(callbacks, semi)
   end
 
   for level = max_level:-1:min_level+1
-    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(==(level), levels)))
   end
-  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(==(min_level), levels)))
+
+  return nothing
+end
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
+
+  # Return early if there is nothing to print
+  uses_amr(callbacks) || return nothing
+
+  elements_per_level = zeros(P4EST_MAXLEVEL + 1)
+
+  for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+    elements_per_level .+= tree.quadrants_per_level
+  end
+
+  min_level = findfirst(i -> i > 0, elements_per_level) - 1
+  max_level = findlast(i -> i > 0, elements_per_level) - 1
+
+  for level = max_level:-1:min_level+1
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", elements_per_level[level + 1]))
+  end
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", elements_per_level[min_level + 1]))
 
   return nothing
 end
 
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
-function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi) where {N}
+function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du_ode, u_ode, t, semi) where {N}
 
   # Extract the first analysis integral and process it; keep the remaining to be processed later
   quantity = first(analysis_integrals)
   remaining_quantities = Base.tail(analysis_integrals)
 
-  res = analyze(quantity, du, u, t, semi)
+  res = analyze(quantity, du_ode, u_ode, t, semi)
   if mpi_isroot()
     @printf(" %-12s:", pretty_form_utf(quantity))
     @printf("  % 10.8e", res)
@@ -459,7 +469,7 @@ function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi
   mpi_println()
 
   # Recursively call this method with the unprocessed integrals
-  analyze_integrals(remaining_quantities, io, du, u, t, semi)
+  analyze_integrals(remaining_quantities, io, du_ode, u_ode, t, semi)
   return nothing
 end
 
@@ -484,10 +494,37 @@ end
 # some common analysis_integrals
 # to support another analysis integral, you can overload
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
-function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
+function analyze(quantity, du_ode, u_ode, t, semi::AbstractSemidiscretization)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+  du = wrap_array(du_ode, mesh, equations, solver, cache)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
+
+
+function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled; normalize=true)
+  @unpack semis, u_indices = semi
+
+  integral = sum(1:nmeshes(semi)) do i
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+    # In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
+    du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
+    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
+
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
+  end
+
+  if normalize
+    # Normalize with total volume
+    total_volume_ = total_volume(semi)
+    integral = integral / total_volume_
+  end
+
+  return integral
+end
+
 
 function analyze(quantity, du, u, t, mesh, equations, solver, cache; normalize=true)
   integrate(quantity, u, mesh, equations, solver, cache, normalize=normalize)
@@ -534,3 +571,6 @@ include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
+
+
+end # @muladd

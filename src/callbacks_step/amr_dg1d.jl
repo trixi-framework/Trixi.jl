@@ -1,18 +1,20 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
-                 equations, dg::DGSEM, cache, cells_to_refine)
+                 equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
-  if isempty(cells_to_refine)
+  if isempty(elements_to_refine)
     return
   end
 
   # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg, cache))
-
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_refine = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
-                                          cells_to_refine)
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
@@ -27,7 +29,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # re-initialize elements container
     @unpack elements = cache
     resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
     @assert nelements(dg, cache) > old_n_elements
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -119,17 +121,14 @@ end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
-                  equations, dg::DGSEM, cache, child_cells_to_coarsen)
+                  equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
-  if isempty(child_cells_to_coarsen)
+  if isempty(elements_to_remove)
     return
   end
 
   # Determine for each old element whether it needs to be removed
   to_be_removed = falses(nelements(dg, cache))
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_remove = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
-                                          child_cells_to_coarsen)
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
@@ -144,7 +143,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # re-initialize elements container
     @unpack elements = cache
     resize!(elements, length(leaf_cell_ids))
-    init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
     @assert nelements(dg, cache) < old_n_elements
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -254,3 +253,5 @@ function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{1}, e
   return (; controller_value)
 end
 
+
+end # @muladd
