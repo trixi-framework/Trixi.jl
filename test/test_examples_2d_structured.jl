@@ -185,7 +185,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
   @trixi_testset "elixir_euler_source_terms_ring_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_ring_coupled.jl"),
       l2   = [0.00042501870952235703, 0.00033999522089480847, 0.00033999522089480847, 0.000898573730078033],
-      linf = [0.0039937119484019235, 0.0014937420921836697, 0.004340822615230389, 0.008556182287533076])
+      linf = [0.0039937119484019235, 0.004340822615227724, 0.0014937420921838918, 0.008556182287533076])
   end
 
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
