@@ -1,8 +1,8 @@
 # TODO: Allow kwargs that are later used when constructing `integrator_euler`?
-mutable struct EulerAcousticsCouplingCallback{RealT<:Real}
+mutable struct EulerAcousticsCouplingCallback{RealT<:Real, MeanValues}
   stepsize_callback_acoustics::StepsizeCallback{RealT}
   stepsize_callback_euler::StepsizeCallback{RealT}
-  averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback}
+  mean_values::MeanValues
   integrator_euler::Union{Nothing, AbstractODEIntegrator}
 end
 
@@ -14,7 +14,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingC
   print(io, "EulerAcousticsCouplingCallback(")
   print(io,       euler_acoustics_coupling.stepsize_callback_acoustics)
   print(io, ", ", euler_acoustics_coupling.stepsize_callback_euler)
-  print(io, ", ", euler_acoustics_coupling.averaging_callback, ")")
+  print(io, ", ", euler_acoustics_coupling.mean_values, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingCallback})
@@ -24,21 +24,34 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Eul
   summary_header(io, "EulerAcousticsCouplingCallback")
   summary_line(io, "acoustics StepsizeCallback", euler_acoustics_coupling.stepsize_callback_acoustics)
   summary_line(io, "Euler StepsizeCallback", euler_acoustics_coupling.stepsize_callback_euler)
-  summary_line(io, "mean values", euler_acoustics_coupling.averaging_callback)
+  summary_line(io, "mean values", euler_acoustics_coupling.mean_values)
   summary_footer(io)
 end
 
 
 function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real,
-                                  averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback})
+                                        averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback})
+  @unpack mean_values = averaging_callback.affect!
+  return EulerAcousticsCouplingCallback(cfl_acoustics, cfl_euler, mean_values)
+end
 
-  euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics)}(
-    StepsizeCallback(cfl_acoustics), StepsizeCallback(cfl_euler), averaging_callback, nothing)
+function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, averaging_file,
+                                        semi_euler::SemidiscretizationHyperbolic)
+  mean_values = load_averaging_file(averaging_file, mesh_equations_solver_cache(semi_euler)...)
+
+  return EulerAcousticsCouplingCallback(cfl_acoustics, cfl_euler, mean_values)
+end
+
+function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, mean_values)
+
+  euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics), typeof(mean_values)}(
+    StepsizeCallback(cfl_acoustics), StepsizeCallback(cfl_euler), mean_values, nothing)
   condition = (u, t, integrator) -> true
 
   return DiscreteCallback(condition, euler_acoustics_coupling, save_positions=(false, false),
                           initialize=initialize!)
 end
+
 
 # This is called before the main loop and initializes the flow solver and calculates the gradient
 # of the squared mean speed of sound which is needed for the conservation source term
@@ -57,7 +70,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   # Set mean values in u_ode according to `AveragingCallback`
   u_acoustics = wrap_array(u_ode, semi_acoustics)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack mean_values = euler_acoustics_coupling.averaging_callback.affect!
+  @unpack mean_values = euler_acoustics_coupling
   @views @. u_acoustics[4:5, .., :] = mean_values.v_mean
   @views @. u_acoustics[6, .., :] = mean_values.c_mean
   @views @. u_acoustics[7, .., :] = mean_values.rho_mean
@@ -110,7 +123,7 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
   u_euler = wrap_array(integrator_euler.u, semi_euler)
   @unpack acoustic_source_terms = semi.cache
   @unpack source_region, weights = semi
-  @unpack vorticity_mean = euler_acoustics_coupling.averaging_callback.affect!.mean_values
+  @unpack vorticity_mean = euler_acoustics_coupling.mean_values
 
   @trixi_timeit timer() "calc acoustic source terms" calc_acoustic_sources!(
     acoustic_source_terms, u_euler, u_acoustics, vorticity_mean, source_region, weights,

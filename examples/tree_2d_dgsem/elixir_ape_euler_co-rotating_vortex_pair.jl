@@ -316,7 +316,8 @@ weights(x) = sum(x.^2) < 5.0^2 ? 1.0 : cospi(0.5 * (norm(x) - 5.0))
 semi = SemidiscretizationEulerAcoustics(semi_ape, semi_euler, source_region=source_region, weights=weights)
 cfl_ape = 1.0
 cfl_euler = 1.0
-ape_euler_coupling = EulerAcousticsCouplingCallback(cfl_ape, cfl_euler, averaging_callback)
+ape_euler_coupling = EulerAcousticsCouplingCallback(cfl_ape, cfl_euler,
+                                                    "out/averaging.h5", semi_euler)
 
 ###############################################################################
 # ODE solvers, callbacks etc. for the coupled simulation
@@ -333,7 +334,7 @@ analysis_interval = 5000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 alive = AliveCallback(analysis_interval=analysis_interval)
 
-output_directory="out/"
+output_directory = "out/"
 save_solution = SaveSolutionCallback(interval=2300, output_directory=output_directory)
 save_restart = SaveRestartCallback(interval=2300, output_directory=output_directory)
 

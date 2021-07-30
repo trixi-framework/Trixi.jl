@@ -2,6 +2,8 @@ struct AveragingCallback{TSpan, MeanValues, Cache}
   tspan::TSpan
   mean_values::MeanValues
   cache::Cache
+  output_directory::String
+  filename::String
 end
 
 
@@ -29,12 +31,13 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ave
   end
 end
 
-function AveragingCallback(semi::SemidiscretizationHyperbolic; tspan)
+function AveragingCallback(semi::SemidiscretizationHyperbolic; tspan, output_directory="out",
+                           filename="averaging.h5")
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   mean_values = initialize_mean_values(mesh, equations, solver, cache)
   cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
 
-  averaging_callback = AveragingCallback(tspan, mean_values, cache)
+  averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory, filename)
   condition = (u, t, integrator) -> first(tspan) <= t <= last(tspan) ? true : false
 
   return DiscreteCallback(condition, averaging_callback, save_positions=(false,false),
@@ -78,7 +81,26 @@ function (averaging_callback::AveragingCallback)(integrator)
                                                       u, u_prev, integration_constant,
                                                       mesh, equations, solver, cache)
 
+  # Store final mean values in a file this is the last time step
+  if isfinished(integrator)
+    save_averaging_file(averaging_callback, semi)
+  end
+
+  # avoid re-evaluating possible FSAL stages
+  u_modified!(integrator, false)
+
   return nothing
 end
 
+
+function save_averaging_file(averaging_callback, semi::AbstractSemidiscretization)
+  save_averaging_file(averaging_callback, mesh_equations_solver_cache(semi)...)
+end
+
+function load_averaging_file(averaging_file, semi::AbstractSemidiscretization)
+  load_averaging_file(averaging_file, mesh_equations_solver_cache(semi)...)
+end
+
+
+include("averaging_dg.jl")
 include("averaging_dg2d.jl")
