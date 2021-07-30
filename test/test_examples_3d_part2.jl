@@ -20,7 +20,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_3d_lbm.jl")
 
   # Curved mesh
-  include("test_examples_3d_curved.jl")
+  include("test_examples_3d_structured.jl")
 
   # P4estMesh
   include("test_examples_3d_p4est.jl")
