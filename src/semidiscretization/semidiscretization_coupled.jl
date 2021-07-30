@@ -275,10 +275,10 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3
   end
 
   for cell in cells, i in eachnode(solver), v in 1:size(u, 1)
-    boundary_condition.u_boundary[v, i, cell] = u[v, indexfunction(indices, size_, 1, i),
-                                                     indexfunction(indices, size_, 2, i),
-                                                     linear_indices[indexfunction(indices, size(mesh), 1, cell),
-                                                                    indexfunction(indices, size(mesh), 2, cell)]]
+    boundary_condition.u_boundary[v, i, cell] = u[v, evaluate_index(indices, size_, 1, i),
+                                                     evaluate_index(indices, size_, 2, i),
+                                                     linear_indices[evaluate_index(indices, size(mesh), 1, cell),
+                                                                    evaluate_index(indices, size(mesh), 2, cell)]]
   end
 end
 
@@ -303,30 +303,11 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5
   end
 
   for cell_j in cells[2], cell_i in cells[1], j in eachnode(solver), i in eachnode(solver), v in 1:size(u, 1)
-    boundary_condition.u_boundary[v, i, j, cell_i, cell_j] = u[v, indexfunction(indices, size_, 1, i, j),
-                                                                  indexfunction(indices, size_, 2, i, j),
-                                                                  indexfunction(indices, size_, 3, i, j),
-                                                                  linear_indices[indexfunction(indices, size(mesh), 1, cell_i, cell_j),
-                                                                                 indexfunction(indices, size(mesh), 2, cell_i, cell_j),
-                                                                                 indexfunction(indices, size(mesh), 3, cell_i, cell_j)]]
+    boundary_condition.u_boundary[v, i, j, cell_i, cell_j] = u[v, evaluate_index(indices, size_, 1, i, j),
+                                                                  evaluate_index(indices, size_, 2, i, j),
+                                                                  evaluate_index(indices, size_, 3, i, j),
+                                                                  linear_indices[evaluate_index(indices, size(mesh), 1, cell_i, cell_j),
+                                                                                 evaluate_index(indices, size(mesh), 2, cell_i, cell_j),
+                                                                                 evaluate_index(indices, size(mesh), 3, cell_i, cell_j)]]
   end
-end
-
-
-function indexfunction(indices, size, dim, i, j=0)
-  if indices[dim] === :i
-    return i
-  elseif indices[dim] === :mi
-    return size[dim] - i + 1
-  elseif indices[dim] === :j
-    return j
-  elseif indices[dim] === :mj
-    return size[dim] - j + 1
-  elseif indices[dim] === :one
-    return 1
-  elseif indices[dim] === :end
-    return size[dim]
-  end
-
-  error("Invalid identifier: Only 1, :end, :i, :j, :mi, :mj are valid index identifiers")
 end

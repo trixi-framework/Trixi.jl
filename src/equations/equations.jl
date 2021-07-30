@@ -272,11 +272,11 @@ and is the index of its mesh in the tuple of semidiscretizatios.
 BoundaryConditionCoupled(2, (1, :i), Float64)
 
 # Connect the same two boundaries oppositely oriented
-BoundaryConditionCoupled(2, (1, :mi), Float64)
+BoundaryConditionCoupled(2, (1, :i_backwards), Float64)
 
 # Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
-BoundaryConditionCoupled(2, (:j, :mi, :end), Float64)
-'''                 
+BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
+'''
 """
 mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
   # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
@@ -306,17 +306,17 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     else
       other_orientation = 3
     end
-    
+
     new{NDIMS*2-1, uEltype, typeof(indices_)}(u_boundary, other_semi_index, other_orientation, indices_)
   end
 end
 
 
-function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction, 
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
                                                         cell_indices, surface_node_indices,
                                                         surface_flux_function, equations)
   # get_node_vars(), but we don't have a solver here
-  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...], 
+  u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...],
                               Val(nvariables(equations))))
 
   # Calculate boundary flux
