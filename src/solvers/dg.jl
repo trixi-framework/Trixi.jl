@@ -372,7 +372,7 @@ function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
   zeros(eltype(cache.elements), n_coefficients(mesh, equations, dg, cache))
 end
 
-@inline function n_coefficients(mesh::Union{TreeMesh, StructuredMesh, UnstructuredMesh2D}, equations, dg::DG, cache)
+@inline function n_coefficients(mesh::Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh}, equations, dg::DG, cache)
   nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
 end
 

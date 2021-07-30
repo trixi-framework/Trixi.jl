@@ -406,11 +406,14 @@ end
 
 # Print level information only if AMR is enabled
 function print_amr_information(callbacks, semi)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-
   # Return early if there is nothing to print
   uses_amr(callbacks) || return nothing
 
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  print_amr_information(mesh, equations, solver, cache)
+end
+
+function print_amr_information(mesh::TreeMesh, equations, solver, cache)
   levels = Vector{Int}(undef, nelements(solver, cache))
   min_level = typemax(Int)
   max_level = typemin(Int)
@@ -429,12 +432,7 @@ function print_amr_information(callbacks, semi)
   return nothing
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
-
-  # Return early if there is nothing to print
-  uses_amr(callbacks) || return nothing
-
+function print_amr_information(mesh::P4estMesh, equations, solver, cache)
   elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
   for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)

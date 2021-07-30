@@ -266,7 +266,7 @@ end
 # TODO: Taal refactor, polydeg is specific to DGSEM
 @inline polydeg(semi::SemidiscretizationHyperbolic) = polydeg(semi.solver)
 
-@inline nelements(semi::SemidiscretizationHyperbolic) = nelements(semi.solver, semi.cache)
+@inline nelements(semi::SemidiscretizationHyperbolic) = nelements(semi.mesh, semi.solver, semi.cache)
 
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)

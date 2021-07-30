@@ -540,7 +540,7 @@ function apply_jacobian!(du,
 end
 
 
-function total_volume(mesh::StructuredMesh{3}, dg, cache)
+function total_volume(mesh::Union{StructuredMesh{3}, P4estMesh{3}}, dg, cache)
   @unpack weights = dg.basis
 
   total_volume = zero(real(mesh))

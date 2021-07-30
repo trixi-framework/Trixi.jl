@@ -109,10 +109,15 @@ end
 end
 
 @inline function nelements(semi::SemidiscretizationCoupled)
-  solver_cache(semi_) = mesh_equations_solver_cache(semi_)[3:4]
-  n_elements(solver_cache) = nelements(solver_cache...)
+  result = 0
 
-  semi.semis .|> solver_cache .|> n_elements |> sum
+  for semi_ in semi.semis
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+
+    result += nelements(mesh, solver, cache)
+  end
+
+  return result
 end
 
 
