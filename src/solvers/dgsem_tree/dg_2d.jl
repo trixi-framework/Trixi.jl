@@ -118,6 +118,15 @@ function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMo
   (; fstar_upper_threaded, fstar_lower_threaded)
 end
 
+# Dirty hack to apply filter matrix dimension wise for each conservative variable
+function modalfilter!(u, dg::DG, cache)
+  @unpack filter_matrix = dg.basis
+  @threaded for element in eachelement(dg, cache)
+     u[:,:,:,element] .=  multiply_dimensionwise(filter_matrix, view(u,:, :, :, element))
+  end
+end
+
+
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
@@ -127,6 +136,9 @@ function rhs!(du, u, t,
               dg::DG, cache)
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+
+  # Filter u, before calculating rhs
+  modalfilter!(u, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -173,6 +185,9 @@ function rhs!(du, u, t,
   # Calculate source terms
   @trixi_timeit timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
+
+  # Filter u, before calculating rhs
+  modalfilter!(du, dg, cache)
 
   return nothing
 end

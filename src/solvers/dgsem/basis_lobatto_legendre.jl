@@ -13,6 +13,7 @@ Create a nodal Lobatto-Legendre basis for polynomials of degree `polydeg`.
 struct LobattoLegendreBasis{RealT<:Real, NNODES,
                             VectorT<:AbstractVector{RealT},
                             InverseVandermondeLegendre<:AbstractMatrix{RealT},
+                            FilterMatrix<:AbstractMatrix{RealT},
                             BoundaryMatrix<:AbstractMatrix{RealT},
                             DerivativeMatrix<:AbstractMatrix{RealT}} <: AbstractBasisSBP{RealT}
   nodes          ::VectorT
@@ -20,13 +21,14 @@ struct LobattoLegendreBasis{RealT<:Real, NNODES,
   inverse_weights::VectorT
 
   inverse_vandermonde_legendre::InverseVandermondeLegendre
-  boundary_interpolation      ::BoundaryMatrix # lhat
+  filter_matrix               ::FilterMatrix     #1D filter matrix, for tensor product application
+  boundary_interpolation      ::BoundaryMatrix   # lhat
 
-  derivative_matrix         ::DerivativeMatrix # strong form derivative matrix
-  derivative_split          ::DerivativeMatrix # strong form derivative matrix minus boundary terms
-  derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
-  derivative_dhat           ::DerivativeMatrix # weak form matrix "dhat",
-                                               # negative adjoint wrt the SBP dot product
+  derivative_matrix           ::DerivativeMatrix # strong form derivative matrix
+  derivative_split            ::DerivativeMatrix # strong form derivative matrix minus boundary terms
+  derivative_split_transpose  ::DerivativeMatrix # transpose of `derivative_split`
+  derivative_dhat             ::DerivativeMatrix # weak form matrix "dhat",
+                                                 # negative adjoint wrt the SBP dot product
 end
 
 function LobattoLegendreBasis(RealT, polydeg::Integer)
@@ -37,6 +39,8 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   inverse_weights_ = inv.(weights_)
 
   _, inverse_vandermonde_legendre_ = vandermonde_legendre(nodes_)
+
+  filter_matrix_ = calc_filter_matrix(nodes_)
 
   boundary_interpolation_ = zeros(nnodes_, 2)
   boundary_interpolation_[:, 1] = calc_lhat(-1.0, nodes_, weights_)
@@ -54,6 +58,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
   inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
+  filter_matrix                = convert.(RealT, filter_matrix_)
   boundary_interpolation       = convert.(RealT, boundary_interpolation_)
 
   # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
@@ -62,9 +67,9 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
   derivative_dhat            = Matrix{RealT}(derivative_dhat_)
 
-  return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes), typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
+  return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes), typeof(inverse_vandermonde_legendre), typeof(filter_matrix), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,
-    inverse_vandermonde_legendre, boundary_interpolation,
+    inverse_vandermonde_legendre, filter_matrix, boundary_interpolation,
     derivative_matrix, derivative_split, derivative_split_transpose, derivative_dhat
   )
 end
@@ -87,8 +92,8 @@ end
 @inline nnodes(basis::LobattoLegendreBasis{RealT, NNODES}) where {RealT, NNODES} = NNODES
 
 @inline eachnode(basis::LobattoLegendreBasis) = Base.OneTo(nnodes(basis))
-
 @inline polydeg(basis::LobattoLegendreBasis) = nnodes(basis) - 1
+
 
 @inline get_nodes(basis::LobattoLegendreBasis) = basis.nodes
 
@@ -247,8 +252,8 @@ function Base.show(io::IO, ::MIME"text/plain", analyzer::LobattoLegendreAnalyzer
   @nospecialize analyzer # reduce precompilation time
 
   print(io, "LobattoLegendreAnalyzer{", real(analyzer), "} with polynomials of degree ", polydeg(analyzer))
-end
 
+end
 @inline Base.real(analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT} = RealT
 
 @inline nnodes(analyzer::LobattoLegendreAnalyzer{RealT, NNODES}) where {RealT, NNODES} = NNODES
@@ -321,6 +326,19 @@ end
 # Polynomial derivative and interpolation functions
 
 # TODO: Taal refactor, allow other RealT below and adapt constructors above accordingly
+
+  # compute nodal to modal transformation
+function calc_filter_matrix(nodes)
+  vandermonde_legendre_, inverse_vandermonde_legendre_ = vandermonde_legendre(nodes)
+  # determine diagonal filter coefficients, acting on the modes
+  n_nodes = length(nodes)
+  filter_matrix = zeros(n_nodes, n_nodes)
+  for j in 1:n_nodes-1
+    filter_matrix[j, j] = 1.0
+  end
+
+  return  vandermonde_legendre_ * filter_matrix * inverse_vandermonde_legendre_
+end
 
 # Calculate the Dhat matrix
 function calc_dhat(nodes, weights)
