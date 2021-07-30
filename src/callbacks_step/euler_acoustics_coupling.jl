@@ -1,4 +1,14 @@
-# TODO: Allow kwargs that are later used when constructing `integrator_euler`?
+"""
+    EulerAcousticsCouplingCallback
+
+A callback that couples the acoustic perturbation equations and compressible Euler equations, should
+be used in conjunction with [`SemidiscretizationEulerAcoustics`](@ref).
+This callback creates and manages the flow solver - which is always one time step ahead of the
+acoustics solver - and calculates the acoustic source terms based on the linearized lamb vector of
+the flow solution after each time step. Furthermore, it manages the step size for both solvers
+and initializes the mean values of the acoustic perturbation equations using results obtained with
+the [`AveragingCallback`](@ref).
+"""
 mutable struct EulerAcousticsCouplingCallback{RealT<:Real, MeanValues}
   stepsize_callback_acoustics::StepsizeCallback{RealT}
   stepsize_callback_euler::StepsizeCallback{RealT}
@@ -29,12 +39,30 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Eul
 end
 
 
+"""
+    EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real,
+                                   averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback})
+
+Creates an [`EulerAcousticsCouplingCallback`](@ref) using the CFL numbers `cfl_acoustics` and
+`cfl_euler` for the acoustics and flow solver, respectively. The mean values for the acoustic
+perturbation equations are read from `averaging_callback` (see [`AveragingCallback`](@ref)).
+"""
 function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real,
                                         averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback})
   @unpack mean_values = averaging_callback.affect!
   return EulerAcousticsCouplingCallback(cfl_acoustics, cfl_euler, mean_values)
 end
 
+"""
+    EulerAcousticsCouplingCallback(fl_acoustics::Real, cfl_euler::Real, averaging_file,
+                                   semi_euler::SemidiscretizationHyperbolic)
+
+Creates an [`EulerAcousticsCouplingCallback`](@ref) using the CFL numbers `cfl_acoustics` and
+`cfl_euler` for the acoustics and flow solver, respectively. The mean values for the acoustic
+perturbation equations are read from `averaging_file` (see [`AveragingCallback`](@ref)).
+`semi_euler` must be the semidiscretization of the compressible Euler equations that was used to
+generate `averaging_file`.
+"""
 function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, averaging_file,
                                         semi_euler::SemidiscretizationHyperbolic)
   mean_values = load_averaging_file(averaging_file, mesh_equations_solver_cache(semi_euler)...)

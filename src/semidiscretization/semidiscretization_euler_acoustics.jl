@@ -1,3 +1,16 @@
+"""
+    SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics, semi_euler::SemiEuler;
+                                     source_region=x -> true, weights=x -> 1.0)
+
+Construct a semidiscretization of the acoustic perturbation equations that is coupled with
+the compressible Euler equations via source terms. Both semidiscretizations have to use the same
+mesh and solver. The coupling region is described by a function `source_terms` that maps the
+coordinates of a single node to `true` or `false` depending on whether the point lies within
+the coupling region or not. A weighting function `weights` that maps coordinates to weights is
+applied to the acoustic source terms.
+Note that this semidiscretization should be used in conjunction with
+[`EulerAcousticsCouplingCallback`](@ref) and only works in two dimensions.
+"""
 struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, SourceRegion, Weights, Cache} <: AbstractSemidiscretization
   semi_acoustics::SemiAcoustics
   semi_euler::SemiEuler
@@ -23,8 +36,7 @@ end
 
 # TODO: Default `weights` are based on potentially solver-specific cache structure
 function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics, semi_euler::SemiEuler;
-                                          source_region,
-                                          weights=x -> one(eltype(semi_acoustics.cache.elements))) where
+                                          source_region=x -> true, weights=x -> 1.0) where
     {Mesh, SemiAcoustics<:SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
      SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
 
