@@ -66,8 +66,10 @@ Holds data for creating 2D plots of multiple solution variables for DGMulti solv
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct DGMultiPlotData{Dim, T <: AbstractArray, VariableNames} <: AbstractPlotData
+struct DGMultiPlotData{Dim, T <: AbstractArray, Equations, SolutionVariables, VariableNames} <: AbstractPlotData
   u::T
+  equations::Equations
+  solution_variables::SolutionVariables
   variable_names::VariableNames
   rd::RefElemData{Dim}
   md::MeshData{Dim}
@@ -716,22 +718,37 @@ function PlotData2D(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
   equations = semi.equations
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
-  return DGMultiPlotData(u, variable_names, rd, md)
+  return DGMultiPlotData(u, equations, solution_variables_, variable_names, rd, md)
 end
 
 # need to define this function because some keywords from the more general plot recipe
 # are not supported (e.g., `max_supported_level`).
 @recipe function f(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
-                   solution_variables=nothing, grid_lines=true)
+                   solution_variables=cons2cons, grid_lines=true)
   return PlotData2D(u, semi)
 end
 
 @recipe function f(pds::PlotDataSeries2D{<:DGMultiPlotData{2}})
 
   pd = pds.plot_data
-  @unpack rd, md = pd
+  @unpack u, equations, solution_variables, rd, md = pd
   @unpack variable_id = pds
-  u = StructArrays.component(pd.u, variable_id)
+
+  @unpack Vp = rd
+  mul_by_Vp!(out,x) = mul!(out, Vp, x)
+
+  num_plotting_points = size(Vp, 1)
+  nvars = nvariables(equations)
+  u_plot_local = StructArray{SVector{nvars, eltype(first(u))}}(ntuple(_->zeros(num_plotting_points), nvars))
+  u_plot = zeros(eltype(first(u)), num_plotting_points, md.num_elements)
+  for e in Base.OneTo(md.num_elements)
+    # interpolate solution to plotting nodes element-by-element
+    StructArrays.foreachfield(mul_by_Vp!, u_plot_local, view(u, :, e))
+    for (i, u_i) in enumerate(u_plot_local)
+      # transform nodewise solution according to `solution_variables`
+      u_plot[i, e] = solution_variables(u_i, equations)[variable_id]
+    end
+  end
 
   legend --> false
   aspect_ratio --> 1
@@ -740,7 +757,7 @@ end
   ylims --> extrema(md.y)
   seriestype --> :heatmap
 
-  return DGTriPseudocolor(plotting_triangulation(rd.Vp*u, rd.rstp, (x->rd.Vp*x).(md.xyz))...)
+  return DGTriPseudocolor(plotting_triangulation(u_plot, rd.rstp, (x->rd.Vp * x).(md.xyz))...)
 end
 
 @recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
