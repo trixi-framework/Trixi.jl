@@ -48,6 +48,11 @@ using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+
+using Triangulate
+using TriplotBase
+using TriplotRecipes: DGTriPseudocolor
+
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
@@ -60,7 +65,6 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
-
 
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
