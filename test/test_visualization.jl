@@ -19,7 +19,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
-    "UnstructuredMesh2D" => ("unstructured_2d_dgsem", "elixir_euler_wall_bc.jl")
+    "UnstructuredMesh2D" => ("unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"),
+    "Coupled StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_ring_coupled.jl")
   )
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
@@ -78,20 +79,22 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug plot(getmesh(pd))
     end
 
-    @testset "1D plot from 2D solution" begin
-      @testset "Create 1D plot as slice" begin
-        @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-        pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
-        @test_nowarn_debug plot(pd1D)
-      end
-
-      if mesh == "TreeMesh"
-        @testset "Create 1D plot along curve" begin
-          curve = zeros(2,10)
-          curve[1,:] = range(-1,-0.5,length=10)
-          @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
-          pd1D = PlotData1D(sol, curve=curve)
+    if mesh != "Coupled StructuredMesh"
+      @testset "1D plot from 2D solution" begin
+        @testset "Create 1D plot as slice" begin
+          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+          pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
           @test_nowarn_debug plot(pd1D)
+        end
+
+        if mesh == "TreeMesh"
+          @testset "Create 1D plot along curve" begin
+            curve = zeros(2,10)
+            curve[1,:] = range(-1,-0.5,length=10)
+            @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+            pd1D = PlotData1D(sol, curve=curve)
+            @test_nowarn_debug plot(pd1D)
+          end
         end
       end
     end
