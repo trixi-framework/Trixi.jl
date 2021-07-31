@@ -708,6 +708,16 @@ const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
   SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
   <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
 
+function PlotData2D(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
+                    solution_variables=nothing, grid_lines=true)
+  rd = semi.solver.basis
+  md = semi.mesh.md
+  equations = semi.equations
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations))
+  return DGMultiPlotData(u, variable_names, rd, md)
+end
+
 @recipe function f(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
                    solution_variables=nothing, grid_lines=true)
   rd = semi.solver.basis
