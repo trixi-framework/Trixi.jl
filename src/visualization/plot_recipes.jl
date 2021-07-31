@@ -708,6 +708,7 @@ const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
   SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
   <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
 
+# overloads PlotData2D but returns a DGMultiPlotData for plotting DGMulti solutions
 function PlotData2D(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
                     solution_variables=nothing, grid_lines=true)
   rd = semi.solver.basis
@@ -718,14 +719,11 @@ function PlotData2D(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
   return DGMultiPlotData(u, variable_names, rd, md)
 end
 
+# need to define this function because some keywords from the more general plot recipe
+# are not supported (e.g., `max_supported_level`).
 @recipe function f(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
                    solution_variables=nothing, grid_lines=true)
-  rd = semi.solver.basis
-  md = semi.mesh.md
-  equations = semi.equations
-  solution_variables_ = digest_solution_variables(equations, solution_variables)
-  variable_names = SVector(varnames(solution_variables_, equations))
-  return DGMultiPlotData(u, variable_names, rd, md)
+  return PlotData2D(u, semi)
 end
 
 @recipe function f(pds::PlotDataSeries2D{<:DGMultiPlotData{2}})
