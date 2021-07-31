@@ -58,6 +58,21 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
   orientation_y::Int
 end
 
+"""
+    DGMultiPlotData{Dim, uType, VariableNames}
+
+Holds data for creating 2D plots of multiple solution variables for DGMulti solvers.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct DGMultiPlotData{Dim, T <: AbstractArray, VariableNames} <: AbstractPlotData
+  u::T
+  variable_names::VariableNames
+  rd::RefElemData{Dim}
+  md::MeshData{Dim}
+end
+
 
 """
     PlotData2D(u, semi [or mesh, equations, solver, cache];
@@ -201,7 +216,7 @@ end
 # Auxiliary data structure for visualizing a single variable
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotDataSeries2D{PD<:PlotData2D}
+struct PlotDataSeries2D{PD<:Union{PlotData2D, DGMultiPlotData{2}}}
   plot_data::PD
   variable_id::Int
 end
@@ -222,7 +237,7 @@ Extract a single variable `variable_name` from `pd` for plotting with `Plots.plo
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function Base.getindex(pd::PlotData2D, variable_name)
+function Base.getindex(pd::Union{PlotData2D, DGMultiPlotData{2}}, variable_name)
   variable_id = findfirst(isequal(variable_name), pd.variable_names)
 
   if isnothing(variable_id)
@@ -232,8 +247,8 @@ function Base.getindex(pd::PlotData2D, variable_name)
   return PlotDataSeries2D(pd, variable_id)
 end
 
-Base.eltype(pd::PlotData2D) = Pair{String, PlotDataSeries2D}
-function Base.iterate(pd::PlotData2D, state=1)
+Base.eltype(pd::Union{PlotData2D, DGMultiPlotData{2}}) = Pair{String, PlotDataSeries2D}
+function Base.iterate(pd::AbstractPlotData, state=1)
   if state > length(pd)
     return nothing
   else
@@ -396,7 +411,7 @@ end
 # Plot all available variables at once for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pd::PlotData2D)
+@recipe function f(pd::Union{PlotData2D, DGMultiPlotData{2}})
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
 
@@ -569,13 +584,6 @@ function Base.getindex(pd::PlotData1D, variable_name)
 end
 
 Base.eltype(pd::PlotData1D) = Pair{String, PlotDataSeries1D}
-function Base.iterate(pd::PlotData1D, state=1)
-  if state > length(pd)
-    return nothing
-  else
-    return (pd.variable_names[state] => pd[pd.variable_names[state]], state + 1)
-  end
-end
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData1D)
@@ -696,6 +704,36 @@ end
   end
 end
 
+const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
+  SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
+  <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
+
+@recipe function f(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
+                   solution_variables=nothing, grid_lines=true)
+  rd = semi.solver.basis
+  md = semi.mesh.md
+  equations = semi.equations
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations))
+  return DGMultiPlotData(u, variable_names, rd, md)
+end
+
+@recipe function f(pds::PlotDataSeries2D{<:DGMultiPlotData{2}})
+
+  pd = pds.plot_data
+  @unpack rd, md = pd
+  @unpack variable_id = pds
+  u = StructArrays.component(pd.u, variable_id)
+
+  legend --> false
+  aspect_ratio --> 1
+  title --> pd.variable_names[variable_id]
+  xlims --> extrema(md.x)
+  ylims --> extrema(md.y)
+  seriestype --> :heatmap
+
+  return DGTriPseudocolor(plotting_triangulation(rd.Vp*u, rd.rstp, (x->rd.Vp*x).(md.xyz))...)
+end
 
 @recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return cb.affect!, point_id
