@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
 """
     hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
 
@@ -17,13 +16,17 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
-    du_i = du[i]
     for j in rows
-      if !skip_index(i,j)
-          du_i = du_i + ATr[j,i] * volume_flux(u_i, u[j])
+      # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+      # We avoid computing the lower-triangular part, and instead accumulate those contributions
+      # while computing the upper-triangular part, using the fact that A is skew-symmetric and F
+      # is symmetric.
+      if j > i && !skip_index(i, j)
+          AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
+          du[i] = du[i] + AF_ij
+          du[j] = du[j] - AF_ij
       end
     end
-    du[i] = du_i
   end
 end
 
@@ -33,11 +36,13 @@ end
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
-    du_i = du[i]
     for j in rows
-      du_i = du_i + ATr[j,i] * volume_flux(u_i, u[j])
+      if j > i
+        AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
+        du[i] = du[i] + AF_ij
+        du[j] = du[j] - AF_ij
+      end
     end
-    du[i] = du_i
   end
 end
 
@@ -46,7 +51,7 @@ end
 # We use LazyArrays.jl for lazy evaluation of physical differentiation operators, so that we can
 # compute linear combinations of differentiation operators on-the-fly in an allocation-free manner.
 function build_lazy_physical_derivative(element, orientation,
-                                        mesh::VertexMappedMesh{2, Tri}, dg, cache)
+                                        mesh::VertexMappedMesh{2}, dg, cache)
   @unpack Qrst_skew_Tr = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   QrskewTr, QsskewTr = Qrst_skew_Tr
