@@ -2,7 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
+# @muladd begin
 
 
 # Convenience type to allow dispatch on solution objects that were created by Trixi
@@ -273,7 +273,7 @@ end
 # Auxiliary data structure for visualizing the mesh
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotMesh2D{PD<:PlotData2D}
+struct PlotMesh2D{PD<:Union{PlotData2D, DGMultiPlotData{2}}} # TODO: change this back
   plot_data::PD
 end
 
@@ -760,6 +760,35 @@ end
   return DGTriPseudocolor(plotting_triangulation(u_plot, rd.rstp, (x->rd.Vp * x).(md.xyz))...)
 end
 
+struct DGMultiPlotMesh{Dim, PD<:DGMultiPlotData{Dim}}
+  pd::PD
+end
+
+getmesh(pd::DGMultiPlotData) = DGMultiPlotMesh(pd)
+
+using StartUpDG: vandermonde, nodes
+
+# Visualize a 2D mesh associated with a DGMulti solver.
+# Note: This is an experimental feature and may be changed in future releases without notice.
+@recipe function f(pm::DGMultiPlotMesh{2})
+  @unpack pd = pm
+  @unpack rd, md = pd
+
+  x, y = plotting_wireframe(rd, md)
+
+  xlims --> (x[begin], x[end])
+  ylims --> (y[begin], y[end])
+  aspect_ratio --> :equal
+  legend -->  :none
+
+  # Set series properties
+  seriestype := :path
+  linecolor := :grey
+  linewidth := 1
+
+  return x, y
+end
+
 @recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return cb.affect!, point_id
 end
@@ -769,4 +798,4 @@ end
 end
 
 
-end # @muladd
+# end # @muladd

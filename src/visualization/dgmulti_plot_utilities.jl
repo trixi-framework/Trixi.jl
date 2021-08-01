@@ -38,6 +38,10 @@ function plotting_triangulation(rst_plot, tol=100*eps())
   return t[:, findall(has_volume)]
 end
 
+# TODO: move these into StartUpDG for v0.11.0
+@inline num_faces(elem::Tri) = 3
+@inline num_faces(elem::Quad) = 4
+
 """
   function plotting_triangulate(u_plot, rst_plot, xyz_plot)
 
@@ -72,3 +76,32 @@ function plotting_triangulation(u_plot, rst_plot, xyz_plot)
     return vec.(xyz_plot)..., zp, tp
 end
 
+"""
+  function plotting_wireframe(rd::RefElemData{2}, md::MeshData{2})
+
+Returns (plotting_coordinates_x, plotting_coordinates_y) for a 2D mesh wireframe.
+"""
+function plotting_wireframe(rd::RefElemData{2}, md::MeshData{2}, num_plotting_points = 25)
+
+  # Construct 1D plotting interpolation matrix `Vp1D` for a single face
+  @unpack N, Fmask = rd
+  vandermonde_matrix_1D = vandermonde(Line(), N, nodes(Line(), N))
+  rplot = LinRange(-1, 1, num_plotting_points)
+  Vp1D = vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
+
+  num_face_points = N+1
+  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
+
+  num_face_plotting_points = size(Vp1D, 1)
+  x_mesh, y_mesh = ntuple(_->zeros(num_face_plotting_points, num_faces_total), 2)
+  for f in 1:num_faces_total
+    mul!(view(x_mesh, :, f), Vp1D, view(xf, :, f))
+    mul!(view(y_mesh, :, f), Vp1D, view(yf, :, f))
+  end
+
+  separate_with_NaNs(x) = vec(vcat(x, fill(NaN, 1, num_faces_total)))
+  x_mesh, y_mesh = separate_with_NaNs.((x_mesh, y_mesh))
+
+  return x_mesh, y_mesh
+end
