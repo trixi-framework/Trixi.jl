@@ -29,8 +29,6 @@ StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 SummationByPartsOperators = "9f78cca6-572e-554e-b819-917d2f1cf240"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
-TriplotBase = "981d1d27-644d-49a2-9326-4793e63143c3"
-TriplotRecipes = "808ab39a-a642-4abf-81ff-4cb34ebbffa3"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
