@@ -87,7 +87,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   mpi_isroot() && mkpath(solution_callback.output_directory)
 
   semi = integrator.p
-  save_mesh(semi, solution_callback.output_directory)
+  @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory)
 
   if solution_callback.save_initial_solution
     solution_callback(integrator)
@@ -113,6 +113,7 @@ function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep=0
 
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, output_directory, system=i)
+      # TODO If meshes with AMR support are to be supported, a timestep must be passed here
       mesh.unsaved_changes = false
     end
   end

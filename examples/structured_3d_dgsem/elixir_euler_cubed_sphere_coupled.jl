@@ -13,6 +13,9 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 
+# Note that half the elements will have left-handed coordinates.
+# This allows for easier coupling. A version with only right-handed coordinates
+# is used in meshes/p4est_mesh.jl.
 function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
   alpha = xi * pi/4
   beta = eta * pi/4
@@ -69,13 +72,55 @@ end; function cubed_sphere_mapping(inner_radius, thickness, direction)
 end; mapping = cubed_sphere_mapping($inner_radius, $thickness, $direction)
 """
 
-cells_per_dimension = (5, 5, 1)
+cells_per_dimension = (3, 3, 2)
 
 inner_radius = 1
 thickness = 0.1
 
+  # Illustration of the local coordinates of each face. ξ and η are the first
+  # local coordinates of each face. The third local coordinate ζ is always
+  # pointing outwards, which allows for easy coupling.
+  #               ┌────────────────────────────────────────────────────┐
+  #              ╱│                                                   ╱│
+  #             ╱ │                  ┌───> ξ                         ╱ │
+  #            ╱  │                 ╱                               ╱  │
+  #           ╱   │                V       4 (+y)                  ╱   │
+  #          ╱    │               η                               ╱    │
+  #         ╱     │                                              ╱     │
+  #        ╱      │                                             ╱      │
+  #       ╱       │                                            ╱       │
+  #      ╱        │                                           ╱        │
+  #     ╱         │                    η    5 (-z)           ╱         │
+  #    ╱          │                    ↑                    ╱          │
+  #   ╱           │                    │                   ╱           │
+  #  ╱            │                    └───> ξ            ╱            │
+  # ┌────────────────────────────────────────────────────┐    2 (+x)   │
+  # │             │                                      │             │
+  # │             │                                      │      ξ      │
+  # │             │                                      │      ↑      │
+  # │    1 (-x)   │                                      │      │      │
+  # │             │                                      │      │      │
+  # │      ξ      │                                      │     ╱       │
+  # │      ↑      │                                      │    V        │
+  # │      │      │                                      │   η         │
+  # │      │      └──────────────────────────────────────│─────────────┘
+  # │     ╱      ╱         η   6 (+z)                    │            ╱
+  # │    V      ╱          ↑                             │           ╱
+  # │   η      ╱           │                             │          ╱
+  # │         ╱            └───> ξ                       │         ╱
+  # │        ╱                                           │        ╱
+  # │       ╱                                            │       ╱ Global coordinates:
+  # │      ╱                                             │      ╱        y
+  # │     ╱                      ┌───> ξ                 │     ╱         ↑
+  # │    ╱                      ╱                        │    ╱          │
+  # │   ╱                      V      3 (-y)             │   ╱           │
+  # │  ╱                      η                          │  ╱            └─────> x
+  # │ ╱                                                  │ ╱            ╱
+  # │╱                                                   │╱            V
+  # └────────────────────────────────────────────────────┘            z
+
 mesh1 = StructuredMesh(cells_per_dimension, cubed_sphere_mapping(inner_radius, thickness, 1), periodicity=false,
-                   mapping_as_string=mapping_as_string_(inner_radius, thickness, 1))
+                       mapping_as_string=mapping_as_string_(inner_radius, thickness, 1))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver,
                                      source_terms=source_terms_convergence_test,
@@ -180,7 +225,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.9)
+stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

@@ -23,7 +23,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   if timestep > 0
     filename = joinpath(output_directory, @sprintf("mesh%s_%06d.h5", system, timestep))
   else
-    filename = joinpath(output_directory, "mesh$(system).h5")
+    filename = joinpath(output_directory, "mesh$system.h5")
   end
 
   # Open file (clobber existing content)
@@ -65,7 +65,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   if timestep >= 0
     filename = joinpath(output_directory, @sprintf("mesh%s_%06d.h5", system, timestep))
   else
-    filename = joinpath(output_directory, "mesh$(system).h5")
+    filename = joinpath(output_directory, "mesh$system.h5")
   end
 
   # Since the mesh is replicated on all ranks, only save from MPI root
@@ -103,7 +103,7 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0; system="")
+function save_mesh_file(mesh::StructuredMesh, output_directory; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -131,7 +131,7 @@ end
 # of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
 # Then, within Trixi2Vtk, the UnstructuredMesh2D and its node coordinates are reconstructured
 # from these attributes for plotting purposes
-function save_mesh_file(mesh::UnstructuredMesh2D, output_directory, timestep=0; system="")
+function save_mesh_file(mesh::UnstructuredMesh2D, output_directory; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -160,17 +160,21 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
+  if !isempty(system)
+    system = "_" * system
+  end
+
   # Determine file name based on existence of meaningful time step
   if timestep > 0
-    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-    p4est_filename = @sprintf("p4est_data_%06d", timestep)
+    filename = joinpath(output_directory, @sprintf("mesh%s_%06d.h5", system, timestep))
+    p4est_filename = @sprintf("p4est_data%s_%06d", system, timestep)
   else
-    filename = joinpath(output_directory, "mesh.h5")
-    p4est_filename = "p4est_data"
+    filename = joinpath(output_directory, "mesh$system.h5")
+    p4est_filename = "p4est_data$system"
   end
 
   p4est_file = joinpath(output_directory, p4est_filename)

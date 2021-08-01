@@ -14,6 +14,8 @@ source_terms = source_terms_convergence_test
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
+# Gnomonic projection similar to how the coupled cubed sphere is created.
+# Note that half the elements will have left-handed coordinates.
 function gnomonic_projection(xi, eta, inner_radius, thickness, direction)
   alpha = xi * pi/4
 

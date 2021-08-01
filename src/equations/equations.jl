@@ -253,10 +253,13 @@ function entropy2cons end
 """
     BoundaryConditionCoupled(other_semi_index, indices, uEltype)
 
-Boundary condition to glue 2 meshes together. Solution values at the boundary
+Boundary condition to glue two meshes together. Solution values at the boundary
 of another mesh will be used as boundary values. This requires the use
-of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`
-and is the index of its mesh in the tuple of semidiscretizatios.
+of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`,
+which is the index of the mesh in the tuple of semidiscretizations.
+
+Note that the elements and nodes of the two meshes at the coupled boundary must coincide.
+This is currently only implemented for [`StructuredMesh`](@ref).
 
 # Arguments
 - `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
@@ -277,6 +280,9 @@ BoundaryConditionCoupled(2, (1, :i_backwards), Float64)
 # Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
 BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
 '''
+
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
 """
 mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
   # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
@@ -290,13 +296,6 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
 
     # This is needed to make indices a Tuple of Symbols and prevent type instabilities
-    function one_to_symbol(i)
-      if i == 1
-        return :one
-      else
-        return i
-      end
-    end
     indices_ = one_to_symbol.(indices)
 
     if indices_[1] in (:one, :end)
@@ -311,11 +310,20 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
   end
 end
 
+function one_to_symbol(i)
+  if i == 1
+    return :one
+  else
+    return i
+  end
+end
+
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
                                                         cell_indices, surface_node_indices,
                                                         surface_flux_function, equations)
-  # get_node_vars(), but we don't have a solver here
+  # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
+  # but we don't have a solver here
   u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, surface_node_indices..., cell_indices...],
                               Val(nvariables(equations))))
 
@@ -327,6 +335,17 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
   end
 
   return flux
+end
+
+
+function Base.show(io::IO, boundary_condition::BoundaryConditionCoupled)
+  @nospecialize boundary_condition # reduce precompilation time
+
+  print(io, "BoundaryConditionCoupled(")
+  print(io,       boundary_condition.other_semi_index)
+  print(io, ", ", boundary_condition.other_orientation)
+  print(io, ", ", boundary_condition.indices)
+  print(io, ")")
 end
 
 

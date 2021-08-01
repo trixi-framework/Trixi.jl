@@ -5,6 +5,9 @@ A struct used to bundle multiple semidiscretizations.
 `semidiscretize` will return an `ODEproblem` that synchronizes time steps between the semidiscretizations.
 Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
 The semidiscretizations can be coupled by gluing meshes together using `BoundaryConditionCoupled`.
+
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
 """
 struct SemidiscretizationCoupled{S, I} <: AbstractSemidiscretization
   semis::S
@@ -41,15 +44,7 @@ end
 function Base.show(io::IO, semi::SemidiscretizationCoupled)
   @nospecialize semi # reduce precompilation time
 
-  mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[1])
-
-  print(io, "SemidiscretizationCoupled(")
-  print(io, ", ", equations)
-  print(io, ", ", semi.semis[1].initial_condition)
-  # print(io, ", ", semi.boundary_conditions) TODO
-  print(io, ", ", semi.semis[1].source_terms)
-  print(io, ", ", solver)
-  print(io, ")")
+  print(io, "SemidiscretizationCoupled($(semi.semis))")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
@@ -63,7 +58,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
     summary_line(io, "#meshes", nmeshes(semi))
     summary_line(io, "equations", mesh_equations_solver_cache(semi.semis[1])[2] |> typeof |> nameof)
     summary_line(io, "initial condition", semi.semis[1].initial_condition)
-    # TODO boundary conditions?
+    # TODO boundary conditions? That will be 36 BCs for a cubed sphere
     summary_line(io, "source terms", semi.semis[1].source_terms)
     summary_line(io, "solver", mesh_equations_solver_cache(semi.semis[1])[3] |> typeof |> nameof)
     summary_line(io, "total #DOFs", ndofs(semi))
@@ -76,6 +71,7 @@ function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_cont
   show(io_context, MIME"text/plain"(), semi)
   println(io, "\n")
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[1])
+  # TODO other meshes?
   show(io_context, MIME"text/plain"(), mesh)
   println(io, "\n")
   show(io_context, MIME"text/plain"(), equations)
@@ -109,15 +105,11 @@ end
 end
 
 @inline function nelements(semi::SemidiscretizationCoupled)
-  result = 0
-
-  for semi_ in semi.semis
+  return sum(semi.semis) do semi_
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
 
-    result += nelements(mesh, solver, cache)
+    nelements(mesh, solver, cache)
   end
-
-  return result
 end
 
 
@@ -207,6 +199,7 @@ end
 
 function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver) end
 
+# In 2D
 function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg::DG)
   if direction in (1, 2)
     cell_size = size(mesh, 2)
@@ -216,6 +209,7 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
   boundary_condition.u_boundary = Array{Float64, 3}(undef, nvariables(equations), nnodes(dg), cell_size)
 end
 
+# In 3D
 function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{5}, direction, mesh, equations, dg::DG)
   if direction in (1, 2)
     cell_size = (size(mesh, 2), size(mesh, 3))
