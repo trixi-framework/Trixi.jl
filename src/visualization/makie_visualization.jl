@@ -258,6 +258,9 @@ function trixi_plot(sol::TrixiODESolution; variable_to_plot_in = 1, nvisnodes=5)
     Makie.connect!(wire_mesh_bottom.visible, toggle_solution_mesh.active)
     Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
 
+    # maybe trigger this if using OSX? Otherwise shift-command-4 for screenshots triggers an "up-zoom"
+    # cameracontrols(ax.scene).attributes[:up_key][] = Makie.Keyboard.right_shift
+
     # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
     fig
 end
