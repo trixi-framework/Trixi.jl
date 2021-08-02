@@ -103,7 +103,7 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMesh, output_directory; system="")
+function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -131,7 +131,7 @@ end
 # of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
 # Then, within Trixi2Vtk, the UnstructuredMesh2D and its node coordinates are reconstructured
 # from these attributes for plotting purposes
-function save_mesh_file(mesh::UnstructuredMesh2D, output_directory; system="")
+function save_mesh_file(mesh::UnstructuredMesh2D, output_directory, timestep=0; system="")
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 

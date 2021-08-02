@@ -112,8 +112,7 @@ function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep=0
     mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
     if mesh.unsaved_changes
-      mesh.current_filename = save_mesh_file(mesh, output_directory, system=i)
-      # TODO If meshes with AMR support are to be supported, a timestep must be passed here
+      mesh.current_filename = save_mesh_file(mesh, output_directory, timestep, system=i)
       mesh.unsaved_changes = false
     end
   end
