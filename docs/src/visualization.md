@@ -398,3 +398,32 @@ to convert all solution files. The default is to generate a PNG file for each
 variable found in the respective file. Use `format=:pdf` as a keyword argument
 to create PDF files. A comprehensive list of all possible arguments for
 `trixi2img` can be found in the [Trixi2Img.jl API](@ref).
+
+## [Makie.jl [experimental]](@id Makie.jl)
+
+In addition to [Plots.jl](@ref Plots.jl) support, Trixi includes interactive plotting through
+[Makie.jl](https://github.com/JuliaPlots/Makie.jl/).
+
+!!! note
+    Plotting via Makie.jl is still considered an experimental feature and might
+    change in any future releases.
+
+An interactive Makie plot can be created as follows: after running a simulation with Trixi in the REPL,
+load a Makie backend (for example, [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/) or
+[CairoMakie](https://github.com/JuliaPlots/CairoMakie.jl)).
+```julia
+julia> using GLMakie
+```
+To visualize the solution, execute `trixi_plot`
+```julia
+julia> trixi_plot(sol)
+```
+This will open up an interactive visualization window:
+
+![makie-example](https://user-images.githubusercontent.com/1156048/127914785-bb87cff5-92b2-4e72-9ed1-9c04f4f81a73.png)
+
+The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and shifted (hold
+right click and drag). Different Two toggle buttons control whether mesh lines are visible.
+
+Currently, Trixi only supports Makie-based interactive surface plots for the visualization of
+conservative variables for 2D simulations on quadrilateral meshes.
