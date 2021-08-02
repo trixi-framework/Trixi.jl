@@ -76,6 +76,23 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
   StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
 end
 
+function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP})
+  rd = dg.basis
+  @unpack M, Drst, Pq = rd
+  Qrst = map(D->Pq' * M * D * Pq, Drst)
+  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst)
+  return Qrst_skew_Tr
+end
+
+# precompute sparsity pattern for optimized flux differencing routines for tensor product elements
+function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
+                                  tol = 1e2*eps()) where {DG <: DGMultiFluxDiff{<:SBP, <:Union{Quad, Hex}}}
+  sparsity_pattern = sum(map(A->abs.(A), droptol!.(sparse.(flux_diff_matrices), tol))) .!= 0
+  return sparsity_pattern
+end
+
+compute_sparsity_pattern(flux_diff_matrices, dg::DGMulti) = nothing
+
 function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
                       RealT, uEltype) where {DG <: Union{DGMultiWeakForm, DGMultiFluxDiff{<:SBP}}}
 
@@ -86,14 +103,14 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
   @unpack wq, Vq = rd
 
   # mass matrix, tuple of differentiation matrices
-  @unpack M, Drst, Pq = rd
+  @unpack M, Drst = rd
 
   # ∫f(u) * dv/dx_i = ∑_j (Vq*D_i)'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
   weak_differentiation_matrices = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
 
   # for use with flux differencing schemes
-  Qrst = map(D->Pq'*M*D*Pq, Drst)
-  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst) # Todo: simplices. Rename this in flux differencing PR
+  Qrst_skew_Tr = compute_flux_differencing_SBP_matrices(dg)
+  sparsity_pattern = compute_sparsity_pattern(Qrst_skew_Tr, dg)
 
   nvars = nvariables(equations)
 
@@ -106,7 +123,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
   # local storage for fluxes
   local_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
 
-  return (; md, weak_differentiation_matrices, Qrst_skew_Tr, invJ = inv.(md.J),
+  return (; md, weak_differentiation_matrices, Qrst_skew_Tr, sparsity_pattern, invJ = inv.(md.J),
       u_values, local_values_threaded, u_face_values, flux_face_values)
 end
 
