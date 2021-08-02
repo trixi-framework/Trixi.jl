@@ -419,22 +419,22 @@ end
     integral_contribution = zero(u_node)
     for ii in eachnode(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-      flux1 = nonconservative_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = integral_contribution + derivative_split[i, ii] * flux1
+      noncons_flux1 = nonconservative_flux(u_node, u_node_ii, 1, equations)
+      integral_contribution = integral_contribution + derivative_split[i, ii] * noncons_flux1
     end
 
     # y direction
     for jj in eachnode(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-      flux2 = nonconservative_flux(u_node, u_node_jj, 2, equations)
-      integral_contribution = integral_contribution + derivative_split[j, jj] * flux2
+      noncons_flux2 = nonconservative_flux(u_node, u_node_jj, 2, equations)
+      integral_contribution = integral_contribution + derivative_split[j, jj] * noncons_flux2
     end
 
     # z direction
     for kk in eachnode(dg)
       u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-      flux3 = nonconservative_flux(u_node, u_node_kk, 3, equations)
-      integral_contribution = integral_contribution + derivative_split[k, kk] * flux3
+      noncons_flux3 = nonconservative_flux(u_node, u_node_kk, 3, equations)
+      integral_contribution = integral_contribution + derivative_split[k, kk] * noncons_flux3
     end
 
     # The factor 0.5 cancels the factor 2 in the flux differencing form
