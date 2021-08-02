@@ -30,6 +30,7 @@ import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
+using FillArrays: Ones
 import ForwardDiff
 using HDF5: h5open, attributes
 using LazyArrays: LazyArray, @~
@@ -43,6 +44,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using RecipesBase
 using Requires
+using SparseArrays: sparse, droptol!, nzrange, AbstractSparseMatrix
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
