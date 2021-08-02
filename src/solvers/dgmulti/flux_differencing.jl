@@ -19,8 +19,8 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
     for j in rows
       # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
       # We avoid computing the lower-triangular part, and instead accumulate those contributions
-      # while computing the upper-triangular part, using the fact that A is skew-symmetric and F
-      # is symmetric.
+      # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+      # is symmetric).
       if j > i && !skip_index(i, j)
           AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
           du[i] = du[i] + AF_ij
@@ -46,6 +46,26 @@ end
   end
 end
 
+# Optimized flux differencing routine for when a `sparsity_pattern` matrix is provided
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, sparsity_pattern::AbstractSparseMatrix{Bool})
+  n = size(sparsity_pattern, 2)
+  rows = rowvals(sparsity_pattern)
+  for i = 1:n
+    u_i = u[i]
+    for id in nzrange(sparsity_pattern, i)
+      j = rows[id]
+      if j > i
+        AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
+        du[i] = du[i] + AF_ij
+        du[j] = du[j] - AF_ij
+      end
+    end
+  end
+end
+
+@inline hadamard_sum_A_transposed!(du, ATr, volume_flux, u, sparsity_pattern::Nothing) =
+  hadamard_sum_A_transposed!(du, ATr, volume_flux, u)
+
 # For DGMulti implementations, we construct "physical" differentiation operators by taking linear
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
 # We use LazyArrays.jl for lazy evaluation of physical differentiation operators, so that we can
@@ -63,7 +83,7 @@ function build_lazy_physical_derivative(element, orientation,
 end
 
 function build_lazy_physical_derivative(element, orientation,
-                                        mesh::VertexMappedMesh{3, Tet}, dg, cache)
+                                        mesh::VertexMappedMesh{3}, dg, cache)
   @unpack Qrst_skew_Tr = cache
   QrskewTr, QsskewTr, QtskewTr = Qrst_skew_Tr
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
@@ -80,7 +100,7 @@ function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
-  @unpack local_values_threaded = cache
+  @unpack local_values_threaded, sparsity_pattern = cache
 
   volume_flux_oriented(i) = @inline (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
 
@@ -91,27 +111,37 @@ function calc_volume_integral!(du, u, volume_integral,
     u_local = view(u, :, e)
     for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local)
+
+      # use `sparsity_pattern` to dispatch hadamard_sum_A_transposed. If using Tri or Tet elements,
+      # the Qi_skew_Tr matrices are dense, and sparsity_pattern = nothing. If using Quad or Hex
+      # elements with an SBP approximationType, then the Qi_skew_Tr matrices are
+      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, sparsity_pattern)
     end
     view(du, :, e) .+= rhs_local ./ rd.wq
   end
 end
 
+function compute_flux_differencing_SBP_matrices(dg::DGMulti{Ndims}) where {Ndims}
+  rd = dg.basis
+  # Todo: simplices. Fix this with StartUpDG v0.11.0: new API `Qrst_hybridized, VhP, Ph = hybridized_SBP_operators(rd)`
+  if Ndims == 2
+    Qr_hybridized, Qs_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
+    Qrst_hybridized = (Qr_hybridized, Qs_hybridized)
+  elseif Ndims == 3
+    Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
+    Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized)
+  end
+  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
+  return Qrst_skew_Tr, VhP, Ph
+end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
 
-  # Todo: simplices. Fix this when StartUpDG v0.11.0 releases: new API `Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)`
-  if ndims(mesh) == 2
-    Qr_hybridized, Qs_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
-    Qrst_hybridized = (Qr_hybridized, Qs_hybridized)
-  elseif ndims(mesh) == 3
-    Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
-    Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized)
-  end
-  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
+  Qrst_skew_Tr, VhP, Ph = compute_flux_differencing_SBP_matrices(dg)
+  sparsity_pattern = compute_sparsity_pattern(Qrst_skew_Tr, dg)
 
   nvars = nvariables(equations)
 
@@ -132,7 +162,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   rhs_local_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(num_quad_points_total), nvars)) for _ in 1:Threads.nthreads()]
   local_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew_Tr, VhP, Ph, invJ = inv.(md.J),
+  return (; md, Qrst_skew_Tr, sparsity_pattern, VhP, Ph, invJ = inv.(md.J),
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
             u_values, u_face_values, rhs_local_threaded, flux_face_values, local_values_threaded)
 end
@@ -157,7 +187,6 @@ function calc_volume_integral!(du, u::StructArray, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, cache)
 
   rd = dg.basis
-  md = mesh.md
   @unpack entropy_projected_u_values, rhs_local_threaded, Ph = cache
   volume_flux_oriented(i) = @inline (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
 
