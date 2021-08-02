@@ -297,7 +297,7 @@ terms.
   v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
   # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
   if orientation == 1
     f = SVector(0,
                 B1_ll      * B1_rr,
@@ -354,7 +354,7 @@ end
   B_dot_n_rr = B1_rr * normal_direction_average[1] + B2_rr * normal_direction_average[2] + B3_rr * normal_direction_average[3]
 
   # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
   f = SVector(0,
               B1_ll      * B_dot_n_rr,
               B2_ll      * B_dot_n_rr,
@@ -383,7 +383,7 @@ end
     # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
     phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
 
-    # Galilean nonconservative term: Φ^Gal_{1,2,3} = (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
+    # Galilean nonconservative term: Φ^Gal_{1,2,3} = (0, 0, 0, 0, ψ v⋅n, 0, 0, 0, v⋅n)
     # first direction
     Ja11_ijk, Ja12_ijk, Ja13_ijk = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
     phi_gal_x = 0.5*(Ja11_ijk*v1 + Ja12_ijk*v2 + Ja13_ijk*v3).*SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)

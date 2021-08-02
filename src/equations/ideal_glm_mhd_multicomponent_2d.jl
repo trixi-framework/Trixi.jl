@@ -311,7 +311,7 @@ end
 
 
 """
-    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations2D)
 
 Entropy conserving two-point flux adapted by
 - Derigs et al. (2018)
@@ -467,7 +467,7 @@ end
 
 
 # TODO: nonconservative terms, remove
-#    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
+#    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdMulticomponentEquations2D)
 #
 #Strong form of non-conservative flux on a surface (Powell and GLM terms)
 #```math
