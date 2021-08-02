@@ -44,7 +44,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using RecipesBase
 using Requires
-using SparseArrays: sparse, droptol!, nzrange, AbstractSparseMatrix
+using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
