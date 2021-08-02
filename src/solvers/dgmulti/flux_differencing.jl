@@ -12,7 +12,7 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
 - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for
   faster traversal since matrices are column major in Julia.
 """
-@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index)
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
@@ -25,22 +25,6 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
           AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
           du[i] = du[i] + AF_ij
           du[j] = du[j] - AF_ij
-      end
-    end
-  end
-end
-
-# Version of function without `skip_index`, as mentioned in
-# https://github.com/trixi-framework/Trixi.jl/pull/695/files#r670403097
-@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u)
-  rows, cols = axes(ATr)
-  for i in cols
-    u_i = u[i]
-    for j in rows
-      if j > i
-        AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
-        du[i] = du[i] + AF_ij
-        du[j] = du[j] - AF_ij
       end
     end
   end
