@@ -22,13 +22,15 @@ having an extensible design with a fast implementation, Trixi is
 focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
-* Hierarchical quadtree/octree grid with adaptive mesh refinement
-* Experimental support for curvilinear structured and unstructured meshes
-  (see also the [overview in the documentation](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations))
-* Native support for 1D, 2D, and 3D simulations
+* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations)
+  * Cartesian and curvilinear meshes
+  * Conforming and non-conforming meshes
+  * Structured and unstructured meshes
+  * Hierarchical quadtree/octree grid with adaptive mesh refinement
+  * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 * High-order accuracy in space in time
-* Nodal discontinuous Galerkin spectral element methods
-  * Kinetic energy-preserving and entropy-stable split forms
+* Discontinuous Galerkin methods
+  * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
@@ -37,7 +39,7 @@ installation and postprocessing procedures. Its features include:
   * CFL-based and error-based time step control
 * Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
-* Square/cubic domains with periodic and weakly-enforced boundary conditions
+* Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
   * Magnetohydrodynamics equations

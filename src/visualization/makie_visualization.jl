@@ -56,7 +56,9 @@ A = plotting_interpolation_matrix(dg)
 A*dg.basis.nodes # => vector of nodes at which to plot the solution
 ```
 """
-plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes)) # is this the right thing for FD-SBP?
+# note: we cannot use UniformScaling to define the interpolation matrix since we use it with `kron`
+# to define a multi-dimensional interpolation matrix later.
+plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes))
 
 function plotting_interpolation_matrix(dg::DGSEM; nvisnodes = 2*length(dg.basis.nodes))
     return Trixi.polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1,1,nvisnodes))

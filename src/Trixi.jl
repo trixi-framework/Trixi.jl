@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, dot, mul!, norm, cross, normalize, I
+using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -32,11 +32,13 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 import ForwardDiff
 using HDF5: h5open, attributes
+using LazyArrays: LazyArray, @~
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 import MPI
 using GeometryBasics: GeometryBasics, Mesh, normal_mesh
+using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
@@ -45,6 +47,7 @@ using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
+using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
 @reexport using UnPack: @unpack
@@ -55,6 +58,10 @@ using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator,
 import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator
+
+# DGMulti solvers
+@reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
+using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
 
 # TODO: include_optimized
@@ -110,7 +117,7 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang,
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
@@ -192,6 +199,8 @@ export PositivityPreservingLimiterZhangShu
 export trixi_include, examples_dir, get_examples, default_example, default_example_unstructured
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
+
+export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level

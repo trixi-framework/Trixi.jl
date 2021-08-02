@@ -1,4 +1,4 @@
-module TestExamples2DUnstructuredQuad
+module TestExamples2DUnstructured
 
 using Test
 using Trixi
@@ -8,7 +8,7 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "unstructured_2d_dgsem")
 
-@testset "Unstructured Curve Mesh for Euler" begin
+@testset "Unstructured Mesh for Euler" begin
 
   @trixi_testset "elixir_euler_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
