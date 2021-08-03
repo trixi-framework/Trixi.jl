@@ -100,8 +100,9 @@ function calc_volume_integral!(du, u, volume_integral,
       # the Qi_skew_Tr matrices are dense, and sparsity_pattern = nothing. If using Quad or Hex
       # elements with an SBP approximationType, then the Qi_skew_Tr matrices are
       hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, sparsity_pattern)
+    for i in each_quad_node(mesh, dg, cache)
+      du[i, e] = du[i, e] + rhs_local[i] / rd.wq[i]
     end
-    view(du, :, e) .+= rhs_local ./ rd.wq
   end
 end
 
