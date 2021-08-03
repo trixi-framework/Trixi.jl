@@ -173,7 +173,7 @@ than can increase your productivity in the Julia REPL.
   ```
 - Use `apropos` to search through the documentation and docstrings.
   ```julia-repl
-  julia> apropos("MHD")
+  julia> apropos("MHD") # TODO: nonconservative terms. Update this once the old code is removed
   Trixi.initial_condition_constant
   Trixi.initial_condition_rotor
   Trixi.IdealGlmMhdEquations2D
