@@ -1,16 +1,14 @@
-"""
-  function compute_triangle_area(tri)
-
-Computes the area of a triangle given `tri`, which is a tuple of three points (vectors).
-Formula from https://en.wikipedia.org/wiki/Shoelace_formula
-"""
+#     compute_triangle_area(tri)
+#
+# Computes the area of a triangle given `tri`, which is a tuple of three points (vectors),
+# using the [Shoelace_formula](https://en.wikipedia.org/wiki/Shoelace_formula).
 function compute_triangle_area(tri)
-    A,B,C = tri
-    return .5*(A[1]*(B[2] - C[2]) + B[1]*(C[2]-A[2]) + C[1]*(A[2]-B[2]))
+    A, B, C = tri
+    return 0.5 * (A[1] * (B[2] - C[2]) + B[1] * (C[2]-A[2]) + C[1] * (A[2] - B[2]))
 end
 
 """
-  function plotting_triangulation(reference_plotting_coordinates)
+    plotting_triangulation(reference_plotting_coordinates)
 
 Computes a triangulation of the points in `reference_plotting_coordinates`, which is a tuple containing
 vectors of plotting points on the reference element (e.g., reference_plotting_coordinates = (r,s)).
@@ -117,14 +115,13 @@ function generate_plotting_triangulation(sol::TrixiODESolution, variable_to_plot
     coordinates_tmp = zeros(Float32, num_nodes, 3)
     coordinates = zeros(Float32, n_plot_nodes, 3)
     for element in eachelement(dg, cache)
-
         # extract x,y coordinates and solutions on each element
         sk = 1
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             xy_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
-            coordinates_tmp[sk,1:2] .= xy_node
-            coordinates_tmp[sk,3] = u_node[variable_to_plot]
+            coordinates_tmp[sk, 1:2] .= xy_node
+            coordinates_tmp[sk, 3] = u_node[variable_to_plot]
             sk += 1
         end
 
@@ -147,15 +144,15 @@ function generate_plotting_wireframe(sol::TrixiODESolution, variable_to_plot::In
 
     num_nodes_1D = length(dg.basis.nodes)
     num_nodes = num_nodes_1D^2
-    num_elements = nelements(dg,cache)
+    num_elements = nelements(dg, cache)
 
     # reference interpolation operators
     Vp1D = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
 
     # reconstruct reference nodes (assumes 2D ordering on reference quad is x_i,y_j with i first).
     r1D = dg.basis.nodes
-    r = vec([r1D[i] for i = 1:num_nodes_1D, j = 1:num_nodes_1D])
-    s = vec([r1D[j] for i = 1:num_nodes_1D, j = 1:num_nodes_1D])
+    r = vec([r1D[i] for i in 1:num_nodes_1D, j in 1:num_nodes_1D])
+    s = vec([r1D[j] for i in 1:num_nodes_1D, j in 1:num_nodes_1D])
 
     # extract indices of local face nodes
     tol = 50*eps()
