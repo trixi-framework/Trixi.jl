@@ -361,9 +361,9 @@ RecipesBase.@recipe function f(pm::PlotMesh2D)
   legend -->  :none
 
   # Set series properties
-  seriestype := :path
-  linecolor := :grey
-  linewidth := 1
+  seriestype --> :path
+  linecolor --> :grey
+  linewidth --> 1
 
   # Return data for plotting
   mesh_vertices_x, mesh_vertices_y

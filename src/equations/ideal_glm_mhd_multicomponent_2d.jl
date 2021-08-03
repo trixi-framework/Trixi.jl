@@ -207,6 +207,7 @@ end
 end
 
 
+# TODO: nonconservative terms, remove
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element,
@@ -250,9 +251,67 @@ end
   return nothing
 end
 
+"""
+    flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                equations::IdealGlmMhdMulticomponentEquations2D)
+
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdMulticomponentEquations2D`](@ref).
+
+## References
+- Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
+  Florian Hindenlang, Joachim Saur
+  An entropy stable nodal discontinuous Galerkin method for the resistive MHD
+  equations. Part I: Theory and numerical verification
+  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
+"""
+@inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                             equations::IdealGlmMhdMulticomponentEquations2D)
+  rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  rho_ll = density(u_ll, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  # Note that the order of conserved variables is changed compared to the
+  # standard GLM MHD equations, i.e., the densities are moved to the end
+  # Here, we compute the non-density components at first and append zero density
+  # components afterwards
+  zero_densities = SVector{ncomponents(equations), real(equations)}(
+    ntuple(_ -> zero(real(equations)), Val(ncomponents(equations))))
+  if orientation == 1
+    f = SVector(B1_ll      * B1_rr,
+                B2_ll      * B1_rr,
+                B3_ll      * B1_rr,
+                v_dot_B_ll * B1_rr + v1_ll * psi_ll * psi_rr,
+                v1_ll      * B1_rr,
+                v2_ll      * B1_rr,
+                v3_ll      * B1_rr,
+                                     v1_ll * psi_rr)
+  else # orientation == 2
+    f = SVector(B1_ll      * B2_rr,
+                B2_ll      * B2_rr,
+                B3_ll      * B2_rr,
+                v_dot_B_ll * B2_rr + v2_ll * psi_ll * psi_rr,
+                v1_ll      * B2_rr,
+                v2_ll      * B2_rr,
+                v3_ll      * B2_rr,
+                                     v2_ll * psi_rr)
+  end
+
+  return vcat(f, zero_densities)
+end
+
 
 """
-    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations2D)
 
 Entropy conserving two-point flux adapted by
 - Derigs et al. (2018)
@@ -407,24 +466,23 @@ end
 end
 
 
-"""
-    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
-
-Strong form of non-conservative flux on a surface (Powell and GLM terms)
-```math
-phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
-```
-!!! note
-    The non-conservative interface flux depends on the discretization. Following "modes" are available:
-    * `:weak`: 'weak' formulation of split DG already includes the contribution
-      ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
-      analogously for the Galilean nonconservative term
-    * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
-    * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
-      ``(2)-(1) - 1/2 (phi^L B^L)``
-!!! warning
-    This is non-unique along an interface! The normal direction is super important.
-"""
+# TODO: nonconservative terms, remove
+#    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdMulticomponentEquations2D)
+#
+#Strong form of non-conservative flux on a surface (Powell and GLM terms)
+#```math
+#phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
+#```
+#!!! note
+#    The non-conservative interface flux depends on the discretization. Following "modes" are available:
+#    * `:weak`: 'weak' formulation of split DG already includes the contribution
+#      ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
+#      analogously for the Galilean nonconservative term
+#    * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
+#    * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
+#      ``(2)-(1) - 1/2 (phi^L B^L)``
+#!!! warning
+#    This is non-unique along an interface! The normal direction is super important.
 @inline function noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
