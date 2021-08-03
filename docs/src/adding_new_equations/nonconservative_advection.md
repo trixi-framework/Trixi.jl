@@ -51,6 +51,12 @@ end
 # We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 
+# This "nonconservative numerical flux" implements the nonconservative terms.
+# In general, nonconservative terms can be written in the form
+#   g(u) ∂ₓ h(u)
+# Thus, a discrete difference approximation of this nonconservative term needs
+# - `u mine`:  the value of `u` at the current position (for g(u))
+# - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
   _, advectionvelocity = u_mine
@@ -184,7 +190,7 @@ using Trixi: AbstractEquations, get_node_vars
 import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
               have_nonconservative_terms
 
-# Since there is no native support for variable coefficients, we use two
+# Since there is not yet native support for variable coefficients, we use two
 # variables: one for the basic unknown `u` and another one for the coefficient `a`
 struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1 #= spatial dimension =#,
                                                                    2 #= two variables (u,a) =#}
@@ -210,6 +216,12 @@ end
 # We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 
+# This "nonconservative numerical flux" implements the nonconservative terms.
+# In general, nonconservative terms can be written in the form
+#   g(u) ∂ₓ h(u)
+# Thus, a discrete difference approximation of this nonconservative term needs
+# - `u mine`:  the value of `u` at the current position (for g(u))
+# - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
   _, advectionvelocity = u_mine
