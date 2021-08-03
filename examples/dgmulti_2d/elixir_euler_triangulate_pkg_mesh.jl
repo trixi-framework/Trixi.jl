@@ -1,5 +1,3 @@
-
-using Triangulate
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Tri(),
