@@ -58,14 +58,14 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
   orientation_y::Int
 end
 
-"""
-    DGMultiPlotData{Dim, uType, VariableNames}
-
-Holds data for creating 2D plots of multiple solution variables for DGMulti solvers.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
+#     DGMultiPlotData{Dim, uType, VariableNames}
+#
+# Holds data for creating 2D plots of multiple solution variables for DGMulti solvers.
+# This type is not exported. Instead, the user should call `PlotData2D(sol)` with a DGMulti-based
+# `sol::TrixiODESolution`, which will construct a DGMultiPlotData.
+#
+#!!! warning "Experimental implementation"
+#    This is an experimental feature and may change in future releases.
 struct DGMultiPlotData{Dim, T <: AbstractArray, Equations, SolutionVariables, VariableNames} <: AbstractPlotData
   u::T
   equations::Equations
