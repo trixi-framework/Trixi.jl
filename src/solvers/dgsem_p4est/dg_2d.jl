@@ -24,27 +24,72 @@ function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack interfaces = cache
-
-  size_ = (nnodes(dg), nnodes(dg))
+  idx_one = 1
+  idx_end = nnodes(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    primary_element   = interfaces.element_ids[1, interface]
-    secondary_element = interfaces.element_ids[2, interface]
+    # Copy solution data from the primary element on a case-by-case basis to get
+    # the correct face and orientation
+    primary_element = interfaces.element_ids[1, interface]
+    primary_indices = interfaces.node_indices[1, interface]
 
-    primary_indices   = interfaces.node_indices[1, interface]
+    if primary_indices === (:one, :i)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, idx_one, i, primary_element]
+      end
+    elseif primary_indices === (:end, :i)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, idx_end, i, primary_element]
+      end
+    elseif primary_indices === (:i, :one)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, i, idx_one, primary_element]
+      end
+    else # if primary_indices === (:i, :end)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, i, idx_end, primary_element]
+      end
+    end
+
+    # Copy solution data from the secondary element on a case-by-case basis to get
+    # the correct face and orientation
+    # Note that more cases need to be distinguished here since the running index
+    # of the primary side can potentially run backwards if the orientations are
+    # flipped.
+    secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
-    # Use Tuple `node_indices` and `evaluate_index` to copy values
-    # from the correct face and in the correct orientation
-    for i in eachnode(dg)
-      for v in eachvariable(equations)
-        interfaces.u[1, v, i, interface] = u[v, evaluate_index(primary_indices, size_, 1, i),
-                                                evaluate_index(primary_indices, size_, 2, i),
-                                                primary_element]
-
-        interfaces.u[2, v, i, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i),
-                                                evaluate_index(secondary_indices, size_, 2, i),
-                                                secondary_element]
+    if secondary_indices === (:one, :i)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, idx_one, i, secondary_element]
+      end
+    elseif secondary_indices === (:one, :i_backwards)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, idx_one, idx_end + 1 - i, secondary_element]
+      end
+    elseif secondary_indices === (:end, :i)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, idx_end, i, secondary_element]
+      end
+    elseif secondary_indices === (:end, :i_backwards)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, idx_end, idx_end + 1 - i, secondary_element]
+      end
+    elseif secondary_indices === (:i, :one)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, i, idx_one, secondary_element]
+      end
+    elseif secondary_indices === (:i_backwards, :one)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_one, secondary_element]
+      end
+    elseif secondary_indices === (:i, :end)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, i, idx_end, secondary_element]
+      end
+    else #if secondary_indices === (:i_backwards, :end)
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_end, secondary_element]
       end
     end
   end
