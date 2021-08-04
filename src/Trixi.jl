@@ -49,8 +49,8 @@ using StrideArrays: PtrArray, StrideArray, StaticInt
 using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 
-using Triangulate
-using TriplotBase
+using Triangulate: Triangulate, TriangulateIO, triangulate
+using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 
 @reexport using UnPack: @unpack
