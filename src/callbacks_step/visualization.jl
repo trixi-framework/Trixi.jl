@@ -177,10 +177,10 @@ function show_plot(plot_data, variable_names;
   # Gather subplots
   plots = []
   for v in variable_names
-    push!(plots, plot(plot_data[v]; plot_arguments...))
+    push!(plots, Plots.plot(plot_data[v]; plot_arguments...))
   end
   if show_mesh
-    push!(plots, plot(getmesh(plot_data); plot_arguments...))
+    push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
   end
 
   # Determine layout
@@ -189,7 +189,7 @@ function show_plot(plot_data, variable_names;
   layout = (rows, cols)
 
   # Show plot
-  display(plot(plots..., layout=layout))
+  display(Plots.plot(plots..., layout=layout))
 end
 
 
@@ -216,10 +216,10 @@ function save_plot(plot_data, variable_names;
   # Gather subplots
   plots = []
   for v in variable_names
-    push!(plots, plot(plot_data[v]; plot_arguments...))
+    push!(plots, Plots.plot(plot_data[v]; plot_arguments...))
   end
   if show_mesh
-    push!(plots, plot(getmesh(plot_data); plot_arguments...))
+    push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
   end
 
   # Determine layout
@@ -228,11 +228,11 @@ function save_plot(plot_data, variable_names;
   layout = (rows, cols)
 
   # Create plot
-  plot(plots..., layout=layout)
+  Plots.plot(plots..., layout=layout)
 
   # Determine filename and save plot
   filename = joinpath("out", @sprintf("solution_%06d.png", timestep))
-  savefig(filename)
+  Plots.savefig(filename)
 end
 
 
