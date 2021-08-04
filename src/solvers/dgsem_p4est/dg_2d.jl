@@ -29,7 +29,7 @@ function prolong2interfaces!(cache, u,
 
   @threaded for interface in eachinterface(dg, cache)
     # Copy solution data from the primary element on a case-by-case basis to get
-    # the correct face and orientation
+    # the correct face and orientation.
     primary_element = interfaces.element_ids[1, interface]
     primary_indices = interfaces.node_indices[1, interface]
 
@@ -52,7 +52,7 @@ function prolong2interfaces!(cache, u,
     end
 
     # Copy solution data from the secondary element on a case-by-case basis to get
-    # the correct face and orientation
+    # the correct face and orientation.
     # Note that more cases need to be distinguished here since the running index
     # of the primary side can potentially run backwards if the orientations are
     # flipped.
@@ -104,40 +104,94 @@ function calc_interface_flux!(surface_flux_values,
                               equations, surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, element_ids, node_indices = cache.interfaces
-
-  size_ = (nnodes(dg), nnodes(dg))
+  @unpack contravariant_vectors = cache.elements
+  idx_one = 1
+  idx_end = nnodes(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Get neighboring elements
-    primary_element   = element_ids[1, interface]
+    # Get information on the primary element, compute the surface fluxes,
+    # and store them for the primary element
+    primary_element  = element_ids[1, interface]
+    primary_indices  = node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
+
+    # Decide on a case-by-case basis to get the correct face and orientation
+    # at an outer level for performance reasons.
+    if primary_indices === (:one, :i)
+      for i in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+
+        # Contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards.
+        normal_direction = get_contravariant_vector(1, contravariant_vectors,
+                                                    idx_one, i, primary_element)
+        flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
+
+        for v in eachvariable(equations)
+          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+        end
+      end
+    elseif primary_indices === (:end, :i)
+      for i in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+
+        # Contravariant vectors at interfaces in positive coordinate direction
+        # are pointing outwards.
+        normal_direction = get_contravariant_vector(1, contravariant_vectors,
+                                                    idx_end, i, primary_element)
+        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+        for v in eachvariable(equations)
+          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+        end
+      end
+    elseif primary_indices === (:i, :one)
+      for i in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+
+        # Contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards.
+        normal_direction = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, idx_one, primary_element)
+        flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
+
+        for v in eachvariable(equations)
+          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+        end
+      end
+    else # if primary_indices === (:i, :end)
+      for i in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+
+        # Contravariant vectors at interfaces in positive coordinate direction
+        # are pointing outwards.
+        normal_direction = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, idx_end, primary_element)
+        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+        for v in eachvariable(equations)
+          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+        end
+      end
+    end
+
+    # Get information on the secondary element and copy the numerical fluxes
+    # from the primary element to the secondary one
     secondary_element = element_ids[2, interface]
-
-    primary_indices   = node_indices[1, interface]
     secondary_indices = node_indices[2, interface]
-
-    primary_direction   = indices2direction(primary_indices)
     secondary_direction = indices2direction(secondary_indices)
 
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
-    for i in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-      normal_vector = get_normal_vector(primary_direction, cache,
-                                        evaluate_index(primary_indices, size_, 1, i),
-                                        evaluate_index(primary_indices, size_, 2, i),
-                                        primary_element)
-
-      flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
-
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to left and right element storage in the correct orientation
-      for v in eachvariable(equations)
-        surf_i = evaluate_index_surface(primary_indices, size_, 1, i)
-        surface_flux_values[v, surf_i, primary_direction, primary_element] = flux_[v]
-
-        surf_i = evaluate_index_surface(secondary_indices, size_, 1, i)
-        surface_flux_values[v, surf_i, secondary_direction, secondary_element] = -flux_[v]
+    # Note that the index of the primary side will always run forward but
+    # the secondary index might need to run backwards for flipped sides.
+    if :i_backwards in secondary_indices
+      for i in eachnode(dg), v in eachvariable(equations)
+        surface_flux_values[v, idx_end + 1 - i, secondary_direction, secondary_element] =
+          -surface_flux_values[v, i, primary_direction, primary_element]
+      end
+    else
+      for i in eachnode(dg), v in eachvariable(equations)
+        surface_flux_values[v, i, secondary_direction, secondary_element] =
+          -surface_flux_values[v, i, primary_direction, primary_element]
       end
     end
   end
