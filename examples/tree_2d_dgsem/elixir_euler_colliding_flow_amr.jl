@@ -12,7 +12,7 @@ equations = CompressibleEulerEquations2D(gamma)
 # Computed with gamma close to 1, to simulate isothermal gas
 function initial_condition_colliding_flow_astro(x, t, equations::CompressibleEulerEquations2D)
   # change discontinuity to tanh
-  # resolution 128^2 elements (refined close to the interface) and N=3 (total of 512^2 DOF)
+  # resolution 128^2 elements (refined close to the interface) and polydeg=3 (total of 512^2 DOF)
   # domain size is [-64,+64]^2
   @unpack gamma = equations 
   rho = 0.0247
