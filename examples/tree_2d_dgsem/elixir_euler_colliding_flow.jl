@@ -22,8 +22,8 @@ function initial_condition_colliding_flow_astro(x, t, equations::CompressibleEul
   slope = 1.0
   v1 = -vel*tanh(slope * x[1])
   # add small initial disturbance to the field, but only close to the interface
-  if (abs(x[1]) < 10)
-    v1 = v1*(1 + 0.01*sin(pi*x[2]/1))
+  if abs(x[1]) < 10
+    v1 = v1 * (1 + 0.01 * sin(pi * x[2]))
   end
   v2 = 0.0 
   return prim2cons(SVector(rho, v1, v2, p), equations)
