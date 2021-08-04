@@ -58,7 +58,7 @@ function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::A
                           is_on_boundary = nothing,
                           is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
 
-  md = MeshData(vertex_coordinates..., EToV, rd)
+  md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
   return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
@@ -74,8 +74,8 @@ reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 """
 function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
-  vertex_coordinates_x, vertex_coordinates_y, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
-  md = MeshData(vertex_coordinates_x, vertex_coordinates_y, EToV, rd)
+  vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
+  md = MeshData(vertex_coordinates, EToV, rd)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
   return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
