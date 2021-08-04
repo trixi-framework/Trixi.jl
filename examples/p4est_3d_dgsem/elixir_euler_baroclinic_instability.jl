@@ -296,7 +296,7 @@ function indicator_test(u::AbstractArray{<:Any,5},
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, k, element)
       lambda, phi, r = cart_to_sphere(x)
-      if 1.1 < lambda < 3.3 && 0.45 < phi < 1.3
+      if 0.22 < lambda < 3.3 && 0.45 < phi < 1.3
         alpha[element] = 1
       end
     end
