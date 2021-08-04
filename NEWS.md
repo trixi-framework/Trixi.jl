@@ -12,7 +12,7 @@ for human readability.
 - Support for automatic differentiation, e.g. `jacobian_ad_forward`
 - In-situ visualization and post hoc visualization with Plots.jl
 - New systems of equations
-  - multicomponent compressible Euler
+  - multicomponent compressible Euler and MHD equations
   - acoustic perturbation equations
   - Lattice-Boltzmann equations
 - Composable `FluxPlusDissipation` and `FluxLaxFriedrichs()`, `FluxHLL()` with adaptable

@@ -8,9 +8,6 @@
 @doc raw"""
     CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
 
-!!! warning "Experimental code"
-    This system of equations is experimental and can change any time.
-
 Multicomponent version of the compressible Euler equations
 ```math
 \partial t
