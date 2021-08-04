@@ -350,7 +350,7 @@ end
 
 A version of the classical Kelvin-Helmholtz instability based on
 - Andrés M. Rueda-Ramírez, Gregor J. Gassner (2021)
-  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations
+  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations 
   of the Euler Equations
   [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
 """
@@ -582,6 +582,9 @@ end
 
 Determine the external solution value for a slip wall condition. Sets the normal
 velocity of the the exterior fictitious element to the negative of the internal value.
+
+!!! warning "Experimental code"
+    This wall function can change any time.
 """
 @inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)

@@ -433,6 +433,9 @@ end
 
 Determine the external solution value for a slip wall condition. Sets the normal
 velocity of the the exterior fictitious element to the negative of the internal value.
+
+!!! warning "Experimental code"
+    This wall function can change any time.
 """
 @inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations3D)
