@@ -9,12 +9,12 @@ equations = IdealGlmMhdEquations3D(5/3)
 
 initial_condition = initial_condition_convergence_test
 
-volume_flux = flux_derigs_etal
-solver = DGSEM(polydeg=3, surface_flux=flux_hll,
+volume_flux = (flux_derigs_etal, flux_nonconservative_powell)
+solver = DGSEM(polydeg=3, surface_flux=(flux_hll, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-1, -1, -1)
-coordinates_max = ( 1,  1,  1)
+coordinates_min = (-1.0, -1.0, -1.0)
+coordinates_max = ( 1.0,  1.0,  1.0)
 refinement_patches = (
   (type="box",  coordinates_min=(-0.5, -0.5, -0.5),
                 coordinates_max=( 0.5,  0.5,  0.5)),

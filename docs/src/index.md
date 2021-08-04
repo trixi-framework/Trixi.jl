@@ -28,7 +28,8 @@ installation and postprocessing procedures. Its features include:
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
-  * Magnetohydrodynamics equations
+  * Magnetohydrodynamics (MHD) equations
+  * Multi-component compressible Euler and MHD equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Scalar advection
