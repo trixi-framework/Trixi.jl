@@ -106,14 +106,12 @@ callbacks = CallbackSet(summary_callback,
                         amr_callback, save_solution)
 
 # positivity limiter necessary for this tough example
-limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
-                                               variables=(Trixi.density, pressure))
-stage_limiter! = limiter!
-step_limiter!  = limiter!
+stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
+                                                     variables=(Trixi.density, pressure))
 
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
-sol = solve(ode, SSPRK43(stage_limiter!, step_limiter!),
+sol = solve(ode, SSPRK43(stage_limiter!),
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
