@@ -80,11 +80,4 @@ function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict:
   return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
-# old interface
-VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, EToV, rd, args...; kwargs...) =
-  VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y), EToV, rd, args...; kwargs...)
-VertexMappedMesh(vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z, EToV, rd, args...; kwargs...) =
-  VertexMappedMesh((vertex_coordinates_x, vertex_coordinates_y, vertex_coordinates_z), EToV, rd, args...; kwargs...)
-
-
 end # @muladd
