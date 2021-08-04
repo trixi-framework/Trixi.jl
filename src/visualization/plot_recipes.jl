@@ -782,9 +782,9 @@ using StartUpDG: vandermonde, nodes
   legend -->  :none
 
   # Set series properties
-  seriestype := :path
-  linecolor := :grey
-  linewidth := 1
+  seriestype --> :path
+  linecolor --> :grey
+  linewidth --> 1
 
   return x, y
 end
