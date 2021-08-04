@@ -139,7 +139,7 @@ mapping(xi, eta, zeta) = Trixi.cubed_sphere_mapping(xi, eta, zeta, 6371220.0, 30
 trees_per_dimension = (8, 8, 4)
 mesh = P4estMesh(trees_per_dimension, polydeg=5,
                  mapping=mapping,
-                 initial_refinement_level=1,
+                 initial_refinement_level=0,
                  periodicity=(false, false, false))
 
 # mesh = Trixi.P4estMeshCubedSphere(4, 4, 6371220.0, 30000.0,
@@ -172,7 +172,7 @@ stepsize_callback = StepsizeCallback(cfl=0.5)
 
 amr_controller = ControllerThreeLevel(semi, indicator_test,
                                       base_level=0,
-                                      max_level=2, max_threshold=0.6)
+                                      max_level=1, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=typemax(Int),
                            adapt_initial_condition=true,
