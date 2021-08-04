@@ -15,6 +15,8 @@ function initial_condition_colliding_flow_astro(x, t, equations::CompressibleEul
   # resolution 128^2 elements (refined close to the interface) and polydeg=3 (total of 512^2 DOF)
   # domain size is [-64,+64]^2
   @unpack gamma = equations 
+  # the quantities are chosen such, that they are as close as possible to the astro examples
+  # keep in mind, that in the astro example, the physical units are weird (parsec, mega years, ...)
   rho = 0.0247
   c = 0.2
   p = c^2 / gamma * rho
