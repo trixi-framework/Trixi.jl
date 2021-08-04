@@ -17,7 +17,7 @@ function initial_condition_colliding_flow_astro(x, t, equations::CompressibleEul
   @unpack gamma = equations 
   rho = 0.0247
   c = 0.2
-  p = c*c/gamma*rho
+  p = c^2 / gamma * rho
   vel = 13.907432274789372 
   slope = 1.0
   v1 = -vel*tanh(slope * x[1])
