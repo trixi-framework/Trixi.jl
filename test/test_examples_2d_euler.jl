@@ -109,6 +109,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       tspan = (0.0, 0.2))
   end
 
+  @trixi_testset "elixir_euler_colliding_flow.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow.jl"),
+      l2   = [7.23705116e-03,   4.48861301e-02,   8.47273157e-07,   6.62667920e-01],
+      linf = [1.93754293e-01,   5.52253475e-01,   4.98055004e-05,   1.50879674e+01],
+      tspan = (0.0, 0.1))
+  end
+
+  @trixi_testset "elixir_euler_colliding_flow_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow_amr.jl"),
+      l2   = [6.76960244e-03,   3.21735698e-02,   2.63316434e-07,   6.78416591e-01],
+      linf = [2.50119529e-01,   4.07493507e-01,   9.96993324e-05,   2.23204482e+01],
+      tspan = (0.0, 0.1))
+  end
+
   @trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
       l2   = [3.6343141788303172e-6, 0.0032111379945554378, 0.0032111482803927763, 0.004545715899533244],

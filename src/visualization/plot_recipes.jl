@@ -359,6 +359,7 @@ RecipesBase.@recipe function f(pm::PlotMesh2D)
   ylims --> (y[begin], y[end])
   aspect_ratio --> :equal
   legend -->  :none
+  grid --> false
 
   # Set series properties
   seriestype --> :path
@@ -382,6 +383,7 @@ RecipesBase.@recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVect
   ylims --> (minimum(y), maximum(y))
   aspect_ratio --> :equal
   legend -->  :none
+  grid --> false
 
   # Set series properties
   seriestype --> :path
