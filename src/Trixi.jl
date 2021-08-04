@@ -48,6 +48,7 @@ using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+using Triangulate: TriangulateIO, triangulate
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
