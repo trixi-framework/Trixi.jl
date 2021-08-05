@@ -706,13 +706,13 @@ end
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  v_mag_ll = sqrt(v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll)
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
+  v_mag_rr = sqrt(v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
@@ -732,13 +732,13 @@ end
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt((v1_ll^2 + v2_ll^2 + v3_ll^2) * norm_squared)
+  v_mag_ll = sqrt((v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll) * norm_squared)
   cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt((v1_rr^2 + v2_rr^2 + v3_rr^2) * norm_squared)
+  v_mag_rr = sqrt((v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr) * norm_squared)
   cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
 
   return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
@@ -1056,7 +1056,7 @@ end
   b1 = B1 / sqrt_rho
   b2 = B2 / sqrt_rho
   b3 = B3 / sqrt_rho
-  b_square = b1^2 + b2^2 + b3^2
+  b_square = b1 * b1 + b2 * b2 + b3 * b3
   if orientation == 1 # x-direction
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2))
   elseif orientation == 2 # y-direction
@@ -1080,7 +1080,7 @@ end
   b1 = B1 / sqrt_rho
   b2 = B2 / sqrt_rho
   b3 = B3 / sqrt_rho
-  b_square = b1^2 + b2^2 + b3^2
+  b_square = b1 * b1 + b2 * b2 + b3 * b3
   norm_squared = (normal_direction[1] * normal_direction[1] +
                   normal_direction[2] * normal_direction[2] +
                   normal_direction[3] * normal_direction[3])

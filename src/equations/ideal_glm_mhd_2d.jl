@@ -688,13 +688,13 @@ end
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  v_mag_ll = sqrt(v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll)
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
+  v_mag_rr = sqrt(v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
@@ -712,13 +712,13 @@ end
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt((v1_ll^2 + v2_ll^2 + v3_ll^2) * norm_squared)
+  v_mag_ll = sqrt((v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll) * norm_squared)
   cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt((v1_rr^2 + v2_rr^2 + v3_rr^2) * norm_squared)
+  v_mag_rr = sqrt((v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr) * norm_squared)
   cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
 
   return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
@@ -1062,20 +1062,21 @@ end
 
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-@inline function calc_fast_wavespeed(cons, direction, equations::IdealGlmMhdEquations2D)
+@inline function calc_fast_wavespeed(cons, orientation::Integer, equations::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  v_mag = sqrt(v1^2 + v2^2 + v3^2)
-  p = (equations.gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5 * psi^2)
   a_square = equations.gamma * p / rho
   sqrt_rho = sqrt(rho)
   b1 = B1 / sqrt_rho
   b2 = B2 / sqrt_rho
   b3 = B3 / sqrt_rho
-  b_square = b1^2 + b2^2 + b3^2
-  if direction == 1 # x-direction
+  b_square = b1 * b1 + b2 * b2 + b3 * b3
+  if orientation == 1 # x-direction
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2))
   else
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b2^2))
@@ -1096,7 +1097,7 @@ end
   b1 = B1 / sqrt_rho
   b2 = B2 / sqrt_rho
   b3 = B3 / sqrt_rho
-  b_square = b1^2 + b2^2 + b3^2
+  b_square = b1 * b1 + b2 * b2 + b3 * b3
   norm_squared = (normal_direction[1] * normal_direction[1] +
                   normal_direction[2] * normal_direction[2])
   b_dot_n_squared = (b1 * normal_direction[1] +
