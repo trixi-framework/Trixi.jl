@@ -350,7 +350,7 @@ end
 
 A version of the classical Kelvin-Helmholtz instability based on
 - Andrés M. Rueda-Ramírez, Gregor J. Gassner (2021)
-  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations 
+  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations
   of the Euler Equations
   [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
 """
@@ -606,9 +606,9 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1 * v1 + p

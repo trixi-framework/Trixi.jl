@@ -414,11 +414,12 @@ end
   ylims --> (y[begin], y[end])
   aspect_ratio --> :equal
   legend -->  :none
+  grid --> false
 
   # Set series properties
-  seriestype := :path
-  linecolor := :grey
-  linewidth := 1
+  seriestype --> :path
+  linecolor --> :grey
+  linewidth --> 1
 
   # Return data for plotting
   mesh_vertices_x, mesh_vertices_y
@@ -437,6 +438,7 @@ end
   ylims --> (minimum(y), maximum(y))
   aspect_ratio --> :equal
   legend -->  :none
+  grid --> false
 
   # Set series properties
   seriestype --> :path

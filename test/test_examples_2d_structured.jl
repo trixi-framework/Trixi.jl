@@ -223,6 +223,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
               0.04112917360970982],
       tspan = (0.0, 1.0))
   end
+
+  # TODO: nonconservative terms, remove
+  @trixi_testset "elixir_mhd_alfven_wave.jl with old nonconservative stuff" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+      l2   = [0.028937533507168618, 0.0062432054639327645, 0.005633373806188361, 0.007334018943006818,
+              0.004877728963620626, 0.007192028498071723, 0.006999219481342092, 0.006729459133884995,
+              0.004256125425790215],
+      linf = [0.17577416304965765, 0.06225741511291068, 0.03880568731344702, 0.05278192154508075,
+              0.03811117752054194, 0.0427542385663775, 0.037517543473435055, 0.047902503040458,
+              0.04112917360970982],
+      tspan = (0.0, 1.0),
+      volume_flux = flux_central,
+      surface_flux = flux_lax_friedrichs)
+  end
 end
 
 end # module

@@ -9,11 +9,6 @@ we will implement the nonconservative linear advection equation
 in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
 is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
 
-!!! warning "Experimental interface"
-    The support for nonconservative equations in Trixi is in an experimental
-    stage and will likely change in future releases. The interface documented
-    here is not considered to be part of the stable public API at the moment.
-
 
 ## Basic setup
 
@@ -28,8 +23,7 @@ module NonconservativeLinearAdvection
 using Trixi
 using Trixi: AbstractEquations, get_node_vars
 import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
-              have_nonconservative_terms, calcflux_twopoint_nonconservative,
-              noncons_interface_flux
+              have_nonconservative_terms
 
 # Since there is no native support for variable coefficients, we use two
 # variables: one for the basic unknown `u` and another one for the coefficient `a`
@@ -57,40 +51,30 @@ end
 # We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 
-# OBS! This is scaled by 1/2 because it will cancel later with the factor of 2
-# the flux differencing volume integral
-function calcflux_twopoint_nonconservative!(f1, u, element,
-                                                  equations::NonconservativeLinearAdvectionEquation,
-                                                  dg, cache)
-  for i in eachnode(dg)
-    _, advectionvelocity = get_node_vars(u, equations, dg, i, element)
+# This "nonconservative numerical flux" implements the nonconservative terms.
+# In general, nonconservative terms can be written in the form
+#   g(u) ∂ₓ h(u)
+# Thus, a discrete difference approximation of this nonconservative term needs
+# - `u mine`:  the value of `u` at the current position (for g(u))
+# - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
+function flux_nonconservative(u_mine, u_other, orientation,
+                              equations::NonconservativeLinearAdvectionEquation)
+  _, advectionvelocity = u_mine
+  scalar, _            = u_other
 
-    for l in eachnode(dg)
-      scalar, _ = get_node_vars(u, equations, dg, l, element)
-      f1[1, l, i] += 0.5 * advectionvelocity * scalar
-    end
-  end
-
-  return nothing
-end
-
-function noncons_interface_flux(u_left, u_right, orientation, mode,
-                                      equations::NonconservativeLinearAdvectionEquation)
-  _, advectionvelocity = u_left
-  scalar, _            = u_right
-
-  # assume mode==:weak
-
-  return SVector(0.5 * advectionvelocity * scalar, zero(scalar))
+  return SVector(advectionvelocity * scalar, zero(scalar))
 end
 
 end # module
 ```
 
-The implementation of nononservative terms uses `calcflux_twopoint_nonconservative!`
-and `noncons_interface_flux` at the moment. This implementation is not considered
-to be part of the stable API and will likely change in future releases.
-
+The implementation of nononservative terms uses a single "nonconservative flux"
+function `flux_nonconservative`. It will basically be applied in a loop of the
+form
+```julia
+du_m = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)) # orientation 1: x
+```
+where `D` is the derivative matrix and `u` contains the nodal solution values.
 
 Now, we can run a simple simulation using a DGSEM discretization. This code is
 written outside of our new `module`.
@@ -116,8 +100,12 @@ mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
                 initial_refinement_level=4, n_cells_max=10^4)
 
 # Create a DGSEM solver with polynomials of degree `polydeg`
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-               volume_integral=VolumeIntegralFluxDifferencing(flux_central))
+# Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
+# as `surface_flux` and `volume_flux` when working with nonconservative terms
+volume_flux  = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
+surface_flux = (flux_lax_friedrichs, NonconservativeLinearAdvection.flux_nonconservative)
+solver = DGSEM(polydeg=3, surface_flux=surface_flux,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # Setup the spatial semidiscretization containing all ingredients
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
@@ -163,9 +151,6 @@ simulation again.
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
                 initial_refinement_level=5, n_cells_max=10^4)
 
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-               volume_integral=VolumeIntegralFluxDifferencing(flux_central))
-
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
 
 tspan = (0.0, 1.0)
@@ -203,10 +188,9 @@ module NonconservativeLinearAdvection
 using Trixi
 using Trixi: AbstractEquations, get_node_vars
 import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
-              have_nonconservative_terms, calcflux_twopoint_nonconservative!,
-              noncons_interface_flux
+              have_nonconservative_terms
 
-# Since there is no native support for variable coefficients, we use two
+# Since there is not yet native support for variable coefficients, we use two
 # variables: one for the basic unknown `u` and another one for the coefficient `a`
 struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1 #= spatial dimension =#,
                                                                    2 #= two variables (u,a) =#}
@@ -232,31 +216,18 @@ end
 # We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 
-# OBS! This is scaled by 1/2 because it will cancel later with the factor of 2
-# the flux differencing volume integral
-function calcflux_twopoint_nonconservative!(f1, u, element,
-                                                  equations::NonconservativeLinearAdvectionEquation,
-                                                  dg, cache)
-  for i in eachnode(dg)
-    _, advectionvelocity = get_node_vars(u, equations, dg, i, element)
+# This "nonconservative numerical flux" implements the nonconservative terms.
+# In general, nonconservative terms can be written in the form
+#   g(u) ∂ₓ h(u)
+# Thus, a discrete difference approximation of this nonconservative term needs
+# - `u mine`:  the value of `u` at the current position (for g(u))
+# - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
+function flux_nonconservative(u_mine, u_other, orientation,
+                              equations::NonconservativeLinearAdvectionEquation)
+  _, advectionvelocity = u_mine
+  scalar, _            = u_other
 
-    for l in eachnode(dg)
-      scalar, _ = get_node_vars(u, equations, dg, l, element)
-      f1[1, l, i] += 0.5 * advectionvelocity * scalar
-    end
-  end
-
-  return nothing
-end
-
-function noncons_interface_flux(u_left, u_right, orientation, mode,
-                                      equations::NonconservativeLinearAdvectionEquation)
-  _, advectionvelocity = u_left
-  scalar, _            = u_right
-
-  # assume mode==:weak
-
-  return SVector(0.5 * advectionvelocity * scalar, zero(scalar))
+  return SVector(advectionvelocity * scalar, zero(scalar))
 end
 
 end # module
@@ -284,8 +255,12 @@ mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
                 initial_refinement_level=4, n_cells_max=10^4)
 
 # Create a DGSEM solver with polynomials of degree `polydeg`
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-               volume_integral=VolumeIntegralFluxDifferencing(flux_central))
+# Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
+# as `surface_flux` and `volume_flux` when working with nonconservative terms
+volume_flux  = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
+surface_flux = (flux_lax_friedrichs, NonconservativeLinearAdvection.flux_nonconservative)
+solver = DGSEM(polydeg=3, surface_flux=surface_flux,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # Setup the spatial semidiscretization containing all ingredients
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
@@ -293,6 +268,12 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 # Create an ODE problem with given time span
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
+
+# Set up some standard callbacks summarizing the simulation setup and computing
+# errors of the numerical solution
+summary_callback = SummaryCallback()
+analysis_callback = AnalysisCallback(semi, interval=50)
+callbacks = CallbackSet(summary_callback, analysis_callback);
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 # the passed callbacks
