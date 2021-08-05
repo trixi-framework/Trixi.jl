@@ -210,25 +210,26 @@ end
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-  mag_en = 0.5*(B1^2 + B2^2 + B3^2)
-  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p_over_gamma_minus_one = (rho_e - kin_en - mag_en - 0.5 * psi^2)
+  p = (equations.gamma - 1) * p_over_gamma_minus_one
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1*v1 + p + mag_en - B1^2
     f3 = rho_v1*v2 - B1*B2
     f4 = rho_v1*v3 - B1*B3
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
+    f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
     f6 = equations.c_h*psi
     f7 = v1*B2 - v2*B1
     f8 = v1*B3 - v3*B1
     f9 = equations.c_h*B1
-  else # orientation == 2
+  else #if orientation == 2
     f1 = rho_v2
-    f2 = rho_v2*v1 - B1*B2
+    f2 = rho_v2*v1 - B2*B1
     f3 = rho_v2*v2 + p + mag_en - B2^2
     f4 = rho_v2*v3 - B2*B3
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
+    f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
     f6 = v2*B1 - v1*B2
     f7 = equations.c_h*psi
     f8 = v2*B3 - v3*B2
@@ -241,9 +242,14 @@ end
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::IdealGlmMhdEquations2D)
-  rho, v1, v2, v3, p, B1, B2, B3, psi = cons2prim(u, equations)
-  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-  mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p_over_gamma_minus_one = (rho_e - kin_en - mag_en - 0.5 * psi^2)
+  p = (equations.gamma - 1) * p_over_gamma_minus_one
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   B_normal = B1 * normal_direction[1] + B2 * normal_direction[2]
@@ -253,7 +259,7 @@ end
   f2 = rho_v_normal * v1 - B1 * B_normal + (p + mag_en) * normal_direction[1]
   f3 = rho_v_normal * v2 - B2 * B_normal + (p + mag_en) * normal_direction[2]
   f4 = rho_v_normal * v3 - B3 * B_normal
-  f5 = ( (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en) * v_normal
+  f5 = ( (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en) * v_normal
         - B_normal * (v1*B1 + v2*B2 + v3*B3) + equations.c_h * psi * B_normal )
   f6 = equations.c_h * psi * normal_direction[1] + (v2 * B1 - v1 * B2) * normal_direction[2]
   f7 = equations.c_h * psi * normal_direction[2] + (v1 * B2 - v2 * B1) * normal_direction[1]
