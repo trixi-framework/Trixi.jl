@@ -82,8 +82,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
 
   @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_pkg_mesh.jl"),
-      l2 = [0.00015405739868423074, 0.00014530283464035389, 0.00014870936695617315, 0.00044410650633679334],
-      linf = [0.00039269979059053384, 0.0004237090504681795, 0.000577877861525522, 0.0015066603278119928]
+      l2 = [4.664661209491976e-6, 3.7033509525940745e-6, 4.794877426562555e-6, 1.2682723101532175e-5],
+      linf = [2.5099852761334418e-5, 2.2683684021362893e-5, 2.6180448559287584e-5, 5.5752932611508044e-5]
     )
   end
 end

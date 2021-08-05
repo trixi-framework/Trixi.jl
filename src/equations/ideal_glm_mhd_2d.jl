@@ -207,9 +207,9 @@ end
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
   kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
   mag_en = 0.5*(B1^2 + B2^2 + B3^2)
   p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
@@ -253,10 +253,10 @@ end
   f2 = rho_v_normal * v1 - B1 * B_normal + (p + mag_en) * normal_direction[1]
   f3 = rho_v_normal * v2 - B2 * B_normal + (p + mag_en) * normal_direction[2]
   f4 = rho_v_normal * v3 - B3 * B_normal
-  f5 = ( (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en) * v_normal
+  f5 = ( (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en) * v_normal
         - B_normal * (v1*B1 + v2*B2 + v3*B3) + equations.c_h * psi * B_normal )
   f6 = equations.c_h * psi * normal_direction[1] + (v2 * B1 - v1 * B2) * normal_direction[2]
-  f7 = (v1 * B2 - v2 * B1) * normal_direction[1] + equations.c_h * psi * normal_direction[2]
+  f7 = equations.c_h * psi * normal_direction[2] + (v1 * B2 - v2 * B1) * normal_direction[1]
   f8 = v_normal * B3 - v3 * B_normal
   f9 = equations.c_h * B_normal
 
@@ -264,6 +264,7 @@ end
 end
 
 
+# TODO: nonconservative terms, remove
 # Calculate the nonconservative terms from Powell and Galilean invariance for the TreeMesh{2}
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element,
@@ -299,12 +300,108 @@ end
   return nothing
 end
 
+"""
+    flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                equations::IdealGlmMhdEquations2D)
+    flux_nonconservative_powell(u_ll, u_rr,
+                                normal_direction_ll     ::AbstractVector,
+                                normal_direction_average::AbstractVector,
+                                equations::IdealGlmMhdEquations2D)
 
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdEquations2D`](@ref).
+
+On curvilinear meshes, this nonconservative flux depends on both the
+contravariant vector (normal direction) at the current node and the averaged
+one. This is different from numerical fluxes used to discretize conservative
+terms.
+
+## References
+- Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
+  Florian Hindenlang, Joachim Saur
+  An entropy stable nodal discontinuous Galerkin method for the resistive MHD
+  equations. Part I: Theory and numerical verification
+  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
+"""
+@inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                             equations::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  if orientation == 1
+    f = SVector(0,
+                B1_ll      * B1_rr,
+                B2_ll      * B1_rr,
+                B3_ll      * B1_rr,
+                v_dot_B_ll * B1_rr + v1_ll * psi_ll * psi_rr,
+                v1_ll      * B1_rr,
+                v2_ll      * B1_rr,
+                v3_ll      * B1_rr,
+                                     v1_ll * psi_rr)
+  else # orientation == 2
+    f = SVector(0,
+                B1_ll      * B2_rr,
+                B2_ll      * B2_rr,
+                B3_ll      * B2_rr,
+                v_dot_B_ll * B2_rr + v2_ll * psi_ll * psi_rr,
+                v1_ll      * B2_rr,
+                v2_ll      * B2_rr,
+                v3_ll      * B2_rr,
+                                     v2_ll * psi_rr)
+  end
+
+  return f
+end
+
+@inline function flux_nonconservative_powell(u_ll, u_rr,
+                                             normal_direction_ll::AbstractVector,
+                                             normal_direction_average::AbstractVector,
+                                             equations::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+  # Note that `v_dot_n_ll` uses the `normal_direction_ll` (contravariant vector
+  # at the same node location) while `B_dot_n_rr` uses the averaged normal
+  # direction. The reason for this is that `v_dot_n_ll` depends only on the left
+  # state and multiplies some gradient while `B_dot_n_rr` is used to compute
+  # the divergence of B.
+  v_dot_n_ll = v1_ll * normal_direction_ll[1]      + v2_ll * normal_direction_ll[2]
+  B_dot_n_rr = B1_rr * normal_direction_average[1] + B2_rr * normal_direction_average[2]
+
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  f = SVector(0,
+              B1_ll      * B_dot_n_rr,
+              B2_ll      * B_dot_n_rr,
+              B3_ll      * B_dot_n_rr,
+              v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+              v1_ll      * B_dot_n_rr,
+              v2_ll      * B_dot_n_rr,
+              v3_ll      * B_dot_n_rr,
+                                        v_dot_n_ll * psi_rr)
+
+  return f
+end
+
+# TODO: nonconservative terms, remove
 # Calculate the nonconservative terms from Powell and Galilean invariance for UnstructuredMesh2D
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element, contravariant_vectors,
                                                     equations::IdealGlmMhdEquations2D, dg, cache)
-   for j in eachnode(dg), i in eachnode(dg)
+  for j in eachnode(dg), i in eachnode(dg)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -316,10 +413,10 @@ end
     # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
     # first direction
     Ja11_ij, Ja12_ij = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-    phi_gal_x = 0.5 * (Ja11_ij * v1 + Ja12_ij * v2) .* SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
+    phi_gal_x = 0.5 * (Ja11_ij * v1 + Ja12_ij * v2) * SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
     # second direction
     Ja21_ij, Ja22_ij = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-    phi_gal_y = 0.5 * (Ja21_ij * v1 + Ja22_ij * v2) .* SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
+    phi_gal_y = 0.5 * (Ja21_ij * v1 + Ja22_ij * v2) * SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
 
     # add both nonconservative terms into the volume
     for l in eachnode(dg)
@@ -752,30 +849,30 @@ end
 end
 
 
-"""
-    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
 
-Strong form of non-conservative flux on a surface (Powell and GLM terms)
-```math
-phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
-```
-!!! note
-    The non-conservative interface flux depends on the discretization. Following "modes" are available:
-    * `:weak`: 'weak' formulation of split DG already includes the contribution
-      ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
-      analogously for the Galilean nonconservative term
-    * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
-    * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
-      ``(2)-(1) - 1/2 (phi^L B^L)``
-!!! warning
-    This is non-unique along an interface! The normal direction is super important.
+# TODO: nonconservative terms, remove
+#     noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
 
-For details see Section 4 of the paper
-- Bohm et al. (2018)
-  An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
-  Part I: Theory and numerical verification
-  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
-"""
+# Strong form of non-conservative flux on a surface (Powell and GLM terms)
+# ```math
+# phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
+# ```
+# !!! note
+#     The non-conservative interface flux depends on the discretization. Following "modes" are available:
+#     * `:weak`: 'weak' formulation of split DG already includes the contribution
+#       ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
+#       analogously for the Galilean nonconservative term
+#     * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
+#     * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
+#       ``(2)-(1) - 1/2 (phi^L B^L)``
+# !!! warning
+#     This is non-unique along an interface! The normal direction is super important.
+
+# For details see Section 4 of the paper
+# - Bohm et al. (2018)
+#   An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+#   Part I: Theory and numerical verification
+#   [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
 @inline function noncons_interface_flux(u_left, u_right, orientation, mode,
                                         equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
@@ -831,6 +928,7 @@ For details see Section 4 of the paper
 end
 
 
+# TODO: nonconservative terms, remove
 # Compute surface nonconservative "flux" computation in the normal direction (2D version)
 # Note, due to the non-uniqueness of this term we cannot use any fancy rotation tricks.
 @inline function noncons_interface_flux(u_left, u_right, normal_direction::AbstractVector, mode,

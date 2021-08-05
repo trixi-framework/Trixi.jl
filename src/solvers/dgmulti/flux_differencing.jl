@@ -109,14 +109,9 @@ end
 
 function compute_flux_differencing_SBP_matrices(dg::DGMulti{Ndims}) where {Ndims}
   rd = dg.basis
-  # Todo: simplices. Fix this with StartUpDG v0.11.0: new API `Qrst_hybridized, VhP, Ph = hybridized_SBP_operators(rd)`
-  if Ndims == 2
-    Qr_hybridized, Qs_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
-    Qrst_hybridized = (Qr_hybridized, Qs_hybridized)
-  elseif Ndims == 3
-    Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
-    Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized)
-  end
+  @unpack md = mesh
+
+  Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
   Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
   return Qrst_skew_Tr, VhP, Ph
 end
