@@ -30,6 +30,9 @@ function prolong2interfaces!(cache, u,
   @threaded for interface in eachinterface(dg, cache)
     # Copy solution data from the primary element on a case-by-case basis to get
     # the correct face and orientation.
+    # Note that in the current implementation, the interface will be 
+    # "aligned at the primary element", i.e., the index of the primary side 
+    # will always run forwards.
     primary_element = interfaces.element_ids[1, interface]
     primary_indices = interfaces.node_indices[1, interface]
 
@@ -54,7 +57,7 @@ function prolong2interfaces!(cache, u,
     # Copy solution data from the secondary element on a case-by-case basis to get
     # the correct face and orientation.
     # Note that more cases need to be distinguished here since the running index
-    # of the primary side can potentially run backwards if the orientations are
+    # of the secondary side can potentially run backwards if the orientations are
     # flipped.
     secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
