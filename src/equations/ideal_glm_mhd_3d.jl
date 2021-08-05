@@ -718,25 +718,30 @@ end
   return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 end
 
-
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdEquations3D)
-    # Compute wave speed estimates in each direction. Requires rotation because
-    # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
-    norm_ = norm(normal_direction)
-    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-    normal_vector = normal_direction / norm_
-    # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
-    tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
-    # Orthogonal projection
-    tangent1 -= dot(normal_vector, tangent1) * normal_vector
-    tangent1 = normalize(tangent1)
-    # Third orthogonal vector
-    tangent2 = normalize(cross(normal_direction, tangent1))
-    # rotate the solution states
-    u_ll_rotated = rotate_to_x(u_ll, normal_vector, tangent1, tangent2, equations)
-    u_rr_rotated = rotate_to_x(u_rr, normal_vector, tangent1, tangent2, equations)
-  return max_abs_speed_naive(u_ll_rotated, u_rr_rotated, 1, equations) * norm(normal_direction)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+
+  norm_squared = (normal_direction[1] * normal_direction[1] +
+                  normal_direction[2] * normal_direction[2] +
+                  normal_direction[3] * normal_direction[3])
+
+  # Calculate velocities and fast magnetoacoustic wave speeds
+  # left
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_mag_ll = sqrt((v1_ll^2 + v2_ll^2 + v3_ll^2) * norm_squared)
+  cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+  # right
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  v_mag_rr = sqrt((v1_rr^2 + v2_rr^2 + v3_rr^2) * norm_squared)
+  cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+
+  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 end
 
 
