@@ -183,7 +183,11 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surfac
   rd = dg.basis
   @unpack Fmask = rd
   @unpack u_face_values = cache
-  StructArrays.foreachfield((out, u)->out .= view(u, Fmask, :), u_face_values, u)
+  @threaded for e in eachelement(mesh, dg, cache)
+    for (i,fid) in enumerate(Fmask)
+      u_face_values[i, e] = u[fid, e]
+    end
+  end
 end
 
 # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to
@@ -196,7 +200,8 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   @unpack flux_face_values = cache
   @threaded for e in eachelement(mesh, dg, cache)
     for i in each_face_node(mesh, dg, cache)
-      du[rd.Fmask[i],e] += flux_face_values[i,e] * rd.wf[i] / rd.wq[rd.Fmask[i]]
+      fid = rd.Fmask[i]
+      du[fid, e] = du[fid, e] + flux_face_values[i,e] * rd.wf[i] / rd.wq[fid]
     end
   end
 end
