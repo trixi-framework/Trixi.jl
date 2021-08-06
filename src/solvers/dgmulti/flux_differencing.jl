@@ -56,19 +56,17 @@ end
 
 # For DGMulti implementations, we construct "physical" differentiation operators by taking linear
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
-# We use LazyArrays.jl for lazy evaluation of physical differentiation operators, so that we can
-# compute linear combinations of differentiation operators on-the-fly in an allocation-free manner.
+# We use a lazy evaluation of physical differentiation operators, so that we can compute linear
+# combinations of differentiation operators on-the-fly in an allocation-free manner.
 function build_lazy_physical_derivative(element, orientation,
                                         mesh::VertexMappedMesh{2}, dg, cache)
   @unpack Qrst_skew_Tr = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   QrskewTr, QsskewTr = Qrst_skew_Tr
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew_Tr, (2 * rxJ[1,element], 2 * sxJ[1,element]))
-    # return LazyArray(@~ @. 2 * (rxJ[1,element] * QrskewTr + sxJ[1,element] * QsskewTr))
+    return LazyMatrixLinearCombo(Qrst_skew_Tr, 2 .* (rxJ[1,element], sxJ[1,element]))
   else
-    return LazyMatrixLinearCombo(Qrst_skew_Tr, (2 * ryJ[1,element], 2 * syJ[1,element]))
-    # return LazyArray(@~ @. 2 * (ryJ[1,element] * QrskewTr + syJ[1,element] * QsskewTr))
+    return LazyMatrixLinearCombo(Qrst_skew_Tr, 2 .* (ryJ[1,element], syJ[1,element]))
   end
 end
 
@@ -78,11 +76,11 @@ function build_lazy_physical_derivative(element, orientation,
   QrskewTr, QsskewTr, QtskewTr = Qrst_skew_Tr
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   if orientation == 1
-    return LazyArray(@~ @. 2 * (rxJ[1,element]*QrskewTr + sxJ[1,element]*QsskewTr + txJ[1,element]*QtskewTr))
+    return LazyMatrixLinearCombo(Qrst_skew_Tr, 2 .* (rxJ[1,element], sxJ[1,element], txJ[1,element]))
   elseif orientation == 2
-    return LazyArray(@~ @. 2 * (ryJ[1,element]*QrskewTr + syJ[1,element]*QsskewTr + tyJ[1,element]*QtskewTr))
+    return LazyMatrixLinearCombo(Qrst_skew_Tr, 2 .* (ryJ[1,element], syJ[1,element], tyJ[1,element]))
   elseif orientation == 3
-    return LazyArray(@~ @. 2 * (rzJ[1,element]*QrskewTr + szJ[1,element]*QsskewTr + tzJ[1,element]*QtskewTr))
+    return LazyMatrixLinearCombo(Qrst_skew_Tr, 2 .* (rzJ[1,element], szJ[1,element], tzJ[1,element]))
   end
 end
 

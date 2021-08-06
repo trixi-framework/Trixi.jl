@@ -33,7 +33,6 @@ using CodeTracking: code_string
 using FillArrays: Ones
 import ForwardDiff
 using HDF5: h5open, attributes
-using LazyArrays: LazyArray, @~
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
