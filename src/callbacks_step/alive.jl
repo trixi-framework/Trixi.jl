@@ -66,27 +66,33 @@ end
 function (alive_callback::AliveCallback)(u, t, integrator)
   @unpack alive_interval, analysis_interval = alive_callback
 
+  # With error-based step size control, some steps canbe rejected. Thus,
+  #   `integrator.iter >= integrator.success_iter`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
   return alive_interval > 0 && (
-    (integrator.iter % alive_interval == 0 && (analysis_interval == 0 || integrator.iter % analysis_interval != 0)) ||
+    (integrator.success_iter % alive_interval == 0 &&
+    !(integrator.success_iter == 0 && integrator.iter > 0) &&
+    (analysis_interval == 0 || integrator.success_iter % analysis_interval != 0)) ||
     isfinished(integrator))
 end
 
 
 # this method is called when the callback is activated
 function (alive_callback::AliveCallback)(integrator)
-  @unpack t, dt, iter = integrator
-
   # Checking for floating point equality is OK here as `DifferentialEquations.jl`
   # sets the time exactly to the final time in the last iteration
   if isfinished(integrator) && mpi_isroot()
     println("─"^100)
-    println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
+    println("Trixi simulation finished.  Final time: ", integrator.t,
+            "  Time steps: ", integrator.success_iter, " (accepted), ", integrator.iter, " (total)")
     println("─"^100)
     println()
   elseif mpi_isroot()
     runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
     @printf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e │ run time: %.4e s\n",
-            iter, dt, t, runtime_absolute)
+            integrator.success_iter, integrator.dt, integrator.t, runtime_absolute)
   end
 
   # avoid re-evaluating possible FSAL stages

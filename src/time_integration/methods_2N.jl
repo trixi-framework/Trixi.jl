@@ -83,12 +83,21 @@ mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIn
   t::RealT
   dt::RealT # current time step
   dtcache::RealT # ignored
-  iter::Int # current number of time step (iteration)
+  iter::Int # current number of time steps (iteration)
   p::Params # will be the semidiscretization from Trixi
   sol::Sol # faked
   alg::Alg
   opts::SimpleIntegrator2NOptions
   finalstep::Bool # added for convenience
+end
+
+# Forward integrator.success_iter to integrator.iter
+function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
+  if field === :success_iter
+    return getfield(integrator, :iter)
+  end
+  # general fallback
+  return getfield(integrator, field)
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1

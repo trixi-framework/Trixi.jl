@@ -79,15 +79,22 @@ end
 function (restart_callback::SaveRestartCallback)(u, t, integrator)
   @unpack interval, save_final_restart = restart_callback
 
+  # With error-based step size control, some steps canbe rejected. Thus,
+  #   `integrator.iter >= integrator.success_iter`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
   return interval > 0 && (
-    (integrator.iter % interval == 0) || (save_final_restart && isfinished(integrator)))
+    ((integrator.success_iter % interval == 0) && !(integrator.success_iter == 0 && integrator.iter > 0)) ||
+    (save_final_restart && isfinished(integrator)))
 end
 
 
 # this method is called when the callback is activated
 function (restart_callback::SaveRestartCallback)(integrator)
   u_ode = integrator.u
-  @unpack t, dt, iter = integrator
+  @unpack t, dt = integrator
+  iter = integrator.success_iter
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
