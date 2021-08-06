@@ -42,7 +42,7 @@ volume_flux  = flux_ranocha # works with Chandrashekar flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
-# shock capturing necessary for this tough example, however alpha_max = 0.5 is fine
+# shock capturing necessary for this tough example
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.3, 
                                          alpha_min=0.0001,
