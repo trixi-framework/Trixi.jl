@@ -108,7 +108,7 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
 
 ###############################################################################
 # run the simulation
-# use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
+# use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
 sol = solve(ode, SSPRK43(stage_limiter!),
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
