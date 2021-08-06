@@ -123,6 +123,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       tspan = (0.0, 0.1))
   end
 
+  @trixi_testset "elixir_euler_astro_jet_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_amr.jl"),
+      l2   = [0.011338493575859507, 10.097552800226566, 0.0038670992882799088, 4031.828021246965],
+      linf = [3.316670548834158, 2992.6286682433883, 7.919515633718346, 1.1914747265545786e6],
+      tspan = (0.0, 1.0e-7))
+  end
+
   @trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
       l2   = [3.6343141788303172e-6, 0.0032111379945554378, 0.0032111482803927763, 0.004545715899533244],
