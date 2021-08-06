@@ -54,7 +54,7 @@ function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real,
 end
 
 """
-    EulerAcousticsCouplingCallback(fl_acoustics::Real, cfl_euler::Real, averaging_file,
+    EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, averaging_file,
                                    semi_euler::SemidiscretizationHyperbolic)
 
 Creates an [`EulerAcousticsCouplingCallback`](@ref) using the CFL numbers `cfl_acoustics` and
@@ -95,7 +95,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   ode_euler = semidiscretize(semi_euler, tspan)
   euler_acoustics_coupling.integrator_euler = init(ode_euler, alg, save_everystep=false, dt=1.0) # dt will be overwritten
 
-  # Set mean values in u_ode according to `AveragingCallback`
+  # Initialize mean values in u_ode
   u_acoustics = wrap_array(u_ode, semi_acoustics)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack mean_values = euler_acoustics_coupling
@@ -115,7 +115,7 @@ end
 
 
 # This function is called at the end of every time step and advances the Euler solution by one
-# time step, # manages the time stepsize for both the acoustics and Euler solvers and calculates the
+# time step, manages the time stepsize for both the acoustics and Euler solvers and calculates the
 # acoustic sources for the next acoustics time step
 function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_acoustics)
   @unpack stepsize_callback_acoustics, stepsize_callback_euler, integrator_euler = euler_acoustics_coupling

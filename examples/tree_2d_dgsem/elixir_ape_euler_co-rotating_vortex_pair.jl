@@ -6,10 +6,8 @@ using LinearAlgebra: norm
 # medium.
 module VortexPairSetup
 
-using ForwardDiff
 using LinearAlgebra: norm
 using Trixi
-using Polyester
 using UnPack
 
 
@@ -48,11 +46,6 @@ function velocity(x, t, vortex_pair::VortexPair)
                                r_minus/(rc^2 + r_minus^2) * co_minus )
 
   return SVector(v1, v2)
-end
-
-function vorticity(x, t, vortex_pair::VortexPair)
-  J = ForwardDiff.jacobian(x -> velocity(x, t, vortex_pair), x)
-  return J[2, 1] - J[1, 2]
 end
 
 
@@ -134,7 +127,7 @@ function source_term_sponge_layer(u, x, t, equations::CompressibleEulerEquations
   # zones for two directions overlap
   alphas = ntuple(i -> calc_damping_factor(x, i, sponge_layer_min, sponge_layer_max),
                                            Val(2*Trixi.ndims(equations)))
-  alpha_square = maximum(alphas)^2 # TODO: rename this stuff
+  alpha_square = maximum(alphas)^2
 
   u_prim = cons2prim(u, equations)
   s = SVector(-alpha_square*(u_prim[1] - reference_values[1]), zero(eltype(u)), zero(eltype(u)),
@@ -216,6 +209,9 @@ rho = 1.0
 
 rc = 2/9 * r0 * 1.0
 
+T_r = 8 * pi^2 * r0^2 / circulation # Rotational period of the vortex pair
+T_a = T_r / 2 # Acoustic period of the vortex pair
+
 vortex_pair = VortexPairSetup.VortexPair(r0, rc, c0, circulation, rho)
 
 # Shared mesh for both semidiscretizations
@@ -258,22 +254,19 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 
 ###############################################################################
 # semidiscretization acoustic perturbation equations
-equations_ape = AcousticPerturbationEquations2D(v_mean_global=(13.0, 26.0), c_mean_global=39.0,
-                                                rho_mean_global=52.0) # global mean values will be overwritten
+equations_acoustics = AcousticPerturbationEquations2D(v_mean_global=(13.0, 26.0), c_mean_global=39.0,
+                                                      rho_mean_global=52.0) # global mean values will be overwritten
 
-sponge_layer_ape = VortexPairSetup.SpongeLayer(sponge_layer_min=(-135*r0, 100*r0, -135*r0, 100*r0),
-                                               sponge_layer_max=(-100*r0, 135*r0, -100*r0, 135*r0),
-                                               reference_values=(0.0,))
+sponge_layer_acoustics = VortexPairSetup.SpongeLayer(sponge_layer_min=(-135*r0, 100*r0, -135*r0, 100*r0),
+                                                     sponge_layer_max=(-100*r0, 135*r0, -100*r0, 135*r0),
+                                                     reference_values=(0.0,))
 
-semi_ape = SemidiscretizationHyperbolic(mesh, equations_ape, initial_condition_constant, solver,
-                                        boundary_conditions=boundary_condition_zero,
-                                        source_terms=sponge_layer_ape)
+semi_acoustics = SemidiscretizationHyperbolic(mesh, equations_acoustics, initial_condition_constant, solver,
+                                              boundary_conditions=boundary_condition_zero,
+                                              source_terms=sponge_layer_acoustics)
 
 ###############################################################################
 # ODE solvers, callbacks etc. for averaging the flow field
-
-T_r = 8 * pi^2 * r0^2 / circulation # Rotational period of the vortex pair
-T_a = T_r / 2 # Acoustic period of the vortex pair
 
 # Create ODE problem
 tspan1 = (0.0, 400.0)
@@ -313,11 +306,12 @@ source_region(x) = sum(x.^2) < 6.0^2 # calculate sources within radius 6 around 
 # gradually reduce acoustic source term amplitudes to zero, starting at radius 5
 weights(x) = sum(x.^2) < 5.0^2 ? 1.0 : cospi(0.5 * (norm(x) - 5.0))
 
-semi = SemidiscretizationEulerAcoustics(semi_ape, semi_euler, source_region=source_region, weights=weights)
-cfl_ape = 1.0
+semi = SemidiscretizationEulerAcoustics(semi_acoustics, semi_euler,
+                                        source_region=source_region, weights=weights)
+cfl_acoustics = 1.0
 cfl_euler = 1.0
-ape_euler_coupling = EulerAcousticsCouplingCallback(cfl_ape, cfl_euler,
-                                                    "out/averaging.h5", semi_euler)
+euler_acoustics_coupling = EulerAcousticsCouplingCallback(cfl_acoustics, cfl_euler,
+                                                          "out/averaging.h5", semi_euler)
 
 ###############################################################################
 # ODE solvers, callbacks etc. for the coupled simulation
@@ -339,7 +333,7 @@ save_solution = SaveSolutionCallback(interval=2300, output_directory=output_dire
 save_restart = SaveRestartCallback(interval=2300, output_directory=output_directory)
 
 callbacks = CallbackSet(summary_callback, alive, analysis_callback, save_solution, save_restart,
-                        ape_euler_coupling)
+                        euler_acoustics_coupling)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
