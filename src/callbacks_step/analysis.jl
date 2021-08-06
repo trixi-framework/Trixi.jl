@@ -90,12 +90,12 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           kwargs...)
   # Decide when the callback is activated.
   # With error-based step size control, some steps canbe rejected. Thus,
-  #   `integrator.iter >= integrator.success_iter`
+  #   `integrator.iter >= integrator.destats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
-  condition = (u, t, integrator) -> interval > 0 && ( (integrator.success_iter % interval == 0 &&
-                                                       !(integrator.success_iter == 0 && integrator.iter > 0)) ||
+  condition = (u, t, integrator) -> interval > 0 && ( (integrator.destats.naccept % interval == 0 &&
+                                                       !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
                                                      isfinished(integrator))
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
@@ -181,7 +181,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack dt, t = integrator
-  iter = integrator.success_iter
+  iter = integrator.destats.naccept
 
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)

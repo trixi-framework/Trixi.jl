@@ -108,12 +108,12 @@ function (solution_callback::SaveSolutionCallback)(u, t, integrator)
   @unpack interval, save_final_solution = solution_callback
 
   # With error-based step size control, some steps canbe rejected. Thus,
-  #   `integrator.iter >= integrator.success_iter`
+  #   `integrator.iter >= integrator.destats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
   return interval > 0 && (
-    ((integrator.success_iter % interval == 0) && !(integrator.success_iter == 0 && integrator.iter > 0)) ||
+    ((integrator.destats.naccept % interval == 0) && !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
     (save_final_solution && isfinished(integrator)))
 end
 
@@ -122,7 +122,7 @@ end
 function (solution_callback::SaveSolutionCallback)(integrator)
   u_ode = integrator.u
   @unpack t, dt = integrator
-  iter = integrator.success_iter
+  iter = integrator.destats.naccept
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
@@ -138,10 +138,10 @@ function (solution_callback::SaveSolutionCallback)(integrator)
       callbacks = integrator.opts.callback
       if callbacks isa CallbackSet
         for cb in callbacks.continuous_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.success_iter)
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.destats.naccept)
         end
         for cb in callbacks.discrete_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.success_iter)
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.destats.naccept)
         end
       end
     end

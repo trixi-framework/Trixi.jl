@@ -126,12 +126,12 @@ function (visualization_callback::VisualizationCallback)(u, t, integrator)
   @unpack interval = visualization_callback
 
   # With error-based step size control, some steps canbe rejected. Thus,
-  #   `integrator.iter >= integrator.success_iter`
+  #   `integrator.iter >= integrator.destats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
   # activated after a rejected step.
-  return interval > 0 && ( (integrator.success_iter % interval == 0 &&
-                           !(integrator.success_iter == 0 && integrator.iter > 0)) ||
+  return interval > 0 && ( (integrator.destats.naccept % interval == 0 &&
+                           !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
                           isfinished(integrator))
 end
 
@@ -153,7 +153,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
   # Create plot
   plot_creator(plot_data, variable_names;
                show_mesh=show_mesh, plot_arguments=plot_arguments,
-               time=integrator.t, timestep=integrator.success_iter)
+               time=integrator.t, timestep=integrator.destats.naccept)
 
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
