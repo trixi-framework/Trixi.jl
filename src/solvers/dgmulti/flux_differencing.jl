@@ -84,40 +84,59 @@ function build_lazy_physical_derivative(element, orientation,
   end
 end
 
-function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
-
-  rd = dg.basis
-  @unpack local_values_threaded, sparsity_pattern = cache
-
-  volume_flux_oriented(i) = @inline (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
-
-  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
-  @threaded for e in eachelement(mesh, dg, cache)
-    rhs_local = local_values_threaded[Threads.threadid()]
-    fill!(rhs_local, zero(eltype(rhs_local)))
-    u_local = view(u, :, e)
-    for i in eachdim(mesh)
-      Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-
-      # use `sparsity_pattern` to dispatch hadamard_sum_A_transposed. If using Tri or Tet elements,
-      # the Qi_skew_Tr matrices are dense, and sparsity_pattern = nothing. If using Quad or Hex
-      # elements with an SBP approximationType, then the Qi_skew_Tr matrices are
-      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, sparsity_pattern)
-    end
-    for i in each_quad_node(mesh, dg, cache)
-      du[i, e] = du[i, e] + rhs_local[i] / rd.wq[i]
-    end
-  end
-end
-
 function compute_flux_differencing_SBP_matrices(dg::DGMulti{Ndims}) where {Ndims}
   rd = dg.basis
-  @unpack md = mesh
 
   Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
   Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
   return Qrst_skew_Tr, VhP, Ph
+end
+
+# Allocate local storage for flux computations:
+# create an array which is contiguous in memory but is interpreted as Vector{SVector{nvars}}
+# Copied from https://juliaarrays.github.io/StaticArrays.jl/latest/pages/api/#Guide
+function svectorscopy(x::Matrix{T}, ::Val{N}) where {T,N}
+  size(x,1) == N || error("sizes mismatch")
+  isbitstype(T) || error("use for bitstypes only")
+  copy(reinterpret(SVector{N,T}, vec(x)))
+end
+
+# precompute sparsity pattern for optimized flux differencing routines for tensor product elements
+function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
+                                  tol = 1e2*eps()) where {DG <: DGMultiFluxDiff{<:SBP, <:Union{Quad, Hex}}}
+  sparsity_pattern = sum(map(A->abs.(A), droptol!.(sparse.(flux_diff_matrices), tol))) .!= 0
+  return sparsity_pattern
+end
+
+compute_sparsity_pattern(flux_diff_matrices, dg::DGMulti) = nothing
+
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, RealT, uEltype)
+
+  # TODO: invoke create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, RealT, uEltype) instead
+
+  rd = dg.basis
+  md = mesh.md
+
+  # for use with flux differencing schemes
+  Qrst_skew_Tr = compute_flux_differencing_SBP_matrices(dg)
+  sparsity_pattern = compute_sparsity_pattern(Qrst_skew_Tr, dg)
+
+  nvars = nvariables(equations)
+
+  # Todo: simplices. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
+  # storage for volume quadrature values, face quadrature values, flux values
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq))
+  u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
+  flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
+
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()]
+
+  # use copy(reinterpret(SVector, vec(x))) to speed up flux differencing
+  fluxdiff_local_threaded = [svectorscopy(zeros(nvars, rd.Nq), Val{nvars}()) for _ in 1:Threads.nthreads()]
+
+  return (; md, Qrst_skew_Tr, sparsity_pattern, invJ = inv.(md.J),
+            u_values, u_face_values, flux_face_values,
+            local_values_threaded, fluxdiff_local_threaded)
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, RealT, uEltype)
@@ -130,26 +149,32 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
 
   nvars = nvariables(equations)
 
+  # temp storage for entropy variables at volume quad points
+  entropy_var_values = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements))
+
   # storage for all quadrature points (concatenated volume / face quadrature points)
   num_quad_points_total = rd.Nq + rd.Nfq
-  entropy_projected_u_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(num_quad_points_total, md.num_elements), nvars))
-  projected_entropy_var_values = similar(entropy_projected_u_values)
+  entropy_projected_u_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements))
+  projected_entropy_var_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements))
 
-  # initialize views into entropy_projected_u_values
+  # initialize temporary storage as views into entropy_projected_u_values
   u_values = view(entropy_projected_u_values, 1:rd.Nq, :)
   u_face_values = view(entropy_projected_u_values, rd.Nq+1:num_quad_points_total, :)
-
-  # temp storage for entropy variables at volume quad points
-  entropy_var_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq, md.num_elements), nvars))
+  flux_face_values = similar(u_face_values)
 
   # local storage for interface fluxes, rhs, and source
-  flux_face_values = similar(u_face_values)
-  rhs_local_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(num_quad_points_total), nvars)) for _ in 1:Threads.nthreads()]
-  local_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()]
+
+  # We use copy(reinterpret(SVector, vec(x))) to speed up flux differencing.
+  # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
+  # projecting it and storing it into `du`.
+  fluxdiff_local_threaded = [svectorscopy(zeros(nvars, num_quad_points_total), Val{nvars}()) for _ in 1:Threads.nthreads()]
+  rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,))  for _ in 1:Threads.nthreads()]
 
   return (; md, Qrst_skew_Tr, sparsity_pattern, VhP, Ph, invJ = inv.(md.J),
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
-            u_values, u_face_values, rhs_local_threaded, flux_face_values, local_values_threaded)
+            u_values, u_face_values,  flux_face_values,
+            local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
 
 function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMulti)
@@ -172,13 +197,13 @@ function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
-  @unpack local_values_threaded, sparsity_pattern = cache
+  @unpack fluxdiff_local_threaded, sparsity_pattern = cache
   @unpack volume_flux = volume_integral
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
-    rhs_local = local_values_threaded[Threads.threadid()]
-    fill!(rhs_local, zero(eltype(rhs_local)))
+    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
+    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
     u_local = view(u, :, e)
     for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
@@ -186,13 +211,13 @@ function calc_volume_integral!(du, u, volume_integral,
       # use `sparsity_pattern` to dispatch hadamard_sum_A_transposed. If using Tri or Tet elements,
       # the Qi_skew_Tr matrices are dense, and sparsity_pattern = nothing. If using Quad or Hex
       # elements with an SBP approximationType, then sparsity_pattern::AbstractSparseMatrix{Bool}.
-      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux, i,
+      hadamard_sum_A_transposed!(fluxdiff_local, Qi_skew_Tr, volume_flux, i,
                                  u_local, sparsity_pattern,
                                  mesh, equations, dg, cache)
     end
 
     for i in each_quad_node(mesh, dg, cache)
-      du[i, e] = du[i, e] + rhs_local[i] / rd.wq[i]
+      du[i, e] = du[i, e] + fluxdiff_local[i] / rd.wq[i]
     end
   end
 end
@@ -201,7 +226,7 @@ function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, cache)
 
   rd = dg.basis
-  @unpack entropy_projected_u_values, rhs_local_threaded, Ph = cache
+  @unpack entropy_projected_u_values, fluxdiff_local_threaded, rhs_local_threaded, Ph = cache
   @unpack volume_flux = volume_integral
 
   # skips subblock of Qi_skew_Tr which we know is zero by construction
@@ -209,13 +234,19 @@ function calc_volume_integral!(du, u, volume_integral,
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
-    rhs_local = rhs_local_threaded[Threads.threadid()]
-    fill!(rhs_local, zero(eltype(rhs_local)))
+    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
+    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
     u_local = view(entropy_projected_u_values, :, e)
     for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux, i, u_local,
+      hadamard_sum_A_transposed!(fluxdiff_local, Qi_skew_Tr, volume_flux, i, u_local,
                                   mesh, equations, dg, cache, skip_index)
+    end
+
+    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector}
+    rhs_local = rhs_local_threaded[Threads.threadid()]
+    for i in Base.OneTo(length(fluxdiff_local))
+      rhs_local[i] = fluxdiff_local[i]
     end
     StructArrays.foreachfield(mul_by_accum!(Ph), view(du, :, e), rhs_local)
   end

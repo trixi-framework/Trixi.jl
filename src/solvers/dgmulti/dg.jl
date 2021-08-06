@@ -34,19 +34,55 @@ mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out))
 @inline each_face_node_global(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
-wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
+wrap_array(u_ode, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMeshData,
                                     dg::DGMulti, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
   return boundary_conditions
 end
 
-function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DGMulti, cache)
-  md = mesh.md
-  nvars = nvariables(equations)
-  return StructArray{SVector{nvars, real(dg)}}(ntuple(_->similar(md.x),nvars))
+# Allocate nested array type for DGMulti solution storage.
+function allocate_nested_array(uEltype, nvars, array_dimensions)
+
+  # old approach: store components as separate arrays, combine via StructArrays
+  return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
+
+  # # allocate a raw array with leading dimension "nvars" and construct a StructArray from slice views.
+  # # TODO: figure out why sol.u[end] becomes just StructArray{<:SVector, NTuple{N, <:Matrix}...}.
+  # u_array = zeros(uEltype, nvars, array_dimensions...)
+  # return StructArray{SVector{nvars, uEltype}}(ntuple(i->view(u_array, i, ntuple(_->:, length(array_dimensions))...), nvars))
 end
 
-function compute_coefficients!(u::StructArray, initial_condition, t,
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
+
+  rd = dg.basis
+  md = mesh.md
+
+  # volume quadrature weights, volume interpolation matrix, mass matrix, differentiation matrices
+  @unpack wq, Vq, M, Drst = rd
+
+  # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
+  weak_differentiation_matrices = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
+
+  nvars = nvariables(equations)
+
+  # storage for volume quadrature values, face quadrature values, flux values
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq))
+  u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
+  flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
+
+  # local storage for volume integral and source computations
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()] # this is much slower - why?
+
+  return (; md, weak_differentiation_matrices, invJ = inv.(md.J),
+            u_values, u_face_values, flux_face_values,
+            local_values_threaded)
+end
+
+function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DGMulti, cache)
+  return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x))
+end
+
+function compute_coefficients!(u, initial_condition, t,
                         mesh::AbstractMeshData{NDIMS}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
   md = mesh.md
   rd = dg.basis
@@ -84,50 +120,7 @@ function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP})
   return Qrst_skew_Tr
 end
 
-# precompute sparsity pattern for optimized flux differencing routines for tensor product elements
-function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
-                                  tol = 1e2*eps()) where {DG <: DGMultiFluxDiff{<:SBP, <:Union{Quad, Hex}}}
-  sparsity_pattern = sum(map(A->abs.(A), droptol!.(sparse.(flux_diff_matrices), tol))) .!= 0
-  return sparsity_pattern
-end
-
-compute_sparsity_pattern(flux_diff_matrices, dg::DGMulti) = nothing
-
-function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
-                      RealT, uEltype) where {DG <: Union{DGMultiWeakForm, DGMultiFluxDiff{<:SBP}}}
-
-  rd = dg.basis
-  md = mesh.md
-
-  # volume quadrature weights, volume interpolation matrix
-  @unpack wq, Vq = rd
-
-  # mass matrix, tuple of differentiation matrices
-  @unpack M, Drst = rd
-
-  # ∫f(u) * dv/dx_i = ∑_j (Vq*D_i)'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
-  weak_differentiation_matrices = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
-
-  # for use with flux differencing schemes
-  Qrst_skew_Tr = compute_flux_differencing_SBP_matrices(dg)
-  sparsity_pattern = compute_sparsity_pattern(Qrst_skew_Tr, dg)
-
-  nvars = nvariables(equations)
-
-  # Todo: simplices. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
-  # storage for volume quadrature values, face quadrature values, flux values
-  u_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq, md.num_elements), nvars))
-  u_face_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nfq, md.num_elements), nvars))
-  flux_face_values = similar(u_face_values)
-
-  # local storage for fluxes
-  local_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
-
-  return (; md, weak_differentiation_matrices, Qrst_skew_Tr, sparsity_pattern, invJ = inv.(md.J),
-      u_values, local_values_threaded, u_face_values, flux_face_values)
-end
-
-function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralWeakForm,
+function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
                  mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
