@@ -12,7 +12,8 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
 - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for
   faster traversal since matrices are column major in Julia.
 """
-@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u,
+                                            mesh, equations, dg, cache, skip_index=(i,j)->false)
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
@@ -22,7 +23,7 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
       # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
       # is symmetric).
       if j > i && !skip_index(i, j)
-          AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
+          AF_ij = ATr[j,i] * volume_flux(u_i, u[j], orientation, equations)
           du[i] = du[i] + AF_ij
           du[j] = du[j] - AF_ij
       end
@@ -31,7 +32,9 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
 end
 
 # Optimized flux differencing routine for when a `sparsity_pattern` matrix is provided
-@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, u, sparsity_pattern::AbstractSparseMatrix{Bool})
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u,
+                                            sparsity_pattern::AbstractSparseMatrix{Bool},
+                                            mesh, equations, dg, cache)
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
   for i = 1:n
@@ -39,7 +42,7 @@ end
     for id in nzrange(sparsity_pattern, i)
       j = rows[id]
       if j > i
-        AF_ij = ATr[j,i] * volume_flux(u_i, u[j])
+        AF_ij = ATr[j,i] * volume_flux(u_i, u[j], orientation, equations)
         du[i] = du[i] + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -47,8 +50,9 @@ end
   end
 end
 
-@inline hadamard_sum_A_transposed!(du, ATr, volume_flux, u, sparsity_pattern::Nothing) =
-  hadamard_sum_A_transposed!(du, ATr, volume_flux, u)
+@inline hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u, sparsity_pattern::Nothing,
+                                   mesh, equations, dg, cache) =
+  hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u, mesh, equations, dg, cache)
 
 # For DGMulti implementations, we construct "physical" differentiation operators by taking linear
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
@@ -164,12 +168,41 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   entropy_projected_u_values .= entropy2cons.(projected_entropy_var_values, equations)
 end
 
-function calc_volume_integral!(du, u::StructArray, volume_integral,
+function calc_volume_integral!(du, u, volume_integral,
+                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+
+  rd = dg.basis
+  @unpack local_values_threaded, sparsity_pattern = cache
+  @unpack volume_flux = volume_integral
+
+  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  @threaded for e in eachelement(mesh, dg, cache)
+    rhs_local = local_values_threaded[Threads.threadid()]
+    fill!(rhs_local, zero(eltype(rhs_local)))
+    u_local = view(u, :, e)
+    for i in eachdim(mesh)
+      Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
+
+      # use `sparsity_pattern` to dispatch hadamard_sum_A_transposed. If using Tri or Tet elements,
+      # the Qi_skew_Tr matrices are dense, and sparsity_pattern = nothing. If using Quad or Hex
+      # elements with an SBP approximationType, then sparsity_pattern::AbstractSparseMatrix{Bool}.
+      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux, i,
+                                 u_local, sparsity_pattern,
+                                 mesh, equations, dg, cache)
+    end
+
+    for i in each_quad_node(mesh, dg, cache)
+      du[i, e] = du[i, e] + rhs_local[i] / rd.wq[i]
+    end
+  end
+end
+
+function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, cache)
 
   rd = dg.basis
   @unpack entropy_projected_u_values, rhs_local_threaded, Ph = cache
-  volume_flux_oriented(i) = @inline (u_ll, u_rr)->volume_integral.volume_flux(u_ll, u_rr, i, equations)
+  @unpack volume_flux = volume_integral
 
   # skips subblock of Qi_skew_Tr which we know is zero by construction
   skip_index(i,j) = i > rd.Nq && j > rd.Nq
@@ -181,7 +214,8 @@ function calc_volume_integral!(du, u::StructArray, volume_integral,
     u_local = view(entropy_projected_u_values, :, e)
     for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux_oriented(i), u_local, skip_index)
+      hadamard_sum_A_transposed!(rhs_local, Qi_skew_Tr, volume_flux, i, u_local,
+                                  mesh, equations, dg, cache, skip_index)
     end
     StructArrays.foreachfield(mul_by_accum!(Ph), view(du, :, e), rhs_local)
   end
