@@ -64,9 +64,11 @@ function build_lazy_physical_derivative(element, orientation,
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   QrskewTr, QsskewTr = Qrst_skew_Tr
   if orientation == 1
-    return LazyArray(@~ @. 2 * (rxJ[1,element] * QrskewTr + sxJ[1,element] * QsskewTr))
+    return LazyMatrixLinearCombo(Qrst_skew_Tr, (2 * rxJ[1,element], 2 * sxJ[1,element]))
+    # return LazyArray(@~ @. 2 * (rxJ[1,element] * QrskewTr + sxJ[1,element] * QsskewTr))
   else
-    return LazyArray(@~ @. 2 * (ryJ[1,element] * QrskewTr + syJ[1,element] * QsskewTr))
+    return LazyMatrixLinearCombo(Qrst_skew_Tr, (2 * ryJ[1,element], 2 * syJ[1,element]))
+    # return LazyArray(@~ @. 2 * (ryJ[1,element] * QrskewTr + syJ[1,element] * QsskewTr))
   end
 end
 

@@ -74,5 +74,30 @@ VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
 
 # Todo: simplices. Add traits for dispatch on affine/curved meshes here.
 
+# Matrix type for lazy construction of physical differentiation matrices
+
+# lazy linear combination of B = ∑_i coeffs[i] * A[i]
+all_equal(x) = all(y->y==x[1], x)
+
+struct LazyMatrixLinearCombo{Tcoeffs, N, Tv, TA <: AbstractMatrix{Tv}} <: AbstractMatrix{Tv}
+  matrices::NTuple{N, TA}
+  coeffs::NTuple{N, Tcoeffs}
+  function LazyMatrixLinearCombo(matrices, coeffs)
+    @assert all_equal(size.(matrices))
+    new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)), typeof(first(matrices))}(matrices, coeffs)
+  end
+end
+Base.eltype(A::LazyMatrixLinearCombo) = eltype(first(A.matrices))
+Base.IndexStyle(A::LazyMatrixLinearCombo) = IndexCartesian()
+Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
+
+@inline function Base.getindex(A::LazyMatrixLinearCombo{<:Real, N}, I::Vararg{Int}) where {N}
+  val = zero(eltype(A))
+  for i in Base.OneTo(N)
+    val = val + A.coeffs[i] * getindex(A.matrices[i], I[1], I[2])
+  end
+  return val
+end
+
 
 end # @muladd
