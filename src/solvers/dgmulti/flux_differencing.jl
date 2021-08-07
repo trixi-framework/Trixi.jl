@@ -132,13 +132,14 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq))
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
+  Fscale = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()]
 
-  # use copy(reinterpret(SVector, vec(x))) to speed up flux differencing
-  fluxdiff_local_threaded = [svectorscopy(zeros(nvars, rd.Nq), Val{nvars}()) for _ in 1:Threads.nthreads()]
+  # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
+  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew_Tr, sparsity_pattern, invJ = inv.(md.J),
+  return (; md, Qrst_skew_Tr, sparsity_pattern, invJ = inv.(md.J), Fscale,
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
 end
@@ -169,10 +170,10 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   # local storage for interface fluxes, rhs, and source
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()]
 
-  # We use copy(reinterpret(SVector, vec(x))) to speed up flux differencing.
+  # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
   # projecting it and storing it into `du`.
-  fluxdiff_local_threaded = [svectorscopy(zeros(nvars, num_quad_points_total), Val{nvars}()) for _ in 1:Threads.nthreads()]
+  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
   rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,))  for _ in 1:Threads.nthreads()]
 
   return (; md, Qrst_skew_Tr, sparsity_pattern, VhP, Ph, invJ = inv.(md.J),

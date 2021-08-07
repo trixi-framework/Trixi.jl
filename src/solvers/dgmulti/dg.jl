@@ -46,10 +46,12 @@ function allocate_nested_array(uEltype, nvars, array_dimensions)
   # old approach: store components as separate arrays, combine via StructArrays
   return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
 
-  # # allocate a raw array with leading dimension "nvars" and construct a StructArray from slice views.
-  # # TODO: figure out why sol.u[end] becomes just StructArray{<:SVector, NTuple{N, <:Matrix}...}.
-  # u_array = zeros(uEltype, nvars, array_dimensions...)
-  # return StructArray{SVector{nvars, uEltype}}(ntuple(i->view(u_array, i, ntuple(_->:, length(array_dimensions))...), nvars))
+  # TODO: any way to use a raw array of size (nvars, array_dimension...) for contiguity in memory?
+  # Can use the following:
+  #   `u_array = zeros(uEltype, nvars, array_dimensions...)`
+  #   `u = StructArray{SVector{nvars, uEltype}}(ntuple(i->view(u_array, i, ntuple(_->:, length(array_dimensions))...), nvars))`
+  # However, then `similar(u)` becomes `StructArray{<:SVector, NTuple{N, <:Matrix}...}`, and
+  # redefining `similar(u)` breaks things.
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
