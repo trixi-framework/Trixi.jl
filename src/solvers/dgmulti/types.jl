@@ -91,10 +91,10 @@ Base.eltype(A::LazyMatrixLinearCombo) = eltype(first(A.matrices))
 Base.IndexStyle(A::LazyMatrixLinearCombo) = IndexCartesian()
 Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
 
-@inline function Base.getindex(A::LazyMatrixLinearCombo{<:Real, N}, I::Vararg{Int}) where {N}
+@inline function Base.getindex(A::LazyMatrixLinearCombo{<:Real, N}, i, j) where {N}
   val = zero(eltype(A))
-  for i in Base.OneTo(N)
-    val = val + A.coeffs[i] * getindex(A.matrices[i], I[1], I[2])
+  for k in Base.OneTo(N)
+    val = val + A.coeffs[k] * getindex(A.matrices[k], i, j)
   end
   return val
 end
