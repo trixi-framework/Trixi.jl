@@ -86,7 +86,6 @@ end
 
 function compute_flux_differencing_SBP_matrices(dg::DGMulti{Ndims}) where {Ndims}
   rd = dg.basis
-
   Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
   Qrst_skew_Tr = map(A -> -0.5 * (A - A'), Qrst_hybridized)
   return Qrst_skew_Tr, VhP, Ph
