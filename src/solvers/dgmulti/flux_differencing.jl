@@ -37,7 +37,7 @@ end
                                             mesh, equations, dg, cache)
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
-  for i = 1:n
+  for i in 1:n
     u_i = u[i]
     for id in nzrange(sparsity_pattern, i)
       j = rows[id]
@@ -84,7 +84,7 @@ function build_lazy_physical_derivative(element, orientation,
   end
 end
 
-function compute_flux_differencing_SBP_matrices(dg::DGMulti{Ndims}) where {Ndims}
+function compute_flux_differencing_SBP_matrices(dg::DGMulti)
   rd = dg.basis
 
   Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
@@ -103,7 +103,7 @@ end
 
 # precompute sparsity pattern for optimized flux differencing routines for tensor product elements
 function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
-                                  tol = 1e2*eps()) where {DG <: DGMultiFluxDiff{<:SBP, <:Union{Quad, Hex}}}
+                                  tol = 100 * eps(real(dg))) where {DG <: DGMultiFluxDiff{<:SBP, <:Union{Quad, Hex}}}
   sparsity_pattern = sum(map(A->abs.(A), droptol!.(sparse.(flux_diff_matrices), tol))) .!= 0
   return sparsity_pattern
 end

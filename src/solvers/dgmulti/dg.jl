@@ -61,7 +61,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   @unpack wq, Vq, M, Drst = rd
 
   # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
-  weak_differentiation_matrices = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
+  weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * diagm(wq)), Drst)
 
   nvars = nvariables(equations)
 
@@ -201,7 +201,7 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   @threaded for e in eachelement(mesh, dg, cache)
     for i in each_face_node(mesh, dg, cache)
       fid = rd.Fmask[i]
-      du[fid, e] = du[fid, e] + flux_face_values[i,e] * rd.wf[i] / rd.wq[fid]
+      du[fid, e] = du[fid, e] + flux_face_values[i,e] * (rd.wf[i] / rd.wq[fid])
     end
   end
 end
