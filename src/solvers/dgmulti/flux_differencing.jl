@@ -12,8 +12,9 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
 - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for
   faster traversal since matrices are column major in Julia.
 """
-@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u,
-                                            mesh, equations, dg, cache, skip_index=(i,j)->false)
+@inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u, equations,
+                                            sparsity_pattern::Nothing, skip_index=(i,j)->false)
+
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
@@ -35,8 +36,7 @@ end
 
 # Optimized flux differencing routine for when a `sparsity_pattern` matrix is provided
 @inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u,
-                                            sparsity_pattern::AbstractSparseMatrix{Bool},
-                                            mesh, equations, dg, cache)
+                                            equations, sparsity_pattern::AbstractSparseMatrix{Bool})
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
   for i = 1:n
@@ -53,10 +53,6 @@ end
     du[i] = du_i
   end
 end
-
-@inline hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u, sparsity_pattern::Nothing,
-                                   mesh, equations, dg, cache) =
-  hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u, mesh, equations, dg, cache)
 
 # For DGMulti implementations, we construct "physical" differentiation operators by taking linear
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
