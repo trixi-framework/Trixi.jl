@@ -17,6 +17,7 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
   rows, cols = axes(ATr)
   for i in cols
     u_i = u[i]
+    du_i = du[i]
     for j in rows
       # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
       # We avoid computing the lower-triangular part, and instead accumulate those contributions
@@ -24,10 +25,11 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
       # is symmetric).
       if j > i && !skip_index(i, j)
           AF_ij = ATr[j,i] * volume_flux(u_i, u[j], orientation, equations)
-          du[i] = du[i] + AF_ij
+          du_i = du_i + AF_ij
           du[j] = du[j] - AF_ij
       end
     end
+    du[i] = du_i
   end
 end
 
@@ -39,14 +41,16 @@ end
   rows = rowvals(sparsity_pattern)
   for i = 1:n
     u_i = u[i]
+    du_i = du[i]
     for id in nzrange(sparsity_pattern, i)
       j = rows[id]
       if j > i
         AF_ij = ATr[j,i] * volume_flux(u_i, u[j], orientation, equations)
-        du[i] = du[i] + AF_ij
+        du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
     end
+    du[i] = du_i
   end
 end
 
