@@ -63,7 +63,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   @unpack wq, Vq, M, Drst = rd
 
   # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
-  weak_differentiation_matrices = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
+  weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * diagm(wq)), Drst)
 
   nvars = nvariables(equations)
 

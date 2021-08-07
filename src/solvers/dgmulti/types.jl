@@ -77,13 +77,11 @@ VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
 # Matrix type for lazy construction of physical differentiation matrices
 
 # lazy linear combination of B = ∑_i coeffs[i] * A[i]
-all_equal(x) = all(y->y==x[1], x)
-
 struct LazyMatrixLinearCombo{Tcoeffs, N, Tv, TA <: AbstractMatrix{Tv}} <: AbstractMatrix{Tv}
   matrices::NTuple{N, TA}
   coeffs::NTuple{N, Tcoeffs}
   function LazyMatrixLinearCombo(matrices, coeffs)
-    @assert all_equal(size.(matrices))
+    @assert all(matrix -> size(matrix) == size(first(matrices)), matrices)
     new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)), typeof(first(matrices))}(matrices, coeffs)
   end
 end
