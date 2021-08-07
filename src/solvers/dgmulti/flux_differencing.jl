@@ -4,14 +4,15 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-"""
-    hadamard_sum_A_transposed!(du, ATr, volume_flux, u, skip_index=(i,j)->false)
-
-Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`.
-- `du`, `u` are vectors
-- `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for
-  faster traversal since matrices are column major in Julia.
-"""
+#   hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u, equations,
+#                              sparsity_pattern, skip_index=(i,j)->false)
+#
+# Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`.
+# - `du`, `u` are vectors
+# - `ATr` is the transpose of the flux differencing matrix `A`. The transpose is used for
+#   faster traversal since matrices are column major in Julia.
+# - `sparsity_pattern`: either `nothing` or an AbstractSparseMatrix which specifies the sparsity
+#   pattern of `A`
 @inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u, equations,
                                             sparsity_pattern::Nothing, skip_index=(i,j)->false)
 
@@ -34,7 +35,6 @@ Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the res
   end
 end
 
-# Optimized flux differencing routine for when a `sparsity_pattern` matrix is provided
 @inline function hadamard_sum_A_transposed!(du, ATr, volume_flux, orientation, u,
                                             equations, sparsity_pattern::AbstractSparseMatrix{Bool})
   n = size(sparsity_pattern, 2)
@@ -109,8 +109,6 @@ end
 compute_sparsity_pattern(flux_diff_matrices, dg::DGMulti) = nothing
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, RealT, uEltype)
-
-  # TODO: invoke create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, RealT, uEltype) instead
 
   rd = dg.basis
   md = mesh.md
