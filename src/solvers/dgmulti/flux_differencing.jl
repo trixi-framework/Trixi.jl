@@ -131,7 +131,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew_Tr, sparsity_pattern, invJ = inv.(md.J), Fscale,
+  return (; md, Qrst_skew, sparsity_pattern, invJ = inv.(md.J), Fscale, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
 end
@@ -194,7 +194,7 @@ function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
-  @unpack fluxdiff_local_threaded, sparsity_pattern = cache
+  @unpack fluxdiff_local_threaded, sparsity_pattern, inv_wq = cache
   @unpack volume_flux = volume_integral
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
@@ -213,7 +213,7 @@ function calc_volume_integral!(du, u, volume_integral,
     end
 
     for i in each_quad_node(mesh, dg, cache)
-      du[i, e] = du[i, e] + fluxdiff_local[i] / rd.wq[i]
+      du[i, e] = du[i, e] + fluxdiff_local[i] * inv_wq[i]
     end
   end
 end
