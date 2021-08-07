@@ -294,11 +294,16 @@ end
     # of the `volume_flux` to save half of the possible two-point flux
     # computations.
 
+    # Use a local accumulator for the current node position to reduce the number
+    # of memory accesses. We cannot do the same for the other positions if we
+    # save half of the (potentially expensive) two-point flux computations.
+    du_i = zero(u_node)
+
     # x direction
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
       flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1, equations, dg, i,  j, element)
+      du_i = du_i + derivative_split[i, ii] * flux1
       multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1, equations, dg, ii, j, element)
     end
 
@@ -306,9 +311,11 @@ end
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
       flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2, equations, dg, i, j,  element)
+      du_i = du_i + derivative_split[j, jj] * flux2
       multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2, equations, dg, i, jj, element)
     end
+
+    multiply_add_to_node_vars!(du, alpha, du_i, equations, dg, i, j, element)
   end
 end
 

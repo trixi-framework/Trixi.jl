@@ -215,6 +215,11 @@ end
     # of the `volume_flux` to save half of the possible two-point flux
     # computations.
 
+    # Use a local accumulator for the current node position to reduce the number
+    # of memory accesses. We cannot do the same for the other positions if we
+    # save half of the (potentially expensive) two-point flux computations.
+    du_i = zero(u_node)
+
     # x direction
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
@@ -225,7 +230,7 @@ end
       # compute the contravariant sharp flux in the direction of the
       # averaged contravariant vector
       fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
-      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, k, element)
+      du_i = du_i + derivative_split[i, ii] * fluxtilde1
       multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, k, element)
     end
 
@@ -239,7 +244,7 @@ end
       # compute the contravariant sharp flux in the direction of the
       # averaged contravariant vector
       fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  k, element)
+      du_i = du_i + derivative_split[j, jj] * fluxtilde2
       multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, k, element)
     end
 
@@ -253,9 +258,11 @@ end
       # compute the contravariant sharp flux in the direction of the
       # averaged contravariant vector
       fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-      multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3, equations, dg, i, j, k,  element)
+      du_i = du_i + derivative_split[k, kk] * fluxtilde3
       multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3, equations, dg, i, j, kk, element)
     end
+
+    multiply_add_to_node_vars!(du, alpha, du_i, equations, dg, i, j, k, element)
   end
 end
 
