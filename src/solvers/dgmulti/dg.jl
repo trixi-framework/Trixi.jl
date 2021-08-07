@@ -114,14 +114,6 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
   StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
 end
 
-function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP})
-  rd = dg.basis
-  @unpack M, Drst, Pq = rd
-  Qrst = map(D->Pq' * M * D * Pq, Drst)
-  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst)
-  return Qrst_skew_Tr
-end
-
 function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
                  mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
 

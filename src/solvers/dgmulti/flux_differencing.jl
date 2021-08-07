@@ -88,10 +88,17 @@ function compute_flux_differencing_SBP_matrices(dg::DGMulti{Ndims}) where {Ndims
   rd = dg.basis
 
   Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
-  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
+  Qrst_skew_Tr = map(A -> -0.5 * (A - A'), Qrst_hybridized)
   return Qrst_skew_Tr, VhP, Ph
 end
 
+function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP})
+  rd = dg.basis
+  @unpack M, Drst, Pq = rd
+  Qrst = map(D -> M * D, Drst)
+  Qrst_skew = map(A -> 0.5 * (A - A'), Qrst)
+  return permutedims.(Qrst_skew)
+end
 
 # precompute sparsity pattern for optimized flux differencing routines for tensor product elements
 function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
