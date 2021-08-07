@@ -212,8 +212,7 @@ function calc_volume_integral!(du, u, volume_integral,
       # the Qi_skew_Tr matrices are dense, and sparsity_pattern = nothing. If using Quad or Hex
       # elements with an SBP approximationType, then sparsity_pattern::AbstractSparseMatrix{Bool}.
       hadamard_sum_A_transposed!(fluxdiff_local, Qi_skew_Tr, volume_flux, i,
-                                 u_local, sparsity_pattern,
-                                 mesh, equations, dg, cache)
+                                 u_local, equations, sparsity_pattern)
     end
 
     for i in each_quad_node(mesh, dg, cache)
@@ -226,7 +225,8 @@ function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, cache)
 
   rd = dg.basis
-  @unpack entropy_projected_u_values, fluxdiff_local_threaded, rhs_local_threaded, Ph = cache
+  @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
+  @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
   @unpack volume_flux = volume_integral
 
   # skips subblock of Qi_skew_Tr which we know is zero by construction
@@ -239,8 +239,8 @@ function calc_volume_integral!(du, u, volume_integral,
     u_local = view(entropy_projected_u_values, :, e)
     for i in eachdim(mesh)
       Qi_skew_Tr = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum_A_transposed!(fluxdiff_local, Qi_skew_Tr, volume_flux, i, u_local,
-                                  mesh, equations, dg, cache, skip_index)
+      hadamard_sum_A_transposed!(fluxdiff_local, Qi_skew_Tr, volume_flux, i,
+                                 u_local, equations, sparsity_pattern, skip_index)
     end
 
     # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector}
