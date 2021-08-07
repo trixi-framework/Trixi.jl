@@ -92,14 +92,6 @@ function compute_flux_differencing_SBP_matrices(dg::DGMulti{Ndims}) where {Ndims
   return Qrst_skew_Tr, VhP, Ph
 end
 
-# Allocate local storage for flux computations:
-# create an array which is contiguous in memory but is interpreted as Vector{SVector{nvars}}
-# Copied from https://juliaarrays.github.io/StaticArrays.jl/latest/pages/api/#Guide
-function svectorscopy(x::Matrix{T}, ::Val{N}) where {T,N}
-  size(x,1) == N || error("sizes mismatch")
-  isbitstype(T) || error("use for bitstypes only")
-  copy(reinterpret(SVector{N,T}, vec(x)))
-end
 
 # precompute sparsity pattern for optimized flux differencing routines for tensor product elements
 function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
