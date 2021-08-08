@@ -96,7 +96,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
       linf = [0.027618475633440998, 0.027093787212065318, 0.012584560784257667, 0.039456640084648914,
               0.020759073985165077, 0.031771018340953416, 0.02059036404759229, 0.03456102393654076,
               0.019663511833857894],
-      surface_flux = flux_lax_friedrichs)
+      surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell))
   end
 
   # TODO: nonconservative terms, remove

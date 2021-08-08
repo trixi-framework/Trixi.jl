@@ -98,14 +98,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   rd = dg.basis
   @unpack md = mesh
 
-  # Todo: simplices. Fix this when StartUpDG v0.11.0 releases: new API `Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)`
-  if ndims(mesh) == 2
-    Qr_hybridized, Qs_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
-    Qrst_hybridized = (Qr_hybridized, Qs_hybridized)
-  elseif ndims(mesh) == 3
-    Qr_hybridized, Qs_hybridized, Qt_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
-    Qrst_hybridized = (Qr_hybridized, Qs_hybridized, Qt_hybridized)
-  end
+  Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
   Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst_hybridized)
 
   nvars = nvariables(equations)

@@ -461,7 +461,7 @@ end
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1 * v1 + p
