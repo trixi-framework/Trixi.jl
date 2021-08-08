@@ -132,7 +132,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew, sparsity_pattern, invJ = inv.(md.J), Fscale, inv_wq = inv.(rd.wq),
+  return (; md, Qrst_skew, sparsity_pattern, invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
 end

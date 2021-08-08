@@ -72,15 +72,15 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
   if typeof(rd.approximationType) <: SBP
-    Fscale = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
+    lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
   else
-    Fscale = nothing
+    lift_scalings = nothing
   end
 
   # local storage for volume integral and source computations
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()] # this is much slower - why?
 
-  return (; md, weak_differentiation_matrices, invJ = inv.(md.J), Fscale,
+  return (; md, weak_differentiation_matrices, invJ = inv.(md.J), lift_scalings,
             u_values, u_face_values, flux_face_values,
             local_values_threaded)
 end
@@ -196,11 +196,11 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
                                 dg::DGMulti{NDIMS,<:AbstractElemShape, <:SBP}, cache) where {NDIMS}
   rd = dg.basis
   md = mesh.md
-  @unpack flux_face_values, Fscale = cache
+  @unpack flux_face_values, lift_scalings = cache
   @threaded for e in eachelement(mesh, dg, cache)
     for i in each_face_node(mesh, dg, cache)
       fid = rd.Fmask[i]
-      du[fid, e] = du[fid, e] + flux_face_values[i,e] * Fscale[i]
+      du[fid, e] = du[fid, e] + flux_face_values[i,e] * lift_scalings[i]
     end
   end
 end
