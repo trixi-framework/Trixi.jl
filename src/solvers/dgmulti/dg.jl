@@ -120,7 +120,7 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
 end
 
 function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
-                 mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
+                               mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
