@@ -407,14 +407,12 @@ end
 function Makie.plot!(myplot::TrixiHeatmap)
   pds = myplot[:plot_data_series][]
   @unpack variable_id = pds
-
   pd = pds.plot_data
   @unpack x, y, u, t = pd
 
-  # construct a triangulation of the plotting nodes
   makie_triangles = Makie.to_triangles(t)
 
-  # trimesh[i] holds the GeometryBasics.Mesh containing solution plotting information on the ith element.
+  # trimesh[i] holds GeometryBasics.Mesh containing plotting information on the ith element.
   num_plotting_nodes, num_elements = size(x)
   trimesh = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
   coordinates = zeros(Float32, num_plotting_nodes, 3)
@@ -422,10 +420,6 @@ function Makie.plot!(myplot::TrixiHeatmap)
     for i in Base.OneTo(num_plotting_nodes)
       coordinates[i, 1] = x[i, element]
       coordinates[i, 2] = y[i, element]
-      # coordinates[i, 3] = u[i, element][variable_id]
-      # if compute_3d_surface == true
-      #   coordinates[i, 3] = u_node[variable_id]
-      # end
     end
     trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
   end
@@ -433,13 +427,15 @@ function Makie.plot!(myplot::TrixiHeatmap)
   solution_z = vec(StructArrays.component(u, variable_id))
 
   Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false)
+  # TODO: visualization. Figure out how to use axes with plot recipes
   # Makie.xlims!(ax, extrema(x))
   # Makie.ylims!(ax, extrema(y))
   # ax.aspect = Makie.DataAspect() # equal aspect ratio
   # ax.title = variable_names[variable_id]
 
+  # TODO: visualization. Decide how to trigger grid plotting (maybe kwargs?)
   @unpack xf, yf = pd
-  sol_f = zeros(size(xf))
+  sol_f = zeros(size(xf)) # plot 2d surface by setting z coordinate to zero
   xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (xf, yf, sol_f))...)
   Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
 
@@ -448,7 +444,6 @@ end
 
 # redirects Makie.plot(pd::PlotDataSeries2D) to TrixiHeatmap(pd)
 Makie.plottype(::Trixi.PlotDataSeries2D{<:Trixi.UnstructuredPlotData2D}) = TrixiHeatmap
-
 
 function Makie.plot(pd::UnstructuredPlotData2D)
   # Create layout that is as square as possible, when there are more than 3 subplots.
