@@ -200,19 +200,20 @@ end
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations1D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-  mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
-  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en)
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p_over_gamma_minus_one = (rho_e - kin_en - mag_en)
+  p = (equations.gamma - 1) * p_over_gamma_minus_one
 
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_v1
   f2 = rho_v1*v1 + p + mag_en - B1^2
   f3 = rho_v1*v2 - B1*B2
   f4 = rho_v1*v3 - B1*B3
-  f5 = (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3)
+  f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3)
   f6 = 0.0
   f7 = v1*B2 - v2*B1
   f8 = v1*B3 - v3*B1
