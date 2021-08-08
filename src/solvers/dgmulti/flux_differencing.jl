@@ -109,6 +109,24 @@ end
 
 compute_sparsity_pattern(flux_diff_matrices, dg::DGMulti) = nothing
 
+# For flux differencing SBP-type approximations, store solutions in Matrix{SVector{nvars}}.
+# This results in a slight speedup for `calc_volume_integral!`.
+function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiff{<:SBP})
+  return zeros(SVector{nvars, uEltype}, array_dimensions...)
+end
+
+# Initialization specialized to solution storage for DGMultiFluxDiff with SBP approximation type.
+function compute_coefficients!(u, initial_condition, t,
+                               mesh::AbstractMeshData{NDIMS}, equations, dg::DGMultiFluxDiff{<:SBP}, cache) where {NDIMS}
+  md = mesh.md
+  rd = dg.basis
+
+  # evaluate the initial condition at nodal point
+  @threaded for i in each_quad_node_global(mesh, dg, cache)
+    u[i] = initial_condition(getindex.(md.xyzq, i), t, equations)
+  end
+end
+
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, RealT, uEltype)
 
   rd = dg.basis
@@ -122,12 +140,12 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
 
   # Todo: simplices. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
   # storage for volume quadrature values, face quadrature values, flux values
-  u_values = allocate_nested_array(uEltype, nvars, size(md.xq))
-  u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
-  flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
-  Fscale = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+  u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+  flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+  lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
-  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()]
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
@@ -148,12 +166,12 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   nvars = nvariables(equations)
 
   # temp storage for entropy variables at volume quad points
-  entropy_var_values = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements))
+  entropy_var_values = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements), dg)
 
   # storage for all quadrature points (concatenated volume / face quadrature points)
   num_quad_points_total = rd.Nq + rd.Nfq
-  entropy_projected_u_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements))
-  projected_entropy_var_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements))
+  entropy_projected_u_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
+  projected_entropy_var_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
 
   # initialize temporary storage as views into entropy_projected_u_values
   u_values = view(entropy_projected_u_values, 1:rd.Nq, :)
@@ -161,13 +179,13 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   flux_face_values = similar(u_face_values)
 
   # local storage for interface fluxes, rhs, and source
-  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()]
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
   # projecting it and storing it into `du`.
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
-  rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,))  for _ in 1:Threads.nthreads()]
+  rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
 
   return (; md, Qrst_skew, sparsity_pattern, VhP, Ph, invJ = inv.(md.J),
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,

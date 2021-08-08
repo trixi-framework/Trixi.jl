@@ -41,17 +41,9 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTy
 end
 
 # Allocate nested array type for DGMulti solution storage.
-function allocate_nested_array(uEltype, nvars, array_dimensions)
-
-  # old approach: store components as separate arrays, combine via StructArrays
+function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
+  # store components as separate arrays, combine via StructArrays
   return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
-
-  # TODO: any way to use a raw array of size (nvars, array_dimension...) for contiguity in memory?
-  # Can use the following:
-  #   `u_array = zeros(uEltype, nvars, array_dimensions...)`
-  #   `u = StructArray{SVector{nvars, uEltype}}(ntuple(i->view(u_array, i, ntuple(_->:, length(array_dimensions))...), nvars))`
-  # However, then `similar(u)` becomes `StructArray{<:SVector, NTuple{N, <:Matrix}...}`, and
-  # redefining `similar(u)` breaks things.
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
@@ -68,9 +60,9 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   nvars = nvariables(equations)
 
   # storage for volume quadrature values, face quadrature values, flux values
-  u_values = allocate_nested_array(uEltype, nvars, size(md.xq))
-  u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
-  flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf))
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+  u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+  flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   if typeof(rd.approximationType) <: SBP
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
   else
@@ -78,7 +70,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   end
 
   # local storage for volume integral and source computations
-  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,)) for _ in 1:Threads.nthreads()] # this is much slower - why?
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
   return (; md, weak_differentiation_matrices, invJ = inv.(md.J), lift_scalings,
             u_values, u_face_values, flux_face_values,
@@ -86,7 +78,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
 end
 
 function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DGMulti, cache)
-  return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x))
+  return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg)
 end
 
 function compute_coefficients!(u, initial_condition, t,
