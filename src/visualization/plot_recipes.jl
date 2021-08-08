@@ -201,7 +201,7 @@ end
 # Auxiliary data structure for visualizing a single variable
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotDataSeries2D{PD<:PlotData2D}
+struct PlotDataSeries2D{PD<:Union{PlotData2D, UnstructuredPlotData2D}}
   plot_data::PD
   variable_id::Int
 end
@@ -214,6 +214,17 @@ function Base.show(io::IO, pds::PlotDataSeries2D)
         pds.variable_id, ")")
 end
 
+struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData
+  x::Matrix{Tv} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Matrix{Tv}
+  u::SolutionType # solution container
+  t::PlottingTriangulation
+  xf::Matrix{Tv}
+  yf::Matrix{Tv}
+  uf::FaceSolutionType
+  variable_names::VariableNames
+end
+
 """
     Base.getindex(pd::PlotData2D, variable_name)
 
@@ -222,7 +233,7 @@ Extract a single variable `variable_name` from `pd` for plotting with `Plots.plo
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function Base.getindex(pd::PlotData2D, variable_name)
+function Base.getindex(pd::Union{PlotData2D, UnstructuredPlotData2D}, variable_name)
   variable_id = findfirst(isequal(variable_name), pd.variable_names)
 
   if isnothing(variable_id)
@@ -256,7 +267,7 @@ end
 # Auxiliary data structure for visualizing the mesh
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotMesh2D{PD<:PlotData2D}
+struct PlotMesh2D{PD<:AbstractPlotData}
   plot_data::PD
 end
 
