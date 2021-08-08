@@ -461,13 +461,15 @@ function Makie.plot(pd::UnstructuredPlotData2D)
     rows = ceil(Int, length(pd)/cols)
   end
 
-  axes = [Makie.Axis(myplot[i,j]) for j in 1:rows, i in 1:cols]
+  fig = Makie.Figure()
+  axes = [Makie.Axis(fig[i,j]) for j in 1:rows, i in 1:cols]
 
-  for (variable_to_plot, ax) in enumerate(axes)
-    Makie.scatter!(ax, randn(5))
+  for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
+    ax = axes[variable_to_plot]
+    trixiheatmap!(ax, pds)
     ax.aspect = Makie.DataAspect() # equal aspect ratio
-    ax.title = "variable $variable_to_plot"
+    ax.title  = variable_name
   end
 
-  myplot
+  fig
 end

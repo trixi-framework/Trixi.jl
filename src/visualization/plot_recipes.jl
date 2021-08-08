@@ -243,8 +243,8 @@ function Base.getindex(pd::Union{PlotData2D, UnstructuredPlotData2D}, variable_n
   return PlotDataSeries2D(pd, variable_id)
 end
 
-Base.eltype(pd::PlotData2D) = Pair{String, PlotDataSeries2D}
-function Base.iterate(pd::PlotData2D, state=1)
+Base.eltype(pd::Union{PlotData2D, UnstructuredPlotData2D}) = Pair{String, PlotDataSeries2D}
+function Base.iterate(pd::Union{PlotData2D, UnstructuredPlotData2D}, state=1)
   if state > length(pd)
     return nothing
   else
