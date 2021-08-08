@@ -198,6 +198,17 @@ function _get_orientations(mesh, slice)
   return orientation_x, orientation_y
 end
 
+struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData
+  x::Matrix{Tv} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Matrix{Tv}
+  u::SolutionType # solution container
+  t::PlottingTriangulation
+  xf::Matrix{Tv}
+  yf::Matrix{Tv}
+  uf::FaceSolutionType
+  variable_names::VariableNames
+end
+
 # Auxiliary data structure for visualizing a single variable
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
@@ -212,17 +223,6 @@ function Base.show(io::IO, pds::PlotDataSeries2D)
 
   print(io, "PlotDataSeries2D{", typeof(pds.plot_data), "}(<plot_data::PlotData2D>, ",
         pds.variable_id, ")")
-end
-
-struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData
-  x::Matrix{Tv} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
-  y::Matrix{Tv}
-  u::SolutionType # solution container
-  t::PlottingTriangulation
-  xf::Matrix{Tv}
-  yf::Matrix{Tv}
-  uf::FaceSolutionType
-  variable_names::VariableNames
 end
 
 """
