@@ -43,6 +43,10 @@ end
     du_i = du[i]
     for id in nzrange(sparsity_pattern, i)
       j = rows[id]
+      # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+      # We avoid computing the lower-triangular part, and instead accumulate those contributions
+      # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+      # is symmetric).
       if j > i
         AF_ij = A[i,j] * volume_flux(u_i, u[j], orientation, equations)
         du_i = du_i + AF_ij
@@ -63,7 +67,7 @@ function build_lazy_physical_derivative(element, orientation,
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   if orientation == 1
     return LazyMatrixLinearCombo(Qrst_skew, 2 .* (rxJ[1,element], sxJ[1,element]))
-  elseif orientation == 2
+  else # if orientation == 2
     return LazyMatrixLinearCombo(Qrst_skew, 2 .* (ryJ[1,element], syJ[1,element]))
   end
 end
