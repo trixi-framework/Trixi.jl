@@ -80,7 +80,7 @@ function build_lazy_physical_derivative(element, orientation,
     return LazyMatrixLinearCombo(Qrst_skew, 2 .* (rxJ[1,element], sxJ[1,element], txJ[1,element]))
   elseif orientation == 2
     return LazyMatrixLinearCombo(Qrst_skew, 2 .* (ryJ[1,element], syJ[1,element], tyJ[1,element]))
-  elseif orientation == 3
+  else # if orientation == 3
     return LazyMatrixLinearCombo(Qrst_skew, 2 .* (rzJ[1,element], szJ[1,element], tzJ[1,element]))
   end
 end
