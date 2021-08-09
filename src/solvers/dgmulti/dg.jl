@@ -21,7 +21,7 @@ mul_by!(A::UniformScaling) = MulByUniformScaling()
 mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 
 # StructArray fallback
-@inline apply_to_each_field(f::Function, args...) = StructArrays.foreachfield(f, args...)
+@inline apply_to_each_field(f, args...) = StructArrays.foreachfield(f, args...)
 
 # specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
@@ -143,7 +143,7 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
       flux_values .= flux.(view(u_values,:,e), i, equations)
       for j in eachdim(mesh)
         apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
-                                  view(du,:,e), flux_values)
+                            view(du,:,e), flux_values)
       end
     end
   end
