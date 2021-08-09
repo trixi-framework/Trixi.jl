@@ -56,6 +56,18 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
     )
   end
 
+  @trixi_testset "elixir_euler_weakform.jl (Quadrilateral elements, SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
+      cells_per_dimension = (4,4),
+      element_type = Quad(),
+      volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
+      surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
+      approximation_type = SBP(),
+      l2 = [0.0029320668218228204, 0.0030626480847183927, 0.0030626480847164876, 0.0068440872356226165],
+      linf = [0.013699485223367613, 0.012808498911205168, 0.01280849891121405, 0.022408991793810618]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2], [4.2498632232077815, 4.133717042428824, 4.133717042041395, 4.086223177072245], rtol=0.05)
