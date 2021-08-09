@@ -201,11 +201,11 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   @unpack projected_entropy_var_values, entropy_projected_u_values = cache
 
   # TODO: simplices. Address hard-coding of `entropy2cons!`
-  StructArrays.foreachfield(mul_by!(Vq), u_values, u)
+  apply_to_each_field(mul_by!(Vq), u_values, u)
   entropy_var_values .= cons2entropy.(u_values, equations)
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
-  StructArrays.foreachfield(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
+  apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
   entropy_projected_u_values .= entropy2cons.(projected_entropy_var_values, equations)
 end
 
@@ -264,7 +264,7 @@ function calc_volume_integral!(du, u, volume_integral,
     for i in Base.OneTo(length(fluxdiff_local))
       rhs_local[i] = fluxdiff_local[i]
     end
-    StructArrays.foreachfield(mul_by_accum!(Ph), view(du, :, e), rhs_local)
+    apply_to_each_field(mul_by_accum!(Ph), view(du, :, e), rhs_local)
   end
 end
 

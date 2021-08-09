@@ -8,15 +8,28 @@
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 
-# specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
-mul_by!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x)
-mul_by_accum!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out)))
-
 # out <- out + A * x
 mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out)))
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out)))
+
+# specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
+struct MulByUniformScaling end
+struct MulByAccumUniformScaling end
+mul_by!(A::UniformScaling) = MulByUniformScaling()
+mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
+
+# StructArray fallback
+@inline apply_to_each_field(f::Function, args...) = StructArrays.foreachfield(f, args...)
+
+# specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}.
+@inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
+@inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
+  for (i, x_i) in enumerate(x)
+    out[i] = out[i] + x_i
+  end
+end
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
@@ -93,7 +106,7 @@ function compute_coefficients!(u, initial_condition, t,
   end
 
   # multiplying by Pq computes the L2 projection
-  StructArrays.foreachfield(mul_by!(rd.Pq), u, u_values)
+  apply_to_each_field(mul_by!(rd.Pq), u, u_values)
 end
 
 # estimates the timestep based on polynomial degree and mesh. Does not account for physics (e.g.,
@@ -108,7 +121,7 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
                              surface_integral, dg::DGMulti)
   rd = dg.basis
   @unpack u_face_values = cache
-  StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
+  apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
 function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
@@ -120,7 +133,7 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
   @unpack rstxyzJ = md # geometric terms
 
   # interpolate to quadrature points
-  StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
+  apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
@@ -129,7 +142,7 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
     for i in eachdim(mesh)
       flux_values .= flux.(view(u_values,:,e), i, equations)
       for j in eachdim(mesh)
-        StructArrays.foreachfield(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
                                   view(du,:,e), flux_values)
       end
     end
@@ -165,7 +178,7 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
                 mesh::VertexMappedMesh, equations,
                 dg::DGMulti, cache)
   rd = dg.basis
-  StructArrays.foreachfield(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
+  apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
@@ -286,7 +299,7 @@ function calc_sources!(du, u, t, source_terms::SourceTerms,
     for i in each_quad_node(mesh, dg, cache)
       source_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations)
     end
-    StructArrays.foreachfield(mul_by_accum!(Pq), view(du, :, e), source_values)
+    apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
   end
 end
 
