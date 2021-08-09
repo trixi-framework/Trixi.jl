@@ -433,7 +433,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
   # ax.aspect = Makie.DataAspect() # equal aspect ratio
   # ax.title = variable_names[variable_id]
 
-  # TODO: visualization. Decide how to trigger grid plotting (maybe kwargs?)
+  # # TODO: visualization. Decide how to trigger grid plotting (maybe kwargs?)
   @unpack xf, yf = pd
   sol_f = zeros(size(xf)) # plot 2d surface by setting z coordinate to zero
   xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (xf, yf, sol_f))...)
@@ -445,7 +445,15 @@ end
 # redirects Makie.plot(pd::PlotDataSeries2D) to TrixiHeatmap(pd)
 Makie.plottype(::Trixi.PlotDataSeries2D{<:Trixi.UnstructuredPlotData2D}) = TrixiHeatmap
 
-function Makie.plot(pd::UnstructuredPlotData2D)
+Makie.plot(sol::TrixiODESolution) = Makie.plot(PlotData2D(sol))
+
+# Makie does not yet support layouts in its plot recipes, so this just overloads Makie.plot! directly.
+function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure())
+  Makie.plot!(fig, pd)
+  fig
+end
+
+function Makie.plot!(fig, pd::UnstructuredPlotData2D)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
@@ -456,7 +464,6 @@ function Makie.plot(pd::UnstructuredPlotData2D)
     rows = ceil(Int, length(pd)/cols)
   end
 
-  fig = Makie.Figure()
   axes = [Makie.Axis(fig[i,j]) for j in 1:rows, i in 1:cols]
 
   for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
