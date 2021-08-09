@@ -8,7 +8,7 @@ solver (*stage callbacks*).
 ![callbacks_illustration](https://user-images.githubusercontent.com/65298011/108088616-f690c000-7078-11eb-9dd1-b673eac6cecf.png)
 
 The advantage of callbacks over hard-coding all features is that it allows to extend Trixi without
-modyfing the internal source code. Trixi provides callbacks for time step
+modifying the internal source code. Trixi provides callbacks for time step
 control, adaptive mesh refinement, I/O, and more.
 
 ## Step callbacks
@@ -146,6 +146,7 @@ more callbacks, you need to turn them into a `CallbackSet` first by calling
         * `LBMCollisionCallback` is already part of the calculations of the next time step and
           should therefore be called after `StepsizeCallback`
 
+
 ## Stage callbacks
 [`PositivityPreservingLimiterZhangShu`](@ref) is a positivity-preserving limiter, used to enforce
 physical constraints. An example elixir using this feature can be found at
@@ -154,7 +155,9 @@ physical constraints. An example elixir using this feature can be found at
 ## Implementing new callbacks
 Since Trixi is compatible with [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
 both packages share the same callback interface. A detailed description of it can be found in the
-OrdinaryDiffEq.jl [documentation](https://diffeq.sciml.ai/latest/features/callback_functions/).
+OrdinaryDiffEq.jl [documentation](https://diffeq.sciml.ai/latest/).
+Step callbacks are just called [callbacks](https://diffeq.sciml.ai/latest/features/callback_functions/).
+Stage callbacks are called [`stage_limiter!`](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws)).
 
 An example elixir showing how to implement a new simple stage callback and a new simple step
-callback can be found at [examples/2d/elixir\_advection\_callbacks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_callbacks.jl).
+callback can be found at [examples/2d/elixir\_advection\_callbacks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_callbacks.jl).

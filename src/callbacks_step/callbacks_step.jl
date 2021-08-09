@@ -69,5 +69,7 @@ include("euler_acoustics_coupling.jl")
 # when using `trixi_include` or `test_trixi_include`
 include("trivial.jl")
 
+# DGMulti callbacks
+include("analysis_dgmulti.jl")
 
 end # @muladd

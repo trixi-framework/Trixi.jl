@@ -173,7 +173,7 @@ than can increase your productivity in the Julia REPL.
   ```
 - Use `apropos` to search through the documentation and docstrings.
   ```julia-repl
-  julia> apropos("MHD")
+  julia> apropos("MHD") # TODO: nonconservative terms. Update this once the old code is removed
   Trixi.initial_condition_constant
   Trixi.initial_condition_rotor
   Trixi.IdealGlmMhdEquations2D
@@ -271,7 +271,7 @@ arbitrary stuff to the Trixi website, including malicious code).
 
 
 
-## Developing Trixi2Vtk (@id trixi2vtk-dev)
+## [Developing Trixi2Vtk](@id trixi2vtk-dev)
 
 Trixi2Vtk has Trixi as dependency and uses Trixi's implementation to, e.g., load mesh files.
 When developing Trixi2Vtk, one may want to change functions in Trixi to allow them to be reused
