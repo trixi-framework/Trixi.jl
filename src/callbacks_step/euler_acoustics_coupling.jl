@@ -3,17 +3,17 @@
 
 A callback that couples the acoustic perturbation equations and compressible Euler equations, should
 be used in conjunction with [`SemidiscretizationEulerAcoustics`](@ref).
-This callback creates and manages the flow solver - which is always one time step ahead of the
+This callback manages the flow solver - which is always one time step ahead of the
 acoustics solver - and calculates the acoustic source terms based on the linearized lamb vector of
 the flow solution after each time step. Furthermore, it manages the step size for both solvers
 and initializes the mean values of the acoustic perturbation equations using results obtained with
 the [`AveragingCallback`](@ref).
 """
-mutable struct EulerAcousticsCouplingCallback{RealT<:Real, MeanValues}
+mutable struct EulerAcousticsCouplingCallback{RealT<:Real, MeanValues, IntegratorEuler}
   stepsize_callback_acoustics::StepsizeCallback{RealT}
   stepsize_callback_euler::StepsizeCallback{RealT}
   mean_values::MeanValues
-  integrator_euler::Union{Nothing, AbstractODEIntegrator}
+  integrator_euler::IntegratorEuler
 end
 
 
@@ -40,40 +40,61 @@ end
 
 
 """
-    EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real,
-                                   averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback})
+    EulerAcousticsCouplingCallback(ode_euler,
+                                   averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback},
+                                   alg, cfl_acoustics::Real, cfl_euler::Real; kwargs...)
 
-Creates an [`EulerAcousticsCouplingCallback`](@ref) using the CFL numbers `cfl_acoustics` and
-`cfl_euler` for the acoustics and flow solver, respectively. The mean values for the acoustic
-perturbation equations are read from `averaging_callback` (see [`AveragingCallback`](@ref)).
+Creates an [`EulerAcousticsCouplingCallback`](@ref) based on the pure flow `ODEProblem` given by
+`ode_euler`. Creates an integrator using the time integration method `alg` and the keyword arguments
+to solve `ode_euler` (consult the [OrdinaryDiffEq documentation](https://diffeq.sciml.ai/stable/)
+for further information).
+Manages the step size for both solvers by using the minimum of the maximum step size obtained with
+CFL number `cfl_acoustics` for the acoustics solver and `cfl_euler` for and flow solver,
+respectively.
+The mean values for the acoustic perturbation equations are read from `averaging_callback`
+(see [`AveragingCallback`](@ref)).
 """
-function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real,
-                                        averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback})
+function EulerAcousticsCouplingCallback(ode_euler,
+                                        averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback},
+                                        alg, cfl_acoustics::Real, cfl_euler::Real; kwargs...)
   @unpack mean_values = averaging_callback.affect!
-  return EulerAcousticsCouplingCallback(cfl_acoustics, cfl_euler, mean_values)
+
+  return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
+                                        kwargs...)
 end
 
 """
-    EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, averaging_file,
-                                   semi_euler::SemidiscretizationHyperbolic)
+    EulerAcousticsCouplingCallback(ode_euler, averaging_file::AbstractString, alg,
+                                   cfl_acoustics::Real, cfl_euler::Real; kwargs...)
 
-Creates an [`EulerAcousticsCouplingCallback`](@ref) using the CFL numbers `cfl_acoustics` and
-`cfl_euler` for the acoustics and flow solver, respectively. The mean values for the acoustic
-perturbation equations are read from `averaging_file` (see [`AveragingCallback`](@ref)).
-`semi_euler` must be the semidiscretization of the compressible Euler equations that was used to
-generate `averaging_file`.
+Creates an [`EulerAcousticsCouplingCallback`](@ref) based on the pure flow `ODEProblem` given by
+`ode_euler`. Creates an integrator using the time integration method `alg` and the keyword arguments
+to solve `ode_euler` (consult the [OrdinaryDiffEq documentation](https://diffeq.sciml.ai/stable/)
+for further information).
+Manages the step size for both solvers by using the minimum of the maximum step size obtained with
+CFL number `cfl_acoustics` for the acoustics solver and `cfl_euler` for and flow solver,
+respectively.
+The mean values for the acoustic perturbation equations are read from `averaging_file`
+(see [`AveragingCallback`](@ref)).
 """
-function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, averaging_file,
-                                        semi_euler::SemidiscretizationHyperbolic)
+function EulerAcousticsCouplingCallback(ode_euler, averaging_file::AbstractString, alg,
+                                        cfl_acoustics::Real, cfl_euler::Real; kwargs...)
+  semi_euler = ode_euler.p
   mean_values = load_averaging_file(averaging_file, mesh_equations_solver_cache(semi_euler)...)
 
-  return EulerAcousticsCouplingCallback(cfl_acoustics, cfl_euler, mean_values)
+  return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
+                                        kwargs...)
 end
 
-function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, mean_values)
+function EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
+                                        kwargs...)
+  # Set up ODE Integrator for Euler equations
+  integrator_euler = init(ode_euler, alg, save_everystep=false, dt=1.0; kwargs...) # dt will be overwritten
 
-  euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics), typeof(mean_values)}(
-    StepsizeCallback(cfl_acoustics), StepsizeCallback(cfl_euler), mean_values, nothing)
+  euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics),
+                                                            typeof(mean_values),
+                                                            typeof(integrator_euler)}(
+    StepsizeCallback(cfl_acoustics), StepsizeCallback(cfl_euler), mean_values, integrator_euler)
   condition = (u, t, integrator) -> true
 
   return DiscreteCallback(condition, euler_acoustics_coupling, save_positions=(false, false),
@@ -81,19 +102,12 @@ function EulerAcousticsCouplingCallback(cfl_acoustics::Real, cfl_euler::Real, me
 end
 
 
-# This is called before the main loop and initializes the flow solver and calculates the gradient
-# of the squared mean speed of sound which is needed for the conservation source term
+# This is called before the main loop and calculates the gradient of the squared mean speed of sound
+# which is needed for the conservation source term
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator_acoustics) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
   euler_acoustics_coupling = cb.affect!
   semi = integrator_acoustics.p
-  @unpack semi_acoustics, semi_euler = semi
-
-  # Set up ODE Integrator for Euler equations
-  tspan = integrator_acoustics.sol.prob.tspan
-  alg = integrator_acoustics.alg
-
-  ode_euler = semidiscretize(semi_euler, tspan)
-  euler_acoustics_coupling.integrator_euler = init(ode_euler, alg, save_everystep=false, dt=1.0) # dt will be overwritten
+  @unpack semi_acoustics = semi
 
   # Initialize mean values in u_ode
   u_acoustics = wrap_array(u_ode, semi_acoustics)

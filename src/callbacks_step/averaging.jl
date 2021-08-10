@@ -106,6 +106,9 @@ end
 
 
 function save_averaging_file(averaging_callback, semi::AbstractSemidiscretization)
+  # Create output directory if it doesn't exist
+  mkpath(averaging_callback.output_directory)
+
   save_averaging_file(averaging_callback, mesh_equations_solver_cache(semi)...)
 end
 
