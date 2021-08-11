@@ -84,4 +84,105 @@ multiplication.
 end
 
 
+
+# `Base.max` and `Base.min` perform additional checks for signed zeros and `NaN`s
+# which are not present in comparable functions in Fortran/C++. For example,
+# ```julia
+# julia> @code_native debuginfo=:none syntax=:intel max(1.0, 2.0)
+#         .text
+#         vmovq   rcx, xmm1
+#         vmovq   rax, xmm0
+#         vcmpordsd       xmm2, xmm0, xmm0
+#         vblendvpd       xmm2, xmm0, xmm1, xmm2
+#         vcmpordsd       xmm3, xmm1, xmm1
+#         vblendvpd       xmm3, xmm1, xmm0, xmm3
+#         vmovapd xmm4, xmm2
+#         test    rcx, rcx
+#         jns     L45
+#         vmovapd xmm4, xmm3
+# L45:
+#         test    rax, rax
+#         js      L54
+#         vmovapd xmm4, xmm3
+# L54:
+#         vcmpltsd        xmm0, xmm0, xmm1
+#         vblendvpd       xmm0, xmm4, xmm2, xmm0
+#         ret
+#         nop     word ptr cs:[rax + rax]
+#
+# julia> @code_native debuginfo=:none syntax=:intel min(1.0, 2.0)
+#         .text
+#         vmovq   rcx, xmm1
+#         vmovq   rax, xmm0
+#         vcmpordsd       xmm2, xmm0, xmm0
+#         vblendvpd       xmm2, xmm0, xmm1, xmm2
+#         vcmpordsd       xmm3, xmm1, xmm1
+#         vblendvpd       xmm3, xmm1, xmm0, xmm3
+#         vmovapd xmm4, xmm2
+#         test    rcx, rcx
+#         jns     L58
+#         test    rax, rax
+#         js      L67
+# L46:
+#         vcmpltsd        xmm0, xmm1, xmm0
+#         vblendvpd       xmm0, xmm4, xmm2, xmm0
+#         ret
+# L58:
+#         vmovapd xmm4, xmm3
+#         test    rax, rax
+#         jns     L46
+# L67:
+#         vmovapd xmm4, xmm3
+#         vcmpltsd        xmm0, xmm1, xmm0
+#         vblendvpd       xmm0, xmm4, xmm2, xmm0
+#         ret
+#         nop     word ptr cs:[rax + rax]
+#         nop     dword ptr [rax]
+# ```
+# In contrast, we get the much simpler and faster version
+# ```julia
+# julia> @code_native debuginfo=:none syntax=:intel Base.FastMath.max_fast(1.0, 2.0)
+#         .text
+#         vmaxsd  xmm0, xmm1, xmm0
+#         ret
+#         nop     word ptr cs:[rax + rax]
+#
+# julia> @code_native debuginfo=:none syntax=:intel Base.FastMath.min_fast(1.0, 2.0)
+#         .text
+#         vminsd  xmm0, xmm0, xmm1
+#         ret
+#         nop     word ptr cs:[rax + rax]
+# ```
+# when using `@fastmath`, which we also get from
+# [Fortran](https://godbolt.org/z/Yrsa1js7P)
+# or [C++](https://godbolt.org/z/674G7Pccv).
+"""
+    max(x, y, ...)
+
+Return the maximum of the arguments. See also the `maximum` function to take
+the maximum element from a collection.
+
+# Examples
+
+julia> max(2, 5, 1)
+5
+"""
+@inline max(args...) = @fastmath max(args...)
+
+"""
+    min(x, y, ...)
+
+Return the minimum of the arguments. See also the `minimum` function to take
+the minimum element from a collection.
+
+# Examples
+
+julia> min(2, 5, 1)
+1
+"""
+@inline min(args...) = @fastmath min(args...)
+
+
+
+
 end # @muladd
