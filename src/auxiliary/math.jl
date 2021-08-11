@@ -162,6 +162,10 @@ end
 Return the maximum of the arguments. See also the `maximum` function to take
 the maximum element from a collection.
 
+This version in Trixi.jl is semantically equivalent to `Base.max` but may
+be implemented differently. In particular, it may avoid potentially expensive
+checks necessary in the presence of `NaN`s (or signed zeros).
+
 # Examples
 
 julia> max(2, 5, 1)
@@ -174,6 +178,10 @@ julia> max(2, 5, 1)
 
 Return the minimum of the arguments. See also the `minimum` function to take
 the minimum element from a collection.
+
+This version in Trixi.jl is semantically equivalent to `Base.min` but may
+be implemented differently. In particular, it may avoid potentially expensive
+checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
