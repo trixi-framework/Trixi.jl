@@ -11,6 +11,6 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [compat]
 Cassette = "0.3.5"
 ForwardDiff = "0.10"
-MPI = "0.16, 0.17, 0.18"
+MPI = "0.19"
 OrdinaryDiffEq = "5.60"
 Plots = "1.16"
