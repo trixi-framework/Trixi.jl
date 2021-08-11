@@ -30,7 +30,7 @@ end
 # Extract outward-pointing normal vector (contravariant vector ±Ja^i, i = index) as SVector
 # Note that this vector is not normalized
 @inline function get_normal_vector(direction, cache, indices...)
-  @unpack contravariant_vectors, inverse_jacobian = cache.elements
+  @unpack contravariant_vectors = cache.elements
 
   orientation = div(direction + 1, 2)
   normal = get_contravariant_vector(orientation, contravariant_vectors, indices...)
@@ -41,6 +41,19 @@ end
   end
 
   return normal
+end
+
+@inline function get_normal_direction(direction, contravariant_vectors, indices...)
+
+  orientation = div(direction + 1, 2)
+  normal = get_contravariant_vector(orientation, contravariant_vectors, indices...)
+
+  # Contravariant vectors at interfaces in negative coordinate direction are pointing inwards
+  if direction in (1, 3, 5)
+    return -normal
+  else
+    return normal
+  end
 end
 
 

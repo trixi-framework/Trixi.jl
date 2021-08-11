@@ -20,6 +20,18 @@ function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreM
 end
 
 
+@inline function index_to_start_step(index::Symbol, idx_one::Int, idx_end::Int)
+  if index === :one
+    return idx_one, 0
+  elseif index === :end
+    return idx_end, 0
+  elseif index === :i
+    return idx_one, 1
+  else # if index === :i_backwards
+    return idx_end, -1
+  end
+end
+
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
@@ -30,29 +42,45 @@ function prolong2interfaces!(cache, u,
   @threaded for interface in eachinterface(dg, cache)
     # Copy solution data from the primary element on a case-by-case basis to get
     # the correct face and orientation.
-    # Note that in the current implementation, the interface will be 
-    # "aligned at the primary element", i.e., the index of the primary side 
+    # Note that in the current implementation, the interface will be
+    # "aligned at the primary element", i.e., the index of the primary side
     # will always run forwards.
     primary_element = interfaces.element_ids[1, interface]
     primary_indices = interfaces.node_indices[1, interface]
 
-    if primary_indices === (:one, :i)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[1, v, i, interface] = u[v, idx_one, i, primary_element]
+    i_primary_start, i_primary_step = index_to_start_step(
+      primary_indices[1], idx_one, idx_end)
+    j_primary_start, j_primary_step = index_to_start_step(
+      primary_indices[2], idx_one, idx_end)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, i_primary, j_primary, primary_element]
       end
-    elseif primary_indices === (:end, :i)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[1, v, i, interface] = u[v, idx_end, i, primary_element]
-      end
-    elseif primary_indices === (:i, :one)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[1, v, i, interface] = u[v, i, idx_one, primary_element]
-      end
-    else # if primary_indices === (:i, :end)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[1, v, i, interface] = u[v, i, idx_end, primary_element]
-      end
+      i_primary += i_primary_step
+      j_primary += j_primary_step
     end
+
+    # TODO: p4est interface performance, remove
+    # if primary_indices === (:one, :i)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[1, v, i, interface] = u[v, idx_one, i, primary_element]
+    #   end
+    # elseif primary_indices === (:end, :i)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[1, v, i, interface] = u[v, idx_end, i, primary_element]
+    #   end
+    # elseif primary_indices === (:i, :one)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[1, v, i, interface] = u[v, i, idx_one, primary_element]
+    #   end
+    # else # if primary_indices === (:i, :end)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[1, v, i, interface] = u[v, i, idx_end, primary_element]
+    #   end
+    # end
 
     # Copy solution data from the secondary element on a case-by-case basis to get
     # the correct face and orientation.
@@ -62,39 +90,55 @@ function prolong2interfaces!(cache, u,
     secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
-    if secondary_indices === (:one, :i)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, idx_one, i, secondary_element]
+    i_secondary_start, i_secondary_step = index_to_start_step(
+      secondary_indices[1], idx_one, idx_end)
+    j_secondary_start, j_secondary_step = index_to_start_step(
+      secondary_indices[2], idx_one, idx_end)
+
+    i_secondary = i_secondary_start
+    j_secondary = j_secondary_start
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, i_secondary, j_secondary, secondary_element]
       end
-    elseif secondary_indices === (:one, :i_backwards)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, idx_one, idx_end + 1 - i, secondary_element]
-      end
-    elseif secondary_indices === (:end, :i)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, idx_end, i, secondary_element]
-      end
-    elseif secondary_indices === (:end, :i_backwards)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, idx_end, idx_end + 1 - i, secondary_element]
-      end
-    elseif secondary_indices === (:i, :one)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, i, idx_one, secondary_element]
-      end
-    elseif secondary_indices === (:i_backwards, :one)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_one, secondary_element]
-      end
-    elseif secondary_indices === (:i, :end)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, i, idx_end, secondary_element]
-      end
-    else #if secondary_indices === (:i_backwards, :end)
-      for i in eachnode(dg), v in eachvariable(equations)
-        interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_end, secondary_element]
-      end
+      i_secondary += i_secondary_step
+      j_secondary += j_secondary_step
     end
+
+    # TODO: p4est interface performance, remove
+    # if secondary_indices === (:one, :i)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, idx_one, i, secondary_element]
+    #   end
+    # elseif secondary_indices === (:one, :i_backwards)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, idx_one, idx_end + 1 - i, secondary_element]
+    #   end
+    # elseif secondary_indices === (:end, :i)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, idx_end, i, secondary_element]
+    #   end
+    # elseif secondary_indices === (:end, :i_backwards)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, idx_end, idx_end + 1 - i, secondary_element]
+    #   end
+    # elseif secondary_indices === (:i, :one)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, i, idx_one, secondary_element]
+    #   end
+    # elseif secondary_indices === (:i_backwards, :one)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_one, secondary_element]
+    #   end
+    # elseif secondary_indices === (:i, :end)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, i, idx_end, secondary_element]
+    #   end
+    # else #if secondary_indices === (:i_backwards, :end)
+    #   for i in eachnode(dg), v in eachvariable(equations)
+    #     interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_end, secondary_element]
+    #   end
+    # end
   end
 
   return nothing
@@ -118,65 +162,90 @@ function calc_interface_flux!(surface_flux_values,
     primary_indices  = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
+    i_primary_start, i_primary_step = index_to_start_step(
+      primary_indices[1], idx_one, idx_end)
+    j_primary_start, j_primary_step = index_to_start_step(
+      primary_indices[2], idx_one, idx_end)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+    for i in eachnode(dg)
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+
+      # Contravariant vectors at interfaces in negative coordinate direction
+      # are pointing inwards.
+      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                              i_primary, j_primary, primary_element)
+      flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+      end
+
+      i_primary += i_primary_step
+      j_primary += j_primary_step
+    end
+
+    # TODO: p4est interface performance, remove
     # Decide on a case-by-case basis to get the correct face and orientation
     # at an outer level for performance reasons.
-    if primary_indices === (:one, :i)
-      for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+    # if primary_indices === (:one, :i)
+    #   for i in eachnode(dg)
+    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
-        # Contravariant vectors at interfaces in negative coordinate direction
-        # are pointing inwards.
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    idx_one, i, primary_element)
-        flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
+    #     # Contravariant vectors at interfaces in negative coordinate direction
+    #     # are pointing inwards.
+    #     normal_direction = get_contravariant_vector(1, contravariant_vectors,
+    #                                                 idx_one, i, primary_element)
+    #     flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
 
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-        end
-      end
-    elseif primary_indices === (:end, :i)
-      for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+    #     for v in eachvariable(equations)
+    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+    #     end
+    #   end
+    # elseif primary_indices === (:end, :i)
+    #   for i in eachnode(dg)
+    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
-        # Contravariant vectors at interfaces in positive coordinate direction
-        # are pointing outwards.
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    idx_end, i, primary_element)
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+    #     # Contravariant vectors at interfaces in positive coordinate direction
+    #     # are pointing outwards.
+    #     normal_direction = get_contravariant_vector(1, contravariant_vectors,
+    #                                                 idx_end, i, primary_element)
+    #     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-        end
-      end
-    elseif primary_indices === (:i, :one)
-      for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+    #     for v in eachvariable(equations)
+    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+    #     end
+    #   end
+    # elseif primary_indices === (:i, :one)
+    #   for i in eachnode(dg)
+    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
-        # Contravariant vectors at interfaces in negative coordinate direction
-        # are pointing inwards.
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, idx_one, primary_element)
-        flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
+    #     # Contravariant vectors at interfaces in negative coordinate direction
+    #     # are pointing inwards.
+    #     normal_direction = get_contravariant_vector(2, contravariant_vectors,
+    #                                                 i, idx_one, primary_element)
+    #     flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
 
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-        end
-      end
-    else # if primary_indices === (:i, :end)
-      for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+    #     for v in eachvariable(equations)
+    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+    #     end
+    #   end
+    # else # if primary_indices === (:i, :end)
+    #   for i in eachnode(dg)
+    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
-        # Contravariant vectors at interfaces in positive coordinate direction
-        # are pointing outwards.
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, idx_end, primary_element)
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+    #     # Contravariant vectors at interfaces in positive coordinate direction
+    #     # are pointing outwards.
+    #     normal_direction = get_contravariant_vector(2, contravariant_vectors,
+    #                                                 i, idx_end, primary_element)
+    #     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-        end
-      end
-    end
+    #     for v in eachvariable(equations)
+    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+    #     end
+    #   end
+    # end
 
     # Get information on the secondary element and copy the numerical fluxes
     # from the primary element to the secondary one
