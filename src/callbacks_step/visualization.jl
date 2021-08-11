@@ -125,7 +125,7 @@ end
 function (visualization_callback::VisualizationCallback)(u, t, integrator)
   @unpack interval = visualization_callback
 
-  # With error-based step size control, some steps canbe rejected. Thus,
+  # With error-based step size control, some steps can be rejected. Thus,
   #   `integrator.iter >= integrator.destats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not

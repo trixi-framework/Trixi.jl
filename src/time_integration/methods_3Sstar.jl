@@ -121,7 +121,7 @@ mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, Alg, Simp
   finalstep::Bool # added for convenience
 end
 
-# Forward integrator.destats.naccept to integrator.iter
+# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
   if field === :destats
     return (naccept = getfield(integrator, :iter),)

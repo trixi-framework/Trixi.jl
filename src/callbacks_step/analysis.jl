@@ -89,7 +89,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           uEltype=eltype(cache.elements),
                           kwargs...)
   # Decide when the callback is activated.
-  # With error-based step size control, some steps canbe rejected. Thus,
+  # With error-based step size control, some steps can be rejected. Thus,
   #   `integrator.iter >= integrator.destats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not

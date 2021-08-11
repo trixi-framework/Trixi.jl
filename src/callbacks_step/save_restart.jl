@@ -79,7 +79,7 @@ end
 function (restart_callback::SaveRestartCallback)(u, t, integrator)
   @unpack interval, save_final_restart = restart_callback
 
-  # With error-based step size control, some steps canbe rejected. Thus,
+  # With error-based step size control, some steps can be rejected. Thus,
   #   `integrator.iter >= integrator.destats.naccept`
   #    (total #steps)       (#accepted steps)
   # We need to check the number of accepted steps since callbacks are not
