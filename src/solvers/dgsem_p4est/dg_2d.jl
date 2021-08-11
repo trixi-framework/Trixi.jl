@@ -20,6 +20,7 @@ function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreM
 end
 
 
+# TODO: p4est interface performance, move and generalzie this function for 3D
 @inline function index_to_start_step(index::Symbol, idx_one::Int, idx_end::Int)
   if index === :one
     return idx_one, 0
@@ -63,30 +64,8 @@ function prolong2interfaces!(cache, u,
       j_primary += j_primary_step
     end
 
-    # TODO: p4est interface performance, remove
-    # if primary_indices === (:one, :i)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[1, v, i, interface] = u[v, idx_one, i, primary_element]
-    #   end
-    # elseif primary_indices === (:end, :i)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[1, v, i, interface] = u[v, idx_end, i, primary_element]
-    #   end
-    # elseif primary_indices === (:i, :one)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[1, v, i, interface] = u[v, i, idx_one, primary_element]
-    #   end
-    # else # if primary_indices === (:i, :end)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[1, v, i, interface] = u[v, i, idx_end, primary_element]
-    #   end
-    # end
-
     # Copy solution data from the secondary element on a case-by-case basis to get
     # the correct face and orientation.
-    # Note that more cases need to be distinguished here since the running index
-    # of the secondary side can potentially run backwards if the orientations are
-    # flipped.
     secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
@@ -104,41 +83,6 @@ function prolong2interfaces!(cache, u,
       i_secondary += i_secondary_step
       j_secondary += j_secondary_step
     end
-
-    # TODO: p4est interface performance, remove
-    # if secondary_indices === (:one, :i)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, idx_one, i, secondary_element]
-    #   end
-    # elseif secondary_indices === (:one, :i_backwards)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, idx_one, idx_end + 1 - i, secondary_element]
-    #   end
-    # elseif secondary_indices === (:end, :i)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, idx_end, i, secondary_element]
-    #   end
-    # elseif secondary_indices === (:end, :i_backwards)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, idx_end, idx_end + 1 - i, secondary_element]
-    #   end
-    # elseif secondary_indices === (:i, :one)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, i, idx_one, secondary_element]
-    #   end
-    # elseif secondary_indices === (:i_backwards, :one)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_one, secondary_element]
-    #   end
-    # elseif secondary_indices === (:i, :end)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, i, idx_end, secondary_element]
-    #   end
-    # else #if secondary_indices === (:i_backwards, :end)
-    #   for i in eachnode(dg), v in eachvariable(equations)
-    #     interfaces.u[2, v, i, interface] = u[v, idx_end + 1 - i, idx_end, secondary_element]
-    #   end
-    # end
   end
 
   return nothing
@@ -186,67 +130,6 @@ function calc_interface_flux!(surface_flux_values,
       j_primary += j_primary_step
     end
 
-    # TODO: p4est interface performance, remove
-    # Decide on a case-by-case basis to get the correct face and orientation
-    # at an outer level for performance reasons.
-    # if primary_indices === (:one, :i)
-    #   for i in eachnode(dg)
-    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-    #     # Contravariant vectors at interfaces in negative coordinate direction
-    #     # are pointing inwards.
-    #     normal_direction = get_contravariant_vector(1, contravariant_vectors,
-    #                                                 idx_one, i, primary_element)
-    #     flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
-
-    #     for v in eachvariable(equations)
-    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-    #     end
-    #   end
-    # elseif primary_indices === (:end, :i)
-    #   for i in eachnode(dg)
-    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-    #     # Contravariant vectors at interfaces in positive coordinate direction
-    #     # are pointing outwards.
-    #     normal_direction = get_contravariant_vector(1, contravariant_vectors,
-    #                                                 idx_end, i, primary_element)
-    #     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-    #     for v in eachvariable(equations)
-    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-    #     end
-    #   end
-    # elseif primary_indices === (:i, :one)
-    #   for i in eachnode(dg)
-    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-    #     # Contravariant vectors at interfaces in negative coordinate direction
-    #     # are pointing inwards.
-    #     normal_direction = get_contravariant_vector(2, contravariant_vectors,
-    #                                                 i, idx_one, primary_element)
-    #     flux_ = surface_flux(u_ll, u_rr, -normal_direction, equations)
-
-    #     for v in eachvariable(equations)
-    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-    #     end
-    #   end
-    # else # if primary_indices === (:i, :end)
-    #   for i in eachnode(dg)
-    #     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-    #     # Contravariant vectors at interfaces in positive coordinate direction
-    #     # are pointing outwards.
-    #     normal_direction = get_contravariant_vector(2, contravariant_vectors,
-    #                                                 i, idx_end, primary_element)
-    #     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-    #     for v in eachvariable(equations)
-    #       surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-    #     end
-    #   end
-    # end
-
     # Get information on the secondary element and copy the numerical fluxes
     # from the primary element to the secondary one
     secondary_element = element_ids[2, interface]
@@ -276,21 +159,28 @@ function prolong2boundaries!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-
-  size_ = (nnodes(dg), nnodes(dg))
+  idx_one = 1
+  idx_end = nnodes(dg)
 
   @threaded for boundary in eachboundary(dg, cache)
+    # Copy solution data from the element on a case-by-case basis to get
+    # the correct face and orientation.
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
 
-    # Use Tuple `node_indices` and `evaluate_index` to copy values
-    # from the correct face and in the correct orientation
+    i_node_start, i_node_step = index_to_start_step(
+      node_indices[1], idx_one, idx_end)
+    j_node_start, j_node_step = index_to_start_step(
+      node_indices[2], idx_one, idx_end)
+
+    i_node = i_node_start
+    j_node = j_node_start
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        boundaries.u[v, i, boundary] = u[v, evaluate_index(node_indices, size_, 1, i),
-                                            evaluate_index(node_indices, size_, 2, i),
-                                            element]
+        boundaries.u[v, i, boundary] = u[v, i_node, j_node, element]
       end
+      i_node += i_node_step
+      j_node += j_node_step
     end
   end
 
@@ -302,42 +192,47 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-  @unpack surface_flux_values, node_coordinates = cache.elements
+  @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
   @unpack surface_flux = surface_integral
-
-  size_ = (nnodes(dg), nnodes(dg))
+  idx_one = 1
+  idx_end = nnodes(dg)
 
   @threaded for local_index in eachindex(boundary_indexing)
     # Use the local index to get the global boundary index from the pre-sorted list
     boundary = boundary_indexing[local_index]
 
+    # Get information on the adjacent element, compute the surface fluxes,
+    # and store them
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
     direction     = indices2direction(node_indices)
 
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
-    for i in eachnode(dg)
-      node_i = evaluate_index(node_indices, size_, 1, i)
-      node_j = evaluate_index(node_indices, size_, 2, i)
+    i_node_start, i_node_step = index_to_start_step(
+      node_indices[1], idx_one, idx_end)
+    j_node_start, j_node_step = index_to_start_step(
+      node_indices[2], idx_one, idx_end)
 
+    i_node = i_node_start
+    j_node = j_node_start
+    for i in eachnode(dg)
       # Extract solution data from boundary container
       u_inner = get_node_vars(boundaries.u, equations, dg, i, boundary)
 
       # Outward-pointing normal vector
-      normal_vector = get_normal_vector(direction, cache, node_i, node_j, element)
+      normal_direction = get_normal_direction(direction, contravariant_vectors, i_node, j_node, element)
 
       # Coordinates at boundary node
-      x = get_node_coords(node_coordinates, equations, dg, node_i, node_j, element)
+      x = get_node_coords(node_coordinates, equations, dg, i_node, j_node, element)
 
-      flux_ = boundary_condition(u_inner, normal_vector, x, t, surface_flux, equations)
+      flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to left and right element storage in the correct orientation
+      # Copy flux to element storage in the correct orientation
       for v in eachvariable(equations)
-        surf_i = evaluate_index_surface(node_indices, size_, 1, i)
-        surface_flux_values[v, surf_i, direction, element] = flux_[v]
+        surface_flux_values[v, i, direction, element] = flux_[v]
       end
+
+      i_node += i_node_step
+      j_node += j_node_step
     end
   end
 end
