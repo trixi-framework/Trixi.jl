@@ -8,15 +8,28 @@
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 
-# specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
-mul_by!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x)
-mul_by_accum!(A::UniformScaling) = @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out)))
-
 # out <- out + A * x
 mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out)))
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out)))
+
+# specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
+struct MulByUniformScaling end
+struct MulByAccumUniformScaling end
+mul_by!(A::UniformScaling) = MulByUniformScaling()
+mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
+
+# StructArray fallback
+@inline apply_to_each_field(f, args...) = StructArrays.foreachfield(f, args...)
+
+# specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}.
+@inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
+@inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
+  for (i, x_i) in enumerate(x)
+    out[i] = out[i] + x_i
+  end
+end
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
@@ -34,20 +47,55 @@ mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out))
 @inline each_face_node_global(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
-wrap_array(u_ode::StructArray, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
+wrap_array(u_ode, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMeshData,
                                     dg::DGMulti, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
   return boundary_conditions
 end
 
-function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DGMulti, cache)
-  md = mesh.md
-  nvars = nvariables(equations)
-  return StructArray{SVector{nvars, real(dg)}}(ntuple(_->similar(md.x),nvars))
+# Allocate nested array type for DGMulti solution storage.
+function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
+  # store components as separate arrays, combine via StructArrays
+  return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
 end
 
-function compute_coefficients!(u::StructArray, initial_condition, t,
-                        mesh::AbstractMeshData{NDIMS}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
+
+  rd = dg.basis
+  md = mesh.md
+
+  # volume quadrature weights, volume interpolation matrix, mass matrix, differentiation matrices
+  @unpack wq, Vq, M, Drst = rd
+
+  # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
+  weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * diagm(wq)), Drst)
+
+  nvars = nvariables(equations)
+
+  # storage for volume quadrature values, face quadrature values, flux values
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+  u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+  flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+  if typeof(rd.approximationType) <: SBP
+    lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
+  else
+    lift_scalings = nothing
+  end
+
+  # local storage for volume integral and source computations
+  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
+
+  return (; md, weak_differentiation_matrices, invJ = inv.(md.J), lift_scalings,
+            u_values, u_face_values, flux_face_values,
+            local_values_threaded)
+end
+
+function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DGMulti, cache)
+  return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg)
+end
+
+function compute_coefficients!(u, initial_condition, t,
+                               mesh::AbstractMeshData{NDIMS}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
   md = mesh.md
   rd = dg.basis
   @unpack u_values = cache
@@ -58,7 +106,7 @@ function compute_coefficients!(u::StructArray, initial_condition, t,
   end
 
   # multiplying by Pq computes the L2 projection
-  StructArrays.foreachfield(mul_by!(rd.Pq), u, u_values)
+  apply_to_each_field(mul_by!(rd.Pq), u, u_values)
 end
 
 # estimates the timestep based on polynomial degree and mesh. Does not account for physics (e.g.,
@@ -73,45 +121,11 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
                              surface_integral, dg::DGMulti)
   rd = dg.basis
   @unpack u_face_values = cache
-  StructArrays.foreachfield(mul_by!(rd.Vf), u_face_values, u)
+  apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DG,
-                      RealT, uEltype) where {DG <: Union{DGMultiWeakForm, DGMultiFluxDiff{<:SBP}}}
-
-  rd = dg.basis
-  md = mesh.md
-
-  # volume quadrature weights, volume interpolation matrix
-  @unpack wq, Vq = rd
-
-  # mass matrix, tuple of differentiation matrices
-  @unpack M, Drst, Pq = rd
-
-  # ∫f(u) * dv/dx_i = ∑_j (Vq*D_i)'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
-  weak_differentiation_matrices = map(D -> -M\((Vq*D)'*diagm(wq)), Drst)
-
-  # for use with flux differencing schemes
-  Qrst = map(D->Pq'*M*D*Pq, Drst)
-  Qrst_skew_Tr = map(A -> -0.5*(A-A'), Qrst) # Todo: simplices. Rename this in flux differencing PR
-
-  nvars = nvariables(equations)
-
-  # Todo: simplices. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
-  # storage for volume quadrature values, face quadrature values, flux values
-  u_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq, md.num_elements), nvars))
-  u_face_values = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nfq, md.num_elements), nvars))
-  flux_face_values = similar(u_face_values)
-
-  # local storage for fluxes
-  local_values_threaded = [StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(rd.Nq), nvars)) for _ in 1:Threads.nthreads()]
-
-  return (; md, weak_differentiation_matrices, Qrst_skew_Tr, invJ = inv.(md.J),
-      u_values, local_values_threaded, u_face_values, flux_face_values)
-end
-
-function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegralWeakForm,
-                 mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
+function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
+                               mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
@@ -119,7 +133,7 @@ function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegr
   @unpack rstxyzJ = md # geometric terms
 
   # interpolate to quadrature points
-  StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
+  apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
   # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
@@ -128,8 +142,8 @@ function calc_volume_integral!(du, u::StructArray, volume_integral::VolumeIntegr
     for i in eachdim(mesh)
       flux_values .= flux.(view(u_values,:,e), i, equations)
       for j in eachdim(mesh)
-        StructArrays.foreachfield(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
-                                  view(du,:,e), flux_values)
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], rstxyzJ[i,j][1,e]),
+                            view(du,:,e), flux_values)
       end
     end
   end
@@ -164,7 +178,7 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
                 mesh::VertexMappedMesh, equations,
                 dg::DGMulti, cache)
   rd = dg.basis
-  StructArrays.foreachfield(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
+  apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
@@ -173,7 +187,11 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surfac
   rd = dg.basis
   @unpack Fmask = rd
   @unpack u_face_values = cache
-  StructArrays.foreachfield((out, u)->out .= view(u, Fmask, :), u_face_values, u)
+  @threaded for e in eachelement(mesh, dg, cache)
+    for (i,fid) in enumerate(Fmask)
+      u_face_values[i, e] = u[fid, e]
+    end
+  end
 end
 
 # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to
@@ -183,10 +201,11 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
                                 dg::DGMulti{NDIMS,<:AbstractElemShape, <:SBP}, cache) where {NDIMS}
   rd = dg.basis
   md = mesh.md
-  @unpack flux_face_values = cache
+  @unpack flux_face_values, lift_scalings = cache
   @threaded for e in eachelement(mesh, dg, cache)
     for i in each_face_node(mesh, dg, cache)
-      du[rd.Fmask[i],e] += flux_face_values[i,e] * rd.wf[i] / rd.wq[rd.Fmask[i]]
+      fid = rd.Fmask[i]
+      du[fid, e] = du[fid, e] + flux_face_values[i,e] * lift_scalings[i]
     end
   end
 end
@@ -280,7 +299,7 @@ function calc_sources!(du, u, t, source_terms::SourceTerms,
     for i in each_quad_node(mesh, dg, cache)
       source_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations)
     end
-    StructArrays.foreachfield(mul_by_accum!(Pq), view(du, :, e), source_values)
+    apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
   end
 end
 

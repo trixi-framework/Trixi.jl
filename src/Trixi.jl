@@ -32,7 +32,6 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 import ForwardDiff
 using HDF5: h5open, attributes
-using LazyArrays: LazyArray, @~
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
@@ -43,11 +42,13 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using RecipesBase
 using Requires
+using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+using Triangulate: TriangulateIO, triangulate
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
@@ -117,6 +118,7 @@ export AcousticPerturbationEquations2D,
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
+       flux_nonconservative_powell,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
