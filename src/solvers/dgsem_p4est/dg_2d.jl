@@ -173,7 +173,7 @@ function calc_interface_flux!(surface_flux_values,
       u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
       # Contravariant vectors at interfaces in negative coordinate direction
-      # are pointing inwards.
+      # are pointing inwards. This is handled by `get_normal_direction`.
       normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
                                               i_primary, j_primary, primary_element)
       flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
