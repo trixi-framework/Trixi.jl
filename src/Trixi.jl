@@ -30,7 +30,6 @@ import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
-using FillArrays: Ones
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
