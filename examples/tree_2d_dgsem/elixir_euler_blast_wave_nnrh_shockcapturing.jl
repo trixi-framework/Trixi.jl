@@ -1,6 +1,5 @@
 using Flux
 using BSON: @load
-Core.eval(Main, :(import NNlib, Flux)) 
 #@load "examples/models/2d/modelnnrh-0.974-0.002.bson" model2d
 @load "examples/models/2d/modelnnrhs-0.973-0.001.bson" model2d
 using OrdinaryDiffEq
@@ -16,26 +15,25 @@ initial_condition = initial_condition_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
-coordinates_min = (-2, -2)
-coordinates_max = ( 2,  2)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
-                n_cells_max=10_000)
-                
-indicator_sc = IndicatorNNRH(equations, basis, mesh, 
+indicator_sc = IndicatorANN(equations, basis,
+                             indicator_type="NNRH",
                              alpha_max=0.5,
                              alpha_min=0.001,
                              alpha_smooth=true,
                              alpha_continuous=true,
                              alpha_amr=false,
                              variable=density_pressure,
-                             network=model2d)                                       
+                             network=model2d)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-
+coordinates_min = (-2, -2)
+coordinates_max = ( 2,  2)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level=6,
+                n_cells_max=10_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -62,7 +60,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

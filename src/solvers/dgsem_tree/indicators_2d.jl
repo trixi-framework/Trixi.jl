@@ -224,439 +224,343 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4},
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorNNPP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+function create_cache(::Type{IndicatorANN}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, indicator_type)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
-
   A = Array{real(basis), ndims(equations)}
-  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+  if indicator_type == "NNPP"
+    indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+    modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+    modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+  elseif indicator_type == "NNRH"
+    indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+    modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+    modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+    #X = Vector{Float64}(undef, 3, nelements(dg, cache))
+    #network_input = Vector{Float64}(undef, 15)
+
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded) #, X, network_input)
+
+  elseif indicator_type == "CNN"
+    indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+    return (; alpha, alpha_tmp, indicator_threaded)
+  end
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorNNPP}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
+function create_cache(typ::Type{IndicatorANN}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache, indicator_type)
+  create_cache(typ, equations, dg.basis, indicator_type)
 end
 
 
-function (indicator_nnpp::IndicatorNNPP)(u::AbstractArray{<:Any,4},
+function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,4}, mesh,
                                          equations, dg::DGSEM, cache;
                                          kwargs...)
-  @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_nnpp
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_nnpp.cache
-  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-  #       or just `resize!` whenever we call the relevant methods as we do now?
-  resize!(alpha, nelements(dg, cache))
-  if alpha_smooth
-    resize!(alpha_tmp, nelements(dg, cache))
-  end
 
-  @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
-    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
-
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, element)
-      indicator[i, j] = indicator_nnpp.variable(u_local, equations)
+  @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
+  if indicator_type == "NNPP"
+    #@assert nnodes(dg) >= 4 "Indicator only works for nnodes >= 4 (polydeg > 2)"
+    @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_ann.cache
+    # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+    #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+    #       or just `resize!` whenever we call the relevant methods as we do now?
+    resize!(alpha, nelements(dg, cache))
+    if alpha_smooth
+      resize!(alpha_tmp, nelements(dg, cache))
     end
 
-    # Convert to modal representation
-    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
+    @threaded for element in eachelement(dg, cache)
+      indicator  = indicator_threaded[Threads.threadid()]
+      modal      = modal_threaded[Threads.threadid()]
+      modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for j in 1:nnodes(dg), i in 1:nnodes(dg)
-      total_energy += modal[i, j]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
-      total_energy_clip1 += modal[i, j]^2
-    end
-    total_energy_clip2 = zero(eltype(modal))
-    for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
-      total_energy_clip2 += modal[i, j]^2
-    end
-    total_energy_clip3 = zero(eltype(modal))
-    for j in 1:(nnodes(dg)-3), i in 1:(nnodes(dg)-3)
-      total_energy_clip3 += modal[i, j]^2
-    end
-
-    
-    # Calculate energy in lower modes and polynomial degree for the network input
-    X1 = (total_energy - total_energy_clip1)/total_energy
-    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
-    X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
-    X4 = nnodes(dg)
-    X = SVector(X1, X2, X3, X4)
-
-    # Scale input data
-    X = X ./ max(maximum(abs.(X)),1)
-    probability_troubled_cell = network(X)[1] 
-    if alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if probability_troubled_cell > 0.5
-        alpha_element = probability_troubled_cell
-      else
-        alpha_element = 0
-      end
-      
-      # Take care of the case close to pure FV
-      if alpha_element > 1 - alpha_min
-       alpha_element = one(alpha_element)
+      # Calculate indicator variables at Gauss-Lobatto nodes
+      for j in eachnode(dg), i in eachnode(dg)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        indicator[i, j] = indicator_ann.variable(u_local, equations)
       end
 
-      # Clip the maximum amount of FV allowed
-      alpha[element] = alpha_max * alpha_element
-    elseif !alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to 1
-      if probability_troubled_cell > 0.5
-        alpha[element] = 1
-      else
-        alpha[element] = 0
+      # Convert to modal representation
+      multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
+
+      # Calculate total energies for all modes, without highest, without two highest
+      total_energy = zero(eltype(modal))
+      for j in 1:nnodes(dg), i in 1:nnodes(dg)
+        total_energy += modal[i, j]^2
       end
-    elseif alpha_amr
-      # The entire continuous output of the neural network is used for AMR
-      alpha_element = probability_troubled_cell
-    end
-
-  end
-
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower = cache.mortars.neighbor_ids[1, mortar]
-      upper = cache.mortars.neighbor_ids[2, mortar]
-      large = cache.mortars.neighbor_ids[3, mortar]
-
-      # Apply smoothing
-      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
-    end
-  end
-
-  return alpha
-end
-
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorNNRH}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, mesh::TreeMesh{2})
-
-  alpha = Vector{real(basis)}()
-  alpha_tmp = similar(alpha)
-
-  A = Array{real(basis), ndims(equations)}
-  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, mesh)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorNNRH}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
-end
-
-
-function (indicator_nnrh::IndicatorNNRH)(u::AbstractArray{<:Any,4},
-                                         equations, dg::DGSEM, cache;
-                                         kwargs...)
-  @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_nnrh
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, mesh = indicator_nnrh.cache
-  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-  #       or just `resize!` whenever we call the relevant methods as we do now?
-  resize!(alpha, nelements(dg, cache))
-  if alpha_smooth
-    resize!(alpha_tmp, nelements(dg, cache))
-  end
-
-  c2e = zeros(Int, length(mesh.tree))
-  for element in eachelement(dg, cache)
-    c2e[cache.elements.cell_ids[element]] = element
-  end
-
-  network_input = Array{Float64}(undef, 3, nelements(dg, cache))
-
-  @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
-    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
-
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, element)
-      indicator[i, j] = indicator_nnrh.variable(u_local, equations)
-    end
-
-    # Convert to modal representation
-    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
-    # Save linear modal coefficients for the network input
-    network_input[1,element] = modal[1,1]
-    network_input[2,element] = modal[1,2]
-    network_input[3,element] = modal[2,1] 
-  end
-
-
-  @threaded for element in eachelement(dg, cache)
-    cell_id = cache.elements.cell_ids[element]
-    X = Array{Float64}(undef, 15)
-    
-    X[1] = network_input[1,element] 
-    X[2] = network_input[2,element] 
-    X[3] = network_input[3,element]
-    
-    #dirshuffle = collect(1:4)
-    #dirshuffle = shuffle!(dirshuffle)
-    for direction in eachdirection(mesh.tree)
-      if direction == 1 # -x
-          dir = 4    #dirshuffle[1]
-      elseif direction == 2 # +x 
-          dir = 1   #dirshuffle[2]
-      elseif direction == 3 # -y 
-          dir = 3   #dirshuffle[3]
-      elseif direction == 4 # +y 
-          dir = 2 #dirshuffle[4]
+      total_energy_clip1 = zero(eltype(modal))
+      for j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
+        total_energy_clip1 += modal[i, j]^2
+      end
+      total_energy_clip2 = zero(eltype(modal))
+      for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
+        total_energy_clip2 += modal[i, j]^2
+      end
+      total_energy_clip3 = zero(eltype(modal))
+      for j in 1:(nnodes(dg)-3), i in 1:(nnodes(dg)-3)
+        total_energy_clip3 += modal[i, j]^2
       end
 
-      # Of no neighbor exists and current cell is not small
-      if !has_any_neighbor(mesh.tree, cell_id, direction) 
-        X[3*dir+1] = network_input[1, element]  
-        X[3*dir+2] = network_input[2, element] 
-        X[3*dir+3] = network_input[3, element] 
-        continue
-      end
 
-      # Get Input data from neighbors
-      if has_neighbor(mesh.tree, cell_id, direction)
-        neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
-        if has_children(mesh.tree, neighbor_cell_id) # Cell has small neighbor 
-          # Mean over 4 neighbor cells
-          neighbor_ids= Array{Int64}(undef, 8)
-          neighbor_ids[1] = mesh.tree.child_ids[1, neighbor_cell_id]
-          neighbor_ids[2] = mesh.tree.child_ids[2, neighbor_cell_id]
-          neighbor_ids[3] = mesh.tree.child_ids[3, neighbor_cell_id]
-          neighbor_ids[4] = mesh.tree.child_ids[4, neighbor_cell_id]
-          mod = Array{Float64}(undef, 4, 3)
+      # Calculate energy in lower modes and polynomial degree for the network input
+      X1 = (total_energy - total_energy_clip1)/total_energy
+      X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+      X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
+      X4 = nnodes(dg)
+      network_input = SVector(X1, X2, X3, X4)
 
-          for i in 1:4
-            if has_children(mesh.tree, neighbor_ids[i])
-              neighbor_ids5 = c2e[mesh.tree.child_ids[1, neighbor_ids[i]]] 
-              neighbor_ids6 = c2e[mesh.tree.child_ids[2, neighbor_ids[i]]] 
-              neighbor_ids7 = c2e[mesh.tree.child_ids[3, neighbor_ids[i]]]
-              neighbor_ids8 = c2e[mesh.tree.child_ids[4, neighbor_ids[i]]]
-            
-              mod[i,1] = (network_input[1,neighbor_ids5] + network_input[1,neighbor_ids6] + network_input[1,neighbor_ids7] + network_input[1,neighbor_ids8])/4
-              mod[i,2] = (network_input[2,neighbor_ids5] + network_input[2,neighbor_ids6] + network_input[2,neighbor_ids7] + network_input[2,neighbor_ids8])/4
-              mod[i,3] = (network_input[3,neighbor_ids5] + network_input[3,neighbor_ids6] + network_input[3,neighbor_ids7] + network_input[3,neighbor_ids8])/4
-            else 
-              neighbor_id = c2e[neighbor_ids[i]]
-              mod[i,1] = network_input[1,neighbor_id]
-              mod[i,2] = network_input[2,neighbor_id]
-              mod[i,3] = network_input[3,neighbor_id]
-            end
-          end
-          X[3*dir+1] = (mod[1,1] + mod[2,1] + mod[3,1] + mod[4,1])/4
-          X[3*dir+2] = (mod[1,2] + mod[2,2] + mod[3,2] + mod[4,2])/4
-          X[3*dir+3] = (mod[1,3] + mod[2,3] + mod[3,3] + mod[4,3])/4 
-
-        else # Cell has same refinement level neighbor
-          neighbor_id = c2e[neighbor_cell_id]
-                                
-          X[3*dir+1] = network_input[1,neighbor_id]
-          X[3*dir+2] = network_input[2,neighbor_id]
-          X[3*dir+3] = network_input[3,neighbor_id]
+      # Scale input data
+      network_input = network_input ./ max(maximum(abs.(network_input)),1)
+      probability_troubled_cell = network(network_input)[1]
+      if alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to continuous value of the network prediction
+        if probability_troubled_cell > 0.5
+          alpha_element = probability_troubled_cell
+        else
+          alpha_element = 0
         end
-      else # Cell is small and has large neighbor
-        parent_id = mesh.tree.parent_ids[cell_id]
-        neighbor_id = c2e[mesh.tree.neighbor_ids[direction, parent_id]]
-                                
-        X[3*dir+1] = network_input[1,neighbor_id]
-        X[3*dir+2] = network_input[2,neighbor_id]
-        X[3*dir+3] = network_input[3,neighbor_id]
 
-      end
-    end
-  
-    # Scale input data
-    X = X ./ max(maximum(abs.(X)),1)
-    probability_troubled_cell = network(X)[1] 
-    if alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if probability_troubled_cell > 0.5
+        # Take care of the case close to pure FV
+        if alpha_element > 1 - alpha_min
+        alpha_element = one(alpha_element)
+        end
+
+        # Clip the maximum amount of FV allowed
+        alpha[element] = alpha_max * alpha_element
+      elseif !alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to 1
+        if probability_troubled_cell > 0.5
+          alpha[element] = 1
+        else
+          alpha[element] = 0
+        end
+      elseif alpha_amr
+        # The entire continuous output of the neural network is used for AMR
         alpha_element = probability_troubled_cell
-      else
-        alpha_element = 0
-      end
-      
-      # Take care of the case close to pure FV
-      if alpha_element > 1 - alpha_min
-       alpha_element = one(alpha_element)
       end
 
-      # Clip the maximum amount of FV allowed
-      alpha[element] = alpha_max * alpha_element
-    elseif !alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to 1
-      if probability_troubled_cell > 0.5
-        alpha[element] = 1
-      else
-        alpha[element] = 0
+    end
+  elseif indicator_type == "NNRH"
+    @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_ann.cache #X, network_input
+    # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+    #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+    #       or just `resize!` whenever we call the relevant methods as we do now?
+    resize!(alpha, nelements(dg, cache))
+    if alpha_smooth
+      resize!(alpha_tmp, nelements(dg, cache))
+    end
+
+    c2e = zeros(Int, length(mesh.tree))
+    for element in eachelement(dg, cache)
+      c2e[cache.elements.cell_ids[element]] = element
+    end
+
+    X = Array{Float64}(undef, 3, nelements(dg, cache))
+
+    @threaded for element in eachelement(dg, cache)
+      indicator  = indicator_threaded[Threads.threadid()]
+      modal      = modal_threaded[Threads.threadid()]
+      modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
+
+      # Calculate indicator variables at Gauss-Lobatto nodes
+      for j in eachnode(dg), i in eachnode(dg)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        indicator[i, j] = indicator_ann.variable(u_local, equations)
       end
-    elseif alpha_amr
-      # The entire continuous output of the neural network is used for AMR
-      alpha_element = probability_troubled_cell
-    end
-  end
 
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
+      # Convert to modal representation
+      multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
+      # Save linear modal coefficients for the network input
+      X[1,element] = modal[1,1]
+      X[2,element] = modal[1,2]
+      X[3,element] = modal[2,1]
     end
 
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower = cache.mortars.neighbor_ids[1, mortar]
-      upper = cache.mortars.neighbor_ids[2, mortar]
-      large = cache.mortars.neighbor_ids[3, mortar]
 
-      # Apply smoothing
-      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
-    end
-  end
+    @threaded for element in eachelement(dg, cache)
+      cell_id = cache.elements.cell_ids[element]
+      network_input = Array{Float64}(undef, 15)
 
-  return alpha
-end
+      network_input[1] = X[1,element]
+      network_input[2] = X[2,element]
+      network_input[3] = X[3,element]
 
+      #dirshuffle = collect(1:4)
+      #dirshuffle = shuffle!(dirshuffle)
+      for direction in eachdirection(mesh.tree)
+        if direction == 1 # -x
+            dir = 4    #dirshuffle[1]
+        elseif direction == 2 # +x
+            dir = 1   #dirshuffle[2]
+        elseif direction == 3 # -y
+            dir = 3   #dirshuffle[3]
+        elseif direction == 4 # +y
+            dir = 2 #dirshuffle[4]
+        end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorCNN}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+        # Of no neighbor exists and current cell is not small
+        if !has_any_neighbor(mesh.tree, cell_id, direction)
+          network_input[3*dir+1] = X[1, element]
+          network_input[3*dir+2] = X[2, element]
+          network_input[3*dir+3] = X[3, element]
+          continue
+        end
 
-  alpha = Vector{real(basis)}()
-  alpha_tmp = similar(alpha)
+        # Get Input data from neighbors
+        if has_neighbor(mesh.tree, cell_id, direction)
+          neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+          if has_children(mesh.tree, neighbor_cell_id) # Cell has small neighbor
+            # Mean over 4 neighbor cells
+            neighbor_ids= Array{Int64}(undef, 8)
+            neighbor_ids[1] = mesh.tree.child_ids[1, neighbor_cell_id]
+            neighbor_ids[2] = mesh.tree.child_ids[2, neighbor_cell_id]
+            neighbor_ids[3] = mesh.tree.child_ids[3, neighbor_cell_id]
+            neighbor_ids[4] = mesh.tree.child_ids[4, neighbor_cell_id]
+            mod = Array{Float64}(undef, 4, 3)
 
-  A = Array{real(basis), ndims(equations)}
-  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+            for i in 1:4
+              if has_children(mesh.tree, neighbor_ids[i])
+                neighbor_ids5 = c2e[mesh.tree.child_ids[1, neighbor_ids[i]]]
+                neighbor_ids6 = c2e[mesh.tree.child_ids[2, neighbor_ids[i]]]
+                neighbor_ids7 = c2e[mesh.tree.child_ids[3, neighbor_ids[i]]]
+                neighbor_ids8 = c2e[mesh.tree.child_ids[4, neighbor_ids[i]]]
 
-  return (; alpha, alpha_tmp, indicator_threaded) #, modal_threaded, modal_tmp1_threaded)
-end
+                mod[i,1] = (network_input[1,neighbor_ids5] + network_input[1,neighbor_ids6] + network_input[1,neighbor_ids7] + network_input[1,neighbor_ids8])/4
+                mod[i,2] = (network_input[2,neighbor_ids5] + network_input[2,neighbor_ids6] + network_input[2,neighbor_ids7] + network_input[2,neighbor_ids8])/4
+                mod[i,3] = (network_input[3,neighbor_ids5] + network_input[3,neighbor_ids6] + network_input[3,neighbor_ids7] + network_input[3,neighbor_ids8])/4
+              else
+                neighbor_id = c2e[neighbor_ids[i]]
+                mod[i,1] = network_input[1,neighbor_id]
+                mod[i,2] = network_input[2,neighbor_id]
+                mod[i,3] = network_input[3,neighbor_id]
+              end
+            end
+            network_input[3*dir+1] = (mod[1,1] + mod[2,1] + mod[3,1] + mod[4,1])/4
+            network_input[3*dir+2] = (mod[1,2] + mod[2,2] + mod[3,2] + mod[4,2])/4
+            network_input[3*dir+3] = (mod[1,3] + mod[2,3] + mod[3,3] + mod[4,3])/4
 
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorCNN}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
-end
+          else # Cell has same refinement level neighbor
+            neighbor_id = c2e[neighbor_cell_id]
 
+            network_input[3*dir+1] = X[1,neighbor_id]
+            network_input[3*dir+2] = X[2,neighbor_id]
+            network_input[3*dir+3] = X[3,neighbor_id]
+          end
+        else # Cell is small and has large neighbor
+          parent_id = mesh.tree.parent_ids[cell_id]
+          neighbor_id = c2e[mesh.tree.neighbor_ids[direction, parent_id]]
 
-function (indicator_cnn::IndicatorCNN)(u::AbstractArray{<:Any,4},
-                                       equations, dg::DGSEM, cache;
-                                       kwargs...)
-  @unpack alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_cnn
-  @unpack alpha, alpha_tmp, indicator_threaded = indicator_cnn.cache
-  # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-  #       or just `resize!` whenever we call the relevant methods as we do now?
-  resize!(alpha, nelements(dg, cache))
-  if alpha_smooth
-    resize!(alpha_tmp, nelements(dg, cache))
-  end
+          network_input[3*dir+1] = X[1,neighbor_id]
+          network_input[3*dir+2] = X[2,neighbor_id]
+          network_input[3*dir+3] = X[3,neighbor_id]
 
-  @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, element)
-      indicator[i, j] = indicator_cnn.variable(u_local, equations)
-    end
-
-    
-    n_cnn = 4
-    nodes,_ = gauss_lobatto_nodes_weights(nnodes(dg))
-    cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
-    vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
-    data_cnn = Array{Float64}(undef, n_cnn, n_cnn)
-    X = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
-
-    for j in 1:n_cnn, i in 1:n_cnn
-      acc = 0
-      for jj in eachnode(dg), ii in eachnode(dg)
-        acc += vandermonde[i,ii] * indicator[ii,jj] * vandermonde[j,jj]
+        end
       end
-      data_cnn[i,j] = acc
-    end
 
-    X[:,:,1,1] = data_cnn[:,:]
+      # Scale input data
+      network_input = network_input ./ max(maximum(abs.(network_input)),1)
+      probability_troubled_cell = network(network_input)[1]
+      if alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to continuous value of the network prediction
+        if probability_troubled_cell > 0.5
+          alpha_element = probability_troubled_cell
+        else
+          alpha_element = 0
+        end
 
-    # Scale input data
-    X = X ./ max(maximum(abs.(X)),1)
-    probability_troubled_cell = network(X)[1] 
-    if alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if probability_troubled_cell > 0.5
+        # Take care of the case close to pure FV
+        if alpha_element > 1 - alpha_min
+        alpha_element = one(alpha_element)
+        end
+
+        # Clip the maximum amount of FV allowed
+        alpha[element] = alpha_max * alpha_element
+      elseif !alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to 1
+        if probability_troubled_cell > 0.5
+          alpha[element] = 1
+        else
+          alpha[element] = 0
+        end
+      elseif alpha_amr
+        # The entire continuous output of the neural network is used for AMR
         alpha_element = probability_troubled_cell
-      else
-        alpha_element = 0
       end
-      
-      # Take care of the case close to pure FV
-      if alpha_element > 1 - alpha_min
-       alpha_element = one(alpha_element)
-      end
-
-      # Clip the maximum amount of FV allowed
-      alpha[element] = alpha_max * alpha_element
-    elseif !alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to 1
-      if probability_troubled_cell > 0.5
-        alpha[element] = 1
-      else
-        alpha[element] = 0
-      end
-    elseif alpha_amr
-      # The entire continuous output of the neural network is used for AMR
-      alpha_element = probability_troubled_cell
+    end
+  elseif indicator_type == "CNN"
+    @unpack alpha, alpha_tmp, indicator_threaded = indicator_ann.cache
+    # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
+    #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
+    #       or just `resize!` whenever we call the relevant methods as we do now?
+    resize!(alpha, nelements(dg, cache))
+    if alpha_smooth
+      resize!(alpha_tmp, nelements(dg, cache))
     end
 
+    @threaded for element in eachelement(dg, cache)
+      indicator  = indicator_threaded[Threads.threadid()]
+
+      # Calculate indicator variables at Gauss-Lobatto nodes
+      for j in eachnode(dg), i in eachnode(dg)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        indicator[i, j] = indicator_ann.variable(u_local, equations)
+      end
+
+
+      n_cnn = 4
+      nodes,_ = gauss_lobatto_nodes_weights(nnodes(dg))
+      cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
+      vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
+      data_cnn = Array{Float64}(undef, n_cnn, n_cnn)
+      network_input = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
+
+      for j in 1:n_cnn, i in 1:n_cnn
+        acc = 0
+        for jj in eachnode(dg), ii in eachnode(dg)
+          acc += vandermonde[i,ii] * indicator[ii,jj] * vandermonde[j,jj]
+        end
+        data_cnn[i,j] = acc
+      end
+
+      network_input[:,:,1,1] = data_cnn[:,:]
+
+      # Scale input data
+      # network_input = network_input ./ max(maximum(abs.(network_input)),1)
+      network_input[:,:,1,1] = network_input[:,:,1,1] ./ max(maximum(abs.(network_input[:,:,1,1])),1)
+      probability_troubled_cell = network(network_input)[1]
+      if alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to continuous value of the network prediction
+        if probability_troubled_cell > 0.5
+          alpha_element = probability_troubled_cell
+        else
+          alpha_element = 0
+        end
+
+        # Take care of the case close to pure FV
+        if alpha_element > 1 - alpha_min
+        alpha_element = one(alpha_element)
+        end
+
+        # Clip the maximum amount of FV allowed
+        alpha[element] = alpha_max * alpha_element
+      elseif !alpha_continuous && !alpha_amr
+        # Set good cells to 0 and troubled cells to 1
+        if probability_troubled_cell > 0.5
+          alpha[element] = 1
+        else
+          alpha[element] = 0
+        end
+      elseif alpha_amr
+        # The entire continuous output of the neural network is used for AMR
+        alpha_element = probability_troubled_cell
+      end
+
+    end
   end
 
   if (alpha_smooth)

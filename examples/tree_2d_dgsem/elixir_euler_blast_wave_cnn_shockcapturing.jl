@@ -1,6 +1,5 @@
 using Flux
 using BSON: @load
-Core.eval(Main, :(import NNlib, Flux)) 
 @load "examples/models/2d/modelcnn-0.945-0.001.bson" model2dcnn
 using OrdinaryDiffEq
 using Trixi
@@ -15,14 +14,15 @@ initial_condition = initial_condition_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
-indicator_sc = IndicatorCNN(equations, basis,
+indicator_sc = IndicatorANN(equations, basis,
+                            indicator_type="CNN",
                             alpha_max=0.5,
                             alpha_min=0.001,
                             alpha_smooth=true,
                             alpha_continuous=true,
                             alpha_amr=false,
                             variable=density_pressure,
-                            network=model2dcnn)                                       
+                            network=model2dcnn)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -59,7 +59,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

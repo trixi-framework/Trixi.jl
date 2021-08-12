@@ -281,7 +281,7 @@ function calc_volume_integral!(du, u,
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  alpha = @trixi_timeit timer() "blending factors" indicator(u, equations, dg, cache)
+  alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg, cache)
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
@@ -303,7 +303,7 @@ function calc_volume_integral!(du, u,
                        volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
-    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, alpha_element)
+    fv_kernel!(du, u, mesh, equations, volume_flux_fv, dg, cache, element, alpha_element)
   end
 
   return nothing
@@ -319,7 +319,7 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, true)
+    fv_kernel!(du, u, mesh, equations, volume_flux_fv, dg, cache, element, true)
   end
 
   return nothing
@@ -327,14 +327,14 @@ end
 
 
 
-@inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3},
+@inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3}, mesh::TreeMesh{1},
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_threaded = cache
   @unpack inverse_weights = dg.basis
 
   # Calculate FV two-point fluxes
   fstar1 = fstar1_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1, u, equations, volume_flux_fv, dg, element)
+  calcflux_fv!(fstar1, u, mesh, equations, volume_flux_fv, dg, element)
 
   # Calculate FV volume integral contribution
   for i in eachnode(dg)
@@ -348,7 +348,7 @@ end
   return nothing
 end
 
-@inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3},
+@inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3}, mesh::TreeMesh{1},
                               equations, volume_flux_fv, dg::DGSEM, element)
 
   fstar1[:, 1,           ] .= zero(eltype(fstar1))

@@ -193,174 +193,32 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 """
-    IndicatorNNPP
+    IndicatorANN
 
 Artificial neural network based indicator used for shock-capturing or AMR.
 
-!!! warning "Experimental implementation"                                                           
-This is an experimental feature and may change in future releases.
 
-"""
-struct IndicatorNNPP{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
-  alpha_max::RealT
-  alpha_min::RealT
-  alpha_smooth::Bool
-  alpha_continuous::Bool
-  alpha_amr::Bool
-  variable::Variable
-  network::Chain
-  cache::Cache
-end
+  IndicatorNNRH
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorNNPP(equations::AbstractEquations, basis;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   alpha_continuous=true,
-                                   alpha_amr=false,
-                                   variable,
-                                   network)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorNNPP, equations, basis)
-  IndicatorNNPP{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function IndicatorNNPP(semi::AbstractSemidiscretization;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   alpha_continuous=true,
-                                   alpha_amr=true,
-                                   variable,
-                                   network)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorNNPP, semi)
-  IndicatorNNPP{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
-end
-
-
-function Base.show(io::IO, indicator::IndicatorNNPP)
-  @nospecialize indicator # reduce precompilation time
-
-  print(io, "IndicatorNNPP(")
-  print(io, indicator.variable)
-  print(io, ", alpha_max=", indicator.alpha_max)
-  print(io, ", alpha_min=", indicator.alpha_min)
-  print(io, ", alpha_smooth=", indicator.alpha_smooth)
-  print(io, ", alpha_continuous=", indicator.alpha_continuous)
-  print(io, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNNPP)
-  @nospecialize indicator # reduce precompilation time
-
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = [
-             "indicator variable" => indicator.variable,
-             "max. α" => indicator.alpha_max,
-             "min. α" => indicator.alpha_min,
-             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
-             "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
-            ]
-    summary_box(io, "IndicatorNNPP", setup)
-  end
-end
-
-
-"""
-    IndicatorNNRH
-
-Artificial neural network based indicator used for shock-capturing or AMR
+Artificial neural network based indicator used for shock-capturing or AMR.
   - Ray, Hesthaven (2018)
     "An artificial neural network as a troubled-cell indicator"
     [doi:10.1016/j.jcp.2018.04.029](https://doi.org/10.1016/j.jcp.2018.04.029)
   - Ray, Hesthaven (2019)
     "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
     [doi:10.1016/j.jcp.2019.07.043](https://doi.org/10.1016/j.jcp.2019.07.043)
-"""
-struct IndicatorNNRH{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
-  alpha_max::RealT
-  alpha_min::RealT
-  alpha_smooth::Bool
-  alpha_continuous::Bool
-  alpha_amr::Bool
-  variable::Variable
-  network::Chain
-  cache::Cache
-end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorNNRH(equations::AbstractEquations, basis, mesh;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   alpha_continuous=true,
-                                   alpha_amr=false,
-                                   variable,
-                                   network)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorNNRH, equations, basis, mesh)
-  IndicatorNNRH{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function IndicatorNNRH(semi::AbstractSemidiscretization;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   alpha_continuous=true,
-                                   alpha_amr=true,
-                                   variable,
-                                   network)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorNNRH, semi)
-  IndicatorNNRH{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
-end
-
-
-function Base.show(io::IO, indicator::IndicatorNNRH)
-  @nospecialize indicator # reduce precompilation time
-
-  print(io, "IndicatorNNRH(")
-  print(io, indicator.variable)
-  print(io, ", alpha_max=", indicator.alpha_max)
-  print(io, ", alpha_min=", indicator.alpha_min)
-  print(io, ", alpha_smooth=", indicator.alpha_smooth)
-  print(io, ", alpha_continuous=", indicator.alpha_continuous)
-  print(io, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNNRH)
-  @nospecialize indicator # reduce precompilation time
-
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = [
-             "indicator variable" => indicator.variable,
-             "max. α" => indicator.alpha_max,
-             "min. α" => indicator.alpha_min,
-             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
-             "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
-            ]
-    summary_box(io, "IndicatorNNRH", setup)
-  end
-end
-
-"""
     IndicatorCNN
 
-Convolutional neural network based indicator used for shock-capturing or AMR
+    Convolutional neural network based indicator used for shock-capturing or AMR.
+
+!!! warning "Experimental implementation"
+This is an experimental feature and may change in future releases.
+
 """
-struct IndicatorCNN{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
+struct IndicatorANN{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
+  #indicator_type::String
+  indicator_type::String
   alpha_max::RealT
   alpha_min::RealT
   alpha_smooth::Bool
@@ -372,7 +230,8 @@ struct IndicatorCNN{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorCNN(equations::AbstractEquations, basis;
+function IndicatorANN(equations::AbstractEquations, basis;
+                                   indicator_type,
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
@@ -381,13 +240,14 @@ function IndicatorCNN(equations::AbstractEquations, basis;
                                    variable,
                                    network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorNNPP, equations, basis)
-  IndicatorCNN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
+  cache = create_cache(IndicatorANN, equations, basis, indicator_type)
+  IndicatorANN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+    indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
-function IndicatorCNN(semi::AbstractSemidiscretization;
+function IndicatorANN(semi::AbstractSemidiscretization;
+                                   indicator_type,
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
@@ -396,17 +256,18 @@ function IndicatorCNN(semi::AbstractSemidiscretization;
                                    variable,
                                    network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorCNN, semi)
-  IndicatorCNN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
+  cache = create_cache(IndicatorANN, semi, indicator_type)
+  IndicatorANN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+    indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
 end
 
 
-function Base.show(io::IO, indicator::IndicatorCNN)
+function Base.show(io::IO, indicator::IndicatorANN)
   @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorCNN(")
+  print(io, "IndicatorANN(")
   print(io, indicator.variable)
+  print(io, indicator.indicator_type)
   print(io, ", alpha_max=", indicator.alpha_max)
   print(io, ", alpha_min=", indicator.alpha_min)
   print(io, ", alpha_smooth=", indicator.alpha_smooth)
@@ -414,7 +275,7 @@ function Base.show(io::IO, indicator::IndicatorCNN)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorCNN)
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorANN)
   @nospecialize indicator # reduce precompilation time
 
   if get(io, :compact, false)
@@ -427,7 +288,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorCNN)
              "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
              "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
             ]
-    summary_box(io, "IndicatorCNN", setup)
+    summary_box(io, "IndicatorANN", setup)
   end
 end
 

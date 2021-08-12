@@ -348,7 +348,7 @@ function calc_volume_integral!(du, u,
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  alpha = @trixi_timeit timer() "blending factors" indicator(u, equations, dg, cache)
+  alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg, cache)
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
@@ -370,7 +370,7 @@ function calc_volume_integral!(du, u,
                        mesh, equations, volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
-    fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, alpha_element)
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, alpha_element)
   end
 
   return nothing
@@ -386,14 +386,15 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, true)
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, true)
   end
 
   return nothing
 end
 
 
-@inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4}, nonconservative_terms,
+@inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4},
+                            mesh::TreeMesh{2}, nonconservative_terms,
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
   @unpack inverse_weights = dg.basis
@@ -403,7 +404,7 @@ end
   fstar2_L = fstar2_L_threaded[Threads.threadid()]
   fstar1_R = fstar1_R_threaded[Threads.threadid()]
   fstar2_R = fstar2_R_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
+  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
                nonconservative_terms, equations, volume_flux_fv, dg, element)
 
   # Calculate FV volume integral contribution
@@ -436,7 +437,7 @@ end
 # - `volume_flux_fv`
 # - `dg::DGSEM`
 # - `element::Integer`
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4}, mesh::TreeMesh{2},
                               nonconservative_terms::Val{false}, equations, volume_flux_fv,
                               dg::DGSEM, element)
 
@@ -485,7 +486,7 @@ end
 # - `volume_flux_fv`
 # - `dg::DGSEM`
 # - `element::Integer`
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4}, mesh::TreeMesh{2},
                               nonconservative_terms::Val{true}, equations, volume_flux_fv,
                               dg::DGSEM, element)
   # Fluxes in x

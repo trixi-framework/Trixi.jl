@@ -1,7 +1,6 @@
 
 using Flux
 using BSON: @load
-Core.eval(Main, :(import NNlib, Flux)) 
 @load "examples/models/1d/modelnnpp-0.97-0.0001.bson" model1d
 #@load "examples/models/1d/modelnnpph-0.96-1.0e-5.bson" model1d
 using OrdinaryDiffEq
@@ -18,14 +17,15 @@ initial_condition = initial_condition_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
-indicator_sc = IndicatorNNPP(equations, basis,
-                             alpha_max=0.5,
-                             alpha_min=0.001,
-                             alpha_smooth=true,
-                             alpha_continuous=false,
-                             alpha_amr=false,
-                             variable=density_pressure,
-                             network=model1d)
+indicator_sc = IndicatorANN(equations, basis,
+                            indicator_type="NNPP",
+                            alpha_max=0.5,
+                            alpha_min=0.001,
+                            alpha_smooth=true,
+                            alpha_continuous=false,
+                            alpha_amr=false,
+                            variable=density_pressure,
+                            network=model1d)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -63,7 +63,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 
