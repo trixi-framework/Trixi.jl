@@ -221,6 +221,22 @@ function __init__()
     using .Makie: Makie
     export trixi_plot
   end
+
+  # FIXME upstream. This is a hacky workaround for
+  #       https://github.com/trixi-framework/Trixi.jl/issues/628
+  # The related upstream issues appear to be
+  #       https://github.com/JuliaLang/julia/issues/35800
+  #       https://github.com/JuliaLang/julia/issues/32552
+  #       https://github.com/JuliaLang/julia/issues/41740
+  # See also https://discourse.julialang.org/t/performance-depends-dramatically-on-compilation-order/58425
+  let
+    for T in (Float32, Float64)
+      u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
+      view(u_mortars_2d, 1, :, 1, :, 1)
+      u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
+      view(u_mortars_3d, 1, :, 1, :, :, 1)
+    end
+  end
 end
 
 
