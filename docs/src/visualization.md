@@ -401,20 +401,40 @@ to create PDF files. A comprehensive list of all possible arguments for
 
 ## [Makie.jl [experimental]](@id Makie.jl)
 
-In addition to [Plots.jl](@ref Plots.jl) support, Trixi includes interactive plotting through
-[Makie.jl](https://github.com/JuliaPlots/Makie.jl/).
+In addition to [Plots.jl](@ref Plots.jl) support, Trixi includes visualization utilities through
+[Makie.jl](https://github.com/JuliaPlots/Makie.jl/). Trixi provides Makie-based visualization options
+both for heatmap-type plots (similar to the [Plots.jl](@ref Plots.jl) recipes) as well as for
+interactive surface plots.
 
 !!! note
     Plotting via Makie.jl is still considered an experimental feature and might
     change in any future releases.
 
-An interactive Makie plot can be created as follows: after running a simulation with Trixi in the REPL,
-load a Makie backend (for example, [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/) or
+A Makie plot can be created as follows: after running a simulation with Trixi in the REPL, load a
+Makie backend (for example, [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/) or
 [CairoMakie](https://github.com/JuliaPlots/CairoMakie.jl)).
 ```julia
 julia> using GLMakie
 ```
-To visualize the solution, execute `trixi_plot`
+
+To visualize the solution and mesh with a heatmap-type plot, simply run
+```julia
+julia> plot(sol)
+```
+As with Plots.jl recipes, one can view individual solution components by creating a `PlotData2D`
+object and indexing into it with the desired variable name
+```julia
+julia> pd = PlotData2D(sol)
+julia> plot(pd["rho"])
+```
+Unlike the Plots.jl recipe, mesh plotting is controlled using the keyword argument
+`plot_mesh = false`, e.g.,
+```julia
+julia> plot(sol; plot_mesh=false)
+```
+
+
+Trixi also supports interactive surface plots using `trixi_plot`:
 ```julia
 julia> trixi_plot(sol)
 ```
@@ -422,8 +442,6 @@ This will open up an interactive visualization window:
 
 ![makie-example](https://user-images.githubusercontent.com/1156048/127914785-bb87cff5-92b2-4e72-9ed1-9c04f4f81a73.png)
 
-The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and shifted (hold
-right click and drag). Different Two toggle buttons control whether mesh lines are visible.
-
-Currently, Trixi only supports Makie-based interactive surface plots for the visualization of
-conservative variables for 2D simulations on quadrilateral meshes.
+The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and shifted
+(hold right click and drag). Two toggle buttons control whether mesh lines are visible on top
+of and below the solution.
