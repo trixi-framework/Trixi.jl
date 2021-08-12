@@ -138,6 +138,8 @@ function calc_interface_flux!(surface_flux_values,
 
     # Note that the index of the primary side will always run forward but
     # the secondary index might need to run backwards for flipped sides.
+    # TODO: p4est interface performance; see whether this can be made simpler and
+    #       more general when working on the 3D version
     if :i_backwards in secondary_indices
       for i in eachnode(dg)
         for v in eachvariable(equations)
@@ -416,6 +418,8 @@ end
   # correct orientation.
   # Note that the index of the small sides will always run forward but
   # the index of the large side might need to run backwards for flipped sides.
+  # TODO: p4est interface performance; see whether this can be made simpler and
+  #       more general when working on the 3D version
   if :i_backwards in large_indices
     for i in eachnode(dg)
       for v in eachvariable(equations)
