@@ -17,10 +17,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_2d_ape.jl")
 
   # Curved mesh
-  include("test_examples_2d_curved.jl")
+  include("test_examples_2d_structured.jl")
 
   # Unstructured curved mesh
-  include("test_examples_2d_unstructured_quad.jl")
+  include("test_examples_2d_unstructured.jl")
 
   # P4estMesh
   include("test_examples_2d_p4est.jl")

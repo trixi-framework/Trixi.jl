@@ -102,7 +102,14 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
 
   # Invoke callback every `interval` time steps or after final step (for storing the data on disk)
   if interval > 0
-    condition = (u, t, integrator) -> (integrator.iter % interval == 0 || isfinished(integrator))
+    # With error-based step size control, some steps can be rejected. Thus,
+    #   `integrator.iter >= integrator.destats.naccept`
+    #    (total #steps)       (#accepted steps)
+    # We need to check the number of accepted steps since callbacks are not
+    # activated after a rejected step.
+    condition = (u, t, integrator) -> ( (integrator.destats.naccept % interval == 0 &&
+                                        !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
+                                      isfinished(integrator))
   else # disable the callback for interval == 0
     condition = (u, t, integrator) -> false
   end
@@ -162,16 +169,15 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
     error("the TimeSeriesCallback does not work with AMR enabled")
   end
 
-  @unpack iter = integrator
   @unpack interval = time_series_callback
 
   # Create record if in correct interval (needs to be checked since the callback is also called
   # after the final step for storing the data on disk, indepdendent of the current interval)
-  if integrator.iter % interval == 0
+  if integrator.destats.naccept % interval == 0
     @trixi_timeit timer() "time series" begin
       # Store time and step
       push!(time_series_callback.time, integrator.t)
-      push!(time_series_callback.step, iter)
+      push!(time_series_callback.step, integrator.destats.naccept)
 
       # Unpack data
       u_ode = integrator.u
