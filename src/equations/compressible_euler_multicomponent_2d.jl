@@ -239,358 +239,6 @@ end
 
 
 """
-    initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{6, 3})
-
-Adaption of the shock-bubble testcase for multicomponent Euler equations to 3 components
-- Ayoub Gouasmi, Karthik Duraisamy, Scott Murman
-  Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations
-  [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
-"""
-function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{6, 3})
-  # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
-  # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
-  # adapted to 3 component testcase
-  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-
-  @unpack gas_constants = equations
-
-  # Positivity Preserving Parameter, can be set to zero if scheme is positivity preserving
-  delta   = 0.05
-
-  # Region Ia
-  rho1_1a   = delta
-  rho2_1a   = 1.225 * gas_constants[1]/gas_constants[2] - delta
-  rho3_1a   = delta
-  v1_1a     = zero(delta)
-  v2_1a     = zero(delta)
-  p_1a      = 101325
-
-  # Region Ib
-  rho1_1b   = delta
-  rho2_1b   = delta
-  rho3_1b   = 1.225 * gas_constants[1]/gas_constants[3] - delta
-  v1_1b     = zero(delta)
-  v2_1b     = zero(delta)
-  p_1b      = 101325
-
-  # Region II
-  rho1_2    = 1.225-delta
-  rho2_2    = delta
-  rho3_2    = delta
-  v1_2      = zero(delta)
-  v2_2      = zero(delta)
-  p_2       = 101325
-
-  # Region III
-  rho1_3    = 1.6861 - delta
-  rho2_3    = delta
-  rho3_3    = delta
-  v1_3      = -113.5243
-  v2_3      = zero(delta)
-  p_3       = 159060
-
-  # Set up Region I & II:
-  inicenter_a = SVector(zero(delta), 1.8)
-  x_norm_a    = x[1] - inicenter_a[1]
-  y_norm_a    = x[2] - inicenter_a[2]
-  r_a         = sqrt(x_norm_a^2 + y_norm_a^2)
-
-  inicenter_b = SVector(zero(delta), -1.8)
-  x_norm_b    = x[1] - inicenter_b[1]
-  y_norm_b    = x[2] - inicenter_b[2]
-  r_b         = sqrt(x_norm_b^2 + y_norm_b^2)
-
-
-  if (x[1] > 0.5)
-    # Set up Region III
-    rho1    = rho1_3
-    rho2    = rho2_3
-    rho3    = rho3_3
-    v1      = v1_3
-    v2      = v2_3
-    p       = p_3
-  elseif (r_a < 0.25)
-    # Set up Region I
-    rho1    = rho1_1a
-    rho2    = rho2_1a
-    rho3    = rho3_1a
-    v1      = v1_1a
-    v2      = v2_1a
-    p       = p_1a
-  elseif (r_b < 0.25)
-    rho1    = rho1_1b
-    rho2    = rho2_1b
-    rho3    = rho3_1b
-    v1      = v1_1b
-    v2      = v2_1b
-    p       = p_1b
-  else
-    # Set up Region II
-    rho1    = rho1_2
-    rho2    = rho2_2
-    rho3    = rho3_2
-    v1      = v1_2
-    v2      = v2_2
-    p       = p_2
-  end
-
-  return prim2cons(SVector(v1, v2, p, rho1, rho2, rho3), equations)
-end
-
-
-
-"""
-    initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{10, 7})
-
-Adaption of the shock-bubble testcase for multicomponent Euler equations to 7 components
-- Ayoub Gouasmi, Karthik Duraisamy, Scott Murman
-  Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations
-  [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
-"""
-function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{10, 7})
-  # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
-  # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
-  # adapted to 7 component testcase
-  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-
-  @unpack gas_constants = equations
-
-  # Positivity Preserving Parameter, can be set to zero if scheme is positivity preserving
-  delta   = 0.05
-
-  # Region Ia
-  rho1_1a   = delta
-  rho2_1a   = 1.274 * gas_constants[1]/gas_constants[2] - delta
-  rho3_1a   = delta
-  rho4_1a   = delta
-  rho5_1a   = delta
-  rho6_1a   = delta
-  rho7_1a   = delta
-  v1_1a     = zero(delta)
-  v2_1a     = zero(delta)
-  p_1a      = 101325
-
-  # Region Ib
-  rho1_1b   = delta
-  rho2_1b   = delta
-  rho3_1b   = 1.274 * gas_constants[1]/gas_constants[3] - delta
-  rho4_1b   = delta
-  rho5_1b   = delta
-  rho6_1b   = delta
-  rho7_1b   = delta
-  v1_1b     = zero(delta)
-  v2_1b     = zero(delta)
-  p_1b      = 101325
-
-  # Region Ic
-  rho1_1c   = delta
-  rho2_1c   = delta
-  rho3_1c   = delta
-  rho4_1c   = 1.274 * gas_constants[1]/gas_constants[4] - delta
-  rho5_1c   = delta
-  rho6_1c   = delta
-  rho7_1c   = delta
-  v1_1c     = zero(delta)
-  v2_1c     = zero(delta)
-  p_1c      = 101325
-
-  # Region Id
-  rho1_1d   = delta
-  rho2_1d   = delta
-  rho3_1d   = delta
-  rho4_1d   = delta
-  rho5_1d   = 1.274 * gas_constants[1]/gas_constants[5] - delta
-  rho6_1d   = delta
-  rho7_1d   = delta
-  v1_1d     = zero(delta)
-  v2_1d     = zero(delta)
-  p_1d      = 101325
-
-  # Region Ie
-  rho1_1e   = delta
-  rho2_1e   = delta
-  rho3_1e   = delta
-  rho4_1e   = delta
-  rho5_1e   = delta
-  rho6_1e   = 1.274 * gas_constants[1]/gas_constants[6] - delta
-  rho7_1e   = delta
-  v1_1e     = zero(delta)
-  v2_1e     = zero(delta)
-  p_1e      = 101325
-
-  # Region If
-  rho1_1f   = delta
-  rho2_1f   = delta
-  rho3_1f   = delta
-  rho4_1f   = delta
-  rho5_1f   = delta
-  rho6_1f   = delta
-  rho7_1f   = 1.274 * gas_constants[1]/gas_constants[7] - delta
-  v1_1f     = zero(delta)
-  v2_1f     = zero(delta)
-  p_1f      = 101325
-
-  # Region II
-  rho1_2    = 1.225-delta
-  rho2_2    = delta
-  rho3_2    = delta
-  rho4_2    = delta
-  rho5_2    = delta
-  rho6_2    = delta
-  rho7_2    = delta
-  v1_2      = zero(delta)
-  v2_2      = zero(delta)
-  p_2       = 101325
-
-  # Region III
-  rho1_3    = 1.6861 - delta
-  rho2_3    = delta
-  rho3_3    = delta
-  rho4_3    = delta
-  rho5_3    = delta
-  rho6_3    = delta
-  rho7_3    = delta
-  v1_3      = -113.5243
-  v2_3      = zero(delta)
-  p_3       = 159060
-
-  # Set up Region I & II:
-  #inicenter_a = SVector(zero(delta), 1.8)
-  inicenter_a = SVector(zero(delta), 2.55)
-  x_norm_a    = x[1] - inicenter_a[1]
-  y_norm_a    = x[2] - inicenter_a[2]
-  r_a         = sqrt(x_norm_a^2 + y_norm_a^2)
-
-  #inicenter_b = SVector(zero(delta), -1.8)
-  inicenter_b = SVector(zero(delta), 1.60)
-  x_norm_b    = x[1] - inicenter_b[1]
-  y_norm_b    = x[2] - inicenter_b[2]
-  r_b         = sqrt(x_norm_b^2 + y_norm_b^2)
-
-  inicenter_c = SVector(zero(delta), 0.65)
-  x_norm_c    = x[1] - inicenter_c[1]
-  y_norm_c    = x[2] - inicenter_c[2]
-  r_c         = sqrt(x_norm_c^2 + y_norm_c^2)
-
-  inicenter_d = SVector(zero(delta), -0.65)
-  x_norm_d    = x[1] - inicenter_d[1]
-  y_norm_d    = x[2] - inicenter_d[2]
-  r_d         = sqrt(x_norm_d^2 + y_norm_d^2)
-
-  inicenter_e = SVector(zero(delta), -1.60)
-  x_norm_e    = x[1] - inicenter_e[1]
-  y_norm_e    = x[2] - inicenter_e[2]
-  r_e         = sqrt(x_norm_e^2 + y_norm_e^2)
-
-  inicenter_f = SVector(zero(delta), -2.55)
-  x_norm_f    = x[1] - inicenter_f[1]
-  y_norm_f    = x[2] - inicenter_f[2]
-  r_f         = sqrt(x_norm_f^2 + y_norm_f^2)
-
-
-  if (x[1] > 0.4)
-    # Set up Region III
-    rho1    = rho1_3
-    rho2    = rho2_3
-    rho3    = rho3_3
-    rho4    = rho4_3
-    rho5    = rho5_3
-    rho6    = rho6_3
-    rho7    = rho7_3
-    v1      = v1_3
-    v2      = v2_3
-    p       = p_3
-  elseif (r_a < 0.25)
-    # Set up Region I
-    rho1    = rho1_1a
-    rho2    = rho2_1a
-    rho3    = rho3_1a
-    rho4    = rho4_1a
-    rho5    = rho5_1a
-    rho6    = rho6_1a
-    rho7    = rho7_1a
-    v1      = v1_1a
-    v2      = v2_1a
-    p       = p_1a
-  elseif (r_b < 0.25)
-    # Set up Region I
-    rho1    = rho1_1b
-    rho2    = rho2_1b
-    rho3    = rho3_1b
-    rho4    = rho4_1b
-    rho5    = rho5_1b
-    rho6    = rho6_1b
-    rho7    = rho7_1b
-    v1      = v1_1b
-    v2      = v2_1b
-    p       = p_1b
-  elseif (r_c < 0.25)
-    # Set up Region I
-    rho1    = rho1_1c
-    rho2    = rho2_1c
-    rho3    = rho3_1c
-    rho4    = rho4_1c
-    rho5    = rho5_1c
-    rho6    = rho6_1c
-    rho7    = rho7_1c
-    v1      = v1_1c
-    v2      = v2_1c
-    p       = p_1c
-  elseif (r_d < 0.25)
-    # Set up Region I
-    rho1    = rho1_1d
-    rho2    = rho2_1d
-    rho3    = rho3_1d
-    rho4    = rho4_1d
-    rho5    = rho5_1d
-    rho6    = rho6_1d
-    rho7    = rho7_1d
-    v1      = v1_1d
-    v2      = v2_1d
-    p       = p_1d
-  elseif (r_e < 0.25)
-    # Set up Region I
-    rho1    = rho1_1e
-    rho2    = rho2_1e
-    rho3    = rho3_1e
-    rho4    = rho4_1e
-    rho5    = rho5_1e
-    rho6    = rho6_1e
-    rho7    = rho7_1e
-    v1      = v1_1e
-    v2      = v2_1e
-    p       = p_1e
-  elseif (r_f < 0.25)
-    # Set up Region I
-    rho1    = rho1_1f
-    rho2    = rho2_1f
-    rho3    = rho3_1f
-    rho4    = rho4_1f
-    rho5    = rho5_1f
-    rho6    = rho6_1f
-    rho7    = rho7_1f
-    v1      = v1_1f
-    v2      = v2_1f
-    p       = p_1f
-  else
-    # Set up Region II
-    rho1    = rho1_2
-    rho2    = rho2_2
-    rho3    = rho3_2
-    rho4    = rho4_2
-    rho5    = rho5_2
-    rho6    = rho6_2
-    rho7    = rho7_2
-    v1      = v1_2
-    v2      = v2_2
-    p       = p_2
-  end
-
-  return prim2cons(SVector(v1, v2, p, rho1, rho2, rho3, rho4, rho5, rho6, rho7), equations)
-end
-
-
-"""
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMulticomponentEquations2D)
 
 A for multicomponent adapted weak blast wave taken from
@@ -723,6 +371,77 @@ Entropy conserving two-point flux by
 end
 
 
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations2D)
+  # Unpack left and right state
+  @unpack gammas, gas_constants, cv = equations
+  rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  rhok_mean   = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i+3], u_rr[i+3]) for i in eachcomponent(equations))
+  rhok_avg    = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i+3] + u_rr[i+3]) for i in eachcomponent(equations))
+
+  # Iterating over all partial densities
+  rho_ll      = density(u_ll, equations)
+  rho_rr      = density(u_rr, equations)
+
+  # Calculating gamma
+  gamma               = totalgamma(0.5.*(u_ll.+u_rr), equations)
+  inv_gamma_minus_one = 1.0/(gamma-1.0) 
+
+  # extract velocities
+  v1_ll               = rho_v1_ll / rho_ll
+  v1_rr               = rho_v1_rr / rho_rr
+  v1_avg              = 0.5 * (v1_ll + v1_rr)
+  v2_ll               = rho_v2_ll / rho_ll 
+  v2_rr               = rho_v2_rr / rho_rr
+  v2_avg              = 0.5 * (v2_ll + v2_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
+
+  # helpful variables
+  help1_ll  = zero(v1_ll)
+  help1_rr  = zero(v1_rr)
+  enth_ll   = zero(v1_ll)
+  enth_rr   = zero(v1_rr)
+  for i in eachcomponent(equations)
+    enth_ll   += u_ll[i+3] * gas_constants[i]
+    enth_rr   += u_rr[i+3] * gas_constants[i]
+    help1_ll  += u_ll[i+3] * cv[i]
+    help1_rr  += u_rr[i+3] * cv[i]
+  end
+
+  # temperature and pressure
+  T_ll            = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+  T_rr            = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+  p_ll            = T_ll * enth_ll 
+  p_rr            = T_rr * enth_rr
+  p_avg           = 0.5 * (p_ll + p_rr)
+  inv_rho_p_mean  = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+ 
+  f_rho_sum = zero(T_rr)
+  if orientation == 1
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+      f_rho_sum += f_rho[i]
+    end
+    f1 = f_rho_sum * v1_avg + p_avg
+    f2 = f_rho_sum * v2_avg
+    f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+  else
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v2_avg for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+      f_rho_sum += f_rho[i]
+    end
+    f1 = f_rho_sum * v1_avg
+    f2 = f_rho_sum * v2_avg + p_avg
+    f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+  end
+
+  # momentum and energy flux
+  f_other  = SVector{3, real(equations)}(f1, f2, f3)
+
+  return vcat(f_other, f_rho)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
@@ -789,28 +508,28 @@ end
 
   rho       = density(u, equations)
 
+  # Multicomponent stuff
+  help1         = zero(rho)
+  gas_constant  = zero(rho)
+  for i in eachcomponent(equations)
+    help1         += u[i+3] * cv[i]
+    gas_constant  += gas_constants[i] * (u[i+3]/rho)
+  end
+
   v1        = rho_v1 / rho
   v2        = rho_v2 / rho
   v_square  = v1^2 + v2^2
   gamma     = totalgamma(u, equations)
+
   p         = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-  s         = log(p) - gamma*log(rho)
+  s         = log(p) - gamma * log(rho) - log(gas_constant)
   rho_p     = rho / p
-
-  # Multicomponent stuff
-  help1 = zero(v1)
-
-  for i in eachcomponent(equations)
-    help1 += u[i+3] * cv[i]
-  end
-
   T         = (rho_e - 0.5 * rho * v_square) / (help1)
+  entrop_rho  = SVector{ncomponents(equations), real(equations)}( gas_constant * ((gamma - s)/(gamma - 1.0) - (0.5 * v_square * rho_p)) for i in eachcomponent(equations))
 
-  entrop_rho  = SVector{ncomponents(equations), real(equations)}( -1.0 * (cv[i] * log(T) - gas_constants[i] * log(u[i+3])) + gas_constants[i] + cv[i] - (v_square / (2*T)) for i in eachcomponent(equations))
-
-  w1        = v1/T
-  w2        = v2/T
-  w3        = -1.0/T
+  w1        = gas_constant * v1 * rho_p
+  w2        = gas_constant * v2 * rho_p
+  w3        = gas_constant * rho_p * (-1)
 
   entrop_other = SVector{3, real(equations)}(w1, w2, w3)
 
