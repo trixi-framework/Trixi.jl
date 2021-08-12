@@ -95,7 +95,7 @@ function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DGMulti, c
 end
 
 function compute_coefficients!(u, initial_condition, t,
-                               mesh::AbstractMeshData{NDIMS}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                               mesh::AbstractMeshData, equations, dg::DGMulti, cache)
   md = mesh.md
   rd = dg.basis
   @unpack u_values = cache
