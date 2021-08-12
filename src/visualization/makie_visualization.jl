@@ -73,7 +73,8 @@ function reference_node_coordinates_2d(dg::DGSEM)
   return r, s
 end
 
-# specializes the PlotData2D constructor to return an UnstructuredPlotData2D for an unstructured mesh
+# specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
+# an UnstructuredMesh2D type.
 function PlotData2D(u_input, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
 
@@ -139,11 +140,9 @@ function PlotData2D(u_input, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cac
 
   # convert variables based on solution_variables mapping
   solution_variables_ = digest_solution_variables(equations, solution_variables)
-
   for (i, u_i) in enumerate(uplot)
     uplot[i] = solution_variables_(u_i, equations)
   end
-
   for (i, u_i) in enumerate(ufp)
     ufp[i] = solution_variables_(u_i, equations)
   end
@@ -268,7 +267,7 @@ function trixi_plot(sol::TrixiODESolution;
   Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
 
   # On OSX, shift-command-4 for screenshots triggers a constant "up-zoom".
-  # This line remaps the up-zoom to the right shift button instead.
+  # To avoid this, we remap up-zoom to the right shift button instead.
   Makie.cameracontrols(ax.scene).attributes[:up_key][] = Makie.Keyboard.right_shift
 
   # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
@@ -291,9 +290,18 @@ function Makie.plot!(myplot::TrixiHeatmap)
   solution_z = vec(StructArrays.component(pd.u, variable_id))
   Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false)
 
-  # TODO: visualization. Decide how to trigger grid plotting (maybe kwargs?)
-  xyz_wireframe = generate_plotting_wireframe(pds; set_z_coordinate_zero = true)
-  Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
+  # Makie hides keyword arguments within `myplot`; see also
+  # https://github.com/JuliaPlots/Makie.jl/issues/837#issuecomment-845985070
+  plot_mesh = if haskey(myplot, :plot_mesh)
+    myplot.plot_mesh[]
+  else
+    true # default to plotting the mesh
+  end
+
+  if plot_mesh==true
+    xyz_wireframe = generate_plotting_wireframe(pds; set_z_coordinate_zero = true)
+    Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
+  end
 
   myplot
 end
@@ -301,15 +309,15 @@ end
 # redirects Makie.plot(pd::PlotDataSeries2D) to custom recipe TrixiHeatmap(pd)
 Makie.plottype(::Trixi.PlotDataSeries2D{<:Trixi.UnstructuredPlotData2D}) = TrixiHeatmap
 
+# Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 Makie.plot(sol::TrixiODESolution) = Makie.plot(PlotData2D(sol))
 
-# Makie does not yet support layouts in its plot recipes, so this just overloads Makie.plot! directly.
-function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure())
-  Makie.plot!(fig, pd)
+function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure(); plot_mesh = true)
+  Makie.plot!(fig, pd; plot_mesh=plot_mesh)
   fig
 end
 
-function Makie.plot!(fig, pd::UnstructuredPlotData2D)
+function Makie.plot!(fig, pd::UnstructuredPlotData2D; plot_mesh = true)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
@@ -324,7 +332,7 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D)
 
   for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
     ax = axes[variable_to_plot]
-    trixiheatmap!(ax, pds)
+    trixiheatmap!(ax, pds; plot_mesh=plot_mesh)
     ax.aspect = Makie.DataAspect() # equal aspect ratio
     ax.title  = variable_name
     Makie.xlims!(ax, extrema(pd.x))
