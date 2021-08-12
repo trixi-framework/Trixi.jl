@@ -225,12 +225,6 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug Plots.plot(sol)
   end
 
-  @testset "plotting with Makie" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
-    @test_nowarn_debug Makie.plot(sol) # test heatmap plot
-    @test_nowarn_debug Trixi.trixi_plot(sol) # test interactive surface plot
-  end
-
   @testset "VisualizationCallback" begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
@@ -270,6 +264,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
     end
   end
+
+  @testset "Makie visualization tests" begin
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+    @test_nowarn_debug Makie.plot(sol) # test heatmap plot
+    @test_nowarn_debug Trixi.trixi_plot(sol) # test interactive surface plot
+  end
 end
+
 
 end #module
