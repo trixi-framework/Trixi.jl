@@ -707,21 +707,21 @@ end
 
 # Return direction of the face, which is indexed by node_indices
 @inline function indices2direction(indices)
-  if indices[1] in (:one, :end)
-    orientation = 1
-  elseif indices[2] in (:one, :end)
-    orientation = 2
-  else # indices[3] in (:one, :end)
-    orientation = 3
-  end
-  negative_direction = orientation * 2 - 1
-
-  if indices[orientation] === :one
-    return negative_direction
-  else # indices[orientation] === :end
-    return negative_direction + 1
+  if indices[1] === :one
+    return 1
+  elseif indices[1] === :end
+    return 2
+  elseif indices[2] === :one
+    return 3
+  elseif indices[2] === :end
+    return 4
+  elseif indices[3] === :one
+    return 5
+  else # if indices[3] === :end
+    return 6
   end
 end
+
 
 
 include("containers_2d.jl")
