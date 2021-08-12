@@ -152,82 +152,6 @@ function PlotData2D(u_input, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cac
   return UnstructuredPlotData2D(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
 end
 
-function trixi_plot(sol::TrixiODESolution;
-                    variable_to_plot_in = 1, solution_variables=nothing, nvisnodes=5)
-
-  pd = PlotData2D(sol; solution_variables=solution_variables, nvisnodes=nvisnodes)
-  @unpack variable_names = pd
-
-  semi = sol.prob.p
-  dg = semi.solver
-  @unpack equations, cache, mesh = semi
-  @assert ndims(mesh) == 2
-
-  fig = Makie.Figure()
-
-  # set up menu and toggle switch
-  options = [zip(variable_names, 1:length(variable_names))...]
-  menu = Makie.Menu(fig, options = options)
-  toggle_solution_mesh = Makie.Toggle(fig, active=true)
-  toggle_mesh = Makie.Toggle(fig, active=true)
-  fig[1, 1] = Makie.vgrid!(
-      Makie.Label(fig, "Solution field", width = nothing), menu,
-      Makie.Label(fig, "Solution mesh visible"), toggle_solution_mesh,
-      Makie.Label(fig, "Mesh visible"), toggle_mesh;
-      tellheight=false, width = 200
-  )
-
-  ax = Makie.LScene(fig[1, 2], scenekw = (show_axis = false,))
-
-  # interactive menu variable_to_plot
-  menu.selection[] = variable_to_plot_in
-  menu.i_selected[] = variable_to_plot_in # initialize a menu
-
-  # these lines get re-run whenever variable_to_plot[] is updated
-  plotting_mesh = Makie.@lift(generate_plotting_triangulation(getindex(pd, variable_names[$(menu.selection)])))
-  solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
-  Makie.mesh!(ax, plotting_mesh, color=solution_z, nvisnodes=nvisnodes)
-
-  # mesh overlay: we plot a mesh both on top of and below the solution contours
-  wire_points = Makie.@lift(generate_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
-  wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
-  wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
-  Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
-  Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
-
-  # draw a flattened mesh wireframe below the solution
-  function compute_z_offset(solution_z)
-      zmin = minimum(solution_z)
-      zrange = (x->x[2]-x[1])(extrema(solution_z))
-      return zmin - .25*zrange
-  end
-  z_offset = Makie.@lift(compute_z_offset($solution_z))
-  get_flat_points(wire_points, z_offset) = [Makie.Point(point.data[1:2]..., z_offset) for point in wire_points]
-  flat_wire_points = Makie.@lift get_flat_points($wire_points, $z_offset)
-  wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
-
-  # reset colorbar each time solution changes
-  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap = :viridis, flipaxis = false)
-
-  # syncs the toggle to the mesh
-  Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)
-  Makie.connect!(wire_mesh_bottom.visible, toggle_solution_mesh.active)
-  Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
-
-  # On OSX, shift-command-4 for screenshots triggers a constant "up-zoom".
-  # This line remaps the up-zoom to the right shift button instead.
-  Makie.cameracontrols(ax.scene).attributes[:up_key][] = Makie.Keyboard.right_shift
-
-  # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
-  fig
-end
-
-# ================== new Makie plot recipes ====================
-
-@Makie.recipe(TrixiHeatmap, plot_data_series) do scene
-  Makie.Theme(;)
-end
-
 function generate_plotting_triangulation(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
                                          set_z_coordinate_zero = false)
 
@@ -268,6 +192,93 @@ function generate_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotDat
   end
   xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (xf, yf, sol_f))...)
   return xyz_wireframe
+end
+
+"""
+    trixi_plot(sol::TrixiODESolution;
+               solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
+
+Creates an interactive surface plot of the solution and mesh.
+
+Inputs:
+- solution_variables: either `nothing` or a variable transformation function (e.g., `cons2prim`)
+- nvisnodes: number of visualization nodes per dimension
+"""
+function trixi_plot(sol::TrixiODESolution;
+                    solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
+
+  pd = PlotData2D(sol; solution_variables=solution_variables, nvisnodes=nvisnodes)
+
+  @unpack variable_names = pd
+
+  semi = sol.prob.p
+  @unpack mesh = semi
+  @assert ndims(mesh) == 2
+
+  fig = Makie.Figure()
+
+  # set up menu and toggle switches
+  options = [zip(variable_names, 1:length(variable_names))...]
+  menu = Makie.Menu(fig, options=options)
+  toggle_solution_mesh = Makie.Toggle(fig, active=true)
+  toggle_mesh = Makie.Toggle(fig, active=true)
+  fig[1, 1] = Makie.vgrid!(
+      Makie.Label(fig, "Solution field", width=nothing), menu,
+      Makie.Label(fig, "Solution mesh visible"), toggle_solution_mesh,
+      Makie.Label(fig, "Mesh visible"), toggle_mesh;
+      tellheight=false, width = 200
+  )
+
+  ax = Makie.LScene(fig[1, 2], scenekw=(show_axis = false,))
+
+  # interactive menu variable_to_plot
+  menu.selection[] = variable_to_plot_in
+  menu.i_selected[] = variable_to_plot_in
+
+  # these lines get re-run whenever variable_to_plot[] is updated
+  plotting_mesh = Makie.@lift(generate_plotting_triangulation(getindex(pd, variable_names[$(menu.selection)])))
+  solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
+
+  Makie.mesh!(ax, plotting_mesh, color=solution_z, nvisnodes=nvisnodes)
+
+  # mesh overlay: we plot a mesh both on top of and below the solution contours
+  wire_points = Makie.@lift(generate_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
+  wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
+  wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
+  Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
+  Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
+
+  # draw a flattened mesh wireframe below the solution
+  function compute_z_offset(solution_z)
+      zmin = minimum(solution_z)
+      zrange = (x->x[2]-x[1])(extrema(solution_z))
+      return zmin - .25*zrange
+  end
+  z_offset = Makie.@lift(compute_z_offset($solution_z))
+  get_flat_points(wire_points, z_offset) = [Makie.Point(point.data[1:2]..., z_offset) for point in wire_points]
+  flat_wire_points = Makie.@lift get_flat_points($wire_points, $z_offset)
+  wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
+
+  # reset colorbar each time solution changes
+  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap = :viridis, flipaxis = false)
+
+  # syncs the toggle to the mesh
+  Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)
+  Makie.connect!(wire_mesh_bottom.visible, toggle_solution_mesh.active)
+  Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
+
+  # On OSX, shift-command-4 for screenshots triggers a constant "up-zoom".
+  # This line remaps the up-zoom to the right shift button instead.
+  Makie.cameracontrols(ax.scene).attributes[:up_key][] = Makie.Keyboard.right_shift
+
+  # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
+  fig
+end
+
+# ================== new Makie plot recipes ====================
+
+@Makie.recipe(TrixiHeatmap, plot_data_series) do scene
+  Makie.Theme(;)
 end
 
 function Makie.plot!(myplot::TrixiHeatmap)
