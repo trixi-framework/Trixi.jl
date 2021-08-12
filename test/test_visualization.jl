@@ -3,6 +3,7 @@ module TestVisualization
 using Test
 using Trixi
 using Plots
+using Makie
 
 include("test_trixi.jl")
 
@@ -222,6 +223,12 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "plotting TimeIntegratorSolution" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"))
     @test_nowarn_debug Plots.plot(sol)
+  end
+
+  @testset "plotting with Makie" begin
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+    @test_nowarn_debug Makie.plot(sol) # test heatmap plot
+    @test_nowarn_debug Trixi.trixi_plot(sol) # test interactive surface plot
   end
 
   @testset "VisualizationCallback" begin
