@@ -16,7 +16,7 @@ const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, ra
      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
 
 # This abstract type is used to derive PlotData types of different dimensions; but still allows to share some functions for them.
-abstract type AbstractPlotData end
+abstract type AbstractPlotData{Dim} end
 
 # Define additional methods for convenience.
 # These are defined for AbstractPlotData, so they can be used for all types of plot data.
@@ -47,7 +47,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData
+struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
   x::Coordinates
   y::Coordinates
   data::Data
@@ -198,7 +198,7 @@ function _get_orientations(mesh, slice)
   return orientation_x, orientation_y
 end
 
-struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData
+struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
   x::Matrix{Tv} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
   y::Matrix{Tv}
   u::SolutionType # solution container
@@ -267,7 +267,7 @@ end
 # Auxiliary data structure for visualizing the mesh
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotMesh2D{PD<:AbstractPlotData}
+struct PlotMesh2D{PD<:AbstractPlotData{2}}
   plot_data::PD
 end
 
@@ -454,7 +454,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData{1}
   x::Coordinates
   data::Data
   variable_names::VariableNames
