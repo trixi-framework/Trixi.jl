@@ -41,6 +41,21 @@ function DGMulti(; polydeg::Integer,
                    surface_integral=SurfaceIntegralWeakForm(surface_flux),
                    volume_integral=VolumeIntegralWeakForm(),
                    kwargs...)
+
+  # call dispatchable constructor
+  DGMulti(element_type, approximation_type, volume_integral, surface_integral;
+          polydeg=polydeg, surface_flux=surface_flux, kwargs...)
+end
+
+# dispatchable constructor for DGMulti to allow for specialization
+function DGMulti(element_type::AbstractElemShape,
+                 approximation_type,
+                 volume_integral=VolumeIntegralWeakForm(),
+                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
+                 polydeg::Integer,
+                 surface_flux=flux_central,
+                 kwargs...)
+
   rd = RefElemData(element_type, approximation_type, polydeg, kwargs...)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
@@ -97,5 +112,38 @@ Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
   return val
 end
 
+# ========= GSBP approximation types ============
 
-end # @muladd
+# GSBP ApproximationType: e.g., Gauss nodes on quads/hexes
+# Todo: DGMulti. Determine what GSBP defaults to on triangles.
+
+struct GSBP end
+
+# specialized constructor for GSBP approximation type
+function DGMulti(element_type::Quad,
+                 approximation_type::GSBP,
+                 volume_integral=VolumeIntegralWeakForm(),
+                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
+                 polydeg::Integer,
+                 surface_flux=flux_central,
+                 kwargs...)
+
+  # create tensor product Gauss quadrature rule with polydeg+1 points
+  r1D, w1D = StartUpDG.gauss_quad(0, 0, polydeg)
+  rq, sq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
+  wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(w1D))
+  wq = wr .* ws
+  gauss_rule_vol = (rq, sq, wq)
+
+  # Gauss quadrature rule on reference face [-1, 1]
+  gauss_rule_face = (r1D, w1D)
+
+  rd = RefElemData(element_type, Polynomial(), polydeg,
+                   quad_rule_vol=gauss_rule_vol,
+                   quad_rule_face=gauss_rule_face,
+                   kwargs...)
+  return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
+end
+
+
+# end # @muladd
