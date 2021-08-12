@@ -20,16 +20,16 @@ function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreM
 end
 
 
-# TODO: p4est interface performance, move and generalzie this function for 3D
-@inline function index_to_start_step(index::Symbol, idx_one::Int, idx_end::Int)
+# TODO: p4est interface performance, move and generalize this function for 3D
+@inline function index_to_start_step(index::Symbol, index_begin::Int, index_end::Int)
   if index === :one
-    return idx_one, 0
+    return index_begin, 0
   elseif index === :end
-    return idx_end, 0
+    return index_end, 0
   elseif index === :i
-    return idx_one, 1
+    return index_begin, 1
   else # if index === :i_backwards
-    return idx_end, -1
+    return index_end, -1
   end
 end
 
@@ -260,13 +260,13 @@ function prolong2mortars!(cache, u,
     j_small_start, j_small_step = index_to_start_step(
       small_indices[2], idx_one, idx_end)
 
-    for pos in 1:2
+    for position in 1:2
       i_small = i_small_start
       j_small = j_small_start
-      element = element_ids[pos, mortar]
+      element = element_ids[position, mortar]
       for i in eachnode(dg)
         for v in eachvariable(equations)
-          cache.mortars.u[1, v, pos, i, mortar] = u[v, i_small, j_small, element]
+          cache.mortars.u[1, v, position, i, mortar] = u[v, i_small, j_small, element]
         end
         i_small += i_small_step
         j_small += j_small_step
@@ -339,12 +339,12 @@ function calc_mortar_flux!(surface_flux_values,
 
     # Contravariant vectors at interfaces in negative coordinate direction
     # are pointing inwards. This is handled by `get_normal_direction`.
-    for pos in 1:2
+    for position in 1:2
       i_small = i_small_start
       j_small = j_small_start
-      element = element_ids[pos, mortar]
+      element = element_ids[position, mortar]
       for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, mortar)
 
         normal_direction = get_normal_direction(small_direction, contravariant_vectors,
                                                 i_small, j_small, element)
@@ -352,7 +352,7 @@ function calc_mortar_flux!(surface_flux_values,
         flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
         # Copy flux to buffer
-        set_node_vars!(fstar[pos], flux_, equations, dg, i)
+        set_node_vars!(fstar[position], flux_, equations, dg, i)
 
         i_small += i_small_step
         j_small += j_small_step
@@ -387,11 +387,11 @@ end
   small_indices   = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)
 
-  for pos in 1:2
-    element = element_ids[pos, mortar]
+  for position in 1:2
+    element = element_ids[position, mortar]
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        surface_flux_values[v, i, small_direction, element] = fstar[pos][v, i]
+        surface_flux_values[v, i, small_direction, element] = fstar[position][v, i]
       end
     end
   end
