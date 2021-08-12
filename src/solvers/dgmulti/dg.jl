@@ -135,7 +135,7 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
   # interpolate to quadrature points
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
 
     flux_values = local_values_threaded[Threads.threadid()]
@@ -271,7 +271,7 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 end
 
 
-# Todo: simplices. Specialize for modal DG on curved meshes using WADG
+# Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
 function invert_jacobian!(du, mesh::Mesh, equations, dg::DGMulti,
                           cache) where {Mesh <: AbstractMeshData}
   @threaded for i in each_dof_global(mesh, dg, cache)

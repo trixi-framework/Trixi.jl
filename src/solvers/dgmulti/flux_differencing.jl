@@ -138,7 +138,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
 
   nvars = nvariables(equations)
 
-  # Todo: simplices. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
+  # Todo: DGMulti. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
   # storage for volume quadrature values, face quadrature values, flux values
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
@@ -216,7 +216,7 @@ function calc_volume_integral!(du, u, volume_integral,
   @unpack fluxdiff_local_threaded, sparsity_pattern, inv_wq = cache
   @unpack volume_flux = volume_integral
 
-  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
@@ -248,7 +248,7 @@ function calc_volume_integral!(du, u, volume_integral,
   # skips subblock of Qi_skew which we know is zero by construction
   skip_index(i,j) = i > rd.Nq && j > rd.Nq
 
-  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))

@@ -72,7 +72,7 @@ Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
   VertexMappedMesh(triangulateIO, dg.basis, boundary_dict)
 
-# Todo: simplices. Add traits for dispatch on affine/curved meshes here.
+# Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
 
 # Matrix type for lazy construction of physical differentiation matrices
 
