@@ -310,14 +310,19 @@ end
 Makie.plottype(::Trixi.PlotDataSeries2D{<:Trixi.UnstructuredPlotData2D}) = TrixiHeatmap
 
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
-Makie.plot(sol::TrixiODESolution) = Makie.plot(PlotData2D(sol))
+function Makie.plot(sol::TrixiODESolution;
+                    plot_mesh=true, solution_variables=nothing)
+  Makie.plot(PlotData2D(sol, solution_variables=solution_variables); plot_mesh=plot_mesh)
+end
 
-function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure(); plot_mesh = true)
+function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure();
+                    plot_mesh = true)
   Makie.plot!(fig, pd; plot_mesh=plot_mesh)
   fig
 end
 
-function Makie.plot!(fig, pd::UnstructuredPlotData2D; plot_mesh = true)
+function Makie.plot!(fig, pd::UnstructuredPlotData2D;
+                     plot_mesh = true)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
