@@ -438,6 +438,112 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmM
 end
 
 
+"""
+    flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction,
+                    equations::IdealGlmMhdMulticomponentEquations2D)
+Entropy conserving and kinetic energy preserving two-point flux of
+Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
+## References
+- Florian Hindenlang, Gregor Gassner (2019)
+  A new entropy conservative two-point flux for ideal MHD equations derived from
+  first principles.
+  Presented at HONOM 2019: European workshop on high order numerical methods
+  for evolutionary PDEs, theory and applications
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_hindenlang_gassner(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
+  # Unpack left and right states
+  v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll, equations)
+  v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr, equations)
+
+  rho_ll = density(u_ll, equations)
+  rho_rr = density(u_rr, equations)
+
+  # Compute the necessary mean values needed for either direction
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg  = 0.5 * ( v1_ll +  v1_rr)
+  v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+  v3_avg  = 0.5 * ( v3_ll +  v3_rr)
+  p_avg   = 0.5 * (  p_ll +   p_rr)
+  psi_avg = 0.5 * (psi_ll + psi_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+  magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+
+  inv_gamma_minus_one = 1.0 / (totalgamma(0.5*(u_ll+u_rr), equations) - 1.0)
+
+  rhok_mean   = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i+8], u_rr[i+8]) for i in eachcomponent(equations))
+  rhok_avg    = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i+8] + u_rr[i+8]) for i in eachcomponent(equations))
+
+
+  if orientation == 1
+    f1    = zero(rho_ll)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+      f1 += f_rho[i]
+    end
+
+    # Calculate fluxes depending on orientation with specific direction averages
+    f2 = f1 * v1_avg + p_avg + magnetic_square_avg - 0.5 * (B1_ll * B1_rr + B1_rr * B1_ll)
+    f3 = f1 * v2_avg                               - 0.5 * (B1_ll * B2_rr + B1_rr * B2_ll)
+    f4 = f1 * v3_avg                               - 0.5 * (B1_ll * B3_rr + B1_rr * B3_ll)
+    #f5 below
+    f6 = f6 = equations.c_h * psi_avg
+    f7 = 0.5 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
+    f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
+    f9 = equations.c_h * 0.5 * (B1_ll + B1_rr)
+    # total energy flux is complicated and involves the previous components
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one )
+              + 0.5 * (
+              +   p_ll * v1_rr +  p_rr * v1_ll
+              + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
+              + (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
+              - (v2_ll * B1_ll * B2_rr + v2_rr * B1_rr * B2_ll)
+              - (v3_ll * B1_ll * B3_rr + v3_rr * B1_rr * B3_ll)
+              + equations.c_h * (B1_ll * psi_rr + B1_rr * psi_ll) ) )
+  else 
+    f1    = zero(rho_ll)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v2_avg for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+      f1 += f_rho[i]
+    end
+
+    # Calculate fluxes depending on orientation with specific direction averages
+    f2 = f1 * v1_avg                               - 0.5 * (B2_ll * B1_rr + B2_rr * B1_ll)
+    f3 = f1 * v2_avg + p_avg + magnetic_square_avg - 0.5 * (B2_ll * B2_rr + B2_rr * B2_ll)
+    f4 = f1 * v3_avg                               - 0.5 * (B2_ll * B3_rr + B2_rr * B3_ll)
+    #f5 below
+    f6 = 0.5 * (v2_ll * B1_ll - v1_ll * B2_ll + v2_rr * B1_rr - v1_rr * B2_rr)
+    f7 = equations.c_h * psi_avg
+    f8 = 0.5 * (v2_ll * B3_ll - v3_ll * B2_ll + v2_rr * B3_rr - v3_rr * B2_rr)
+    f9 = equations.c_h * 0.5 * (B2_ll + B2_rr)
+    # total energy flux is complicated and involves the previous components
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one )
+              + 0.5 * (
+              +   p_ll * v2_rr +  p_rr * v2_ll
+              + (v2_ll * B1_ll * B1_rr + v2_rr * B1_rr * B1_ll)
+              + (v2_ll * B3_ll * B3_rr + v2_rr * B3_rr * B3_ll)
+              - (v1_ll * B2_ll * B1_rr + v1_rr * B2_rr * B1_ll)
+              - (v3_ll * B2_ll * B3_rr + v3_rr * B2_rr * B3_ll)
+              + equations.c_h * (B2_ll * psi_rr + B2_rr * psi_ll) ) )
+  end
+
+  f_other = SVector{8, real(equations)}(f2, f3, f4, f5, f6, f7, f8, f9)
+
+  return vcat(f_other, f_rho)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll

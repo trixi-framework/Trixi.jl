@@ -12,20 +12,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 
   @trixi_testset "elixir_eulermulti_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
-      l2   = [1.54912508e-01, 4.45233361e-01, 1.70123765e-02, 3.40247530e-02, 6.80495060e-02],
-      linf = [2.70251235e-01, 9.94752402e-01, 3.93233778e-02, 7.86467556e-02, 1.57293511e-01])
+      l2   = [1.54891912e-01, 4.45430525e-01, 1.70222013e-02, 3.40444026e-02, 6.80888053e-02],
+      linf = [2.71276498e-01, 9.95140742e-01, 3.93069410e-02, 7.86138820e-02, 1.57227764e-01])
   end
 
   @trixi_testset "elixir_eulermulti_es.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_es.jl"),
-      l2   = [1.53378791e-01, 4.41560792e-01, 3.93639477e-02, 7.87278954e-02],
-      linf = [2.50203604e-01, 7.19643482e-01, 6.36541480e-02, 1.27308296e-01])
+      l2   = [1.53387916e-01, 4.41585576e-01, 3.93605635e-02, 7.87211270e-02],
+      linf = [2.49632117e-01, 7.21088064e-01, 6.38328770e-02, 1.27665754e-01])
   end
 
   @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
-      l2   = [8.54278172e-05, 1.63112465e-04, 1.87964310e-05, 3.75928621e-05],
-      linf = [3.13612234e-04, 5.82916495e-04, 7.05047326e-05, 1.41009465e-04])
+      l2   = [8.57523604e-05, 1.63878043e-04, 1.94126993e-05, 3.88253986e-05],
+      linf = [3.05932773e-04, 6.24480393e-04, 7.25312144e-05, 1.45062429e-04])
   end
 
   @trixi_testset "elixir_eulermulti_convergence_es.jl" begin
@@ -36,8 +36,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 
   @trixi_testset "elixir_eulermulti_two_interacting_blast_waves.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_two_interacting_blast_waves.jl"),
-      l2   = [1.28874968e+00, 8.28362140e+01, 3.52901633e-03, 1.37049633e-02, 1.91860960e-02],
-      linf = [2.96873461e+01, 1.32285301e+03, 9.04336719e-02, 3.10669595e-01, 4.41422167e-01],
+      l2   = [1.28886761e+00, 8.27133526e+01, 3.50680272e-03, 1.36987844e-02, 1.91795185e-02],
+      linf = [2.96413045e+01, 1.32258448e+03, 9.19191937e-02, 3.10929710e-01, 4.41798976e-01],
       tspan = (0.0, 0.0001))
   end
 
