@@ -216,22 +216,33 @@ function prolong2boundaries!(cache, u,
                              mesh::P4estMesh{3},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-
-  size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for boundary in eachboundary(dg, cache)
-    element       = boundaries.element_ids[boundary]
-    node_indices  = boundaries.node_indices[boundary]
+    # Copy solution data from the element on a case-by-case basis to get
+    # the correct face and orientation.
+    element      = boundaries.element_ids[boundary]
+    node_indices = boundaries.node_indices[boundary]
 
-    # Use Tuple `node_indices` and `evaluate_index` to copy values
-    # from the correct face and in the correct orientation
-    for j in eachnode(dg), i in eachnode(dg)
-      for v in eachvariable(equations)
-        boundaries.u[v, i, j, boundary] = u[v, evaluate_index(node_indices, size_, 1, i, j),
-                                               evaluate_index(node_indices, size_, 2, i, j),
-                                               evaluate_index(node_indices, size_, 3, i, j),
-                                               element]
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1], index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2], index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3], index_range)
+
+    i_node = i_node_start
+    j_node = j_node_start
+    k_node = k_node_start
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          boundaries.u[v, i, j, boundary] = u[v, i_node, j_node, k_node, element]
+        end
+        i_node += i_node_step_i
+        j_node += j_node_step_i
+        k_node += k_node_step_i
       end
+      i_node += i_node_step_j
+      j_node += j_node_step_j
+      k_node += k_node_step_j
     end
   end
 
