@@ -20,10 +20,11 @@ function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreM
 end
 
 
-# TODO: p4est interface performance, move and generalize this function for 3D
+# TODO: p4est interface performance, generalize (2D, 3D) and document
 @inline function index_to_start_step(index::Symbol, index_range)
   index_begin = first(index_range)
   index_end   = last(index_range)
+
   if index === :one
     return index_begin, 0
   elseif index === :end
@@ -42,8 +43,8 @@ function prolong2interfaces!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Copy solution data from the primary element on a case-by-case basis to get
-    # the correct face and orientation.
+    # Copy solution data from the primary element on a case-by-case basis
+    # to get the correct face and orientation.
     # Note that in the current implementation, the interface will be
     # "aligned at the primary element", i.e., the index of the primary side
     # will always run forwards.
@@ -63,8 +64,8 @@ function prolong2interfaces!(cache, u,
       j_primary += j_primary_step
     end
 
-    # Copy solution data from the secondary element on a case-by-case basis to get
-    # the correct face and orientation.
+    # Copy solution data from the secondary element on a case-by-case basis
+    # to get the correct face and orientation.
     secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 

@@ -21,34 +21,97 @@ function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreM
 end
 
 
+# TODO: p4est interface performance, generalize (2D, 3D) and document
+# !!! warning
+#     This assumes that loops using the return values are ordered as
+#
+#     my_i, my_j, my_k = # begin values
+#     for j in ...
+#       for i in ...
+#         # do stuff with (i, j) and (my_i, my_j, my_k)
+#         my_[ijk] += my_[ijk]_step_i
+#       end
+#       my_[ijk] += my_[ijk]_step_j
+#     end
+@inline function index_to_start_step_3d(index::Symbol, index_range)
+  index_begin = first(index_range)
+  index_end   = last(index_range)
+
+  if index === :one
+    return index_begin, 0, 0
+  elseif index === :end
+    return index_end, 0, 0
+  elseif index === :i
+    return index_begin, 1, index_begin - index_end - 1
+  elseif index === :i_backwards
+    return index_end, -1, index_end + 1 - index_begin
+  elseif index === :j
+    return index_begin, 0, 1
+  else # if index === :j_backwards
+    return index_end, 0, -1
+  end
+end
+
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{3},
                              equations, surface_integral, dg::DG)
   @unpack interfaces = cache
-
-  size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    primary_element   = interfaces.element_ids[1, interface]
-    secondary_element = interfaces.element_ids[2, interface]
+    # Copy solution data from the primary element on a case-by-case basis
+    # to get the correct face and orientation.
+    # Note that in the current implementation, the interface will be
+    # "aligned at the primary element", i.e., the indices of the primary side
+    # will always run forwards.
+    primary_element = interfaces.element_ids[1, interface]
+    primary_indices = interfaces.node_indices[1, interface]
 
-    primary_indices   = interfaces.node_indices[1, interface]
+    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2], index_range)
+    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3], index_range)
+
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+    k_primary = k_primary_start
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          interfaces.u[1, v, i, j, interface] = u[v, i_primary, j_primary, k_primary, primary_element]
+        end
+        i_primary += i_primary_step_i
+        j_primary += j_primary_step_i
+        k_primary += k_primary_step_i
+      end
+      i_primary += i_primary_step_j
+      j_primary += j_primary_step_j
+      k_primary += k_primary_step_j
+    end
+
+    # Copy solution data from the secondary element on a case-by-case basis
+    # to get the correct face and orientation.
+    secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
-    # Use Tuple `node_indices` and `evaluate_index` to copy values
-    # from the correct face and in the correct orientation
-    for j in eachnode(dg), i in eachnode(dg)
-      for v in eachvariable(equations)
-        interfaces.u[1, v, i, j, interface] = u[v, evaluate_index(primary_indices, size_, 1, i, j),
-                                                   evaluate_index(primary_indices, size_, 2, i, j),
-                                                   evaluate_index(primary_indices, size_, 3, i, j),
-                                                   primary_element]
+    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1], index_range)
+    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2], index_range)
+    k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3], index_range)
 
-        interfaces.u[2, v, i, j, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i, j),
-                                                   evaluate_index(secondary_indices, size_, 2, i, j),
-                                                   evaluate_index(secondary_indices, size_, 3, i, j),
-                                                   secondary_element]
+    i_secondary = i_secondary_start
+    j_secondary = j_secondary_start
+    k_secondary = k_secondary_start
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          interfaces.u[2, v, i, j, interface] = u[v, i_secondary, j_secondary, k_secondary, secondary_element]
+        end
+        i_secondary += i_secondary_step_i
+        j_secondary += j_secondary_step_i
+        k_secondary += k_secondary_step_i
       end
+      i_secondary += i_secondary_step_j
+      j_secondary += j_secondary_step_j
+      k_secondary += k_secondary_step_j
     end
   end
 
