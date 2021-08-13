@@ -254,44 +254,55 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{3},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-  @unpack surface_flux_values, node_coordinates = cache.elements
+  @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
   @unpack surface_flux = surface_integral
-
-  size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for local_index in eachindex(boundary_indexing)
-    # Use the local index to get the global boundary index from the pre-sorted list
+    # Use the local index to get the global boundary index from the
+    # pre-sorted list
     boundary = boundary_indexing[local_index]
 
+    # Get information on the adjacent element, compute the surface fluxes,
+    # and store them
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
     direction     = indices2direction(node_indices)
 
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
-    for j in eachnode(dg), i in eachnode(dg)
-      node_i = evaluate_index(node_indices, size_, 1, i, j)
-      node_j = evaluate_index(node_indices, size_, 2, i, j)
-      node_k = evaluate_index(node_indices, size_, 3, i, j)
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1], index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2], index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3], index_range)
 
-      # Extract solution data from boundary container
-      u_inner = get_node_vars(boundaries.u, equations, dg, i, j, boundary)
+    i_node = i_node_start
+    j_node = j_node_start
+    k_node = k_node_start
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        # Extract solution data from boundary container
+        u_inner = get_node_vars(boundaries.u, equations, dg, i, j, boundary)
 
-      # Outward-pointing normal vector
-      normal_vector = get_normal_vector(direction, cache, node_i, node_j, node_k, element)
+        # Outward-pointing normal direction (not normalized)
+        normal_direction = get_normal_direction(direction, contravariant_vectors,
+                                                i_node, j_node, k_node, element)
 
-      # Coordinates at boundary node
-      x = get_node_coords(node_coordinates, equations, dg, node_i, node_j, node_k, element)
+        # Coordinates at boundary node
+        x = get_node_coords(node_coordinates, equations, dg,
+                            i_node, j_node, k_node, element)
 
-      flux_ = boundary_condition(u_inner, normal_vector, x, t, surface_flux, equations)
+        flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to left and right element storage in the correct orientation
-      for v in eachvariable(equations)
-        surf_i = evaluate_index_surface(node_indices, size_, 1, i, j)
-        surf_j = evaluate_index_surface(node_indices, size_, 2, i, j)
-        surface_flux_values[v, surf_i, surf_j, direction, element] = flux_[v]
+        # Copy flux to element storage in the correct orientation
+        for v in eachvariable(equations)
+          surface_flux_values[v, i, j, direction, element] = flux_[v]
+        end
+
+        i_node += i_node_step_i
+        j_node += j_node_step_i
+        k_node += k_node_step_i
       end
+      i_node += i_node_step_j
+      j_node += j_node_step_j
+      k_node += k_node_step_j
     end
   end
 end
