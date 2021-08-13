@@ -346,6 +346,7 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     Makie.xlims!(ax, extrema(pd.x))
     Makie.ylims!(ax, extrema(pd.y))
   end
-  # fig
-  return Makie.FigureAxisPlot(fig, axes, plt)
+  fig
+
+  # TODO: visualization. Figure out how to return a Makie.FigureAxisPlot(fig, axes, plt).
 end
