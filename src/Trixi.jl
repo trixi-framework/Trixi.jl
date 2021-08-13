@@ -33,7 +33,6 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 import ForwardDiff
 using HDF5: h5open, attributes
-using LazyArrays: LazyArray, @~
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
@@ -44,6 +43,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using RecipesBase
 using Requires
+using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -219,6 +219,22 @@ function __init__()
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
     using .Plots: plot, plot!, savefig
+  end
+
+  # FIXME upstream. This is a hacky workaround for
+  #       https://github.com/trixi-framework/Trixi.jl/issues/628
+  # The related upstream issues appear to be
+  #       https://github.com/JuliaLang/julia/issues/35800
+  #       https://github.com/JuliaLang/julia/issues/32552
+  #       https://github.com/JuliaLang/julia/issues/41740
+  # See also https://discourse.julialang.org/t/performance-depends-dramatically-on-compilation-order/58425
+  let
+    for T in (Float32, Float64)
+      u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
+      view(u_mortars_2d, 1, :, 1, :, 1)
+      u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
+      view(u_mortars_3d, 1, :, 1, :, :, 1)
+    end
   end
 end
 
