@@ -298,7 +298,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
     true # default to plotting the mesh
   end
 
-  if plot_mesh==true
+  if plot_mesh
     xyz_wireframe = generate_plotting_wireframe(pds; set_z_coordinate_zero = true)
     Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
   end
