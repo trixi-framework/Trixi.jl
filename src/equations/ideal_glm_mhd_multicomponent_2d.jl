@@ -441,7 +441,8 @@ end
 """
     flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction,
                     equations::IdealGlmMhdMulticomponentEquations2D)
-Entropy conserving and kinetic energy preserving two-point flux of
+
+Adaption of the entropy conserving and kinetic energy preserving two-point flux of
 Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
 ## References
 - Florian Hindenlang, Gregor Gassner (2019)
@@ -480,7 +481,7 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
   velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
   magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
 
-  inv_gamma_minus_one = 1.0 / (totalgamma(0.5*(u_ll+u_rr), equations) - 1.0)
+  inv_gamma_minus_one = 1 / (totalgamma(0.5*(u_ll+u_rr), equations) - 1)
 
   rhok_mean   = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i+8], u_rr[i+8]) for i in eachcomponent(equations))
   rhok_avg    = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i+8] + u_rr[i+8]) for i in eachcomponent(equations))

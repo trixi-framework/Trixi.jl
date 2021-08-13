@@ -297,7 +297,7 @@ end
 """
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
 
-Entropy conserving two-point flux by
+Adaption of the entropy conserving two-point flux by
 - Ayoub Gouasmi, Karthik Duraisamy (2020)
   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations""
   arXiv:1904.00972v3 [math.NA] 4 Feb 2020
@@ -372,7 +372,7 @@ end
     flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
                  equations::CompressibleEulerMulticomponentEquations2D)
 
-Entropy conserving and kinetic energy preserving two-point flux by
+Adaption of the entropy conserving and kinetic energy preserving two-point flux by
 - Hendrik Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
@@ -396,8 +396,8 @@ See also
   rho_rr      = density(u_rr, equations)
 
   # Calculating gamma
-  gamma               = totalgamma(0.5.*(u_ll.+u_rr), equations)
-  inv_gamma_minus_one = 1.0/(gamma-1.0) 
+  gamma               = totalgamma(0.5*(u_ll+u_rr), equations)
+  inv_gamma_minus_one = 1/(gamma-1) 
 
   # extract velocities
   v1_ll               = rho_v1_ll / rho_ll
