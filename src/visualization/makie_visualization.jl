@@ -18,7 +18,7 @@ end
 #
 # For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
 
-function plotting_triangulation(reference_plotting_coordinates,tol=50*eps())
+function plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
 
   # on-the-fly triangulation of plotting nodes on the reference element
   triin = Triangulate.TriangulateIO()
@@ -184,7 +184,7 @@ function generate_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotDat
   pd = pds.plot_data
   @unpack xf, yf, uf = pd
 
-  if set_z_coordinate_zero==true
+  if set_z_coordinate_zero == true
     sol_f = zeros(size(xf)) # plot 2d surface by setting z coordinate to zero
   else
     sol_f = StructArrays.component(uf, variable_id)
@@ -330,7 +330,7 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     rows = 1
   else
     cols = ceil(Int, sqrt(length(pd)))
-    rows = ceil(Int, length(pd)/cols)
+    rows = cld(length(pd), cols)
   end
 
   axes = [Makie.Axis(fig[i,j]) for j in 1:rows, i in 1:cols]

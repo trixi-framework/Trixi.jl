@@ -199,12 +199,12 @@ function _get_orientations(mesh, slice)
 end
 
 struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
-  x::Matrix{Tv} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
-  y::Matrix{Tv}
+  x::Array{Tv, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Array{Tv, 2}
   u::SolutionType # solution container
   t::PlottingTriangulation
-  xf::Matrix{Tv}
-  yf::Matrix{Tv}
+  xf::Array{Tv, 2}
+  yf::Array{Tv, 2}
   uf::FaceSolutionType
   variable_names::VariableNames
 end
