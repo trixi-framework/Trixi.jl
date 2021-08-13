@@ -73,6 +73,12 @@ function reference_node_coordinates_2d(dg::DGSEM)
   return r, s
 end
 
+function transform_to_solution_variables!(u, solution_variables_, equations)
+  for (i, u_i) in enumerate(u)
+    u[i] = solution_variables_(u_i, equations)
+  end
+end
+
 # specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
 # an UnstructuredMesh2D type.
 function PlotData2D(u_input, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
@@ -140,14 +146,11 @@ function PlotData2D(u_input, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cac
 
   # convert variables based on solution_variables mapping
   solution_variables_ = digest_solution_variables(equations, solution_variables)
-  for (i, u_i) in enumerate(uplot)
-    uplot[i] = solution_variables_(u_i, equations)
-  end
-  for (i, u_i) in enumerate(ufp)
-    ufp[i] = solution_variables_(u_i, equations)
-  end
-
   variable_names = SVector(varnames(solution_variables_, equations))
+
+  transform_to_solution_variables!(uplot, solution_variables_, equations)
+  transform_to_solution_variables!(ufp, solution_variables_, equations)
+
   return UnstructuredPlotData2D(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
 end
 
@@ -343,6 +346,6 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     Makie.xlims!(ax, extrema(pd.x))
     Makie.ylims!(ax, extrema(pd.y))
   end
-
-  fig
+  # fig
+  return Makie.FigureAxisPlot(fig, axes, plt)
 end
