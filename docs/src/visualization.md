@@ -404,7 +404,7 @@ to create PDF files. A comprehensive list of all possible arguments for
 In addition to [Plots.jl](@ref Plots.jl) support, Trixi includes visualization utilities through
 [Makie.jl](https://github.com/JuliaPlots/Makie.jl/). Trixi provides Makie-based visualization options
 both for heatmap-type plots (similar to the [Plots.jl](@ref Plots.jl) recipes) as well as for
-interactive surface plots.
+interactive surface plots. Support is currently limited to the [`UnstructuredMesh2D`](@ref) type.
 
 !!! note
     Plotting via Makie.jl is still considered an experimental feature and might

@@ -197,7 +197,7 @@ end
     trixi_plot(sol::TrixiODESolution;
                solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
 
-Creates an interactive surface plot of the solution and mesh.
+Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
 
 Inputs:
 - solution_variables: either `nothing` or a variable transformation function (e.g., `cons2prim`)
