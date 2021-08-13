@@ -312,46 +312,70 @@ function prolong2mortars!(cache, u,
                           mesh::P4estMesh{3}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
-  # temporary buffer for projections
   @unpack fstar_tmp_threaded = cache
   @unpack element_ids, node_indices = cache.mortars
-
-  size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
-    fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
-
+    # Copy solution data from the small elements on a case-by-case basis
+    # to get the correct face and orientation.
     small_indices = node_indices[1, mortar]
-    large_indices = node_indices[2, mortar]
 
-    # Copy solution small to small
-    for pos in 1:4
-      for j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
-          # Use Tuple `node_indices` and `evaluate_index` to copy values
-          # from the correct face and in the correct orientation
-          cache.mortars.u[1, v, pos, i, j, mortar] = u[v, evaluate_index(small_indices, size_, 1, i, j),
-                                                          evaluate_index(small_indices, size_, 2, i, j),
-                                                          evaluate_index(small_indices, size_, 3, i, j),
-                                                          element_ids[pos, mortar]]
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
+
+    for position in 1:4
+      i_small = i_small_start
+      j_small = j_small_start
+      k_small = k_small_start
+      element = element_ids[position, mortar]
+      for j in eachnode(dg)
+        for i in eachnode(dg)
+          for v in eachvariable(equations)
+            cache.mortars.u[1, v, position, i, j, mortar] = u[v, i_small, j_small, k_small, element]
+          end
+          i_small += i_small_step_i
+          j_small += j_small_step_i
+          k_small += k_small_step_i
         end
+        i_small += i_small_step_j
+        j_small += j_small_step_j
+        k_small += k_small_step_j
       end
     end
+
 
     # Buffer to copy solution values of the large element in the correct orientation
     # before interpolating
     u_buffer = cache.u_threaded[Threads.threadid()]
+    # temporary buffer for projections
+    fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
-    # Copy solution of large element face to buffer in the correct orientation
-    for j in eachnode(dg), i in eachnode(dg)
-      for v in eachvariable(equations)
-        # Use Tuple `node_indices` and `evaluate_index` to copy values
-        # from the correct face and in the correct orientation
-        u_buffer[v, i, j] = u[v, evaluate_index(large_indices, size_, 1, i, j),
-                                 evaluate_index(large_indices, size_, 2, i, j),
-                                 evaluate_index(large_indices, size_, 3, i, j),
-                                 element_ids[5, mortar]]
+    # Copy solution of large element face to buffer in the
+    # correct orientation
+    large_indices = node_indices[2, mortar]
+
+    i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1], index_range)
+    j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2], index_range)
+    k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3], index_range)
+
+    i_large = i_large_start
+    j_large = j_large_start
+    k_large = k_large_start
+    element = element_ids[5, mortar]
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          u_buffer[v, i, j] = u[v, i_large, j_large, k_large, element]
+        end
+        i_large += i_large_step_i
+        j_large += j_large_step_i
+        k_large += k_large_step_i
       end
+      i_large += i_large_step_j
+      j_large += j_large_step_j
+      k_large += k_large_step_j
     end
 
     # Interpolate large element face data from buffer to small face locations

@@ -241,8 +241,8 @@ function prolong2mortars!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
-    # Copy solution data from the small elements on a case-by-case basis to get
-    # the correct face and orientation.
+    # Copy solution data from the small elements on a case-by-case basis
+    # to get the correct face and orientation.
     small_indices = node_indices[1, mortar]
 
     i_small_start, i_small_step = index_to_start_step(small_indices[1], index_range)
@@ -266,7 +266,8 @@ function prolong2mortars!(cache, u,
     # before interpolating
     u_buffer = cache.u_threaded[Threads.threadid()]
 
-    # Copy solution of large element face to buffer in the correct orientation
+    # Copy solution of large element face to buffer in the
+    # correct orientation
     large_indices = node_indices[2, mortar]
 
     i_large_start, i_large_step = index_to_start_step(large_indices[1], index_range)
