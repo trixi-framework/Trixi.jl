@@ -343,8 +343,8 @@ function calc_mortar_flux!(surface_flux_values,
       end
     end
 
-    # Buffer to interpolate flux values of the large element to before copying
-    # in the correct orientation
+    # Buffer to interpolate flux values of the large element to before
+    # copying in the correct orientation
     u_buffer = cache.u_threaded[Threads.threadid()]
 
     mortar_fluxes_to_elements!(surface_flux_values,
@@ -362,9 +362,6 @@ end
                                             dg::DGSEM, cache, mortar, fstar, u_buffer)
   @unpack element_ids, node_indices = cache.mortars
 
-  large_indices  = node_indices[2, mortar]
-  large_direction = indices2direction(large_indices)
-
   # Copy solution small to small
   small_indices   = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)
@@ -378,8 +375,6 @@ end
     end
   end
 
-  large_element = element_ids[3, mortar]
-
   # Project small fluxes to large element.
   multiply_dimensionwise!(u_buffer,
                           mortar_l2.reverse_upper, fstar[2],
@@ -388,10 +383,10 @@ end
   # The flux is calculated in the outward direction of the small elements,
   # so the sign must be switched to get the flux in outward direction
   # of the large element.
-  # The contravariant vectors of the large element (and therefore the normal vectors
-  # of the large element as well) are twice as large as the contravariant vectors
-  # of the small elements. Therefore, the flux need to be scaled by a factor of 2
-  # to obtain the flux of the large element.
+  # The contravariant vectors of the large element (and therefore the normal
+  # vectors of the large element as well) are twice as large as the
+  # contravariant vectors of the small elements. Therefore, the flux needs
+  # to be scaled by a factor of 2 to obtain the flux of the large element.
   u_buffer .*= -2
 
   # Copy interpolated flux values from buffer to large element face in the
@@ -400,6 +395,10 @@ end
   # the index of the large side might need to run backwards for flipped sides.
   # TODO: p4est interface performance; see whether this can be made simpler and
   #       more general when working on the 3D version
+  large_element  = element_ids[3, mortar]
+  large_indices  = node_indices[2, mortar]
+  large_direction = indices2direction(large_indices)
+
   if :i_backwards in large_indices
     for i in eachnode(dg)
       for v in eachvariable(equations)

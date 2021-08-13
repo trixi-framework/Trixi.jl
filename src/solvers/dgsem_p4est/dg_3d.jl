@@ -189,8 +189,8 @@ function calc_interface_flux!(surface_flux_values,
     i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1], index_range)
     j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2], index_range)
 
-    # Note that the index of the primary side will always run forward but
-    # the secondary index might need to run backwards for flipped sides.
+    # Note that the indices of the primary side will always run forward but
+    # the secondary indices might need to run backwards for flipped sides.
     # TODO: p4est interface performance; see whether this can be made simpler and
     #       more general
     i_secondary = i_secondary_start
@@ -412,39 +412,55 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
   @unpack u, element_ids, node_indices = cache.mortars
   @unpack fstar_threaded, fstar_tmp_threaded = cache
+  @unpack contravariant_vectors = cache.elements
   @unpack surface_flux = surface_integral
-
-  size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
     fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
+    # Get information on the small elements, compute the surface fluxes,
+    # and store them for the small elements
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
-    for pos in 1:4
-      for j in eachnode(dg), i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, j, mortar)
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
 
-        normal_vector = get_normal_vector(small_direction, cache,
-                                          evaluate_index(small_indices, size_, 1, i, j),
-                                          evaluate_index(small_indices, size_, 2, i, j),
-                                          evaluate_index(small_indices, size_, 3, i, j),
-                                          element_ids[pos, mortar])
+    # Contravariant vectors at interfaces in negative coordinate direction
+    # are pointing inwards. This is handled by `get_normal_direction`.
+    for position in 1:4
+      i_small = i_small_start
+      j_small = j_small_start
+      k_small = k_small_start
+      element = element_ids[position, mortar]
+      for j in eachnode(dg)
+        for i in eachnode(dg)
+          u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, j, mortar)
 
-        flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
+          normal_direction = get_normal_direction(small_direction, contravariant_vectors,
+                                                  i_small, j_small, k_small, element)
 
-        # Copy flux to buffer
-        set_node_vars!(fstar, flux_, equations, dg, i, j, pos)
+          flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+          # Copy flux to buffer
+          set_node_vars!(fstar, flux_, equations, dg, i, j, position)
+
+          i_small += i_small_step_i
+          j_small += j_small_step_i
+          k_small += k_small_step_i
+        end
+        i_small += i_small_step_j
+        j_small += j_small_step_j
+        k_small += k_small_step_j
       end
     end
 
-    # Buffer to interpolate flux values of the large element to before copying
-    # in the correct orientation
+    # Buffer to interpolate flux values of the large element to before
+    # copying in the correct orientation
     u_buffer = cache.u_threaded[Threads.threadid()]
 
     mortar_fluxes_to_elements!(surface_flux_values,
@@ -461,30 +477,20 @@ end
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar, u_buffer, fstar_tmp)
   @unpack element_ids, node_indices = cache.mortars
-
-  small_indices  = node_indices[1, mortar]
-  large_indices  = node_indices[2, mortar]
-
-  small_direction = indices2direction(small_indices)
-  large_direction = indices2direction(large_indices)
-
-  size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   # Copy solution small to small
-  for pos in 1:4
+  small_indices   = node_indices[1, mortar]
+  small_direction = indices2direction(small_indices)
+
+  for position in 1:4
+    element = element_ids[position, mortar]
     for j in eachnode(dg), i in eachnode(dg)
       for v in eachvariable(equations)
-        # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-        # to left and right element storage in the correct orientation
-        surface_index1 = evaluate_index_surface(small_indices, size_, 1, i, j)
-        surface_index2 = evaluate_index_surface(small_indices, size_, 2, i, j)
-        surface_flux_values[v, surface_index1, surface_index2, small_direction,
-                            element_ids[pos, mortar]] = fstar[v, i, j, pos]
+        surface_flux_values[v, i, j, small_direction, element] = fstar[v, i, j, position]
       end
     end
   end
-
-  large_element = element_ids[5, mortar]
 
   # Project small fluxes to large element.
   multiply_dimensionwise!(
@@ -511,22 +517,42 @@ end
   # The flux is calculated in the outward direction of the small elements,
   # so the sign must be switched to get the flux in outward direction
   # of the large element.
-  # The contravariant vectors of the large element (and therefore the normal vectors
-  # of the large element as well) are four times as large as the contravariant vectors
-  # of the small elements. Therefore, the flux need to be scaled by a factor of 4
-  # to obtain the flux of the large element.
+  # The contravariant vectors of the large element (and therefore the normal
+  # vectors of the large element as well) are four times as large as the
+  # contravariant vectors of the small elements. Therefore, the flux needs
+  # to be scaled by a factor of 4 to obtain the flux of the large element.
   u_buffer .*= -4
 
-  # Copy interpolated flux values from buffer to large element face in the correct orientation
-  for j in eachnode(dg), i in eachnode(dg)
-    for v in eachvariable(equations)
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to surface flux storage in the correct orientation
-      surface_index1 = evaluate_index_surface(large_indices, size_, 1, i, j)
-      surface_index2 = evaluate_index_surface(large_indices, size_, 2, i, j)
-      surface_flux_values[v, surface_index1, surface_index2,
-                          large_direction, large_element] = u_buffer[v, i, j]
+  # Copy interpolated flux values from buffer to large element face in the
+  # correct orientation.
+  # Note that the index of the small sides will always run forward but
+  # the index of the large side might need to run backwards for flipped sides.
+  # TODO: p4est interface performance; see whether this can be made simpler and
+  #       more general when working on the 3D version
+  large_element = element_ids[5, mortar]
+  large_indices  = node_indices[2, mortar]
+  large_direction = indices2direction(large_indices)
+  large_surface_indices = surface_indices(large_indices)
+
+  i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_surface_indices[1], index_range)
+  j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_surface_indices[2], index_range)
+
+  # Note that the indices of the small sides will always run forward but
+  # the large indices might need to run backwards for flipped sides.
+  # TODO: p4est interface performance; see whether this can be made simpler and
+  #       more general
+  i_large = i_large_start
+  j_large = j_large_start
+  for j in eachnode(dg)
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        surface_flux_values[v, i_large, j_large, large_direction, large_element] = u_buffer[v, i, j]
+      end
+      i_large += i_large_step_i
+      j_large += j_large_step_i
     end
+    i_large += i_large_step_j
+    j_large += j_large_step_j
   end
 
   return nothing
