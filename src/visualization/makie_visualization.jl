@@ -18,7 +18,7 @@ end
 #
 # For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
 
-function plotting_triangulation(reference_plotting_coordinates,tol=50*eps())
+function plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
 
   # on-the-fly triangulation of plotting nodes on the reference element
   triin = Triangulate.TriangulateIO()
@@ -298,7 +298,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
     true # default to plotting the mesh
   end
 
-  if plot_mesh==true
+  if plot_mesh
     xyz_wireframe = generate_plotting_wireframe(pds; set_z_coordinate_zero = true)
     Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
   end
@@ -330,7 +330,7 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     rows = 1
   else
     cols = ceil(Int, sqrt(length(pd)))
-    rows = ceil(Int, length(pd)/cols)
+    rows = cld(length(pd), cols)
   end
 
   axes = [Makie.Axis(fig[i,j]) for j in 1:rows, i in 1:cols]
