@@ -23,16 +23,23 @@ end
 #     index_to_start_step_2d(index::Symbol, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
-# return an index value to begin a loop and an index step to update during a
-# loop. The resulting indices translate surface indices to volume indices.
+# return `index_start, index_step`, i.e., a tuple containing
+# - `index_start`, an index value to begin a loop
+# - `index_step`,  an index step to update during a loop
+# The resulting indices translate surface indices to volume indices.
 #
 # !!! warning
 #     This assumes that loops using the return values are written as
 #
-#     my_i, my_j = # begin values
-#     for i in ...
-#       # do stuff with i and (my_i, my_j)
-#       my_[ij] += my_[ij]_step
+#     i_volume_start, i_volume_step = index_to_start_step_2d(symbolic_index_i, index_range)
+#     j_volume_start, j_volume_step = index_to_start_step_2d(symbolic_index_j, index_range)
+#
+#     i_volume, j_volume = i_volume_start, j_volume_start
+#     for i_surface in index_range
+#       # do stuff with `i_surface` and `(i_volume, j_volume)`
+#
+#       i_volume += i_volume_step
+#       j_volume += j_volume_step
 #     end
 @inline function index_to_start_step_2d(index::Symbol, index_range)
   index_begin = first(index_range)

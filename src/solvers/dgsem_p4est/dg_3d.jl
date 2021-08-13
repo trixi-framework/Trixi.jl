@@ -24,19 +24,31 @@ end
 #     index_to_start_step_3d(index::Symbol, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
-# return an index value to begin a loop and index steps to update during a
-# loop. The resulting indices translate surface indices to volume indices.
+# return `index_start, index_step_i, index_step_j`, i.e., a tuple containing
+# - `index_start`,   an index value to begin a loop
+# - `index_step_i`,  an index step to update during an `i` loop
+# - `index_step_j`,  an index step to update during a `j` loop
+# The resulting indices translate surface indices to volume indices.
 #
 # !!! warning
-#     This assumes that loops using the return values are ordered as
+#     This assumes that loops using the return values are written as
 #
-#     my_i, my_j, my_k = # begin values
-#     for j in ...
-#       for i in ...
-#         # do stuff with (i, j) and (my_i, my_j, my_k)
-#         my_[ijk] += my_[ijk]_step_i
+#     i_volume_start, i_volume_step_i, i_volume_step_j = index_to_start_step_3d(symbolic_index_i, index_range)
+#     j_volume_start, j_volume_step_i, j_volume_step_j = index_to_start_step_3d(symbolic_index_j, index_range)
+#     k_volume_start, k_volume_step_i, k_volume_step_j = index_to_start_step_3d(symbolic_index_k, index_range)
+#
+#     i_volume, j_volume, k_volume = i_volume_start, j_volume_start, k_volume_start
+#     for j_surface in index_range
+#       for i_surface in index_range
+#         # do stuff with `(i_surface, j_surface)` and `(i_volume, j_volume, k_volume)`
+#
+#         i_volume += i_volume_step_i
+#         j_volume += j_volume_step_i
+#         k_volume += k_volume_step_i
 #       end
-#       my_[ijk] += my_[ijk]_step_j
+#       i_volume += i_volume_step_j
+#       j_volume += j_volume_step_j
+#       k_volume += k_volume_step_j
 #     end
 @inline function index_to_start_step_3d(index::Symbol, index_range)
   index_begin = first(index_range)
@@ -57,6 +69,8 @@ end
   end
 end
 
+# Extract the two varying indices from a symbolic index tuple.
+# For example, `surface_indices((:i, :end, :j)) == (:i, :j)`.
 @inline function surface_indices(indices::NTuple{3, Symbol})
   i1, i2, i3 = indices
   index = i1
