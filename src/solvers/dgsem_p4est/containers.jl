@@ -651,15 +651,15 @@ end
 
 # Return direction of the face, which is indexed by node_indices
 @inline function indices2direction(indices)
-  if indices[1] === :one
+  if indices[1] === :begin
     return 1
   elseif indices[1] === :end
     return 2
-  elseif indices[2] === :one
+  elseif indices[2] === :begin
     return 3
   elseif indices[2] === :end
     return 4
-  elseif indices[3] === :one
+  elseif indices[3] === :begin
     return 5
   else # if indices[3] === :end
     return 6
