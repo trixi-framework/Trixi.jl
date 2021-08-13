@@ -45,13 +45,13 @@ end
   index_begin = first(index_range)
   index_end   = last(index_range)
 
-  if index === :one
+  if index === :begin
     return index_begin, 0
   elseif index === :end
     return index_end, 0
-  elseif index === :i
+  elseif index === :i_forward
     return index_begin, 1
-  else # if index === :i_backwards
+  else # if index === :i_backward
     return index_end, -1
   end
 end
@@ -153,7 +153,7 @@ function calc_interface_flux!(surface_flux_values,
 
     # Note that the index of the primary side will always run forward but
     # the secondary index might need to run backwards for flipped sides.
-    if :i_backwards in secondary_indices
+    if :i_backward in secondary_indices
       for i in eachnode(dg)
         for v in eachvariable(equations)
           surface_flux_values[v, end + 1 - i, secondary_direction, secondary_element] =
@@ -415,7 +415,7 @@ end
   large_indices  = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)
 
-  if :i_backwards in large_indices
+  if :i_backward in large_indices
     for i in eachnode(dg)
       for v in eachvariable(equations)
         surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v, i]
