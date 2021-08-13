@@ -185,7 +185,7 @@ function generate_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotDat
   @unpack xf, yf, uf = pd
 
   if set_z_coordinate_zero==true
-    sol_f = zeros(size(xf)) # plot 2d surface by setting z coordinate to zero
+    sol_f = zeros(eltype(first(uf)), size(xf)) # plot 2d surface by setting z coordinate to zero
   else
     sol_f = StructArrays.component(uf, variable_id)
   end
