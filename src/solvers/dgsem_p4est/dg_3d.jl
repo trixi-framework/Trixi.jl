@@ -52,6 +52,18 @@ end
   end
 end
 
+@inline function surface_indices(indices::NTuple{3, Symbol})
+  i1, i2, i3 = indices
+  index = i1
+  (index === :one || index === :end) && return (i2, i3)
+
+  index = i2
+  (index === :one || index === :end) && return (i1, i3)
+
+  # i3 in (:one, :end)
+  return (i1, i2)
+end
+
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{3},
                              equations, surface_integral, dg::DG)
@@ -125,44 +137,74 @@ function calc_interface_flux!(surface_flux_values,
                               equations, surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, element_ids, node_indices = cache.interfaces
-
-  size_ = (nnodes(dg), nnodes(dg), nnodes(dg))
+  @unpack contravariant_vectors = cache.elements
+  index_range = eachnode(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Get neighboring elements
-    primary_element   = element_ids[1, interface]
-    secondary_element = element_ids[2, interface]
+    # Get information on the primary element, compute the surface fluxes,
+    # and store them for the primary element
+    primary_element  = element_ids[1, interface]
+    primary_indices  = node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
 
-    primary_indices   = node_indices[1, interface]
-    secondary_indices = node_indices[2, interface]
+    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2], index_range)
+    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3], index_range)
 
-    primary_direction   = indices2direction(primary_indices)
-    secondary_direction = indices2direction(secondary_indices)
+    i_primary = i_primary_start
+    j_primary = j_primary_start
+    k_primary = k_primary_start
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
 
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
-    for j in eachnode(dg), i in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
+        # Contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards. This is handled by `get_normal_direction`.
+        normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                                i_primary, j_primary, k_primary,
+                                                primary_element)
 
-      normal_vector = get_normal_vector(primary_direction, cache,
-                                        evaluate_index(primary_indices, size_, 1, i, j),
-                                        evaluate_index(primary_indices, size_, 2, i, j),
-                                        evaluate_index(primary_indices, size_, 3, i, j),
-                                        primary_element)
+        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-      flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
+        for v in eachvariable(equations)
+          surface_flux_values[v, i, j, primary_direction, primary_element] = flux_[v]
+        end
 
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to left and right element storage in the correct orientation
-      for v in eachvariable(equations)
-        surf_i = evaluate_index_surface(primary_indices, size_, 1, i, j)
-        surf_j = evaluate_index_surface(primary_indices, size_, 2, i, j)
-        surface_flux_values[v, surf_i, surf_j, primary_direction, primary_element] = flux_[v]
-
-        surf_i = evaluate_index_surface(secondary_indices, size_, 1, i, j)
-        surf_j = evaluate_index_surface(secondary_indices, size_, 2, i, j)
-        surface_flux_values[v, surf_i, surf_j, secondary_direction, secondary_element] = -flux_[v]
+        i_primary += i_primary_step_i
+        j_primary += j_primary_step_i
+        k_primary += k_primary_step_i
       end
+      i_primary += i_primary_step_j
+      j_primary += j_primary_step_j
+      k_primary += k_primary_step_j
+    end
+
+    # Get information on the secondary element and copy the numerical fluxes
+    # from the primary element to the secondary one
+    secondary_element = element_ids[2, interface]
+    secondary_indices = node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
+    secondary_surface_indices = surface_indices(secondary_indices)
+
+    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1], index_range)
+    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2], index_range)
+
+    # Note that the index of the primary side will always run forward but
+    # the secondary index might need to run backwards for flipped sides.
+    # TODO: p4est interface performance; see whether this can be made simpler and
+    #       more general
+    i_secondary = i_secondary_start
+    j_secondary = j_secondary_start
+    for j in eachnode(dg)
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          surface_flux_values[v, i_secondary, j_secondary, secondary_direction, secondary_element] = -surface_flux_values[v, i, j, primary_direction, primary_element]
+        end
+        i_secondary += i_secondary_step_i
+        j_secondary += j_secondary_step_i
+      end
+      i_secondary += i_secondary_step_j
+      j_secondary += j_secondary_step_j
     end
   end
 
