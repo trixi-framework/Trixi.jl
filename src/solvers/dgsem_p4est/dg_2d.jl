@@ -20,8 +20,21 @@ function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreM
 end
 
 
-# TODO: p4est interface performance, generalize (2D, 3D) and document
-@inline function index_to_start_step(index::Symbol, index_range)
+#     index_to_start_step_2d(index::Symbol, index_range)
+#
+# Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
+# return an index value to begin a loop and an index step to update during a
+# loop. The resulting indices translate surface indices to volume indices.
+#
+# !!! warning
+#     This assumes that loops using the return values are written as
+#
+#     my_i, my_j = # begin values
+#     for i in ...
+#       # do stuff with i and (my_i, my_j)
+#       my_[ij] += my_[ij]_step
+#     end
+@inline function index_to_start_step_2d(index::Symbol, index_range)
   index_begin = first(index_range)
   index_end   = last(index_range)
 
@@ -51,8 +64,8 @@ function prolong2interfaces!(cache, u,
     primary_element = interfaces.element_ids[1, interface]
     primary_indices = interfaces.node_indices[1, interface]
 
-    i_primary_start, i_primary_step = index_to_start_step(primary_indices[1], index_range)
-    j_primary_start, j_primary_step = index_to_start_step(primary_indices[2], index_range)
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
 
     i_primary = i_primary_start
     j_primary = j_primary_start
@@ -69,8 +82,8 @@ function prolong2interfaces!(cache, u,
     secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
-    i_secondary_start, i_secondary_step = index_to_start_step(secondary_indices[1], index_range)
-    j_secondary_start, j_secondary_step = index_to_start_step(secondary_indices[2], index_range)
+    i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1], index_range)
+    j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2], index_range)
 
     i_secondary = i_secondary_start
     j_secondary = j_secondary_start
@@ -103,8 +116,8 @@ function calc_interface_flux!(surface_flux_values,
     primary_indices  = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
-    i_primary_start, i_primary_step = index_to_start_step(primary_indices[1], index_range)
-    j_primary_start, j_primary_step = index_to_start_step(primary_indices[2], index_range)
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
 
     i_primary = i_primary_start
     j_primary = j_primary_start
@@ -133,8 +146,6 @@ function calc_interface_flux!(surface_flux_values,
 
     # Note that the index of the primary side will always run forward but
     # the secondary index might need to run backwards for flipped sides.
-    # TODO: p4est interface performance; see whether this can be made simpler and
-    #       more general when working on the 3D version
     if :i_backwards in secondary_indices
       for i in eachnode(dg)
         for v in eachvariable(equations)
@@ -168,8 +179,8 @@ function prolong2boundaries!(cache, u,
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
 
-    i_node_start, i_node_step = index_to_start_step(node_indices[1], index_range)
-    j_node_start, j_node_step = index_to_start_step(node_indices[2], index_range)
+    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
 
     i_node = i_node_start
     j_node = j_node_start
@@ -204,8 +215,8 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
     node_indices  = boundaries.node_indices[boundary]
     direction     = indices2direction(node_indices)
 
-    i_node_start, i_node_step = index_to_start_step(node_indices[1], index_range)
-    j_node_start, j_node_step = index_to_start_step(node_indices[2], index_range)
+    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
 
     i_node = i_node_start
     j_node = j_node_start
@@ -245,8 +256,8 @@ function prolong2mortars!(cache, u,
     # to get the correct face and orientation.
     small_indices = node_indices[1, mortar]
 
-    i_small_start, i_small_step = index_to_start_step(small_indices[1], index_range)
-    j_small_start, j_small_step = index_to_start_step(small_indices[2], index_range)
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
     for position in 1:2
       i_small = i_small_start
@@ -270,8 +281,8 @@ function prolong2mortars!(cache, u,
     # correct orientation
     large_indices = node_indices[2, mortar]
 
-    i_large_start, i_large_step = index_to_start_step(large_indices[1], index_range)
-    j_large_start, j_large_step = index_to_start_step(large_indices[2], index_range)
+    i_large_start, i_large_step = index_to_start_step_2d(large_indices[1], index_range)
+    j_large_start, j_large_step = index_to_start_step_2d(large_indices[2], index_range)
 
     i_large = i_large_start
     j_large = j_large_start
@@ -318,8 +329,8 @@ function calc_mortar_flux!(surface_flux_values,
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
-    i_small_start, i_small_step = index_to_start_step(small_indices[1], index_range)
-    j_small_start, j_small_step = index_to_start_step(small_indices[2], index_range)
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
     # Contravariant vectors at interfaces in negative coordinate direction
     # are pointing inwards. This is handled by `get_normal_direction`.
@@ -393,8 +404,6 @@ end
   # correct orientation.
   # Note that the index of the small sides will always run forward but
   # the index of the large side might need to run backwards for flipped sides.
-  # TODO: p4est interface performance; see whether this can be made simpler and
-  #       more general when working on the 3D version
   large_element  = element_ids[3, mortar]
   large_indices  = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)

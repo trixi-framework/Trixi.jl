@@ -21,7 +21,12 @@ function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreM
 end
 
 
-# TODO: p4est interface performance, generalize (2D, 3D) and document
+#     index_to_start_step_3d(index::Symbol, index_range)
+#
+# Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
+# return an index value to begin a loop and index steps to update during a
+# loop. The resulting indices translate surface indices to volume indices.
+#
 # !!! warning
 #     This assumes that loops using the return values are ordered as
 #
@@ -191,8 +196,6 @@ function calc_interface_flux!(surface_flux_values,
 
     # Note that the indices of the primary side will always run forward but
     # the secondary indices might need to run backwards for flipped sides.
-    # TODO: p4est interface performance; see whether this can be made simpler and
-    #       more general
     i_secondary = i_secondary_start
     j_secondary = j_secondary_start
     for j in eachnode(dg)
@@ -527,8 +530,6 @@ end
   # correct orientation.
   # Note that the index of the small sides will always run forward but
   # the index of the large side might need to run backwards for flipped sides.
-  # TODO: p4est interface performance; see whether this can be made simpler and
-  #       more general when working on the 3D version
   large_element = element_ids[5, mortar]
   large_indices  = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)
@@ -539,8 +540,6 @@ end
 
   # Note that the indices of the small sides will always run forward but
   # the large indices might need to run backwards for flipped sides.
-  # TODO: p4est interface performance; see whether this can be made simpler and
-  #       more general
   i_large = i_large_start
   j_large = j_large_start
   for j in eachnode(dg)
