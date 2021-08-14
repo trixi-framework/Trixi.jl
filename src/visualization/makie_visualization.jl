@@ -320,8 +320,9 @@ end
 
 function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure();
                     plot_mesh = true)
-  Makie.plot!(fig, pd; plot_mesh=plot_mesh)
-  fig
+  fig, axes = Makie.plot!(fig, pd; plot_mesh=plot_mesh)
+  display(fig)
+  fig, axes
 end
 
 function Makie.plot!(fig, pd::UnstructuredPlotData2D;
@@ -346,7 +347,6 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     Makie.xlims!(ax, extrema(pd.x))
     Makie.ylims!(ax, extrema(pd.y))
   end
-  fig
 
-  # TODO: visualization. Figure out how to return a Makie.FigureAxisPlot(fig, axes, plt).
+  fig, axes
 end
