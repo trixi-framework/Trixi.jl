@@ -432,7 +432,12 @@ Unlike the Plots.jl recipe, mesh plotting is controlled using the keyword argume
 ```julia
 julia> plot(sol; plot_mesh=false)
 ```
-
+The plot command also returns figure and axis handles, which can be used to edit plot titles or
+labels:
+```julia
+julia> fig, axes = plot(sol)
+julia> axes[1,1].title = "New title for subplot (1,1)"
+```
 
 Trixi also supports interactive surface plots using `trixi_plot`:
 ```julia
