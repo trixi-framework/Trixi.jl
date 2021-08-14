@@ -421,6 +421,10 @@ To visualize the solution and mesh with a heatmap-type plot, simply run
 ```julia
 julia> plot(sol)
 ```
+!!! note
+    Both Makie.jl and Plots.jl export `plot`, so if you load both librarys, you will have to
+    specify which `plot` function to call via `Plots.plot` or `Makie.plot`.
+
 As with Plots.jl recipes, one can view individual solution components by creating a `PlotData2D`
 object and indexing into it with the desired variable name
 ```julia

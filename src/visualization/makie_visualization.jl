@@ -318,11 +318,32 @@ function Makie.plot(sol::TrixiODESolution;
   return Makie.plot(PlotData2D(sol, solution_variables=solution_variables); plot_mesh=plot_mesh)
 end
 
+# convenience struct for editing Makie plots after they're created.
+struct FigAxes{Axes}
+  fig::Makie.Figure
+  axes::Axes
+end
+
+# for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
+# Makie.plot(::UnstructuredPlotData2D)
+Base.show(io::IO, fa::FigAxes) = nothing
+
+# allows for returning fig, axes = Makie.plot(...)
+function Base.iterate(fa::FigAxes, state=1)
+  if state > 2
+    return nothing
+  elseif state==1
+    return (fa.fig, 2)
+  elseif state==2
+    return (fa.axes, 3)
+  end
+end
+
 function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure();
                     plot_mesh = true)
-  fig, axes = Makie.plot!(fig, pd; plot_mesh=plot_mesh)
-  display(fig)
-  fig, axes
+  figAxes = Makie.plot!(fig, pd; plot_mesh=plot_mesh)
+  display(figAxes.fig)
+  return figAxes
 end
 
 function Makie.plot!(fig, pd::UnstructuredPlotData2D;
@@ -348,5 +369,5 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     Makie.ylims!(ax, extrema(pd.y))
   end
 
-  fig, axes
+  return FigAxes(fig, axes)
 end
