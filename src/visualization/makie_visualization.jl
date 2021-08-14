@@ -315,7 +315,7 @@ Makie.plottype(::Trixi.PlotDataSeries2D{<:Trixi.UnstructuredPlotData2D}) = Trixi
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution;
                     plot_mesh=true, solution_variables=nothing)
-  Makie.plot(PlotData2D(sol, solution_variables=solution_variables); plot_mesh=plot_mesh)
+  return Makie.plot(PlotData2D(sol, solution_variables=solution_variables); plot_mesh=plot_mesh)
 end
 
 function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure();
