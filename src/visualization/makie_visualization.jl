@@ -384,7 +384,7 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     rows = cld(length(pd), cols)
   end
 
-  axes = [Makie.Axis(fig[i,j]) for j in 1:rows, i in 1:cols]
+  axes = [Makie.Axis(fig[i,j], xlabel="x", ylabel="y") for j in 1:rows, i in 1:cols]
 
   for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
     ax = axes[variable_to_plot]
