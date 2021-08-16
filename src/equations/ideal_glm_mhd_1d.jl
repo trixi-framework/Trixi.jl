@@ -72,6 +72,32 @@ end
 
 
 """
+    initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations1D)
+
+A weak blast wave adapted from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations1D)
+  # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Same discontinuity in the velocities but with magnetic fields
+  # Set up polar coordinates
+  inicenter = (0,)
+  x_norm = x[1] - inicenter[1]
+  r = sqrt(x_norm^2)
+  phi = atan(x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(SVector(rho, v1, 0.0, 0.0, p, 1.0, 1.0, 1.0, 0.0), equations)
+end
+
+
+"""
     initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
 
 Compound shock tube test case for one dimensional ideal MHD equations. It is bascially an
@@ -283,6 +309,69 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmM
   f5 = (f1*0.5*(1/(equations.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
         f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg - 0.5*v1_mag_avg +
         B1_avg*vel_dot_mag_avg)
+
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8)
+end
+
+
+"""
+    flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction,
+                            equations::IdealGlmMhdEquations1D)
+
+Entropy conserving and kinetic energy preserving two-point flux of
+Hindenlang and Gassner (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
+
+## References
+- Florian Hindenlang, Gregor Gassner (2019)
+  A new entropy conservative two-point flux for ideal MHD equations derived from
+  first principles.
+  Presented at HONOM 2019: European workshop on high order numerical methods
+  for evolutionary PDEs, theory and applications
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_hindenlang_gassner(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
+  # Unpack left and right states
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
+
+  # Compute the necessary mean values needed for either direction
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg  = 0.5 * ( v1_ll +  v1_rr)
+  v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+  v3_avg  = 0.5 * ( v3_ll +  v3_rr)
+  p_avg   = 0.5 * (  p_ll +   p_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+  magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+
+  # Calculate fluxes depending on orientation with specific direction averages
+  f1 = rho_mean * v1_avg
+  f2 = f1 * v1_avg + p_avg + magnetic_square_avg - 0.5 * (B1_ll * B1_rr + B1_rr * B1_ll)
+  f3 = f1 * v2_avg                               - 0.5 * (B1_ll * B2_rr + B1_rr * B2_ll)
+  f4 = f1 * v3_avg                               - 0.5 * (B1_ll * B3_rr + B1_rr * B3_ll)
+  #f5 below
+  f6 = 0.0
+  f7 = 0.5 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
+  f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
+  # total energy flux is complicated and involves the previous components
+  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+        + 0.5 * (
+        +   p_ll * v1_rr +  p_rr * v1_ll
+        + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
+        + (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
+        - (v2_ll * B1_ll * B2_rr + v2_rr * B1_rr * B2_ll)
+        - (v3_ll * B1_ll * B3_rr + v3_rr * B1_rr * B3_ll) ) )
 
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8)
 end
