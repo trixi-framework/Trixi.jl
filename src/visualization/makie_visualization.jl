@@ -211,12 +211,14 @@ Inputs:
 - solution_variables: either `nothing` or a variable transformation function (e.g., `cons2prim`)
 - nvisnodes: number of visualization nodes per dimension
 """
-function iplot(sol::TrixiODESolution;
-               solution_variables=nothing, nvisnodes=default_nvisnodes(sol), variable_to_plot_in = 1)
+function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
+               solution_variables=nothing, nvisnodes=2*length(solver.basis.nodes), variable_to_plot_in = 1)
 
-  pd = PlotData2D(sol; solution_variables=solution_variables, nvisnodes=nvisnodes)
+  pd = PlotData2D(u, mesh, equations, solver, cache;
+                  solution_variables=solution_variables, nvisnodes=nvisnodes)
+
   @unpack variable_names = pd
-  mesh, _, _, _ = mesh_equations_solver_cache(sol.prob.p)
+
   @assert ndims(mesh) == 2
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
@@ -287,6 +289,11 @@ function iplot(sol::TrixiODESolution;
   # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
   fig
 end
+
+# redirect `iplot(sol)` to dispatchable `iplot` signature.
+iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
+iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
+
 
 # ================== new Makie plot recipes ====================
 
