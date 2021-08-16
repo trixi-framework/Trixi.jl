@@ -17,27 +17,25 @@ end
 # triangulation of the plotting points, with zero-volume triangles removed.
 #
 # For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
-
 function plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
-
   # on-the-fly triangulation of plotting nodes on the reference element
-  triin = Triangulate.TriangulateIO()
-  triin.pointlist = permutedims(hcat(reference_plotting_coordinates...))
-  triout,_ = Triangulate.triangulate("Q", triin)
-  t = triout.trianglelist
+  tri_in = Triangulate.TriangulateIO()
+  tri_in.pointlist = permutedims(hcat(reference_plotting_coordinates...))
+  tri_out, _ = Triangulate.triangulate("Q", tri_in)
+  triangles = tri_out.trianglelist
 
   # filter out sliver triangles
-  has_volume = fill(true, size(t,2))
-  for i in axes(t, 2)
-      ids = @view t[:, i]
-      x_points = @view triout.pointlist[1, ids]
-      y_points = @view triout.pointlist[2, ids]
+  has_volume = fill(true, size(triangles, 2))
+  for i in axes(triangles, 2)
+      ids = @view triangles[:, i]
+      x_points = @view tri_out.pointlist[1, ids]
+      y_points = @view tri_out.pointlist[2, ids]
       area = compute_triangle_area(zip(x_points, y_points))
       if abs(area) < tol
           has_volume[i] = false
       end
   end
-  return t[:, findall(has_volume)]
+  return triangles[:, findall(has_volume)]
 end
 
 #   plotting_interpolation_matrix(dg; kwargs...)
@@ -56,39 +54,36 @@ end
 # to define a multi-dimensional interpolation matrix later.
 plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes))
 
-function face_plotting_interpolation_matrix(dg::DGSEM; nvisnodes=nvisnodes)
+function face_plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
   return polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
 end
 
-function plotting_interpolation_matrix(dg::DGSEM; nvisnodes = 2*length(dg.basis.nodes))
+function plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
   Vp1D = polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
   return kron(Vp1D, Vp1D)
 end
 
 function reference_node_coordinates_2d(dg::DGSEM)
-  r1D = dg.basis.nodes
-  num_nodes_1D = length(r1D)
-  r = vec([r1D[i] for i in 1:num_nodes_1D, j in 1:num_nodes_1D])
-  s = vec([r1D[j] for i in 1:num_nodes_1D, j in 1:num_nodes_1D])
+  @unpack nodes = dg.basis
+  r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
+  s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
   return r, s
 end
 
-function transform_to_solution_variables!(u, solution_variables_, equations)
+function transform_to_solution_variables!(u, solution_variables, equations)
   for (i, u_i) in enumerate(u)
-    u[i] = solution_variables_(u_i, equations)
+    u[i] = solution_variables(u_i, equations)
   end
 end
 
 # specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
 # an UnstructuredMesh2D type.
-function PlotData2D(u_input, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
+function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
-
   @assert ndims(mesh) == 2
 
-  num_nodes_1D = length(dg.basis.nodes)
-  num_nodes = num_nodes_1D^ndims(mesh)
-  num_elements = nelements(dg, cache)
+  n_nodes_2d = nnodes(dg)^ndims(mesh)
+  n_elements = nelements(dg, cache)
 
   # build nodes on reference element (seems to be the right ordering)
   r, s = reference_node_coordinates_2d(dg)
@@ -154,9 +149,9 @@ function PlotData2D(u_input, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cac
   return UnstructuredPlotData2D(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
 end
 
+
 function generate_plotting_triangulation(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
                                          set_z_coordinate_zero = false)
-
   @unpack variable_id = pds
   pd = pds.plot_data
   @unpack x, y, u, t = pd
@@ -187,12 +182,13 @@ function generate_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotDat
   pd = pds.plot_data
   @unpack xf, yf, uf = pd
 
-  if set_z_coordinate_zero==true
+  if set_z_coordinate_zero
     sol_f = zeros(eltype(first(uf)), size(xf)) # plot 2d surface by setting z coordinate to zero
   else
     sol_f = StructArrays.component(uf, variable_id)
   end
   xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (xf, yf, sol_f))...)
+  
   return xyz_wireframe
 end
 
@@ -212,9 +208,7 @@ function trixi_plot(sol::TrixiODESolution;
   pd = PlotData2D(sol; solution_variables=solution_variables, nvisnodes=nvisnodes)
 
   @unpack variable_names = pd
-
-  semi = sol.prob.p
-  @unpack mesh = semi
+  mesh, _, _, _ = mesh_equations_solver_cache(sol.prob.p)
   @assert ndims(mesh) == 2
 
   fig = Makie.Figure()
@@ -339,8 +333,8 @@ function Base.iterate(fa::FigAxes, state=1)
   end
 end
 
-function Makie.plot(pd::UnstructuredPlotData2D, fig = Makie.Figure();
-                    plot_mesh = true)
+function Makie.plot(pd::UnstructuredPlotData2D, fig=Makie.Figure();
+                    plot_mesh=true)
   figAxes = Makie.plot!(fig, pd; plot_mesh=plot_mesh)
   display(figAxes.fig)
   return figAxes

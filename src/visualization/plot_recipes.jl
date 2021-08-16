@@ -16,7 +16,7 @@ const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, ra
      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
 
 # This abstract type is used to derive PlotData types of different dimensions; but still allows to share some functions for them.
-abstract type AbstractPlotData{Dim} end
+abstract type AbstractPlotData{NDIMS} end
 
 # Define additional methods for convenience.
 # These are defined for AbstractPlotData, so they can be used for all types of plot data.
