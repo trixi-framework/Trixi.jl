@@ -10,8 +10,8 @@ equations = IdealGlmMhdMulticomponentEquations2D(gammas         = (1.4, 1.4),
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = (flux_derigs_etal, flux_nonconservative_powell)
-solver = DGSEM(polydeg=3, surface_flux=(flux_derigs_etal, flux_nonconservative_powell),
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+solver = DGSEM(polydeg=3, surface_flux=(flux_hindenlang_gassner, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2.0, -2.0)

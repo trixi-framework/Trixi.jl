@@ -12,7 +12,7 @@ initial_condition = initial_condition_shu_osher_shock_tube
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 surface_flux = flux_hll
-volume_flux  = flux_derigs_etal
+volume_flux  = flux_hindenlang_gassner
 basis = LobattoLegendreBasis(4)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
