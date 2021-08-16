@@ -90,8 +90,8 @@ function prolong2interfaces!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Copy solution data from the primary element on a case-by-case basis
-    # to get the correct face and orientation.
+    # Copy solution data from the primary element using "delayed indexing" with
+    # a start value and two step sizes to get the correct face and orientation.
     # Note that in the current implementation, the interface will be
     # "aligned at the primary element", i.e., the indices of the primary side
     # will always run forwards.
@@ -119,8 +119,8 @@ function prolong2interfaces!(cache, u,
       k_primary += k_primary_step_j
     end
 
-    # Copy solution data from the secondary element on a case-by-case basis
-    # to get the correct face and orientation.
+    # Copy solution data from the secondary element using "delayed indexing" with
+    # a start value and two step sizes to get the correct face and orientation.
     secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
@@ -236,8 +236,8 @@ function prolong2boundaries!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for boundary in eachboundary(dg, cache)
-    # Copy solution data from the element on a case-by-case basis to get
-    # the correct face and orientation.
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and two step sizes to get the correct face and orientation.
     element      = boundaries.element_ids[boundary]
     node_indices = boundaries.node_indices[boundary]
 
@@ -334,8 +334,8 @@ function prolong2mortars!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
-    # Copy solution data from the small elements on a case-by-case basis
-    # to get the correct face and orientation.
+    # Copy solution data from the small elements using "delayed indexing" with
+    # a start value and two step sizes to get the correct face and orientation.
     small_indices = node_indices[1, mortar]
 
     i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
