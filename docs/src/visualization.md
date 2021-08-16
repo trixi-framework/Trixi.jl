@@ -445,7 +445,7 @@ julia> axes[1,1].title = "New title for subplot (1,1)"
 
 Trixi also supports interactive surface plots using `iplot`:
 ```julia
-julia> trixi_plot(sol)
+julia> iplot(sol)
 ```
 This will open up an interactive visualization window:
 
