@@ -219,7 +219,7 @@ function __init__()
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/makie_visualization.jl")
     using .Makie: Makie
-    export trixi_plot
+    export iplot # interactive plot
   end
 
   # FIXME upstream. This is a hacky workaround for
