@@ -102,16 +102,16 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
   t = reference_plotting_triangulation((r_plot, s_plot))
 
   # extract x,y coordinates and solutions on each element
-  uEltype = eltype(u_input)
+  uEltype = eltype(u)
   nvars = nvariables(equations)
-  x, y = ntuple(_->zeros(real(dg), num_nodes, num_elements), 2)
-  u = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x), nvars))
+  x, y = ntuple(_->zeros(real(dg), n_nodes_2d, n_elements), 2)
+  u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x), nvars))
   for element in eachelement(dg, cache)
     sk = 1
     for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u_input, equations, dg, i, j, element)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
       xy_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
-      u[sk, element] = u_node
+      u_extracted[sk, element] = u_node
       x[sk, element] = xy_node[1]
       y[sk, element] = xy_node[2]
       sk += 1
@@ -120,7 +120,8 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
 
   # interpolate to volume plotting points
   xplot, yplot = plotting_interp_matrix*x, plotting_interp_matrix*y
-  uplot = StructArray{SVector{nvars, uEltype}}(map(x->plotting_interp_matrix*x, StructArrays.components(u)))
+  uplot = StructArray{SVector{nvars, uEltype}}(map(x->plotting_interp_matrix*x,
+                                                   StructArrays.components(u_extracted)))
 
   # extract indices of local face nodes for wireframe plotting
   tol = 100*eps()
@@ -139,9 +140,9 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
       xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
       return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
   end
-  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
+  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
   xfp, yfp = map(reshape_and_interpolate, (x, y))
-  ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate, StructArrays.components(u)))
+  ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate, StructArrays.components(u_extracted)))
 
   # convert variables based on solution_variables mapping
   solution_variables_ = digest_solution_variables(equations, solution_variables)
@@ -200,15 +201,9 @@ function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D}
   return xyz_wireframe
 end
 
-function default_nvisnodes(sol::TrixiODESolution)
-  semi = sol.prob.p
-  dg = semi.solver
-  return 2*length(dg.basis.nodes)
-end
-
 """
     iplot(sol::TrixiODESolution;
-               solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
+          solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
 
 Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
 
