@@ -243,7 +243,7 @@ initial_condition_euler = VortexPairSetup.InitialCondition(vortex_pair)
 
 sponge_layer_euler = VortexPairSetup.SpongeLayer(sponge_layer_min=(-135*r0, 115*r0, -135*r0, 115*r0),
                                                  sponge_layer_max=(-115*r0, 135*r0, -115*r0, 135*r0),
-                                                 reference_values=(rho, rho * c0^2 / gamma)) # (rho0, p0)# / gamma-1)) # (rho0, rho_e with p0, v=0)
+                                                 reference_values=(rho, rho * c0^2 / gamma)) # (rho0, p0)
 
 boundary_condition_euler = VortexPairSetup.BoundaryCondition(rho, (rho * c0^2 / gamma) / (gamma-1))
 
@@ -317,12 +317,12 @@ ode = semidiscretize(semi, tspan)
 # We need an additional ODE for the pure flow problem
 ode_euler = semidiscretize(semi.semi_euler, tspan)
 
-# Setup coupling callback
+# Set up coupling callback
 cfl_acoustics = 1.0
 cfl_euler = 1.0
 euler_acoustics_coupling = EulerAcousticsCouplingCallback(
   ode_euler, "out/averaging.h5", CarpenterKennedy2N54(williamson_condition=false),
-  cfl_acoustics, cfl_euler, callback=SaveRestartCallback(interval=15, output_directory="out/flow/"))
+  cfl_acoustics, cfl_euler, callback=SaveRestartCallback(interval=2300, output_directory="out/euler/"))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -334,7 +334,7 @@ alive = AliveCallback(analysis_interval=analysis_interval)
 
 output_directory = "out/"
 save_solution = SaveSolutionCallback(interval=2300, output_directory=output_directory)
-save_restart = SaveRestartCallback(interval=15, output_directory=output_directory)
+save_restart = SaveRestartCallback(interval=2300, output_directory=output_directory)
 
 callbacks = CallbackSet(summary_callback, alive, analysis_callback, save_solution, save_restart,
                         euler_acoustics_coupling)

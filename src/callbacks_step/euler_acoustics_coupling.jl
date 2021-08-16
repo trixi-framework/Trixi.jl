@@ -1,7 +1,17 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
     EulerAcousticsCouplingCallback
 
-A callback that couples the acoustic perturbation equations and compressible Euler equations, should
+!!! warning "Experimental code"
+    This callback is experimental and may change in any future release.
+
+A callback that couples the acoustic perturbation equations and compressible Euler equations. Must
 be used in conjunction with [`SemidiscretizationEulerAcoustics`](@ref).
 This callback manages the flow solver - which is always one time step ahead of the
 acoustics solver - and calculates the acoustic source terms based on the linearized lamb vector of
@@ -23,8 +33,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingC
 
   print(io, "EulerAcousticsCouplingCallback(")
   print(io,       euler_acoustics_coupling.stepsize_callback_acoustics)
-  print(io, ", ", euler_acoustics_coupling.stepsize_callback_euler)
-  print(io, ", ", euler_acoustics_coupling.mean_values, ")")
+  print(io, ", ", euler_acoustics_coupling.stepsize_callback_euler, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:EulerAcousticsCouplingCallback})
@@ -34,7 +43,6 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Eul
   summary_header(io, "EulerAcousticsCouplingCallback")
   summary_line(io, "acoustics StepsizeCallback", euler_acoustics_coupling.stepsize_callback_acoustics)
   summary_line(io, "Euler StepsizeCallback", euler_acoustics_coupling.stepsize_callback_euler)
-  summary_line(io, "mean values", euler_acoustics_coupling.mean_values)
   summary_footer(io)
 end
 
@@ -44,12 +52,15 @@ end
                                    averaging_callback::DiscreteCallback{<:Any, <:AveragingCallback},
                                    alg, cfl_acoustics::Real, cfl_euler::Real; kwargs...)
 
+!!! warning "Experimental code"
+    This callback is experimental and may change in any future release.
+
 Creates an [`EulerAcousticsCouplingCallback`](@ref) based on the pure flow `ODEProblem` given by
 `ode_euler`. Creates an integrator using the time integration method `alg` and the keyword arguments
 to solve `ode_euler` (consult the [OrdinaryDiffEq documentation](https://diffeq.sciml.ai/stable/)
 for further information).
 Manages the step size for both solvers by using the minimum of the maximum step size obtained with
-CFL number `cfl_acoustics` for the acoustics solver and `cfl_euler` for and flow solver,
+CFL numbers `cfl_acoustics` for the acoustics solver and `cfl_euler` for and flow solver,
 respectively.
 The mean values for the acoustic perturbation equations are read from `averaging_callback`
 (see [`AveragingCallback`](@ref)).
@@ -67,12 +78,15 @@ end
     EulerAcousticsCouplingCallback(ode_euler, averaging_file::AbstractString, alg,
                                    cfl_acoustics::Real, cfl_euler::Real; kwargs...)
 
+!!! warning "Experimental code"
+    This callback is experimental and may change in any future release.
+
 Creates an [`EulerAcousticsCouplingCallback`](@ref) based on the pure flow `ODEProblem` given by
 `ode_euler`. Creates an integrator using the time integration method `alg` and the keyword arguments
 to solve `ode_euler` (consult the [OrdinaryDiffEq documentation](https://diffeq.sciml.ai/stable/)
 for further information).
 Manages the step size for both solvers by using the minimum of the maximum step size obtained with
-CFL number `cfl_acoustics` for the acoustics solver and `cfl_euler` for and flow solver,
+CFL numbers `cfl_acoustics` for the acoustics solver and `cfl_euler` for and flow solver,
 respectively.
 The mean values for the acoustic perturbation equations are read from `averaging_file`
 (see [`AveragingCallback`](@ref)).
@@ -179,3 +193,5 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
 end
 
 include("euler_acoustics_coupling_dg2d.jl")
+
+end # @muladd

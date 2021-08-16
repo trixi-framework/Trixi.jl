@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Create arrays with DGSEM-specific structure to store the mean values and set them all to 0
 function initialize_mean_values(mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
                                 dg::DGSEM, cache)
@@ -107,3 +114,5 @@ function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, int
 
   return nothing
 end
+
+end # @muladd

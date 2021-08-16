@@ -1,4 +1,4 @@
-module TestExamples2DAPEEuler
+module TestExamples2DEulerAcoustics
 
 using Test
 using Trixi
@@ -8,8 +8,8 @@ include("test_trixi.jl")
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
 @testset "Acoustic Perturbation coupled with compressible Euler" begin
-  @trixi_testset "elixir_ape_euler_co-rotating_vortex_pair.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_ape_euler_co-rotating_vortex_pair.jl"),
+  @trixi_testset "elixir_euleracoustics_co-rotating_vortex_pair.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euleracoustics_co-rotating_vortex_pair.jl"),
                         initial_refinement_level=5,
                         tspan1=(0.0, 1.0), tspan_averaging=(0.0, 1.0), tspan=(0.0, 1.0),
       l2 = [0.00013455394678581038, 0.00013349316046130501, 0.00019398895149959965, 13.000001753048673, 26.00000080242852, 38.00000884739933, 51.00000000385884],
@@ -17,6 +17,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     )
   end
 end
-
 
 end # module

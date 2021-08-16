@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 function save_averaging_file(averaging_callback, mesh::TreeMesh, equations, dg::DGSEM, cache)
   @unpack output_directory, filename, mean_values = averaging_callback
   h5open(joinpath(output_directory, filename), "w") do file
@@ -47,3 +54,5 @@ function load_averaging_file(averaging_file, mesh::TreeMesh, equations, dg::DGSE
 
   return (; v_mean, c_mean, rho_mean, vorticity_mean)
 end
+
+end # @muladd

@@ -1,10 +1,20 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
     SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics, semi_euler::SemiEuler;
-                                     source_region=x -> true, weights=x -> 1.0)
+                                     source_region=x->true, weights=x->1.0)
+
+!!! warning "Experimental code"
+    This semidiscretization is experimental and may change in any future release.
 
 Construct a semidiscretization of the acoustic perturbation equations that is coupled with
 the compressible Euler equations via source terms. Both semidiscretizations have to use the same
-mesh and solver. The coupling region is described by a function `source_terms` that maps the
+mesh and solver. The coupling region is described by a function `source_region` that maps the
 coordinates of a single node to `true` or `false` depending on whether the point lies within
 the coupling region or not. A weighting function `weights` that maps coordinates to weights is
 applied to the acoustic source terms.
@@ -34,9 +44,9 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, SourceRegion, 
   end
 end
 
-# TODO: Default `weights` are based on potentially solver-specific cache structure
+
 function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics, semi_euler::SemiEuler;
-                                          source_region=x -> true, weights=x -> 1.0) where
+                                          source_region=x->true, weights=x->1.0) where
     {Mesh, SemiAcoustics<:SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
      SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
 
@@ -48,7 +58,7 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics, semi_eu
     semi_acoustics, semi_euler, source_region, weights, cache)
 end
 
-# TODO: Where should this function live?
+
 function create_cache(::Type{SemidiscretizationEulerAcoustics}, mesh,
                       equations::AcousticPerturbationEquations2D, dg::DGSEM, cache)
   grad_c_mean_sq = zeros(eltype(cache.elements), (ndims(equations), nnodes(dg), nnodes(dg),
@@ -170,3 +180,5 @@ function calc_conservation_source_term!(du_acoustics, u_acoustics, grad_c_mean_s
 
   return nothing
 end
+
+end # @muladd

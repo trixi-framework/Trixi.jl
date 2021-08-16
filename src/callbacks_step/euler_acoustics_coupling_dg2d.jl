@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 function calc_gradient_c_mean_square!(grad_c_mean_sq, u, mesh,
                                       equations::AcousticPerturbationEquations2D, dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
@@ -80,3 +87,5 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vor
 
   return nothing
 end
+
+end # @muladd
