@@ -422,7 +422,7 @@ To visualize the solution and mesh with a heatmap-type plot, simply run
 julia> plot(sol)
 ```
 !!! note
-    Both Makie.jl and Plots.jl export `plot`, so if you load both librarys, you will have to
+    Both Makie.jl and Plots.jl export `plot`, so if you load both libraries, you will have to
     specify which `plot` function to call via `Plots.plot` or `Makie.plot`.
 
 As with Plots.jl recipes, one can view individual solution components by creating a `PlotData2D`
@@ -443,7 +443,7 @@ julia> fig, axes = plot(sol)
 julia> axes[1,1].title = "New title for subplot (1,1)"
 ```
 
-Trixi also supports interactive surface plots using `trixi_plot`:
+Trixi also supports interactive surface plots using `iplot`:
 ```julia
 julia> trixi_plot(sol)
 ```
@@ -451,6 +451,6 @@ This will open up an interactive visualization window:
 
 ![makie-example](https://user-images.githubusercontent.com/1156048/127914785-bb87cff5-92b2-4e72-9ed1-9c04f4f81a73.png)
 
-The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and shifted
+The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and panned
 (hold right click and drag). Two toggle buttons control whether mesh lines are visible on top
 of and below the solution.

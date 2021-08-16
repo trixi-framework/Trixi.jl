@@ -17,9 +17,7 @@ end
 # triangulation of the plotting points, with zero-volume triangles removed.
 #
 # For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
-
 function reference_plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
-
   # on-the-fly triangulation of plotting nodes on the reference element
   tri_in = Triangulate.TriangulateIO()
   tri_in.pointlist = permutedims(hcat(reference_plotting_coordinates...))
@@ -350,12 +348,12 @@ Base.show(io::IO, fa::FigureAndAxes) = nothing
 
 # allows for returning fig, axes = Makie.plot(...)
 function Base.iterate(fa::FigureAndAxes, state=1)
-  if state > 2
-    return nothing
-  elseif state==1
+  if state == 1
     return (fa.fig, 2)
-  elseif state==2
+  elseif state == 2
     return (fa.axes, 3)
+  else
+    return nothing
   end
 end
 
