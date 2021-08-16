@@ -7,7 +7,7 @@ function compute_triangle_area(tri)
     return 0.5 * (A[1] * (B[2] - C[2]) + B[1] * (C[2]-A[2]) + C[1] * (A[2] - B[2]))
 end
 
-#   plotting_triangulation(reference_plotting_coordinates)
+#   reference_plotting_triangulation(reference_plotting_coordinates)
 #
 # Computes a triangulation of the points in `reference_plotting_coordinates`, which is a tuple containing
 # vectors of plotting points on the reference element (e.g., reference_plotting_coordinates = (r,s)).
@@ -17,7 +17,9 @@ end
 # triangulation of the plotting points, with zero-volume triangles removed.
 #
 # For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
-function plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
+
+function reference_plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
+
   # on-the-fly triangulation of plotting nodes on the reference element
   tri_in = Triangulate.TriangulateIO()
   tri_in.pointlist = permutedims(hcat(reference_plotting_coordinates...))
@@ -35,7 +37,7 @@ function plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
           has_volume[i] = false
       end
   end
-  return triangles[:, findall(has_volume)]
+  return permutedims(triangles[:, findall(has_volume)])
 end
 
 #   plotting_interpolation_matrix(dg; kwargs...)
@@ -60,6 +62,10 @@ end
 
 function plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
   Vp1D = polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
+  # For quadrilateral elements, interpolation to plotting nodes involves applying a 1D interpolation
+  # operator to each line of nodes. This is equivalent to multiplying the multi-dimensional vector
+  # of node coordinates by a Kronecker product of the 1D interpolation operator (e.g., a
+  # multi-dimensional interpolation operator).
   return kron(Vp1D, Vp1D)
 end
 
@@ -89,13 +95,13 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
   r, s = reference_node_coordinates_2d(dg)
 
   # reference plotting nodes
-  Vplot = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+  plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
 
   # create triangulation for plotting nodes
-  rp, sp = (x->Vplot*x).((r, s)) # interpolate dg nodes to plotting nodes
+  r_plot, s_plot = (x->plotting_interp_matrix*x).((r, s)) # interpolate dg nodes to plotting nodes
 
   # construct a triangulation of the plotting nodes
-  t = permutedims(plotting_triangulation((rp, sp)))
+  t = reference_plotting_triangulation((r_plot, s_plot))
 
   # extract x,y coordinates and solutions on each element
   uEltype = eltype(u_input)
@@ -115,8 +121,8 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
   end
 
   # interpolate to volume plotting points
-  xplot, yplot = Vplot*x, Vplot*y
-  uplot = StructArray{SVector{nvars, uEltype}}(map(x->Vplot*x, StructArrays.components(u)))
+  xplot, yplot = plotting_interp_matrix*x, plotting_interp_matrix*y
+  uplot = StructArray{SVector{nvars, uEltype}}(map(x->plotting_interp_matrix*x, StructArrays.components(u)))
 
   # extract indices of local face nodes for wireframe plotting
   tol = 100*eps()
@@ -125,7 +131,7 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
   face_3 = findall(@. abs(s-1) < tol)
   face_4 = findall(@. abs(r+1) < tol)
   Fmask = hcat(face_1, face_2, face_3, face_4)
-  Vplot1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
 
   # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
   # The resulting arrays are then reshaped so that xf, yf, sol_f are Matrix types of size
@@ -135,7 +141,7 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
       xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
       return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
   end
-  reshape_and_interpolate(x) = Vplot1D * face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
+  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
   xfp, yfp = map(reshape_and_interpolate, (x, y))
   ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate, StructArrays.components(u)))
 
@@ -149,8 +155,9 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
   return UnstructuredPlotData2D(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
 end
 
-
-function generate_plotting_triangulation(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
+# Given a reference plotting triangulation, this function generates a plotting triangulation for
+# the entire global mesh. The output can be plotted using `Makie.mesh`.
+function global_plotting_triangulation(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
                                          set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
@@ -159,6 +166,7 @@ function generate_plotting_triangulation(pds::PlotDataSeries2D{<:UnstructuredPlo
   makie_triangles = Makie.to_triangles(t)
 
   # trimesh[i] holds GeometryBasics.Mesh containing plotting information on the ith element.
+  # Note: Float32 is required by GeometryBasics
   num_plotting_nodes, num_elements = size(x)
   trimesh = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
   coordinates = zeros(Float32, num_plotting_nodes, 3)
@@ -176,7 +184,9 @@ function generate_plotting_triangulation(pds::PlotDataSeries2D{<:UnstructuredPlo
   return plotting_mesh
 end
 
-function generate_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
+# Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
+# (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
+function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
                                      set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
@@ -188,12 +198,18 @@ function generate_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotDat
     sol_f = StructArrays.component(uf, variable_id)
   end
   xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (xf, yf, sol_f))...)
-  
+
   return xyz_wireframe
 end
 
+function default_nvisnodes(sol::TrixiODESolution)
+  semi = sol.prob.p
+  dg = semi.solver
+  return 2*length(dg.basis.nodes)
+end
+
 """
-    trixi_plot(sol::TrixiODESolution;
+    iplot(sol::TrixiODESolution;
                solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
 
 Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
@@ -202,22 +218,26 @@ Inputs:
 - solution_variables: either `nothing` or a variable transformation function (e.g., `cons2prim`)
 - nvisnodes: number of visualization nodes per dimension
 """
-function trixi_plot(sol::TrixiODESolution;
-                    solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
+function iplot(sol::TrixiODESolution;
+               solution_variables=nothing, nvisnodes=default_nvisnodes(sol), variable_to_plot_in = 1)
 
   pd = PlotData2D(sol; solution_variables=solution_variables, nvisnodes=nvisnodes)
-
   @unpack variable_names = pd
   mesh, _, _, _ = mesh_equations_solver_cache(sol.prob.p)
   @assert ndims(mesh) == 2
 
+  # Initialize a Makie figure that we'll add the solution and toggle switches to.
   fig = Makie.Figure()
 
-  # set up menu and toggle switches
-  options = [zip(variable_names, 1:length(variable_names))...]
-  menu = Makie.Menu(fig, options=options)
+  # Set up options for the drop-down menu
+  menu_options = [zip(variable_names, 1:length(variable_names))...]
+  menu = Makie.Menu(fig, options=menu_options)
+
+  # Initialize toggle switches for viewing the mesh
   toggle_solution_mesh = Makie.Toggle(fig, active=true)
   toggle_mesh = Makie.Toggle(fig, active=true)
+
+  # Add dropdown menu and toggle switches to the left side of the figure.
   fig[1, 1] = Makie.vgrid!(
       Makie.Label(fig, "Solution field", width=nothing), menu,
       Makie.Label(fig, "Solution mesh visible"), toggle_solution_mesh,
@@ -225,26 +245,30 @@ function trixi_plot(sol::TrixiODESolution;
       tellheight=false, width = 200
   )
 
+  # Create a zoomable interactive axis object on top of which to plot the solution.
   ax = Makie.LScene(fig[1, 2], scenekw=(show_axis = false,))
 
-  # interactive menu variable_to_plot
+  # Initialize the dropdown menu to `variable_to_plot_in`
+  # Since menu.selection is an Observable type, we need to dereference it using `[]` to set.
   menu.selection[] = variable_to_plot_in
   menu.i_selected[] = variable_to_plot_in
 
-  # these lines get re-run whenever variable_to_plot[] is updated
-  plotting_mesh = Makie.@lift(generate_plotting_triangulation(getindex(pd, variable_names[$(menu.selection)])))
+  # Since `variable_to_plot` is an Observable, these lines are re-run whenever `variable_to_plot[]`
+  # is updated from the drop-down menu.
+  plotting_mesh = Makie.@lift(global_plotting_triangulation(getindex(pd, variable_names[$(menu.selection)])))
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
+  # Plot the actual solution.
   Makie.mesh!(ax, plotting_mesh, color=solution_z, nvisnodes=nvisnodes)
 
-  # mesh overlay: we plot a mesh both on top of and below the solution contours
-  wire_points = Makie.@lift(generate_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
+  # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
+  wire_points = Makie.@lift(mesh_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
   wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
   wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
   Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
   Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
 
-  # draw a flattened mesh wireframe below the solution
+  # This draws flat mesh lines below the solution.
   function compute_z_offset(solution_z)
       zmin = minimum(solution_z)
       zrange = (x->x[2]-x[1])(extrema(solution_z))
@@ -255,10 +279,10 @@ function trixi_plot(sol::TrixiODESolution;
   flat_wire_points = Makie.@lift get_flat_points($wire_points, $z_offset)
   wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
 
-  # reset colorbar each time solution changes
+  # Resets the colorbar each time the solution changes.
   Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap = :viridis, flipaxis = false)
 
-  # syncs the toggle to the mesh
+  # This syncs the toggle buttons to the mesh plots.
   Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)
   Makie.connect!(wire_mesh_bottom.visible, toggle_solution_mesh.active)
   Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
@@ -273,6 +297,8 @@ end
 
 # ================== new Makie plot recipes ====================
 
+# This initializes a Makie recipe, which creates a new type definition which Makie uses to create
+# custom `trixiheatmap` plots. See also https://makie.juliaplots.org/stable/recipes.html
 @Makie.recipe(TrixiHeatmap, plot_data_series) do scene
   Makie.Theme(;)
 end
@@ -280,7 +306,7 @@ end
 function Makie.plot!(myplot::TrixiHeatmap)
   pds = myplot[:plot_data_series][]
 
-  plotting_mesh = generate_plotting_triangulation(pds; set_z_coordinate_zero = true)
+  plotting_mesh = global_plotting_triangulation(pds; set_z_coordinate_zero = true)
 
   @unpack variable_id = pds
   pd = pds.plot_data
@@ -296,7 +322,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
   end
 
   if plot_mesh
-    xyz_wireframe = generate_plotting_wireframe(pds; set_z_coordinate_zero = true)
+    xyz_wireframe = mesh_plotting_wireframe(pds; set_z_coordinate_zero = true)
     Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
   end
 
@@ -313,17 +339,17 @@ function Makie.plot(sol::TrixiODESolution;
 end
 
 # convenience struct for editing Makie plots after they're created.
-struct FigAxes{Axes}
+struct FigureAndAxes{Axes}
   fig::Makie.Figure
   axes::Axes
 end
 
 # for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
 # Makie.plot(::UnstructuredPlotData2D)
-Base.show(io::IO, fa::FigAxes) = nothing
+Base.show(io::IO, fa::FigureAndAxes) = nothing
 
 # allows for returning fig, axes = Makie.plot(...)
-function Base.iterate(fa::FigAxes, state=1)
+function Base.iterate(fa::FigureAndAxes, state=1)
   if state > 2
     return nothing
   elseif state==1
@@ -363,5 +389,5 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
     Makie.ylims!(ax, extrema(pd.y))
   end
 
-  return FigAxes(fig, axes)
+  return FigureAndAxes(fig, axes)
 end
