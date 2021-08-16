@@ -61,8 +61,8 @@ end
 function plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
   Vp1D = polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
   # For quadrilateral elements, interpolation to plotting nodes involves applying a 1D interpolation
-  # operator to each line of nodes. This is equivalent to multiplying the multi-dimensional vector
-  # of node coordinates by a Kronecker product of the 1D interpolation operator (e.g., a
+  # operator to each line of nodes. This is equivalent to multiplying the vector containing all node
+  # node coordinates on an element by a Kronecker product of the 1D interpolation operator (e.g., a
   # multi-dimensional interpolation operator).
   return kron(Vp1D, Vp1D)
 end
@@ -196,6 +196,12 @@ function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D}
   else
     sol_f = StructArrays.component(uf, variable_id)
   end
+
+  # This line separates solution lines on each edge by NaNs to ensure that they are rendered
+  # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
+  # whose columns correspond to different elements. We add NaN separators by appending a row of
+  # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
+  # plotting.
   xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (xf, yf, sol_f))...)
 
   return xyz_wireframe
