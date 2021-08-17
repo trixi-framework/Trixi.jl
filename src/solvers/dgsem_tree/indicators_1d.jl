@@ -214,8 +214,9 @@ function create_cache(::Type{IndicatorANN}, equations::AbstractEquations{1}, bas
 
   elseif indicator_type == "NNRH"
     indicator_threaded  = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+    neighbor_ids = Vector{Int}(undef, 2)
 
-    return (; alpha, alpha_tmp, indicator_threaded)
+    return (; alpha, alpha_tmp, indicator_threaded, neighbor_ids)
   end
 end
 
@@ -266,12 +267,12 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,3}, mesh,
       end
 
 
-      if size(Flux.params(network)[1],2) == 2
+      if size(params(network)[1],2) == 2
         # Calculate energy in lower modes for the network input
         X1 = (total_energy - total_energy_clip1)/total_energy
         X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
         network_input = SVector(X1, X2)
-      elseif size(Flux.params(network)[1],2) == 3
+      elseif size(params(network)[1],2) == 3
         # Calculate energy in lower modes and polynomial degree for the network input
         X1 = (total_energy - total_energy_clip1)/total_energy
         X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
@@ -311,7 +312,7 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,3}, mesh,
     end
 
   elseif indicator_type == "NNRH"
-    @unpack alpha, alpha_tmp, indicator_threaded = indicator_ann.cache
+    @unpack alpha, alpha_tmp, indicator_threaded, neighbor_ids = indicator_ann.cache
     # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
     #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
     #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -329,7 +330,7 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,3}, mesh,
     @threaded for element in eachelement(dg, cache)
       indicator  = indicator_threaded[Threads.threadid()]
       cell_id = cache.elements.cell_ids[element]
-      neighbor_ids = Vector{Int}(undef, 2)
+      #neighbor_ids = Vector{Int}(undef, 2)
 
       for direction in eachdirection(mesh.tree)
         if !has_any_neighbor(mesh.tree, cell_id, direction)

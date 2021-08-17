@@ -1,6 +1,9 @@
+using Downloads: download
 using Flux
 using BSON: @load
-@load "examples/models/2d/modelnnpp-0.904-0.0005.bson" model2d
+network = joinpath(@__DIR__, "modelnnpp-0.904-0.0005.bson")
+download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnpp-0.904-0.0005.bson", network)
+@load "examples/tree_2d_dgsem/modelnnpp-0.904-0.0005.bson" model2d
 using OrdinaryDiffEq
 using Trixi
 
@@ -15,14 +18,14 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorANN(equations, basis,
-                             indicator_type="NNPP",
-                             alpha_max=0.5,
-                             alpha_min=0.001,
-                             alpha_smooth=true,
-                             alpha_continuous=true,
-                             alpha_amr=false,
-                             variable=density_pressure,
-                             network=model2d)
+                            indicator_type="NNPP",
+                            alpha_max=0.5,
+                            alpha_min=0.001,
+                            alpha_smooth=true,
+                            alpha_continuous=true,
+                            alpha_amr=false,
+                            variable=density_pressure,
+                            network=model2d)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)

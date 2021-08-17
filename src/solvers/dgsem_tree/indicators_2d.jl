@@ -231,6 +231,7 @@ function create_cache(::Type{IndicatorANN}, equations::AbstractEquations{2}, bas
   A = Array{real(basis), ndims(equations)}
 
   if indicator_type == "NNPP"
+    @assert nnodes(basis) >= 4 "Indicator only works for nnodes >= 4 (polydeg > 2)"
     indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
     modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
     modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
@@ -241,13 +242,21 @@ function create_cache(::Type{IndicatorANN}, equations::AbstractEquations{2}, bas
     modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
     modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
     #X = Vector{Float64}(undef, 3, nelements(dg, cache))
-    #network_input = Vector{Float64}(undef, 15)
+    network_input = Vector{Float64}(undef, 15)
+    neighbor_ids= Array{Int64}(undef, 8)
+    neighbor_mean = Array{Float64}(undef, 4, 3)
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network_input, neighbor_ids, neighbor_mean)
   elseif indicator_type == "CNN"
     indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+    n_cnn = 4
+    nodes,_ = gauss_lobatto_nodes_weights(nnodes(basis))
+    cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
+    vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
+    data_cnn = Array{Float64}(undef, n_cnn, n_cnn)
+    network_input = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
 
-    return (; alpha, alpha_tmp, indicator_threaded)
+    return (; alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, data_cnn, network_input)
   end
 end
 
@@ -263,7 +272,6 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
 
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
   if indicator_type == "NNPP"
-    #@assert nnodes(dg) >= 4 "Indicator only works for nnodes >= 4 (polydeg > 2)"
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_ann.cache
     # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
     #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
@@ -344,7 +352,7 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
 
     end
   elseif indicator_type == "NNRH"
-    @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_ann.cache #X, network_input
+    @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network_input, neighbor_ids, neighbor_mean = indicator_ann.cache #X, network_input
     # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
     #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
     #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -381,23 +389,20 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
 
     @threaded for element in eachelement(dg, cache)
       cell_id = cache.elements.cell_ids[element]
-      network_input = Array{Float64}(undef, 15)
 
       network_input[1] = X[1,element]
       network_input[2] = X[2,element]
       network_input[3] = X[3,element]
 
-      #dirshuffle = collect(1:4)
-      #dirshuffle = shuffle!(dirshuffle)
       for direction in eachdirection(mesh.tree)
         if direction == 1 # -x
-            dir = 4 #dirshuffle[1]
+            dir = 4
         elseif direction == 2 # +x
-            dir = 1 #dirshuffle[2]
+            dir = 1
         elseif direction == 3 # -y
-            dir = 3 #dirshuffle[3]
+            dir = 3
         elseif direction == 4 # +y
-            dir = 2 #dirshuffle[4]
+            dir = 2
         end
 
         # Of no neighbor exists and current cell is not small
@@ -413,12 +418,10 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
           neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
           if has_children(mesh.tree, neighbor_cell_id) # Cell has small neighbor
             # Mean over 4 neighbor cells
-            neighbor_ids= Array{Int64}(undef, 8)
             neighbor_ids[1] = mesh.tree.child_ids[1, neighbor_cell_id]
             neighbor_ids[2] = mesh.tree.child_ids[2, neighbor_cell_id]
             neighbor_ids[3] = mesh.tree.child_ids[3, neighbor_cell_id]
             neighbor_ids[4] = mesh.tree.child_ids[4, neighbor_cell_id]
-            mod = Array{Float64}(undef, 4, 3)
 
             for i in 1:4
               if has_children(mesh.tree, neighbor_ids[i])
@@ -427,23 +430,22 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
                 neighbor_ids7 = c2e[mesh.tree.child_ids[3, neighbor_ids[i]]]
                 neighbor_ids8 = c2e[mesh.tree.child_ids[4, neighbor_ids[i]]]
 
-                mod[i,1] = (network_input[1,neighbor_ids5] + network_input[1,neighbor_ids6] + network_input[1,neighbor_ids7] + network_input[1,neighbor_ids8])/4
-                mod[i,2] = (network_input[2,neighbor_ids5] + network_input[2,neighbor_ids6] + network_input[2,neighbor_ids7] + network_input[2,neighbor_ids8])/4
-                mod[i,3] = (network_input[3,neighbor_ids5] + network_input[3,neighbor_ids6] + network_input[3,neighbor_ids7] + network_input[3,neighbor_ids8])/4
+                neighbor_mean[i,1] = (X[1,neighbor_ids5] + X[1,neighbor_ids6] + X[1,neighbor_ids7] + X[1,neighbor_ids8])/4
+                neighbor_mean[i,2] = (X[2,neighbor_ids5] + X[2,neighbor_ids6] + X[2,neighbor_ids7] + X[2,neighbor_ids8])/4
+                neighbor_mean[i,3] = (X[3,neighbor_ids5] + X[3,neighbor_ids6] + X[3,neighbor_ids7] + X[3,neighbor_ids8])/4
               else
                 neighbor_id = c2e[neighbor_ids[i]]
-                mod[i,1] = network_input[1,neighbor_id]
-                mod[i,2] = network_input[2,neighbor_id]
-                mod[i,3] = network_input[3,neighbor_id]
+                neighbor_mean[i,1] = X[1,neighbor_id]
+                neighbor_mean[i,2] = X[2,neighbor_id]
+                neighbor_mean[i,3] = X[3,neighbor_id]
               end
             end
-            network_input[3*dir+1] = (mod[1,1] + mod[2,1] + mod[3,1] + mod[4,1])/4
-            network_input[3*dir+2] = (mod[1,2] + mod[2,2] + mod[3,2] + mod[4,2])/4
-            network_input[3*dir+3] = (mod[1,3] + mod[2,3] + mod[3,3] + mod[4,3])/4
+            network_input[3*dir+1] = (neighbor_mean[1,1] + neighbor_mean[2,1] + neighbor_mean[3,1] + neighbor_mean[4,1])/4
+            network_input[3*dir+2] = (neighbor_mean[1,2] + neighbor_mean[2,2] + neighbor_mean[3,2] + neighbor_mean[4,2])/4
+            network_input[3*dir+3] = (neighbor_mean[1,3] + neighbor_mean[2,3] + neighbor_mean[3,3] + neighbor_mean[4,3])/4
 
           else # Cell has same refinement level neighbor
             neighbor_id = c2e[neighbor_cell_id]
-
             network_input[3*dir+1] = X[1,neighbor_id]
             network_input[3*dir+2] = X[2,neighbor_id]
             network_input[3*dir+3] = X[3,neighbor_id]
@@ -490,7 +492,7 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
       end
     end
   elseif indicator_type == "CNN"
-    @unpack alpha, alpha_tmp, indicator_threaded = indicator_ann.cache
+    @unpack alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, data_cnn, network_input = indicator_ann.cache
     # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
     #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
     #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -508,13 +510,7 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
         indicator[i, j] = indicator_ann.variable(u_local, equations)
       end
 
-      n_cnn = 4
-      nodes,_ = gauss_lobatto_nodes_weights(nnodes(dg))
-      cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
-      vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
-      data_cnn = Array{Float64}(undef, n_cnn, n_cnn)
-      network_input = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
-
+      # Interpolate nodal data to 4x4 LGL nodes
       for j in 1:n_cnn, i in 1:n_cnn
         acc = 0
         for jj in eachnode(dg), ii in eachnode(dg)
@@ -526,7 +522,6 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
       network_input[:,:,1,1] = data_cnn[:,:]
 
       # Scale input data
-      # network_input = network_input ./ max(maximum(abs.(network_input)),1)
       network_input[:,:,1,1] = network_input[:,:,1,1] ./ max(maximum(abs.(network_input[:,:,1,1])),1)
       probability_troubled_cell = network(network_input)[1]
       if alpha_continuous && !alpha_amr

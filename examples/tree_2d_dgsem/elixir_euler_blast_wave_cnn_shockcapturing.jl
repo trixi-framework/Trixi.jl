@@ -1,6 +1,9 @@
+using Downloads: download
 using Flux
 using BSON: @load
-@load "examples/models/2d/modelcnn-0.945-0.001.bson" model2dcnn
+network = joinpath(@__DIR__, "modelcnn-0.945-0.001.bson")
+download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelcnn-0.945-0.001.bson", network)
+@load "examples/tree_2d_dgsem/modelcnn-0.945-0.001.bson" model2dcnn
 using OrdinaryDiffEq
 using Trixi
 

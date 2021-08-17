@@ -196,11 +196,15 @@ end
     IndicatorANN
 
 Artificial neural network based indicator used for shock-capturing or AMR.
+Depending on the indicator_type, different input values and corresponding trained networks are used.
 
+indicator_type = NNPP
+Input: The energies in lower modes as well as nnodes(dg).
 
-  IndicatorNNRH
+indicator_type = NNRH
+1d Input: Cell average of the cell and its neighboring cells as well as the interface values.
+2d Input: Linear modal values of the cell and its neighboring cells.
 
-Artificial neural network based indicator used for shock-capturing or AMR.
   - Ray, Hesthaven (2018)
     "An artificial neural network as a troubled-cell indicator"
     [doi:10.1016/j.jcp.2018.04.029](https://doi.org/10.1016/j.jcp.2018.04.029)
@@ -208,9 +212,12 @@ Artificial neural network based indicator used for shock-capturing or AMR.
     "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
     [doi:10.1016/j.jcp.2019.07.043](https://doi.org/10.1016/j.jcp.2019.07.043)
 
-    IndicatorCNN
+indicator_type = CNN (Only in 2d)
+Based on convolutional neural network.
+2d Input: Interpolation of the nodal values of the indicator.variable on the 4x4 LGL nodes.
 
-    Convolutional neural network based indicator used for shock-capturing or AMR.
+If alpha_continuous = true the continuous network output for troubled cells (alpha > 0.5) is considered. If the cells are good (alpha < 0.5), alpha is set to 0.
+If alpha_continuous = false the blending factor ist set to alpha = 0 for good cells and alpha = 1 for troubled cells.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -281,11 +288,12 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorANN)
     show(io, indicator)
   else
     setup = [
-             "indicator variable" => indicator.variable,
+             "indicator type" => indicator.indicator_type,
              "max. α" => indicator.alpha_max,
              "min. α" => indicator.alpha_min,
              "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
              "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
+             "indicator variable" => indicator.variable,
             ]
     summary_box(io, "IndicatorANN", setup)
   end
