@@ -688,48 +688,4 @@ function calc_vertices(node_coordinates, mesh)
   return x, y
 end
 
-
-# Calculate the vertices to plot each grid line for UnstructuredMesh2D
-#
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
-#       thus be changed in future releases.
-function calc_vertices(node_coordinates, mesh::UnstructuredMesh2D)
-  @unpack n_elements = mesh
-  @assert size(node_coordinates, 1) == 2 "only works in 2D"
-
-  # Initialize output arrays
-  n_nodes = size(node_coordinates, 2)
-  x = fill(NaN, 4*n_nodes, n_elements)
-  y = fill(NaN, 4*n_nodes, n_elements)
-
-  # Lines along the first local sides
-  for element in 1:n_elements
-#    for node in 1:n_nodes
-      x[1:n_nodes, element] = node_coordinates[1, 1:n_nodes, 1, element]
-      y[1:n_nodes, element] = node_coordinates[2, 1:n_nodes, 1, element]
-#    end
-  end
-
-  # Lines along all the second local sides
-  for element in 1:n_elements
-    x[n_nodes+1:2*n_nodes, element] = node_coordinates[1, end, 1:n_nodes, element]
-    y[n_nodes+1:2*n_nodes, element] = node_coordinates[2, end, 1:n_nodes, element]
-  end
-
-  # Lines along all the third local sides
-  for element in 1:n_elements
-    x[2*n_nodes+1:3*n_nodes, element] = node_coordinates[1, n_nodes:-1:1, end, element]
-    y[2*n_nodes+1:3*n_nodes, element] = node_coordinates[2, n_nodes:-1:1, end, element]
-  end
-
-  # Lines along all the fourth local sides
-  for element in 1:n_elements
-    x[3*n_nodes+1:4*n_nodes, element] = node_coordinates[1, 1, n_nodes:-1:1, element]
-    y[3*n_nodes+1:4*n_nodes, element] = node_coordinates[2, 1, n_nodes:-1:1, element]
-  end
-
-  return x, y
-end
-
-
 end # @muladd
