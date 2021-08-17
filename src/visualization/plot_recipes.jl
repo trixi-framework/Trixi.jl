@@ -166,7 +166,7 @@ Extract grid lines from `pd` for plotting with `Plots.plot`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-getmesh(pd::PlotData2D) = PlotMesh2D(pd)
+getmesh(pd::AbstractPlotData{2}) = PlotMesh2D(pd)
 
 # Convert `orientation` into a guide label (see also `_get_orientations`)
 function _get_guide(orientation::Integer)
@@ -289,7 +289,7 @@ end
 # Plot all available variables at once for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pd::PlotData2D)
+RecipesBase.@recipe function f(pd::Union{PlotData2D, UnstructuredPlotData2D})
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
 
