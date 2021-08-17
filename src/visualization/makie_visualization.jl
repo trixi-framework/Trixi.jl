@@ -208,8 +208,8 @@ function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D}
 end
 
 """
-    iplot(sol::TrixiODESolution;
-          solution_variables=nothing, nvisnodes=5, variable_to_plot_in = 1)
+    iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
+          solution_variables=nothing, nvisnodes=nnodes(solver), variable_to_plot_in=1)
 
 Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
 
@@ -218,7 +218,7 @@ Inputs:
 - nvisnodes: number of visualization nodes per dimension
 """
 function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-               solution_variables=nothing, nvisnodes=2*length(solver.basis.nodes), variable_to_plot_in = 1)
+               solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1)
 
   pd = PlotData2D(u, mesh, equations, solver, cache;
                   solution_variables=solution_variables, nvisnodes=nvisnodes)
