@@ -1,16 +1,16 @@
 # Unstructured meshes with HOHQMesh.jl
 
-Trixi.jl supports numerical approximations on unstructured quadrialeral meshes
+Trixi.jl supports numerical approximations on unstructured quadrilateral meshes
 with the `UnstructuredMesh2D` mesh type.
 
 The purpose of this tutorial is to demonstrate how one can use the `UnstructuredMesh2D`
 functionality of Trixi.jl. This begins by running and visualizing an available unstructured
 quadrilateral mesh example. Then, the tutorial will demonstrate how one can
-conceptulaize a problem with curved boundaries, generate
+conceptualize a problem with curved boundaries, generate
 a curvilinear mesh using the available software in the Trixi.jl ecosystem,
 and then run a simulation using Trixi.jl on said mesh.
 
-Unstrcutred quadrilateral meshes can be made
+Unstructured quadrilateral meshes can be made
 with the [*High-Order Hex-Quad Mesh (HOHQMesh)*](https://github.com/trixi-framework/HOHQMesh)
 generator created and developed by David Kopriva.
 HOHQMesh is a mesh generator specifically designed for spectral element methods where elements can be larger (due to the high accuracy
@@ -255,8 +255,8 @@ either by default, e.g. `Bottom`, or user assigned, e.g. `IceCream`. For this pr
 * Freestream boundary conditions on the four box edges.
 * Free slip wall boundary condition on the interior curved boundaries.
 
-To construct the unstructued quadrilateral mesh from the HOHQMesh file we point to the appropriate location
-with the vairable `mesh_file` and then feed this into the constructor for the `UnstructuredMesh2D` type in Trixi.jl
+To construct the unstructured quadrilateral mesh from the HOHQMesh file we point to the appropriate location
+with the variable `mesh_file` and then feed this into the constructor for the `UnstructuredMesh2D` type in Trixi.jl
 ```julia
 # create the unstructured from your mesh file
 mesh_file = joinpath(@__DIR__, "out", "ice_cream_straight_sides.mesh")
@@ -342,8 +342,8 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 summary_callback()
 ```
 
-Visualization of the solution is carried out in a similar way as above. That is, one converst the `.h5`
-ouput files with `trixi2vtk` and then plot the solution in ParaView. An example plot of the pressure
+Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
+output files with `trixi2vtk` and then plot the solution in ParaView. An example plot of the pressure
 at the final time is shown below.
 ![simulation_straight_sides](https://user-images.githubusercontent.com/25242486/129603961-253af8ef-c3eb-4c9f-a6f1-702993163b95.png)
 
