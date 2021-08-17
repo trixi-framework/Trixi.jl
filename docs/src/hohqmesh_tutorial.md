@@ -1,7 +1,7 @@
 # Unstructured meshes with HOHQMesh.jl
 
 Trixi.jl supports numerical approximations on unstructured quadrilateral meshes
-with the `UnstructuredMesh2D` mesh type.
+with the [`UnstructuredMesh2D`](@ref) mesh type.
 
 The purpose of this tutorial is to demonstrate how one can use the `UnstructuredMesh2D`
 functionality of Trixi.jl. This begins by running and visualizing an available unstructured
@@ -32,7 +32,7 @@ Now we are ready to generate an unstructured quadrilateral mesh that can be used
 Trixi.jl supports solving hyperbolic problems on several mesh types.
 There is a default example for this mesh type that can be executed by
 ```julia
-julia> trixi_include(default_example_unstructured())
+julia> using Trixi; trixi_include(default_example_unstructured())
 ```
 This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 on the curved quadrilateral mesh described in the
@@ -51,7 +51,7 @@ julia> trixi2vtk("out/solution_000180.h5", output_directory="out")
 ```
 Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
 in your REPL session. The above `trixi2vtk` command will convert the solution file at the final time into a `.vtu` file
-which can be readin and visualize with ParaView. Optional arguments for `trixi2vtk` are: (1) Pointing to the `output_directory`
+which can be readin and visualized with ParaView. Optional arguments for `trixi2vtk` are: (1) Pointing to the `output_directory`
 where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 ```julia
@@ -198,7 +198,7 @@ There are several options to describe the boundary curve data to HOHQMesh like s
 For the example `ice_cream_straight_sides.control` we define three internal boundaries; two straight-sided and
 one as a circular arc.
 Within the HOHQMesh control input each curve must be assigned to a `CHAIN` as shown below in the complete
-`INNER_BOUNDARIES` block
+`INNER_BOUNDARIES` block.
 ```
 \begin{INNER_BOUNDARIES}
 
