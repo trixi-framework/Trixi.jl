@@ -3,7 +3,7 @@ module TestVisualization
 using Test
 using Trixi
 using Plots
-using Makie
+using GLMakie
 
 include("test_trixi.jl")
 
