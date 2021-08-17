@@ -67,5 +67,7 @@ include("lbm_collision.jl")
 # when using `trixi_include` or `test_trixi_include`
 include("trivial.jl")
 
+# DGMulti callbacks
+include("analysis_dgmulti.jl")
 
 end # @muladd

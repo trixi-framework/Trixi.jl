@@ -1,4 +1,4 @@
-module TestExamples3DCurved
+module TestExamples3DStructured
 
 using Test
 using Trixi
@@ -8,7 +8,7 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "structured_3d_dgsem")
 
-@testset "Curved mesh" begin
+@testset "Structured mesh" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [0.00013446460962856976],
@@ -96,7 +96,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
       linf = [0.027618475633440998, 0.027093787212065318, 0.012584560784257667, 0.039456640084648914,
               0.020759073985165077, 0.031771018340953416, 0.02059036404759229, 0.03456102393654076,
               0.019663511833857894],
-      surface_flux = flux_lax_friedrichs)
+      surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell))
+  end
+
+  # TODO: nonconservative terms, remove
+  @trixi_testset "elixir_mhd_alfven_wave.jl with old nonconservative stuff" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+      l2   = [0.003015476175153681, 0.00145499403283373, 0.0009125744757935803, 0.0017703080480578979,
+              0.0013046447673965966, 0.0014564863387645508, 0.0013332311430907598, 0.001647832598455728,
+              0.0013647609788548722],
+      linf = [0.027510637768610846, 0.02797062834945721, 0.01274249949295704, 0.038940694415543736,
+              0.02200825678588325, 0.03167600959583505, 0.021420957993862344, 0.03386589835999665,
+              0.01888303191983353],
+      volume_flux = flux_central,
+      surface_flux = flux_hll)
   end
 end
 

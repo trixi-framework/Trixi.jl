@@ -9,11 +9,10 @@ equations = IdealGlmMhdEquations3D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = flux_hindenlang
-solver = DGSEM(polydeg=3, surface_flux=flux_hindenlang,
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+solver = DGSEM(polydeg=3, surface_flux=(flux_hindenlang_gassner, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-###############################################################################
 # Create a heavily warped curved mesh
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
@@ -41,9 +40,7 @@ end
 cells_per_dimension = (4, 4, 4)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
-###############################################################################
 # create the semi discretization object
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
