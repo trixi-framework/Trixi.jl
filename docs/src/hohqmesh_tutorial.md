@@ -353,7 +353,7 @@ Visualization of the solution is carried out in a similar way as above. That is,
 output files with `trixi2vtk` and then plot the solution in ParaView. An example plot of the pressure
 at the final time is shown below.
 
-![simulation_straight_sides](https://user-images.githubusercontent.com/25242486/129603961-253af8ef-c3eb-4c9f-a6f1-702993163b95.png)
+![simulation_straight_sides](https://user-images.githubusercontent.com/25242486/129733926-6ef80676-779b-4f1e-9826-3ebf750cf382.png)
 
 ## Making a mesh with a curved outer boundary
 
@@ -489,4 +489,4 @@ mesh = UnstructuredMesh2D(mesh_file)
 
 We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize with ParaView.
 
-![simulation_curved_sides](https://user-images.githubusercontent.com/25242486/129603960-d654cea6-a0dd-40c4-a4a4-bab572c92fff.png)
+![simulation_curved_sides](https://user-images.githubusercontent.com/25242486/129733924-778795c1-9119-419a-8b89-bcbe13e33cd7.png)
