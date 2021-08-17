@@ -16,7 +16,7 @@ const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, ra
      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
 
 # This abstract type is used to derive PlotData types of different dimensions; but still allows to share some functions for them.
-abstract type AbstractPlotData end
+abstract type AbstractPlotData{NDIMS} end
 
 # Define additional methods for convenience.
 # These are defined for AbstractPlotData, so they can be used for all types of plot data.
@@ -47,7 +47,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData
+struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
   x::Coordinates
   y::Coordinates
   data::Data
@@ -215,10 +215,21 @@ function _get_orientations(mesh, slice)
   return orientation_x, orientation_y
 end
 
+struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
+  x::Array{Tv, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Array{Tv, 2}
+  u::SolutionType # solution container
+  t::PlottingTriangulation
+  xf::Array{Tv, 2}
+  yf::Array{Tv, 2}
+  uf::FaceSolutionType
+  variable_names::VariableNames
+end
+
 # Auxiliary data structure for visualizing a single variable
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotDataSeries2D{PD<:Union{PlotData2D, DGMultiPlotData{2}}}
+struct PlotDataSeries2D{PD<:Union{PlotData2D, UnstructuredPlotData2D}}
   plot_data::PD
   variable_id::Int
 end
@@ -239,7 +250,7 @@ Extract a single variable `variable_name` from `pd` for plotting with `Plots.plo
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function Base.getindex(pd::Union{PlotData2D, DGMultiPlotData{2}}, variable_name)
+function Base.getindex(pd::Union{PlotData2D, UnstructuredPlotData2D}, variable_name)
   variable_id = findfirst(isequal(variable_name), pd.variable_names)
 
   if isnothing(variable_id)
@@ -249,8 +260,8 @@ function Base.getindex(pd::Union{PlotData2D, DGMultiPlotData{2}}, variable_name)
   return PlotDataSeries2D(pd, variable_id)
 end
 
-Base.eltype(pd::Union{PlotData2D, DGMultiPlotData{2}}) = Pair{String, PlotDataSeries2D}
-function Base.iterate(pd::AbstractPlotData, state=1)
+Base.eltype(pd::Union{PlotData2D, UnstructuredPlotData2D}) = Pair{String, PlotDataSeries2D}
+function Base.iterate(pd::Union{PlotData2D, UnstructuredPlotData2D}, state=1)
   if state > length(pd)
     return nothing
   else
@@ -273,7 +284,7 @@ end
 # Auxiliary data structure for visualizing the mesh
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotMesh2D{PD<:Union{PlotData2D, DGMultiPlotData{2}}} # TODO: change this back
+struct PlotMesh2D{PD<:AbstractPlotData{2}}
   plot_data::PD
 end
 
@@ -310,7 +321,7 @@ end
 # Visualize a single variable in a 2D plot (default: heatmap)
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pds::PlotDataSeries2D)
+RecipesBase.@recipe function f(pds::PlotDataSeries2D)
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
@@ -337,7 +348,7 @@ end
 # Visualize a single variable in a 2D plot. Only works for `scatter` right now.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
@@ -367,7 +378,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pm::PlotMesh2D)
+RecipesBase.@recipe function f(pm::PlotMesh2D)
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -391,7 +402,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -415,7 +426,7 @@ end
 # Plot all available variables at once for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pd::Union{PlotData2D, DGMultiPlotData{2}})
+RecipesBase.@recipe function f(pd::PlotData2D)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
 
@@ -460,7 +471,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData{1}
   x::Coordinates
   data::Data
   variable_names::VariableNames
@@ -614,7 +625,7 @@ end
 getmesh(pd::PlotData1D) = PlotMesh1D(pd)
 
 # Plot a single variable.
-@recipe function f(pds::PlotDataSeries1D)
+RecipesBase.@recipe function f(pds::PlotDataSeries1D)
   @unpack plot_data, variable_id = pds
   @unpack x, data, variable_names, orientation_x = plot_data
 
@@ -631,7 +642,7 @@ getmesh(pd::PlotData1D) = PlotMesh1D(pd)
 end
 
 # Plot the mesh as vertical lines from a PlotMesh1D object.
-@recipe function f(pm::PlotMesh1D)
+RecipesBase.@recipe function f(pm::PlotMesh1D)
   @unpack plot_data = pm
   @unpack x, mesh_vertices_x = plot_data
 
@@ -649,7 +660,7 @@ end
 end
 
 # This plots all variables by creating a subplot for each of them.
-@recipe function f(pd::PlotData1D)
+RecipesBase.@recipe function f(pd::PlotData1D)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
@@ -687,14 +698,14 @@ end
 # The plot is created by a PlotData1D or PlotData2D object.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(sol::TrixiODESolution)
+RecipesBase.@recipe function f(sol::TrixiODESolution)
   # Redirect everything to the recipe below
   return sol.u[end], sol.prob.p
 end
 
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
-@recipe function f(u, semi::AbstractSemidiscretization;
+RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=nothing,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
                    point=(0.0, 0.0, 0.0), curve=nothing)
@@ -712,90 +723,11 @@ const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
   SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
   <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
 
-# overloads PlotData2D but returns a DGMultiPlotData for plotting DGMulti solutions
-function PlotData2D(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
-                    solution_variables=nothing, grid_lines=true)
-  rd = semi.solver.basis
-  md = semi.mesh.md
-  equations = semi.equations
-  solution_variables_ = digest_solution_variables(equations, solution_variables)
-  variable_names = SVector(varnames(solution_variables_, equations))
-  return DGMultiPlotData(u, equations, solution_variables_, variable_names, rd, md)
-end
-
-# need to define this function because some keywords from the more general plot recipe
-# are not supported (e.g., `max_supported_level`).
-@recipe function f(u::StructArray, semi::DGMultiSemidiscretizationHyperbolic;
-                   solution_variables=cons2cons, grid_lines=true)
-  return PlotData2D(u, semi)
-end
-
-@recipe function f(pds::PlotDataSeries2D{<:DGMultiPlotData{2}})
-
-  pd = pds.plot_data
-  @unpack u, equations, solution_variables, rd, md = pd
-  @unpack variable_id = pds
-
-  @unpack Vp = rd
-  mul_by_Vp!(out,x) = mul!(out, Vp, x)
-
-  num_plotting_points = size(Vp, 1)
-  nvars = nvariables(equations)
-  u_plot_local = StructArray{SVector{nvars, eltype(first(u))}}(ntuple(_->zeros(num_plotting_points), nvars))
-  u_plot = zeros(eltype(first(u)), num_plotting_points, md.num_elements)
-  for e in Base.OneTo(md.num_elements)
-    # interpolate solution to plotting nodes element-by-element
-    StructArrays.foreachfield(mul_by_Vp!, u_plot_local, view(u, :, e))
-    for (i, u_i) in enumerate(u_plot_local)
-      # transform nodewise solution according to `solution_variables`
-      u_plot[i, e] = solution_variables(u_i, equations)[variable_id]
-    end
-  end
-
-  legend --> false
-  aspect_ratio --> 1
-  title --> pd.variable_names[variable_id]
-  xlims --> extrema(md.x)
-  ylims --> extrema(md.y)
-  seriestype --> :heatmap
-
-  return DGTriPseudocolor(plotting_triangulation(u_plot, rd.rstp, (x->rd.Vp * x).(md.xyz))...)
-end
-
-struct DGMultiPlotMesh{Dim, PD<:DGMultiPlotData{Dim}}
-  pd::PD
-end
-
-getmesh(pd::DGMultiPlotData) = DGMultiPlotMesh(pd)
-
-using StartUpDG: vandermonde, nodes
-
-# Visualize a 2D mesh associated with a DGMulti solver.
-# Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pm::DGMultiPlotMesh{2})
-  @unpack pd = pm
-  @unpack rd, md = pd
-
-  x, y = plotting_wireframe(rd, md)
-
-  xlims --> (x[begin], x[end])
-  ylims --> (y[begin], y[end])
-  aspect_ratio --> :equal
-  legend -->  :none
-
-  # Set series properties
-  seriestype --> :path
-  linecolor --> :grey
-  linewidth --> 1
-
-  return x, y
-end
-
-@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
+RecipesBase.@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return cb.affect!, point_id
 end
 
-@recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
+RecipesBase.@recipe function f(time_series_callback::TimeSeriesCallback, point_id::Integer)
   return PlotData1D(time_series_callback, point_id)
 end
 
