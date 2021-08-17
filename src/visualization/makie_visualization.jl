@@ -216,6 +216,10 @@ Creates an interactive surface plot of the solution and mesh for an `Unstructure
 Inputs:
 - solution_variables: either `nothing` or a variable transformation function (e.g., `cons2prim`)
 - nvisnodes: number of visualization nodes per dimension
+- variable_to_plot_in: variable to show by default
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
                solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1)
