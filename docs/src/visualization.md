@@ -398,3 +398,59 @@ to convert all solution files. The default is to generate a PNG file for each
 variable found in the respective file. Use `format=:pdf` as a keyword argument
 to create PDF files. A comprehensive list of all possible arguments for
 `trixi2img` can be found in the [Trixi2Img.jl API](@ref).
+
+## [Makie.jl [experimental]](@id Makie.jl)
+
+In addition to [Plots.jl](@ref Plots.jl) support, Trixi includes visualization utilities through
+[Makie.jl](https://github.com/JuliaPlots/Makie.jl/). Trixi provides Makie-based visualization options
+both for heatmap-type plots (similar to the [Plots.jl](@ref Plots.jl) recipes) as well as for
+interactive surface plots. Support is currently limited to the [`UnstructuredMesh2D`](@ref) type.
+
+!!! note
+    Plotting via Makie.jl is still considered an experimental feature and might
+    change in any future releases.
+
+A Makie plot can be created as follows: after running a simulation with Trixi in the REPL, load a
+Makie backend (for example, [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/) or
+[CairoMakie](https://github.com/JuliaPlots/CairoMakie.jl)).
+```julia
+julia> using GLMakie
+```
+
+To visualize the solution and mesh with a heatmap-type plot, simply run
+```julia
+julia> plot(sol)
+```
+!!! note
+    Both Makie.jl and Plots.jl export `plot`, so if you load both libraries, you will have to
+    specify which `plot` function to call via `Plots.plot` or `Makie.plot`.
+
+As with Plots.jl recipes, one can view individual solution components by creating a `PlotData2D`
+object and indexing into it with the desired variable name
+```julia
+julia> pd = PlotData2D(sol)
+julia> plot(pd["rho"])
+```
+Unlike the Plots.jl recipe, mesh plotting is controlled using the keyword argument
+`plot_mesh = false`, e.g.,
+```julia
+julia> plot(sol; plot_mesh=false)
+```
+The plot command also returns figure and axis handles, which can be used to edit plot titles or
+labels:
+```julia
+julia> fig, axes = plot(sol)
+julia> axes[1,1].title = "New title for subplot (1,1)"
+```
+
+Trixi also supports interactive surface plots using `iplot`:
+```julia
+julia> iplot(sol)
+```
+This will open up an interactive visualization window:
+
+![makie-example](https://user-images.githubusercontent.com/1156048/127914785-bb87cff5-92b2-4e72-9ed1-9c04f4f81a73.png)
+
+The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and panned
+(hold right click and drag). Two toggle buttons control whether mesh lines are visible on top
+of and below the solution.
