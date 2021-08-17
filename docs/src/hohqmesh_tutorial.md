@@ -11,8 +11,8 @@ a curvilinear mesh using the available software in the Trixi.jl ecosystem,
 and then run a simulation using Trixi.jl on said mesh.
 
 Unstructured quadrilateral meshes can be made
-with the [High-Order Hex-Quad Mesh (HOHQMesh)](https://github.com/trixi-framework/HOHQMesh)
-generator created and developed by David Kopriva.
+with the [High-Order Hex-Quad Mesh (HOHQMesh) generator](https://github.com/trixi-framework/HOHQMesh)
+created and developed by David Kopriva.
 HOHQMesh is a mesh generator specifically designed for spectral element methods.
 This is because elements can be larger (due to the high accuracy
 of the spatial approximation) compared to traditional finite element mesh generators
