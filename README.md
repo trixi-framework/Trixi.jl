@@ -165,9 +165,20 @@ using Git. The latest documentation can be accessed either
 
 ## Referencing
 If you use Trixi in your own research or write a paper using results obtained
-with the help of Trixi, please cite the following
-[paper](https://arxiv.org/abs/2008.10593):
+with the help of Trixi, please cite the following articles:
 ```bibtex
+@online{ranocha2021adaptive,
+  title={Adaptive numerical simulations with {T}rixi.jl:
+         {A} case study of {J}ulia for scientific computing},
+  author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
+          and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
+  year={2021},
+  month={08},
+  eprint={2108.06476},
+  eprinttype={arXiv},
+  eprintclass={cs.MS}
+}
+
 @article{schlottkelakemper2021purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
          self-gravitating gas dynamics},
