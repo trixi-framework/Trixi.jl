@@ -213,11 +213,10 @@ Artificial neural network based indicator used for shock-capturing or AMR.
     Convolutional neural network based indicator used for shock-capturing or AMR.
 
 !!! warning "Experimental implementation"
-This is an experimental feature and may change in future releases.
+    This is an experimental feature and may change in future releases.
 
 """
 struct IndicatorANN{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
-  #indicator_type::String
   indicator_type::String
   alpha_max::RealT
   alpha_min::RealT
@@ -231,14 +230,14 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorANN(equations::AbstractEquations, basis;
-                                   indicator_type,
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   alpha_continuous=true,
-                                   alpha_amr=false,
-                                   variable,
-                                   network)
+                      indicator_type,
+                      alpha_max=0.5,
+                      alpha_min=0.001,
+                      alpha_smooth=true,
+                      alpha_continuous=true,
+                      alpha_amr=false,
+                      variable,
+                      network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorANN, equations, basis, indicator_type)
   IndicatorANN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
@@ -247,14 +246,14 @@ end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorANN(semi::AbstractSemidiscretization;
-                                   indicator_type,
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   alpha_continuous=true,
-                                   alpha_amr=true,
-                                   variable,
-                                   network)
+                      indicator_type,
+                      alpha_max=0.5,
+                      alpha_min=0.001,
+                      alpha_smooth=true,
+                      alpha_continuous=true,
+                      alpha_amr=true,
+                      variable,
+                      network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorANN, semi, indicator_type)
   IndicatorANN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
@@ -266,12 +265,12 @@ function Base.show(io::IO, indicator::IndicatorANN)
   @nospecialize indicator # reduce precompilation time
 
   print(io, "IndicatorANN(")
-  print(io, indicator.variable)
   print(io, indicator.indicator_type)
   print(io, ", alpha_max=", indicator.alpha_max)
   print(io, ", alpha_min=", indicator.alpha_min)
   print(io, ", alpha_smooth=", indicator.alpha_smooth)
   print(io, ", alpha_continuous=", indicator.alpha_continuous)
+  print(io, indicator.variable)
   print(io, ")")
 end
 

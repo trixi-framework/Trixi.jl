@@ -199,8 +199,6 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3},
   return alpha
 end
 
-#::Val{:NNPP}
-
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorANN}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis,  indicator_type)
 

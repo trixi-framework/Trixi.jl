@@ -243,8 +243,7 @@ function create_cache(::Type{IndicatorANN}, equations::AbstractEquations{2}, bas
     #X = Vector{Float64}(undef, 3, nelements(dg, cache))
     #network_input = Vector{Float64}(undef, 15)
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded) #, X, network_input)
-
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
   elseif indicator_type == "CNN"
     indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
@@ -258,9 +257,9 @@ function create_cache(typ::Type{IndicatorANN}, mesh, equations::AbstractEquation
 end
 
 
-function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,4}, mesh,
-                                         equations, dg::DGSEM, cache;
-                                         kwargs...)
+function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
+                                      equations, dg::DGSEM, cache;
+                                      kwargs...)
 
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
   if indicator_type == "NNPP"
@@ -305,7 +304,6 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,4}, mesh,
       for j in 1:(nnodes(dg)-3), i in 1:(nnodes(dg)-3)
         total_energy_clip3 += modal[i, j]^2
       end
-
 
       # Calculate energy in lower modes and polynomial degree for the network input
       X1 = (total_energy - total_energy_clip1)/total_energy
@@ -381,7 +379,6 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,4}, mesh,
       X[3,element] = modal[2,1]
     end
 
-
     @threaded for element in eachelement(dg, cache)
       cell_id = cache.elements.cell_ids[element]
       network_input = Array{Float64}(undef, 15)
@@ -394,11 +391,11 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,4}, mesh,
       #dirshuffle = shuffle!(dirshuffle)
       for direction in eachdirection(mesh.tree)
         if direction == 1 # -x
-            dir = 4    #dirshuffle[1]
+            dir = 4 #dirshuffle[1]
         elseif direction == 2 # +x
-            dir = 1   #dirshuffle[2]
+            dir = 1 #dirshuffle[2]
         elseif direction == 3 # -y
-            dir = 3   #dirshuffle[3]
+            dir = 3 #dirshuffle[3]
         elseif direction == 4 # +y
             dir = 2 #dirshuffle[4]
         end
@@ -510,7 +507,6 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,4}, mesh,
         u_local = get_node_vars(u, equations, dg, i, j, element)
         indicator[i, j] = indicator_ann.variable(u_local, equations)
       end
-
 
       n_cnn = 4
       nodes,_ = gauss_lobatto_nodes_weights(nnodes(dg))

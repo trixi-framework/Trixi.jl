@@ -69,7 +69,6 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 # end
 
 
-
 # Define the entry points of our type hierarchy, e.g.
 #     AbstractEquations, AbstractSemidiscretization etc.
 # Placing them here allows us to make use of them for dispatch even for
