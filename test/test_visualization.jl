@@ -3,7 +3,11 @@ module TestVisualization
 using Test
 using Trixi
 using Plots
-using GLMakie
+
+# We use CairoMakie to avoid some CI-related issues with GLMakie. CairoMakie does not support
+# interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
+# Makie-based visualization.
+using CairoMakie
 
 include("test_trixi.jl")
 
