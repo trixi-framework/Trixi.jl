@@ -1,0 +1,174 @@
+# This abstract type is used to derive PlotData types of different dimensions; but still allows to share some functions for them.
+abstract type AbstractPlotData{NDIMS} end
+
+# Define additional methods for convenience.
+# These are defined for AbstractPlotData, so they can be used for all types of plot data.
+Base.firstindex(pd::AbstractPlotData) = first(pd.variable_names)
+Base.lastindex(pd::AbstractPlotData) = last(pd.variable_names)
+Base.length(pd::AbstractPlotData) = length(pd.variable_names)
+Base.size(pd::AbstractPlotData) = (length(pd),)
+Base.keys(pd::AbstractPlotData) = tuple(pd.variable_names...)
+
+"""
+    PlotData2D
+
+Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
+mesh.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
+  x::Coordinates
+  y::Coordinates
+  data::Data
+  variable_names::VariableNames
+  mesh_vertices_x::Vertices
+  mesh_vertices_y::Vertices
+  orientation_x::Int
+  orientation_y::Int
+end
+
+struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
+  x::Array{Tv, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Array{Tv, 2}
+  u::SolutionType # solution container
+  t::PlottingTriangulation
+  xf::Array{Tv, 2}
+  yf::Array{Tv, 2}
+  uf::FaceSolutionType
+  variable_names::VariableNames
+end
+
+# Auxiliary data structure for visualizing a single variable
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+struct PlotDataSeries2D{PD<:Union{PlotData2D, UnstructuredPlotData2D}}
+  plot_data::PD
+  variable_id::Int
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pd::PlotData2D)
+  @nospecialize pd # reduce precompilation time
+
+  print(io, "PlotData2D{",
+            typeof(pd.x), ",",
+            typeof(pd.data), ",",
+            typeof(pd.variable_names), ",",
+            typeof(pd.mesh_vertices_x),
+            "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
+end
+
+# Auxiliary data structure for visualizing the mesh
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+struct PlotMesh2D{PD<:AbstractPlotData{2}}
+  plot_data::PD
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pm::PlotMesh2D)
+  @nospecialize pm # reduce precompilation time
+
+  print(io, "PlotMesh2D{", typeof(pm.plot_data), "}(<plot_data::PlotData2D>)")
+end
+
+"""
+    PlotData1D
+
+Holds all relevant data for creating 1D plots of multiple solution variables and to visualize the
+mesh.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData{1}
+  x::Coordinates
+  data::Data
+  variable_names::VariableNames
+  mesh_vertices_x::Vertices
+  orientation_x::Integer
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pds::PlotDataSeries2D)
+  @nospecialize pds # reduce precompilation time
+
+  print(io, "PlotDataSeries2D{", typeof(pds.plot_data), "}(<plot_data::PlotData2D>, ",
+        pds.variable_id, ")")
+end
+
+"""
+    Base.getindex(pd::PlotData2D, variable_name)
+
+Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+function Base.getindex(pd::Union{PlotData2D, UnstructuredPlotData2D}, variable_name)
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
+  end
+
+  return PlotDataSeries2D(pd, variable_id)
+end
+
+Base.eltype(pd::Union{PlotData2D, UnstructuredPlotData2D}) = Pair{String, PlotDataSeries2D}
+function Base.iterate(pd::AbstractPlotData, state=1)
+  if state > length(pd)
+    return nothing
+  else
+    return (pd.variable_names[state] => pd[pd.variable_names[state]], state + 1)
+  end
+end
+
+# Store multiple PlotData1D objects in one PlotDataSeries1D.
+# This is used for multi-variable equations.
+struct PlotDataSeries1D{PD<:PlotData1D}
+  plot_data::PD
+  variable_id::Int
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pds::PlotDataSeries1D)
+  print(io, "PlotDataSeries1D{", typeof(pds.plot_data), "}(<plot_data::PlotData1D>, ",
+        pds.variable_id, ")")
+end
+
+# Extract a single variable from a PlotData1D object.
+function Base.getindex(pd::PlotData1D, variable_name)
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
+  end
+
+  return PlotDataSeries1D(pd, variable_id)
+end
+
+Base.eltype(pd::PlotData1D) = Pair{String, PlotDataSeries1D}
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pd::PlotData1D)
+  print(io, "PlotData1D{",
+            typeof(pd.x), ",",
+            typeof(pd.data), ",",
+            typeof(pd.variable_names), ",",
+            typeof(pd.mesh_vertices_x),
+            "}(<x>, <data>, <variable_names>, <mesh_vertices_x>)")
+end
+
+
+# A struct to store all relevant information about the mesh of a 1D equations, which is needed to plot the mesh.
+struct PlotMesh1D{PD<:PlotData1D}
+  plot_data::PD
+end
+
+# Show a PlotMesh1D in a convenient way.
+function Base.show(io::IO, pm::PlotMesh1D)
+  print(io, "PlotMesh1D{", typeof(pm.plot_data), "}(<plot_data::PlotData1D>)")
+end

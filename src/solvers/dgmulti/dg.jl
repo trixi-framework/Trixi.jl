@@ -48,6 +48,7 @@ end
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
+wrap_array_native(u_ode, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMeshData,
                                     dg::DGMulti, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
   return boundary_conditions
