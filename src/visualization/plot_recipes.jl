@@ -519,6 +519,110 @@ end
 # need to define this function because some keywords from the more general plot recipe
 # are not supported (e.g., `max_supported_level`).
 @recipe function f(u, semi::DGMultiSemidiscretizationHyperbolic;
+                   solution_variables=cons2cons, grid_lines=true)
+  return PlotData2D(u, semi)
+end
+
+# if u is an Array of SVectors and not a StructArray, convert it to one first.
+function PlotData2D(u::Array{<:SVector, 2}, mesh::AbstractMeshData, equations, dg::DGMulti, cache;
+                    solution_variables=nothing, nvisnodes=2*polydeg(dg))
+  nvars = length(first(u))
+  u_structarray = StructArray{eltype(u)}(ntuple(_->zeros(eltype(first(u)), size(u)), nvars))
+  for (i, u_i) in enumerate(u)
+    u_structarray[i] = u_i
+  end
+
+  # re-dispatch to PlotData2D with mesh, equations, dg, cache arguments
+  return PlotData2D(u_structarray, mesh, equations, dg, cache;
+                    solution_variables=solution_variables, nvisnodes=nvisnodes)
+end
+
+function PlotData2D(u::StructArray, mesh::AbstractMeshData, equations, dg::DGMulti, cache;
+                    solution_variables=nothing, nvisnodes=2*polydeg(dg))
+
+  rd = dg.basis
+  md = mesh.md
+
+  # interpolation matrix from nodal points to plotting points
+  @unpack Vp = rd
+  interpolate_to_plotting_points!(out, x) = mul!(out, Vp, x)
+
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations))
+
+  num_plotting_points = size(Vp, 1)
+  nvars = nvariables(equations)
+  uEltype = eltype(first(u))
+  u_plot_local = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, num_plotting_points), nvars))
+  u_plot = zeros(SVector{nvars, uEltype}, num_plotting_points, md.num_elements)
+  for e in eachelement(mesh, dg, cache)
+
+    # interpolate solution to plotting nodes element-by-element
+    StructArrays.foreachfield(interpolate_to_plotting_points!, u_plot_local, view(u, :, e))
+
+    # transform nodal values of the solution according to `solution_variables`
+    for (i, u_i) in enumerate(u_plot_local)
+      u_plot[i, e] = solution_variables_(u_i, equations)
+    end
+  end
+
+  # interpolate nodal coordinates to plotting points
+  x_plot, y_plot = map(x->Vp * x, md.xyz)
+
+  # construct a triangulation of the reference plotting nodes
+  t = reference_plotting_triangulation(rd.rstp) # rstp = reference coordinates of plotting points
+
+  xfplot, yfplot = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
+
+  # Set the plotting values of solution on faces to nothing - they're not used for Plots.jl since
+  # only 2D heatmap plots are supported through TriplotBase/TriplotRecipes.
+  ufplot = nothing
+
+  return UnstructuredPlotData2D(x_plot, y_plot, u_plot, t, xfplot, yfplot, ufplot, variable_names)
+end
+
+@recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
+
+  pd = pds.plot_data
+  @unpack variable_id = pds
+  @unpack x, y, u, t, variable_names = pd
+
+  # extract specific solution field to plot
+  u_field = zeros(eltype(first(u)), size(u))
+  for (i, u_i) in enumerate(u)
+    u_field[i] = u_i[variable_id]
+  end
+
+  legend --> false
+  aspect_ratio --> 1
+  title --> pd.variable_names[variable_id]
+  xlims --> extrema(x)
+  ylims --> extrema(y)
+  xguide --> _get_guide(1)
+  yguide --> _get_guide(2)
+  seriestype --> :heatmap
+  colorbar --> :true
+
+  return DGTriPseudocolor(global_plotting_triangulation_Triplot((x, y), u_field, t)...)
+end
+
+# Visualize a 2D mesh associated with a DGMulti solver.
+@recipe function f(pm::PlotMesh2D{<:UnstructuredPlotData2D})
+  pd = pm.plot_data
+  @unpack xf, yf = pd
+
+  xlims --> extrema(xf)
+  ylims --> extrema(yf)
+  aspect_ratio --> :equal
+  legend -->  :none
+
+  # Set series properties
+  seriestype --> :path
+  linecolor --> :grey
+  linewidth --> 1
+
+  return xf, yf
+end
 
 RecipesBase.@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return cb.affect!, point_id
