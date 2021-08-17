@@ -1,43 +1,3 @@
-#     compute_triangle_area(tri)
-#
-# Computes the area of a triangle given `tri`, which is a tuple of three points (vectors),
-# using the [Shoelace_formula](https://en.wikipedia.org/wiki/Shoelace_formula).
-function compute_triangle_area(tri)
-    A, B, C = tri
-    return 0.5 * (A[1] * (B[2] - C[2]) + B[1] * (C[2]-A[2]) + C[1] * (A[2] - B[2]))
-end
-
-#   reference_plotting_triangulation(reference_plotting_coordinates)
-#
-# Computes a triangulation of the points in `reference_plotting_coordinates`, which is a tuple containing
-# vectors of plotting points on the reference element (e.g., reference_plotting_coordinates = (r,s)).
-# The reference element is assumed to be [-1,1]^d.
-#
-# This function returns `t` which is a `3 x N_tri` Matrix{Int} containing indices of triangles in the
-# triangulation of the plotting points, with zero-volume triangles removed.
-#
-# For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
-function reference_plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
-  # on-the-fly triangulation of plotting nodes on the reference element
-  tri_in = Triangulate.TriangulateIO()
-  tri_in.pointlist = permutedims(hcat(reference_plotting_coordinates...))
-  tri_out, _ = Triangulate.triangulate("Q", tri_in)
-  triangles = tri_out.trianglelist
-
-  # filter out sliver triangles
-  has_volume = fill(true, size(triangles, 2))
-  for i in axes(triangles, 2)
-      ids = @view triangles[:, i]
-      x_points = @view tri_out.pointlist[1, ids]
-      y_points = @view tri_out.pointlist[2, ids]
-      area = compute_triangle_area(zip(x_points, y_points))
-      if abs(area) < tol
-          has_volume[i] = false
-      end
-  end
-  return permutedims(triangles[:, findall(has_volume)])
-end
-
 #   plotting_interpolation_matrix(dg; kwargs...)
 #
 # Interpolation matrix which maps discretization nodes to a set of plotting nodes.
@@ -72,12 +32,6 @@ function reference_node_coordinates_2d(dg::DGSEM)
   r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
   s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
   return r, s
-end
-
-function transform_to_solution_variables!(u, solution_variables, equations)
-  for (i, u_i) in enumerate(u)
-    u[i] = solution_variables(u_i, equations)
-  end
 end
 
 # specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
@@ -156,8 +110,8 @@ end
 
 # Given a reference plotting triangulation, this function generates a plotting triangulation for
 # the entire global mesh. The output can be plotted using `Makie.mesh`.
-function global_plotting_triangulation(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
-                                         set_z_coordinate_zero = false)
+function global_plotting_triangulation_Makie(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
+                                             set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
   @unpack x, y, u, t = pd
@@ -186,7 +140,7 @@ end
 # Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
 function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
-                                     set_z_coordinate_zero = false)
+                                 set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
   @unpack xf, yf, uf = pd
@@ -260,7 +214,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
 
   # Since `variable_to_plot` is an Observable, these lines are re-run whenever `variable_to_plot[]`
   # is updated from the drop-down menu.
-  plotting_mesh = Makie.@lift(global_plotting_triangulation(getindex(pd, variable_names[$(menu.selection)])))
+  plotting_mesh = Makie.@lift(global_plotting_triangulation_Makie(getindex(pd, variable_names[$(menu.selection)])))
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
   # Plot the actual solution.
@@ -316,7 +270,7 @@ end
 function Makie.plot!(myplot::TrixiHeatmap)
   pds = myplot[:plot_data_series][]
 
-  plotting_mesh = global_plotting_triangulation(pds; set_z_coordinate_zero = true)
+  plotting_mesh = global_plotting_triangulation_Makie(pds; set_z_coordinate_zero = true)
 
   @unpack variable_id = pds
   pd = pds.plot_data
