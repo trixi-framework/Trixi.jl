@@ -270,7 +270,7 @@ with the help of Trixi, please cite the following articles:
   month={08},
   eprint={2108.06476},
   eprinttype={arXiv},
-  eprintclass={math.NA}
+  eprintclass={cs.MS}
 }
 
 @article{schlottkelakemper2021purely,
