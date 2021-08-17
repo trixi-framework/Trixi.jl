@@ -13,7 +13,7 @@ initial_condition = initial_condition_two_interacting_blast_waves
 boundary_conditions = boundary_condition_two_interacting_blast_waves
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_chandrashekar
+volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.8,
