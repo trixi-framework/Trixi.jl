@@ -1,3 +1,5 @@
+# This file holds plotting types which can be used for both Plots.jl and Makie.jl.
+
 # This abstract type is used to derive PlotData types of different dimensions; but still allows to share some functions for them.
 abstract type AbstractPlotData{NDIMS} end
 
@@ -29,6 +31,7 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
   orientation_y::Int
 end
 
+# holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
 struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
   x::Array{Tv, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
   y::Array{Tv, 2}
@@ -83,7 +86,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData{1}
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{1}
   x::Coordinates
   data::Data
   variable_names::VariableNames
@@ -172,3 +175,19 @@ end
 function Base.show(io::IO, pm::PlotMesh1D)
   print(io, "PlotMesh1D{", typeof(pm.plot_data), "}(<plot_data::PlotData1D>)")
 end
+
+# Convenience type to allow dispatch on solution objects that were created by Trixi
+#
+# This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
+# TimeIntegratorSolution.
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
+    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
+     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
+
+# Convenience type to allow dispatch on specific semidiscretizations
+const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
+  SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
+  <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
+
