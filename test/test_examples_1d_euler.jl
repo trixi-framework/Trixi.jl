@@ -53,6 +53,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [0.27526364444744644, 0.27025123483580876, 0.9947524023443433])
   end
 
+  @trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+      l2   = [0.07905582221868049, 0.10180958900546237, 0.29596551476711125],
+      linf = [0.23515297345769826, 0.2958208108392532, 0.8694224308790321],
+      maxiters = 10,
+      surface_flux = flux_kennedy_gruber,
+      volume_flux = flux_kennedy_gruber)
+  end
+
   @trixi_testset "elixir_euler_ec.jl with flux_shima_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.07909267609417114, 0.1018246500951966, 0.2959649187481973],
@@ -82,8 +91,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 
   @trixi_testset "elixir_euler_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-      l2   = [0.11664633479399032, 0.1510307379005762, 0.4349674368602559],
-      linf = [0.18712791503569948, 0.24590150230707294, 0.7035348754107953])
+      l2   = [0.11665968950973675, 0.15105507394693413, 0.43503082674771115],
+      linf = [0.1867400345208743, 0.24621854448555328, 0.703826406555577])
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin

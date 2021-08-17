@@ -40,10 +40,19 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
   end
 
+  @trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+      l2   = [0.03481471610306124, 0.027694280613944234, 0.027697905866996532, 0.12932052501462554],
+      linf = [0.31052098400669004, 0.3481295959664616, 0.34807152194137336, 1.1044947556170719],
+      maxiters = 10,
+      surface_flux = flux_kennedy_gruber,
+      volume_flux = flux_kennedy_gruber)
+  end
+
   @trixi_testset "elixir_euler_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-      l2   = [0.053797946432602085, 0.04696120828935379, 0.04696384063506395, 0.19685320969570913],
-      linf = [0.18540158860112732, 0.24029373364236004, 0.23267525584314722, 0.6874555954921888])
+      l2   = [0.05380378209319121, 0.04696482040740498, 0.046967440141927635, 0.19686385916646665],
+      linf = [0.1852693811520424, 0.24028641582658528, 0.2326441454434102, 0.6874069967414047])
   end
 
   @trixi_testset "elixir_euler_blast_wave.jl" begin
@@ -144,8 +153,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_vortex_mortar_split.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
-      l2   = [2.1203686464224497e-6, 2.8053511778944724e-5, 3.7617944213324846e-5, 8.840785095671702e-5],
-      linf = [5.900566824046383e-5, 0.0007554116580206216, 0.0008166047918783947, 0.0022090163480150693])
+      l2   = [2.1201025902895562e-6, 2.8056524989293713e-5, 3.759500393896144e-5, 8.84137216637438e-5],
+      linf = [5.934103282212444e-5, 0.0007552316670187409, 0.0008152449093751235, 0.0022069874183294758])
   end
 
   @trixi_testset "elixir_euler_vortex_mortar_split.jl with flux_central" begin
@@ -171,14 +180,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
-      l2   = [3.803468104603101e-6, 5.561125881446469e-5, 5.564051742708959e-5, 0.00015706487208149976],
-      linf = [8.49343523420254e-5, 0.0009602338002179245, 0.0009669941278601657, 0.0030758222779923017])
+      l2   = [3.7998676433961623e-6, 5.563687203373343e-5, 5.561628017766063e-5, 0.00015707075214260475],
+      linf = [8.522682141076654e-5, 0.0009610342345369727, 0.0009656468947373265, 0.0030861481615822584])
   end
 
   @trixi_testset "elixir_euler_vortex_mortar_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_shockcapturing.jl"),
-      l2   = [2.120587333728832e-6, 2.8053708180265217e-5, 3.7618048362912055e-5, 8.841529146530808e-5],
-      linf = [5.900528113544912e-5, 0.0007554176274675584, 0.000816603085540657, 0.002208999078852969])
+      l2   = [2.1203212494737245e-6, 2.8056721454951553e-5, 3.759510818832351e-5, 8.842116438932004e-5],
+      linf = [5.9340649220973596e-5, 0.0007552376287922602, 0.0008152432005811283, 0.0022069702233196153])
   end
 
   @trixi_testset "elixir_euler_vortex_amr.jl" begin
