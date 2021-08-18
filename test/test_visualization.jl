@@ -60,7 +60,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test length(pd) == 4
     @test size(pd) == (4,)
     @test keys(pd) == ("rho", "v1", "v2", "p")
-    @test eltype(pd) == Pair{String, Trixi.PlotDataSeries}
+    @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
     @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
                               "v1" => Trixi.PlotDataSeries(pd, 2),
                               "v2" => Trixi.PlotDataSeries(pd, 3),
