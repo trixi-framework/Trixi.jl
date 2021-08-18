@@ -49,6 +49,29 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       tspan = (0.0, 0.06), surface_flux = (flux_hll, flux_nonconservative_powell))
   end
 
+  @trixi_testset "elixir_mhd_alfven_wave.jl one step with initial_condition_constant" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+      l2   = [7.144325530681224e-17, 2.123397983547417e-16, 5.061138912500049e-16, 3.6588423152083e-17, 8.449816179702522e-15, 3.9171737639099993e-16, 2.445565690318772e-16, 3.6588423152083e-17, 9.971153407737885e-17],
+      linf = [2.220446049250313e-16, 8.465450562766819e-16, 1.8318679906315083e-15, 1.1102230246251565e-16, 1.4210854715202004e-14, 8.881784197001252e-16, 4.440892098500626e-16, 1.1102230246251565e-16, 4.779017148551244e-16],
+      maxiters = 1,
+      initial_condition = initial_condition_constant,
+      atol = 2.0e-13)
+  end
+
+  @trixi_testset "elixir_mhd_rotor.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
+      l2   = [1.2428577757311665, 1.7993079220010408, 1.6900088072938513, 0.0, 2.262655937452063, 0.21271823802469103, 0.23326763151925287, 0.0, 0.0034077510132434945],
+      linf = [10.399670938190301, 14.061104237417954, 15.555424931057713, 0.0, 16.71324802175841, 1.3218953536100904, 1.4137334529340777, 0.0, 0.0882662999481618],
+      tspan = (0.0, 0.05))
+  end
+
+  @trixi_testset "elixir_mhd_blast_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave.jl"),
+      l2   = [0.17569823349539196, 3.853292514951796, 2.474036084054808, 0.0, 355.36545703316915, 2.3525087027248084, 1.394705056983077, 0.0, 0.029910308624236454],
+      linf = [1.5831869462980066, 44.20237543674303, 12.866364462538552, 0.0, 2237.8614138686, 13.066894956593798, 8.984965484247244, 0.0, 0.5226498664960756],
+      tspan = (0.0, 0.003))
+  end
+
   # TODO: nonconservative terms, remove
   @trixi_testset "elixir_mhd_orszag_tang.jl with old nonconservative stuff" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
