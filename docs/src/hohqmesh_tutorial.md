@@ -98,8 +98,8 @@ The associated `ice_cream_straight_sides.control` file is given below.
    \end{RUN_PARAMETERS}
 
    \begin{BACKGROUND_GRID}
-       x0 = [-4.0, -4.0, 0.0]
-       dx = [0.5, 0.5, 0.0]
+       x0 = [-8.0, -8.0, 0.0]
+       dx = [1.0, 1.0, 0.0]
        N  = [16,16,1]
    \end{BACKGROUND_GRID}
 
