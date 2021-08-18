@@ -289,7 +289,7 @@ end
 # Plot all available variables at once for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pd::Union{PlotData2D, UnstructuredPlotData2D})
+RecipesBase.@recipe function f(pd::AbstractPlotData{2})
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
 
@@ -518,14 +518,14 @@ end
 
 # need to define this function because some keywords from the more general plot recipe
 # are not supported (e.g., `max_supported_level`).
-@recipe function f(u, semi::DGMultiSemidiscretizationHyperbolic;
-                   solution_variables=cons2cons, grid_lines=true)
+RecipesBase.@recipe function f(u, semi::DGMultiSemidiscretizationHyperbolic;
+                               solution_variables=cons2cons, grid_lines=true)
   return PlotData2D(u, semi)
 end
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
-function PlotData2D(u::Array{<:SVector, 2}, mesh::AbstractMeshData, equations, dg::DGMulti, cache;
-                    solution_variables=nothing, nvisnodes=2*polydeg(dg))
+function PlotData2D(u::Array{<:SVector, 2}, mesh, equations, dg::DGMulti, cache;
+                    solution_variables=nothing, nvisnodes=2*nnodes(dg))
   nvars = length(first(u))
   u_structarray = StructArray{eltype(u)}(ntuple(_->zeros(eltype(first(u)), size(u)), nvars))
   for (i, u_i) in enumerate(u)
@@ -538,8 +538,8 @@ function PlotData2D(u::Array{<:SVector, 2}, mesh::AbstractMeshData, equations, d
 end
 
 # constructor which returns an `UnstructuredPlotData2D` object.
-function PlotData2D(u::StructArray, mesh::AbstractMeshData, equations, dg::DGMulti, cache;
-                    solution_variables=nothing, nvisnodes=2*polydeg(dg))
+function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
+                    solution_variables=nothing, nvisnodes=2*nnodes(dg))
 
   rd = dg.basis
   md = mesh.md
@@ -556,8 +556,8 @@ function PlotData2D(u::StructArray, mesh::AbstractMeshData, equations, dg::DGMul
   uEltype = eltype(first(u))
   u_plot_local = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, num_plotting_points), nvars))
   u_plot = zeros(SVector{nvars, uEltype}, num_plotting_points, md.num_elements)
-  for e in eachelement(mesh, dg, cache)
 
+  for e in eachelement(mesh, dg, cache)
     # interpolate solution to plotting nodes element-by-element
     StructArrays.foreachfield(interpolate_to_plotting_points!, u_plot_local, view(u, :, e))
 
@@ -583,7 +583,7 @@ function PlotData2D(u::StructArray, mesh::AbstractMeshData, equations, dg::DGMul
 end
 
 # Series recipe for UnstructuredPlotData2D
-@recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
+RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
 
   pd = pds.plot_data
   @unpack variable_id = pds
