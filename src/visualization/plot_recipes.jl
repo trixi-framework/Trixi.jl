@@ -551,17 +551,14 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   num_plotting_points = size(Vp, 1)
   nvars = nvariables(equations)
   uEltype = eltype(first(u))
-  u_plot_local = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, num_plotting_points), nvars))
-  u_plot = zeros(SVector{nvars, uEltype}, num_plotting_points, md.num_elements)
+  u_plot = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, num_plotting_points, md.num_elements), nvars))
 
   for e in eachelement(mesh, dg, cache)
     # interpolate solution to plotting nodes element-by-element
-    StructArrays.foreachfield(interpolate_to_plotting_points!, u_plot_local, view(u, :, e))
+    StructArrays.foreachfield(interpolate_to_plotting_points!, view(u_plot, :, e), view(u, :, e))
 
     # transform nodal values of the solution according to `solution_variables`
-    for (i, u_i) in enumerate(u_plot_local)
-      u_plot[i, e] = solution_variables_(u_i, equations)
-    end
+    transform_to_solution_variables!(view(u_plot, :, e), solution_variables_, equations)
   end
 
   # interpolate nodal coordinates to plotting points
