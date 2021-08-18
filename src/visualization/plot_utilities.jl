@@ -48,7 +48,7 @@ function transform_to_solution_variables!(u, solution_variables, equations)
   end
 end
 
-#     plotting_triangulate(u_plot, rst_plot, xyz_plot)
+#     global_plotting_triangulation_Triplot(u_plot, rst_plot, xyz_plot)
 #
 # Returns (plotting_coordinates_x, plotting_coordinates_y, ..., plotting_values, plotting_triangulation).
 # Output can be used with TriplotRecipes.DGTriPseudocolor(...).

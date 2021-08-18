@@ -202,5 +202,5 @@ function Base.getindex(pd::PlotData1D, variable_name)
   return PlotDataSeries1D(pd, variable_id)
 end
 
-Base.eltype(pd::AbstractPlotData{1}) = Pair{String, PlotDataSeries1D}
-Base.eltype(pd::AbstractPlotData{2}) = Pair{String, PlotDataSeries2D}
+Base.eltype(pd::AbstractPlotData{1}) = Pair{String, PlotDataSeries1D{typeof(pd)}}
+Base.eltype(pd::AbstractPlotData{2}) = Pair{String, PlotDataSeries2D{typeof(pd)}}
