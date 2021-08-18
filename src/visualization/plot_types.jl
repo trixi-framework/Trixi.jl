@@ -134,9 +134,6 @@ struct PlotDataSeries{PD<:AbstractPlotData}
   variable_id::Int
 end
 
-const PlotDataSeries1D{PD} = PlotDataSeries{PD} where {PD <: AbstractPlotData{1}}
-const PlotDataSeries2D{PD} = PlotDataSeries{PD} where {PD <: AbstractPlotData{2}}
-
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pds::PlotDataSeries)
   @nospecialize pds # reduce precompilation time
@@ -149,8 +146,6 @@ end
 struct PlotMesh{PD<:AbstractPlotData}
   plot_data::PD
 end
-const PlotMesh1D{PD} = PlotMesh{PD} where {PD <: AbstractPlotData{1}}
-const PlotMesh2D{PD} = PlotMesh{PD} where {PD <: AbstractPlotData{2}}
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pm::PlotMesh)

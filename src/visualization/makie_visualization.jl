@@ -110,7 +110,7 @@ end
 
 # Given a reference plotting triangulation, this function generates a plotting triangulation for
 # the entire global mesh. The output can be plotted using `Makie.mesh`.
-function global_plotting_triangulation_Makie(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
+function global_plotting_triangulation_Makie(pds::PlotDataSeries{<:UnstructuredPlotData2D};
                                              set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
@@ -139,7 +139,7 @@ end
 
 # Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
-function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D};
+function mesh_plotting_wireframe(pds::PlotDataSeries{<:UnstructuredPlotData2D};
                                  set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
@@ -293,8 +293,8 @@ function Makie.plot!(myplot::TrixiHeatmap)
   myplot
 end
 
-# redirects Makie.plot(pd::PlotDataSeries2D) to custom recipe TrixiHeatmap(pd)
-Makie.plottype(::Trixi.PlotDataSeries2D{<:Trixi.UnstructuredPlotData2D}) = TrixiHeatmap
+# redirects Makie.plot(pd::PlotDataSeries) to custom recipe TrixiHeatmap(pd)
+Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.UnstructuredPlotData2D}) = TrixiHeatmap
 
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution;

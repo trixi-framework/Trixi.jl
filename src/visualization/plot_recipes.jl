@@ -184,7 +184,7 @@ end
 # Visualize a single variable in a 2D plot (default: heatmap)
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pds::PlotDataSeries2D)
+RecipesBase.@recipe function f(pds::PlotDataSeries)
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
@@ -211,7 +211,7 @@ end
 # Visualize a single variable in a 2D plot. Only works for `scatter` right now.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
@@ -241,7 +241,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pm::PlotMesh2D)
+RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -265,7 +265,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -419,7 +419,7 @@ function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id:
 end
 
 # Plot a single variable.
-RecipesBase.@recipe function f(pds::PlotDataSeries1D)
+RecipesBase.@recipe function f(pds::PlotDataSeries)
   @unpack plot_data, variable_id = pds
   @unpack x, data, variable_names, orientation_x = plot_data
 
@@ -435,8 +435,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries1D)
   x, data[:, variable_id]
 end
 
-# Plot the mesh as vertical lines from a PlotMesh1D object.
-RecipesBase.@recipe function f(pm::PlotMesh1D)
+# Plot the mesh as vertical lines from a PlotMesh object.
+RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{1}})
   @unpack plot_data = pm
   @unpack x, mesh_vertices_x = plot_data
 
@@ -577,7 +577,7 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
 end
 
 # Series recipe for UnstructuredPlotData2D
-RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
+RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
 
   pd = pds.plot_data
   @unpack variable_id = pds
@@ -603,7 +603,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
 end
 
 # Visualize a 2D mesh given an `UnstructuredPlotData2D` object
-@recipe function f(pm::PlotMesh2D{<:UnstructuredPlotData2D})
+@recipe function f(pm::PlotMesh{<:UnstructuredPlotData2D})
   pd = pm.plot_data
   @unpack x_face, y_face = pd
 
