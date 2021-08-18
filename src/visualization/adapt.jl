@@ -40,9 +40,6 @@ solution and semidiscretization are copied such that the original objects remain
 A convenience method accepts an ODE solution object, from which solution and semidiscretization are
 extracted as needed.
 
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
 See also: [`adapt_to_mesh_level!`](@ref)
 """
 function adapt_to_mesh_level(u_ode, semi, level)
