@@ -5,18 +5,6 @@
 @muladd begin
 
 
-# These methods are used internally to set the default value of the solution variables:
-# - If a `cons2prim` for the given `equations` exists, use it
-# - Otherwise, use `cons2cons`, which is defined for all systems of equations
-digest_solution_variables(equations, solution_variables) = solution_variables
-function digest_solution_variables(equations, solution_variables::Nothing)
-  if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
-    return cons2prim
-  else
-    return cons2cons
-  end
-end
-
 
 """
     PlotData2D(u, semi [or mesh, equations, solver, cache];
