@@ -565,7 +565,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
   seriestype --> :heatmap
   colorbar --> :true
 
-  return DGTriPseudocolor(global_plotting_triangulation_Triplot((x, y), data_field, t)...)
+  return DGTriPseudocolor(global_plotting_triangulation_triplot((x, y), data_field, t)...)
 end
 
 # Visualize a 2D mesh given an `UnstructuredPlotData2D` object

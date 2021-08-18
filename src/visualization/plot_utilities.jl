@@ -47,7 +47,7 @@ function transform_to_solution_variables!(u, solution_variables, equations)
   end
 end
 
-#     global_plotting_triangulation_Triplot(u_plot, rst_plot, xyz_plot)
+#     global_plotting_triangulation_triplot(u_plot, rst_plot, xyz_plot)
 #
 # Returns (plotting_coordinates_x, plotting_coordinates_y, ..., plotting_values, plotting_triangulation).
 # Output can be used with TriplotRecipes.DGTriPseudocolor(...).
@@ -56,7 +56,7 @@ end
 #   - xyz_plot = plotting points (tuple of matrices of size (Nplot, K))
 #   - u_plot = matrix of size (Nplot, K) representing solution to plot.
 #   - t = triangulation of reference plotting points
-function global_plotting_triangulation_Triplot(xyz_plot, u_plot, t)
+function global_plotting_triangulation_triplot(xyz_plot, u_plot, t)
 
   @assert size(first(xyz_plot), 1) == size(u_plot, 1) "Row dimension of u_plot does not match row dimension of xyz_plot"
 

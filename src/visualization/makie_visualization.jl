@@ -110,7 +110,7 @@ end
 
 # Given a reference plotting triangulation, this function generates a plotting triangulation for
 # the entire global mesh. The output can be plotted using `Makie.mesh`.
-function global_plotting_triangulation_Makie(pds::PlotDataSeries{<:UnstructuredPlotData2D};
+function global_plotting_triangulation_makie(pds::PlotDataSeries{<:UnstructuredPlotData2D};
                                              set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
@@ -214,7 +214,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
 
   # Since `variable_to_plot` is an Observable, these lines are re-run whenever `variable_to_plot[]`
   # is updated from the drop-down menu.
-  plotting_mesh = Makie.@lift(global_plotting_triangulation_Makie(getindex(pd, variable_names[$(menu.selection)])))
+  plotting_mesh = Makie.@lift(global_plotting_triangulation_makie(getindex(pd, variable_names[$(menu.selection)])))
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
   # Plot the actual solution.
@@ -270,7 +270,7 @@ end
 function Makie.plot!(myplot::TrixiHeatmap)
   pds = myplot[:plot_data_series][]
 
-  plotting_mesh = global_plotting_triangulation_Makie(pds; set_z_coordinate_zero = true)
+  plotting_mesh = global_plotting_triangulation_makie(pds; set_z_coordinate_zero = true)
 
   @unpack variable_id = pds
   pd = pds.plot_data
