@@ -218,7 +218,7 @@ function __init__()
   end
 
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
-    include("visualization/makie_visualization.jl")
+    include("visualization/recipes_makie.jl")
     using .Makie: Makie
     export iplot # interactive plot
   end
