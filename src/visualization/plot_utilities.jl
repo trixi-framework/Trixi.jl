@@ -51,6 +51,7 @@ end
 #     plotting_triangulate(u_plot, rst_plot, xyz_plot)
 #
 # Returns (plotting_coordinates_x, plotting_coordinates_y, ..., plotting_values, plotting_triangulation).
+# Output can be used with TriplotRecipes.DGTriPseudocolor(...).
 #
 # Inputs:
 #   - xyz_plot = plotting points (tuple of matrices of size (Nplot, K))
@@ -79,6 +80,7 @@ end
 
 #     mesh_plotting_wireframe(rd::RefElemData{2}, md::MeshData{2})
 #
+# Generates data for plotting a mesh wireframe given StartUpDG data types.
 # Returns (plotting_coordinates_x, plotting_coordinates_y) for a 2D mesh wireframe.
 function mesh_plotting_wireframe(rd::RefElemData{2}, md::MeshData{2}; num_plotting_points=25)
 

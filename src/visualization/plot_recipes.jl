@@ -523,7 +523,7 @@ end
   return PlotData2D(u, semi)
 end
 
-# if u is an Array of SVectors and not a StructArray, convert it to one first.
+# If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
 function PlotData2D(u::Array{<:SVector, 2}, mesh::AbstractMeshData, equations, dg::DGMulti, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
   nvars = length(first(u))
@@ -537,13 +537,14 @@ function PlotData2D(u::Array{<:SVector, 2}, mesh::AbstractMeshData, equations, d
                     solution_variables=solution_variables, nvisnodes=nvisnodes)
 end
 
+# constructor which returns an `UnstructuredPlotData2D` object.
 function PlotData2D(u::StructArray, mesh::AbstractMeshData, equations, dg::DGMulti, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
 
   rd = dg.basis
   md = mesh.md
 
-  # interpolation matrix from nodal points to plotting points
+  # Vp = the interpolation matrix from nodal points to plotting points
   @unpack Vp = rd
   interpolate_to_plotting_points!(out, x) = mul!(out, Vp, x)
 
@@ -567,10 +568,10 @@ function PlotData2D(u::StructArray, mesh::AbstractMeshData, equations, dg::DGMul
   end
 
   # interpolate nodal coordinates to plotting points
-  x_plot, y_plot = map(x->Vp * x, md.xyz)
+  x_plot, y_plot = map(x->Vp * x, md.xyz) # md.xyz is a tuple of arrays containing nodal coordinates
 
   # construct a triangulation of the reference plotting nodes
-  t = reference_plotting_triangulation(rd.rstp) # rstp = reference coordinates of plotting points
+  t = reference_plotting_triangulation(rd.rstp) # rd.rstp = reference coordinates of plotting points
 
   xfplot, yfplot = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
 
@@ -581,6 +582,7 @@ function PlotData2D(u::StructArray, mesh::AbstractMeshData, equations, dg::DGMul
   return UnstructuredPlotData2D(x_plot, y_plot, u_plot, t, xfplot, yfplot, ufplot, variable_names)
 end
 
+# Series recipe for UnstructuredPlotData2D
 @recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
 
   pd = pds.plot_data
@@ -606,7 +608,7 @@ end
   return DGTriPseudocolor(global_plotting_triangulation_Triplot((x, y), u_field, t)...)
 end
 
-# Visualize a 2D mesh associated with a DGMulti solver.
+# Visualize a 2D mesh given an `UnstructuredPlotData2D` object
 @recipe function f(pm::PlotMesh2D{<:UnstructuredPlotData2D})
   pd = pm.plot_data
   @unpack xf, yf = pd
