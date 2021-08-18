@@ -92,9 +92,9 @@ function Base.show(io::IO, pd::UnstructuredPlotData2D)
 
   print(io, "UnstructuredPlotData2D{",
             typeof(pd.x), ", ",
-            typeof(pd.u), ", ",
-            typeof(pd.xf), ", ",
-            typeof(pd.uf), ", ",
+            typeof(pd.data), ", ",
+            typeof(pd.x_face), ", ",
+            typeof(pd.face_data), ", ",
             typeof(pd.variable_names),
             "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>)")
 end
