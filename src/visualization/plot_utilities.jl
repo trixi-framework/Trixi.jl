@@ -1010,3 +1010,45 @@ function calc_vertices(node_coordinates, mesh)
 
   return x, y
 end
+
+# Convert `slice` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
+function _get_orientations(mesh, slice)
+  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice === :xy)
+    orientation_x = 1
+    orientation_y = 2
+  elseif ndims(mesh) == 3 && slice === :xz
+    orientation_x = 1
+    orientation_y = 3
+  elseif ndims(mesh) == 3 && slice === :yz
+    orientation_x = 2
+    orientation_y = 3
+  else
+    orientation_x = 0
+    orientation_y = 0
+  end
+  return orientation_x, orientation_y
+end
+
+
+"""
+    getmesh(pd::AbstractPlotData)
+
+Extract grid lines from `pd` for plotting with `Plots.plot`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+getmesh(pd::AbstractPlotData) = PlotMesh(pd)
+
+# Convert `orientation` into a guide label (see also `_get_orientations`)
+function _get_guide(orientation::Integer)
+  if orientation == 1
+    return "\$x\$"
+  elseif orientation == 2
+    return "\$y\$"
+  elseif orientation == 3
+    return "\$z\$"
+  else
+    return ""
+  end
+end
