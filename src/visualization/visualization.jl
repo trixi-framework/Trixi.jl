@@ -5,7 +5,7 @@
 @muladd begin
 
 include("types.jl")
-include("plot_utilities.jl")
-include("plot_recipes.jl")
+include("utilities.jl")
+include("recipes_plots.jl")
 
 end # @muladd
