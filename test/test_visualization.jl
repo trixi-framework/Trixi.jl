@@ -4,6 +4,11 @@ using Test
 using Trixi
 using Plots
 
+# We use CairoMakie to avoid some CI-related issues with GLMakie. CairoMakie does not support
+# interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
+# Makie-based visualization.
+using CairoMakie
+
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
@@ -19,7 +24,6 @@ isdir(outdir) && rm(outdir, recursive=true)
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
-    "UnstructuredMesh2D" => ("unstructured_2d_dgsem", "elixir_euler_wall_bc.jl")
   )
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
@@ -72,17 +76,17 @@ isdir(outdir) && rm(outdir, recursive=true)
     @testset "2D plot recipes" begin
       pd = PlotData2D(sol)
 
-      @test_nowarn_debug plot(sol)
-      @test_nowarn_debug plot(pd)
-      @test_nowarn_debug plot(pd["p"])
-      @test_nowarn_debug plot(getmesh(pd))
+      @test_nowarn_debug Plots.plot(sol)
+      @test_nowarn_debug Plots.plot(pd)
+      @test_nowarn_debug Plots.plot(pd["p"])
+      @test_nowarn_debug Plots.plot(getmesh(pd))
     end
 
     @testset "1D plot from 2D solution" begin
       @testset "Create 1D plot as slice" begin
         @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
         pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
-        @test_nowarn_debug plot(pd1D)
+        @test_nowarn_debug Plots.plot(pd1D)
       end
 
       if mesh == "TreeMesh"
@@ -91,7 +95,7 @@ isdir(outdir) && rm(outdir, recursive=true)
           curve[1,:] = range(-1,-0.5,length=10)
           @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
           pd1D = PlotData1D(sol, curve=curve)
-          @test_nowarn_debug plot(pd1D)
+          @test_nowarn_debug Plots.plot(pd1D)
         end
       end
     end
@@ -150,10 +154,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     @testset "1D plot recipes" begin
       pd = PlotData1D(sol)
 
-      @test_nowarn_debug plot(sol)
-      @test_nowarn_debug plot(pd)
-      @test_nowarn_debug plot(pd["p"])
-      @test_nowarn_debug plot(getmesh(pd))
+      @test_nowarn_debug Plots.plot(sol)
+      @test_nowarn_debug Plots.plot(pd)
+      @test_nowarn_debug Plots.plot(pd["p"])
+      @test_nowarn_debug Plots.plot(getmesh(pd))
     end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
@@ -164,14 +168,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       variable_names = string.('a':'e')
       mesh_vertices_x1d = [x[begin], x[end]]
       fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d, 0)
-      @test_nowarn_debug plot(fake1d)
+      @test_nowarn_debug Plots.plot(fake1d)
 
       y = x
       data2d = [rand(11,11) for _ in 1:5]
       mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
       mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
       fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
-      @test_nowarn_debug plot(fake2d)
+      @test_nowarn_debug Plots.plot(fake2d)
     end
   end
 
@@ -180,7 +184,7 @@ isdir(outdir) && rm(outdir, recursive=true)
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
-    @test_nowarn_debug plot(time_series, 1)
+    @test_nowarn_debug Plots.plot(time_series, 1)
     @test PlotData1D(time_series, 1) isa PlotData1D
   end
 
@@ -206,7 +210,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       @testset "Create 1D plot as slice" begin
         @test_nowarn_debug PlotData1D(sol) isa PlotData1D
         pd1D = PlotData1D(sol)
-        @test_nowarn_debug plot(pd1D)
+        @test_nowarn_debug Plots.plot(pd1D)
       end
 
       @testset "Create 1D plot along curve" begin
@@ -214,14 +218,14 @@ isdir(outdir) && rm(outdir, recursive=true)
         curve[1,:] = range(-1,-0.5,length=10)
         @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
         pd1D = PlotData1D(sol, curve=curve)
-        @test_nowarn_debug plot(pd1D)
+        @test_nowarn_debug Plots.plot(pd1D)
       end
     end
   end
 
   @testset "plotting TimeIntegratorSolution" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"))
-    @test_nowarn_debug plot(sol)
+    @test_nowarn_debug Plots.plot(sol)
   end
 
   @testset "VisualizationCallback" begin
@@ -263,6 +267,19 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
     end
   end
+
+  @testset "Makie visualization tests for UnstructuredMesh2D" begin
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+    @test_nowarn_debug Trixi.iplot(sol) # test interactive surface plot
+    @test_nowarn_debug Makie.plot(sol) # test heatmap plot
+
+    fa = Makie.plot(sol) # test heatmap plot
+    fig, axes = fa # test unpacking/iteration for FigureAndAxes
+    @test_nowarn_debug Base.show(fa) === nothing
+    @test_nowarn_debug typeof(fig) <: Makie.Figure
+    @test_nowarn_debug typeof(axes) <: AbstractArray{<:Makie.Axis}
+  end
 end
+
 
 end #module

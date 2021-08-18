@@ -51,6 +51,7 @@ makedocs(
                 "Nonconservative equation" => joinpath("adding_new_equations", "nonconservative_advection.md")
             ],
             "Differentiable programming" => "differentiable_programming.md",
+            "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.md",
         ],
         "Basic building blocks" => [
             "Meshes" => [

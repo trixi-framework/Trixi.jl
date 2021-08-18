@@ -154,16 +154,19 @@ end
 """
     @timed_testset "name of the testset" #= code to test #=
 
-Similar to `@testset`, but wraps the execution of the testset using `@time`
-and prints the name of the testset after execution.
+Similar to `@testset`, but prints the name of the testset and its runtime
+after execution.
 """
 macro timed_testset(name, expr)
   @assert name isa String
   quote
-    @time @testset $name $expr
+    local time_start = time_ns()
+    @testset $name $expr
+    local time_stop = time_ns()
     if Trixi.mpi_isroot()
       flush(stdout)
-      @info("Testset " * $name * " finished.\n")
+      @info("Testset " * $name * " finished in "
+            * string(1.0e-9 * (time_stop - time_start)) * " seconds.\n")
       flush(stdout)
     end
   end
@@ -190,7 +193,8 @@ macro trixi_testset(name, expr)
   # loading structured, curvilinear meshes. Thus, we need to use a plain
   # module name here.
   quote
-    @time @eval module TrixiTestModule
+    local time_start = time_ns()
+    @eval module TrixiTestModule
       using Test
       using Trixi
       include(@__FILE__)
@@ -204,10 +208,11 @@ macro trixi_testset(name, expr)
       end
       @testset $name $expr
     end
+    local time_stop = time_ns()
     if Trixi.mpi_isroot()
       flush(stdout)
-      @info("Testset " * $name * " finished.\n")
-      flush(stdout)
+      @info("Testset " * $name * " finished in "
+            * string(1.0e-9 * (time_stop - time_start)) * " seconds.\n")
     end
     nothing
   end
