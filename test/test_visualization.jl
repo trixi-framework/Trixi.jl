@@ -35,8 +35,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # Constructor tests
     if mesh == "DGMulti"
-      @test PlotData2D(sol) isa UnstructuredPlotData2D
-      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa UnstructuredPlotData2D
+      @test PlotData2D(sol) isa Trixi.UnstructuredPlotData2D
+      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.UnstructuredPlotData2D
     else
       @test PlotData2D(sol) isa PlotData2D
       @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
