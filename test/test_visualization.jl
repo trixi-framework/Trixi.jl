@@ -33,9 +33,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), directory, elixir),
                                      tspan=(0,0.1))
 
-    # Constructor
-    @test PlotData2D(sol) isa PlotData2D
-    @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
+    # Constructor tests
+    if mesh=="DGMulti"
+      @test PlotData2D(sol) isa UnstructuredPlotData2D
+      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa UnstructuredPlotData2D
+    else
+      @test PlotData2D(sol) isa PlotData2D
+      @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
+    end
     pd = PlotData2D(sol)
 
     # show
@@ -84,10 +89,12 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      @testset "Create 1D plot as slice" begin
-        @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-        pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
-        @test_nowarn_debug Plots.plot(pd1D)
+      if mesh != "DGMulti"
+        @testset "Create 1D plot as slice" begin
+          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+          pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+          @test_nowarn_debug Plots.plot(pd1D)
+        end
       end
 
       if mesh == "TreeMesh"
