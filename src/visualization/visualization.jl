@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-include("plot_types.jl")
+include("types.jl")
 include("plot_utilities.jl")
 include("plot_recipes.jl")
 include("interpolate.jl")
