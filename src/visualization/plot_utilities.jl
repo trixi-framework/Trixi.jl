@@ -1,4 +1,3 @@
-# TODO: move these into StartUpDG for v0.11.0
 @inline num_faces(elem::Tri) = 3
 @inline num_faces(elem::Quad) = 4
 
