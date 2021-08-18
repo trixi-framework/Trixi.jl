@@ -20,6 +20,28 @@ function Base.iterate(pd::AbstractPlotData, state=1)
 end
 
 """
+    Base.getindex(pd::AbstractPlotData, variable_name)
+
+Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+function Base.getindex(pd::AbstractPlotData, variable_name)
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
+  end
+
+  return PlotDataSeries(pd, variable_id)
+end
+
+Base.eltype(pd::AbstractPlotData) = Pair{String, PlotDataSeries{typeof(pd)}}
+
+
+
+"""
     PlotData2D
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
@@ -51,14 +73,6 @@ struct UnstructuredPlotData2D{DataType, FaceDataType, VariableNames, PlottingTri
   variable_names::VariableNames
 end
 
-# Auxiliary data structure for visualizing a single variable
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotDataSeries2D{PD<:Union{PlotData2D, UnstructuredPlotData2D}}
-  plot_data::PD
-  variable_id::Int
-end
-
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData2D)
   @nospecialize pd # reduce precompilation time
@@ -85,20 +99,6 @@ function Base.show(io::IO, pd::UnstructuredPlotData2D)
             "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>)")
 end
 
-# Auxiliary data structure for visualizing the mesh
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotMesh2D{PD<:AbstractPlotData{2}}
-  plot_data::PD
-end
-
-# Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pm::PlotMesh2D)
-  @nospecialize pm # reduce precompilation time
-
-  print(io, "PlotMesh2D{", typeof(pm.plot_data), "}(<plot_data::PlotData2D>)")
-end
-
 """
     PlotData1D
 
@@ -117,27 +117,6 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pds::PlotDataSeries2D)
-  @nospecialize pds # reduce precompilation time
-
-  print(io, "PlotDataSeries2D{", typeof(pds.plot_data), "}(<plot_data::PlotData2D>, ",
-        pds.variable_id, ")")
-end
-
-# Store multiple PlotData1D objects in one PlotDataSeries1D.
-# This is used for multi-variable equations.
-struct PlotDataSeries1D{PD<:PlotData1D}
-  plot_data::PD
-  variable_id::Int
-end
-
-# Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pds::PlotDataSeries1D)
-  print(io, "PlotDataSeries1D{", typeof(pds.plot_data), "}(<plot_data::PlotData1D>, ",
-        pds.variable_id, ")")
-end
-
-# Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData1D)
   print(io, "PlotData1D{",
             typeof(pd.x), ",",
@@ -147,15 +126,37 @@ function Base.show(io::IO, pd::PlotData1D)
             "}(<x>, <data>, <variable_names>, <mesh_vertices_x>)")
 end
 
-
-# A struct to store all relevant information about the mesh of a 1D equations, which is needed to plot the mesh.
-struct PlotMesh1D{PD<:PlotData1D}
+# Auxiliary data structure for visualizing a single variable
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+struct PlotDataSeries{PD<:AbstractPlotData}
   plot_data::PD
+  variable_id::Int
 end
 
-# Show a PlotMesh1D in a convenient way.
-function Base.show(io::IO, pm::PlotMesh1D)
-  print(io, "PlotMesh1D{", typeof(pm.plot_data), "}(<plot_data::PlotData1D>)")
+const PlotDataSeries1D{PD} = PlotDataSeries{PD} where {PD <: AbstractPlotData{1}}
+const PlotDataSeries2D{PD} = PlotDataSeries{PD} where {PD <: AbstractPlotData{2}}
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pds::PlotDataSeries)
+  @nospecialize pds # reduce precompilation time
+
+  print(io, "PlotDataSeries{", typeof(pds.plot_data), "}(<plot_data>, ",
+        pds.variable_id, ")")
+end
+
+# Generic PlotMesh wrapper type.
+struct PlotMesh{PD<:AbstractPlotData}
+  plot_data::PD
+end
+const PlotMesh1D{PD} = PlotMesh{PD} where {PD <: AbstractPlotData{1}}
+const PlotMesh2D{PD} = PlotMesh{PD} where {PD <: AbstractPlotData{2}}
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pm::PlotMesh)
+  @nospecialize pm # reduce precompilation time
+
+  print(io, "PlotMesh{", typeof(pm.plot_data), "}(<plot_data>)")
 end
 
 # Convenience type to allow dispatch on solution objects that were created by Trixi
@@ -173,34 +174,3 @@ const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
   SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
   <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
 
-"""
-    Base.getindex(pd::AbstractPlotData{2}, variable_name)
-
-Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-function Base.getindex(pd::AbstractPlotData{2}, variable_name)
-  variable_id = findfirst(isequal(variable_name), pd.variable_names)
-
-  if isnothing(variable_id)
-    throw(KeyError(variable_name))
-  end
-
-  return PlotDataSeries2D(pd, variable_id)
-end
-
-# Extract a single variable from a PlotData1D object.
-function Base.getindex(pd::PlotData1D, variable_name)
-  variable_id = findfirst(isequal(variable_name), pd.variable_names)
-
-  if isnothing(variable_id)
-    throw(KeyError(variable_name))
-  end
-
-  return PlotDataSeries1D(pd, variable_id)
-end
-
-Base.eltype(pd::AbstractPlotData{1}) = Pair{String, PlotDataSeries1D{typeof(pd)}}
-Base.eltype(pd::AbstractPlotData{2}) = Pair{String, PlotDataSeries2D{typeof(pd)}}

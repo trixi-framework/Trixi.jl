@@ -159,14 +159,14 @@ end
 
 
 """
-    getmesh(pd::PlotData2D)
+    getmesh(pd::AbstractPlotData)
 
 Extract grid lines from `pd` for plotting with `Plots.plot`.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-getmesh(pd::AbstractPlotData{2}) = PlotMesh2D(pd)
+getmesh(pd::AbstractPlotData) = PlotMesh(pd)
 
 # Convert `orientation` into a guide label (see also `_get_orientations`)
 function _get_guide(orientation::Integer)
@@ -417,9 +417,6 @@ end
 function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return PlotData1D(cb.affect!, point_id)
 end
-
-# Extract the grid lines from a PlotData1D object to create a PlotMesh1D.
-getmesh(pd::PlotData1D) = PlotMesh1D(pd)
 
 # Plot a single variable.
 RecipesBase.@recipe function f(pds::PlotDataSeries1D)
