@@ -3,9 +3,9 @@
 Trixi.jl supports numerical approximations on unstructured quadrilateral meshes
 with the [`UnstructuredMesh2D`](@ref) mesh type.
 
-The purpose of this tutorial is to demonstrate how one can use the `UnstructuredMesh2D`
+The purpose of this tutorial is to demonstrate how to use the `UnstructuredMesh2D`
 functionality of Trixi.jl. This begins by running and visualizing an available unstructured
-quadrilateral mesh example. Then, the tutorial will demonstrate how one can
+quadrilateral mesh example. Then, the tutorial will demonstrate how to
 conceptualize a problem with curved boundaries, generate
 a curvilinear mesh using the available software in the Trixi.jl ecosystem,
 and then run a simulation using Trixi.jl on said mesh.
@@ -53,7 +53,7 @@ julia> using Trixi2Vtk
 julia> trixi2vtk("out/solution_000180.h5", output_directory="out")
 ```
 Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
-in your REPL session. The above `trixi2vtk` command will convert the solution file at the final time into a `.vtu` file
+in your REPL session. The `trixi2vtk` command above will convert the solution file at the final time into a `.vtu` file
 which can be read in and visualized with ParaView. Optional arguments for `trixi2vtk` are: (1) Pointing to the `output_directory`
 where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
@@ -98,8 +98,8 @@ The associated `ice_cream_straight_sides.control` file is given below.
    \end{RUN_PARAMETERS}
 
    \begin{BACKGROUND_GRID}
-       x0 = [-4.0, -4.0, 0.0]
-       dx = [0.5, 0.5, 0.0]
+       x0 = [-8.0, -8.0, 0.0]
+       dx = [1.0, 1.0, 0.0]
        N  = [16,16,1]
    \end{BACKGROUND_GRID}
 
@@ -160,8 +160,8 @@ The first block of information in `RUN_PARAMETERS` is
 ```
 The mesh and plot file names will be the files created by HOHQMesh once successfully executed. The stats file name is
 available if you wish to also save a collection of mesh statistics. For this example it is deactivated.
-These file names given within `RUN_PARAMETERS` **should match** that of the control file, although this is not required by
-HOHQMesh it is a useful style convention.
+These file names given within `RUN_PARAMETERS` **should match** that of the control file, and although this is not required by
+HOHQMesh, it is a useful style convention.
 The mesh file format `ISM-v2` in the format currently required by Trixi. The `polynomial order` prescribes the order
 of an interpolant constructed on the Chebyshev-Gauss-Lobatto nodes that is used to represent any curved boundaries on a particular element.
 The plot file format of `skeleton` means that visualizing the plot file will only draw the element boundaries (and no internal nodes).
@@ -194,7 +194,7 @@ The [default parameters of Hooke's law](https://trixi-framework.github.io/HOHQMe
 for the spring-mass-dashpot model have been selected after a fair amount of experimentation across many meshes.
 If you wish to deactivate this feature you can set `smoothing = OFF` (or remove this block from the control file).
 
-After the `CONTROL_INPUT` environment block comes the `MODEL` environment block. It is here where the user can prescribe curved boundary information with either:
+After the `CONTROL_INPUT` environment block comes the `MODEL` environment block. It is here where the user prescribes curved boundary information with either:
 * An `OUTER_BOUNDARY` (covered in the next section of this tutorial).
 * One or more `INNER_BOUNDARIES`.
 
