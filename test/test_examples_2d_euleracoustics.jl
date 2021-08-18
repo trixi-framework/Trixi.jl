@@ -7,7 +7,7 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
-@testset "Acoustic Perturbation coupled with compressible Euler" begin
+@testset "Acoustic perturbation coupled with compressible Euler" begin
   @trixi_testset "elixir_euleracoustics_co-rotating_vortex_pair.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euleracoustics_co-rotating_vortex_pair.jl"),
                         initial_refinement_level=5,

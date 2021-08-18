@@ -26,7 +26,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_2d_euler.jl")
 
   # Compressible Euler coupled with Acoustic Perturbation equations
-  include("test_examples_2d_ape_euler.jl")
+  include("test_examples_2d_euleracoustics.jl")
 end
 
 # Coverage test for all initial conditions
