@@ -184,7 +184,7 @@ end
 # Visualize a single variable in a 2D plot (default: heatmap)
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pds::PlotDataSeries)
+RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
@@ -289,7 +289,7 @@ end
 # Plot all available variables at once for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pd::AbstractPlotData{2})
+RecipesBase.@recipe function f(pd::AbstractPlotData)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
 
@@ -419,7 +419,7 @@ function PlotData1D(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id:
 end
 
 # Plot a single variable.
-RecipesBase.@recipe function f(pds::PlotDataSeries)
+RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{1}})
   @unpack plot_data, variable_id = pds
   @unpack x, data, variable_names, orientation_x = plot_data
 
@@ -451,40 +451,6 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{1}})
 
   # Return data for plotting
   mesh_vertices_x
-end
-
-# This plots all variables by creating a subplot for each of them.
-RecipesBase.@recipe function f(pd::PlotData1D)
-  # Create layout that is as square as possible, when there are more than 3 subplots.
-  # This is done with a preference for more columns than rows if not.
-  if length(pd) <= 3
-    cols = length(pd)
-    rows = 1
-  else
-    cols = ceil(Int, sqrt(length(pd)))
-    rows = ceil(Int, length(pd)/cols)
-  end
-
-  layout := (rows, cols)
-
-  # Plot all existing variables
-  for (i, (variable_name, series)) in enumerate(pd)
-    @series begin
-      subplot := i
-      series
-    end
-  end
-
-  # Fill remaining subplots with empty plot
-  for i in (length(pd)+1):(rows*cols)
-    @series begin
-      subplot := i
-      axis := false
-      ticks := false
-      legend := false
-      []
-    end
-  end
 end
 
 
