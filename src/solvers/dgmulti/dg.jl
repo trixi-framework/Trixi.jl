@@ -38,6 +38,7 @@ end
 @inline eachelement(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
+@inline nnodes(basis::RefElemData) = basis.Np
 @inline each_face_node(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq)
 @inline each_quad_node(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nq)
 
