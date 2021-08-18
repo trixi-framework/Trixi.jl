@@ -40,14 +40,14 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
 end
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
-struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
-  x::Array{Tv, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
-  y::Array{Tv, 2}
-  u::SolutionType # solution container
+struct UnstructuredPlotData2D{DataType, FaceDataType, VariableNames, PlottingTriangulation, RealT} <: AbstractPlotData{2}
+  x::Array{RealT, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Array{RealT, 2}
+  data::DataType
   t::PlottingTriangulation
-  xf::Array{Tv, 2}
-  yf::Array{Tv, 2}
-  uf::FaceSolutionType
+  x_face::Array{RealT, 2}
+  y_face::Array{RealT, 2}
+  face_data::FaceDataType
   variable_names::VariableNames
 end
 

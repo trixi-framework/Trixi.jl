@@ -114,7 +114,7 @@ function global_plotting_triangulation_Makie(pds::PlotDataSeries2D{<:Unstructure
                                              set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
-  @unpack x, y, u, t = pd
+  @unpack x, y, data, t = pd
 
   makie_triangles = Makie.to_triangles(t)
 
@@ -128,7 +128,7 @@ function global_plotting_triangulation_Makie(pds::PlotDataSeries2D{<:Unstructure
       coordinates[i, 1] = x[i, element]
       coordinates[i, 2] = y[i, element]
       if set_z_coordinate_zero == false
-        coordinates[i, 3] = u[i, element][variable_id]
+        coordinates[i, 3] = data[i, element][variable_id]
       end
     end
     trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
@@ -143,12 +143,12 @@ function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D}
                                  set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
-  @unpack xf, yf, uf = pd
+  @unpack x_face, y_face, face_data = pd
 
   if set_z_coordinate_zero
-    sol_f = zeros(eltype(first(uf)), size(xf)) # plot 2d surface by setting z coordinate to zero
+    sol_f = zeros(eltype(first(face_data)), size(face_data)) # plot 2d surface by setting z coordinate to zero
   else
-    sol_f = StructArrays.component(uf, variable_id)
+    sol_f = StructArrays.component(face_data, variable_id)
   end
 
   # This line separates solution lines on each edge by NaNs to ensure that they are rendered
@@ -156,7 +156,7 @@ function mesh_plotting_wireframe(pds::PlotDataSeries2D{<:UnstructuredPlotData2D}
   # whose columns correspond to different elements. We add NaN separators by appending a row of
   # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
   # plotting.
-  xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (xf, yf, sol_f))...)
+  xyz_wireframe = Makie.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face, sol_f))...)
 
   return xyz_wireframe
 end
@@ -274,7 +274,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
 
   @unpack variable_id = pds
   pd = pds.plot_data
-  solution_z = vec(StructArrays.component(pd.u, variable_id))
+  solution_z = vec(StructArrays.component(pd.data, variable_id))
   Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false)
 
   # Makie hides keyword arguments within `myplot`; see also

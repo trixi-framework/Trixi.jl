@@ -573,13 +573,13 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   # construct a triangulation of the reference plotting nodes
   t = reference_plotting_triangulation(rd.rstp) # rd.rstp = reference coordinates of plotting points
 
-  xfplot, yfplot = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
+  x_face, y_face = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
 
   # Set the plotting values of solution on faces to nothing - they're not used for Plots.jl since
   # only 2D heatmap plots are supported through TriplotBase/TriplotRecipes.
-  ufplot = nothing
+  face_data = nothing
 
-  return UnstructuredPlotData2D(x_plot, y_plot, u_plot, t, xfplot, yfplot, ufplot, variable_names)
+  return UnstructuredPlotData2D(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
 end
 
 # Series recipe for UnstructuredPlotData2D
@@ -587,12 +587,12 @@ RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
 
   pd = pds.plot_data
   @unpack variable_id = pds
-  @unpack x, y, u, t, variable_names = pd
+  @unpack x, y, data, t, variable_names = pd
 
   # extract specific solution field to plot
-  u_field = zeros(eltype(first(u)), size(u))
-  for (i, u_i) in enumerate(u)
-    u_field[i] = u_i[variable_id]
+  data_field = zeros(eltype(first(data)), size(data))
+  for (i, data_i) in enumerate(data)
+    data_field[i] = data_i[variable_id]
   end
 
   legend --> false
@@ -605,16 +605,16 @@ RecipesBase.@recipe function f(pds::PlotDataSeries2D{<:UnstructuredPlotData2D})
   seriestype --> :heatmap
   colorbar --> :true
 
-  return DGTriPseudocolor(global_plotting_triangulation_Triplot((x, y), u_field, t)...)
+  return DGTriPseudocolor(global_plotting_triangulation_Triplot((x, y), data_field, t)...)
 end
 
 # Visualize a 2D mesh given an `UnstructuredPlotData2D` object
 @recipe function f(pm::PlotMesh2D{<:UnstructuredPlotData2D})
   pd = pm.plot_data
-  @unpack xf, yf = pd
+  @unpack x_face, y_face = pd
 
-  xlims --> extrema(xf)
-  ylims --> extrema(yf)
+  xlims --> extrema(x_face)
+  ylims --> extrema(y_face)
   aspect_ratio --> :equal
   legend -->  :none
 
@@ -623,7 +623,7 @@ end
   linecolor --> :grey
   linewidth --> 1
 
-  return xf, yf
+  return x_face, y_face
 end
 
 RecipesBase.@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
