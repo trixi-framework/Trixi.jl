@@ -20,38 +20,6 @@ function Base.iterate(pd::AbstractPlotData, state=1)
 end
 
 """
-    Base.getindex(pd::AbstractPlotData{2}, variable_name)
-
-Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-function Base.getindex(pd::AbstractPlotData{2}, variable_name)
-  variable_id = findfirst(isequal(variable_name), pd.variable_names)
-
-  if isnothing(variable_id)
-    throw(KeyError(variable_name))
-  end
-
-  return PlotDataSeries2D(pd, variable_id)
-end
-
-# Extract a single variable from a PlotData1D object.
-function Base.getindex(pd::PlotData1D, variable_name)
-  variable_id = findfirst(isequal(variable_name), pd.variable_names)
-
-  if isnothing(variable_id)
-    throw(KeyError(variable_name))
-  end
-
-  return PlotDataSeries1D(pd, variable_id)
-end
-
-Base.eltype(pd::AbstractPlotData{1}) = Pair{String, PlotDataSeries1D}
-Base.eltype(pd::AbstractPlotData{2}) = Pair{String, PlotDataSeries2D}
-
-"""
     PlotData2D
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
@@ -204,3 +172,34 @@ const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
   SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
   <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
 
+"""
+    Base.getindex(pd::AbstractPlotData{2}, variable_name)
+
+Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+function Base.getindex(pd::AbstractPlotData{2}, variable_name)
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
+  end
+
+  return PlotDataSeries2D(pd, variable_id)
+end
+
+# Extract a single variable from a PlotData1D object.
+function Base.getindex(pd::PlotData1D, variable_name)
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
+  end
+
+  return PlotDataSeries1D(pd, variable_id)
+end
+
+Base.eltype(pd::AbstractPlotData{1}) = Pair{String, PlotDataSeries1D}
+Base.eltype(pd::AbstractPlotData{2}) = Pair{String, PlotDataSeries2D}
