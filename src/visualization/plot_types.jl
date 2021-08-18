@@ -39,6 +39,18 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
   orientation_y::Int
 end
 
+# holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
+struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
+  x::Array{Tv, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Array{Tv, 2}
+  u::SolutionType # solution container
+  t::PlottingTriangulation
+  xf::Array{Tv, 2}
+  yf::Array{Tv, 2}
+  uf::FaceSolutionType
+  variable_names::VariableNames
+end
+
 # Auxiliary data structure for visualizing a single variable
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
@@ -59,17 +71,6 @@ function Base.show(io::IO, pd::PlotData2D)
             "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
 end
 
-# holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
-struct UnstructuredPlotData2D{SolutionType, FaceSolutionType, VariableNames, PlottingTriangulation, Tv} <: AbstractPlotData{2}
-  x::Array{Tv, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
-  y::Array{Tv, 2}
-  u::SolutionType # solution container
-  t::PlottingTriangulation
-  xf::Array{Tv, 2}
-  yf::Array{Tv, 2}
-  uf::FaceSolutionType
-  variable_names::VariableNames
-end
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::UnstructuredPlotData2D)
