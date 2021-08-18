@@ -12,7 +12,7 @@ initial_condition = initial_condition_briowu_shock_tube
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 surface_flux = flux_hll
-volume_flux  = flux_hindenlang_gassner
+volume_flux  = flux_derigs_etal
 basis = LobattoLegendreBasis(4)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -73,7 +73,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.7)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
