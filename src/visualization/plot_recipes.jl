@@ -607,6 +607,13 @@ end
   pd = pm.plot_data
   @unpack x_face, y_face = pd
 
+  # This line separates solution lines on each edge by NaNs to ensure that they are rendered
+  # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
+  # whose columns correspond to different elements. We add NaN separators by appending a row of
+  # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
+  # plotting.
+  x_face, y_face = map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face))
+
   xlims --> extrema(x_face)
   ylims --> extrema(y_face)
   aspect_ratio --> :equal
