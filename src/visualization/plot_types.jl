@@ -61,18 +61,6 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
   orientation_y::Int
 end
 
-# holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
-struct UnstructuredPlotData2D{DataType, FaceDataType, VariableNames, PlottingTriangulation, RealT} <: AbstractPlotData{2}
-  x::Array{RealT, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
-  y::Array{RealT, 2}
-  data::DataType
-  t::PlottingTriangulation
-  x_face::Array{RealT, 2}
-  y_face::Array{RealT, 2}
-  face_data::FaceDataType
-  variable_names::VariableNames
-end
-
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData2D)
   @nospecialize pd # reduce precompilation time
@@ -85,6 +73,18 @@ function Base.show(io::IO, pd::PlotData2D)
             "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
 end
 
+
+# holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
+struct UnstructuredPlotData2D{DataType, FaceDataType, VariableNames, PlottingTriangulation, RealT} <: AbstractPlotData{2}
+  x::Array{RealT, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::Array{RealT, 2}
+  data::DataType
+  t::PlottingTriangulation
+  x_face::Array{RealT, 2}
+  y_face::Array{RealT, 2}
+  face_data::FaceDataType
+  variable_names::VariableNames
+end
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::UnstructuredPlotData2D)
