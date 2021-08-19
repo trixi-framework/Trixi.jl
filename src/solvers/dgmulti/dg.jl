@@ -38,6 +38,7 @@ end
 @inline eachelement(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
+@inline nnodes(basis::RefElemData) = basis.Np
 @inline each_face_node(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq)
 @inline each_quad_node(mesh::AbstractMeshData, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nq)
 
@@ -48,6 +49,7 @@ end
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
+wrap_array_native(u_ode, mesh::AbstractMeshData, equations, dg::DGMulti, cache) = u_ode
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}, mesh::AbstractMeshData,
                                     dg::DGMulti, cache) where {Keys,ValueTypes<:NTuple{N,Any}} where {N}
   return boundary_conditions

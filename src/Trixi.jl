@@ -50,6 +50,8 @@ using StrideArrays: PtrArray, StrideArray, StaticInt
 using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
+using TriplotBase: TriplotBase
+using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
@@ -62,7 +64,6 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
-
 
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
@@ -217,7 +218,7 @@ function __init__()
   end
 
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
-    include("visualization/makie_visualization.jl")
+    include("visualization/recipes_makie.jl")
     using .Makie: Makie
     export iplot # interactive plot
   end
