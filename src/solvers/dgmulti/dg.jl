@@ -23,7 +23,8 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 # StructArray fallback
 @inline apply_to_each_field(f, args...) = StructArrays.foreachfield(f, args...)
 
-# specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}.
+# specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}
+# solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
 @inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
   for (i, x_i) in enumerate(x)
