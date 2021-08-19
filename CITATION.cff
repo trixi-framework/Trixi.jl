@@ -1,0 +1,65 @@
+cff-version: 1.2.0
+message: "Please cite both the paper from 'preferred-citation' and the software itself."
+title: Trixi.jl
+abstract: "Adaptive high-order numerical simulations of hyperbolic PDEs in Julia"
+repository: https://github.com/trixi-framework/Trixi.jl
+url: https://trixi-framework.github.io/Trixi.jl/stable/
+authors:
+  - name: "The Trixi Authors"
+contact:
+  - family-names: Schlottke-Lakemper
+    given-names: Michael
+    affiliation: "Department of Mathematics and Computer Science, University of Cologne, Germany"
+    email: mschlott@math.uni-koeln.de
+    website: https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper
+    orcid: https://orcid.org/0000-0002-3195-2536
+  - family-names: Gassner
+    given-names: Gregor J.
+    affiliation: "Department of Mathematics and Computer Science, University of Cologne, Germany"
+    email: ggassner@uni-koeln.de
+    website: https://www.mi.uni-koeln.de/NumSim/gregor-gassner
+    orcid: https://orcid.org/0000-0002-1752-1158
+  - family-names: Ranocha
+    given-names: Hendrik
+    affiliation: "Applied Mathematics Münster, University of Münster, Germany"
+    email: mail@ranocha.de
+    website: https://ranocha.de
+    orcid: https://orcid.org/0000-0002-3456-2277
+  - family-names: Winters
+    given-names: Andrew R.
+    affiliation: "Department of Mathematics; Computational Mathematics, Linköping University, Sweden"
+    email: andrew.ross.winters@liu.se
+    website: https://liu.se/en/employee/andwi94
+    orcid: https://orcid.org/0000-0002-5902-1522
+doi: 10.5281/zenodo.3996439
+type: software
+license: MIT
+keywords:
+  - Julia
+  - AMR
+  - "conservation laws"
+  - "discontinuous Galerkin"
+  - "adaptive mesh refinement"
+  - "numerical simulation framework"
+preferred-citation:
+  title: A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  authors:
+    - family-names: Schlottke-Lakemper
+      given-names: Michael
+      orcid: https://orcid.org/0000-0002-3195-2536
+    - family-names: Ranocha
+      given-names: Hendrik
+      orcid: https://orcid.org/0000-0002-3456-2277
+    - family-names: Winters
+      given-names: Andrew R.
+      orcid: https://orcid.org/0000-0002-5902-1522
+    - family-names: Gassner
+      given-names: Gregor J.
+      orcid: https://orcid.org/0000-0002-1752-1158
+  type: article
+  journal: "Journal of Computational Physics"
+  pages: 110467
+  volume: 442
+  year: 2021
+  doi: 10.1016/j.jcp.2021.110467
+  repository-code: https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics

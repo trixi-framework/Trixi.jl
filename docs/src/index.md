@@ -280,6 +280,7 @@ with the help of Trixi, please cite the following articles:
           Ranocha, Hendrik and Gassner, Gregor J},
   journal={Journal of Computational Physics},
   pages={110467},
+  volume={442},
   year={2021},
   month={06},
   publisher={Elsevier},
