@@ -9,7 +9,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_isentropic_vortex
 
-volume_flux = flux_kennedy_gruber
+volume_flux = flux_shima_etal
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
