@@ -156,37 +156,38 @@ than can increase your productivity in the Julia REPL.
   for function arguments.
   ```julia-repl
   julia> flux_ranocha( # and TAB
-  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D) in Trixi at ~/.julia/dev/Trixi/src/equations/1d/compressible_euler.jl:416
-  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:865
-  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D) in Trixi at ~/.julia/dev/Trixi/src/equations/3d/compressible_euler.jl:710
+  flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D) in Trixi at ~/.julia/dev/Trixi/src/equations/compressible_euler_1d.jl:390
+  flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/compressible_euler_2d.jl:839
+  [...]
   ```
 - Use `methodswith` to discover methods associated to a given type etc.
   ```julia-repl
   julia> methodswith(CompressibleEulerEquations2D)
-  [1] initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:38
+  [1] initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/compressible_euler_2d.jl:51
   [...]
   ```
 - Use `@which` (or `@edit`) for method calls.
   ```julia-repl
   julia> @which trixi_include(default_example())
-  trixi_include(elixir::AbstractString; kwargs...) in Trixi at ~/.julia/dev/Trixi/src/run.jl:72
+  trixi_include(elixir::AbstractString; kwargs...) in Trixi at ~/.julia/dev/Trixi/src/auxiliary/special_elixirs.jl:36
   ```
 - Use `apropos` to search through the documentation and docstrings.
   ```julia-repl
-  julia> apropos("MHD") # TODO: nonconservative terms. Update this once the old code is removed
-  Trixi.initial_condition_constant
-  Trixi.initial_condition_rotor
-  Trixi.IdealGlmMhdEquations2D
-  Trixi.initial_condition_jeans_instability
+  julia> apropos("MHD")
   Trixi.IdealGlmMhdEquations3D
-  Trixi.flux_derigs_etal
-  Trixi.initial_condition_weak_blast_wave
-  Trixi.initial_condition_blast_wave
-  Trixi.initial_condition_convergence_test
-  Trixi.noncons_interface_flux
-  Trixi.initial_condition_orszag_tang
+  Trixi.IdealGlmMhdMulticomponentEquations2D
   Trixi.calc_fast_wavespeed_roe
-  Trixi.flux_hll
+  Trixi.IdealGlmMhdEquations1D
+  Trixi.initial_condition_constant
+  Trixi.flux_nonconservative_powell
+  Trixi.GlmSpeedCallback
+  Trixi.flux_derigs_etal
+  Trixi.flux_hindenlang_gassner
+  Trixi.initial_condition_convergence_test
+  Trixi.min_max_speed_naive
+  Trixi.IdealGlmMhdEquations2D
+  Trixi.IdealGlmMhdMulticomponentEquations1D
+  [...]
   ```
 
 

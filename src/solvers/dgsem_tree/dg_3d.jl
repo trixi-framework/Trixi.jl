@@ -38,52 +38,7 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-  create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
-end
-
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}},
-                      nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
-end
-
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}},
-                      nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
-
-  # TODO: nonconservative terms: clean-up and remove unused stuff
-  A = Array{uEltype, 5}
-  f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                  for _ in 1:Threads.nthreads()]
-  f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                  for _ in 1:Threads.nthreads()]
-  f3_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                  for _ in 1:Threads.nthreads()]
-
-  A3d = Array{uEltype, 3}
-  fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_upper_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_lower_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_lower_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_tmp1_threaded        = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-
-  return (; f1_threaded, f2_threaded, f3_threaded,
-            fstar_upper_left_threaded, fstar_upper_right_threaded,
-            fstar_lower_left_threaded, fstar_lower_right_threaded,
-            fstar_tmp1_threaded,
-            noncons_diamond_upper_left_threaded, noncons_diamond_upper_right_threaded,
-            noncons_diamond_lower_left_threaded, noncons_diamond_lower_right_threaded,)
 end
 
 
@@ -241,70 +196,6 @@ function calc_volume_integral!(du, u,
 end
 
 
-# Calculate 3D twopoint flux (element version)
-# TODO: nonconservative terms; remove
-@inline function calcflux_twopoint!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
-                                    mesh::TreeMesh{3}, equations, volume_flux, dg::DG, cache)
-
-  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    # Pull the solution values at the node i,j,k
-    u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    # diagonal (consistent) part not needed since diagonal of
-    # dg.basis.derivative_split_transpose is zero!
-    set_node_vars!(f1, zero(u_node), equations, dg, i, i, j, k)
-    set_node_vars!(f2, zero(u_node), equations, dg, j, i, j, k)
-    set_node_vars!(f3, zero(u_node), equations, dg, k, i, j, k)
-
-    # Flux in x-direction
-    for ii in (i+1):nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i,  j, k, element)
-      u_rr = get_node_vars(u, equations, dg, ii, j, k, element)
-      flux = volume_flux(u_ll, u_rr, 1, equations) # 1-> x-direction
-      set_node_vars!(f1, flux, equations, dg, i, ii, j, k)
-      set_node_vars!(f1, flux, equations, dg, ii, i, j, k)
-    end
-
-    # Flux in y-direction
-    for jj in (j+1):nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i, j,  k, element)
-      u_rr = get_node_vars(u, equations, dg, i, jj, k, element)
-      flux = volume_flux(u_ll, u_rr, 2, equations) # 2 -> y-direction
-      set_node_vars!(f2, flux, equations, dg, j, i, jj, k)
-      set_node_vars!(f2, flux, equations, dg, jj, i, j, k)
-    end
-
-    # Flux in z-direction
-    for kk in (k+1):nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i, j, k,  element)
-      u_rr = get_node_vars(u, equations, dg, i, j, kk, element)
-      flux = volume_flux(u_ll, u_rr, 3, equations) # 3 -> z-direction
-      set_node_vars!(f3, flux, equations, dg, k, i, j, kk)
-      set_node_vars!(f3, flux, equations, dg, kk, i, j, k)
-    end
-  end
-
-  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
-                                     have_nonconservative_terms(equations),
-                                     mesh, equations, dg, cache)
-end
-
-function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
-                                            nonconservative_terms::Val{false},
-                                            mesh::Union{TreeMesh{3}, StructuredMesh{3}},
-                                            equations, dg::DG, cache)
-  return nothing
-end
-
-function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
-                                            nonconservative_terms::Val{true},
-                                            mesh::TreeMesh{3},
-                                            equations, dg::DG, cache)
-  #TODO: nonconservative terms; remove
-  # Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-  # For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, equations, dg, cache)
-end
-
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
@@ -361,45 +252,10 @@ end
   end
 end
 
-# TODO: nonconservative terms; remove
-@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    element, mesh::Union{TreeMesh{3}, StructuredMesh{3}},
-                                    nonconservative_terms::Val{true}, equations,
-                                    volume_flux, dg::DGSEM, cache, alpha=true)
-  @unpack derivative_split_transpose = dg.basis
-  @unpack f1_threaded, f2_threaded, f3_threaded = cache
-
-  # Choose thread-specific pre-allocated container
-  f1 = f1_threaded[Threads.threadid()]
-  f2 = f2_threaded[Threads.threadid()]
-  f3 = f3_threaded[Threads.threadid()]
-
-  # Calculate volume fluxes (one more dimension than weak form)
-  calcflux_twopoint!(f1, f2, f3, u, element, mesh, equations, volume_flux, dg, cache)
-
-  # Calculate volume integral in one element
-  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    for v in eachvariable(equations)
-      # Use local accumulator to improve performance
-      acc = zero(eltype(du))
-      for l in eachnode(dg)
-        acc += (derivative_split_transpose[l, i] * f1[v, l, i, j, k] +
-                derivative_split_transpose[l, j] * f2[v, l, i, j, k] +
-                derivative_split_transpose[l, k] * f3[v, l, i, j, k] )
-      end
-      du[v, i, j, k, element] += alpha * acc
-    end
-  end
-
-  return nothing
-end
-
-# TODO: nonconservative terms; remove type restriction on the volume_flux
-#       used for dispatch for development
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
                                     element, mesh::TreeMesh{3},
                                     nonconservative_terms::Val{true}, equations,
-                                    volume_flux::Tuple{Any,Any}, dg::DGSEM, cache, alpha=true)
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -633,71 +489,10 @@ function calc_interface_flux!(surface_flux_values,
   end
 end
 
-# TODO: nonconservative terms, remove
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{3},
                               nonconservative_terms::Val{true}, equations,
                               surface_integral, dg::DG, cache)
-  @unpack surface_flux = surface_integral
-  @unpack u, neighbor_ids, orientations = cache.interfaces
-  fstar_threaded                     = cache.fstar_upper_left_threaded
-  noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_left_threaded
-  noncons_diamond_secondary_threaded = cache.noncons_diamond_upper_right_threaded
-
-  @threaded for interface in eachinterface(dg, cache)
-    # Choose thread-specific pre-allocated container
-    fstar                     = fstar_threaded[Threads.threadid()]
-    noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
-    noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
-
-    # Calculate flux
-    calc_fstar!(fstar, equations, surface_flux, dg, u, interface, orientations[interface])
-
-    # Compute the nonconservative numerical "flux" along an interface
-    # Done twice because left/right orientation matters så
-    # 1 -> primary element and 2 -> secondary element
-    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    for j in eachnode(dg), i in eachnode(dg)
-      # Call pointwise nonconservative term
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
-      noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[interface], equations)
-      noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[interface], equations)
-      # Save to primary and secondary temporay storage
-      set_node_vars!(noncons_diamond_primary,   noncons_primary,   equations, dg, i, j)
-      set_node_vars!(noncons_diamond_secondary, noncons_secondary, equations, dg, i, j)
-    end
-
-    # Get neighboring elements
-    left_neighbor  = neighbor_ids[1, interface]
-    right_neighbor = neighbor_ids[2, interface]
-
-    # Determine interface direction with respect to elements:
-    # orientation = 1: left -> 2, right -> 1
-    # orientation = 2: left -> 4, right -> 3
-    # orientation = 3: left -> 6, right -> 5
-    left_neighbor_direction  = 2 * orientations[interface]
-    right_neighbor_direction = 2 * orientations[interface] - 1
-
-    # Copy flux to left and right element storage
-    for j in eachnode(dg), i in eachnode(dg)
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, j, left_neighbor_direction,  left_neighbor]  = (fstar[v, i, j] +
-            noncons_diamond_primary[v, i, j])
-        surface_flux_values[v, i, j, right_neighbor_direction, right_neighbor] = (fstar[v, i, j] +
-            noncons_diamond_secondary[v, i, j])
-      end
-    end
-  end
-
-  return nothing
-end
-
-# TODO: nonconservative terms, remove type restriction on surface_integral used
-#       for dispatch for development
-function calc_interface_flux!(surface_flux_values,
-                              mesh::TreeMesh{3},
-                              nonconservative_terms::Val{true}, equations,
-                              surface_integral::SurfaceIntegralWeakForm{<:Tuple{Any,Any}}, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
   @unpack u, neighbor_ids, orientations = cache.interfaces
 
@@ -1026,125 +821,11 @@ function calc_mortar_flux!(surface_flux_values,
   return nothing
 end
 
-# TODO: nonconservative terms, remove
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
                            nonconservative_terms::Val{true}, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
-  @unpack surface_flux = surface_integral
-  @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
-  @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
-           fstar_lower_left_threaded, fstar_lower_right_threaded,
-           noncons_diamond_upper_left_threaded, noncons_diamond_upper_right_threaded,
-           noncons_diamond_lower_left_threaded, noncons_diamond_lower_right_threaded,
-           fstar_tmp1_threaded) = cache
-
-  @threaded for mortar in eachmortar(dg, cache)
-    # Choose thread-specific pre-allocated container
-    fstar_upper_left  = fstar_upper_left_threaded[Threads.threadid()]
-    fstar_upper_right = fstar_upper_right_threaded[Threads.threadid()]
-    fstar_lower_left  = fstar_lower_left_threaded[Threads.threadid()]
-    fstar_lower_right = fstar_lower_right_threaded[Threads.threadid()]
-    fstar_tmp1        = fstar_tmp1_threaded[Threads.threadid()]
-
-    noncons_diamond_upper_left  = noncons_diamond_upper_left_threaded[Threads.threadid()]
-    noncons_diamond_upper_right = noncons_diamond_upper_right_threaded[Threads.threadid()]
-    noncons_diamond_lower_left  = noncons_diamond_lower_left_threaded[Threads.threadid()]
-    noncons_diamond_lower_right = noncons_diamond_lower_right_threaded[Threads.threadid()]
-
-    # Calculate fluxes
-    orientation = orientations[mortar]
-    calc_fstar!(fstar_upper_left,  equations, surface_flux, dg, u_upper_left,  mortar, orientation)
-    calc_fstar!(fstar_upper_right, equations, surface_flux, dg, u_upper_right, mortar, orientation)
-    calc_fstar!(fstar_lower_left,  equations, surface_flux, dg, u_lower_left,  mortar, orientation)
-    calc_fstar!(fstar_lower_right, equations, surface_flux, dg, u_lower_right, mortar, orientation)
-
-    # Compute the nonconservative numerical terms along the upper/lower interfaces
-    # Done twice because left/right orientation matters
-    # 1 -> primary element and 2 -> secondary element
-    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-      for j in eachnode(dg), i in eachnode(dg)
-        # pull the left/right solutions of the four faces
-        u_upper_left_ll,  u_upper_left_rr  = get_surface_node_vars(u_upper_left,  equations, dg, i, j, mortar)
-        u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right, equations, dg, i, j, mortar)
-        u_lower_left_ll,  u_lower_left_rr  = get_surface_node_vars(u_lower_left,  equations, dg, i, j, mortar)
-        u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right, equations, dg, i, j, mortar)
-        # compute pointwise nonconservative terms
-        noncons_upper_left  = noncons_interface_flux(u_upper_left_ll,  u_upper_left_rr,
-                                                      orientations[mortar], equations)
-        noncons_upper_right = noncons_interface_flux(u_upper_right_ll, u_upper_right_rr,
-                                                      orientations[mortar], equations)
-        noncons_lower_left  = noncons_interface_flux(u_lower_left_ll,  u_lower_left_rr,
-                                                      orientations[mortar], equations)
-        noncons_lower_right = noncons_interface_flux(u_lower_right_ll, u_lower_right_rr,
-                                                      orientations[mortar], equations)
-        # Save into temporay storage
-        set_node_vars!(noncons_diamond_upper_left,  noncons_upper_left,  equations, dg, i, j)
-        set_node_vars!(noncons_diamond_upper_right, noncons_upper_right, equations, dg, i, j)
-        set_node_vars!(noncons_diamond_lower_left,  noncons_lower_left,  equations, dg, i, j)
-        set_node_vars!(noncons_diamond_lower_right, noncons_lower_right, equations, dg, i, j)
-      end
-    else # large_sides[mortar] == 2 -> small elements on the left
-      for j in eachnode(dg), i in eachnode(dg)
-        # pull the left/right solutions of the four faces
-        u_upper_left_ll,  u_upper_left_rr  = get_surface_node_vars(u_upper_left,  equations, dg, i, j, mortar)
-        u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right, equations, dg, i, j, mortar)
-        u_lower_left_ll,  u_lower_left_rr  = get_surface_node_vars(u_lower_left,  equations, dg, i, j, mortar)
-        u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right, equations, dg, i, j, mortar)
-        # compute pointwise nonconservative terms
-        noncons_upper_left  = noncons_interface_flux(u_upper_left_rr,  u_upper_left_ll,
-                                                      orientations[mortar], equations)
-        noncons_upper_right = noncons_interface_flux(u_upper_right_rr, u_upper_right_ll,
-                                                      orientations[mortar], equations)
-        noncons_lower_left  = noncons_interface_flux(u_lower_left_rr,  u_lower_left_ll,
-                                                      orientations[mortar], equations)
-        noncons_lower_right = noncons_interface_flux(u_lower_right_rr, u_lower_right_ll,
-                                                      orientations[mortar], equations)
-        # Save into temporay storage
-        set_node_vars!(noncons_diamond_upper_left,  noncons_upper_left,  equations, dg, i, j)
-        set_node_vars!(noncons_diamond_upper_right, noncons_upper_right, equations, dg, i, j)
-        set_node_vars!(noncons_diamond_lower_left,  noncons_lower_left,  equations, dg, i, j)
-        set_node_vars!(noncons_diamond_lower_right, noncons_lower_right, equations, dg, i, j)
-      end
-    end
-
-    # the code below is equivalent to
-    # @. fstar_upper_left  += noncons_diamond_upper_left
-    # @. fstar_upper_right += noncons_diamond_upper_right
-    # @. fstar_lower_left  += noncons_diamond_lower_left
-    # @. fstar_lower_right += noncons_diamond_lower_right
-    # but slightly faster
-    for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      fstar_upper_left[v, i, j]  += noncons_diamond_upper_left[v, i, j]
-    end
-    for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      fstar_upper_right[v, i, j] += noncons_diamond_upper_right[v, i, j]
-    end
-    for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      fstar_lower_left[v, i, j]  += noncons_diamond_lower_left[v, i, j]
-    end
-    for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      fstar_lower_right[v, i, j] += noncons_diamond_lower_right[v, i, j]
-    end
-    mortar_fluxes_to_elements!(surface_flux_values,
-                               mesh, equations, mortar_l2, dg, cache, mortar,
-                               fstar_upper_left, fstar_upper_right,
-                               fstar_lower_left, fstar_lower_right,
-                               fstar_tmp1)
-  end
-
-  return nothing
-end
-
-# TODO: nonconservative terms, remove type restriction on surface_integral used
-#       for dispatch for development
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::TreeMesh{3},
-                           nonconservative_terms::Val{true}, equations,
-                           mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral::SurfaceIntegralWeakForm{<:Tuple{Any,Any}}, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
   @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations, large_sides = cache.mortars
   @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,

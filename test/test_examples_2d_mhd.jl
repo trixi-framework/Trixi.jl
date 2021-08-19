@@ -71,16 +71,6 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [1.5831869462980066, 44.20237543674303, 12.866364462538552, 0.0, 2237.8614138686, 13.066894956593798, 8.984965484247244, 0.0, 0.5226498664960756],
       tspan = (0.0, 0.003))
   end
-
-  # TODO: nonconservative terms, remove
-  @trixi_testset "elixir_mhd_orszag_tang.jl with old nonconservative stuff" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
-      l2   = [0.21671818699492046, 0.26364533451882755, 0.31388339884931576, 0.0, 0.5122729051056656, 0.2291828683723837, 0.34308184804821307, 0.0, 0.003210081660131638],
-      linf = [1.2648775120640154, 0.673836824735164, 0.8585376516993447, 0.0, 2.8148181376188246, 0.657323372510843, 0.9595541188847632, 0.0, 0.0525390951527749],
-      tspan = (0.0, 0.09),
-      surface_flux = flux_lax_friedrichs,
-      volume_flux  = flux_central)
-  end
 end
 
 end # module

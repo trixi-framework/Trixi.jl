@@ -229,47 +229,6 @@ end
 end
 
 
-# TODO: nonconservative terms, remove
-# Calculate the nonconservative terms from Powell and Galilean invariance
-# OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
-                                                    equations::IdealGlmMhdEquations3D, dg, cache)
-  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, k, element)
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-
-    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
-
-    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    # x-direction
-    phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
-    # y-direction
-    phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
-    # z-direction
-    phi_gal_z = 0.5 * SVector(0, 0, 0, 0, v3*psi, 0, 0, 0, v3)
-
-    # add both nonconservative terms into the volume
-    for l in eachnode(dg)
-      _, _, _, _, _, B1, _, _, psi = get_node_vars(u, equations, dg, l, j, k, element)
-      for v in eachvariable(equations)
-        f1[v, l, i, j, k] += phi_pow[v] * B1 + phi_gal_x[v] * psi
-      end
-      _, _, _, _, _, _, B2, _, psi = get_node_vars(u, equations, dg, i, l, k, element)
-      for v in eachvariable(equations)
-        f2[v, l, i, j, k] += phi_pow[v] * B2 + phi_gal_y[v] * psi
-      end
-      _, _, _, _, _, _, _, B3, psi = get_node_vars(u, equations, dg, i, j, l, element)
-      for v in eachvariable(equations)
-        f3[v, l, i, j, k] += phi_pow[v] * B3 + phi_gal_z[v] * psi
-      end
-    end
-  end
-
-  return nothing
-end
 
 """
     flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
@@ -377,66 +336,6 @@ end
   return f
 end
 
-
-# TODO: nonconservative terms, remove
-# Calculate the nonconservative terms from Powell and Galilean invariance for StructuredMesh{3}
-# OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, contravariant_vectors,
-                                                    equations::IdealGlmMhdEquations3D, dg, cache)
-   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, k, element)
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-
-    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
-
-    # Galilean nonconservative term: Φ^Gal_{1,2,3} = (0, 0, 0, 0, ψ v⋅n, 0, 0, 0, v⋅n)
-    # first direction
-    Ja11_ijk, Ja12_ijk, Ja13_ijk = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
-    phi_gal_x = 0.5*(Ja11_ijk*v1 + Ja12_ijk*v2 + Ja13_ijk*v3).*SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
-    # second direction
-    Ja21_ijk, Ja22_ijk, Ja23_ijk = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
-    phi_gal_y = 0.5*(Ja21_ijk*v1 + Ja22_ijk*v2 + Ja23_ijk*v3).*SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
-    # third direction
-    Ja31_ijk, Ja32_ijk, Ja33_ijk = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
-    phi_gal_z = 0.5*(Ja31_ijk*v1 + Ja32_ijk*v2 + Ja33_ijk*v3).*SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
-
-    # add both nonconservative terms into the volume
-    for l in eachnode(dg)
-      _, _, _, _, _, B1, B2, B3, psi = get_node_vars(u, equations, dg, l, j, k, element)
-      Ja11_ljk, Ja12_ljk, Ja13_ljk = get_contravariant_vector(1, contravariant_vectors, l, j, k, element)
-      Ja11_avg = 0.5 * (Ja11_ijk + Ja11_ljk)
-      Ja12_avg = 0.5 * (Ja12_ijk + Ja12_ljk)
-      Ja13_avg = 0.5 * (Ja13_ijk + Ja13_ljk)
-      for v in eachvariable(equations)
-        f1[v, l, i, j, k] += ( phi_pow[v] * (Ja11_avg * B1 + Ja12_avg * B2 + Ja13_avg * B3) +
-                               phi_gal_x[v] * psi )
-      end
-      _, _, _, _, _, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, l, k, element)
-      Ja21_ilk, Ja22_ilk, Ja23_ilk = get_contravariant_vector(2, contravariant_vectors, i, l, k, element)
-      Ja21_avg = 0.5 * (Ja21_ijk + Ja21_ilk)
-      Ja22_avg = 0.5 * (Ja22_ijk + Ja22_ilk)
-      Ja23_avg = 0.5 * (Ja23_ijk + Ja23_ilk)
-      for v in eachvariable(equations)
-        f2[v, l, i, j, k] += ( phi_pow[v] * (Ja21_avg * B1 + Ja22_avg * B2 + Ja23_avg * B3) +
-                               phi_gal_y[v] * psi )
-      end
-      _, _, _, _, _, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, l, element)
-      Ja31_ijl, Ja32_ijl, Ja33_ijl = get_contravariant_vector(3, contravariant_vectors, i, j, l, element)
-      Ja31_avg = 0.5 * (Ja31_ijk + Ja31_ijl)
-      Ja32_avg = 0.5 * (Ja32_ijk + Ja32_ijl)
-      Ja33_avg = 0.5 * (Ja33_ijk + Ja33_ijl)
-      for v in eachvariable(equations)
-        f3[v, l, i, j, k] += ( phi_pow[v] * (Ja31_avg * B1 + Ja32_avg * B2 + Ja33_avg * B3) +
-                               phi_gal_z[v] * psi )
-      end
-    end
-  end
-
-  return nothing
-end
 
 
 """
@@ -873,84 +772,6 @@ end
                  normal_vector[2] * u[6] + tangent1[2] * u[7] + tangent2[2] * u[8],
                  normal_vector[3] * u[6] + tangent1[3] * u[7] + tangent2[3] * u[8],
                  u[9])
-end
-
-
-# TODO: nonconservative terms, remove
-# strong form of nonconservative flux on a side, e.g., the Powell term
-#     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
-# OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
-#         so this routine only adds 1/2(phi^L B^R nvec)
-#         analogously for the Galilean nonconservative term
-#      2) this is non-unique along an interface! normal direction is super important
-@inline function noncons_interface_flux(u_left, u_right, orientation::Integer,
-                                        equations::IdealGlmMhdEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
-  _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
-
-  # extract velocites from the left
-  v1_ll  = rho_v1_ll / rho_ll
-  v2_ll  = rho_v2_ll / rho_ll
-  v3_ll  = rho_v3_ll / rho_ll
-  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
-  # extract magnetic field variable from the right and set the normal velocity
-  # Note, both depend upon the orientation and need psi_rr
-  if orientation == 1 # x-direction
-    v_normal = v1_ll
-    B_normal = B1_rr
-  elseif orientation == 2 # y-direction
-    v_normal = v2_ll
-    B_normal = B2_rr
-  else # z-direction
-    v_normal = v3_ll
-    B_normal = B3_rr
-  end
-  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
-  noncons2 = 0.5 * B_normal * B1_ll
-  noncons3 = 0.5 * B_normal * B2_ll
-  noncons4 = 0.5 * B_normal * B3_ll
-  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_rr
-  noncons6 = 0.5 * B_normal * v1_ll
-  noncons7 = 0.5 * B_normal * v2_ll
-  noncons8 = 0.5 * B_normal * v3_ll
-  noncons9 = 0.5 * v_normal * psi_rr
-
-  return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
-end
-
-# TODO: nonconservative terms, remove
-# Compute surface nonconservative "flux" computation in the normal direction (3D version)
-# Note, due to the non-uniqueness of this term we cannot use any fancy rotation tricks.
-@inline function noncons_interface_flux(u_left, u_right, normal_direction::AbstractVector, mode,
-                                        equations::IdealGlmMhdEquations3D)
-  @assert mode === :weak "only :weak version of nonconservative coupling is available for curved MHD"
-
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
-  _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
-
-  norm_ = norm(normal_direction)
-  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal_vector = normal_direction / norm_
-
-  # extract velocites from the left
-  v1_ll  = rho_v1_ll / rho_ll
-  v2_ll  = rho_v2_ll / rho_ll
-  v3_ll  = rho_v3_ll / rho_ll
-  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
-  # extract magnetic field variable from the right and set the normal velocity
-  v_normal = normal_vector[1] * v1_ll + normal_vector[2] * v2_ll + normal_vector[3] * v3_ll
-  B_normal = normal_vector[1] * B1_rr + normal_vector[2] * B2_rr + normal_vector[3] * B3_rr
-  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
-  noncons2 = 0.5 * B_normal * B1_ll
-  noncons3 = 0.5 * B_normal * B2_ll
-  noncons4 = 0.5 * B_normal * B3_ll
-  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_rr
-  noncons6 = 0.5 * B_normal * v1_ll
-  noncons7 = 0.5 * B_normal * v2_ll
-  noncons8 = 0.5 * B_normal * v3_ll
-  noncons9 = 0.5 * v_normal * psi_rr
-
-  return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9) * norm_
 end
 
 
