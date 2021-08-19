@@ -161,6 +161,17 @@ function Base.show(io::IO, pm::PlotMesh)
   print(io, "PlotMesh{", typeof(pm.plot_data), "}(<plot_data>)")
 end
 
+"""
+    getmesh(pd::AbstractPlotData)
+
+Extract grid lines from `pd` for plotting with `Plots.plot`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+getmesh(pd::AbstractPlotData) = PlotMesh(pd)
+
+
 # Convenience type to allow dispatch on solution objects that were created by Trixi
 #
 # This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own

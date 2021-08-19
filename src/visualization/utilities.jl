@@ -1037,16 +1037,6 @@ function _get_orientations(mesh, slice)
 end
 
 
-"""
-    getmesh(pd::AbstractPlotData)
-
-Extract grid lines from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-getmesh(pd::AbstractPlotData) = PlotMesh(pd)
-
 # Convert `orientation` into a guide label (see also `_get_orientations`)
 function _get_guide(orientation::Integer)
   if orientation == 1
