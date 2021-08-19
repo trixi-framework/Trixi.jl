@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # This file holds plotting types which can be used for both Plots.jl and Makie.jl.
 
 # This abstract type is used to derive PlotData types of different dimensions; but still allows to share some functions for them.
@@ -169,3 +176,5 @@ const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
   SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
   <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
 
+
+end # @muladd

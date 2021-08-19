@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 @inline num_faces(elem::Tri) = 3
 @inline num_faces(elem::Quad) = 4
 
@@ -1052,3 +1059,6 @@ function _get_guide(orientation::Integer)
     return ""
   end
 end
+
+
+end # @muladd
