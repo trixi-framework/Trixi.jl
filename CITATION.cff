@@ -63,3 +63,31 @@ preferred-citation:
   year: 2021
   doi: 10.1016/j.jcp.2021.110467
   repository-code: https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics
+references:
+  - title: "Adaptive numerical simulations with Trixi.jl: A case study of Julia for scientific computing"
+    authors:
+      - family-names: Ranocha
+        given-names: Hendrik
+        orcid: https://orcid.org/0000-0002-3456-2277
+      - family-names: Schlottke-Lakemper
+        given-names: Michael
+        orcid: https://orcid.org/0000-0002-3195-2536
+      - family-names: Winters
+        given-names: Andrew R.
+        orcid: https://orcid.org/0000-0002-5902-1522
+      - family-names: Faulhaber
+        given-names: Erik
+        orcid: https://orcid.org/0000-0001-9788-5949
+      - family-names: Chan
+        given-names: Jesse
+        orcid: https://orcid.org/0000-0003-2077-3636
+      - family-names: Gassner
+        given-names: Gregor J.
+        orcid: https://orcid.org/0000-0002-1752-1158
+    type: article
+    journal: "arXiv"
+    identifiers:
+      - type: other
+        value: arXiv:2108.06476
+    repository: https://github.com/trixi-framework/paper-2021-juliacon
+    url: https://arxiv.org/abs/2108.06476
