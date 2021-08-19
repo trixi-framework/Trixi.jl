@@ -25,7 +25,7 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
+function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4}, mesh,
                                                    equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
@@ -143,7 +143,7 @@ function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEqua
 end
 
 
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4},
+function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4}, mesh,
                                    equations, dg::DGSEM, cache;
                                    kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
@@ -202,7 +202,7 @@ function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquation
 end
 
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4},
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4}, mesh,
                                        equations, dg::DGSEM, cache;
                                        kwargs...)
   @unpack alpha, indicator_threaded = indicator_max.cache

@@ -53,6 +53,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       maxiters = 30)
   end
 
+  @trixi_testset "elixir_euler_blast_wave_nnpp_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
+      l2   = [1.39326478e-01, 1.15714111e-01, 1.15714077e-01, 3.39939895e-01],
+      linf = [1.44697452e+00, 1.32561295e+00, 1.32561295e+00, 1.81112285e+00],
+      maxiters = 30)
+  end
+
+  @trixi_testset "elixir_euler_blast_wave_nnrh_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
+      l2   = [1.37149011e-01, 1.14936250e-01, 1.14814589e-01, 3.39064561e-01],
+      linf = [1.47771619e+00, 1.32383912e+00, 1.31919917e+00, 1.81607622e+00],
+      maxiters = 30)
+  end
+
   @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_pure_fv.jl"),
       l2   = [0.39957047631960346, 0.21006912294983154, 0.21006903549932, 0.6280328163981136],
