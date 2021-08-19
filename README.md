@@ -189,6 +189,7 @@ with the help of Trixi, please cite the following articles:
   pages={110467},
   year={2021},
   month={06},
+  volume={442},
   publisher={Elsevier},
   doi={10.1016/j.jcp.2021.110467},
   eprint={2008.10593},

@@ -74,10 +74,9 @@ to load Revise and Trixi. You can then proceed with the usual commands and run T
 the example [above](#Running-Trixi-interactively-in-the-global-environment-1).
 The `--project` flag is required such that Julia can properly load Trixi and all dependencies
 if Trixi is not installed in the global environment. The same procedure also
-applies should you opt to install the postprocessing tools
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl) and
-[Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) manually such that
-you can modify their implementations.
+applies should you opt to install the postprocessing tool
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
+manually such that you can modify their implementations.
 
 
 ### Pitfalls when using Revise
@@ -230,7 +229,7 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 
 
-## Releasing a new version of Trixi, Trixi2Vtk, Trixi2Img
+## Releasing a new version of Trixi, Trixi2Vtk
 
 - Check whether everything is okay, tests pass etc.
 - Set the new version number in `Project.toml` according to the Julian version of semver.
@@ -240,18 +239,14 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
   Wait for it to be merged.
 - Increment the version number in `Project.toml` again with suffix `-pre`. For example,
   if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
-- Set the correct version number in the badge "GitHub commits since tagged version"
-  in README.md.
-  The badge will only show up correctly if TagBot has released a new version. This will
-  be done automatically.
 - When a new version of Trixi was released, check whether the `[compat]` entries
-  in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
-  When a new version of Trixi2Vtk/Trixi2Img was released, check whether the `[compat]`
+  in `test/Project.toml` in Trixi2Vtk should be updated.
+  When a new version of Trixi2Vtk was released, check whether the `[compat]`
   entries in `docs/Project.toml` in Trixi should be updated.
 
   These entries will also be checked regularly by CompatHelper (once a day). Hence,
   if everything was released correctly, you should only need to do these checks manually
-  if new minor versions with changes in the docs of Trixi2Vtk/Trixi2Img were released
+  if new minor versions with changes in the docs of Trixi2Vtk were released
   but no new version of Trixi was released afterwards.
 
 
