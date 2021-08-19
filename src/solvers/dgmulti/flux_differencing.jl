@@ -35,7 +35,8 @@
 end
 
 @inline function hadamard_sum!(du, A, volume_flux, orientation, u,
-                               equations, sparsity_pattern::AbstractSparseMatrix{Bool})
+                               equations, sparsity_pattern::AbstractSparseMatrix{Bool},
+                               skip_index = nothing)
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
   for i in 1:n
@@ -102,7 +103,7 @@ end
 
 # precompute sparsity pattern for optimized flux differencing routines for tensor product elements
 function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
-                                  tol = 100 * eps(real(dg))) where {DG <: DGMultiFluxDiff{<:SBP, <:Union{Quad, Hex}}}
+                                  tol = 100 * eps(real(dg))) where {DG <: DGMultiFluxDiff{ApproxType, <:Union{Quad, Hex}}} where {ApproxType}
   sparsity_pattern = sum(map(A->abs.(A), droptol!.(sparse.(flux_diff_matrices), tol))) .!= 0
   return sparsity_pattern
 end
@@ -202,11 +203,15 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   # TODO: simplices. Address hard-coding of `entropy2cons!`
   apply_to_each_field(mul_by!(Vq), u_values, u)
-  entropy_var_values .= cons2entropy.(u_values, equations)
+  @threaded for i in Base.OneTo(length(u_values))
+    entropy_var_values[i] = cons2entropy(u_values[i], equations)
+  end
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
   apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
-  entropy_projected_u_values .= entropy2cons.(projected_entropy_var_values, equations)
+  @threaded for i in Base.OneTo(length(projected_entropy_var_values))
+    entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
+  end
 end
 
 function calc_volume_integral!(du, u, volume_integral,
@@ -259,7 +264,8 @@ function calc_volume_integral!(du, u, volume_integral,
                     u_local, equations, sparsity_pattern, skip_index)
     end
 
-    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector}
+    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
+    # apply_to_each_field performance.
     rhs_local = rhs_local_threaded[Threads.threadid()]
     for i in Base.OneTo(length(fluxdiff_local))
       rhs_local[i] = fluxdiff_local[i]
