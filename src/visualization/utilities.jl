@@ -1061,4 +1061,95 @@ function _get_guide(orientation::Integer)
 end
 
 
+#   plotting_interpolation_matrix(dg; kwargs...)
+#
+# Interpolation matrix which maps discretization nodes to a set of plotting nodes.
+# Defaults to the identity matrix of size `length(solver.basis.nodes)`, and interpolates
+# to equispaced nodes for DGSEM (set by kwarg `nvisnodes` in the plotting function).
+#
+# Example:
+# ```julia
+# A = plotting_interpolation_matrix(dg)
+# A * dg.basis.nodes # => vector of nodes at which to plot the solution
+# ```
+#
+# Note: we cannot use UniformScaling to define the interpolation matrix since we use it with `kron`
+# to define a multi-dimensional interpolation matrix later.
+plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes))
+
+function face_plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
+  return polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
+end
+
+function plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
+  Vp1D = polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
+  # For quadrilateral elements, interpolation to plotting nodes involves applying a 1D interpolation
+  # operator to each line of nodes. This is equivalent to multiplying the vector containing all node
+  # node coordinates on an element by a Kronecker product of the 1D interpolation operator (e.g., a
+  # multi-dimensional interpolation operator).
+  return kron(Vp1D, Vp1D)
+end
+
+function reference_node_coordinates_2d(dg::DGSEM)
+  @unpack nodes = dg.basis
+  r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
+  s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
+  return r, s
+end
+
+
+# Given a reference plotting triangulation, this function generates a plotting triangulation for
+# the entire global mesh. The output can be plotted using `Makie.mesh`.
+function global_plotting_triangulation_makie(pds::PlotDataSeries{<:UnstructuredPlotData2D};
+                                             set_z_coordinate_zero = false)
+  @unpack variable_id = pds
+  pd = pds.plot_data
+  @unpack x, y, data, t = pd
+
+  makie_triangles = Makie.to_triangles(t)
+
+  # trimesh[i] holds GeometryBasics.Mesh containing plotting information on the ith element.
+  # Note: Float32 is required by GeometryBasics
+  num_plotting_nodes, num_elements = size(x)
+  trimesh = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
+  coordinates = zeros(Float32, num_plotting_nodes, 3)
+  for element in Base.OneTo(num_elements)
+    for i in Base.OneTo(num_plotting_nodes)
+      coordinates[i, 1] = x[i, element]
+      coordinates[i, 2] = y[i, element]
+      if set_z_coordinate_zero == false
+        coordinates[i, 3] = data[i, element][variable_id]
+      end
+    end
+    trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
+  end
+  plotting_mesh = merge([trimesh...]) # merge meshes on each element into one large mesh
+  return plotting_mesh
+end
+
+# Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
+# (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
+function mesh_plotting_wireframe(pds::PlotDataSeries{<:UnstructuredPlotData2D};
+                                 set_z_coordinate_zero = false)
+  @unpack variable_id = pds
+  pd = pds.plot_data
+  @unpack x_face, y_face, face_data = pd
+
+  if set_z_coordinate_zero
+    sol_f = zeros(eltype(first(face_data)), size(face_data)) # plot 2d surface by setting z coordinate to zero
+  else
+    sol_f = StructArrays.component(face_data, variable_id)
+  end
+
+  # This line separates solution lines on each edge by NaNs to ensure that they are rendered
+  # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
+  # whose columns correspond to different elements. We add NaN separators by appending a row of
+  # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
+  # plotting.
+  xyz_wireframe = GeometryBasics.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face, sol_f))...)
+
+  return xyz_wireframe
+end
+
+
 end # @muladd
