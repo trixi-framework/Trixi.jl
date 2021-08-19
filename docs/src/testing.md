@@ -5,7 +5,8 @@ During the development of Trixi, we rely on
 that modifications or new features do not break existing
 functionality or add other errors. In the main
 [Trixi](https://github.com/trixi-framework/Trixi.jl) repository (and the
-repositories for the visualization tools [Trixi2Img](https://github.com/trixi-framework/Trixi.jl) and [Trixi2Vtk](https://github.com/trixi-framework/Trixi.jl)), this is facilitated by
+repositories for the visualization tool
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi.jl)), this is facilitated by
 [GitHub Actions](https://docs.github.com/en/free-pro-team@latest/actions),
 which allows to run tests automatically upon certain events. When, how, and what
 is tested by GitHub Actions is controlled by the workflow file
