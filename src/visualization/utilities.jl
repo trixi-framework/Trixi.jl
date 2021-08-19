@@ -5,6 +5,336 @@
 @muladd begin
 
 
+@inline num_faces(elem::Tri) = 3
+@inline num_faces(elem::Quad) = 4
+
+#     compute_triangle_area(tri)
+#
+# Computes the area of a triangle given `tri`, which is a tuple of three points (vectors),
+# using the [Shoelace_formula](https://en.wikipedia.org/wiki/Shoelace_formula).
+function compute_triangle_area(tri)
+    A, B, C = tri
+    return 0.5 * (A[1] * (B[2] - C[2]) + B[1] * (C[2]-A[2]) + C[1] * (A[2] - B[2]))
+end
+
+#   reference_plotting_triangulation(reference_plotting_coordinates)
+#
+# Computes a triangulation of the points in `reference_plotting_coordinates`, which is a tuple containing
+# vectors of plotting points on the reference element (e.g., reference_plotting_coordinates = (r,s)).
+# The reference element is assumed to be [-1,1]^d.
+#
+# This function returns `t` which is a `3 x N_tri` Matrix{Int} containing indices of triangles in the
+# triangulation of the plotting points, with zero-volume triangles removed.
+#
+# For example, r[t[1, i]] returns the first reference coordinate of the 1st point on the ith triangle.
+function reference_plotting_triangulation(reference_plotting_coordinates, tol=50*eps())
+  # on-the-fly triangulation of plotting nodes on the reference element
+  tri_in = Triangulate.TriangulateIO()
+  tri_in.pointlist = permutedims(hcat(reference_plotting_coordinates...))
+  tri_out, _ = Triangulate.triangulate("Q", tri_in)
+  triangles = tri_out.trianglelist
+
+  # filter out sliver triangles
+  has_volume = fill(true, size(triangles, 2))
+  for i in axes(triangles, 2)
+      ids = @view triangles[:, i]
+      x_points = @view tri_out.pointlist[1, ids]
+      y_points = @view tri_out.pointlist[2, ids]
+      area = compute_triangle_area(zip(x_points, y_points))
+      if abs(area) < tol
+          has_volume[i] = false
+      end
+  end
+  return permutedims(triangles[:, findall(has_volume)])
+end
+
+# This function is used to avoid type instabilities when calling `digest_solution_variables`.
+function transform_to_solution_variables!(u, solution_variables, equations)
+  for (i, u_i) in enumerate(u)
+    u[i] = solution_variables(u_i, equations)
+  end
+end
+
+#     global_plotting_triangulation_triplot(u_plot, rst_plot, xyz_plot)
+#
+# Returns (plotting_coordinates_x, plotting_coordinates_y, ..., plotting_values, plotting_triangulation).
+# Output can be used with TriplotRecipes.DGTriPseudocolor(...).
+#
+# Inputs:
+#   - xyz_plot = plotting points (tuple of matrices of size (Nplot, K))
+#   - u_plot = matrix of size (Nplot, K) representing solution to plot.
+#   - t = triangulation of reference plotting points
+function global_plotting_triangulation_triplot(xyz_plot, u_plot, t)
+
+  @assert size(first(xyz_plot), 1) == size(u_plot, 1) "Row dimension of u_plot does not match row dimension of xyz_plot"
+
+  # build discontinuous data on plotting triangular mesh
+  num_plotting_points, num_elements = size(u_plot)
+  num_reference_plotting_triangles = size(t, 1)
+  num_plotting_elements_total = num_reference_plotting_triangles * num_elements
+
+  # each column of `tp` corresponds to a vertex of a plotting triangle
+  tp = zeros(Int32, 3, num_plotting_elements_total)
+  zp = similar(tp, eltype(u_plot))
+  for e = 1:num_elements
+    for i = 1:num_reference_plotting_triangles
+      tp[:, i + (e-1)*num_reference_plotting_triangles] .= @views t[i, :] .+ (e-1) * num_plotting_points
+      zp[:, i + (e-1)*num_reference_plotting_triangles] .= @views u_plot[t[i, :], e]
+    end
+  end
+  return vec.(xyz_plot)..., zp, tp
+end
+
+#     mesh_plotting_wireframe(rd::RefElemData{2}, md::MeshData{2})
+#
+# Generates data for plotting a mesh wireframe given StartUpDG data types.
+# Returns (plotting_coordinates_x, plotting_coordinates_y) for a 2D mesh wireframe.
+function mesh_plotting_wireframe(rd::RefElemData{2}, md::MeshData{2}; num_plotting_points=25)
+
+  # Construct 1D plotting interpolation matrix `Vp1D` for a single face
+  @unpack N, Fmask = rd
+  vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
+  rplot = LinRange(-1, 1, num_plotting_points)
+  Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
+
+  num_face_points = N+1
+  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
+
+  num_face_plotting_points = size(Vp1D, 1)
+  x_mesh, y_mesh = ntuple(_->zeros(num_face_plotting_points, num_faces_total), 2)
+  for f in 1:num_faces_total
+    mul!(view(x_mesh, :, f), Vp1D, view(xf, :, f))
+    mul!(view(y_mesh, :, f), Vp1D, view(yf, :, f))
+  end
+
+  return x_mesh, y_mesh
+end
+
+
+# These methods are used internally to set the default value of the solution variables:
+# - If a `cons2prim` for the given `equations` exists, use it
+# - Otherwise, use `cons2cons`, which is defined for all systems of equations
+digest_solution_variables(equations, solution_variables) = solution_variables
+function digest_solution_variables(equations, solution_variables::Nothing)
+  if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
+    return cons2prim
+  else
+    return cons2cons
+  end
+end
+
+
+"""
+    adapt_to_mesh_level!(u_ode, semi, level)
+    adapt_to_mesh_level!(sol::Trixi.TrixiODESolution, level)
+
+Like [`adapt_to_mesh_level`](@ref), but modifies the solution and parts of the
+semidiscretization (mesh and caches) in place.
+"""
+function adapt_to_mesh_level!(u_ode, semi, level)
+  # Create AMR callback with controller that refines everything towards a single level
+  amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first), base_level=level)
+  amr_callback = AMRCallback(semi, amr_controller, interval=0)
+
+  # Adapt mesh until it does not change anymore
+  has_changed = amr_callback.affect!(u_ode, semi, 0.0, 0)
+  while has_changed
+    has_changed = amr_callback.affect!(u_ode, semi, 0.0, 0)
+  end
+
+  return u_ode, semi
+end
+
+adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
+
+
+"""
+    adapt_to_mesh_level(u_ode, semi, level)
+    adapt_to_mesh_level(sol::Trixi.TrixiODESolution, level)
+
+Use the regular adaptive mesh refinement routines to adaptively refine/coarsen the solution `u_ode`
+with semidiscretization `semi` towards a uniformly refined grid with refinement level `level`. The
+solution and semidiscretization are copied such that the original objects remain *unaltered*.
+
+A convenience method accepts an ODE solution object, from which solution and semidiscretization are
+extracted as needed.
+
+See also: [`adapt_to_mesh_level!`](@ref)
+"""
+function adapt_to_mesh_level(u_ode, semi, level)
+  # Create new semidiscretization with copy of the current mesh
+  mesh, _, _, _ = mesh_equations_solver_cache(semi)
+  new_semi = remake(semi, mesh=deepcopy(mesh))
+
+  return adapt_to_mesh_level!(deepcopy(u_ode), new_semi, level)
+end
+
+adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
+
+
+# Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
+#
+# Returns a tuple with
+# - x coordinates
+# - y coordinates
+# - nodal 2D data
+# - x vertices for mesh visualization
+# - y vertices for mesh visualization
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
+function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
+                     unstructured_data, n_nodes,
+                     grid_lines=false, max_supported_level=11, nvisnodes=nothing,
+                     slice=:xy, point=(0.0, 0.0, 0.0))
+  # Determine resolution for data interpolation
+  max_level = maximum(levels)
+  if max_level > max_supported_level
+    error("Maximum refinement level $max_level is higher than " *
+          "maximum supported level $max_supported_level")
+  end
+  max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
+  if nvisnodes === nothing
+    max_nvisnodes = 2 * n_nodes
+  elseif nvisnodes == 0
+    max_nvisnodes = n_nodes
+  else
+    max_nvisnodes = nvisnodes
+  end
+  nvisnodes_at_max_level = min(max_available_nodes_per_finest_element, max_nvisnodes)
+  resolution = nvisnodes_at_max_level * 2^max_level
+  nvisnodes_per_level = [2^(max_level - level)*nvisnodes_at_max_level for level in 0:max_level]
+  # nvisnodes_per_level is an array (accessed by "level + 1" to accommodate
+  # level-0-cell) that contains the number of visualization nodes for any
+  # refinement level to visualize on an equidistant grid
+
+  if ndims == 3
+    (unstructured_data, coordinates, levels,
+        center_level_0) = unstructured_3d_to_2d(unstructured_data,
+        coordinates, levels, length_level_0, center_level_0, slice,
+        point)
+  end
+
+  # Normalize element coordinates: move center to (0, 0) and domain size to [-1, 1]²
+  n_elements = length(levels)
+  normalized_coordinates = similar(coordinates)
+  for element_id in 1:n_elements
+    @views normalized_coordinates[:, element_id] .= (
+          (coordinates[:, element_id] .- center_level_0) ./ (length_level_0 / 2 ))
+  end
+
+  # Interpolate unstructured DG data to structured data
+  (structured_data =
+      unstructured2structured(unstructured_data, normalized_coordinates,
+                              levels, resolution, nvisnodes_per_level))
+
+  # Interpolate cell-centered values to node-centered values
+  node_centered_data = cell2node(structured_data)
+
+  # Determine axis coordinates for contour plot
+  xs = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[1]
+  ys = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[2]
+
+  # Determine element vertices to plot grid lines
+  if grid_lines
+    mesh_vertices_x, mesh_vertices_y = calc_vertices(coordinates, levels, length_level_0)
+  else
+    mesh_vertices_x = Vector{Float64}(undef, 0)
+    mesh_vertices_y = Vector{Float64}(undef, 0)
+  end
+
+  return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
+end
+
+
+# Extract data from a 1D DG solution and prepare it for visualization as a line plot.
+# This returns a tuple with
+# - x coordinates
+# - nodal 1D data
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
+function get_data_1d(original_nodes, unstructured_data, nvisnodes)
+  # Get the dimensions of u; where n_vars is the number of variables, n_nodes the number of nodal values per element and n_elements the total number of elements.
+  n_nodes, n_elements, n_vars = size(unstructured_data)
+
+  # Set the amount of nodes visualized according to nvisnodes.
+  if nvisnodes === nothing
+    max_nvisnodes = 2 * n_nodes
+  elseif nvisnodes == 0
+    max_nvisnodes = n_nodes
+  else
+    @assert nvisnodes >= 2 "nvisnodes must be zero or >= 2"
+    max_nvisnodes = nvisnodes
+  end
+
+  interpolated_nodes = Array{eltype(original_nodes),    2}(undef, max_nvisnodes, n_elements)
+  interpolated_data  = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes, n_elements, n_vars)
+
+  for j in 1:n_elements
+    # Interpolate on an equidistant grid.
+    interpolated_nodes[:, j] .= range(original_nodes[1,1,j], original_nodes[1,end,j], length = max_nvisnodes)
+  end
+
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+  nodes_out = collect(range(-1, 1, length = max_nvisnodes))
+
+  # Calculate vandermonde matrix for interpolation.
+  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
+
+  # Iterate over all variables.
+  for v in 1:n_vars
+    # Interpolate data for each element.
+    for element in 1:n_elements
+      multiply_scalar_dimensionwise!(@view(interpolated_data[:, element, v]),
+        vandermonde, @view(unstructured_data[:, element, v]))
+    end
+  end
+  # Return results after data is reshaped
+  return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars), vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
+end
+
+# Change order of dimensions (variables are now last) and convert data to `solution_variables`
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
+function get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
+
+  if solution_variables === cons2cons
+    raw_data = u
+    n_vars = size(raw_data, 1)
+  else
+    # FIXME: Remove this comment once the implementation following it has been verified
+    # Reinterpret the solution array as an array of conservative variables,
+    # compute the solution variables via broadcasting, and reinterpret the
+    # result as a plain array of floating point numbers
+    # raw_data = Array(reinterpret(eltype(u),
+    #        solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+    #                   Ref(equations))))
+    # n_vars = size(raw_data, 1)
+    n_vars_in = nvariables(equations)
+    n_vars = length(solution_variables(get_node_vars(u, equations, solver), equations))
+    raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
+    reshaped_u = reshape(u, n_vars_in, :)
+    reshaped_r = reshape(raw_data, n_vars, :)
+    for idx in axes(reshaped_u, 2)
+      reshaped_r[:, idx] = solution_variables(get_node_vars(reshaped_u, equations, solver, idx), equations)
+    end
+  end
+
+  unstructured_data = Array{eltype(raw_data)}(undef,
+                                              ntuple((d) -> nnodes(solver), ndims(equations))...,
+                                              nelements(solver, cache), n_vars)
+  for variable in 1:n_vars
+    @views unstructured_data[.., :, variable] .= raw_data[variable, .., :]
+  end
+
+  return unstructured_data
+end
+
+
+
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
 #
@@ -687,5 +1017,129 @@ function calc_vertices(node_coordinates, mesh)
 
   return x, y
 end
+
+# Convert `slice` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
+function _get_orientations(mesh, slice)
+  if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice === :xy)
+    orientation_x = 1
+    orientation_y = 2
+  elseif ndims(mesh) == 3 && slice === :xz
+    orientation_x = 1
+    orientation_y = 3
+  elseif ndims(mesh) == 3 && slice === :yz
+    orientation_x = 2
+    orientation_y = 3
+  else
+    orientation_x = 0
+    orientation_y = 0
+  end
+  return orientation_x, orientation_y
+end
+
+
+# Convert `orientation` into a guide label (see also `_get_orientations`)
+function _get_guide(orientation::Integer)
+  if orientation == 1
+    return "\$x\$"
+  elseif orientation == 2
+    return "\$y\$"
+  elseif orientation == 3
+    return "\$z\$"
+  else
+    return ""
+  end
+end
+
+
+#   plotting_interpolation_matrix(dg; kwargs...)
+#
+# Interpolation matrix which maps discretization nodes to a set of plotting nodes.
+# Defaults to the identity matrix of size `length(solver.basis.nodes)`, and interpolates
+# to equispaced nodes for DGSEM (set by kwarg `nvisnodes` in the plotting function).
+#
+# Example:
+# ```julia
+# A = plotting_interpolation_matrix(dg)
+# A * dg.basis.nodes # => vector of nodes at which to plot the solution
+# ```
+#
+# Note: we cannot use UniformScaling to define the interpolation matrix since we use it with `kron`
+# to define a multi-dimensional interpolation matrix later.
+plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes))
+
+function face_plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
+  return polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
+end
+
+function plotting_interpolation_matrix(dg::DGSEM; nvisnodes=2*length(dg.basis.nodes))
+  Vp1D = polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
+  # For quadrilateral elements, interpolation to plotting nodes involves applying a 1D interpolation
+  # operator to each line of nodes. This is equivalent to multiplying the vector containing all node
+  # node coordinates on an element by a Kronecker product of the 1D interpolation operator (e.g., a
+  # multi-dimensional interpolation operator).
+  return kron(Vp1D, Vp1D)
+end
+
+function reference_node_coordinates_2d(dg::DGSEM)
+  @unpack nodes = dg.basis
+  r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
+  s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
+  return r, s
+end
+
+
+# Given a reference plotting triangulation, this function generates a plotting triangulation for
+# the entire global mesh. The output can be plotted using `Makie.mesh`.
+function global_plotting_triangulation_makie(pds::PlotDataSeries{<:UnstructuredPlotData2D};
+                                             set_z_coordinate_zero = false)
+  @unpack variable_id = pds
+  pd = pds.plot_data
+  @unpack x, y, data, t = pd
+
+  makie_triangles = Makie.to_triangles(t)
+
+  # trimesh[i] holds GeometryBasics.Mesh containing plotting information on the ith element.
+  # Note: Float32 is required by GeometryBasics
+  num_plotting_nodes, num_elements = size(x)
+  trimesh = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
+  coordinates = zeros(Float32, num_plotting_nodes, 3)
+  for element in Base.OneTo(num_elements)
+    for i in Base.OneTo(num_plotting_nodes)
+      coordinates[i, 1] = x[i, element]
+      coordinates[i, 2] = y[i, element]
+      if set_z_coordinate_zero == false
+        coordinates[i, 3] = data[i, element][variable_id]
+      end
+    end
+    trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
+  end
+  plotting_mesh = merge([trimesh...]) # merge meshes on each element into one large mesh
+  return plotting_mesh
+end
+
+# Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
+# (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
+function mesh_plotting_wireframe(pds::PlotDataSeries{<:UnstructuredPlotData2D};
+                                 set_z_coordinate_zero = false)
+  @unpack variable_id = pds
+  pd = pds.plot_data
+  @unpack x_face, y_face, face_data = pd
+
+  if set_z_coordinate_zero
+    sol_f = zeros(eltype(first(face_data)), size(face_data)) # plot 2d surface by setting z coordinate to zero
+  else
+    sol_f = StructArrays.component(face_data, variable_id)
+  end
+
+  # This line separates solution lines on each edge by NaNs to ensure that they are rendered
+  # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
+  # whose columns correspond to different elements. We add NaN separators by appending a row of
+  # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
+  # plotting.
+  xyz_wireframe = GeometryBasics.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face, sol_f))...)
+
+  return xyz_wireframe
+end
+
 
 end # @muladd

@@ -24,17 +24,23 @@ isdir(outdir) && rm(outdir, recursive=true)
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
+    "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
   )
 
-  @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
+  @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi
     directory, elixir = test_examples_2d[mesh]
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), directory, elixir),
                                      tspan=(0,0.1))
 
-    # Constructor
-    @test PlotData2D(sol) isa PlotData2D
-    @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
+    # Constructor tests
+    if mesh == "DGMulti"
+      @test PlotData2D(sol) isa Trixi.UnstructuredPlotData2D
+      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.UnstructuredPlotData2D
+    else
+      @test PlotData2D(sol) isa PlotData2D
+      @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
+    end
     pd = PlotData2D(sol)
 
     # show
@@ -42,33 +48,33 @@ isdir(outdir) && rm(outdir, recursive=true)
     println(stdout)
 
     # getindex
-    @test pd["rho"] == Trixi.PlotDataSeries2D(pd, 1)
-    @test pd["v1"] == Trixi.PlotDataSeries2D(pd, 2)
-    @test pd["v2"] == Trixi.PlotDataSeries2D(pd, 3)
-    @test pd["p"] == Trixi.PlotDataSeries2D(pd, 4)
+    @test pd["rho"] == Trixi.PlotDataSeries(pd, 1)
+    @test pd["v1"] == Trixi.PlotDataSeries(pd, 2)
+    @test pd["v2"] == Trixi.PlotDataSeries(pd, 3)
+    @test pd["p"] == Trixi.PlotDataSeries(pd, 4)
     @test_throws KeyError pd["does not exist"]
 
     # convenience methods for mimicking a dictionary
-    @test pd[begin] == Trixi.PlotDataSeries2D(pd, 1)
-    @test pd[end] == Trixi.PlotDataSeries2D(pd, 4)
+    @test pd[begin] == Trixi.PlotDataSeries(pd, 1)
+    @test pd[end] == Trixi.PlotDataSeries(pd, 4)
     @test length(pd) == 4
     @test size(pd) == (4,)
     @test keys(pd) == ("rho", "v1", "v2", "p")
-    @test eltype(pd) == Pair{String, Trixi.PlotDataSeries2D}
-    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries2D(pd, 1),
-                              "v1" => Trixi.PlotDataSeries2D(pd, 2),
-                              "v2" => Trixi.PlotDataSeries2D(pd, 3),
-                              "p" => Trixi.PlotDataSeries2D(pd, 4)]
+    @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
+    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
+                              "v1" => Trixi.PlotDataSeries(pd, 2),
+                              "v2" => Trixi.PlotDataSeries(pd, 3),
+                              "p" => Trixi.PlotDataSeries(pd, 4)]
 
-    # PlotDataSeries2D
+    # PlotDataSeries
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 4
     @test_nowarn_debug show(stdout, pds)
     println(stdout)
 
-    # getmesh/PlotMesh2D
-    @test getmesh(pd) == Trixi.PlotMesh2D(pd)
+    # getmesh/PlotMesh
+    @test getmesh(pd) == Trixi.PlotMesh(pd)
     @test getmesh(pd).plot_data == pd
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
@@ -83,10 +89,12 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      @testset "Create 1D plot as slice" begin
-        @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-        pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
-        @test_nowarn_debug Plots.plot(pd1D)
+      if mesh != "DGMulti"
+        @testset "Create 1D plot as slice" begin
+          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
+          pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+          @test_nowarn_debug Plots.plot(pd1D)
+        end
       end
 
       if mesh == "TreeMesh"
@@ -101,7 +109,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
+  @testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_blast_wave.jl"),
                                      tspan=(0,0.1))
@@ -115,31 +123,31 @@ isdir(outdir) && rm(outdir, recursive=true)
     println(stdout)
 
     # getindex
-    @test pd["rho"] == Trixi.PlotDataSeries1D(pd, 1)
-    @test pd["v1"] == Trixi.PlotDataSeries1D(pd, 2)
-    @test pd["p"] == Trixi.PlotDataSeries1D(pd, 3)
+    @test pd["rho"] == Trixi.PlotDataSeries(pd, 1)
+    @test pd["v1"] == Trixi.PlotDataSeries(pd, 2)
+    @test pd["p"] == Trixi.PlotDataSeries(pd, 3)
     @test_throws KeyError pd["does not exist"]
 
     # convenience methods for mimicking a dictionary
-    @test pd[begin] == Trixi.PlotDataSeries1D(pd, 1)
-    @test pd[end] == Trixi.PlotDataSeries1D(pd, 3)
+    @test pd[begin] == Trixi.PlotDataSeries(pd, 1)
+    @test pd[end] == Trixi.PlotDataSeries(pd, 3)
     @test length(pd) == 3
     @test size(pd) == (3,)
     @test keys(pd) == ("rho", "v1", "p")
-    @test eltype(pd) == Pair{String, Trixi.PlotDataSeries1D}
-    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries1D(pd, 1),
-                              "v1" => Trixi.PlotDataSeries1D(pd, 2),
-                              "p" => Trixi.PlotDataSeries1D(pd, 3)]
+    @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
+    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
+                              "v1" => Trixi.PlotDataSeries(pd, 2),
+                              "p" => Trixi.PlotDataSeries(pd, 3)]
 
-    # PlotDataSeries1D
+    # PlotDataSeries
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 3
     @test_nowarn_debug show(stdout, pds)
     println(stdout)
 
-    # getmesh/PlotMesh1D
-    @test getmesh(pd) == Trixi.PlotMesh1D(pd)
+    # getmesh/PlotMesh
+    @test getmesh(pd) == Trixi.PlotMesh(pd)
     @test getmesh(pd).plot_data == pd
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
