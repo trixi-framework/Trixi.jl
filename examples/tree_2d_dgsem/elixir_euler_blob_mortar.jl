@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations2D(gamma)
 initial_condition = initial_condition_blob
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_chandrashekar
+volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -60,7 +60,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.7)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

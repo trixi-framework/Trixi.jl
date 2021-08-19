@@ -22,8 +22,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_eulermulti_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
-      l2   = [5.01776719e-02, 5.01847697e-02, 2.25842834e-01, 6.17662476e-02],
-      linf = [3.08624314e-01, 3.08758298e-01, 1.05971143e+00, 3.00220439e-01])
+      l2   = [0.050182236154087095, 0.050189894464434635, 0.2258715597305131, 0.06175171559771687],
+      linf = [0.3108124923284472, 0.3107380389947733, 1.054035804988521, 0.29347582879608936])
   end
 
   @trixi_testset "elixir_eulermulti_es.jl" begin
@@ -40,8 +40,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_eulermulti_convergence_es.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
+      l2   = [2.1855868685251012e-6, 2.1855868686504143e-6, 6.339327237279491e-6, 8.886020745630879e-7, 1.7772041491261757e-6],
+      linf = [1.3465800098977354e-5, 1.3465800097645086e-5, 4.7306482458431276e-5, 5.182977349305062e-6, 1.0365954698610125e-5])
+  end
+
+  @trixi_testset "elixir_eulermulti_convergence_es.jl with flux_chandrashekar" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
       l2   = [1.74779183e-06, 1.74779183e-06, 5.62550396e-06, 6.15682712e-07, 1.23136542e-06],
-      linf = [1.51966473e-05, 1.51966473e-05, 5.51065526e-05, 5.58096521e-06, 1.11619304e-05])
+      linf = [1.51966473e-05, 1.51966473e-05, 5.51065526e-05, 5.58096521e-06, 1.11619304e-05],
+      volume_flux = flux_chandrashekar)
   end
 end
 

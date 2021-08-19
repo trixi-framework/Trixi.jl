@@ -24,6 +24,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [3.00941311e-05, 8.20108595e-07, 1.19890130e-04, 1.19890130e-04, 1.47569139e-05, 2.22044605e-16, 1.22875440e-04, 1.22875440e-04])
   end
 
+  @trixi_testset "elixir_mhd_alfven_wave.jl with flux_derigs_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+      l2   = [1.4717982305221483e-5, 1.182263100134546e-5, 2.357120395081263e-5, 2.357120395088376e-5, 1.8950292712848924e-6, 1.1963224165731992e-16, 2.3661336206751837e-5, 2.366133620672686e-5],
+      linf = [6.156423569070313e-5, 3.474803933270032e-5, 0.00011882557236660152, 0.00011882557236685132, 6.8618872851589074e-6, 2.220446049250313e-16, 0.00012195115527005584, 0.00012195115526993094],
+      volume_flux = flux_derigs_etal)
+  end
+
   @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [5.86009540e-02, 8.16048158e-02, 5.46791194e-02, 5.46791194e-02, 1.54509265e-01, 4.13046273e-17, 5.47637521e-02, 5.47637521e-02],
