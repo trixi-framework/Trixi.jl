@@ -33,15 +33,6 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [7.17665548e-01, 7.22954510e-01, 0.00000000e+00, 8.34512452e-01, 4.74961443e-02, 7.91093545e-02, 0.00000000e+00, 1.98437701e-03, 1.91605624e-01, 9.58028120e-02],
       linf = [1.11390901e+01, 1.10181050e+01, 0.00000000e+00, 1.24464832e+01, 6.35439011e-01, 1.06796978e+00, 0.00000000e+00, 6.41596561e-02, 3.49017111e+00, 1.74508556e+00],
       tspan = (0.0, 0.01))
-
-  # TODO: nonconservative terms, remove
-  @trixi_testset "elixir_mhdmulti_ec.jl with old nonconservative stuff" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
-      l2   = [4.30029920e-02, 4.29875057e-02, 2.57471806e-02, 1.62185617e-01, 1.74536934e-02, 1.74545523e-02, 2.68731904e-02, 1.36052812e-15, 1.21243408e-02, 2.42486817e-02],
-      linf = [3.13715220e-01, 3.03783978e-01, 2.15002288e-01, 9.04249573e-01, 9.39809810e-02, 9.47028202e-02, 1.52772540e-01, 9.36599914e-15, 7.87460541e-02, 1.57492108e-01],
-      volume_flux  = flux_hindenlang_gassner,
-      surface_flux = flux_hindenlang_gassner)
-  end
 end
 
 end

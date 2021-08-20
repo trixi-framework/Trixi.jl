@@ -50,23 +50,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.004391143689111404, 0.04144737547475548, 0.041501307637678286, 0.04150353006408862, 0.03693135855995625, 0.021125605214031118, 0.03295607553556973, 0.03296235755245784, 7.16035229384135e-6],
       linf = [0.017894703320895378, 0.08486850681397005, 0.0891044523165206, 0.08492024792056754, 0.10448301878352373, 0.05381260695579509, 0.0884774018719996, 0.07784546966765199, 7.71609149516089e-5],
       initial_condition = initial_condition_orszag_tang,
-      surface_flux = flux_hll,
-      volume_flux  = flux_central,
+      surface_flux = (flux_hll, flux_nonconservative_powell),
+      volume_flux  = (flux_central, flux_nonconservative_powell),
       coordinates_min = (0, 0, 0),
       coordinates_max = (1, 1, 1),
       initial_refinement_level=3,
       cfl = 1.1,
       tspan = (0.0, 0.06))
-  end
-
-  # TODO: nonconservative terms, remove
-  @trixi_testset "elixir_mhd_alfven_wave_mortar.jl with old nonconservative stuff" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_mortar.jl"),
-      l2   = [0.0021526249904029716, 0.006723366482054851, 0.0030402770835702094, 0.00871072123906854, 0.0055082934251726575, 0.007204425150992076, 0.002972561670413384, 0.008823278046252039, 0.0035510249616496205],
-      linf = [0.013453768432341251, 0.05539283320101197, 0.020830619008222574, 0.05935958909923725, 0.035376597426544976, 0.05317949697893004, 0.017696268997048126, 0.06088866277317642, 0.020649930010265254],
-      tspan = (0.0, 0.25),
-      surface_flux = flux_hll,
-      volume_flux  = flux_derigs_etal)
   end
 end
 
