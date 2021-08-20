@@ -51,8 +51,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                                                energy_magnetic, cross_helicity))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-
-save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 
 save_solution = SaveSolutionCallback(interval=100,
@@ -77,7 +75,7 @@ stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         amr_callback, stepsize_callback)
 
 
