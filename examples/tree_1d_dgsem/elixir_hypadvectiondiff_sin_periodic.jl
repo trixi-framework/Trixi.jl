@@ -21,17 +21,17 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
 
-initial_condition = initial_condition_sin_periodic
+initial_condition = initial_condition_sin
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_harmonic)
+                                    source_terms=source_terms_sin)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+ode = semidiscretize(semi, (0.0, 5.0));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -66,13 +66,13 @@ callbacks = CallbackSet(summary_callback, steady_state_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52(),
-                  dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep=false, callback=callbacks);
+# sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52(),
+#                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+#                   save_everystep=false, callback=callbacks);
 
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-#             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#             save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
 
 # Print the timer summary
 summary_callback()
