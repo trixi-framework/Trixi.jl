@@ -65,7 +65,8 @@ jobs:
           - tree_part4
           - tree_part5
           - structured
-          - p4est
+          - p4est_part1
+          - p4est_part2
           - unstructured_dgmulti
           - paper_self_gravitating_gas_dynamics
           - misc
