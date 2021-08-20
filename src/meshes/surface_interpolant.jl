@@ -5,15 +5,10 @@
 @muladd begin
 
 
-# """
 #     CurvedSurface{RealT<:Real}
 #
 # Contains the data needed to represent a curve with data points (x,y) as a Lagrange polynomial
 # interpolant written in barycentric form at a given set of nodes.
-#
-# !!! warning "Experimental code"
-#     This mesh type is experimental and can change any time.
-# """
 struct CurvedSurface{RealT<:Real}
   nodes               ::Vector{RealT}
   barycentric_weights ::Vector{RealT}

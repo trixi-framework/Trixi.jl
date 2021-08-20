@@ -1,5 +1,4 @@
 
-using Random: seed!
 using OrdinaryDiffEq
 using Trixi
 
@@ -8,11 +7,10 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
-seed!(0)
 initial_condition = initial_condition_khi
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_chandrashekar
+volume_flux  = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -25,8 +23,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-0.5, -0.5)
-coordinates_max = ( 0.5,  0.5)
+coordinates_min = (-1.0, -1.0)
+coordinates_max = ( 1.0,  1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=5,
                 n_cells_max=100_000)
@@ -38,7 +36,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 3.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -70,7 +68,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 stepsize_callback = StepsizeCallback(cfl=1.3)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         amr_callback, stepsize_callback)
 

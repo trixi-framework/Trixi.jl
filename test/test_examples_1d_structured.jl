@@ -1,4 +1,4 @@
-module TestExamples1DCurved
+module TestExamples1DStructured
 
 using Test
 using Trixi
@@ -8,7 +8,7 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "structured_1d_dgsem")
 
-@testset "Curved Mesh" begin
+@testset "Structured Mesh" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [6.0388296447998465e-6],

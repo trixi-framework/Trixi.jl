@@ -24,7 +24,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
   @trixi_testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [0.0011482554820185795, 0.00011482554830363504, 5.741277417754598e-6],
-      linf = [0.004090978306814375, 0.00040909783135059663, 2.045489171820236e-5])
+      linf = [0.004090978306814375, 0.00040909783135059663, 2.045489209479001e-5])
   end
 
   @trixi_testset "elixir_euler_density_wave.jl with initial_condition_density_pulse" begin
@@ -49,8 +49,17 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 
   @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.11908663558144943, 0.15491250781545182, 0.44523336050199985],
-      linf = [0.27526364444744644, 0.27025123483580876, 0.9947524023443433])
+      l2   = [0.11915540925414216, 0.15489191247295198, 0.44543052524765375],
+      linf = [0.2751485868543495, 0.2712764982000735, 0.9951407418216425])
+  end
+
+  @trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+      l2   = [0.07905582221868049, 0.10180958900546237, 0.29596551476711125],
+      linf = [0.23515297345769826, 0.2958208108392532, 0.8694224308790321],
+      maxiters = 10,
+      surface_flux = flux_kennedy_gruber,
+      volume_flux = flux_kennedy_gruber)
   end
 
   @trixi_testset "elixir_euler_ec.jl with flux_shima_etal" begin
@@ -62,13 +71,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       volume_flux = flux_shima_etal)
   end
 
-  @trixi_testset "elixir_euler_ec.jl with flux_ranocha" begin
+  @trixi_testset "elixir_euler_ec.jl with flux_chandrashekar" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.07908920892644909, 0.10182280160297434, 0.2959098091388071],
-      linf = [0.2366903058624107, 0.2982757330294113, 0.8649359933295631],
+      l2   = [0.07905306555214126, 0.10181180378499956, 0.2959171937479504],
+      linf = [0.24057642004451651, 0.29691454643616433, 0.886425723870524],
       maxiters = 10,
-      surface_flux = flux_ranocha,
-      volume_flux = flux_ranocha)
+      surface_flux = flux_chandrashekar,
+      volume_flux = flux_chandrashekar)
   end
 
   @trixi_testset "elixir_euler_ec.jl with flux_hll" begin
@@ -82,8 +91,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 
   @trixi_testset "elixir_euler_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-      l2   = [0.11664633479399032, 0.1510307379005762, 0.4349674368602559],
-      linf = [0.18712791503569948, 0.24590150230707294, 0.7035348754107953])
+      l2   = [0.11665968950973675, 0.15105507394693413, 0.43503082674771115],
+      linf = [0.1867400345208743, 0.24621854448555328, 0.703826406555577])
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
@@ -116,14 +125,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 
   @trixi_testset "elixir_euler_positivity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
-      l2   = [1.6492924238005313, 0.19807446859490432, 0.9783369278373202],
-      linf = [4.729373272793692, 0.5259656254112218, 2.7425834376264064])
+      l2   = [1.6493820253458906, 0.19793887460986834, 0.9783506076125921],
+      linf = [4.71751203912051, 0.5272411022735763, 2.7426163947635844])
   end
 
   @trixi_testset "elixir_euler_blast_wave.jl" begin
   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
-      l2   = [0.21535606561541146, 0.2805347806732941, 0.5589053506095726],
-      linf = [1.508388610723991, 1.56220103779441, 2.0440877833210487],
+      l2   = [0.21651329948737183, 0.28091709900008616, 0.5580778880050432],
+      linf = [1.513525457073142, 1.5328754303137992, 2.0467706106669556],
       maxiters = 30)
   end
 end

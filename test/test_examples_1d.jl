@@ -49,7 +49,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 
   # Curved Mesh
-  include("test_examples_1d_curved.jl")
+  include("test_examples_1d_structured.jl")
 end
 
 # Coverage test for all initial conditions
@@ -223,34 +223,13 @@ end
   # We use nonconservative terms
   Trixi.have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 
-  # OBS! This is scaled by 1/2 because it will cancel later with the factor of 2
-  # the flux differencing volume integral
-  function Trixi.calcflux_twopoint_nonconservative!(f1, u, element,
-                                                    equations::NonconservativeLinearAdvectionEquation,
-                                                    dg, cache)
-    for i in eachnode(dg)
-      _, advectionvelocity = get_node_vars(u, equations, dg, i, element)
+  function flux_nonconservative(u_mine, u_other, orientation,
+                                equations::NonconservativeLinearAdvectionEquation)
+    _, advectionvelocity = u_mine
+    scalar, _            = u_other
 
-      for l in eachnode(dg)
-        scalar, _ = get_node_vars(u, equations, dg, l, element)
-        f1[1, l, i] += 0.5 * advectionvelocity * scalar
-      end
-    end
-
-    return nothing
+    return SVector(advectionvelocity * scalar, zero(scalar))
   end
-
-  function Trixi.noncons_interface_flux(u_left, u_right, orientation, mode,
-                                        equations::NonconservativeLinearAdvectionEquation)
-    _, advectionvelocity = u_left
-    scalar, _            = u_right
-
-    # assume mode==:weak
-
-    return SVector(0.5 * advectionvelocity * scalar, zero(scalar))
-  end
-
-
 
 
   # Create a simulation setup
@@ -273,8 +252,10 @@ end
                   initial_refinement_level=4, n_cells_max=10^4)
 
   # Create a DGSEM solver with polynomials of degree `polydeg`
-  solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-                volume_integral=VolumeIntegralFluxDifferencing(flux_central))
+  volume_flux  = (flux_central, flux_nonconservative)
+  surface_flux = (flux_lax_friedrichs, flux_nonconservative)
+  solver = DGSEM(polydeg=3, surface_flux=surface_flux,
+                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
   # Setup the spatial semidiscretization containing all ingredients
   semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)

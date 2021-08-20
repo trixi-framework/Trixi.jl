@@ -8,23 +8,28 @@ having an extensible design with a fast implementation, Trixi is
 focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
-* Hierarchical quadtree/octree grid with adaptive mesh refinement
-* Experimental support for curvilinear structured and unstructured meshes
-  (see also the [overview in the documentation](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations))
-* Native support for 1D, 2D, and 3D simulations
+* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations)
+  * Cartesian and curvilinear meshes
+  * Conforming and non-conforming meshes
+  * Structured and unstructured meshes
+  * Hierarchical quadtree/octree grid with adaptive mesh refinement
+  * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 * High-order accuracy in space in time
-* Nodal discontinuous Galerkin spectral element methods
-  * Kinetic energy-preserving and entropy-stable split forms
+* Discontinuous Galerkin methods
+  * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
-* Square/cubic domains with periodic and weakly-enforced boundary conditions
+* Native support for differentiable programming
+  * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+* Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
-  * Magnetohydrodynamics equations
+  * Magnetohydrodynamics (MHD) equations
+  * Multi-component compressible Euler and MHD equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Scalar advection
@@ -254,9 +259,20 @@ mean      3.90      mean      3.93      mean      3.93      mean      3.94
 
 ## Referencing
 If you use Trixi in your own research or write a paper using results obtained
-with the help of Trixi, please cite the following
-[paper](https://arxiv.org/abs/2008.10593):
+with the help of Trixi, please cite the following articles:
 ```bibtex
+@online{ranocha2021adaptive,
+  title={Adaptive numerical simulations with {T}rixi.jl:
+         {A} case study of {J}ulia for scientific computing},
+  author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
+          and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
+  year={2021},
+  month={08},
+  eprint={2108.06476},
+  eprinttype={arXiv},
+  eprintclass={cs.MS}
+}
+
 @article{schlottkelakemper2021purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
          self-gravitating gas dynamics},
@@ -266,6 +282,7 @@ with the help of Trixi, please cite the following
   pages={110467},
   year={2021},
   month={06},
+  volume={442},
   publisher={Elsevier},
   doi={10.1016/j.jcp.2021.110467},
   eprint={2008.10593},

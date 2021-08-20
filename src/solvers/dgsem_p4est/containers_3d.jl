@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 # Initialize data structures in element container
 function init_elements!(elements, mesh::P4estMesh{3}, basis::LobattoLegendreBasis)
   @unpack node_coordinates, jacobian_matrix,
@@ -74,30 +81,30 @@ end
                                               faces, orientation, interface_id)
   # Iterate over primary and secondary element
   for side in 1:2
-    # Align interface at the primary element (primary element has surface indices (:i, :j)).
+    # Align interface at the primary element (primary element has surface indices (:i_forward, :j_forward)).
     # The secondary element needs to be indexed differently.
     if side == 1
-      surface_index1 = :i
-      surface_index2 = :j
+      surface_index1 = :i_forward
+      surface_index2 = :j_forward
     else
       surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1], orientation)
     end
 
     if faces[side] == 0
       # Index face in negative x-direction
-      interfaces.node_indices[side, interface_id] = (:one, surface_index1, surface_index2)
+      interfaces.node_indices[side, interface_id] = (:begin, surface_index1, surface_index2)
     elseif faces[side] == 1
       # Index face in positive x-direction
       interfaces.node_indices[side, interface_id] = (:end, surface_index1, surface_index2)
     elseif faces[side] == 2
       # Index face in negative y-direction
-      interfaces.node_indices[side, interface_id] = (surface_index1, :one, surface_index2)
+      interfaces.node_indices[side, interface_id] = (surface_index1, :begin, surface_index2)
     elseif faces[side] == 3
       # Index face in positive y-direction
       interfaces.node_indices[side, interface_id] = (surface_index1, :end, surface_index2)
     elseif faces[side] == 4
       # Index face in negative z-direction
-      interfaces.node_indices[side, interface_id] = (surface_index1, surface_index2, :one)
+      interfaces.node_indices[side, interface_id] = (surface_index1, surface_index2, :begin)
     else # faces[side] == 5
       # Index face in positive z-direction
       interfaces.node_indices[side, interface_id] = (surface_index1, surface_index2, :end)
@@ -113,22 +120,22 @@ end
                                              face, boundary_id)
   if face == 0
     # Index face in negative x-direction
-    boundaries.node_indices[boundary_id] = (:one, :i, :j)
+    boundaries.node_indices[boundary_id] = (:begin, :i_forward, :j_forward)
   elseif face == 1
     # Index face in positive x-direction
-    boundaries.node_indices[boundary_id] = (:end, :i, :j)
+    boundaries.node_indices[boundary_id] = (:end, :i_forward, :j_forward)
   elseif face == 2
     # Index face in negative y-direction
-    boundaries.node_indices[boundary_id] = (:i, :one, :j)
+    boundaries.node_indices[boundary_id] = (:i_forward, :begin, :j_forward)
   elseif face == 3
     # Index face in positive y-direction
-    boundaries.node_indices[boundary_id] = (:i, :end, :j)
+    boundaries.node_indices[boundary_id] = (:i_forward, :end, :j_forward)
   elseif face == 4
     # Index face in negative z-direction
-    boundaries.node_indices[boundary_id] = (:i, :j, :one)
+    boundaries.node_indices[boundary_id] = (:i_forward, :j_forward, :begin)
   else # face == 5
     # Index face in positive z-direction
-    boundaries.node_indices[boundary_id] = (:i, :j, :end)
+    boundaries.node_indices[boundary_id] = (:i_forward, :j_forward, :end)
   end
 
   return boundaries
@@ -143,27 +150,27 @@ end
     # Align mortar at small side.
     # The large side needs to be indexed differently.
     if side == 1
-      surface_index1 = :i
-      surface_index2 = :j
+      surface_index1 = :i_forward
+      surface_index2 = :j_forward
     else
       surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2], faces[1], orientation)
     end
 
     if faces[side] == 0
       # Index face in negative x-direction
-      mortars.node_indices[side, mortar_id] = (:one, surface_index1, surface_index2)
+      mortars.node_indices[side, mortar_id] = (:begin, surface_index1, surface_index2)
     elseif faces[side] == 1
       # Index face in positive x-direction
       mortars.node_indices[side, mortar_id] = (:end, surface_index1, surface_index2)
     elseif faces[side] == 2
       # Index face in negative y-direction
-      mortars.node_indices[side, mortar_id] = (surface_index1, :one, surface_index2)
+      mortars.node_indices[side, mortar_id] = (surface_index1, :begin, surface_index2)
     elseif faces[side] == 3
       # Index face in positive y-direction
       mortars.node_indices[side, mortar_id] = (surface_index1, :end, surface_index2)
     elseif faces[side] == 4
       # Index face in negative z-direction
-      mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2, :one)
+      mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2, :begin)
     else # faces[side] == 5
       # Index face in positive z-direction
       mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2, :end)
@@ -208,8 +215,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑            ↑
       #     │            │
       #     └───> ξ      └───> ξ
-      surface_index1 = :i
-      surface_index2 = :j
+      surface_index1 = :i_forward
+      surface_index2 = :j_forward
     elseif ((lower && orientation_code == 2) # Corner 0 of my side matches corner 2 of other side
         || (!lower && orientation_code == 1)) # Corner 0 of other side matches corner 1 of my side
       #   2┌──────┐3   0┌──────┐2
@@ -220,8 +227,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑            │
       #     │            ↓
       #     └───> ξ      ξ
-      surface_index1 = :j_backwards
-      surface_index2 = :i
+      surface_index1 = :j_backward
+      surface_index2 = :i_forward
     elseif ((lower && orientation_code == 1) # Corner 0 of my side matches corner 1 of other side
         || (!lower && orientation_code == 2)) # Corner 0 of other side matches corner 2 of my side
       #   2┌──────┐3   3┌──────┐1
@@ -232,8 +239,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑                 ↑
       #     │                 │
       #     └───> ξ     η <───┘
-      surface_index1 = :j
-      surface_index2 = :i_backwards
+      surface_index1 = :j_forward
+      surface_index2 = :i_backward
     else # orientation_code == 3
       # Corner 0 of my side matches corner 3 of other side and
       # corner 0 of other side matches corner 3 of my side.
@@ -245,8 +252,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑                 │
       #     │                 ↓
       #     └───> ξ           η
-      surface_index1 = :i_backwards
-      surface_index2 = :j_backwards
+      surface_index1 = :i_backward
+      surface_index2 = :j_backward
     end
   else # flipped
     if orientation_code == 0
@@ -259,8 +266,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑            ↑
       #     │            │
       #     └───> ξ      └───> η
-      surface_index1 = :j
-      surface_index2 = :i
+      surface_index1 = :j_forward
+      surface_index2 = :i_forward
     elseif orientation_code == 2
       # Corner 0 of my side matches corner 2 of other side and
       # corner 0 of other side matches corner 2 of my side.
@@ -272,8 +279,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑            │
       #     │            ↓
       #     └───> ξ      η
-      surface_index1 = :i
-      surface_index2 = :j_backwards
+      surface_index1 = :i_forward
+      surface_index2 = :j_backward
     elseif orientation_code == 1
       # Corner 0 of my side matches corner 1 of other side and
       # corner 0 of other side matches corner 1 of my side.
@@ -285,8 +292,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑                 ↑
       #     │                 │
       #     └───> ξ     ξ <───┘
-      surface_index1 = :i_backwards
-      surface_index2 = :j
+      surface_index1 = :i_backward
+      surface_index2 = :j_forward
     else # orientation_code == 3
       # Corner 0 of my side matches corner 3 of other side and
       # corner 0 of other side matches corner 3 of my side.
@@ -298,10 +305,13 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
       #     ↑                 │
       #     │                 ↓
       #     └───> ξ           ξ
-      surface_index1 = :j_backwards
-      surface_index2 = :i_backwards
+      surface_index1 = :j_backward
+      surface_index2 = :i_backward
     end
   end
 
   return surface_index1, surface_index2
 end
+
+
+end # @muladd

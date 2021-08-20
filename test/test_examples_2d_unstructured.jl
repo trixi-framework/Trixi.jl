@@ -1,4 +1,4 @@
-module TestExamples2DUnstructuredQuad
+module TestExamples2DUnstructured
 
 using Test
 using Trixi
@@ -8,7 +8,7 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "unstructured_2d_dgsem")
 
-@testset "Unstructured Curve Mesh for Euler" begin
+@testset "Unstructured Mesh for Euler" begin
 
   @trixi_testset "elixir_euler_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
@@ -68,12 +68,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "unstru
 
   @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
-      l2   = [0.06410416843183596, 0.12088701564851412, 0.12088660282556184, 0.07736936335775574,
-              0.16258858668184714, 0.0404471651213124, 0.04044684898917552, 0.05741636416434423,
-              0.0021379094385133315],
-      linf = [0.13505810638721094, 0.3164618450494714, 0.3226127662385151, 0.2050483839890379,
-              0.43905760760113655, 0.16862877472930893, 0.16878393786562973, 0.197259170172277,
-              0.027529614504985696],
+      l2   = [0.06418293357851637, 0.12085176618704108, 0.12085099342419513, 0.07743005602933221,
+              0.1622218916638482, 0.04044434425257972, 0.04044440614962498, 0.05735896706356321,
+              0.0020992340041681734],
+      linf = [0.1417000509328017, 0.3210578460652491, 0.335041095545175, 0.22500796423572675,
+              0.44230628074326406, 0.16743171716317784, 0.16745989278866702, 0.17700588224362557,
+              0.02692320090677309],
       tspan = (0.0, 0.5))
   end
 

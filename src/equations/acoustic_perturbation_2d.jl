@@ -8,9 +8,6 @@
 @doc raw"""
     AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
-!!! warning "Experimental code"
-    This system of equations is experimental and may change in any future release.
-
 Acoustic perturbation equations (APE) in two space dimensions. The equations are given by
 ```math
 \begin{aligned}
