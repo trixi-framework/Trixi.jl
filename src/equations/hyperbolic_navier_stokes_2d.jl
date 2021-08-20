@@ -43,44 +43,13 @@ default_analysis_errors(::HyperbolicNavierStokesEquations2D) = (:l2_error, :linf
 end
 
 """
-    initial_condition_weak_blast_wave(x, t, equations::HyperbolicNavierStokesEquations2D)
-
-A weak blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
-function initial_condition_weak_blast_wave(x, t, equations::HyperbolicNavierStokesEquations2D)
-  # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-  # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-  phi = atan(y_norm, x_norm)
-  sin_phi, cos_phi = sincos(phi)
-
-  # Calculate primitive variables
-  rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  p   = r > 0.5 ? 1.0 : 1.245
-
-  u1 = rho
-  u2 = rho*v1
-  u3 = rho*v2
-  u4 = p / (equations.gamma-1) + 0.5 * rho * (v1^2 + v2^2)
-
-  return SVector(u1, u2, u3, u4, zero(u1), zero(u1), zero(u1), zero(u1), zero(u1))
-end
-
-"""
-    initial_condition_constructed1(x, t, equations::HyperbolicNavierStokesEquations2D)
+    initial_condition_constructed_lin(x, t, equations::HyperbolicNavierStokesEquations2D)
 
 A non-priodic smooth initial condition.
-Can be used in combination with [`source_terms_constructed1`](@ref) and BoundaryConditionDirichlet.
+Can be used in combination with [`source_terms_constructed_lin`](@ref) and BoundaryConditionDirichlet.
+The primal variables density ρ and specific total energy E follow linear functions.
 """
-@inline function initial_condition_constructed1(x, t, equations::HyperbolicNavierStokesEquations2D)
+@inline function initial_condition_constructed_lin(x, t, equations::HyperbolicNavierStokesEquations2D)
   @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
 
   rho = x[1] + x[2]
@@ -96,7 +65,7 @@ Can be used in combination with [`source_terms_constructed1`](@ref) and Boundary
   q_x = -mu*gamma/Pr * 0.5
   q_y = q_x
 
-  if iszero(t)
+  if false #iszero(t)
     delta = 0.01
     rho *= (1+delta)
     v1 *=(1-delta)
@@ -113,13 +82,13 @@ Can be used in combination with [`source_terms_constructed1`](@ref) and Boundary
 end
 
 """
-    source_terms_constructed1(u, x, t, equations::HyperbolicNavierStokesEquations2D)
+    source_terms_constructed_lin(u, x, t, equations::HyperbolicNavierStokesEquations2D)
 
 Source terms that include the forcing function `f(x)` and right hand side for the hyperbolic
-Navier-Stokes system that is used with [`initial_condition_constructed1](@ref) and
+Navier-Stokes system that is used with [`initial_condition_constructed_lin](@ref) and
 BoundaryConditionDirichlet.
 """
-@inline function source_terms_constructed1(u, x, t, equations::HyperbolicNavierStokesEquations2D)
+@inline function source_terms_constructed_lin(u, x, t, equations::HyperbolicNavierStokesEquations2D)
   u1, u2, u3, u4, u5 = u
   @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
 
@@ -164,12 +133,13 @@ BoundaryConditionDirichlet.
 end
 
 """
-    initial_condition_constructed2(x, t, equations::HyperbolicNavierStokesEquations2D)
+    initial_condition_constructed_square(x, t, equations::HyperbolicNavierStokesEquations2D)
 
 A non-priodic smooth initial condition.
-Can be used in combination with [`source_terms_constructed2`](@ref) and BoundaryConditionDirichlet.
+Can be used in combination with [`source_terms_constructed_square`](@ref) and BoundaryConditionDirichlet.
+The primal variables density ρ and specific total energy E follow second order polynomials.
 """
-@inline function initial_condition_constructed2(x, t, equations::HyperbolicNavierStokesEquations2D)
+@inline function initial_condition_constructed_square(x, t, equations::HyperbolicNavierStokesEquations2D)
   @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
 
   rho = x[1]^2 + x[2]^2
@@ -177,13 +147,13 @@ Can be used in combination with [`source_terms_constructed2`](@ref) and Boundary
   v2 = x[2]
   E = rho
   p = (gamma - 1)/2 * rho^2
-  T = gamma * (gamma-1)/2 * rho
+  T = gamma * p / rho
   mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
   tau_xx = 2/3 * mu
   tau_xy = zero(rho)
   tau_yy = tau_xx
-  q_x = -mu*gamma/Pr * 2*v1
-  q_y = -mu*gamma/Pr * 2*v2
+  q_x = -mu*gamma/Pr * v1
+  q_y = -mu*gamma/Pr * v2
 
   if false #iszero(t)
     delta = 0.01
@@ -202,13 +172,13 @@ Can be used in combination with [`source_terms_constructed2`](@ref) and Boundary
 end
 
 """
-    source_terms_constructed2(u, x, t, equations::HyperbolicNavierStokesEquations2D)
+    source_terms_constructed_square(u, x, t, equations::HyperbolicNavierStokesEquations2D)
 
 Source terms that include the forcing function `f(x)` and right hand side for the hyperbolic
-Navier-Stokes system that is used with [`initial_condition_constructed2](@ref) and
+Navier-Stokes system that is used with [`initial_condition_constructed_square](@ref) and
 BoundaryConditionDirichlet.
 """
-@inline function source_terms_constructed2(u, x, t, equations::HyperbolicNavierStokesEquations2D)
+@inline function source_terms_constructed_square(u, x, t, equations::HyperbolicNavierStokesEquations2D)
   @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
 
   rho = x[1]^2 + x[2]^2
@@ -218,9 +188,9 @@ BoundaryConditionDirichlet.
   p = (gamma - 1)/2 * rho^2
   pdx = (gamma - 1) * rho * 2*v1
   pdy = (gamma - 1) * rho * 2*v2
-  T = gamma * (gamma-1)/2 * rho
-  Tdx = gamma * (gamma-1) * x[1]
-  Tdy = gamma * (gamma-1) * x[2]
+  T = gamma * p / rho
+  Tdx = gamma * (gamma-1) * v1
+  Tdy = gamma * (gamma-1) * v2
   mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
   mudx = mu * (1.5/T - 1/(T+C/Tinf)) * Tdx
   mudy = mu * (1.5/T - 1/(T+C/Tinf)) * Tdy
@@ -232,14 +202,14 @@ BoundaryConditionDirichlet.
   q_x = -mu*gamma/Pr * v1
   q_xdx = -gamma/Pr * (mudx*v1 + mu)
   q_y = -mu*gamma/Pr * v2
-  q_ydy = -gamma/Pr * (mudx*v2 + mu)
+  q_ydy = -gamma/Pr * (mudy*v2 + mu)
 
   mu_v = 4/3 * mu     # viscosity of stress
   mu_h = gamma*mu/Pr  # viscosity of heat flux
 
   dq1 = 4*rho
-  dq2 = 5*(v1^3+v1*v2^2) + pdx - tau_xxdx
-  dq3 = 5*(v2^3+v2*v1^2) + pdy - tau_yydy
+  dq2 = 5*rho*v1 + pdx - tau_xxdx
+  dq3 = 5*rho*v2 + pdy - tau_yydy
   dq4 = (gamma+1) * 3*rho^2 - tau_xx - tau_yy - tau_xxdx*v1 - tau_yydy*v2 + q_xdx + q_ydy
   dq5 = -tau_xx / mu_v
   dq6 = -tau_xy / mu_v
@@ -253,37 +223,42 @@ end
 """
     initial_condition_constructed_exp(x, t, equations::HyperbolicNavierStokesEquations2D)
 
-A non-priodic smooth initial condition.
+A non-priodic smooth initial condition. In the initial guess the primal variables
+density ρ, velocity v and specific total energy E follow linear functions.
 Can be used in combination with [`source_terms_constructed_exp`](@ref) and BoundaryConditionDirichlet.
 The primal variables follow exponential functions.
 """
 @inline function initial_condition_constructed_exp(x, t, equations::HyperbolicNavierStokesEquations2D)
   @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
 
-  rho = exp(x[1]) + exp(x[2])
-  v1 = exp(0.5*x[1])
-  v2 = exp(0.5*x[2])
-  E = rho
-  p = (gamma - 1)/2 * rho^2
-  T = gamma * (gamma-1)/2 * rho
-  mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
-  tau_xx = 2/3 * mu * (v1 - v2/2)
-  tau_xy = zero(rho)
-  tau_yy = 2/3 * mu * (v2 - v1/2)
-  q_x = -mu*gamma/Pr * exp(x[1])/2
-  q_y = -mu*gamma/Pr * exp(x[2])/2
-
   if iszero(t)
-    delta = 0.01
-    rho *= (1+delta)
-    v1 *=(1-delta)
-    v2 *=(1-delta)
-    E *= (1+delta)
-    tau_xx *= (1+delta/2)
-    tau_xy *= (1+delta/2)
-    tau_yy *= (1+delta/2)
-    q_x *= (1-delta/2)
-    q_y *= (1-delta/2)
+    rho = (exp(1.0) - 1.0)*x[2] + (exp(1.0) - 1.0)*x[1] + 2.0
+    v1 = (exp(0.5) - 1.0)*x[1] + 1.0
+    v2 = (exp(0.5) - 1.0)*x[2] + 1.0
+    E = rho
+    T = gamma * (gamma-1) * rho/2
+    mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
+    tau_xx = 2/3 * mu * (v1 - v2/2)
+    tau_xy = zero(rho)
+    tau_yy = 2/3 * mu * (v2 - v1/2)
+    q_x = -mu*gamma/Pr * exp(x[1])/2
+    q_y = -mu*gamma/Pr * exp(x[2])/2
+
+  else
+
+    rho = exp(x[1]) + exp(x[2])
+    v1 = exp(0.5*x[1])
+    v2 = exp(0.5*x[2])
+    E = rho
+    p = (gamma - 1)/2 * rho^2
+    T = gamma * (gamma-1)/2 * rho
+    mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
+    tau_xx = 2/3 * mu * (v1 - v2/2)
+    tau_xy = zero(rho)
+    tau_yy = 2/3 * mu * (v2 - v1/2)
+    q_x = -mu*gamma/Pr * exp(x[1])/2
+    q_y = -mu*gamma/Pr * exp(x[2])/2
+
   end
 
   return SVector(rho, rho*v1, rho*v2, rho*E, tau_xx, tau_xy, tau_yy, q_x, q_y)
@@ -330,6 +305,87 @@ BoundaryConditionDirichlet.
   dq3 = exp(x[2])*rho + exp(2*x[2]) + pdy - tau_yydy + v1*v2*(rho/2 + exp(x[1]))
   dq4 = ((gamma+1)*rho * (v1*(rho/4 + exp(x[1])) + v2*(rho/4 + exp(x[2])))
         - v1*(tau_xx/2 + tau_xxdx) - v2*(tau_yy/2 + tau_yydy) + q_xdx + q_ydy)
+  dq5 = -tau_xx / mu_v
+  dq6 = -tau_xy / mu_v
+  dq7 = -tau_yy / mu_v
+  dq8 = -q_x / mu_h
+  dq9 = -q_y / mu_h
+
+  return SVector(dq1, dq2, dq3, dq4, dq5, dq6, dq7, dq8, dq9)
+end
+
+@inline function initial_condition_constructed_periodic(x, t, equations::HyperbolicNavierStokesEquations2D)
+  @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
+
+  sinx, cosx = sincos(x[1])
+  siny, cosy = sincos(x[2])
+
+  rho = (sinx + 2.0)^2 + (siny + 2.0)^2
+  v1 = sinx + 2.0
+  v2 = siny + 2.0
+  E = rho
+  p = (gamma - 1)/2 * rho^2
+  T = gamma * p /  rho
+  mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
+  tau_xx = 2/3 * mu * (2*cosx - cosy)
+  tau_xy = zero(rho)
+  tau_yy = 2/3 * mu * (2*cosy - cosx)
+  q_x = -mu*gamma/Pr * v1 * cosx
+  q_y = -mu*gamma/Pr * v2 * cosy
+
+  if false #iszero(t)
+    delta = 0.01
+    rho *= (1+delta)
+    v1 *=(1-delta)
+    v2 *=(1-delta)
+    E *= (1+delta)
+    tau_xx *= (1+delta/2)
+    tau_xy *= (1+delta/2)
+    tau_yy *= (1+delta/2)
+    q_x *= (1-delta/2)
+    q_y *= (1-delta/2)
+  end
+
+  return SVector(rho, rho*v1, rho*v2, rho*E, tau_xx, tau_xy, tau_yy, q_x, q_y)
+end
+
+@inline function source_terms_constructed_periodic(u, x, t, equations::HyperbolicNavierStokesEquations2D)
+  @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
+
+  sinx, cosx = sincos(x[1])
+  siny, cosy = sincos(x[2])
+
+  rho = (sinx + 2.0)^2 + (siny + 2.0)^2
+  v1 = sinx + 2.0
+  v2 = siny + 2.0
+  E = rho
+  p = (gamma - 1)/2 * rho^2
+  pdx = (gamma - 1) * rho * 2*v1*cosx
+  pdy = (gamma - 1) * rho * 2*v2*cosy
+  T = gamma * p /  rho
+  Tdx = gamma * (gamma-1) * v1*cosx
+  Tdy = gamma * (gamma-1) * v2*cosy
+  mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
+  mudx = mu * (1.5/T - 1/(T+C/Tinf)) * Tdx
+  mudy = mu * (1.5/T - 1/(T+C/Tinf)) * Tdy
+  tau_xx = 2/3 * mu * (2*cosx - cosy)
+  tau_xxdx = 2/3 * (mudx * (2*cosx - cosy) - 2*mu*sinx)
+  tau_xy = zero(rho)
+  tau_yy = 2/3 * mu * (2*cosy - cosx)
+  tau_yydy = 2/3 * (mudy * (2*cosy - cosx) - 2*mu*siny)
+  q_x = -mu*gamma/Pr * v1 * cosx
+  q_xdx = -gamma/Pr * (mu * (cosx^2 - v1*sinx) + mudx*v1*cosx)
+  q_y = -mu*gamma/Pr * v2 * cosy
+  q_ydy = -gamma/Pr * (mu * (cosy^2 - v2*siny) + mudy*v2*cosy)
+
+  mu_v = 4/3 * mu     # viscosity of stress
+  mu_h = gamma*mu/Pr  # viscosity of heat flux
+
+  dq1 = cosx*(2*v1^2 + rho) + cosy*(2*v2^2 + rho)
+  dq2 = 2*cosx*v1*(v1^2 + rho) + pdx - tau_xxdx + cosy * v1 * (2*v2^2 + rho)
+  dq3 = 2*cosy*v2*(v2^2 + rho) + pdy - tau_yydy + cosx * v2 * (2*v1^2 + rho)
+  dq4 = ((gamma+1)/2 * rho * (cosx * (4*v1^2 + rho) + cosy * (4*v2^2 + rho))
+        - (tau_xx*cosx + tau_xxdx*v1) - (tau_yy*cosy + tau_yydy*v2) + q_xdx + q_ydy)
   dq5 = -tau_xx / mu_v
   dq6 = -tau_xy / mu_v
   dq7 = -tau_yy / mu_v
