@@ -51,7 +51,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                                                energy_magnetic, cross_helicity))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-                                   save_final_restart=true)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
