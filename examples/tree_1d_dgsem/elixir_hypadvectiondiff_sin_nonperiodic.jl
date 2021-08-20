@@ -22,12 +22,12 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=false) # set maximum capacity of tree data structure
 
 
-initial_condition = initial_condition_sin_nonperiodic
+initial_condition = initial_condition_sin
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions,
-                                    source_terms=source_terms_sin_nonperiodic)
+                                    source_terms=source_terms_sin)
 
 
 ###############################################################################
