@@ -13,6 +13,12 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run basic tests
 @testset "Examples 3D" begin
+  # Hyperbolic diffusion
+  include("test_tree_3d_hypdiff.jl")
+
+  # Compressible Euler with self-gravity
+  include("test_tree_3d_eulergravity.jl")
+
   # MHD
   include("test_tree_3d_mhd.jl")
 

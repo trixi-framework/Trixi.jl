@@ -19,14 +19,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Linear scalar advection
   include("test_tree_3d_advection.jl")
 
-  # Hyperbolic diffusion
-  include("test_tree_3d_hypdiff.jl")
-
   # Compressible Euler
   include("test_tree_3d_euler.jl")
-
-  # Compressible Euler with self-gravity
-  include("test_tree_3d_eulergravity.jl")
 end
 
 
