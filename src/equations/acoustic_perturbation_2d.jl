@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
+# TODO: Adjust documentation
 @doc raw"""
     AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
@@ -66,7 +66,7 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2,<:Real}, c_me
 end
 
 
-varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime",
+varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_tilde",
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
 varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime",
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
@@ -81,7 +81,7 @@ function cons2mean(u, equations::AcousticPerturbationEquations2D)
   return SVector(u[4], u[5], u[6], u[7])
 end
 
-varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime")
+varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_tilde")
 varnames(::typeof(cons2mean), ::AcousticPerturbationEquations2D) = ("v1_mean", "v2_mean", "c_mean", "rho_mean")
 
 
@@ -106,9 +106,9 @@ Uses the global mean values from `equations`.
 function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
   v1_prime = 0.0
   v2_prime = 0.0
-  p_prime = 0.0
+  p_tilde = 0.0
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+  return SVector(v1_prime, v2_prime, p_tilde, global_mean_vars(equations)...)
 end
 
 
@@ -131,7 +131,9 @@ function initial_condition_convergence_test(x, t, equations::AcousticPerturbatio
   v2_prime = init
   p_prime = init^2
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+  prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+
+  return prim2cons(prim, equations)
 end
 
 """
@@ -154,7 +156,7 @@ function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationE
   tmp = v1_mean + v2_mean - a
 
   du1 = du2 = A * omega * co * (2 * c + tmp + 2/rho_mean * A * si)
-  du3 = A * omega * co * (2 * c_mean^2 * rho_mean + 2 * c * tmp + 2 * A * tmp * si)
+  du3 = A * omega * co * (2 * c_mean^2 * rho_mean + 2 * c * tmp + 2 * A * tmp * si) / c_mean^2
 
   du4 = du5 = du6 = du7 = 0.0
 
@@ -172,7 +174,9 @@ function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2
   v2_prime = 0.0
   p_prime = exp(-4*(x[1]^2 + x[2]^2))
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+  prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+
+  return prim2cons(prim, equations)
 end
 
 
@@ -187,7 +191,9 @@ function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquat
   v2_prime = 0.0
   p_prime = exp(-log(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+  prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+
+  return prim2cons(prim, equations)
 end
 
 """
@@ -237,7 +243,9 @@ function initial_condition_monopole(x, t, equations::AcousticPerturbationEquatio
   c_mean = 1.0
   rho_mean = 1.0
 
-  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+  prim = SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+
+  return prim2cons(prim, equations)
 end
 
 """
@@ -262,8 +270,9 @@ function boundary_condition_monopole(u_inner, orientation, direction, x, t, surf
     v1_prime = 0.0
     v2_prime = p_prime = sin(2 * pi * t)
 
-    u_boundary = SVector(v1_prime, v2_prime, p_prime, u_inner[4], u_inner[5], u_inner[6],
-                         u_inner[7])
+    prim_boundary = SVector(v1_prime, v2_prime, p_prime, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+
+    u_boundary = prim2cons(prim_boundary, equations)
   else # Wall
     u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
                          u_inner[7])
@@ -299,18 +308,18 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::AcousticPerturbationEquations2D)
-  v1_prime, v2_prime, p_prime = cons2state(u, equations)
+  v1_prime, v2_prime, p_tilde = cons2state(u, equations)
   v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
   # Calculate flux for conservative state variables
   if orientation == 1
-    f1 = v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean
+    f1 = v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean
     f2 = zero(eltype(u))
-    f3 = c_mean^2 * rho_mean * v1_prime + v1_mean * p_prime
+    f3 = rho_mean * v1_prime + v1_mean * p_tilde
   else
     f1 = zero(eltype(u))
-    f2 = v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean
-    f3 = c_mean^2 * rho_mean * v2_prime + v2_mean * p_prime
+    f2 = v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean
+    f3 = rho_mean * v2_prime + v2_mean * p_tilde
   end
 
   # The rest of the state variables are actually variable coefficients, hence the flux should be
@@ -343,13 +352,13 @@ end
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::AcousticPerturbationEquations2D)
-  v1_prime, v2_prime, p_prime = cons2state(u, equations)
+  v1_prime, v2_prime, p_tilde = cons2state(u, equations)
   v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
-  f1 = normal_direction[1] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
-  f2 = normal_direction[2] * (v1_mean * v1_prime + v2_mean * v2_prime + p_prime / rho_mean)
-  f3 = ( normal_direction[1] * (c_mean^2 * rho_mean * v1_prime + v1_mean * p_prime)
-       + normal_direction[2] * (c_mean^2 * rho_mean * v2_prime + v2_mean * p_prime) )
+  f1 = normal_direction[1] * (v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean)
+  f2 = normal_direction[2] * (v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean)
+  f3 = ( normal_direction[1] * (rho_mean * v1_prime + v1_mean * p_tilde)
+       + normal_direction[2] * (rho_mean * v2_prime + v2_mean * p_tilde) )
 
   # The rest of the state variables are actually variable coefficients, hence the flux should be
   # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
@@ -378,6 +387,7 @@ end
 end
 
 
+# TODO: Adjust boundary_state_slip_wall to new conservative variables
 """
     boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
                              equations::AcousticPertubationEquations2D)
@@ -418,7 +428,22 @@ end
 
 
 # Convert conservative variables to primitive
-@inline cons2prim(u, equations::AcousticPerturbationEquations2D) = u
+@inline function cons2prim(u, equations::AcousticPerturbationEquations2D)
+  p_tilde = u[3]
+  c_mean = u[6]
+  p_prime = p_tilde * c_mean^2
+
+  return SVector(u[1], u[2], p_prime, u[4], u[5], u[6], u[7])
+end
+
+# Convert primitive variables to conservative
+@inline function prim2cons(u, equations::AcousticPerturbationEquations2D)
+  p_prime = u[3]
+  c_mean = u[6]
+  p_tilde = p_prime / c_mean^2
+
+  return SVector(u[1], u[2], p_tilde, u[4], u[5], u[6], u[7])
+end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::AcousticPerturbationEquations2D) = u
