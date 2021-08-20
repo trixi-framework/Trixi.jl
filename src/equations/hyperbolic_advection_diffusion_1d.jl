@@ -47,22 +47,15 @@ end
 function initial_condition_idlCFD_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
   @unpack advectionvelocity, nu = equations
 
-  Re = advectionvelocity[1] / nu
-  v = (1-exp(x[1]*Re)) / (1-exp(Re))
-  q1 = (-Re*exp(x[1]*Re)) / (1-exp(Re))
-  return SVector(v, q1)
-end
-
-"""
-    Example "mytest"
-    As a first test function a quadratic polynomial is implemented. The
-    boundary conditions are nonperiodic. This equation should be solved exactly
-    by using polynomials of second degree.
-"""
-function initial_condition_mytest_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
-  c = 1.0
-  v = c * x[1] + 0.5 * c * x[1]^2 - c * t * x[1] + 0.5 * c * t^2
-  q1 = c + c*x[1] - c*t
+  if iszero(t)
+    v = x[1]
+    q1 = one(v)
+  else
+    Re = advectionvelocity[1] / nu
+    v = (1-exp(x[1]*Re)) / (1-exp(Re))
+    q1 = (-Re*exp(x[1]*Re)) / (1-exp(Re))
+  end
+        
   return SVector(v, q1)
 end
 
@@ -73,9 +66,14 @@ end
 """
 function initial_condition_myexp_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
   @unpack advectionvelocity, nu = equations
-  c = 2.0
-  v = exp(c*x[1] + (nu*c^2-advectionvelocity[1]*c)*t)
-  q1 = c * v
+  if iszero(t)
+    v = x[1] + 1.0
+    q1 = 1.0
+  else
+    c = advectionvelocity[1]/nu
+    v = exp(c*x[1])
+    q1 = c * v
+  end
   return SVector(v, q1)
 end
 
@@ -90,25 +88,16 @@ end
 
 """
     Example "sin"
-    This example is taken from the paper "First-Order Hyperbolic System Method
-    for Time-Dependent Advection Diffusion Problems" published by Allireza
-    Mazaheri in 2014. Periodic boundary conditions are used.
+    This example is constructed to be solved by sin and cos functions. It can be used with periodic and Dirichlet boundary conditions.
+    The initial guess is constant.
 """
 
-function initial_condition_sin_periodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
+function initial_condition_sin(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
   @unpack advectionvelocity, nu = equations
-  kappa = 2.0*pi
-  v = exp(-kappa^2*nu*t)*sin(kappa*(x[1]-advectionvelocity[1]*t))
-  q1 = kappa*exp(-kappa^2*nu*t)*cos(kappa*(x[1]-advectionvelocity[1]*t))
-  return SVector(v, q1)
-end
-
-function initial_condition_sin_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
-  @unpack advectionvelocity, nu = equations
-  if t == 0.0
+  if iszero(t)
     # initial "guess" of the solution and its derivative
-    v = x[1]^2 - x[1]
-    q1  = 2*x[1] - 1
+    v = zero(x[1])
+    q1  = one(v)
   else
     v = sinpi(2*x[1])
     q1 = 2*pi*cospi(2*x[1])
@@ -116,7 +105,7 @@ function initial_condition_sin_nonperiodic(x, t, equations::HyperbolicAdvectionD
   return SVector(v, q1)
 end
 
-@inline function source_terms_sin_nonperiodic(u, x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
+@inline function source_terms_sin(u, x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
   # harmonic solution of the form ϕ = A + B * x, so f = 0
   @unpack advectionvelocity, nu, inv_Tr = equations
 
