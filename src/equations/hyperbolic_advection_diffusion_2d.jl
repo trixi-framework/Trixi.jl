@@ -65,11 +65,17 @@ end
 
 @inline function initial_condition_exp_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations2D)
   @unpack advectionvelocity, nu = equations
-  c = advectionvelocity[1] / nu
-  d = advectionvelocity[2] / nu
-  v = exp(c*x[1] + d*x[2])
-  q1 = c*v
-  q2 = d*v
+  if iszero(t)
+    v = x[1] + x[2] + 1.0
+    q1 = 1.0
+    q2 = 1.0
+  else
+    c = advectionvelocity[1] / nu
+    d = advectionvelocity[2] / nu
+    v = exp(c*x[1] + d*x[2])
+    q1 = c*v
+    q2 = d*v
+  end
   return SVector(v, q1, q2)
 end
 
