@@ -1,4 +1,4 @@
-module TestExamples1D
+module TestExamplesTree1D
 
 using Test
 using Trixi
@@ -12,44 +12,34 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "1D" begin
+@testset "TreeMesh1D" begin
 
 # Run basic tests
 @testset "Examples 1D" begin
   # Linear scalar advection
-  include("test_examples_1d_advection.jl")
-
+  include("test_tree_1d_advection.jl")
 
   # Burgers
-  include("test_examples_1d_burgers.jl")
-
+  include("test_tree_1d_burgers.jl")
 
   # Hyperbolic diffusion
-  include("test_examples_1d_hypdiff.jl")
+  include("test_tree_1d_hypdiff.jl")
 
 
   # Compressible Euler
-  include("test_examples_1d_euler.jl")
-
+  include("test_tree_1d_euler.jl")
 
   # Compressible Euler Multicomponent
-  include("test_examples_1d_eulermulti.jl")
-
+  include("test_tree_1d_eulermulti.jl")
 
   # MHD
-  include("test_examples_1d_mhd.jl")
-
+  include("test_tree_1d_mhd.jl")
 
   # MHD Multicomponent
-  include("test_examples_1d_mhdmulti.jl")
-
+  include("test_tree_1d_mhdmulti.jl")
 
   # Compressible Euler with self-gravity
-  include("test_examples_1d_eulergravity.jl")
-
-
-  # Curved Mesh
-  include("test_examples_1d_structured.jl")
+  include("test_tree_1d_eulergravity.jl")
 end
 
 # Coverage test for all initial conditions
@@ -280,6 +270,6 @@ end
 # Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
 
-end # 1D
+end # TreeMesh1D
 
-end #module
+end # module

@@ -1,4 +1,4 @@
-module TestExamples1DStructured
+module TestExamplesStructuredMesh1D
 
 using Test
 using Trixi
@@ -8,7 +8,11 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "structured_1d_dgsem")
 
-@testset "Structured Mesh" begin
+# Start with a clean environment: remove Trixi output directory if it exists
+outdir = "out"
+isdir(outdir) && rm(outdir, recursive=true)
+
+@testset "StructuredMesh1D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [6.0388296447998465e-6],
@@ -33,5 +37,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
       linf = [1.2971473393186272e-5, 9.270328934274374e-6, 3.092514399671842e-5])
   end
 end
+
+# Clean up afterwards: delete Trixi output directory
+@test_nowarn rm(outdir, recursive=true)
 
 end # module

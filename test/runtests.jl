@@ -34,32 +34,42 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes --code-coverage=none $(abspath("test_examples_2d_parallel.jl"))`)
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "1d"
-    include("test_examples_1d.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part1"
+    include("test_tree_1d.jl")
+    include("test_tree_2d_part1.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_part1"
-    include("test_examples_2d_part1.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part2"
+    include("test_tree_2d_part2.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_part2"
-    include("test_examples_2d_part2.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part3"
+    include("test_tree_2d_part3.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_part3"
-    include("test_examples_2d_part3.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part4"
+    include("test_tree_3d_part1.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "dgmulti"
-    include("test_examples_dgmulti.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part5"
+    include("test_tree_3d_part2.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "3d_part1"
-    include("test_examples_3d_part1.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "structured"
+    include("test_structured_1d.jl")
+    include("test_structured_2d.jl")
+    include("test_structured_3d.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "3d_part2"
-    include("test_examples_3d_part2.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est"
+    include("test_p4est_2d.jl")
+    include("test_p4est_3d.jl")
+  end
+
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "unstructured_dgmulti"
+    include("test_unstructured_2d.jl")
+    include("test_dgmulti_2d.jl")
+    include("test_dgmulti_3d.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc"
