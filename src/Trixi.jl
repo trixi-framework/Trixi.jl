@@ -163,6 +163,20 @@ export initial_condition_couette_steady, initial_condition_couette_unsteady, bou
 export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
 
+export initial_condition_idlCFD_nonperiodic
+export initial_condition_mytest_nonperiodic
+export initial_condition_myexp_nonperiodic
+export initial_condition_sin, source_terms_sin
+export initial_condition_exp_nonperiodic
+export initial_condition_constructed_lin, source_terms_constructed_lin
+export initial_condition_constructed_square, source_terms_constructed_square
+export initial_condition_constructed_exp, source_terms_constructed_exp
+export initial_condition_constructed_exp2, source_terms_constructed_exp2
+export initial_condition_constructed_periodic, source_terms_constructed_periodic
+export boundary_condition_viscous_shock
+
+export calc_viscous_shock_solution
+
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity
