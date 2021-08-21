@@ -160,6 +160,7 @@ export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
+export initial_condition_rti, source_terms_rti
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
