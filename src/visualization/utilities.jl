@@ -1126,7 +1126,7 @@ function mesh_plotting_wireframe(pds::PlotDataSeries{<:UnstructuredPlotData2D};
   @unpack x_face, y_face, face_data = pd
 
   if set_z_coordinate_zero
-    sol_f = zeros(eltype(first(face_data)), size(face_data)) # plot 2d surface by setting z coordinate to zero
+    sol_f = zeros(eltype(first(x_face)), size(x_face)) # plot 2d surface by setting z coordinate to zero
   else
     sol_f = StructArrays.component(face_data, variable_id)
   end
