@@ -462,16 +462,20 @@ The domain is [0, .25] x [0, 1]. Boundary conditions can be
 
 or reflective wall boundary conditions on all boundaries.
 """
-function initial_condition_rti(coordinates, t, equations::CompressibleEulerEquations2D)
+@inline function initial_condition_rti(coordinates, t, equations::CompressibleEulerEquations2D)
   tol = 1e2*eps()
   x, y = coordinates
   if y < .5
-    rho = 2.0
     p = 2*y + 1
   else
-    rho = 1.0
     p = y + 3/2
   end
+
+  # smooth the discontinuity to avoid ambiguity at element interfaces
+  slope = 500
+  smoothed_heaviside(x, left, right) = left + .5*(1 + tanh(slope * x)) * (right-left)
+  rho = smoothed_heaviside(y - .5, 2.0, 1.0)
+
   c = sqrt(equations.gamma * p / rho)
   # the velocity is multiplied by sin(pi*y)^6 as in Remacle et al. 2003 to ensure that the
   # initial condition satisfies reflective boundary conditions at the top/bottom boundaries.
@@ -489,7 +493,7 @@ Setup used for convergence tests of the Euler equations with self-gravity used i
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
 """
-function source_terms_rti(u, coordinates, t, equations::CompressibleEulerEquations2D)
+@inline function source_terms_rti(u, coordinates, t, equations::CompressibleEulerEquations2D)
   g = 1.0
   rho, rho_v1, rho_v2, E = u
   return SVector(0.0, 0.0, g*rho, g*rho_v2)
