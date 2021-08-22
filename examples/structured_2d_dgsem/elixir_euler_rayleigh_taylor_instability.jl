@@ -11,8 +11,8 @@ volume_flux  = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-# The domain is [0, .25] x [0, 1]
-mapping(xi, eta) = SVector(.25 * .5 * (1 + xi), .5 * (1 + eta))
+# The domain is [0, 0.25] x [0, 1]
+mapping(xi, eta) = SVector(0.25 * 0.5 * (1 + xi), 0.5 * (1 + eta))
 
 num_elements_per_dimension = 32
 cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 4)
