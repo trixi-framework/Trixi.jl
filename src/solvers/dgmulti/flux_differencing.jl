@@ -116,18 +116,6 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFlux
   return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-# Initialization specialized to solution storage for DGMultiFluxDiff with SBP approximation type.
-function compute_coefficients!(u, initial_condition, t,
-                               mesh::AbstractMeshData{NDIMS}, equations, dg::DGMultiFluxDiff{<:SBP}, cache) where {NDIMS}
-  md = mesh.md
-  rd = dg.basis
-
-  # evaluate the initial condition at nodal point
-  @threaded for i in each_quad_node_global(mesh, dg, cache)
-    u[i] = initial_condition(getindex.(md.xyzq, i), t, equations)
-  end
-end
-
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, RealT, uEltype)
 
   rd = dg.basis
