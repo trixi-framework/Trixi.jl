@@ -473,15 +473,16 @@ or reflective wall boundary conditions on all boundaries.
   end
 
   # smooth the discontinuity to avoid ambiguity at element interfaces
-  smoothed_heaviside(x, left, right) = left + .5*(1 + tanh(slope * x)) * (right-left)
-  rho = smoothed_heaviside(y - .5, 2.0, 1.0)
+  smoothed_heaviside(x, left, right) = left + 0.5*(1 + tanh(slope * x)) * (right-left)
+  rho = smoothed_heaviside(y - 0.5, 2.0, 1.0)
 
   c = sqrt(equations.gamma * p / rho)
   # the velocity is multiplied by sin(pi*y)^6 as in Remacle et al. 2003 to ensure that the
   # initial condition satisfies reflective boundary conditions at the top/bottom boundaries.
   v = -0.025 * c * cos(8*pi*x) * sin(pi*y)^6
   u = 0.0
-  return prim2cons(SVector{4}(rho, u, v, p), equations)
+  
+  return prim2cons(SVector(rho, u, v, p), equations)
 end
 
 """

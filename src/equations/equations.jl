@@ -176,6 +176,7 @@ struct BoundaryConditionWall{B}
   boundary_value_function::B
 end
 
+# Wall boundary condition for use with TreeMesh or StructuredMesh
 @inline function (boundary_condition::BoundaryConditionWall)(u_inner, orientation_or_normal,
                                                              direction,
                                                              x, t,
@@ -192,6 +193,9 @@ end
 
   return flux
 end
+
+# Wall boundary condition for use with UnstructuredMesh2D
+# Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionWall)(u_inner,
                                                              normal_direction::AbstractVector,
                                                              x, t,

@@ -7,15 +7,9 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
-initial_condition = initial_condition_rti
-source_terms = source_terms_rti
-
-surface_flux = flux_hll
 volume_flux  = flux_ranocha
-polydeg = 3
-basis = LobattoLegendreBasis(polydeg)
-volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
-solver = DGSEM(basis, surface_flux, volume_integral)
+solver = DGSEM(polydeg=3, surface_flux=flux_hll,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # The domain is [0, .25] x [0, 1]
 mapping(xi, eta) = SVector(.25 * .5 * (1 + xi), .5 * (1 + eta))
@@ -40,9 +34,10 @@ boundary_conditions = (
 #                        y_pos=BoundaryConditionDirichlet(initial_condition),
 #                       )
 
+initial_condition = initial_condition_rayleigh_taylor_instability
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    source_terms = source_terms,
-                                    boundary_conditions = boundary_conditions)
+                                    source_terms=source_terms_rayleigh_taylor_instability,
+                                    boundary_conditions=boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
