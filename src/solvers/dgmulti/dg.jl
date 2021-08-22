@@ -119,6 +119,27 @@ function estimate_dt(mesh::AbstractMeshData, dg::DGMulti)
   return StartUpDG.estimate_h(rd, mesh.md) / StartUpDG.inverse_trace_constant(rd)
 end
 
+# for the stepsize callback
+function max_dt(u, t, mesh::AbstractMeshData,
+                constant_speed::Val{false}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+
+  @unpack md = mesh
+  rd = dg.basis
+
+  dt_min = Inf
+  for e in eachelement(mesh, dg, cache)
+    h_e = StartUpDG.estimate_h(e, rd, md)
+    max_speeds = ntuple(_->nextfloat(zero(t)), NDIMS)
+    for i in Base.OneTo(rd.Np) # loop over nodes
+      lambda_i = max_abs_speeds(u[i, e], equations)
+      max_speeds = max.(max_speeds, lambda_i)
+    end
+    dt_min = min(dt_min, h_e / sum(max_speeds))
+  end
+  domain_size = StartUpDG.compute_domain_size(rd, md)^(1/NDIMS)
+  return (dt_min / StartUpDG.inverse_trace_constant(rd)) * domain_size
+end
+
 # interpolates from solution coefficients to face quadrature points
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
                              surface_integral, dg::DGMulti)
