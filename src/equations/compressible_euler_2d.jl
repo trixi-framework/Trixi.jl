@@ -485,7 +485,7 @@ or reflective wall boundary conditions on all boundaries.
 end
 
 """
-    source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations::CompressibleEulerEquations2D)
+    source_terms_rayleigh_taylor_instability(u, x, t, equations::CompressibleEulerEquations2D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
