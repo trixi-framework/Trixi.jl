@@ -337,7 +337,7 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
 end
 
 # specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
-# an UnstructuredMesh2D type.
+# a non-TreeMesh type.
 function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equations, dg, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
   @assert ndims(mesh) == 2
