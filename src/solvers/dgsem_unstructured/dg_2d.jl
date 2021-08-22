@@ -188,129 +188,12 @@ function calc_interface_flux!(surface_flux_values,
   return nothing
 end
 
-
 # compute the numerical flux interface with nonconservative terms coupling between two elements
 # on an unstructured quadrilateral mesh
-# TODO: nonconservative terms; remove
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
                               nonconservative_terms::Val{true}, equations,
                               surface_integral, dg::DG, cache)
-  @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
-  @unpack normal_directions = cache.elements
-
-  fstar_primary_threaded             = cache.fstar_upper_threaded
-  fstar_secondary_threaded           = cache.fstar_lower_threaded
-  noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_threaded
-  noncons_diamond_secondary_threaded = cache.noncons_diamond_lower_threaded
-
-  @threaded for interface in eachinterface(dg, cache)
-    # Choose thread-specific pre-allocated container
-    fstar_primary             = fstar_primary_threaded[Threads.threadid()]
-    fstar_secondary           = fstar_secondary_threaded[Threads.threadid()]
-    noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
-    noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
-
-    # Get the primary element index and local side index
-    primary_element = element_ids[1, interface]
-    primary_side = element_side_ids[1, interface]
-
-    # Get initial index for the coordinate system on the secondary element and its
-    # index increment
-    secondary_index = start_index[interface]
-    secondary_index_increment = index_increment[interface]
-
-    # Calculate the conservative portion of the numerical flux
-    calc_fstar!(fstar_primary, fstar_secondary, equations, surface_integral, dg,
-                u, normal_directions, interface,
-                primary_element, primary_side, secondary_index, secondary_index_increment)
-
-    for primary_index in eachnode(dg)
-      # Pull the primary and secondary states from the boundary u values
-      u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index, interface)
-      u_rr = get_one_sided_surface_node_vars(u, equations, dg, 2, secondary_index, interface)
-      # Pull the outward pointing (normal) directional vector
-      #   Note! this assumes a conforming approximation, more must be done in terms of the normals
-      #         for hanging nodes and other non-conforming approximation spaces
-      outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
-                                             primary_element)
-      # Call pointwise nonconservative term
-      noncons_primary   = noncons_interface_flux(u_ll, u_rr, outward_direction, :weak, equations)
-      noncons_secondary = noncons_interface_flux(u_rr, u_ll, outward_direction, :weak, equations)
-      # Save to primary and secondary temporay storage
-      set_node_vars!(noncons_diamond_primary,   noncons_primary,   equations, dg, primary_index)
-      set_node_vars!(noncons_diamond_secondary, noncons_secondary, equations, dg, secondary_index)
-      # increment the index of the coordinate system in the secondary element
-      secondary_index += secondary_index_increment
-    end
-
-    # Get neighboring element and local side index
-    secondary_element = element_ids[2, interface]
-    secondary_side = element_side_ids[2, interface]
-
-    # Reinitialize index for the coordinate system on the secondary element
-    secondary_index = start_index[interface]
-    # loop through the primary element coordinate system and compute the interface coupling
-    for primary_index in eachnode(dg)
-      # Copy flux back to primary/secondary element storage
-      # Note the sign change for the components in the secondary element!
-      for v in eachvariable(equations)
-        surface_flux_values[v, primary_index, primary_side, primary_element] = (fstar_primary[v, primary_index] +
-            noncons_diamond_primary[v, primary_index])
-        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -(fstar_secondary[v, secondary_index] +
-            noncons_diamond_secondary[v, secondary_index])
-      end
-      # increment the index of the coordinate system in the secondary element
-      secondary_index += secondary_index_increment
-    end
-  end
-
-  return nothing
-end
-
-# TODO: nonconservative terms; remove
-@inline function calc_fstar!(destination_primary::AbstractArray{<:Any,2},
-                             destination_secondary::AbstractArray{<:Any,2},
-                             equations, surface_integral, dg::DGSEM,
-                             u_interfaces, normal_directions,
-                             interface, primary_element, primary_side,
-                             secondary_element_start_index, secondary_element_index_increment)
-  @unpack surface_flux = surface_integral
-
-  secondary_index = secondary_element_start_index
-  for primary_index in eachnode(dg)
-    # pull the primary and secondary states from the boundary u values
-    u_ll = get_one_sided_surface_node_vars(u_interfaces, equations, dg, 1, primary_index, interface)
-    u_rr = get_one_sided_surface_node_vars(u_interfaces, equations, dg, 2, secondary_index, interface)
-
-    # pull the outward pointing (normal) directional vector
-    #   Note! this assumes a conforming approximation, more must be done in terms of the normals
-    #         for hanging nodes and other non-conforming approximation spaces
-    outward_direction = get_surface_normal(normal_directions, primary_index, primary_side,
-                                           primary_element)
-
-    # Call pointwise numerical flux with rotation. Direction is normalized inside this function
-    flux = surface_flux(u_ll, u_rr, outward_direction, equations)
-
-    # Copy flux to left and right element storage
-    set_node_vars!(destination_primary,   flux, equations, dg, primary_index)
-    set_node_vars!(destination_secondary, flux, equations, dg, secondary_index)
-    # increment the index of the coordinate system in the secondary element
-    secondary_index += secondary_element_index_increment
-  end
-
-  return nothing
-end
-
-
-# compute the numerical flux interface with nonconservative terms coupling between two elements
-# on an unstructured quadrilateral mesh
-# TODO: nonconservative terms; remove type restriction on the surface_integral
-#       used for dispatch for development
-function calc_interface_flux!(surface_flux_values,
-                              mesh::UnstructuredMesh2D,
-                              nonconservative_terms::Val{true}, equations,
-                              surface_integral::SurfaceIntegralWeakForm{<:Tuple{Any,Any}}, dg::DG, cache)
   surface_flux, nonconservative_flux = surface_integral.surface_flux
   @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
   @unpack normal_directions = cache.elements
