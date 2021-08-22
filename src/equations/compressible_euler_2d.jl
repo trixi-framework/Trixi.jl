@@ -462,7 +462,8 @@ The domain is [0, .25] x [0, 1]. Boundary conditions can be
 
 or reflective wall boundary conditions on all boundaries.
 """
-@inline function initial_condition_rti(coordinates, t, equations::CompressibleEulerEquations2D)
+@inline function initial_condition_rti(coordinates, t, equations::CompressibleEulerEquations2D,
+                                       slope=500)
   tol = 1e2*eps()
   x, y = coordinates
   if y < .5
@@ -472,7 +473,6 @@ or reflective wall boundary conditions on all boundaries.
   end
 
   # smooth the discontinuity to avoid ambiguity at element interfaces
-  slope = 500
   smoothed_heaviside(x, left, right) = left + .5*(1 + tanh(slope * x)) * (right-left)
   rho = smoothed_heaviside(y - .5, 2.0, 1.0)
 
