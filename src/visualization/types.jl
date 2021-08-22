@@ -349,6 +349,9 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equation
   r, s = reference_node_coordinates_2d(dg)
 
   # reference plotting nodes
+  if nvisnodes == 0 || nvisnodes === nothing
+    nvisnodes = polydeg(dg) + 1
+  end
   plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
 
   # create triangulation for plotting nodes
