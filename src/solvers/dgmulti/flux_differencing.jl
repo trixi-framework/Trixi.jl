@@ -274,6 +274,20 @@ function calc_volume_integral!(du, u, volume_integral,
   end
 end
 
+# Specialize since `u_values` isn't computed for DGMultiFluxDiff{<:SBP} solvers.
+function calc_sources!(du, u, t, source_terms::SourceTerms,
+                       mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache) where {SourceTerms}
+
+  rd = dg.basis
+  md = mesh.md
+
+  @threaded for e in eachelement(mesh, dg, cache)
+    for i in each_quad_node(mesh, dg, cache)
+      du[i, e] += source_terms(u[i, e], getindex.(md.xyzq, i, e), t, equations)
+    end
+  end
+end
+
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume kernel, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
