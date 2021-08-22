@@ -106,12 +106,9 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl=1.3)
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback,
-                        stepsize_callback)
+                        alive_callback)
 
 ###############################################################################
 # run the simulation
