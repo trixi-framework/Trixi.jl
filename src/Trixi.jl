@@ -130,7 +130,6 @@ export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
-       initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
@@ -160,7 +159,6 @@ export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
-export initial_condition_rti, source_terms_rti
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
