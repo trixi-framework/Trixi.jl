@@ -441,68 +441,6 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Compr
 end
 
 """
-    initial_condition_rti(coordinates, t, equations::CompressibleEulerEquations2D)
-
-Setup used for the Rayleigh-Taylor instability. Initial condition adapted from
-- Shi, Jing, Yong-Tao Zhang, and Chi-Wang Shu (2003).
-  Resolution of high order WENO schemes for complicated flow structures.
-  [DOI](https://doi.org/10.1016/S0021-9991(03)00094-9).
-
-  and
-
-- Remacle, Jean-François, Joseph E. Flaherty, and Mark S. Shephard (2003).
-  An adaptive discontinuous Galerkin technique with an orthogonal basis applied to compressible flow problems.
-  [DOI](https://doi.org/10.1137/S00361445023830)
-
-  Should be used together with [`source_terms_rti`](@ref).
-
-The domain is [0, .25] x [0, 1]. Boundary conditions can be
-- periodic boundary conditions on the leftd/right boundaries
-- Dirichlet boundary conditions on the top/bottom boundaries
-
-or reflective wall boundary conditions on all boundaries.
-"""
-@inline function initial_condition_rti(coordinates, t, equations::CompressibleEulerEquations2D,
-                                       slope=500)
-  tol = 1e2*eps()
-  x, y = coordinates
-  if y < .5
-    p = 2*y + 1
-  else
-    p = y + 3/2
-  end
-
-  # smooth the discontinuity to avoid ambiguity at element interfaces
-  smoothed_heaviside(x, left, right) = left + 0.5*(1 + tanh(slope * x)) * (right-left)
-  rho = smoothed_heaviside(y - 0.5, 2.0, 1.0)
-
-  c = sqrt(equations.gamma * p / rho)
-  # the velocity is multiplied by sin(pi*y)^6 as in Remacle et al. 2003 to ensure that the
-  # initial condition satisfies reflective boundary conditions at the top/bottom boundaries.
-  v = -0.025 * c * cos(8*pi*x) * sin(pi*y)^6
-  u = 0.0
-  
-  return prim2cons(SVector(rho, u, v, p), equations)
-end
-
-"""
-    source_terms_rayleigh_taylor_instability(u, x, t, equations::CompressibleEulerEquations2D)
-
-Setup used for convergence tests of the Euler equations with self-gravity used in
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
-"""
-@inline function source_terms_rti(u, coordinates, t, equations::CompressibleEulerEquations2D)
-  g = 1.0
-  rho, rho_v1, rho_v2, rho_e = u
-  
-  return SVector(0.0, 0.0, g*rho, g*rho_v2)
-end
-
-
-"""
     source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations::CompressibleEulerEquations2D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
