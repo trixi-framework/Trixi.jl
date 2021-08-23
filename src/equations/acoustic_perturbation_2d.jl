@@ -220,7 +220,7 @@ end
 
 
 """
-  initial_condition_monopole(x, t, equations::AcousticPerturbationEquations2D)
+    initial_condition_monopole(x, t, equations::AcousticPerturbationEquations2D)
 
 Initial condition for the monopole in a boundary layer setup, used in combination with
 [`boundary_condition_monopole`](@ref).
@@ -241,8 +241,8 @@ function initial_condition_monopole(x, t, equations::AcousticPerturbationEquatio
 end
 
 """
-  boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
-                              equations::AcousticPerturbationEquations2D)
+    boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
+                                equations::AcousticPerturbationEquations2D)
 
 Boundary condition for a monopole in a boundary layer at the -y boundary, i.e. `direction = 3`.
 This will return an error for any other direction. This boundary condition is used in combination
