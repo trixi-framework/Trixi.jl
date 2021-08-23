@@ -59,9 +59,8 @@ end
   return SVector(0.0, 0.0, g*rho, g*rho_v2)
 end
 
-surface_flux = flux_hll
 volume_flux  = flux_ranocha
-solver = DGSEM(polydeg=3, surface_flux=surface_flux,
+solver = DGSEM(polydeg=3, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # The domain is [0, 0.25] x [0, 1]
