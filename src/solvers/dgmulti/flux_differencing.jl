@@ -264,7 +264,7 @@ end
 
 # Specialize since `u_values` isn't computed for DGMultiFluxDiff{<:SBP} solvers.
 function calc_sources!(du, u, t, source_terms,
-                       mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+                       mesh::AbstractMeshData, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
   md = mesh.md

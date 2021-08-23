@@ -306,11 +306,11 @@ function invert_jacobian!(du, mesh::Mesh, equations, dg::DGMulti,
 end
 
 calc_sources!(du, u, t, source_terms::Nothing,
-              mesh::VertexMappedMesh, equations, dg::DGMulti, cache) = nothing
+              mesh::AbstractMeshData, equations, dg::DGMulti, cache) = nothing
 
 # uses quadrature + projection to compute source terms.
-function calc_sources!(du, u, t, source_terms::SourceTerms,
-                       mesh::VertexMappedMesh, equations, dg::DGMulti, cache) where {SourceTerms}
+function calc_sources!(du, u, t, source_terms,
+                       mesh::AbstractMeshData, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
