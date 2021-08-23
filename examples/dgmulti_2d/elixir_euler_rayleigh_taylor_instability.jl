@@ -63,14 +63,14 @@ num_elements = 16
 cells_per_dimension = (num_elements, 4 * num_elements)
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 
+# remap the domain by modifying `vertex_coordinates`
 vx, vy = vertex_coordinates
 vx = map(x-> 0.25 * 0.5*(1 + x), vx) # map [-1, 1] to [0, 0.25]
 vy = map(x-> 0.5 * (1+x), vy) # map [-1, 1] to [0, 1] for single mode RTI
 vertex_coordinates = (vx, vy)
+mesh = VertexMappedMesh(vertex_coordinates, EToV, dg; is_periodic=(true,false))
 
 boundary_conditions = (; :entire_boundary => BoundaryConditionWall(boundary_state_slip_wall))
-
-mesh = VertexMappedMesh(vertex_coordinates, EToV, dg; is_periodic=(true,false))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_rayleigh_taylor_instability, dg;
                                     source_terms = source_terms_rayleigh_taylor_instability,
