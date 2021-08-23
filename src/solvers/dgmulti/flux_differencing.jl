@@ -182,6 +182,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
 
+# TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMulti)
 
   rd = dg.basis
@@ -189,15 +190,17 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   @unpack VhP, entropy_var_values, u_values, entropy_var_values = cache
   @unpack projected_entropy_var_values, entropy_projected_u_values = cache
 
-  # TODO: simplices. Address hard-coding of `entropy2cons!`
   apply_to_each_field(mul_by!(Vq), u_values, u)
-  @threaded for i in eachindex(u_values)
+
+  # TODO: DGMulti. @threaded crashes when using `eachindex(u_values)`.
+  # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
+  for i in Base.OneTo(length(u_values))
     entropy_var_values[i] = cons2entropy(u_values[i], equations)
   end
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
   apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
-  @threaded for i in eachindex(projected_entropy_var_values)
+  @threaded for i in Base.OneTo(length(projected_entropy_var_values)) #eachindex(projected_entropy_var_values)
     entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
   end
 end
