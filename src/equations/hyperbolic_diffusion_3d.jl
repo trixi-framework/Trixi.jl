@@ -118,7 +118,7 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
   u_boundary = SVector(phi, q1, q2, q3)
 
   # Calculate boundary flux
-  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -207,7 +207,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
   u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
 
   # Calculate boundary flux
-  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
