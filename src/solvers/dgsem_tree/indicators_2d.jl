@@ -511,7 +511,7 @@ function (indicator_ann::IndicatorANN)(u, mesh::TreeMesh{2},
       end
 
       # Interpolate nodal data to 4x4 LGL nodes
-      for j in 1:n_cnn, i in 1:n_cnn
+      for j in 1:4, i in 1:4
         acc = 0
         for jj in eachnode(dg), ii in eachnode(dg)
           acc += vandermonde[i,ii] * indicator[ii,jj] * vandermonde[j,jj]
