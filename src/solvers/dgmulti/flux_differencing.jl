@@ -34,9 +34,14 @@
   end
 end
 
+# If `skip_index` isn't specified, set it to `nothing` and dispatch based on `sparsity_pattern`
+@inline function hadamard_sum!(du, A, volume_flux, orientation, u, equations, sparsity_pattern)
+  return hadamard_sum!(du, A, volume_flux, orientation, u, equations, sparsity_pattern, nothing)
+end
+
 @inline function hadamard_sum!(du, A, volume_flux, orientation, u,
                                equations, sparsity_pattern::AbstractSparseMatrix{Bool},
-                               skip_index = nothing)
+                               skip_index::Union{Function, Nothing})
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
   for i in 1:n
