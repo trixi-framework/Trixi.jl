@@ -191,13 +191,13 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   # TODO: simplices. Address hard-coding of `entropy2cons!`
   apply_to_each_field(mul_by!(Vq), u_values, u)
-  @threaded for i in Base.OneTo(length(u_values))
+  @threaded for i in eachindex(u_values)
     entropy_var_values[i] = cons2entropy(u_values[i], equations)
   end
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
   apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
-  @threaded for i in Base.OneTo(length(projected_entropy_var_values))
+  @threaded for i in eachindex(projected_entropy_var_values)
     entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
   end
 end
@@ -263,8 +263,8 @@ function calc_volume_integral!(du, u, volume_integral,
 end
 
 # Specialize since `u_values` isn't computed for DGMultiFluxDiff{<:SBP} solvers.
-function calc_sources!(du, u, t, source_terms::SourceTerms,
-                       mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache) where {SourceTerms}
+function calc_sources!(du, u, t, source_terms,
+                       mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
   md = mesh.md

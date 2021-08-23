@@ -49,10 +49,10 @@ end
 # dispatchable constructor for DGMulti to allow for specialization
 function DGMulti(element_type::AbstractElemShape,
                  approximation_type,
-                 volume_integral=VolumeIntegralWeakForm(),
-                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
+                 volume_integral,
+                 surface_integral;
                  polydeg::Integer,
-                 surface_flux=flux_central,
+                 surface_flux,
                  kwargs...)
 
   rd = RefElemData(element_type, approximation_type, polydeg, kwargs...)

@@ -32,7 +32,7 @@ defined below.
                                                                slope=1000)
   tol = 1e2*eps()
 
-  if x[2] < .5
+  if x[2] < 0.5
     p = 2*x[2] + 1
   else
     p = x[2] + 3/2
@@ -64,17 +64,15 @@ cells_per_dimension = (num_elements, 4 * num_elements)
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 
 vx, vy = vertex_coordinates
-vx = map(x-> 0.25 * 0.5*(1 + x), vx) # map to [0, .25]
-vy = map(x-> 0.5 * (1+x), vy) # map to [0, 1] for single mode RTI
+vx = map(x-> 0.25 * 0.5*(1 + x), vx) # map [-1, 1] to [0, 0.25]
+vy = map(x-> 0.5 * (1+x), vy) # map [-1, 1] to [0, 1] for single mode RTI
 vertex_coordinates = (vx, vy)
 
-# boundary_conditions = (; :entire_boundary => BoundaryConditionDirichlet(initial_condition))
 boundary_conditions = (; :entire_boundary => BoundaryConditionWall(boundary_state_slip_wall))
 
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg; is_periodic=(true,false))
 
-initial_condition = initial_condition_rayleigh_taylor_instability
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_rayleigh_taylor_instability, dg;
                                     source_terms = source_terms_rayleigh_taylor_instability,
                                     boundary_conditions = boundary_conditions)
 
