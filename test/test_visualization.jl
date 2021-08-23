@@ -34,12 +34,12 @@ isdir(outdir) && rm(outdir, recursive=true)
                                      tspan=(0,0.1))
 
     # Constructor tests
-    if mesh == "DGMulti"
-      @test PlotData2D(sol) isa Trixi.UnstructuredPlotData2D
-      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.UnstructuredPlotData2D
-    else
+    if mesh == "TreeMesh"
       @test PlotData2D(sol) isa PlotData2D
       @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
+    else
+      @test PlotData2D(sol) isa Trixi.UnstructuredPlotData2D
+      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.UnstructuredPlotData2D
     end
     pd = PlotData2D(sol)
 
