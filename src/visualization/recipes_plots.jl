@@ -207,13 +207,16 @@ RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
   end
 end
 
-# need to define this function because some keywords from the more general plot recipe
+# need to define these functions because some keywords from the more general plot recipe
 # are not supported (e.g., `max_supported_level`).
 RecipesBase.@recipe function f(u, semi::DGMultiSemidiscretizationHyperbolic;
-                               solution_variables=cons2cons, grid_lines=true)
-  return PlotData2D(u, semi)
+                               solution_variables=nothing)
+  return PlotData2D(u, semi; solution_variables=solution_variables)
 end
-
+RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:Union{StructuredMesh, UnstructuredMesh2D}};
+                               solution_variables=nothing)
+  return PlotData2D(u, semi; solution_variables=solution_variables)
+end
 
 # Series recipe for UnstructuredPlotData2D
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
