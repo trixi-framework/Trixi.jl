@@ -132,6 +132,21 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
     )
   end
 
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
+      cells_per_dimension = (8,8), tspan = (0.0, 0.2),
+      l2   = [0.055689867638859906, 0.032985369421826734, 0.052243738479375024, 0.08009259073134713],
+      linf = [0.24051443859674326, 0.16611572070980668, 0.123559477474734, 0.2694484247345663],
+    )
+  end
+  @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor_instability.jl"),
+      cells_per_dimension = (8,8), tspan = (0.0, 0.2),
+      l2 = [0.03548329484658906, 0.002591414374442459, 0.006916327798945652, 0.016235069350238083],
+      linf = [0.4783963902527284, 0.022527207047954502, 0.040307056331029656, 0.08523654262202474],
+    )
+  end
+
 end
 
 end # module
