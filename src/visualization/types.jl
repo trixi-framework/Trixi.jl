@@ -267,36 +267,6 @@ function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
 end
 
 
-function PlotData2D(u, mesh::Union{StructuredMesh,UnstructuredMesh2D}, equations, solver, cache;
-                    solution_variables=nothing, grid_lines=true, kwargs...)
-  @unpack node_coordinates = cache.elements
-
-  @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
-  solution_variables_ = digest_solution_variables(equations, solution_variables)
-
-  unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
-
-  x = vec(view(node_coordinates, 1, ..))
-  y = vec(view(node_coordinates, 2, ..))
-
-  data = [vec(unstructured_data[.., v]) for v in eachvariable(equations)]
-
-  if grid_lines
-    mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
-  else
-    mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
-    mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
-  end
-
-  variable_names = SVector(varnames(solution_variables_, equations))
-
-  orientation_x, orientation_y = _get_orientations(mesh, nothing)
-
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
-                    orientation_x, orientation_y)
-end
-
-
 """
     PlotData2D(sol; kwargs...)
 
@@ -367,8 +337,8 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
 end
 
 # specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
-# an UnstructuredMesh2D type.
-function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
+# a non-TreeMesh type.
+function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equations, dg, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
   @assert ndims(mesh) == 2
 
@@ -379,6 +349,9 @@ function PlotData2D(u, mesh::UnstructuredMesh2D, equations, dg::DGSEM, cache;
   r, s = reference_node_coordinates_2d(dg)
 
   # reference plotting nodes
+  if nvisnodes == 0 || nvisnodes === nothing
+    nvisnodes = polydeg(dg) + 1
+  end
   plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
 
   # create triangulation for plotting nodes
