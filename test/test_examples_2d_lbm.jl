@@ -40,6 +40,30 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
               0.02061789496737146, 0.05568236920459335],
       tspan = (0.0, 1.0))
   end
+
+  @trixi_testset "elixir_lbm_couette.jl with initial_condition_couette_steady" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_couette.jl"),
+      l2   = [9.321369073400123e-16, 1.6498793963435488e-6, 5.211495843124065e-16,
+              1.6520893954826173e-6, 1.0406056181388841e-5, 8.801606429417205e-6,
+              8.801710065560555e-6, 1.040614383799995e-5, 2.6135657178357052e-15],
+      linf = [1.4432899320127035e-15, 2.1821189867266e-6, 8.881784197001252e-16,
+              2.2481261510165496e-6, 1.0692966335143494e-5, 9.606391697600247e-6,
+              9.62138334279633e-6, 1.0725969916147021e-5, 3.3861802251067274e-15],
+      initial_condition=initial_condition_couette_steady,
+      tspan = (0.0, 1.0))
+  end
+
+  @trixi_testset "elixir_lbm_lid_driven_cavity.jl with stationary walls" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_lid_driven_cavity.jl"),
+      l2   = [1.7198203373689985e-16, 1.685644347036533e-16, 2.1604974801394525e-16,
+              2.1527076266915764e-16, 4.2170298143732604e-17, 5.160156233016299e-17,
+              6.167794865198169e-17, 5.24166554417795e-17, 6.694740573885739e-16],
+      linf = [5.967448757360216e-16, 6.522560269672795e-16, 6.522560269672795e-16,
+              6.245004513516506e-16, 2.1163626406917047e-16, 2.185751579730777e-16,
+              2.185751579730777e-16, 2.393918396847994e-16, 1.887379141862766e-15],
+      boundary_conditions=boundary_condition_wall_noslip,
+      tspan = (0, 0.1))
+  end
 end
 
 end # module
