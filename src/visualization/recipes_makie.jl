@@ -109,7 +109,7 @@ iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_sol
 # custom `trixiheatmap` plots. See also https://makie.juliaplots.org/stable/recipes.html
 @Makie.recipe(TrixiHeatmap, plot_data_series) do scene
   Makie.Theme(
-    colormap = :thermal,
+    colormap = :inferno
   )
 end
 
