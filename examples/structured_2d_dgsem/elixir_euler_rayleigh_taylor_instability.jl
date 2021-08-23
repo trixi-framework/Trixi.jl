@@ -14,7 +14,6 @@ Setup used for the Rayleigh-Taylor instability. Initial condition adapted from
 - Shi, Jing, Yong-Tao Zhang, and Chi-Wang Shu (2003).
   Resolution of high order WENO schemes for complicated flow structures.
   [DOI](https://doi.org/10.1016/S0021-9991(03)00094-9).
-
 - Remacle, Jean-François, Joseph E. Flaherty, and Mark S. Shephard (2003).
   An adaptive discontinuous Galerkin technique with an orthogonal basis applied to compressible
   flow problems.
@@ -33,7 +32,7 @@ defined below.
                                                                slope=1000)
   tol = 1e2*eps()
 
-  if x[2] < .5
+  if x[2] < 0.5
     p = 2*x[2] + 1
   else
     p = x[2] + 3/2
