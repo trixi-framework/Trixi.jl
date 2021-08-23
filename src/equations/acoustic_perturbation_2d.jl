@@ -8,9 +8,6 @@
 @doc raw"""
     AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
-!!! warning "Experimental code"
-    This system of equations is experimental and may change in any future release.
-
 Acoustic perturbation equations (APE) in two space dimensions. The equations are given by
 ```math
 \begin{aligned}
@@ -212,7 +209,7 @@ function boundary_condition_wall(u_inner, orientation, direction, x, t, surface_
   end
 
   # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -291,7 +288,7 @@ function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_
   u_boundary = SVector(value, value, value, cons2mean(u_inner, equations)...)
 
   # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
