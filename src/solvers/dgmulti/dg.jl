@@ -139,8 +139,7 @@ function max_dt(u, t, mesh::AbstractMeshData,
     end
     dt_min = min(dt_min, h_e / sum(max_speeds))
   end
-  domain_size = StartUpDG.compute_domain_size(rd, md)^(1/NDIMS)
-  return (dt_min / StartUpDG.inverse_trace_constant(rd)) * domain_size
+  return 2.0 * dt_min / StartUpDG.inverse_trace_constant(rd)
 end
 
 # interpolates from solution coefficients to face quadrature points
