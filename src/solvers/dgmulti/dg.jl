@@ -9,6 +9,9 @@
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 
 # out <- out + A * x
+# TODO: DGMulti. Using `matmul!` here sometimes crashes simulations.
+# This is similar to https://github.com/JuliaLinearAlgebra/Octavian.jl/issues/108, which was
+# supposedly fixed in Octavian v0.3.
 mul_by_accum!(A) = @inline (out, x)->mul!(out, A, x, one(eltype(out)), one(eltype(out)))
 
 #  out <- out + α * A * x
