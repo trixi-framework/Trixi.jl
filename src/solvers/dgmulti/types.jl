@@ -111,53 +111,5 @@ Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
   return val
 end
 
-# ========= GSBP approximation types ============
-
-# GSBP ApproximationType: e.g., Gauss nodes on quads/hexes
-struct GSBP end
-
-# Todo: DGMulti. Decide if we should add GSBP on triangles.
-
-# Specialized constructor for GSBP approximation type on quad elements. Restricting to
-# VolumeKernelFluxDifferencing for now since there isn't a way to exploit this structure for
-# VolumeIntegralWeakForm yet.
-function DGMulti(element_type::Quad,
-                 approximation_type::GSBP,
-                 volume_integral::VolumeIntegralFluxDifferencing,
-                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
-                 polydeg::Integer,
-                 surface_flux=flux_central,
-                 kwargs...)
-
-  # create tensor product Gauss quadrature rule with polydeg+1 points
-  r1D, w1D = StartUpDG.gauss_quad(0, 0, polydeg)
-  rq, sq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
-  wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(w1D))
-  wq = wr .* ws
-  gauss_rule_vol = (rq, sq, wq)
-
-  # Gauss quadrature rule on reference face [-1, 1]
-  gauss_rule_face = (r1D, w1D)
-
-  rd = RefElemData(element_type, Polynomial(), polydeg,
-                   quad_rule_vol=gauss_rule_vol,
-                   quad_rule_face=gauss_rule_face,
-                   kwargs...)
-
-  # WARNING: somewhat hacky. Since there is no dedicated GSBP approximation type implemented
-  # in StartUpDG, we simply initialize `rd = RefElemData(...)` with the appropriate quadrature
-  # rules and modify the rd.approximationType manually so we can dispatch on the `GSBP` type.
-  # This uses the Setfield @set macro, which aims to do something similar to Trixi.remake.
-  rd_gauss = @set rd.approximationType = GSBP()
-
-  # We modify the projection operator so that we can reuse `compute_coefficients!` since it
-  # assigns solution values at quadrature points (e.g., Gauss points), then projects the result.
-  rd_gauss = @set rd_gauss.Pq = UniformScaling{Bool}(true) # equivalent to LinearAlgebra.I
-
-  # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
-  # the mesh is initialized, since the face interpolation operator is used for that.
-  return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
-end
-
 
 end # @muladd
