@@ -64,6 +64,7 @@ jobs:
           - tree_part3
           - tree_part4
           - tree_part5
+          - tree_part6
           - structured
           - p4est_part1
           - p4est_part2

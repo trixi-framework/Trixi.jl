@@ -21,34 +21,25 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Compressible Euler with self-gravity
   include("test_tree_3d_eulergravity.jl")
-
-  # MHD
-  include("test_tree_3d_mhd.jl")
-
-  # Lattice-Boltzmann
-  include("test_tree_3d_lbm.jl")
 end
 
 
-@testset "Additional tests in 3D" begin
-  @testset "ideal GLM MHD" begin
-    eqn = IdealGlmMhdEquations3D(1.4)
-    u = [1.0, 2.0, 3.0, 4.0, 20.0, 0.1, 0.2, 0.3, 1.5]
+@trixi_testset "Additional tests in 3D" begin
+  @trixi_testset "compressible Euler" begin
+    eqn = CompressibleEulerEquations3D(1.4)
 
-    @test isapprox(density(u, eqn), 1.0)
-    @test isapprox(pressure(u, eqn), 1.7219999999999995)
-    @test isapprox(density_pressure(u, eqn), 1.7219999999999995)
+    @test isapprox(energy_total([1.0, 2.0, 3.0, 4.0, 20.0], eqn), 20.0)
+    @test isapprox(energy_kinetic([1.0, 2.0, 3.0, 4.0, 20], eqn), 14.5)
+    @test isapprox(energy_internal([1.0, 2.0, 3.0, 4.0, 20], eqn), 5.5)
+  end
 
-    @test isapprox(Trixi.entropy_thermodynamic(u, eqn), 0.5434864060055388)
-    @test isapprox(Trixi.entropy_math(u, eqn), -1.3587160150138473)
-    @test isapprox(Trixi.entropy(u, eqn), -1.3587160150138473)
+  @trixi_testset "hyperbolic diffusion" begin
+    @test_nowarn HyperbolicDiffusionEquations3D(nu=1.0)
+    eqn = HyperbolicDiffusionEquations3D(nu=1.0)
 
-    @test isapprox(energy_total(u, eqn), 20.0)
-    @test isapprox(energy_kinetic(u, eqn), 14.5)
-    @test isapprox(energy_magnetic(u, eqn), 0.07)
-    @test isapprox(energy_internal(u, eqn), 4.305)
-
-    @test isapprox(cross_helicity(u, eqn), 2.0)
+    @test isapprox(initial_condition_sedov_self_gravity(collect(1:3), 4.5, eqn), zeros(4))
+    @test isapprox(boundary_condition_sedov_self_gravity(collect(1:4), 1, 1, collect(11:13), 2.3, flux_central, eqn), [-1.0, -19.739208802178712, 0.0, 0.0])
+    @test isapprox(boundary_condition_sedov_self_gravity(collect(1:4), 2, 2, collect(11:13), 4.5, flux_central, eqn), [-1.5, 0.0, -19.739208802178712, 0.0])
   end
 end
 
