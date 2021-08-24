@@ -34,8 +34,14 @@
   end
 end
 
+# If `skip_index` isn't specified, set it to `nothing` and dispatch based on `sparsity_pattern`
+@inline function hadamard_sum!(du, A, volume_flux, orientation, u, equations, sparsity_pattern)
+  return hadamard_sum!(du, A, volume_flux, orientation, u, equations, sparsity_pattern, nothing)
+end
+
 @inline function hadamard_sum!(du, A, volume_flux, orientation, u,
-                               equations, sparsity_pattern::AbstractSparseMatrix{Bool})
+                               equations, sparsity_pattern::AbstractSparseMatrix{Bool},
+                               skip_index::Union{Function, Nothing})
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
   for i in 1:n
@@ -102,7 +108,7 @@ end
 
 # precompute sparsity pattern for optimized flux differencing routines for tensor product elements
 function compute_sparsity_pattern(flux_diff_matrices, dg::DG,
-                                  tol = 100 * eps(real(dg))) where {DG <: DGMultiFluxDiff{<:SBP, <:Union{Quad, Hex}}}
+                                  tol = 100 * eps(real(dg))) where {DG <: DGMultiFluxDiff{ApproxType, <:Union{Quad, Hex}}} where {ApproxType}
   sparsity_pattern = sum(map(A->abs.(A), droptol!.(sparse.(flux_diff_matrices), tol))) .!= 0
   return sparsity_pattern
 end
@@ -113,18 +119,6 @@ compute_sparsity_pattern(flux_diff_matrices, dg::DGMulti) = nothing
 # This results in a slight speedup for `calc_volume_integral!`.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiff{<:SBP})
   return zeros(SVector{nvars, uEltype}, array_dimensions...)
-end
-
-# Initialization specialized to solution storage for DGMultiFluxDiff with SBP approximation type.
-function compute_coefficients!(u, initial_condition, t,
-                               mesh::AbstractMeshData{NDIMS}, equations, dg::DGMultiFluxDiff{<:SBP}, cache) where {NDIMS}
-  md = mesh.md
-  rd = dg.basis
-
-  # evaluate the initial condition at nodal point
-  @threaded for i in each_quad_node_global(mesh, dg, cache)
-    u[i] = initial_condition(getindex.(md.xyzq, i), t, equations)
-  end
 end
 
 function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, RealT, uEltype)
@@ -138,7 +132,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
 
   nvars = nvariables(equations)
 
-  # Todo: simplices. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
+  # Todo: DGMulti. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
   # storage for volume quadrature values, face quadrature values, flux values
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
@@ -193,6 +187,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
 end
 
+# TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMulti)
 
   rd = dg.basis
@@ -200,13 +195,19 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   @unpack VhP, entropy_var_values, u_values, entropy_var_values = cache
   @unpack projected_entropy_var_values, entropy_projected_u_values = cache
 
-  # TODO: simplices. Address hard-coding of `entropy2cons!`
   apply_to_each_field(mul_by!(Vq), u_values, u)
-  entropy_var_values .= cons2entropy.(u_values, equations)
+
+  # TODO: DGMulti. @threaded crashes when using `eachindex(u_values)`.
+  # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
+  @threaded for i in Base.OneTo(length(u_values))
+    entropy_var_values[i] = cons2entropy(u_values[i], equations)
+  end
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
   apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
-  entropy_projected_u_values .= entropy2cons.(projected_entropy_var_values, equations)
+  @threaded for i in Base.OneTo(length(projected_entropy_var_values)) #eachindex(projected_entropy_var_values)
+    entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
+  end
 end
 
 function calc_volume_integral!(du, u, volume_integral,
@@ -216,7 +217,7 @@ function calc_volume_integral!(du, u, volume_integral,
   @unpack fluxdiff_local_threaded, sparsity_pattern, inv_wq = cache
   @unpack volume_flux = volume_integral
 
-  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
@@ -248,7 +249,7 @@ function calc_volume_integral!(du, u, volume_integral,
   # skips subblock of Qi_skew which we know is zero by construction
   skip_index(i,j) = i > rd.Nq && j > rd.Nq
 
-  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
@@ -259,12 +260,27 @@ function calc_volume_integral!(du, u, volume_integral,
                     u_local, equations, sparsity_pattern, skip_index)
     end
 
-    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector}
+    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
+    # apply_to_each_field performance.
     rhs_local = rhs_local_threaded[Threads.threadid()]
     for i in Base.OneTo(length(fluxdiff_local))
       rhs_local[i] = fluxdiff_local[i]
     end
     apply_to_each_field(mul_by_accum!(Ph), view(du, :, e), rhs_local)
+  end
+end
+
+# Specialize since `u_values` isn't computed for DGMultiFluxDiff{<:SBP} solvers.
+function calc_sources!(du, u, t, source_terms,
+                       mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+
+  rd = dg.basis
+  md = mesh.md
+
+  @threaded for e in eachelement(mesh, dg, cache)
+    for i in each_quad_node(mesh, dg, cache)
+      du[i, e] += source_terms(u[i, e], getindex.(md.xyzq, i, e), t, equations)
+    end
   end
 end
 
