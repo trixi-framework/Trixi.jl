@@ -70,7 +70,8 @@ jobs:
           - p4est_part2
           - unstructured_dgmulti
           - paper_self_gravitating_gas_dynamics
-          - misc
+          - misc_part1
+          - misc_part2
           - mpi
           - threaded
         include:
