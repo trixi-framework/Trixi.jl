@@ -304,7 +304,7 @@ end
 
 # Multiple calc_sources! to resolve method ambiguities
 calc_sources!(du, u, t, source_terms::Nothing,
-              mesh::AbstractMeshData, equations, dg::DGMulti, cache) = nothing
+              mesh, equations, dg::DGMulti, cache) = nothing
 calc_sources!(du, u, t, source_terms::Nothing,
               mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache) = nothing
 
