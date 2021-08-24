@@ -187,13 +187,22 @@ end
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(sol::TrixiODESolution)
-  # Redirect everything to the recipe below
+  # Redirect everything to the recipes below
   return sol.u[end], sol.prob.p
 end
 
+# Recipe for general semidiscretizations
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
 RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
+                               solution_variables=nothing)
+  return PlotData2D(u, semi; solution_variables=solution_variables)
+end
+
+# Recipe specifically for TreeMesh-type solutions
+# Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
+#       constructor.
+RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh};
                                solution_variables=nothing,
                                grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice=:xy,
                                point=(0.0, 0.0, 0.0), curve=nothing)
@@ -205,17 +214,6 @@ RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
                       solution_variables, grid_lines, max_supported_level,
                       nvisnodes, slice, point)
   end
-end
-
-# need to define these functions because some keywords from the more general plot recipe
-# are not supported (e.g., `max_supported_level`).
-RecipesBase.@recipe function f(u, semi::DGMultiSemidiscretizationHyperbolic;
-                               solution_variables=nothing)
-  return PlotData2D(u, semi; solution_variables=solution_variables)
-end
-RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:Union{StructuredMesh, UnstructuredMesh2D}};
-                               solution_variables=nothing)
-  return PlotData2D(u, semi; solution_variables=solution_variables)
 end
 
 # Series recipe for UnstructuredPlotData2D
