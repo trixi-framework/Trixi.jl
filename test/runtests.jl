@@ -9,7 +9,7 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
 @time @testset "Trixi.jl tests" begin
   # This is placed first since tests error out otherwise if `TRIXI_TEST == "all"`,
   # at least on some systems.
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_mpi"
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "mpi"
     # Do a dummy `@test true`:
     # If the process errors out the testset would error out as well,
     # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
@@ -21,17 +21,17 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     # Hence, the additional flag `--compiled-modules=no` is required for Julia
     # versions older than v1.6.
     mpiexec() do cmd
-      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes $(abspath("test_examples_2d_parallel.jl"))`)
+      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes $(abspath("test_mpi.jl"))`)
     end
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_threaded"
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "threaded"
     # Do a dummy `@test true`:
     # If the process errors out the testset would error out as well,
     # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
     @test true
 
-    run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes --code-coverage=none $(abspath("test_examples_2d_parallel.jl"))`)
+    run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes --code-coverage=none $(abspath("test_threaded.jl"))`)
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part1"

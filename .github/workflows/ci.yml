@@ -71,25 +71,25 @@ jobs:
           - unstructured_dgmulti
           - paper_self_gravitating_gas_dynamics
           - misc
-          - 2d_mpi
-          - 2d_threaded
+          - mpi
+          - threaded
         include:
           - version: '1.6'
             os: macOS-latest
             arch: x64
-            trixi_test: 2d_mpi
+            trixi_test: mpi
           - version: '1.6'
             os: macOS-latest
             arch: x64
-            trixi_test: 2d_threaded
+            trixi_test: threaded
           - version: '1.6'
             os: windows-latest
             arch: x64
-            trixi_test: 2d_mpi
+            trixi_test: mpi
           - version: '1.6'
             os: windows-latest
             arch: x64
-            trixi_test: 2d_threaded
+            trixi_test: threaded
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
