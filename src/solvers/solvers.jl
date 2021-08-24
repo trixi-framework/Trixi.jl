@@ -6,11 +6,7 @@
 
 
 include("dg.jl")
-
-include("dgmulti/types.jl")
-include("dgmulti/dg.jl")
-include("dgmulti/flux_differencing.jl")
-
+include("dgmulti.jl")
 
 
 end # @muladd
