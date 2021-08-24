@@ -182,11 +182,6 @@ const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, ra
     {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
 
-# Convenience type to allow dispatch on semidiscretizations using the DGMulti solver
-const DGMultiSemidiscretizationHyperbolic{Mesh, Equations} =
-  SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryCondition, SourceTerms,
-  <:DGMulti, Cache} where {InitialCondition, BoundaryCondition, SourceTerms, Cache}
-
 
 """
     PlotData2D(u, semi [or mesh, equations, solver, cache];
