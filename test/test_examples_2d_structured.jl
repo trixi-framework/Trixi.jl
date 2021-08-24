@@ -56,8 +56,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
 
   @trixi_testset "elixir_advection_parallelogram.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_parallelogram.jl"),
-      l2   = [0.0005165995033861579],
-      linf = [0.002506176163321605])
+      l2   = [9.14468177884088e-6],
+      linf = [6.437440532947036e-5])
   end
 
   @trixi_testset "elixir_advection_waving_flag.jl" begin
