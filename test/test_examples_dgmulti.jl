@@ -12,8 +12,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
   @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
-      l2 = [0.0013463253573454783, 0.0014235911638070984, 0.0014235911638076622, 0.004721923810347086],
-      linf = [0.0015248269221803668, 0.002070690855385582, 0.002070690855385804, 0.004913338290754687]
+      l2 = [0.0013463150267220328, 0.0014235793662296975, 0.0014235793662300024, 0.00472191786388071],
+      linf = [0.0015248303482329195, 0.0020707330926952316, 0.002070733092696342, 0.004913455679613321],
     )
   end
 
@@ -21,8 +21,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       approximation_type = SBP(),
-      l2 = [0.007465048853079056, 0.005297478943323888, 0.005297478943334149, 0.014701766352428895],
-      linf = [0.02149035033755564, 0.0135293837651278, 0.013529383764659286, 0.03269081948752639]
+      l2 = [0.007465016439747669, 0.005297423547392931, 0.005297423547403158, 0.01470161132498598],
+      linf = [0.021489935389522374, 0.013528869419211276, 0.013528869418737433, 0.03269072432621112],
     )
   end
 
@@ -30,8 +30,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       element_type = Quad(),
-      l2 = [0.0002909691660845978, 0.0002811425883546657, 0.0002811425883549579, 0.0010200600240538172],
-      linf = [0.0004970396373780162, 0.0004059109438805386, 0.00040591094388231497, 0.0014247618507141624]
+      l2 = [0.000290967383489527, 0.00028113809346926776, 0.0002811380934695505, 0.00102004771420306],
+      linf = [0.0004970344840584673, 0.00040590009306518127, 0.0004059000930629608, 0.0014247732095258314],
     )
   end
 
@@ -40,8 +40,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
       cells_per_dimension = (4,4),
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
-      l2 = [0.008107539211003132, 0.007464472445092778, 0.007464472445093055, 0.01597648138530006],
-      linf = [0.012298218434060981, 0.013874789519390918, 0.013874789519420005, 0.040393065744379175]
+      l2 = [0.008110785816182155, 0.0074686552093368745, 0.007468655209336097, 0.015986513837074563],
+      linf = [0.01230954687917274, 0.013884805356942254, 0.013884805356973784, 0.040387377818142056],
     )
   end
 
@@ -51,8 +51,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       approximation_type = SBP(),
-      l2 = [0.012858228819248307, 0.010649745431713896, 0.010649745431680024, 0.02628727578633061],
-      linf = [0.03733928157930677, 0.053088127555369624, 0.05308812755616854, 0.13379093830601718]
+      l2 = [0.01285864081726596, 0.010650165503847099, 0.01065016550381281, 0.026286162111579015],
+      linf = [0.037333313274372504, 0.05308320130762212, 0.05308320130841948, 0.13378665881805185],
     )
   end
 
@@ -63,14 +63,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmult
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       approximation_type = SBP(),
-      l2 = [0.0029320668218228204, 0.0030626480847183927, 0.0030626480847164876, 0.0068440872356226165],
-      linf = [0.013699485223367613, 0.012808498911205168, 0.01280849891121405, 0.022408991793810618]
+      l2 = [0.0029319624187308896, 0.0030625695968579886, 0.003062569596855081, 0.006843948320775483],
+      linf = [0.013700713240587747, 0.012810144682950497, 0.01281014468295072, 0.022412654330661308],
     )
   end
 
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
-    @test isapprox(mean_convergence[:l2], [4.2498632232077815, 4.133717042428824, 4.133717042041395, 4.086223177072245], rtol=0.05)
+    @test isapprox(mean_convergence[:l2], [4.249875508800025, 4.133727008051228, 4.133727007601049, 4.086238794189699], rtol=0.05)
   end
 
   @trixi_testset "elixir_euler_weakform_periodic.jl" begin
