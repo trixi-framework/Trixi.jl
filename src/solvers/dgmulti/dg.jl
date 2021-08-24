@@ -21,7 +21,7 @@ mul_by!(A::UniformScaling) = MulByUniformScaling()
 mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 
 # StructArray fallback
-@inline apply_to_each_field(f, args...) = StructArrays.foreachfield(f, args...)
+@inline apply_to_each_field(f::F, args::Vararg{Any, N}) where {F, N} = StructArrays.foreachfield(f, args...)
 
 # specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}
 # solution storage formats.
@@ -173,7 +173,7 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                mesh::VertexMappedMesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+                              mesh::VertexMappedMesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
 
   @unpack surface_flux = surface_integral
   md = mesh.md
@@ -198,8 +198,8 @@ end
 # assumes cache.flux_face_values is computed and filled with
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                mesh::VertexMappedMesh, equations,
-                dg::DGMulti, cache)
+                                mesh::VertexMappedMesh, equations,
+                                dg::DGMulti, cache)
   rd = dg.basis
   apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
 end

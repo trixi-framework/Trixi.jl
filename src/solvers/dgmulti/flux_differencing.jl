@@ -167,8 +167,12 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   entropy_projected_u_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
   projected_entropy_var_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
 
-  # initialize temporary storage as views into entropy_projected_u_values
-  u_values = view(entropy_projected_u_values, 1:rd.Nq, :)
+  # For this specific solver, `prolong2interfaces` will not be used anymore.
+  # Instead, this step is also performed in `entropy_projection!`. Thus, we set
+  # `u_face_values` as a `view` into `entropy_projected_u_values`. We do not do
+  # the same for `u_values` since we will use that with LoopVectorization, which
+  # cannot handle such views as of v0.12.66, the latest version at the time of writing.
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = view(entropy_projected_u_values, rd.Nq+1:num_quad_points_total, :)
   flux_face_values = similar(u_face_values)
 
@@ -192,12 +196,12 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   rd = dg.basis
   @unpack Vq = rd
-  @unpack VhP, entropy_var_values, u_values, entropy_var_values = cache
+  @unpack VhP, entropy_var_values, u_values = cache
   @unpack projected_entropy_var_values, entropy_projected_u_values = cache
 
   apply_to_each_field(mul_by!(Vq), u_values, u)
 
-  # TODO: DGMulti. @threaded crashes when using `eachindex(u_values)`.
+  # TODO: DGMulti. `@threaded` crashes when using `eachindex(u_values)`.
   # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
   @threaded for i in Base.OneTo(length(u_values))
     entropy_var_values[i] = cons2entropy(u_values[i], equations)
@@ -205,7 +209,10 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
   apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
-  @threaded for i in Base.OneTo(length(projected_entropy_var_values)) #eachindex(projected_entropy_var_values)
+
+  # TODO: DGMulti. `@threaded` crashes when using `eachindex(projected_entropy_var_values)`.
+  # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
+  @threaded for i in Base.OneTo(length(projected_entropy_var_values))
     entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
   end
 end
