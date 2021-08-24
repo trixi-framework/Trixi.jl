@@ -171,7 +171,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   # Instead, this step is also performed in `entropy_projection!`. Thus, we set
   # `u_face_values` as a `view` into `entropy_projected_u_values`. We do not do
   # the same for `u_values` since we will use that with LoopVectorization, which
-  # cannot handle such views at the time of writing.
+  # cannot handle such views as of v0.12.66, the latest version at the time of writing.
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = view(entropy_projected_u_values, rd.Nq+1:num_quad_points_total, :)
   flux_face_values = similar(u_face_values)

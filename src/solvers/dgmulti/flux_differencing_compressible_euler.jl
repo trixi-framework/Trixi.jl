@@ -12,7 +12,7 @@
 #       `entropy2cons`. Thus, we need to insert the physics directly here to
 #       get a significant runtime performance improvement.
 function entropy_projection!(cache, u::StructArray{<:SVector{4, <:Union{Float32, Float64}}},
-                             mesh::VertexMappedMesh, equations::CompressibleEulerEquations2D, dg::DGMulti)
+                             mesh::VertexMappedMesh, equations::CompressibleEulerEquations2D, dg::DGMultiFluxDiff{<:Polynomial})
   rd = dg.basis
   @unpack Vq = rd
   @unpack VhP, u_values, entropy_var_values = cache
