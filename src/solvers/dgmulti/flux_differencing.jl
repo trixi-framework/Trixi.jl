@@ -199,7 +199,7 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   # TODO: DGMulti. @threaded crashes when using `eachindex(u_values)`.
   # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
-  for i in Base.OneTo(length(u_values))
+  @threaded for i in Base.OneTo(length(u_values))
     entropy_var_values[i] = cons2entropy(u_values[i], equations)
   end
 
@@ -272,7 +272,7 @@ end
 
 # Specialize since `u_values` isn't computed for DGMultiFluxDiff{<:SBP} solvers.
 function calc_sources!(du, u, t, source_terms,
-                       mesh::AbstractMeshData, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+                       mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
   md = mesh.md

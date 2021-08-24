@@ -309,11 +309,11 @@ end
 calc_sources!(du, u, t, source_terms::Nothing,
               mesh::AbstractMeshData, equations, dg::DGMulti, cache) = nothing
 calc_sources!(du, u, t, source_terms::Nothing,
-              mesh::AbstractMeshData, equations, dg::DGMultiFluxDiff{<:SBP}, cache) = nothing
+              mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache) = nothing
 
 # uses quadrature + projection to compute source terms.
 function calc_sources!(du, u, t, source_terms,
-                       mesh::AbstractMeshData, equations, dg::DGMulti, cache)
+                       mesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
