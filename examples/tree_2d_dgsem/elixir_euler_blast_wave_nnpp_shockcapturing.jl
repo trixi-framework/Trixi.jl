@@ -1,9 +1,10 @@
 using Downloads: download
 using Flux
+using NNlib
 using BSON: @load
 network = joinpath(@__DIR__, "modelnnpp-0.904-0.0005.bson")
 download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnpp-0.904-0.0005.bson", network)
-@load "examples/tree_2d_dgsem/modelnnpp-0.904-0.0005.bson" model2d
+@load network model2d
 using OrdinaryDiffEq
 using Trixi
 
@@ -13,7 +14,6 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_blast_wave
-
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)

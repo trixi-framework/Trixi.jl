@@ -1,9 +1,10 @@
 using Downloads: download
 using Flux
+using NNlib
 using BSON: @load
 network = joinpath(@__DIR__, "modelnnpp-0.97-0.0001.bson")
 download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnpp-0.97-0.0001.bson", network)
-@load "examples/tree_1d_dgsem/modelnnpp-0.97-0.0001.bson" model1d
+@load network model1d
 using OrdinaryDiffEq
 using Trixi
 

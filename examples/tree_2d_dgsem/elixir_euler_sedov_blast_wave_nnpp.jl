@@ -1,8 +1,10 @@
 
 using Flux
+using NNlib
 using BSON: @load
-Core.eval(Main, :(import NNlib, Flux)) 
-@load "examples/models/2d/modelnnpp-0.904-0.0005.bson" model2d
+network = joinpath(@__DIR__, "modelnnpp-0.904-0.0005.bson")
+download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnpp-0.904-0.0005.bson", network)
+@load network model2d
 using OrdinaryDiffEq
 using Trixi
 
