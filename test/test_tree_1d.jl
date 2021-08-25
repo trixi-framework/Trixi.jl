@@ -61,6 +61,16 @@ end
       initial_condition = initial_condition_constant)
   end
 
+  @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+      l2   = [1.9882464973192864e-16],
+      linf = [1.4432899320127035e-15],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_linear_x,
+      boundary_conditions = Trixi.boundary_condition_linear_x,
+      periodicity=false)
+  end
+
   @trixi_testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [6.1803596620800215e-6],
