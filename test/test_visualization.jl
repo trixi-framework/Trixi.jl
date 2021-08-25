@@ -109,7 +109,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "PlotData1D, PlotDataSeries, PlotMesh" begin
+  @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_blast_wave.jl"),
                                      tspan=(0,0.1))
@@ -187,7 +187,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "plot time series" begin
+  @timed_testset "plot time series" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))
@@ -196,7 +196,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test PlotData1D(time_series, 1) isa PlotData1D
   end
 
-  @testset "adapt_to_mesh_level" begin
+  @timed_testset "adapt_to_mesh_level" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
     @test adapt_to_mesh_level(sol, 5) isa Tuple
@@ -209,7 +209,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isapprox(sol.u[end], u_ode_level5, atol=1e-13)
   end
 
-  @testset "plot 3D" begin
+  @timed_testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
@@ -231,12 +231,12 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "plotting TimeIntegratorSolution" begin
+  @timed_testset "plotting TimeIntegratorSolution" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"))
     @test_nowarn_debug Plots.plot(sol)
   end
 
-  @testset "VisualizationCallback" begin
+  @timed_testset "VisualizationCallback" begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
     # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
@@ -276,7 +276,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "Makie visualization tests for UnstructuredMesh2D" begin
+  @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
     @test_nowarn_debug Trixi.iplot(sol) # test interactive surface plot
     @test_nowarn_debug Makie.plot(sol) # test heatmap plot

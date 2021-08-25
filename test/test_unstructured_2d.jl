@@ -1,4 +1,4 @@
-module TestExamples2DUnstructured
+module TestExamplesUnstructuredMesh2D
 
 using Test
 using Trixi
@@ -8,8 +8,11 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "unstructured_2d_dgsem")
 
-@testset "Unstructured Mesh for Euler" begin
+# Start with a clean environment: remove Trixi output directory if it exists
+outdir = "out"
+isdir(outdir) && rm(outdir, recursive=true)
 
+@testset "UnstructuredMesh2D" begin
   @trixi_testset "elixir_euler_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
       l2   = [0.00010978828464875207, 0.00013010359527356914, 0.00013010359527326057, 0.0002987656724828824],
@@ -88,5 +91,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "unstru
       tspan = (0.0, 0.5))
   end
 end
+
+# Clean up afterwards: delete Trixi output directory
+@test_nowarn rm(outdir, recursive=true)
 
 end # module

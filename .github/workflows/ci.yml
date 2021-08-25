@@ -59,65 +59,45 @@ jobs:
         arch:
           - x64
         trixi_test:
-          - 1d
-          - 2d_part1
-          - 2d_part2
-          - 2d_part3
-          - dgmulti
-          - 2d_mpi
-          - 2d_threaded
-          - 3d_part1
-          - 3d_part2
+          - tree_part1
+          - tree_part2
+          - tree_part3
+          - tree_part4
+          - tree_part5
+          - tree_part6
+          - structured
+          - p4est_part1
+          - p4est_part2
+          - unstructured_dgmulti
           - paper_self_gravitating_gas_dynamics
-          - misc
+          - misc_part1
+          - misc_part2
+          - mpi
+          - threaded
         include:
           - version: '1.6'
             os: macOS-latest
             arch: x64
-            trixi_test: 2d_part1
+            trixi_test: mpi
           - version: '1.6'
             os: macOS-latest
             arch: x64
-            trixi_test: 2d_part2
-          - version: '1.6'
-            os: macOS-latest
-            arch: x64
-            trixi_test: 2d_part3
-          - version: '1.6'
-            os: macOS-latest
-            arch: x64
-            trixi_test: 2d_mpi
-          - version: '1.6'
-            os: macOS-latest
-            arch: x64
-            trixi_test: 2d_threaded
+            trixi_test: threaded
           - version: '1.6'
             os: windows-latest
             arch: x64
-            trixi_test: 2d_part1
+            trixi_test: mpi
           - version: '1.6'
             os: windows-latest
             arch: x64
-            trixi_test: 2d_part2
-          - version: '1.6'
-            os: windows-latest
-            arch: x64
-            trixi_test: 2d_part3
-          - version: '1.6'
-            os: windows-latest
-            arch: x64
-            trixi_test: 2d_mpi
-          - version: '1.6'
-            os: windows-latest
-            arch: x64
-            trixi_test: 2d_threaded
+            trixi_test: threaded
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-          show-versioninfo: true
+      - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
