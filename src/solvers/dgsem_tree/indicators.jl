@@ -262,7 +262,7 @@ function IndicatorANN(semi::AbstractSemidiscretization;
                       variable,
                       network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorANN, semi, indicator_type)
+  cache = create_cache(IndicatorANN, mesh_equations_solver_cache(semi)..., indicator_type)
   IndicatorANN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
     indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
 end
