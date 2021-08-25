@@ -301,7 +301,7 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,3},
       elseif !alpha_continuous && !alpha_amr
         # Set good cells to 0 and troubled cells to 1
         if probability_troubled_cell > 0.5
-          alpha[element] = 1
+          alpha[element] = alpha_max
         else
           alpha[element] = 0
         end
@@ -403,7 +403,7 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,3},
       elseif !alpha_continuous && !alpha_amr
         # Set good cells to 0 and troubled cells to 1
         if probability_troubled_cell > 0.5
-          alpha[element] = 1
+          alpha[element] = alpha_max
         else
           alpha[element] = 0
         end
