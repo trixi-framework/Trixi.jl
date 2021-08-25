@@ -24,8 +24,8 @@ function IndicatorAlwaysRefine(semi)
 end
 
 function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any,4},
-                                             equations, dg, cache;
-                                             t, kwargs...)
+                                            mesh, equations, dg, cache;
+                                            t, kwargs...)
   alpha = indicator.cache.alpha
   resize!(alpha, nelements(dg, cache))
 
