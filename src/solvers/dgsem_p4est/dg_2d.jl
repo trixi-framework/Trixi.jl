@@ -115,6 +115,7 @@ function calc_interface_flux!(surface_flux_values,
   @unpack u, element_ids, node_indices = cache.interfaces
   @unpack contravariant_vectors = cache.elements
   index_range = eachnode(dg)
+  index_end = last(index_range)
 
   @threaded for interface in eachinterface(dg, cache)
     # Get information on the primary element, compute the surface fluxes,
@@ -156,7 +157,7 @@ function calc_interface_flux!(surface_flux_values,
     if :i_backward in secondary_indices
       for i in eachnode(dg)
         for v in eachvariable(equations)
-          surface_flux_values[v, end + 1 - i, secondary_direction, secondary_element] =
+          surface_flux_values[v, index_end + 1 - i, secondary_direction, secondary_element] =
             -surface_flux_values[v, i, primary_direction, primary_element]
         end
       end
