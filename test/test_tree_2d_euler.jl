@@ -115,8 +115,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_sedov_blast_wave_nnpp.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_nnpp.jl"),
-      l2   = [0.07457519473986951, 0.08668259532903713, 0.0866825953290371, 0.41130655066870364],
-      linf = [1.1658099345083834, 1.6172021295297039, 1.6172021295297037, 4.108243538878741],
+      l2   = [8.29516192e-02, 9.18870398e-02, 9.18870398e-02, 4.37449170e-01],
+      linf = [1.23402442e+00, 1.63254552e+00, 1.63254552e+00, 4.21977821e+00],
       maxiters = 30)
   end
 
@@ -157,8 +157,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl"),
-      l2   = [0.050238426813589844, 0.05491747700001239, 0.08688812244740175, 0.03717801138954165],
-      linf = [0.23121207461608506, 0.24800698712898883, 0.1359761379140651, 0.09941061910913929],
+      l2   = [1.00597865e-03, 4.97879164e-03, 4.84673212e-03, 4.99763543e-03],
+      linf = [7.92263198e-03, 2.15043358e-02, 1.91148128e-02, 2.90466679e-02],
       maxiters = 30)
   end
 

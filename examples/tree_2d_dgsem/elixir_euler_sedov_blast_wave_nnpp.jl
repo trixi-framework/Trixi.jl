@@ -27,7 +27,7 @@ indicator_sc = IndicatorANN(equations, basis,
                             alpha_continuous=true,
                             alpha_amr=false,
                             variable=density_pressure,
-                            network=model2d)   
+                            network=model2d)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -67,21 +67,21 @@ amr_indicator = IndicatorANN(semi,
                              alpha_min=0.001,
                              alpha_smooth=true,
                              alpha_continuous=true,
-                             alpha_amr=false,
+                             alpha_amr=true,
                              variable=density_pressure,
-                             network=model2d)   
+                             network=model2d)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=4,
-                                      max_level =6, max_threshold=0.2)
+                                      max_level =6, max_threshold=0.22)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.8)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         amr_callback, stepsize_callback)
 ###############################################################################

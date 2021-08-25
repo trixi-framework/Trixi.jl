@@ -307,7 +307,8 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,3},
         end
       elseif alpha_amr
         # The entire continuous output of the neural network is used for AMR
-        alpha_element = probability_troubled_cell
+        alpha_element  = probability_troubled_cell
+        alpha[element] = alpha_max * alpha_element
       end
     end
 
@@ -409,7 +410,8 @@ function (indicator_ann::IndicatorANN)(u::AbstractArray{<:Any,3},
         end
       elseif alpha_amr
         # The entire continuous output of the neural network is used for AMR
-        alpha_element = probability_troubled_cell
+        alpha_element  = probability_troubled_cell
+        alpha[element] = alpha_max * alpha_element
       end
     end
   end
