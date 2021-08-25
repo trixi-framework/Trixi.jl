@@ -1,4 +1,4 @@
-using Trixi, Images, Triangulate, Triplot, Plots
+using Trixi, Triangulate, Plots, TriplotRecipes
 
 # The following methods are based on PR#613 by Jesse Chan. Instead of using Makie.jl this uses Plots.jl.
 function triangulation_plot(sol, variable_to_plot::Int; nvisnodes=5, solution_variables=nothing)
@@ -64,26 +64,8 @@ function triangulation_plot(sol, variable_to_plot::Int; nvisnodes=5, solution_va
     y = reverse(coordinates_out[:,2])
     z = coordinates_out[:,3]
 
-    # The next part creates a heatmap. This is done to get a colorbar and to set the colorscheme to the one of a heatmap.
-    # I don´t think this is a perfect solution and thus will probably be changed.
-    extremas = hcat([extrema(x)...],[extrema(y)...])
-    domain_length = [extremas[2,1]-extremas[1,1], extremas[2,2]-extremas[1,2]]
-    corner_x = [extremas[1,1]+domain_length[1]/4, extremas[2,1]-domain_length[1]/4]
-    corner_y = [extremas[1,2]+domain_length[2]/4, extremas[2,2]-domain_length[2]/4]
-    display(heatmap(corner_x, corner_y, hcat([extrema(z)...],[extrema(z)...])))
-
-    # Create an image by using Triplot and then plot it.
-    img = to_rgba.(Triplot.rasterize(x,y,z,convert(Matrix{Int64}, t_out'))')
-    display(plot!(extremas[:,1],extremas[:,2],img, label=:none, xguide="x", yguide="y", title=variable_names[variable_to_plot]))
-end
-
-# This was taken from Triplot.
-function to_rgba(x::UInt32)
-    a = ((x & 0xff000000)>>24)/255
-    b = ((x & 0x00ff0000)>>16)/255
-    g = ((x & 0x0000ff00)>>8)/255
-    r = (x & 0x000000ff)/255
-    RGBA(r, g, b, a)
+    plot(aspect_ratio=:equal, size=(800,811), xguide="x", yguide="y", title=variable_names[variable_to_plot])
+    tripcolor!(x,y,z,convert(Matrix{Int64}, t_out'))
 end
 
 plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes)) # is this the right thing for FD-SBP?
