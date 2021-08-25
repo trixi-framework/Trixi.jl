@@ -61,7 +61,7 @@ function triangulation_plot(sol, variable_to_plot::Int; nvisnodes=5, solution_va
     solution_variables_ = Trixi.digest_solution_variables(equations, solution_variables)
     variable_names = SVector(Trixi.varnames(solution_variables_, equations))
     x = coordinates_out[:,1]
-    y = reverse(coordinates_out[:,2])
+    y = coordinates_out[:,2]
     z = coordinates_out[:,3]
 
     plot(aspect_ratio=:equal, size=(800,811), xguide="x", yguide="y", title=variable_names[variable_to_plot])
