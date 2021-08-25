@@ -81,11 +81,11 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part1"
     include("test_unit.jl")
+    include("test_visualization.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part2"
     include("test_special_elixirs.jl")
-    include("test_visualization.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "paper_self_gravitating_gas_dynamics"

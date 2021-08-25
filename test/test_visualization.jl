@@ -27,7 +27,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
   )
 
-  @timed_testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+  @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi
     directory, elixir = test_examples_2d[mesh]
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), directory, elixir),
