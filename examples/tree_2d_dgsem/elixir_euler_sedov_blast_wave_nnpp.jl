@@ -19,14 +19,15 @@ initial_condition = initial_condition_sedov_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
-indicator_sc = IndicatorNNPP(equations, basis,
-                                         alpha_max=0.5,
-                                         alpha_min=0.001,
-                                         alpha_smooth=true,
-                                         alpha_continuous=true,
-                                         alpha_amr=false,
-                                         variable=density_pressure,
-                                         network=model2d)   
+indicator_sc = IndicatorANN(equations, basis,
+                            indicator_type="NNPP",
+                            alpha_max=0.5,
+                            alpha_min=0.001,
+                            alpha_smooth=true,
+                            alpha_continuous=true,
+                            alpha_amr=false,
+                            variable=density_pressure,
+                            network=model2d)   
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -60,13 +61,15 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_indicator = IndicatorNNPP(semi, alpha_max=0.5,
-                                          alpha_min=0.001,
-                                          alpha_smooth=true,
-                                          alpha_continuous=true,
-                                          alpha_amr=false,
-                                          variable=density_pressure,
-                                          network=model2d)   
+amr_indicator = IndicatorANN(semi,
+                             indicator_type="NNPP",
+                             alpha_max=0.5,
+                             alpha_min=0.001,
+                             alpha_smooth=true,
+                             alpha_continuous=true,
+                             alpha_amr=false,
+                             variable=density_pressure,
+                             network=model2d)   
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=4,
                                       max_level =6, max_threshold=0.2)

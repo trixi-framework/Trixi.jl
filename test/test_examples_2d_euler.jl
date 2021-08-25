@@ -113,6 +113,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       tspan = (0.0, 1.0))
   end
 
+  @trixi_testset "elixir_euler_sedov_blast_wave_nnpp.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_nnpp.jl"),
+      # FIXME: these errors are bogus and need to be replaced once the elixir works!
+      l2   = [0.4819231474652106, 0.1655453843075888, 0.16554538430758944, 0.6182451347074112],
+      linf = [2.4849541392059202, 1.2816207838889486, 1.2816207838888944, 6.4743208586529875],
+      maxiters = 30)
+  end
+
   @trixi_testset "elixir_euler_positivity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
       l2   = [0.48401054859424775, 0.16613328471131006, 0.16613328471131006, 0.6181793382171535],
@@ -146,6 +154,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.05569140599245201, 0.033108757924402134, 0.05223526059785845, 0.08007239985228143],
       linf = [0.2540392117514094, 0.17432468822204936, 0.12323401271048683, 0.26897998287356195],
       tspan = (0.0, 0.2))
+  end
+
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl"),
+      # FIXME: these errors are bogus and need to be replaced once the elixir works!
+      l2   = [0.05569140599245201, 0.033108757924402134, 0.05223526059785845, 0.08007239985228143],
+      linf = [0.2540392117514094, 0.17432468822204936, 0.12323401271048683, 0.26897998287356195],
+      maxiters = 30)
   end
 
   @trixi_testset "elixir_euler_colliding_flow.jl" begin
