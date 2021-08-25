@@ -1,9 +1,10 @@
-
+using Downloads: download
 using Flux
-using BSON: @load
-Core.eval(Main, :(import NNlib, Flux)) 
-@load "examples/models/2d/modelnnpp-0.904-0.0005.bson" model2d
-using Random: seed!
+using BSON: load
+network = joinpath(@__DIR__, "modelnnpp-0.904-0.0005.bson")
+download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnpp-0.904-0.0005.bson", network)
+model2d = load(network, @__MODULE__)[:model2d]
+
 using OrdinaryDiffEq
 using Trixi
 
@@ -12,7 +13,6 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
-seed!(0)
 initial_condition = initial_condition_khi
 
 surface_flux = flux_lax_friedrichs
