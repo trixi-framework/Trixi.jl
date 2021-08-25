@@ -1,4 +1,4 @@
-module TestExamples3DPart2
+module TestExamplesTreeMesh3DPart3
 
 using Test
 using Trixi
@@ -9,25 +9,19 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "3D-Part2" begin
+@testset "TreeMesh3D Part 2" begin
 
 # Run basic tests
 @testset "Examples 3D" begin
   # MHD
-  include("test_examples_3d_mhd.jl")
+  include("test_tree_3d_mhd.jl")
 
   # Lattice-Boltzmann
-  include("test_examples_3d_lbm.jl")
-
-  # Curved mesh
-  include("test_examples_3d_structured.jl")
-
-  # P4estMesh
-  include("test_examples_3d_p4est.jl")
+  include("test_tree_3d_lbm.jl")
 end
 
 
-@testset "Additional tests in 3D" begin
+@trixi_testset "Additional tests in 3D" begin
   @testset "ideal GLM MHD" begin
     eqn = IdealGlmMhdEquations3D(1.4)
     u = [1.0, 2.0, 3.0, 4.0, 20.0, 0.1, 0.2, 0.3, 1.5]
@@ -53,6 +47,6 @@ end
 # Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
 
-end # 3D-Part2
+end # TreeMesh3D Part 2
 
 end #module

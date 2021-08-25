@@ -5,6 +5,25 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes when updating to v0.4 from v0.3.x
+
+#### Added
+
+#### Changed
+
+#### Deprecated
+
+#### Removed
+
+- Many initial/boundary conditions and source terms for typical setups were
+  moved from `Trixi/src` to the example elixirs `Trixi/examples`. Thus, they
+  are no longer available when `using Trixi`, e.g., the initial condition
+  for the Kelvin Helmholtz instability.
+- Some initial/boundary conditions and source terms for academic verification
+  setups were removed, e.g., `initial_condition_linear_x` for the 2D linear
+  advection equation.
+
+
 ## Changes in the v0.3 lifecycle
 
 #### Added

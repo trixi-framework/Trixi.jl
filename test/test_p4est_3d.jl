@@ -1,4 +1,4 @@
-module TestExamples3dP4est
+module TestExamplesP4estMesh3D
 
 using Test
 using Trixi
@@ -8,7 +8,11 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_3d_dgsem")
 
-@testset "P4estMesh" begin
+# Start with a clean environment: remove Trixi output directory if it exists
+outdir = "out"
+isdir(outdir) && rm(outdir, recursive=true)
+
+@testset "P4estMesh3D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [0.00013446460962856976],
@@ -76,5 +80,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_
       linf = [0.19307851386933228, 0.27472353046951714, 0.3039307725248127, 0.3063060931738112, 0.5144856763103725])
   end
 end
+
+# Clean up afterwards: delete Trixi output directory
+@test_nowarn rm(outdir, recursive=true)
 
 end # module

@@ -109,7 +109,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     end
 
     @timed_testset "MHD" begin
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_mhd_alfven_wave_mortar.jl"),
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
                     tspan=(0.0, 0.0), initial_refinement_level=0)
       @test_nowarn jacobian_ad_forward(semi)
     end
@@ -132,13 +132,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
     J = jacobian_ad_forward(semi)
     @test Matrix(A) ≈ J
-    λ = eigvals(J)
-    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
     J = jacobian_fd(semi)
     @test Matrix(A) ≈ J
-    λ = eigvals(J)
-    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
   end
 
 
