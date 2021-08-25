@@ -97,12 +97,12 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   @testset "DGMulti" begin
     @trixi_testset "elixir_euler_weakform.jl (SBP, EC)" begin
       @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_weakform.jl"),
-        cells_per_dimension = (4,4),
+        cells_per_dimension = (4, 4),
         volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
         surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
         approximation_type = SBP(),
-        l2 = [0.012858228819248307, 0.010649745431713896, 0.010649745431680024, 0.02628727578633061],
-        linf = [0.03733928157930677, 0.053088127555369624, 0.05308812755616854, 0.13379093830601718]
+        l2 = [0.01285864081726596, 0.010650165503847099, 0.01065016550381281, 0.026286162111579015],
+        linf = [0.037333313274372504, 0.05308320130762212, 0.05308320130841948, 0.13378665881805185],
       )
     end
 
