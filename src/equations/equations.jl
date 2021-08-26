@@ -154,6 +154,9 @@ end
 """
     BoundaryConditionWall(boundary_value_function)
 
+TODO: update this docstring
+TODO: rename this BC type (or possibily remove it)
+
 Create a generic wall type boundary condition that uses the function `boundary_value_function`
 to specify the external solution values.
 The boundary wall function is called with arguments for an internal solution state from inside an
@@ -194,20 +197,39 @@ end
   return flux
 end
 
-# Wall boundary condition for use with UnstructuredMesh2D
+# # Wall boundary condition for use with UnstructuredMesh2D
+# # Note: For unstructured we lose the concept of an "absolute direction"
+# @inline function (boundary_condition::BoundaryConditionWall)(u_inner,
+#                                                              normal_direction::AbstractVector,
+#                                                              x, t,
+#                                                              surface_flux_function, equations)
+#   # get the external value of the solution
+#   u_boundary = boundary_condition.boundary_value_function(u_inner, normal_direction, equations)
+
+#   flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+#   return flux
+# end
+
+# Specific slip wall boundary condition for use with UnstructuredMesh2D
 # Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionWall)(u_inner,
                                                              normal_direction::AbstractVector,
                                                              x, t,
                                                              surface_flux_function, equations)
-  # get the external value of the solution
-  u_boundary = boundary_condition.boundary_value_function(u_inner, normal_direction, equations)
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
 
-  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+  # get the external value of the pressue
+  p_boundary = boundary_condition.boundary_value_function(u_inner, normal, equations)
 
-  return flux
+  # For this particular slip wall boundary condition we do not require an evaluation
+  # of the surface_flux_function and can directly set the flux because the normal velocity
+  # has been set to zero
+  return SVector{nvariables(equations)}(0.0, (p_boundary .* normal)..., 0.0) * norm_
+
 end
-
 
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
