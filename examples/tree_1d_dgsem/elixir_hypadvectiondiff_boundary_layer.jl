@@ -21,7 +21,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=false) # set maximum capacity of tree data structure
 
 
-initial_condition = initial_condition_idlCFD_nonperiodic
+initial_condition = initial_condition_boundary_layer
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
