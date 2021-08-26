@@ -223,8 +223,8 @@ If alpha_continuous = false the blending factor ist set to alpha = 0 for good ce
     This is an experimental feature and may change in future releases.
 
 """
-struct IndicatorANN{RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
-  indicator_type::String
+struct IndicatorANN{IndicatorType, RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
+  indicator_type::IndicatorType
   alpha_max::RealT
   alpha_min::RealT
   alpha_smooth::Bool
@@ -247,7 +247,7 @@ function IndicatorANN(equations::AbstractEquations, basis;
                       network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorANN, equations, basis, indicator_type)
-  IndicatorANN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+  IndicatorANN{typeof(indicator_type), typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
     indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
 end
 
@@ -263,7 +263,7 @@ function IndicatorANN(semi::AbstractSemidiscretization;
                       network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorANN, mesh_equations_solver_cache(semi)..., indicator_type)
-  IndicatorANN{typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+  IndicatorANN{typeof(indicator_type), typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
     indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
 end
 
