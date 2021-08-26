@@ -400,11 +400,11 @@ end
   @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p = (gamma-1)*(rho_e - 0.5 * rho * (v1^2 + v2^2))
-  T = gamma*p/rho
-  mu = Minf/Reinf * (1+C/Tinf)/(T+C/Tinf) * T^(1.5)
+  p = (gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+  T = gamma * p / rho
+  mu = Minf / Reinf * (1 + C / Tinf) / (T + C / Tinf) * T^(1.5)
   mu_v = 4/3 * mu     # viscosity of stress
-  mu_h = gamma*mu/Pr  # viscosity of heat flux
+  mu_h = gamma * mu / Pr  # viscosity of heat flux
 
   dq5 = -tau_xx / mu_v
   du6 = -tau_xy / mu_v
