@@ -1,13 +1,28 @@
-@doc raw"""
-    IdealGlmMhdEquations1D
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
-The ideal compressible GLM-MHD equations in one space dimension.
+
+@doc raw"""
+    IdealGlmMhdEquations1D(gamma)
+
+The ideal compressible GLM-MHD equations for an ideal gas with ratio of
+specific heats `gamma` in one space dimension.
+
 !!! note
     There is no divergence cleaning variable `psi` because the divergence-free constraint
     is satisfied trivially in one spatial dimension.
 """
 struct IdealGlmMhdEquations1D{RealT<:Real} <: AbstractIdealGlmMhdEquations{1, 8}
-  gamma::RealT
+  gamma::RealT               # ratio of specific heats
+  inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+
+  function IdealGlmMhdEquations1D(gamma)
+    γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
+    new{typeof(γ)}(γ, inv_gamma_minus_one)
+  end
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = Val(false)
@@ -53,6 +68,32 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
   B2 = v2
   B3 = v3
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
+end
+
+
+"""
+    initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations1D)
+
+A weak blast wave adapted from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations1D)
+  # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Same discontinuity in the velocities but with magnetic fields
+  # Set up polar coordinates
+  inicenter = (0,)
+  x_norm = x[1] - inicenter[1]
+  r = sqrt(x_norm^2)
+  phi = atan(x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(SVector(rho, v1, 0.0, 0.0, p, 1.0, 1.0, 1.0, 0.0), equations)
 end
 
 
@@ -185,19 +226,20 @@ end
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations1D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-  mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
-  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en)
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p_over_gamma_minus_one = (rho_e - kin_en - mag_en)
+  p = (equations.gamma - 1) * p_over_gamma_minus_one
 
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_v1
   f2 = rho_v1*v1 + p + mag_en - B1^2
   f3 = rho_v1*v2 - B1*B2
   f4 = rho_v1*v3 - B1*B3
-  f5 = (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3)
+  f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3)
   f6 = 0.0
   f7 = v1*B2 - v2*B1
   f8 = v1*B3 - v3*B1
@@ -272,6 +314,69 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmM
 end
 
 
+"""
+    flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction,
+                            equations::IdealGlmMhdEquations1D)
+
+Entropy conserving and kinetic energy preserving two-point flux of
+Hindenlang and Gassner (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
+
+## References
+- Florian Hindenlang, Gregor Gassner (2019)
+  A new entropy conservative two-point flux for ideal MHD equations derived from
+  first principles.
+  Presented at HONOM 2019: European workshop on high order numerical methods
+  for evolutionary PDEs, theory and applications
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_hindenlang_gassner(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
+  # Unpack left and right states
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
+
+  # Compute the necessary mean values needed for either direction
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg  = 0.5 * ( v1_ll +  v1_rr)
+  v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+  v3_avg  = 0.5 * ( v3_ll +  v3_rr)
+  p_avg   = 0.5 * (  p_ll +   p_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+  magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+
+  # Calculate fluxes depending on orientation with specific direction averages
+  f1 = rho_mean * v1_avg
+  f2 = f1 * v1_avg + p_avg + magnetic_square_avg - 0.5 * (B1_ll * B1_rr + B1_rr * B1_ll)
+  f3 = f1 * v2_avg                               - 0.5 * (B1_ll * B2_rr + B1_rr * B2_ll)
+  f4 = f1 * v3_avg                               - 0.5 * (B1_ll * B3_rr + B1_rr * B3_ll)
+  #f5 below
+  f6 = 0.0
+  f7 = 0.5 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
+  f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
+  # total energy flux is complicated and involves the previous components
+  f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+        + 0.5 * (
+        +   p_ll * v1_rr +  p_rr * v1_ll
+        + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
+        + (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
+        - (v2_ll * B1_ll * B2_rr + v2_rr * B1_rr * B2_ll)
+        - (v3_ll * B1_ll * B3_rr + v3_rr * B1_rr * B3_ll) ) )
+
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
@@ -304,23 +409,12 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
   [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations1D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr = u_rr
+  rho_ll, rho_v1_ll, _ = u_ll
+  rho_rr, rho_v1_rr, _ = u_rr
 
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
-  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll)
-
+  # Calculate primitive variables
+  v1_ll = rho_v1_ll / rho_ll
   v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
-  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
-  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr)
 
   # Approximate the left-most and right-most eigenvalues in the Riemann fan
   c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
@@ -343,13 +437,14 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(u, equations::IdealGlmMhdEquations1D)
+@inline function cons2prim(u, equations::IdealGlmMhdEquations1D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  p = (equations.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - 0.5*(B1^2 + B2^2 + B3^2))
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
+                                              + B1 * B1 + B2 * B2 + B3 * B3))
 
   return SVector(rho, v1, v2, v3, p, B1, B2, B3)
 end
@@ -557,3 +652,6 @@ end
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations1D)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end
+
+
+end # @muladd

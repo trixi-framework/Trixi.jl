@@ -15,7 +15,7 @@ Cassette.@context Ctx
 
 # Run various unit (= non-elixir-triggered) tests
 @testset "Unit tests" begin
-  @testset "SerialTree" begin
+  @timed_testset "SerialTree" begin
     @testset "constructors" begin
       @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
     end
@@ -45,7 +45,7 @@ Cassette.@context Ctx
     end
   end
 
-  @testset "ParallelTree" begin
+  @timed_testset "ParallelTree" begin
     @testset "constructors" begin
       @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
     end
@@ -57,13 +57,13 @@ Cassette.@context Ctx
     end
   end
 
-  @testset "TreeMesh" begin
+  @timed_testset "TreeMesh" begin
     @testset "constructors" begin
       @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
     end
   end
 
-  @testset "ParallelTreeMesh" begin
+  @timed_testset "ParallelTreeMesh" begin
     @testset "partition!" begin
       @testset "mpi_nranks() = 2" begin
         Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 2
@@ -188,7 +188,7 @@ Cassette.@context Ctx
     end
   end
 
-  @testset "curved mesh" begin
+  @timed_testset "curved mesh" begin
     @testset "calc_jacobian_matrix" begin
       @testset "identity map" begin
         basis = LobattoLegendreBasis(5)
@@ -225,7 +225,7 @@ Cassette.@context Ctx
     end
   end
 
-  @testset "interpolation" begin
+  @timed_testset "interpolation" begin
     @testset "nodes and weights" begin
       @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])
     end
@@ -238,8 +238,8 @@ Cassette.@context Ctx
       @test isapprox(Trixi.multiply_dimensionwise(matrix, data_in), [3.0 4.0 5.0 6.0])
 
       n_vars   = 3
-      size_in  = 4
-      size_out = 5
+      size_in  = 2
+      size_out = 3
       matrix   = randn(size_out, size_in)
       # 1D
       data_in  = randn(n_vars, size_in)
@@ -256,7 +256,7 @@ Cassette.@context Ctx
     end
   end
 
-  @testset "L2 projection" begin
+  @timed_testset "L2 projection" begin
     @testset "calc_reverse_upper for LGL" begin
       @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)), [[0.25, 0.25] [0.0, 0.5]])
     end
@@ -372,26 +372,26 @@ Cassette.@context Ctx
     end
   end
 
-  @testset "example elixirs" begin
+  @timed_testset "example elixirs" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
     @test endswith(default_example(), "elixir_advection_basic.jl")
   end
 
-  @testset "HLL flux with vanishing wave speed estimates (#502)" begin
+  @timed_testset "HLL flux with vanishing wave speed estimates (#502)" begin
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.0, 0.0, 0.0)
     @test !any(isnan, FluxHLL()(u, u, 1, equations))
   end
 
-  @testset "DG L2 mortar container debug output" begin
+  @timed_testset "DG L2 mortar container debug output" begin
     c2d = Trixi.L2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
     c3d = Trixi.L2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
   end
 
-  @testset "Printing indicators/controllers" begin
+  @timed_testset "Printing indicators/controllers" begin
     # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
     # just useful to run basic tests of `show` methods.
 
@@ -408,7 +408,7 @@ Cassette.@context Ctx
     @test_nowarn show(stdout, indicator_max)
   end
 
-  @testset "LBM 2D constructor" begin
+  @timed_testset "LBM 2D constructor" begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=nothing, Re=1000)
     # Both Mach number and velocity set
@@ -422,7 +422,7 @@ Cassette.@context Ctx
     @test LatticeBoltzmannEquations2D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations2D
   end
 
-  @testset "LBM 3D constructor" begin
+  @timed_testset "LBM 3D constructor" begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=nothing, Re=1000)
     # Both Mach number and velocity set
@@ -436,7 +436,7 @@ Cassette.@context Ctx
     @test LatticeBoltzmannEquations3D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations3D
   end
 
-  @testset "LBM 2D functions" begin
+  @timed_testset "LBM 2D functions" begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, equation)
@@ -446,7 +446,7 @@ Cassette.@context Ctx
     @test isapprox(Trixi.velocity(u, 2, equation), 3)
   end
 
-  @testset "LBM 3D functions" begin
+  @timed_testset "LBM 3D functions" begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations3D(Ma=0.1, Re=1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
@@ -457,7 +457,7 @@ Cassette.@context Ctx
     @test isapprox(velocity(u, 3, equation), 4)
   end
 
-  @testset "LBMCollisionCallback" begin
+  @timed_testset "LBMCollisionCallback" begin
     # Printing of LBM collision callback
     callback = LBMCollisionCallback()
     @test_nowarn show(stdout, callback)
@@ -466,7 +466,7 @@ Cassette.@context Ctx
     println()
   end
 
-  @testset "APE 2D varnames" begin
+  @timed_testset "APE 2D varnames" begin
     v_mean_global = (0.0, 0.0)
     c_mean_global = 1.0
     rho_mean_global = 1.0
@@ -476,7 +476,7 @@ Cassette.@context Ctx
     @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 
-  @testset "Euler conversion between conservative/entropy variables" begin
+  @timed_testset "Euler conversion between conservative/entropy variables" begin
     rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
     let equations = CompressibleEulerEquations1D(1.4)
@@ -513,7 +513,7 @@ Cassette.@context Ctx
     end
   end
 
-  @testset "TimeSeriesCallback" begin
+  @timed_testset "TimeSeriesCallback" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
                                      tspan=(0, 0.05))
@@ -526,6 +526,82 @@ Cassette.@context Ctx
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+  end
+
+  @testset "FluxRotated vs. direct implementation" begin
+    @timed_testset "CompressibleEulerEquations2D" begin
+      equations = CompressibleEulerEquations2D(1.4)
+      normal_directions = [SVector(1.0, 0.0),
+                           SVector(0.0, 1.0),
+                           SVector(0.5, -0.5),
+                           SVector(-1.2, 0.3)]
+      u_values = [SVector(1.0, 0.5, -0.7, 1.0),
+                  SVector(1.5, -0.2, 0.1, 5.0),]
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber]
+
+      for f_std in fluxes
+        f_rot = FluxRotated(f_std)
+        for u_ll in u_values, u_rr in u_values, normal_direction in normal_directions
+          @test f_rot(u_ll, u_rr, normal_direction, equations) ≈ f_std(u_ll, u_rr, normal_direction, equations)
+        end
+      end
+    end
+
+    @timed_testset "CompressibleEulerEquations3D" begin
+      equations = CompressibleEulerEquations3D(1.4)
+      normal_directions = [SVector(1.0, 0.0, 0.0),
+                          SVector(0.0, 1.0, 0.0),
+                          SVector(0.0, 0.0, 1.0),
+                          SVector(0.5, -0.5, 0.2),
+                          SVector(-1.2, 0.3, 1.4)]
+      u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
+                  SVector(1.5, -0.2, 0.1, 0.2, 5.0),]
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber]
+
+      for f_std in fluxes
+        f_rot = FluxRotated(f_std)
+        for u_ll in u_values, u_rr in u_values, normal_direction in normal_directions
+          @test f_rot(u_ll, u_rr, normal_direction, equations) ≈ f_std(u_ll, u_rr, normal_direction, equations)
+        end
+      end
+    end
+
+    @timed_testset "IdealGlmMhdEquations2D" begin
+      equations = IdealGlmMhdEquations2D(1.4, 5.0 #= c_h =#)
+      normal_directions = [SVector(1.0, 0.0),
+                           SVector(0.0, 1.0),
+                           SVector(0.5, -0.5),
+                           SVector(-1.2, 0.3)]
+      u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+                  SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+      fluxes = [flux_central, flux_hindenlang_gassner]
+
+      for f_std in fluxes
+        f_rot = FluxRotated(f_std)
+        for u_ll in u_values, u_rr in u_values, normal_direction in normal_directions
+          @test f_rot(u_ll, u_rr, normal_direction, equations) ≈ f_std(u_ll, u_rr, normal_direction, equations)
+        end
+      end
+    end
+
+    @timed_testset "IdealGlmMhdEquations3D" begin
+      equations = IdealGlmMhdEquations3D(1.4, 5.0 #= c_h =#)
+      normal_directions = [SVector(1.0, 0.0, 0.0),
+                          SVector(0.0, 1.0, 0.0),
+                          SVector(0.0, 0.0, 1.0),
+                          SVector(0.5, -0.5, 0.2),
+                          SVector(-1.2, 0.3, 1.4)]
+      u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+                  SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
+      fluxes = [flux_central, flux_hindenlang_gassner]
+
+      for f_std in fluxes
+        f_rot = FluxRotated(f_std)
+        for u_ll in u_values, u_rr in u_values, normal_direction in normal_directions
+          @test f_rot(u_ll, u_rr, normal_direction, equations) ≈ f_std(u_ll, u_rr, normal_direction, equations)
+        end
+      end
+    end
   end
 end
 

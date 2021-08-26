@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     SaveRestartCallback(; interval=0,
@@ -73,15 +79,22 @@ end
 function (restart_callback::SaveRestartCallback)(u, t, integrator)
   @unpack interval, save_final_restart = restart_callback
 
+  # With error-based step size control, some steps can be rejected. Thus,
+  #   `integrator.iter >= integrator.destats.naccept`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
   return interval > 0 && (
-    (integrator.iter % interval == 0) || (save_final_restart && isfinished(integrator)))
+    ((integrator.destats.naccept % interval == 0) && !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
+    (save_final_restart && isfinished(integrator)))
 end
 
 
 # this method is called when the callback is activated
 function (restart_callback::SaveRestartCallback)(integrator)
   u_ode = integrator.u
-  @unpack t, dt, iter = integrator
+  @unpack t, dt = integrator
+  iter = integrator.destats.naccept
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
@@ -126,3 +139,6 @@ end
 
 
 include("save_restart_dg.jl")
+
+
+end # @muladd

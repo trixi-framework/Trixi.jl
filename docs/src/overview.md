@@ -10,7 +10,7 @@ folder.
 
 Trixi uses the method of lines, i.e., the full space-time discretization is separated into two steps;
 the spatial semidiscretization is performed at first and the resulting ODE system is solved numerically
-using a suitable time integration method. 
+using a suitable time integration method.
 Thus, the main ingredients of an elixir designed
 to solve a PDE numerically are the spatial semidiscretization and the time
 integration scheme.
@@ -22,6 +22,8 @@ Semidiscretizations are high-level descriptions of spatial discretizations
 specialized for certain PDEs. Trixi's main focus is on hyperbolic conservation
 laws represented in a [`SemidiscretizationHyperbolic`](@ref).
 Such semidiscretizations are usually named `semi` in Trixi.
+
+![semidiscretization_overview](https://user-images.githubusercontent.com/12693098/124783641-83171e80-df45-11eb-8757-daac80cd1599.png)
 
 The basic building blocks of a semidiscretization are
 
@@ -42,8 +44,24 @@ ingredients. For example, a new `mesh` type can be created and implemented at
 first only for a specific solver. Thus, there is no need to consider all
 possible combinations of `mesh`es, `equations`, and `solver`s when implementing
 new features. This allows rapid prototyping of new ideas and is one of the main
-design goals behind Trixi.
+design goals behind Trixi. Below is a brief overview of the availability of
+different features on different mesh types.
 
+| Feature                                                      | [`TreeMesh`](@ref) | [`StructuredMesh`](@ref) | [`UnstructuredMesh2D`](@ref) | [`P4estMesh`](@ref) | [`VertexMappedMesh`](@ref) |
+|--------------------------------------------------------------|:------------------:|:------------------------:|:----------------------------:|:-------------------:|:--------------------------:|
+| Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |        2D, 3D       |          1D, 2D, 3D        |
+| Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |     curvilinear     |            affine          |
+| Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |  *h*-nonconforming  |          conforming        |
+| Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex, quadᵃ, hexᵃ    |
+| Adaptive mesh refinement ([`AMRCallback`](@ref))             |          ✅         |             ❌            |               ❌              |          ✅          |               ❌            |
+| Solver/discretization type                                   |   [`DGSEM`](@ref)  |      [`DGSEM`](@ref)     |        [`DGSEM`](@ref)       |   [`DGSEM`](@ref)   |       [`DGMulti`](@ref)    |
+| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitrary (affine)   |
+| Weak form ([`VolumeIntegralWeakForm`](@ref))                 |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            |
+| Flux differencing ([`VolumeIntegralFluxDifferencing`](@ref)) |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            |
+| Shock capturing ([`VolumeIntegralShockCapturingHG`](@ref))   |          ✅         |             ❌            |               ❌              |          ❌          |               ❌            |
+| Nonconservative equations (e.g., GLM MHD)                    |          ✅         |         partially        |            partially         |          ❌          |               ❌            |
+
+ᵃ: quad = quadrilateral, hex = hexahedron
 
 ## Time integration methods
 

@@ -1,7 +1,8 @@
 # Unstructured quadrilateral mesh
 
-The [`UnstructuredMesh2D`](@ref) is an unstructured, possibly curvilinear,
+The [`UnstructuredMesh2D`](@ref) is an unstructured, curvilinear,
 conforming mesh type in two space dimensions.
+
 Due to its curvilinear nature, (numerical) fluxes need to implement methods
 dispatching on the `normal::AbstractVector`. Rotationally invariant equations
 such as the compressible Euler equations can use [`FluxRotated`](@ref) to
@@ -19,7 +20,7 @@ We use the following unstructured mesh with three elements for this discussion:
 ![example-mesh](https://user-images.githubusercontent.com/25242486/117508011-2e2c4b80-af88-11eb-8b15-949fc2d43253.png)
 
 Further, a simulation using Trixi on this example unstructured mesh is provided in
-[`examples/2d/elixir_euler_unstructured_quad_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_euler_unstructured_quad_basic.jl).
+[`examples/unstructured_2d_dgsem/elixir_euler_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/unstructured_2d_dgsem/elixir_euler_basic.jl).
 
 
 ## Mesh file header

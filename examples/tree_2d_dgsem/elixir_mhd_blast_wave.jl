@@ -9,8 +9,8 @@ equations = IdealGlmMhdEquations2D(1.4)
 
 initial_condition = initial_condition_blast_wave
 
-surface_flux = flux_lax_friedrichs
-volume_flux  = flux_central
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+volume_flux  = (flux_central, flux_nonconservative_powell)
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,

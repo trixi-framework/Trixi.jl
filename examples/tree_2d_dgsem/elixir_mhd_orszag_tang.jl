@@ -9,8 +9,8 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 initial_condition = initial_condition_orszag_tang
 
-surface_flux = flux_lax_friedrichs
-volume_flux  = flux_central
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+volume_flux  = (flux_central, flux_nonconservative_powell)
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,

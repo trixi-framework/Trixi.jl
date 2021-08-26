@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
@@ -82,8 +88,14 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           RealT=real(solver),
                           uEltype=eltype(cache.elements),
                           kwargs...)
-  # when is the callback activated
-  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
+  # Decide when the callback is activated.
+  # With error-based step size control, some steps can be rejected. Thus,
+  #   `integrator.iter >= integrator.destats.naccept`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
+  condition = (u, t, integrator) -> interval > 0 && ( (integrator.destats.naccept % interval == 0 &&
+                                                       !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
                                                      isfinished(integrator))
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
@@ -168,7 +180,8 @@ end
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack dt, t, iter = integrator
+  @unpack dt, t = integrator
+  iter = integrator.destats.naccept
 
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
@@ -188,7 +201,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
+    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
 
     # Level information (only show for AMR)
     print_amr_information(integrator.opts.callback, mesh, solver, cache)
@@ -489,3 +502,6 @@ include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
+
+
+end # @muladd

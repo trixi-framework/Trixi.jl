@@ -9,12 +9,12 @@ equations = IdealGlmMhdEquations3D(5/3)
 
 initial_condition = initial_condition_convergence_test
 
-volume_flux = flux_derigs_etal
-solver = DGSEM(polydeg=3, surface_flux=flux_hll,
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+solver = DGSEM(polydeg=3, surface_flux=(flux_hll, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-1, -1, -1)
-coordinates_max = ( 1,  1,  1)
+coordinates_min = (-1.0, -1.0, -1.0)
+coordinates_max = ( 1.0,  1.0,  1.0)
 refinement_patches = (
   (type="box",  coordinates_min=(-0.5, -0.5, -0.5),
                 coordinates_max=( 0.5,  0.5,  0.5)),
@@ -38,12 +38,12 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-cfl = 1.4
+cfl = 1.0
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)

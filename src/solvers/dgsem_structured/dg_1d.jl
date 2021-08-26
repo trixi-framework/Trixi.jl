@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 function rhs!(du, u, t,
               mesh::StructuredMesh{1}, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -65,15 +72,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
   @assert isperiodic(mesh)
 end
 
-
-function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             mesh::StructuredMesh{1}, equations, surface_integral, dg::DG)
-  calc_boundary_flux!(cache, u, t, (boundary_condition, boundary_condition),
-                      mesh, equations, surface_integral, dg)
-end
-
-
-function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
+function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral, dg::DG)
   @unpack surface_flux = surface_integral
   @unpack surface_flux_values, node_coordinates = cache.elements
@@ -105,3 +104,6 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
     surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
   end
 end
+
+
+end # @muladd
