@@ -321,7 +321,6 @@ end
   mu_v_rr = 4/3 * mu_rr     # viscosity of stress
   mu_h_rr = gamma*mu_rr/Pr  # viscosity of heat flux
 
-  # λ_max = max(abs(u2_ll/u1_ll), abs(u2_rr/u1_rr)) + sqrt(max(T_ll, T_rr)) + max(abs(L*u1_ll/min(mu_v_ll, mu_h_ll)), abs(L*u1_rr/min(mu_v_rr, mu_h_rr)))
   λ_max = max(abs(u2_ll/u1_ll), abs(u2_rr/u1_rr)) + sqrt(max(T_ll, T_rr)) + max(abs(mu_h_ll / u1_ll), abs(mu_h_rr / u1_ll)) / L
   return λ_max
 end
@@ -338,7 +337,6 @@ end
   mu_v = 4/3 * mu     # viscosity of stress
   mu_h = gamma*mu/Pr  # viscosity of heat flux
 
-  # λ_max = abs(rho_v1/rho) + sqrt(T) + abs(L*rho/min(mu_v, mu_h))
   λ_max = abs(rho_v1/rho) + sqrt(T) + abs(mu_h / (rho * L))
   return λ_max
 end
@@ -391,7 +389,7 @@ end
     as the grid used for Trixis DGSEM solver. The grid is defined by the input
     variables.
 """
-
+        
 const lib_path = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "NavierStokes1d_fortran", "ns_shock_lobatto.so")
 
 @inline function calc_viscous_shock_solution(polydeg, refinement_level)
