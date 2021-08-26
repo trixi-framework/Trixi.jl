@@ -469,8 +469,6 @@ end
   mu_v_rr = 4/3 * mu_rr     # viscosity of stress
   mu_h_rr = gamma*mu_rr/Pr  # viscosity of heat flux
 
-  # λ_max_ll = (abs(v1_ll)+abs(v2_ll))/2 + sqrt(T_ll) + abs(mu_h_ll / (u1_ll * L))
-  # λ_max_rr = (abs(v1_rr)+abs(v2_rr))/2 + sqrt(T_rr) + abs(mu_h_rr / (u1_rr * L))
   λ_max_ll = sqrt(v1_ll^2+v2_ll^2) + sqrt(T_ll) + abs(mu_h_ll / (u1_ll * L))
   λ_max_rr = sqrt(v1_rr^2+v2_rr^2) + sqrt(T_rr) + abs(mu_h_rr / (u1_rr * L))
   return max(λ_max_ll, λ_max_rr)
@@ -490,7 +488,6 @@ end
   mu_v = 4/3 * mu     # viscosity of stress
   mu_h = gamma*mu/Pr  # viscosity of heat flux
 
-  # λ_max = (abs(v1)+abs(v2))/2 + sqrt(T) + abs(mu_h / (rho * L))
   λ_max1 = abs(v1) + sqrt(T) + abs(mu_h / (rho * L))
   λ_max2 = abs(v2) + sqrt(T) + abs(mu_h / (rho * L))
   return λ_max1, λ_max2
