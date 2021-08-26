@@ -30,7 +30,6 @@ import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
-using Flux: params
 import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
@@ -221,6 +220,10 @@ function __init__()
     include("visualization/recipes_makie.jl")
     using .Makie: Makie
     export iplot # interactive plot
+  end
+
+  @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+    using Flux: params
   end
 
   # FIXME upstream. This is a hacky workaround for
