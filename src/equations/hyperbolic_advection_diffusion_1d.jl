@@ -41,13 +41,14 @@ default_analysis_errors(::HyperbolicAdvectionDiffusionEquations1D) = (:l2_error,
 end
 
 """
-    Example "idlCFD"
-    This example is taken from the free book "I Do Like CFD".
+    Example "boundary_layer"
+    This example is taken from the free book "I Do Like CFD". It can be found in chapter 7.3.1 as example (d).
+    Nonperidic boundary conditions are used for this example and the initial guess is a linear function.
 """
-function initial_condition_idlCFD_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
+function initial_condition_boundary_layer(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
   @unpack advectionvelocity, nu = equations
 
-  if iszero(t)
+  if iszero(t)  # initial guess
     v = x[1]
     q1 = one(v)
   else
@@ -60,13 +61,13 @@ function initial_condition_idlCFD_nonperiodic(x, t, equations::HyperbolicAdvecti
 end
 
 """
-    Expample "myexp"
+    Expample "exp"
     The boundary conditions are nonperiodic. This example is solved by an
     exponential function.
 """
-function initial_condition_myexp_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
+function initial_condition_exp_nonperiodic(x, t, equations::HyperbolicAdvectionDiffusionEquations1D)
   @unpack advectionvelocity, nu = equations
-  if iszero(t)
+  if iszero(t)  # initial guess
     v = x[1] + 1.0
     q1 = 1.0
   else
