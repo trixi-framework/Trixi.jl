@@ -346,29 +346,6 @@ end
 
 
 """
-    initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
-
-A version of the classical Kelvin-Helmholtz instability based on
-- Andrés M. Rueda-Ramírez, Gregor J. Gassner (2021)
-  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations
-  of the Euler Equations
-  [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
-"""
-function initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
-  # change discontinuity to tanh
-  # typical resolution 128^2, 256^2
-  # domain size is [-1,+1]^2
-  slope = 15
-  amplitude = 0.02
-  B = tanh(slope * x[2] + 7.5) - tanh(slope * x[2] - 7.5)
-  rho = 0.5 + 0.75 * B
-  v1 = 0.5 * (B - 1)
-  v2 = 0.1 * sin(2 * pi * x[1])
-  p = 1.0
-  return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
-"""
     initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 
 The blob test case taken from
@@ -498,7 +475,6 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   return SVector(du1, du2, du3, du4)
 end
 
-
 """
     initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
 
@@ -566,7 +542,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
   u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
 
   # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)

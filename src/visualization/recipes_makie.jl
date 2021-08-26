@@ -108,7 +108,9 @@ iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_sol
 # This initializes a Makie recipe, which creates a new type definition which Makie uses to create
 # custom `trixiheatmap` plots. See also https://makie.juliaplots.org/stable/recipes.html
 @Makie.recipe(TrixiHeatmap, plot_data_series) do scene
-  Makie.Theme(;)
+  Makie.Theme(
+    colormap = :inferno
+  )
 end
 
 function Makie.plot!(myplot::TrixiHeatmap)
@@ -119,7 +121,8 @@ function Makie.plot!(myplot::TrixiHeatmap)
   @unpack variable_id = pds
   pd = pds.plot_data
   solution_z = vec(StructArrays.component(pd.data, variable_id))
-  Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false)
+  Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false, colormap=myplot[:colormap])
+  myplot.colorrange=extrema(solution_z)
 
   # Makie hides keyword arguments within `myplot`; see also
   # https://github.com/JuliaPlots/Makie.jl/issues/837#issuecomment-845985070

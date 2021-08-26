@@ -51,7 +51,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
   @unpack u_values = cache
 
   # interpolate u, du to quadrature points
-  du_values = similar(u_values) # Todo: simplices. Can we move this to the analysis cache somehow?
+  du_values = similar(u_values) # Todo: DGMulti. Can we move this to the analysis cache somehow?
   apply_to_each_field(mul_by!(rd.Vq), du_values, du)
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 

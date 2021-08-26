@@ -238,8 +238,8 @@ Cassette.@context Ctx
       @test isapprox(Trixi.multiply_dimensionwise(matrix, data_in), [3.0 4.0 5.0 6.0])
 
       n_vars   = 3
-      size_in  = 4
-      size_out = 5
+      size_in  = 2
+      size_out = 3
       matrix   = randn(size_out, size_in)
       # 1D
       data_in  = randn(n_vars, size_in)

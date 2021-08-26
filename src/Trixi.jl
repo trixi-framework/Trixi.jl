@@ -47,7 +47,7 @@ using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
-using StructArrays: StructArrays, StructArray
+@reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
 using TriplotBase: TriplotBase
@@ -130,7 +130,6 @@ export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
-       initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
