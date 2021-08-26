@@ -194,7 +194,7 @@ export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax,
-       IndicatorNeuralNetwork, NNPP, NNRH, NNCNN
+       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven, NeuralNetworkCNN
 
 export PositivityPreservingLimiterZhangShu
 

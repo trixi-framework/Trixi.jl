@@ -198,10 +198,10 @@ end
 Artificial neural network based indicator used for shock-capturing or AMR.
 Depending on the indicator_type, different input values and corresponding trained networks are used.
 
-indicator_type = NNPP
+indicator_type = NeuralNetworkPerssonPeraire()
 Input: The energies in lower modes as well as nnodes(dg).
 
-indicator_type = NNRH
+indicator_type = NeuralNetworkRayHesthaven()
 1d Input: Cell average of the cell and its neighboring cells as well as the interface values.
 2d Input: Linear modal values of the cell and its neighboring cells.
 
@@ -303,11 +303,41 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNeuralNetwork
   end
 end
 
-struct NeuralNetworkIndicatorPP end
-const NNPP = NeuralNetworkIndicatorPP()
-struct NeuralNetworkIndicatorRH end
-const NNRH = NeuralNetworkIndicatorRH()
-struct NeuralNetworkIndicatorCNN end
-const NNCNN = NeuralNetworkIndicatorCNN()
+
+"""
+    NeuralNetworkPerssonPeraire
+
+Indicator type for creating a `IndicatorNeuralNetwork` indicator.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`IndicatorNeuralNetwork`](@ref)
+"""
+struct NeuralNetworkPerssonPeraire end
+
+"""
+    NeuralNetworkRayHesthaven
+
+Indicator type for creating a `IndicatorNeuralNetwork` indicator.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`IndicatorNeuralNetwork`](@ref)
+"""
+struct NeuralNetworkRayHesthaven end
+
+"""
+    NeuralNetworkCNN
+
+Indicator type for creating a `IndicatorNeuralNetwork` indicator.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`IndicatorNeuralNetwork`](@ref)
+"""
+struct NeuralNetworkCNN end
 
 end # @muladd

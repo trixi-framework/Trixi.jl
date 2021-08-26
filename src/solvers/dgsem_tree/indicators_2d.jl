@@ -230,8 +230,8 @@ function create_cache(::Type{IndicatorNeuralNetwork},
   return NamedTuple()
 end
 
-# cache for NNPP-type indicator
-function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorPP}},
+# cache for NeuralNetworkPerssonPeraire-type indicator
+function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
   alpha = Vector{real(basis)}()
@@ -246,8 +246,8 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorPP}},
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
-# cache for NNRH-type indicator
-function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorRH}},
+# cache for NeuralNetworkRayHesthaven-type indicator
+function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
   alpha = Vector{real(basis)}()
@@ -266,8 +266,8 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorRH}},
             network_input, neighbor_ids, neighbor_mean)
 end
 
-# cache for NNCNN-type indicator
-function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorCNN}},
+# cache for NeuralNetworkCNN-type indicator
+function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkCNN}},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
   alpha = Vector{real(basis)}()
@@ -293,7 +293,7 @@ function create_cache(typ::Type{<:IndicatorNeuralNetwork},
 end
 
 
-function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorPP})(
+function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     u, mesh::TreeMesh{2}, equations, dg::DGSEM, cache; kwargs...)
 
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
@@ -414,7 +414,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorPP})(
 end
 
 
-function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorRH})(
+function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     u, mesh::TreeMesh{2}, equations, dg::DGSEM, cache; kwargs...)
 
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
@@ -595,7 +595,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorRH})(
 end
 
 
-function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorCNN})(
+function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     u, mesh::TreeMesh{2}, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 

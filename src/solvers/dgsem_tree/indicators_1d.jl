@@ -206,8 +206,8 @@ function create_cache(::Type{<:IndicatorNeuralNetwork},
   return NamedTuple()
 end
 
-# cache for NNPP-type indicator
-function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorPP}},
+# cache for NeuralNetworkPerssonPeraire-type indicator
+function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
 
   alpha = Vector{real(basis)}()
@@ -220,8 +220,8 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorPP}},
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
 end
 
-# cache for NNRH-type indicator
-function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorRH}},
+# cache for NeuralNetworkRayHesthaven-type indicator
+function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
 
   alpha = Vector{real(basis)}()
@@ -240,7 +240,7 @@ function create_cache(typ::Type{<:IndicatorNeuralNetwork},
   create_cache(typ, equations, dg.basis)
 end
 
-function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorPP})(
+function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
@@ -346,7 +346,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorPP})(
   return alpha
 end
 
-function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorRH})(
+function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
