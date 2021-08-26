@@ -193,7 +193,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 """
-    IndicatorANN
+    IndicatorNeuralNetwork
 
 Artificial neural network based indicator used for shock-capturing or AMR.
 Depending on the indicator_type, different input values and corresponding trained networks are used.
@@ -223,7 +223,7 @@ If alpha_continuous = false the blending factor ist set to alpha = 0 for good ce
     This is an experimental feature and may change in future releases.
 
 """
-struct IndicatorANN{IndicatorType, RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
+struct IndicatorNeuralNetwork{IndicatorType, RealT<:Real, Variable, Chain, Cache} <: AbstractIndicator
   indicator_type::IndicatorType
   alpha_max::RealT
   alpha_min::RealT
@@ -236,7 +236,7 @@ struct IndicatorANN{IndicatorType, RealT<:Real, Variable, Chain, Cache} <: Abstr
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorANN(equations::AbstractEquations, basis;
+function IndicatorNeuralNetwork(equations::AbstractEquations, basis;
                       indicator_type,
                       alpha_max=0.5,
                       alpha_min=0.001,
@@ -247,35 +247,35 @@ function IndicatorANN(equations::AbstractEquations, basis;
                       network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorANN{IndicatorType}, equations, basis)
-  IndicatorANN{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis)
+  IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
       indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
       network, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
-function IndicatorANN(semi::AbstractSemidiscretization;
-                      indicator_type,
-                      alpha_max=0.5,
-                      alpha_min=0.001,
-                      alpha_smooth=true,
-                      alpha_continuous=true,
-                      alpha_amr=true,
-                      variable,
-                      network)
+function IndicatorNeuralNetwork(semi::AbstractSemidiscretization;
+                                indicator_type,
+                                alpha_max=0.5,
+                                alpha_min=0.001,
+                                alpha_smooth=true,
+                                alpha_continuous=true,
+                                alpha_amr=true,
+                                variable,
+                                network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorANN{IndicatorType}, semi)
-  IndicatorANN{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi)
+  IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
       indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
       network, cache)
 end
 
 
-function Base.show(io::IO, indicator::IndicatorANN)
+function Base.show(io::IO, indicator::IndicatorNeuralNetwork)
   @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorANN(")
+  print(io, "IndicatorNeuralNetwork(")
   print(io, indicator.indicator_type)
   print(io, ", alpha_max=", indicator.alpha_max)
   print(io, ", alpha_min=", indicator.alpha_min)
@@ -285,7 +285,7 @@ function Base.show(io::IO, indicator::IndicatorANN)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorANN)
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNeuralNetwork)
   @nospecialize indicator # reduce precompilation time
 
   if get(io, :compact, false)
@@ -299,7 +299,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorANN)
              "continuous α" => (indicator.alpha_continuous ? "yes" : "no"),
              "indicator variable" => indicator.variable,
             ]
-    summary_box(io, "IndicatorANN", setup)
+    summary_box(io, "IndicatorNeuralNetwork", setup)
   end
 end
 

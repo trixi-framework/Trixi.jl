@@ -201,13 +201,14 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 # empty cache is default
-function create_cache(::Type{<:IndicatorANN}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+function create_cache(::Type{<:IndicatorNeuralNetwork},
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
   return NamedTuple()
 end
 
 # cache for NNPP-type indicator
-function create_cache(::Type{IndicatorANN{NeuralNetworkIndicatorPP}}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
+function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorPP}},
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -220,8 +221,8 @@ function create_cache(::Type{IndicatorANN{NeuralNetworkIndicatorPP}}, equations:
 end
 
 # cache for NNRH-type indicator
-function create_cache(::Type{IndicatorANN{NeuralNetworkIndicatorRH}}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
+function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkIndicatorRH}},
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -234,14 +235,13 @@ function create_cache(::Type{IndicatorANN{NeuralNetworkIndicatorRH}}, equations:
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{<:IndicatorANN}, mesh, equations::AbstractEquations{1}, dg::DGSEM,
-                      cache)
+function create_cache(typ::Type{<:IndicatorNeuralNetwork},
+                      mesh, equations::AbstractEquations{1}, dg::DGSEM, cache)
   create_cache(typ, equations, dg.basis)
 end
 
-function (indicator_ann::IndicatorANN{NeuralNetworkIndicatorPP})(u::AbstractArray{<:Any,3},
-                                                                 mesh, equations, dg::DGSEM, cache;
-                                                                 kwargs...)
+function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorPP})(
+    u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_ann.cache
@@ -346,9 +346,8 @@ function (indicator_ann::IndicatorANN{NeuralNetworkIndicatorPP})(u::AbstractArra
   return alpha
 end
 
-function (indicator_ann::IndicatorANN{NeuralNetworkIndicatorRH})(u::AbstractArray{<:Any,3},
-                                                                 mesh, equations, dg::DGSEM, cache;
-                                                                 kwargs...)
+function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkIndicatorRH})(
+    u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
   @unpack alpha, alpha_tmp, indicator_threaded, neighbor_ids = indicator_ann.cache
