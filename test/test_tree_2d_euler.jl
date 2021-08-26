@@ -157,8 +157,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl"),
-      l2   = [1.00597865e-03, 4.97879164e-03, 4.84673212e-03, 4.99763543e-03],
-      linf = [7.92263198e-03, 2.15043358e-02, 1.91148128e-02, 2.90466679e-02],
+      l2   = [0.0009804271074673175, 0.004969750389723845, 0.004755900365125968, 0.005022382322637941],
+      linf = [0.008292632683474244, 0.021200848535339385, 0.020612273057852175, 0.030762580189445998],
       maxiters = 30)
   end
 
