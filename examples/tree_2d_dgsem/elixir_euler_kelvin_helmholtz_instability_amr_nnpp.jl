@@ -52,7 +52,7 @@ volume_flux  = flux_chandrashekar
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorANN(equations, basis,
-                            indicator_type="NNPP",
+                            indicator_type=NNPP,
                             alpha_max=0.002,
                             alpha_min=0.0001,
                             alpha_smooth=true,
@@ -94,7 +94,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 amr_indicator = IndicatorANN(semi,
-                             indicator_type="NNPP",
+                             indicator_type=NNPP,
                              alpha_max=1.0,
                              alpha_min=0.0001,
                              alpha_smooth=false,

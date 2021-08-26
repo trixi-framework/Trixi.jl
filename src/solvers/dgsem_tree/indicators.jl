@@ -246,9 +246,11 @@ function IndicatorANN(equations::AbstractEquations, basis;
                       variable,
                       network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorANN, equations, basis, indicator_type)
-  IndicatorANN{typeof(indicator_type), typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
+  IndicatorType = typeof(indicator_type)
+  cache = create_cache(IndicatorANN{IndicatorType}, equations, basis)
+  IndicatorANN{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+      indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
+      network, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -262,9 +264,11 @@ function IndicatorANN(semi::AbstractSemidiscretization;
                       variable,
                       network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorANN, mesh_equations_solver_cache(semi)..., indicator_type)
-  IndicatorANN{typeof(indicator_type), typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
-    indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network, cache)
+  IndicatorType = typeof(indicator_type)
+  cache = create_cache(IndicatorANN{IndicatorType}, semi)
+  IndicatorANN{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
+      indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
+      network, cache)
 end
 
 
@@ -298,5 +302,12 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorANN)
     summary_box(io, "IndicatorANN", setup)
   end
 end
+
+struct NeuralNetworkIndicatorPP end
+const NNPP = NeuralNetworkIndicatorPP()
+struct NeuralNetworkIndicatorRH end
+const NNRH = NeuralNetworkIndicatorRH()
+struct NeuralNetworkIndicatorCNN end
+const NNCNN = NeuralNetworkIndicatorCNN()
 
 end # @muladd

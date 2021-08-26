@@ -20,7 +20,7 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorANN(equations, basis,
-                            indicator_type="NNPP",
+                            indicator_type=NNPP,
                             alpha_max=0.5,
                             alpha_min=0.001,
                             alpha_smooth=true,
@@ -62,7 +62,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 amr_indicator = IndicatorANN(semi,
-                             indicator_type="NNPP",
+                             indicator_type=NNPP,
                              alpha_max=0.5,
                              alpha_min=0.001,
                              alpha_smooth=true,
