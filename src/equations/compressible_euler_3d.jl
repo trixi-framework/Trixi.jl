@@ -468,22 +468,22 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   # rotate the internal solution state
   u_local = rotate_to_x(u_internal, normal, tangent1, tangent2, equations)
 
-  # compute the primitive variables and local sound speed
-  rho_L, v_normal, v_tangent1, v_tangent2, p_L = cons2prim(u_local, equations)
-  sound_speed_L = sqrt(equations.gamma * p_L / rho_L)
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent1, v_tangent2, p_local = cons2prim(u_local, equations)
 
   # get the solution of the pressure Riemann problem
   if v_normal <= 0.0
-    p_star = p_L * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed_L)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+    sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
   else # v_normal > 0.0
-    A_L = 2.0 / ((equations.gamma + 1) * rho_L)
-    B_L = p_L * (equations.gamma - 1) / (equations.gamma + 1)
-    p_star = p_L + 0.5 * v_normal / A_L * (v_normal + sqrt(v_normal^2 + 4.0 * A_L * (p_L + B_L)))
+    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
   end
 
   # compute the conservative variables of the rotated external state
   # Note that the normal velocity component changes sign in the rotated coordinate system
-  u_external = prim2cons( (rho_L, -v_normal, v_tangent1, v_tangent2, p_star), equations)
+  u_external = prim2cons(SVector(rho_local, -v_normal, v_tangent1, v_tangent2, p_star), equations)
 
   # back rotate and return the newly created external state vector
   return rotate_from_x(u_external, normal, tangent1, tangent2, equations)
