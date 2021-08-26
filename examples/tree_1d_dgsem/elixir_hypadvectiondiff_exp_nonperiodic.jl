@@ -21,7 +21,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=false) # set maximum capacity of tree data structure
 
 
-initial_condition = initial_condition_myexp_nonperiodic
+initial_condition = initial_condition_exp_nonperiodic
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
@@ -33,7 +33,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
+# Create ODE problem with time span from 0.0 to 3.0
 ode = semidiscretize(semi, (0.0, 3.0));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
