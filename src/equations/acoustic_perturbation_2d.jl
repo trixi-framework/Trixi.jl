@@ -396,10 +396,9 @@ function boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
 
   # compute the normal and tangential components of the velocity
   u_normal  = normal[1] * u_inner[1] + normal[2] * u_inner[2]
-  u_tangent = (u_inner[1] - u_normal * normal[1], u_inner[2] - u_normal * normal[2])
 
-  return SVector(u_tangent[1] - u_normal * normal[1],
-                 u_tangent[2] - u_normal * normal[2],
+  return SVector(u_inner[1] - 2.0 * u_normal * normal[1],
+                 u_inner[2] - 2.0 * u_normal * normal[2],
                  u_inner[3],
                  cons2mean(u_inner, equations)...)
 end
