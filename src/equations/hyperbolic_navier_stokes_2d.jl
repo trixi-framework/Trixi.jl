@@ -421,29 +421,29 @@ end
   @unpack gamma, Pr = equations
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
-  T = gamma*p/rho
+  p = (gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+  T = gamma * p / rho
 
   if orientation == 1
     f1 = rho_v1
-    f2 = rho_v1*v1 + p - tau_xx
-    f3 = rho_v1*v2 - tau_xy
-    f4 = v1*(rho_e+p) - tau_xx*v1 - tau_xy*v2 + q_x
+    f2 = rho_v1 * v1 + p - tau_xx
+    f3 = rho_v1 * v2 - tau_xy
+    f4 = v1 * (rho_e + p) - tau_xx * v1 - tau_xy * v2 + q_x
     f5 = -v1
-    f6 = -0.75*v2
-    f7 = v1/2
-    f8 = T/(gamma*(gamma-1))
-    f9 = 0.0
+    f6 = -0.75 * v2
+    f7 = 0.5* v1
+    f8 = T / (gamma * (gamma - 1))
+    f9 = zero(rho)
   else
     f1 = rho_v2
-    f2 = rho_v1*v2 - tau_xy
-    f3 = rho_v2*v2 + p - tau_yy
-    f4 = v2*(rho_e+p) - tau_yy*v2 - tau_xy*v1 + q_y
-    f5 = v2/2
-    f6 = -0.75*v1
+    f2 = rho_v1 * v2 - tau_xy
+    f3 = rho_v2 * v2 + p - tau_yy
+    f4 = v2 * (rho_e + p) - tau_yy * v2 - tau_xy * v1 + q_y
+    f5 = 0.5 * v2
+    f6 = -0.75 * v1
     f7 = -v2
-    f8 = 0.0
-    f9 = T/(gamma*(gamma-1))
+    f8 = zero(rho)
+    f9 = T / (gamma * (gamma - 1))
   end
 
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
