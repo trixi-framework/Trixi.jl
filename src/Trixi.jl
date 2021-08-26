@@ -47,7 +47,7 @@ using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
-using StructArrays: StructArrays, StructArray
+@reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
 using TriplotBase: TriplotBase
