@@ -154,7 +154,7 @@ julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
 
-![image](https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png)
+![image](https://user-images.githubusercontent.com/72009492/130952732-633159ff-c167-4d36-ba36-f2a2eac0a8d6.PNG)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a

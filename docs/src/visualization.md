@@ -43,7 +43,7 @@ you use one of the example elixirs. This will generate a grid layout with one
 subplot for each solution variable, convenient for getting an overview of
 the current solution:
 
-![plot-sol](https://user-images.githubusercontent.com/3637659/102711618-8c97ac80-42bb-11eb-96c8-af69d789feb0.png)
+![plot-sol](https://user-images.githubusercontent.com/72009492/130951021-677824f1-ba86-4291-8ff3-6fe2b910a2c9.PNG)
 
 You can save the resulting file as a PNG image file by calling `savefig(...)`
 with an output file name that ends in `.png`, e.g.,
@@ -74,7 +74,7 @@ julia> plot(pd["rho"])
 ```
 This will create a single 2D heatmap plot of the variable `rho`:
 
-![plot-rho](https://user-images.githubusercontent.com/3637659/102711621-93beba80-42bb-11eb-8f65-d03e083dc3bc.png)
+![plot-rho](https://user-images.githubusercontent.com/72009492/130951033-e3852c55-918c-4e74-98df-ef2353115b00.PNG)
 
 The default plot type and style can be overridden by passing any additional
 arguments that are understood by the Plots package. For example, to change the
@@ -121,7 +121,7 @@ julia> pd = PlotData2D(adapt_to_mesh_level(sol, 4)...)
 ```
 When plotted together with the mesh, this will yield the following visualization:
 
-![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/3637659/112101404-e0f64500-8ba6-11eb-9516-ad910c6813b2.png)
+![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/72009492/130951039-f2f91760-539a-4e96-ac39-4053e934040b.PNG)
 
 
 ### Plotting a 3D solution as a 2D plot
@@ -211,6 +211,7 @@ All other attributes for [`PlotData1D`](@ref) objects apply here as well.
 
 In the following, is an example for a 2D simulation of the linear scalar advection equation.
 First, we have the regular 2D heatmap plot:
+
 ![2d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614302-0f033d80-a93a-11eb-91a1-e44de41e0795.PNG)
 
 From this, we can extract a line plot parallel to the `y`-axis going through the
@@ -229,7 +230,7 @@ create a [`PlotData1D`](@ref) with the keyword argument `curve` set to your list
 Let's give an example of this with the basic advection equation from above by creating
 a plot along the circle marked in green:
 
-![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/122980179-a7e19280-d398-11eb-82a8-b7a998d23277.PNG)
+![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/130951042-e1849447-8e55-4798-9361-c8badb9f3a49.png)
 
 We can write a function like this, that outputs a list of points on a circle:
 ```julia
