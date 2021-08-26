@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct ElementContainer3D{RealT<:Real, uEltype<:Real} <: AbstractContainer
@@ -436,7 +442,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
       boundaries.neighbor_ids[count] = element
 
       # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
-      if direction in (2, 4, 6)
+      if iseven(direction)
         boundaries.neighbor_sides[count] = 1
       else
         boundaries.neighbor_sides[count] = 2
@@ -757,7 +763,7 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
       end
 
       # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
-      if direction in (2, 4, 6)
+      if iseven(direction)
         mortars.large_sides[count] = 1
       else
         mortars.large_sides[count] = 2
@@ -778,3 +784,5 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
                                       "expectations $(nmortars(mortars))")
 end
 
+
+end # @muladd

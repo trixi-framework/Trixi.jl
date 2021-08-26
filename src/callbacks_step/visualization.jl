@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator, PlotCreator}
   interval::Int
@@ -119,7 +125,14 @@ end
 function (visualization_callback::VisualizationCallback)(u, t, integrator)
   @unpack interval = visualization_callback
 
-  return interval > 0 && ((integrator.iter % interval == 0) || isfinished(integrator))
+  # With error-based step size control, some steps can be rejected. Thus,
+  #   `integrator.iter >= integrator.destats.naccept`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
+  return interval > 0 && ( (integrator.destats.naccept % interval == 0 &&
+                           !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
+                          isfinished(integrator))
 end
 
 
@@ -140,7 +153,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
   # Create plot
   plot_creator(plot_data, variable_names;
                show_mesh=show_mesh, plot_arguments=plot_arguments,
-               time=integrator.t, timestep=integrator.iter)
+               time=integrator.t, timestep=integrator.destats.naccept)
 
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
@@ -171,10 +184,10 @@ function show_plot(plot_data, variable_names;
   # Gather subplots
   plots = []
   for v in variable_names
-    push!(plots, plot(plot_data[v]; plot_arguments...))
+    push!(plots, Plots.plot(plot_data[v]; plot_arguments...))
   end
   if show_mesh
-    push!(plots, plot(getmesh(plot_data); plot_arguments...))
+    push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
   end
 
   # Determine layout
@@ -183,7 +196,7 @@ function show_plot(plot_data, variable_names;
   layout = (rows, cols)
 
   # Show plot
-  display(plot(plots..., layout=layout))
+  display(Plots.plot(plots..., layout=layout))
 end
 
 
@@ -210,10 +223,10 @@ function save_plot(plot_data, variable_names;
   # Gather subplots
   plots = []
   for v in variable_names
-    push!(plots, plot(plot_data[v]; plot_arguments...))
+    push!(plots, Plots.plot(plot_data[v]; plot_arguments...))
   end
   if show_mesh
-    push!(plots, plot(getmesh(plot_data); plot_arguments...))
+    push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
   end
 
   # Determine layout
@@ -222,9 +235,12 @@ function save_plot(plot_data, variable_names;
   layout = (rows, cols)
 
   # Create plot
-  plot(plots..., layout=layout)
+  Plots.plot(plots..., layout=layout)
 
   # Determine filename and save plot
   filename = joinpath("out", @sprintf("solution_%06d.png", timestep))
-  savefig(filename)
+  Plots.savefig(filename)
 end
+
+
+end # @muladd

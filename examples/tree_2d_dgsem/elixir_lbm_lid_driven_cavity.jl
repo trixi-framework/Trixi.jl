@@ -42,9 +42,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=1000,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
@@ -56,7 +53,7 @@ collision_callback = LBMCollisionCallback()
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         stepsize_callback,
                         collision_callback)
 

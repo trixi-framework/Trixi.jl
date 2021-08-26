@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Abstract base type for time integration schemes of storage class `2N`
 abstract type SimpleAlgorithm2N end
@@ -77,12 +83,21 @@ mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIn
   t::RealT
   dt::RealT # current time step
   dtcache::RealT # ignored
-  iter::Int # current number of time step (iteration)
+  iter::Int # current number of time steps (iteration)
   p::Params # will be the semidiscretization from Trixi
   sol::Sol # faked
   alg::Alg
   opts::SimpleIntegrator2NOptions
   finalstep::Bool # added for convenience
+end
+
+# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
+function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
+  if field === :destats
+    return (naccept = getfield(integrator, :iter),)
+  end
+  # general fallback
+  return getfield(integrator, field)
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
@@ -193,3 +208,6 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
   resize!(integrator.du, new_size)
   resize!(integrator.u_tmp, new_size)
 end
+
+
+end # @muladd

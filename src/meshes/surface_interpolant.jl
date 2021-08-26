@@ -1,12 +1,14 @@
-# """
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 #     CurvedSurface{RealT<:Real}
 #
 # Contains the data needed to represent a curve with data points (x,y) as a Lagrange polynomial
 # interpolant written in barycentric form at a given set of nodes.
-#
-# !!! warning "Experimental code"
-#     This mesh type is experimental and can change any time.
-# """
 struct CurvedSurface{RealT<:Real}
   nodes               ::Vector{RealT}
   barycentric_weights ::Vector{RealT}
@@ -120,3 +122,6 @@ function lagrange_interpolation_derivative(x, nodes, fvals, wbary)
 
   return numerator/denominator # p_prime
 end
+
+
+end # @muladd

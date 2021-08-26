@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     PositivityPreservingLimiterZhangShu(; threshold, variables)
@@ -23,7 +29,7 @@ end
 
 
 function (limiter!::PositivityPreservingLimiterZhangShu)(
-    u_ode, f, semi::AbstractSemidiscretization, t)
+    u_ode, integrator, semi::AbstractSemidiscretization, t)
   u = wrap_array(u_ode, semi)
   @trixi_timeit timer() "positivity-preserving limiter" limiter_zhang_shu!(
     u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
@@ -60,3 +66,6 @@ end
 include("positivity_zhang_shu_dg1d.jl")
 include("positivity_zhang_shu_dg2d.jl")
 include("positivity_zhang_shu_dg3d.jl")
+
+
+end # @muladd

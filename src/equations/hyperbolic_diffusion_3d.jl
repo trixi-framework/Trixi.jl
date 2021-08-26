@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 @doc raw"""
     HyperbolicDiffusionEquations3D
@@ -112,7 +118,7 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
   u_boundary = SVector(phi, q1, q2, q3)
 
   # Calculate boundary flux
-  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -201,7 +207,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
   u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
 
   # Calculate boundary flux
-  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -306,3 +312,6 @@ end
   phi, q1, q2, q3 = u
   return 0.5 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2 + q3^2))
 end
+
+
+end # @muladd

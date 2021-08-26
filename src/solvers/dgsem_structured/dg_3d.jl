@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 function rhs!(du, u, t,
               mesh::StructuredMesh{3}, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -57,30 +64,24 @@ function calc_volume_integral!(du, u,
       # first contravariant vector Ja^1 and the flux vector
       Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
       contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
-
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * contravariant_flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], contravariant_flux1, equations, dg, ii, j, k, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
       # second contravariant vector Ja^2 and the flux vector
       Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
       contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
-
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * contravariant_flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], contravariant_flux2, equations, dg, i, jj, k, element)
       end
 
       # Compute the contravariant flux by taking the scalar product of the
       # third contravariant vector Ja^3 and the flux vector
       Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
       contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
-
       for kk in eachnode(dg)
-        integral_contribution = derivative_dhat[kk, k] * contravariant_flux3
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
+        multiply_add_to_node_vars!(du, derivative_dhat[kk, k], contravariant_flux3, equations, dg, i, j, kk, element)
       end
     end
   end
@@ -89,110 +90,14 @@ function calc_volume_integral!(du, u,
 end
 
 
-# Calculate 3D twopoint contravariant flux (element version)
-@inline function calcflux_twopoint!(ftilde1, ftilde2, ftilde3, u::AbstractArray{<:Any,5}, element,
-                                    mesh::StructuredMesh{3}, equations, volume_flux, dg::DGSEM, cache)
-  @unpack contravariant_vectors = cache.elements
-
-  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    # Pull the solution values and contravariant vectors at the node i,j,k
-    u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    Ja11_node, Ja12_node, Ja13_node = get_contravariant_vector(1, contravariant_vectors,
-                                                               i, j, k, element)
-    Ja21_node, Ja22_node, Ja23_node = get_contravariant_vector(2, contravariant_vectors,
-                                                               i, j, k, element)
-    Ja31_node, Ja32_node, Ja33_node = get_contravariant_vector(3, contravariant_vectors,
-                                                               i, j, k, element)
-    # diagonal (consistent) part not needed since diagonal of
-    # dg.basis.derivative_split_transpose is zero!
-    set_node_vars!(ftilde1, zero(u_node), equations, dg, i, i, j, k)
-    set_node_vars!(ftilde2, zero(u_node), equations, dg, j, i, j, k)
-    set_node_vars!(ftilde3, zero(u_node), equations, dg, k, i, j, k)
-
-    # contravariant fluxes in the first direction
-    for ii in (i+1):nnodes(dg)
-      u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      flux2 = volume_flux(u_node, u_node_ii, 2, equations)
-      flux3 = volume_flux(u_node, u_node_ii, 3, equations)
-      # pull the contravariant vectors and compute their average
-      Ja11_node_ii, Ja12_node_ii, Ja13_node_ii = get_contravariant_vector(1, contravariant_vectors,
-                                                                          ii, j, k, element)
-      Ja11_avg = 0.5 * (Ja11_node + Ja11_node_ii)
-      Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
-      Ja13_avg = 0.5 * (Ja13_node + Ja13_node_ii)
-      # compute the contravariant sharp flux
-      fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2 + Ja13_avg * flux3
-      # save and exploit symmetry
-      set_node_vars!(ftilde1, fluxtilde1, equations, dg, i, ii, j, k)
-      set_node_vars!(ftilde1, fluxtilde1, equations, dg, ii, i, j, k)
-    end
-
-    # contravariant fluxes in the second direction
-    for jj in (j+1):nnodes(dg)
-      u_node_jj  = get_node_vars(u, equations, dg, i, jj, k, element)
-      flux1 = volume_flux(u_node, u_node_jj, 1, equations)
-      flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-      flux3 = volume_flux(u_node, u_node_jj, 3, equations)
-      # pull the contravariant vectors and compute their average
-      Ja21_node_jj, Ja22_node_jj, Ja23_node_jj = get_contravariant_vector(2, contravariant_vectors,
-                                                                          i, jj, k, element)
-      Ja21_avg = 0.5 * (Ja21_node + Ja21_node_jj)
-      Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
-      Ja23_avg = 0.5 * (Ja23_node + Ja23_node_jj)
-      # compute the contravariant sharp flux
-      fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2 + Ja23_avg * flux3
-      # save and exploit symmetry
-      set_node_vars!(ftilde2, fluxtilde2, equations, dg, j,  i, jj, k)
-      set_node_vars!(ftilde2, fluxtilde2, equations, dg, jj, i, j , k)
-    end
-
-    # contravariant fluxes in the third direction
-    for kk in (k+1):nnodes(dg)
-      u_node_kk  = get_node_vars(u, equations, dg, i, j, kk, element)
-      flux1 = volume_flux(u_node, u_node_kk, 1, equations)
-      flux2 = volume_flux(u_node, u_node_kk, 2, equations)
-      flux3 = volume_flux(u_node, u_node_kk, 3, equations)
-      # pull the contravariant vectors and compute their average
-      Ja31_node_kk, Ja32_node_kk, Ja33_node_kk = get_contravariant_vector(3, contravariant_vectors,
-                                                                          i, j, kk, element)
-      Ja31_avg = 0.5 * (Ja31_node + Ja31_node_kk)
-      Ja32_avg = 0.5 * (Ja32_node + Ja32_node_kk)
-      Ja33_avg = 0.5 * (Ja33_node + Ja33_node_kk)
-      # compute the contravariant sharp flux
-      fluxtilde3 = Ja31_avg * flux1 + Ja32_avg * flux2 + Ja33_avg * flux3
-      # save and exploit symmetry
-      set_node_vars!(ftilde3, fluxtilde3, equations, dg, k,  i, j, kk)
-      set_node_vars!(ftilde3, fluxtilde3, equations, dg, kk, i, j , k)
-    end
-  end
-
-  calcflux_twopoint_nonconservative!(ftilde1, ftilde2, ftilde3, u, element,
-                                     have_nonconservative_terms(equations),
-                                     mesh, equations, dg, cache)
-end
-
-
-function calcflux_twopoint_nonconservative!(f1, f2, f3, u::AbstractArray{<:Any,5}, element,
-                                            nonconservative_terms::Val{true},
-                                            mesh::StructuredMesh{3},
-                                            equations, dg::DG, cache)
-  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-  #      For now, just dispatch to an existing function for the IdealMhdEquations
-  @unpack contravariant_vectors = cache.elements
-  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, contravariant_vectors,
-                                     equations, dg, cache)
-end
-
 
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    nonconservative_terms::Val{false}, element,
-                                    mesh::Union{StructuredMesh{3}, P4estMesh{3}},
-                                    equations, volume_flux, dg::DGSEM, cache,
-                                    alpha=true)
+                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                    nonconservative_terms::Val{false}, equations,
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -202,95 +107,125 @@ end
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-    # compute the fluxes in the x, y and z directions
-    flux1 = flux(u_node, 1, equations)
-    flux2 = flux(u_node, 2, equations)
-    flux3 = flux(u_node, 3, equations)
+    # pull the contravariant vectors in each coordinate direction
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
 
-    # first direction: use consistency of the volume flux to make this evaluation cheaper
-    # pull the contravariant vector
-    Ja11_node, Ja12_node, Ja13_node = get_contravariant_vector(1, contravariant_vectors,
-                                                               i, j, k, element)
-    # compute the two contravariant fluxes
-    fluxtilde1 = Ja11_node * flux1 + Ja12_node * flux2 + Ja13_node * flux3
-    integral_contribution = alpha * derivative_split[i, i] * fluxtilde1
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k, element)
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-poitn flux
+    # computations.
 
-    # second direction: use consistency of the volume flux to make this evaluation cheaper
-    # pull the contravariant vector
-    Ja21_node, Ja22_node, Ja23_node = get_contravariant_vector(2, contravariant_vectors,
-                                                               i, j, k, element)
-    fluxtilde2 = Ja21_node * flux1 + Ja22_node * flux2 + Ja23_node * flux3
-    integral_contribution = alpha * derivative_split[j, j] * fluxtilde2
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k, element)
-
-    # third direction: use consistency of the volume flux to make this evaluation cheaper
-    # pull the contravariant vector
-    Ja31_node, Ja32_node, Ja33_node = get_contravariant_vector(3, contravariant_vectors,
-                                                               i, j, k, element)
-    fluxtilde3 = Ja31_node * flux1 + Ja32_node * flux2 + Ja33_node * flux3
-    integral_contribution = alpha * derivative_split[k, k] * fluxtilde3
-    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k, element)
-
-    # use symmetry of the volume flux for the remaining terms in the first direction
+    # x direction
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-      flux2 = volume_flux(u_node, u_node_ii, 2, equations)
-      flux3 = volume_flux(u_node, u_node_ii, 3, equations)
       # pull the contravariant vectors and compute the average
-      Ja11_node_ii, Ja12_node_ii, Ja13_node_ii = get_contravariant_vector(1, contravariant_vectors,
-                                                                          ii, j, k, element)
-      Ja11_avg = 0.5 * (Ja11_node + Ja11_node_ii)
-      Ja12_avg = 0.5 * (Ja12_node + Ja12_node_ii)
-      Ja13_avg = 0.5 * (Ja13_node + Ja13_node_ii)
-      # compute the contravariant sharp flux
-      fluxtilde1 = Ja11_avg * flux1 + Ja12_avg * flux2 + Ja13_avg * flux3
-      integral_contribution = alpha * derivative_split[i, ii] * fluxtilde1
-      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, k, element)
-      integral_contribution = alpha * derivative_split[ii, i] * fluxtilde1
-      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
+      Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
+                                             ii, j, k, element)
+      Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+      # compute the contravariant sharp flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1, equations, dg, i,  j, k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1, equations, dg, ii, j, k, element)
     end
 
-    # use symmetry of the volume flux for the remaining terms in the second direction
+    # y direction
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-      flux1 = volume_flux(u_node, u_node_jj, 1, equations)
-      flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-      flux3 = volume_flux(u_node, u_node_jj, 3, equations)
       # pull the contravariant vectors and compute the average
-      Ja21_node_jj, Ja22_node_jj, Ja23_node_jj = get_contravariant_vector(2, contravariant_vectors,
-                                                                          i, jj, k, element)
-      Ja21_avg = 0.5 * (Ja21_node + Ja21_node_jj)
-      Ja22_avg = 0.5 * (Ja22_node + Ja22_node_jj)
-      Ja23_avg = 0.5 * (Ja23_node + Ja23_node_jj)
-      # compute the contravariant sharp flux
-      fluxtilde2 = Ja21_avg * flux1 + Ja22_avg * flux2 + Ja23_avg * flux3
-      integral_contribution = alpha * derivative_split[j, jj] * fluxtilde2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  k, element)
-      integral_contribution = alpha * derivative_split[jj, j] * fluxtilde2
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
+      Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                             i, jj, k, element)
+      Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+      # compute the contravariant sharp flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2, equations, dg, i, j,  k, element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2, equations, dg, i, jj, k, element)
     end
 
-    # use symmetry of the volume flux for the remaining terms in the third direction
+    # z direction
     for kk in (k+1):nnodes(dg)
       u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-      flux1 = volume_flux(u_node, u_node_kk, 1, equations)
-      flux2 = volume_flux(u_node, u_node_kk, 2, equations)
-      flux3 = volume_flux(u_node, u_node_kk, 3, equations)
       # pull the contravariant vectors and compute the average
-      Ja31_node_kk, Ja32_node_kk, Ja33_node_kk = get_contravariant_vector(3, contravariant_vectors,
-                                                                          i, j, kk, element)
-      Ja31_avg = 0.5 * (Ja31_node + Ja31_node_kk)
-      Ja32_avg = 0.5 * (Ja32_node + Ja32_node_kk)
-      Ja33_avg = 0.5 * (Ja33_node + Ja33_node_kk)
-      # compute the contravariant sharp flux
-      fluxtilde3 = Ja31_avg * flux1 + Ja32_avg * flux2 + Ja33_avg * flux3
-      integral_contribution = alpha * derivative_split[k, kk] * fluxtilde3
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k,  element)
-      integral_contribution = alpha * derivative_split[kk, k] * fluxtilde3
-      add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
+      Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
+                                             i, j, kk, element)
+      Ja3_avg = 0.5 * (Ja3_node + Ja3_node_kk)
+      # compute the contravariant sharp flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3, equations, dg, i, j, k,  element)
+      multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3, equations, dg, i, j, kk, element)
     end
+  end
+end
+
+@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
+                                    element, mesh::StructuredMesh{3},
+                                    nonconservative_terms::Val{true}, equations,
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
+  @unpack derivative_split = dg.basis
+  @unpack contravariant_vectors = cache.elements
+  symmetric_flux, nonconservative_flux = volume_flux
+
+  # Apply the symmetric flux as usual
+  split_form_kernel!(du, u, element, mesh, Val(false), equations, symmetric_flux, dg, cache, alpha)
+
+  # Calculate the remaining volume terms using the nonsymmetric generalized flux
+  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+
+    # pull the contravariant vectors in each coordinate direction
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
+    # The diagonal terms are zero since the diagonal of `derivative_split`
+    # is zero. We ignore this for now.
+    # In general, nonconservative fluxes can depend on both the contravariant
+    # vectors (normal direction) at the current node and the averaged ones.
+    # Thus, we need to pass both to the nonconservative flux.
+
+    # x direction
+    integral_contribution = zero(u_node)
+    for ii in eachnode(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+      # pull the contravariant vectors and compute the average
+      Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, k, element)
+      Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+      # compute the contravariant nonconservative flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_node, Ja1_avg, equations)
+      integral_contribution = integral_contribution + derivative_split[i, ii] * fluxtilde1
+    end
+
+    # y direction
+    for jj in eachnode(dg)
+      u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+      # pull the contravariant vectors and compute the average
+      Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, k, element)
+      Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+      # compute the contravariant nonconservative flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_node, Ja2_avg, equations)
+      integral_contribution = integral_contribution + derivative_split[j, jj] * fluxtilde2
+    end
+
+    # z direction
+    for kk in eachnode(dg)
+      u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+      # pull the contravariant vectors and compute the average
+      Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors, i, j, kk, element)
+      Ja3_avg = 0.5 * (Ja3_node + Ja3_node_kk)
+      # compute the contravariant nonconservative flux in the direction of the
+      # averaged contravariant vector
+      fluxtilde3 = nonconservative_flux(u_node, u_node_kk, Ja3_node, Ja3_avg, equations)
+      integral_contribution = integral_contribution + derivative_split[k, kk] * fluxtilde3
+    end
+
+    # The factor 0.5 cancels the factor 2 in the flux differencing form
+    multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations, dg, i, j, k, element)
   end
 end
 
@@ -395,7 +330,6 @@ end
   return nothing
 end
 
-
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
                                       mesh::StructuredMesh{3},
@@ -406,7 +340,7 @@ end
     return surface_flux_values
   end
 
-  @unpack surface_flux = surface_integral
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
   @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
   right_direction = 2 * orientation
@@ -452,15 +386,22 @@ end
     # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
     flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
 
-    # Call pointwise nonconservative term; Done twice because left/right orientation matters
-    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    # Scale with sign_jacobian to ensure that the normal_direction matches that from the flux above
-    noncons_primary   = sign_jacobian * noncons_interface_flux(u_ll, u_rr, normal_direction, :weak, equations)
-    noncons_secondary = sign_jacobian * noncons_interface_flux(u_rr, u_ll, normal_direction, :weak, equations)
+    # Compute both nonconservative fluxes
+    # In general, nonconservative fluxes can depend on both the contravariant
+    # vectors (normal direction) at the current node and the averaged ones.
+    # However, both are the same at watertight interfaces, so we pass the
+    # `normal_direction` twice.
+    # Scale with sign_jacobian to ensure that the normal_direction matches that
+    # from the flux above
+    noncons_left  = sign_jacobian * nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+    noncons_right = sign_jacobian * nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
 
     for v in eachvariable(equations)
-      surface_flux_values[v, i, j, right_direction, left_element] = flux[v] + noncons_primary[v]
-      surface_flux_values[v, i, j, left_direction, right_element] = flux[v] + noncons_secondary[v]
+      # Note the factor 0.5 necessary for the nonconservative fluxes based on
+      # the interpretation of global SBP operators coupled discontinuously via
+      # central fluxes/SATs
+      surface_flux_values[v, i, j, right_direction, left_element] = flux[v] + 0.5 * noncons_left[v]
+      surface_flux_values[v, i, j, left_direction, right_element] = flux[v] + 0.5 * noncons_right[v]
     end
   end
 
@@ -474,17 +415,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
   @assert isperiodic(mesh)
 end
 
-
-function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             mesh::StructuredMesh{3}, equations, surface_integral, dg::DG)
-  calc_boundary_flux!(cache, u, t,
-                      (boundary_condition, boundary_condition, boundary_condition,
-                       boundary_condition, boundary_condition, boundary_condition),
-                      mesh, equations, surface_integral, dg)
-end
-
-
-function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
+function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{3}, equations, surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
@@ -579,3 +510,6 @@ function apply_jacobian!(du,
 
   return nothing
 end
+
+
+end # @muladd

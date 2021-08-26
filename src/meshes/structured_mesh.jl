@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 """
     StructuredMesh{NDIMS} <: AbstractMesh{NDIMS}
 
@@ -5,9 +12,6 @@ A structured curved mesh.
 
 Different numbers of cells per dimension are possible and arbitrary functions
 can be used as domain faces.
-
-!!! warning "Experimental code"
-    This mesh type is experimental and can change any time.
 """
 mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
@@ -320,3 +324,6 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
     summary_footer(io)
   end
 end
+
+
+end # @muladd

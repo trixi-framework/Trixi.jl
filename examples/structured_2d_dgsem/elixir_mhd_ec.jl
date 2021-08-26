@@ -28,14 +28,11 @@ end
 
 initial_condition = initial_condition_shifted_weak_blast_wave
 
-###############################################################################
 # Get the DG approximation space
-
-volume_flux = flux_derigs_etal
-solver = DGSEM(polydeg=5, surface_flux=FluxRotated(flux_derigs_etal),
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+solver = DGSEM(polydeg=5, surface_flux=(flux_hindenlang_gassner, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-###############################################################################
 # Get the curved quad mesh from a mapping function
 # Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
 function mapping(xi_, eta_)
@@ -56,9 +53,7 @@ end
 cells_per_dimension = (8, 8)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
-###############################################################################
 # create the semi discretization object
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################

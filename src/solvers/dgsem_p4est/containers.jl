@@ -1,4 +1,10 @@
-# Note: This is an experimental feature and may be changed in future releases without notice.
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+
 mutable struct P4estElementContainer{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
   # Physical coordinates at each node
   node_coordinates      ::Array{RealT, NDIMSP2}   # [orientation, node_i, node_j, node_k, element]
@@ -643,80 +649,27 @@ function count_required_surfaces(mesh::P4estMesh)
 end
 
 
-# Convert Tuple node_indices to actual indices.
-# E.g., (:one, :i, :j) will be (1, i, j) for some i and j,
-# (:i, :end) will be (i, size[2]),
-# (:one, :i_backwards) will be (1, size[1] - i + 1).
-function evaluate_index(indices, size, dim, i, j=0)
-  if indices[dim] === :i
-    return i
-  elseif indices[dim] === :i_backwards
-    return size[dim] - i + 1
-  elseif indices[dim] === :j
-    return j
-  elseif indices[dim] === :j_backwards
-    return size[dim] - j + 1
-  elseif indices[dim] === :one
-    return 1
-  elseif indices[dim] === :end
-    return size[dim]
-  end
-
-  error("Invalid identifier: Only :one, :end, :i, :j, :i_backwards, :j_backwards are valid index identifiers")
-end
-
-# Remove :one and :end to index surface_flux_values properly (2D version).
-#
-# Suppose some element is indexed relative to some interface as `(:end, :i_backwards)` (in 2D).
-# This interface will be at the right face of the element, and it will be reversely oriented.
-# When copying data to the interface, the value `u[v, end, end - i + 1, element]` will be copied
-# to `u[2, v, i, interface]` in the interface container (assuming this is a secondary element).
-# Now, the calculated flux at interface node i needs to be copied back to
-# `surface_flux_values[v, end - i + 1, 2, element]`.
-# This is the same index as in `evaluate_index` but without the `:one` or `:end`.
-#
-# Dispatch by dimension to ensure type stability
-@inline function evaluate_index_surface(indices::NTuple{2, Symbol}, size, dim, i)
-  if indices[1] in (:one, :end)
-    indices_surface = indices[2:2]
-  else # indices[2] in (:one, :end)
-    indices_surface = indices[1:1]
-  end
-
-  return evaluate_index(indices_surface, size, dim, i)
-end
-
-# 3D version
-@inline function evaluate_index_surface(indices::NTuple{3, Symbol}, size, dim, i, j=0)
-  if indices[1] in (:one, :end)
-    indices_surface = indices[2:3]
-  elseif indices[2] in (:one, :end)
-    indices_surface = (indices[1], indices[3])
-  else # indices[3] in (:one, :end)
-    indices_surface = indices[1:2]
-  end
-
-  return evaluate_index(indices_surface, size, dim, i, j)
-end
-
 # Return direction of the face, which is indexed by node_indices
 @inline function indices2direction(indices)
-  if indices[1] in (:one, :end)
-    orientation = 1
-  elseif indices[2] in (:one, :end)
-    orientation = 2
-  else # indices[3] in (:one, :end)
-    orientation = 3
-  end
-  negative_direction = orientation * 2 - 1
-
-  if indices[orientation] === :one
-    return negative_direction
-  else # indices[orientation] === :end
-    return negative_direction + 1
+  if indices[1] === :begin
+    return 1
+  elseif indices[1] === :end
+    return 2
+  elseif indices[2] === :begin
+    return 3
+  elseif indices[2] === :end
+    return 4
+  elseif indices[3] === :begin
+    return 5
+  else # if indices[3] === :end
+    return 6
   end
 end
+
 
 
 include("containers_2d.jl")
 include("containers_3d.jl")
+
+
+end # @muladd

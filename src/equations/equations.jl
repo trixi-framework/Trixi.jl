@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # Retrieve number of variables from equation instance
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
@@ -121,7 +127,7 @@ end
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
-  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
@@ -170,6 +176,26 @@ struct BoundaryConditionWall{B}
   boundary_value_function::B
 end
 
+# Wall boundary condition for use with TreeMesh or StructuredMesh
+@inline function (boundary_condition::BoundaryConditionWall)(u_inner, orientation_or_normal,
+                                                             direction,
+                                                             x, t,
+                                                             surface_flux_function, equations)
+
+  u_boundary = boundary_condition.boundary_value_function(u_inner, orientation_or_normal, equations)
+
+  # Calculate boundary flux
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
+  end
+
+  return flux
+end
+
+# Wall boundary condition for use with UnstructuredMesh2D
+# Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionWall)(u_inner,
                                                              normal_direction::AbstractVector,
                                                              x, t,
@@ -247,8 +273,9 @@ function entropy2cons end
 # FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
 @deprecate varnames_prim(equations) varnames(cons2prim, equations)
-@deprecate flux_upwind(u_ll, u_rr, orientation, equations) flux_godunov(u_ll, u_rr, orientation, equations)
+@deprecate flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) flux_godunov(u_ll, u_rr, orientation_or_normal_direction, equations)
 @deprecate calcflux(u, orientation, equations) flux(u, orientation, equations)
+@deprecate flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction, equations) flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction, equations)
 
 
 ####################################################################################################
@@ -311,3 +338,6 @@ include("lattice_boltzmann_3d.jl")
 # Acoustic perturbation equations
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
+
+
+end # @muladd

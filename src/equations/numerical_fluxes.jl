@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 # This file contains general numerical fluxes that are not specific to certain equations
 
@@ -47,9 +53,6 @@ computing the numerical flux in x-direction, and rotating the calculated flux ba
 
 Requires a rotationally invariant equation with equation-specific functions
 [`rotate_to_x`](@ref) and [`rotate_from_x`](@ref).
-
-!!! warning "Experimental code"
-    This flux is experimental and is likely to change in a future release. Do not use it in production code.
 """
 struct FluxRotated{NumericalFlux}
   numerical_flux::NumericalFlux
@@ -235,3 +238,6 @@ Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_spee
 See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
+
+
+end # @muladd

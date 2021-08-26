@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     init_mpi()
@@ -10,14 +16,12 @@ function init_mpi()
     return nothing
   end
 
-  if MPI.Initialized()
-    @assert MPI.Query_thread() >= MPI.THREAD_FUNNELED "MPI already initialized with insufficient threading support"
-  else
-    # MPI.THREAD_FUNNELED: Only main thread makes MPI calls
-    provided = MPI.Init_thread(MPI.THREAD_FUNNELED)
-    atexit(finalize_mpi) # register atexit hook
-    @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
-  end
+  # MPI.jl handles multiple calls to MPI.Init appropriately. Thus, we don't need
+  # any common checks of the form `if MPI.Initialized() ...`.
+  # threadlevel=MPI.THREAD_FUNNELED: Only main thread makes MPI calls
+  # finalize_atexit=true           : MPI.jl will call call MPI.Finalize as `atexit` hook
+  provided = MPI.Init(threadlevel=MPI.THREAD_FUNNELED, finalize_atexit=true)
+  @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
 
   # Initialize global MPI state
   MPI_RANK[] = MPI.Comm_rank(MPI.COMM_WORLD)
@@ -28,13 +32,6 @@ function init_mpi()
   MPI_INITIALIZED[] = true
 
   return nothing
-end
-
-
-function finalize_mpi()
-  if MPI.Initialized()
-    MPI.Finalize()
-  end
 end
 
 
@@ -76,3 +73,6 @@ end
   end
   return nothing
 end
+
+
+end # @muladd

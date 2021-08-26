@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 
 """
     SaveSolutionCallback(; interval=0,
@@ -101,15 +107,22 @@ end
 function (solution_callback::SaveSolutionCallback)(u, t, integrator)
   @unpack interval, save_final_solution = solution_callback
 
+  # With error-based step size control, some steps can be rejected. Thus,
+  #   `integrator.iter >= integrator.destats.naccept`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
   return interval > 0 && (
-    (integrator.iter % interval == 0) || (save_final_solution && isfinished(integrator)))
+    ((integrator.destats.naccept % interval == 0) && !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
+    (save_final_solution && isfinished(integrator)))
 end
 
 
 # this method is called when the callback is activated
 function (solution_callback::SaveSolutionCallback)(integrator)
   u_ode = integrator.u
-  @unpack t, dt, iter = integrator
+  @unpack t, dt = integrator
+  iter = integrator.destats.naccept
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
@@ -125,10 +138,10 @@ function (solution_callback::SaveSolutionCallback)(integrator)
       callbacks = integrator.opts.callback
       if callbacks isa CallbackSet
         for cb in callbacks.continuous_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.destats.naccept)
         end
         for cb in callbacks.discrete_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
+          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.destats.naccept)
         end
       end
     end
@@ -155,3 +168,6 @@ end
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
 
 include("save_solution_dg.jl")
+
+
+end # @muladd
