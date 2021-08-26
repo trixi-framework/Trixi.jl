@@ -143,7 +143,7 @@ All other attributes for [`PlotData2D`](@ref) objects apply here as well.
 For example, to plot the velocity field orthogonal to the yz-plane at different
 x-axis locations, you can execute
 ```julia
-julia> trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_taylor_green_vortex.jl"))
+julia> trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_taylor_green_vortex.jl"), tspan=(0.0, 1.0))
 [...]
 
 julia> plots = []
