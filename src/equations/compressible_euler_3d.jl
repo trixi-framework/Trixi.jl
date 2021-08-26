@@ -432,7 +432,20 @@ end
                              equations::CompressibleEulerEquations3D)
 
 Determine the external solution value for a slip wall condition. Sets the normal
-velocity of the the exterior fictitious element to the negative of the internal value.
+velocity of the exterior fictitious element to the negative of the internal value.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
+- J. J. W. van der Vegt and H. van der Ven (2002)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
+
+Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of the book
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  3rd edition
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
 !!! warning "Experimental code"
     This wall function can change any time.
@@ -443,15 +456,37 @@ velocity of the the exterior fictitious element to the negative of the internal 
   # normalize the outward pointing direction
   normal = normal_direction / norm(normal_direction)
 
-  # compute the normal and tangential components of the velocity
-  u_normal  = normal[1] * u_internal[2] + normal[2] * u_internal[3] + normal[3] * u_internal[4]
-  u_tangent = (u_internal[2] - u_normal * normal[1], u_internal[3] - u_normal * normal[2], u_internal[4] - u_normal * normal[3])
+  # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
+  tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
+  # Orthogonal projection
+  tangent1 -= dot(normal, tangent1) * normal
+  tangent1 = normalize(tangent1)
 
-  return SVector(u_internal[1],
-                 u_tangent[1] - u_normal * normal[1],
-                 u_tangent[2] - u_normal * normal[2],
-                 u_tangent[3] - u_normal * normal[3],
-                 u_internal[5])
+  # Third orthogonal vector
+  tangent2 = normalize(cross(normal_direction, tangent1))
+
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_internal, normal, tangent1, tangent2, equations)
+
+  # compute the primitive variables and local sound speed
+  rho_L, v_normal, v_tangent1, v_tangent2, p_L = cons2prim(u_local, equations)
+  sound_speed_L = sqrt(equations.gamma * p_L / rho_L)
+
+  # get the solution of the pressure Riemann problem
+  if v_normal <= 0.0
+    p_star = p_L * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed_L)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+  else # v_normal > 0.0
+    A_L = 2.0 / ((equations.gamma + 1) * rho_L)
+    B_L = p_L * (equations.gamma - 1) / (equations.gamma + 1)
+    p_star = p_L + 0.5 * v_normal / A_L * (v_normal + sqrt(v_normal^2 + 4.0 * A_L * (p_L + B_L)))
+  end
+
+  # compute the conservative variables of the rotated external state
+  # Note that the normal velocity component changes sign in the rotated coordinate system
+  u_external = prim2cons( (rho_L, -v_normal, v_tangent1, v_tangent2, p_star), equations)
+
+  # back rotate and return the newly created external state vector
+  return rotate_from_x(u_external, normal, tangent1, tangent2, equations)
 end
 
 
