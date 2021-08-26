@@ -4,7 +4,6 @@ authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Ga
 version = "0.4.0-pre"
 
 [deps]
-BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
@@ -36,7 +35,6 @@ TriplotRecipes = "808ab39a-a642-4abf-81ff-4cb34ebbffa3"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
-BSON = "0.3.3"
 CodeTracking = "1.0.5"
 DiffEqBase = "6.47"
 EllipsisNotation = "1.0"
