@@ -502,11 +502,11 @@ end
   @unpack gamma, Pr, L, Tinf, C, Minf, Reinf = equations
   rho, rho_v1, rho_v2, rho_e, tau_xx, tau_xy, tau_yy, q_x, q_y = u
 
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  E = rho_e/rho
-  p = (gamma-1)*(rho_e-0.5*rho*v1^2)
-  T = gamma*p/rho
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  E = rho_e / rho
+  p = (gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+  T = gamma * p / rho
 
   return SVector(rho, v1, v2, E, p, T, tau_xx, tau_xy, tau_yy)
 end
