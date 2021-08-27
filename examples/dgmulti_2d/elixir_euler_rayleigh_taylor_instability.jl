@@ -70,7 +70,7 @@ vy = map(x-> 0.5 * (1+x), vy) # map [-1, 1] to [0, 1] for single mode RTI
 vertex_coordinates = (vx, vy)
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg; is_periodic=(true,false))
 
-boundary_conditions = (; :entire_boundary => BoundaryConditionWall(boundary_state_slip_wall))
+boundary_conditions = (; :entire_boundary => BoundaryConditionFlux(boundary_flux_slip_wall))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_rayleigh_taylor_instability, dg;
                                     source_terms = source_terms_rayleigh_taylor_instability,
