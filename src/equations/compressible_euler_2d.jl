@@ -552,68 +552,15 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
 end
 
 
-# """
-#     boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-#                              equations::CompressibleEulerEquations2D)
-
-# Determine the external solution value for a slip wall condition. Sets the normal
-# velocity of the exterior fictitious element to the negative of the internal value.
-# Density is taken from the internal solution state and pressure is computed as an
-# exact solution of a 1D Riemann problem. Further details about this boundary state
-# are available in the paper:
-# - J. J. W. van der Vegt and H. van der Ven (2002)
-#   Slip flow boundary conditions in discontinuous Galerkin discretizations of
-#   the Euler equations of gas dynamics
-#   [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
-
-# Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of the book
-# - Eleuterio F. Toro (2009)
-#   Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
-#   3rd edition
-#   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
-
-# !!! warning "Experimental code"
-#     This wall function can change any time.
-# """
-# @inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-#                                           equations::CompressibleEulerEquations2D)
-
-#   # normalize the outward pointing direction
-#   normal = normal_direction / norm(normal_direction)
-
-#   # rotate the internal solution state
-#   u_local = rotate_to_x(u_internal, normal, equations)
-
-#   # compute the primitive variables
-#   rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
-
-#   # get the solution of the pressure Riemann problem
-#   if v_normal <= 0.0
-#     sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-#     p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
-#   else # v_normal > 0.0
-#     A = 2.0 / ((equations.gamma + 1) * rho_local)
-#     B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
-#     p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
-#   end
-
-#   # compute the conservative variables of the rotated external state
-#   # Note that the normal velocity component changes sign in the rotated coordinate system
-#   u_external = prim2cons(SVector(rho_local, -v_normal, v_tangent, p_star), equations)
-
-#   # back rotate and return the newly created external state vector
-#   return rotate_from_x(u_external, normal, equations)
-# end
-
-
 """
-    pressure_state_slip_wall(u_internal, normal_direction::AbstractVector,
+    boundary_flux_slip_wall(u_internal, normal_direction::AbstractVector,
                              equations::CompressibleEulerEquations2D)
 
-Determine the external solution pressure value for a slip wall condition from
-the exact solution of a 1D Riemann problem.
-This uses the internal normal velocity and density values.
-Further details for the idea behind this boundary procedure are available in the paper:
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
 - J. J. W. van der Vegt and H. van der Ven (2002)
   Slip flow boundary conditions in discontinuous Galerkin discretizations of
   the Euler equations of gas dynamics
@@ -625,15 +572,18 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-The normal vector has already been normalized in [`BoundaryConditionWall`](@ref).
-
 !!! warning "Experimental code"
     This wall function can change any time.
 """
-@inline function pressure_state_slip_wall(u_internal, normal_vector::AbstractVector,
-                                          equations::CompressibleEulerEquations2D)
+@inline function boundary_flux_slip_wall(u_internal, normal_direction::AbstractVector,
+                                         equations::CompressibleEulerEquations2D)
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
+
   # rotate the internal solution state
-  u_local = rotate_to_x(u_internal, normal_vector, equations)
+  u_local = rotate_to_x(u_internal, normal, equations)
 
   # compute the primitive variables
   rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
@@ -648,9 +598,13 @@ The normal vector has already been normalized in [`BoundaryConditionWall`](@ref)
     p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
   end
 
-  # pressue is agnostic to direction so we can return it without a back rotation
-  return p_star
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_internal)),
+                 p_star * normal[1],
+                 p_star * normal[2],
+                 zero(eltype(u_internal))) * norm_
 end
+
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)

@@ -151,85 +151,41 @@ end
   return flux
 end
 
+
 """
-    BoundaryConditionWall(boundary_value_function)
+    BoundaryConditionFlux(boundary_flux_function)
 
-TODO: update this docstring
-TODO: rename this BC type (or possibily remove it)
-
-Create a generic wall type boundary condition that uses the function `boundary_value_function`
-to specify the external solution values.
-The boundary wall function is called with arguments for an internal solution state from inside an
-element `u_inner`, an outward pointing `normal_direction` and a particular set of `equations`, e.g.,
+Create a generic boundary condition that uses an equation specific `boundary_flux_function`
+to specify the numerical flux at a boundary. In doing so, boundary conditions are imposed
+from the internal solution `u_inner` state and a provided `normal_direction`, e.g.,
 ```julia
-boundary_value_function(u_inner, normal_direction, equations)
+boundary_flux_function(u_inner, normal_direction, equations)
 ```
-which will return an external solution state.
 
 # Example
 ```julia
-julia> BoundaryConditionWall(boundary_state_slip_wall)
+julia> BoundaryConditionFlux(boundary_flux_slip_wall)
 ```
 
 !!! warning "Experimental code"
     This boundary condition can change any time and is currently only implemented for the
-    [`CompressibleEulerEquations2D`](@ref) and [`AcousticPerturbationEquations2D`](@ref).
+    [`CompressibleEulerEquations2D`](@ref) and [`CompressibleEulerEquations3D`](@ref).
 """
-struct BoundaryConditionWall{B}
-  boundary_value_function::B
+struct BoundaryConditionFlux{B}
+  boundary_flux_function::B
 end
 
-# Wall boundary condition for use with TreeMesh or StructuredMesh
-@inline function (boundary_condition::BoundaryConditionWall)(u_inner, orientation_or_normal,
-                                                             direction,
-                                                             x, t,
-                                                             surface_flux_function, equations)
-
-  u_boundary = boundary_condition.boundary_value_function(u_inner, orientation_or_normal, equations)
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
-  end
-
-  return flux
-end
-
-# # Wall boundary condition for use with UnstructuredMesh2D
-# # Note: For unstructured we lose the concept of an "absolute direction"
-# @inline function (boundary_condition::BoundaryConditionWall)(u_inner,
-#                                                              normal_direction::AbstractVector,
-#                                                              x, t,
-#                                                              surface_flux_function, equations)
-#   # get the external value of the solution
-#   u_boundary = boundary_condition.boundary_value_function(u_inner, normal_direction, equations)
-
-#   flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-
-#   return flux
-# end
-
-# Specific slip wall boundary condition for use with UnstructuredMesh2D
-# Note: For unstructured we lose the concept of an "absolute direction"
-@inline function (boundary_condition::BoundaryConditionWall)(u_inner,
+# Flux-based boundary condition for use with unstructured meshes such as
+# `UnstructuredMesh2D` and `P4estMesh2D`.
+# Note: For unstructured meshes, we lose the concept of an "absolute direction"
+#       that is used for Cartesian and structured meshes.
+@inline function (boundary_condition::BoundaryConditionFlux)(u_inner,
                                                              normal_direction::AbstractVector,
                                                              x, t,
                                                              surface_flux_function, equations)
-  norm_ = norm(normal_direction)
-  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal = normal_direction / norm_
-
-  # get the external value of the pressue
-  p_boundary = boundary_condition.boundary_value_function(u_inner, normal, equations)
-
-  # For this particular slip wall boundary condition we do not require an evaluation
-  # of the surface_flux_function and can directly set the flux because the normal velocity
-  # has been set to zero
-  return SVector{nvariables(equations)}(0.0, (p_boundary .* normal)..., 0.0) * norm_
-
+  return boundary_condition.boundary_flux_function(u_inner, normal_direction, equations)
 end
+
 
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)

@@ -142,11 +142,11 @@ export initial_condition_constant,
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_wall_noslip,
+       boundary_condition_wall_slip,
        boundary_condition_wall,
        boundary_condition_zero,
-       BoundaryConditionWall,
-       boundary_state_slip_wall,
-       pressure_state_slip_wall
+       BoundaryConditionFlux,
+       boundary_flux_slip_wall
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic

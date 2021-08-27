@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations3D(5/3)
 
 initial_condition = initial_condition_weak_blast_wave
 
-boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
+boundary_condition_slip_wall = BoundaryConditionFlux(boundary_flux_slip_wall)
 boundary_conditions = Dict(
   :all => boundary_condition_slip_wall
 )

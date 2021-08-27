@@ -428,11 +428,11 @@ end
 
 
 """
-    boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-                             equations::CompressibleEulerEquations3D)
+    boundary_flux_slip_wall(u_internal, normal_direction::AbstractVector,
+                            equations::CompressibleEulerEquations3D)
 
-Determine the external solution value for a slip wall condition. Sets the normal
-velocity of the exterior fictitious element to the negative of the internal value.
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
 Density is taken from the internal solution state and pressure is computed as an
 exact solution of a 1D Riemann problem. Further details about this boundary state
 are available in the paper:
@@ -450,11 +450,12 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
 !!! warning "Experimental code"
     This wall function can change any time.
 """
-@inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-                                          equations::CompressibleEulerEquations3D)
+@inline function boundary_flux_slip_wall(u_internal, normal_direction::AbstractVector,
+                                         equations::CompressibleEulerEquations3D)
 
-  # normalize the outward pointing direction
-  normal = normal_direction / norm(normal_direction)
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
 
   # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
   tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
@@ -481,12 +482,12 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
     p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
   end
 
-  # compute the conservative variables of the rotated external state
-  # Note that the normal velocity component changes sign in the rotated coordinate system
-  u_external = prim2cons(SVector(rho_local, -v_normal, v_tangent1, v_tangent2, p_star), equations)
-
-  # back rotate and return the newly created external state vector
-  return rotate_from_x(u_external, normal, tangent1, tangent2, equations)
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_internal)),
+                 p_star * normal[1],
+                 p_star * normal[2],
+                 p_star * normal[3],
+                 zero(eltype(u_internal))) * norm_
 end
 
 
