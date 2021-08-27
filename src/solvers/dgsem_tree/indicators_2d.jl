@@ -366,7 +366,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
       alpha_element = one(alpha_element)
       end
 
-      # Clip the maximum amount of FV allowed
+      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
@@ -378,6 +378,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
       alpha_element  = probability_troubled_cell
+
+      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
       alpha[element] = alpha_max * alpha_element
     end
 
@@ -548,7 +550,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
       alpha_element = one(alpha_element)
       end
 
-      # Clip the maximum amount of FV allowed
+      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
@@ -560,6 +562,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
       alpha_element  = probability_troubled_cell
+
+      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
       alpha[element] = alpha_max * alpha_element
     end
   end
@@ -648,7 +652,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
       alpha_element = one(alpha_element)
       end
 
-      # Clip the maximum amount of FV allowed
+      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
       alpha[element] = alpha_max * alpha_element
     elseif !alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to 1
@@ -660,6 +664,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
       alpha_element  = probability_troubled_cell
+
+      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
       alpha[element] = alpha_max * alpha_element
     end
 
