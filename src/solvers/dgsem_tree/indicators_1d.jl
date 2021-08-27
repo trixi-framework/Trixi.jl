@@ -282,18 +282,17 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
       total_energy_clip2 += modal[i]^2
     end
 
+    # Calculate energy in highest modes
+    X1 = (total_energy - total_energy_clip1)/total_energy
+    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
 
+    # There are two versions of the network:
+    # The first one only takes the hightest energy modes as input, the second one also the number of
+    # nodes. Automatically use the correct input by checking the number of inputs of the network.
     if size(params(network)[1],2) == 2
-      # Calculate energy in lower modes for the network input
-      X1 = (total_energy - total_energy_clip1)/total_energy
-      X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
       network_input = SVector(X1, X2)
     elseif size(params(network)[1],2) == 3
-      # Calculate energy in lower modes and polynomial degree for the network input
-      X1 = (total_energy - total_energy_clip1)/total_energy
-      X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
-      X3 = nnodes(dg)
-      network_input = SVector(X1, X2, X3)
+      network_input = SVector(X1, X2, nnodes(dg))
     end
 
     # Scale input data
