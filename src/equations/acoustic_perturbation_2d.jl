@@ -153,7 +153,7 @@ function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationE
   si, co = sincos(omega * (x[1] + x[2] - a * t))
   tmp = v1_mean + v2_mean - a
 
-  du1 = du2 = A * omega * co * (2 * c + tmp + 2/rho_mean * A * si)
+  du1 = du2 = A * omega * co * (2 * c/rho_mean + tmp + 2/rho_mean * A * si)
   du3 = A * omega * co * (2 * c_mean^2 * rho_mean + 2 * c * tmp + 2 * A * tmp * si) / c_mean^2
 
   du4 = du5 = du6 = du7 = 0.0
