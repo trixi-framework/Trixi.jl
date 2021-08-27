@@ -254,8 +254,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
   end
 
   @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
+    indicator = indicator_threaded[Threads.threadid()]
+    modal     = modal_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     for i in eachnode(dg)
@@ -302,12 +302,12 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
       if probability_troubled_cell > 0.5
         alpha_element = probability_troubled_cell
       else
-        alpha_element = 0
+        alpha_element = zero(probability_troubled_cell)
       end
 
       # Take care of the case close to pure FV
       if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
+        alpha_element = one(alpha_element)
       end
 
       # Clip the maximum amount of FV allowed
@@ -326,7 +326,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     end
   end
 
-  if (alpha_smooth)
+  if alpha_smooth
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
     # Copy alpha values such that smoothing is indpedenent of the element access order
     alpha_tmp .= alpha
@@ -366,14 +366,13 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
 
 
   @threaded for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    cell_id = cache.elements.cell_ids[element]
-    #neighbor_ids = Vector{Int}(undef, 2)
+    indicator = indicator_threaded[Threads.threadid()]
+    cell_id   = cache.elements.cell_ids[element]
 
     for direction in eachdirection(mesh.tree)
       if !has_any_neighbor(mesh.tree, cell_id, direction)
         neighbor_ids[direction] = element_id
-      continue
+        continue
       end
       if has_neighbor(mesh.tree, cell_id, direction)
         neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]

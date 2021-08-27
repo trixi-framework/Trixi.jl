@@ -198,26 +198,28 @@ end
 Artificial neural network based indicator used for shock-capturing or AMR.
 Depending on the indicator_type, different input values and corresponding trained networks are used.
 
-indicator_type = NeuralNetworkPerssonPeraire()
-Input: The energies in lower modes as well as nnodes(dg).
+`indicator_type = NeuralNetworkPerssonPeraire()`
+- Input: The energies in lower modes as well as nnodes(dg).
 
-indicator_type = NeuralNetworkRayHesthaven()
-1d Input: Cell average of the cell and its neighboring cells as well as the interface values.
-2d Input: Linear modal values of the cell and its neighboring cells.
+`indicator_type = NeuralNetworkRayHesthaven()`
+- 1d Input: Cell average of the cell and its neighboring cells as well as the interface values.
+- 2d Input: Linear modal values of the cell and its neighboring cells.
 
-  - Ray, Hesthaven (2018)
-    "An artificial neural network as a troubled-cell indicator"
-    [doi:10.1016/j.jcp.2018.04.029](https://doi.org/10.1016/j.jcp.2018.04.029)
-  - Ray, Hesthaven (2019)
-    "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
-    [doi:10.1016/j.jcp.2019.07.043](https://doi.org/10.1016/j.jcp.2019.07.043)
+- Ray, Hesthaven (2018)
+  "An artificial neural network as a troubled-cell indicator"
+  [doi:10.1016/j.jcp.2018.04.029](https://doi.org/10.1016/j.jcp.2018.04.029)
+- Ray, Hesthaven (2019)
+  "Detecting troubled-cells on two-dimensional unstructured grids using a neural network"
+  [doi:10.1016/j.jcp.2019.07.043](https://doi.org/10.1016/j.jcp.2019.07.043)
 
-indicator_type = CNN (Only in 2d)
-Based on convolutional neural network.
-2d Input: Interpolation of the nodal values of the indicator.variable on the 4x4 LGL nodes.
+`indicator_type = CNN (Only in 2d)`
+- Based on convolutional neural network.
+- 2d Input: Interpolation of the nodal values of the `indicator.variable` to the 4x4 LGL nodes.
 
-If alpha_continuous = true the continuous network output for troubled cells (alpha > 0.5) is considered. If the cells are good (alpha < 0.5), alpha is set to 0.
-If alpha_continuous = false the blending factor ist set to alpha = 0 for good cells and alpha = 1 for troubled cells.
+If `alpha_continuous == true` the continuous network output for troubled cells (`alpha > 0.5`) is considered. 
+If the cells are good (`alpha < 0.5`), `alpha` is set to `0`.
+If `alpha_continuous == false`, the blending factor is set to `alpha = 0` for good cells and 
+`alpha = 1` for troubled cells.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -237,14 +239,14 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorNeuralNetwork(equations::AbstractEquations, basis;
-                      indicator_type,
-                      alpha_max=0.5,
-                      alpha_min=0.001,
-                      alpha_smooth=true,
-                      alpha_continuous=true,
-                      alpha_amr=false,
-                      variable,
-                      network)
+                                indicator_type,
+                                alpha_max=0.5,
+                                alpha_min=0.001,
+                                alpha_smooth=true,
+                                alpha_continuous=true,
+                                alpha_amr=false,
+                                variable,
+                                network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   IndicatorType = typeof(indicator_type)
   cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis)
@@ -307,7 +309,7 @@ end
 """
     NeuralNetworkPerssonPeraire
 
-Indicator type for creating a `IndicatorNeuralNetwork` indicator.
+Indicator type for creating an `IndicatorNeuralNetwork` indicator.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -319,7 +321,7 @@ struct NeuralNetworkPerssonPeraire end
 """
     NeuralNetworkRayHesthaven
 
-Indicator type for creating a `IndicatorNeuralNetwork` indicator.
+Indicator type for creating an `IndicatorNeuralNetwork` indicator.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -331,7 +333,7 @@ struct NeuralNetworkRayHesthaven end
 """
     NeuralNetworkCNN
 
-Indicator type for creating a `IndicatorNeuralNetwork` indicator.
+Indicator type for creating an `IndicatorNeuralNetwork` indicator.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
