@@ -867,8 +867,10 @@ end
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
 
-  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm(normal_direction)
-  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm(normal_direction)
+  norm_ = norm(normal_direction)
+  # The v_normals are already scaled by the norm
+  λ_min = v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) * norm_
+  λ_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
   return λ_min, λ_max
 end
