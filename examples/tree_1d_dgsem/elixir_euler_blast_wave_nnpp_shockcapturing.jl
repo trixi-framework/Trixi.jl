@@ -9,6 +9,12 @@ model1d = load(network, @__MODULE__)[:model1d]
 using OrdinaryDiffEq
 using Trixi
 
+# This elixir was one of the setups used in the following master thesis:
+# - Julia Odenthal (2021)
+#   Shock capturing with artifical neural networks
+#   University of Cologne, advisors: Gregor Gassner, Michael Schlottke-Lakemper
+# This motivates the particular choice of fluxes, mesh resolution etc.
+
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
