@@ -20,13 +20,9 @@ equations = CompressibleEulerEquations2D(gamma)
     initial_condition_kelvin_helmholtz_instability(x, t, equations::CompressibleEulerEquations2D)
 
 A version of the classical Kelvin-Helmholtz instability based on
-- Andrés M. Rueda-Ramírez, Gregor J. Gassner (2021)
-  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations
-  of the Euler Equations
-  [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
+https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test.
 """
 function initial_condition_kelvin_helmholtz_instability(x, t, equations::CompressibleEulerEquations2D)
-  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
   # change discontinuity to tanh
   # typical resolution 128^2, 256^2
   # domain size is [-0.5,0.5]^2
