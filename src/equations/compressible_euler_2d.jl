@@ -553,7 +553,7 @@ end
 
 
 """
-    boundary_flux_slip_wall(u_internal, normal_direction::AbstractVector,
+    boundary_flux_slip_wall(u_internal, orientation_or_normal_direction,
                              equations::CompressibleEulerEquations2D)
 
 Determine the boundary numerical surface flux for a slip wall condition.
@@ -575,6 +575,40 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
 !!! warning "Experimental code"
     This wall function can change any time.
 """
+@inline function boundary_flux_slip_wall(u_internal, orientation::Integer,
+                                         equations::CompressibleEulerEquations2D)
+
+  # get the appropriate normal vector from the orientation
+  if orientation == 1
+    normal = SVector(1.0, 0.0)
+  else # orientation == 2
+    normal = SVector(0.0, 1.0)
+  end
+
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_internal, normal, equations)
+
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
+
+  # get the solution of the pressure Riemann problem
+  if v_normal <= 0.0
+    sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+  else # v_normal > 0.0
+    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+  end
+
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_internal)),
+                      p_star * normal[1],
+                      p_star * normal[2],
+                      zero(eltype(u_internal)))
+end
+
+
 @inline function boundary_flux_slip_wall(u_internal, normal_direction::AbstractVector,
                                          equations::CompressibleEulerEquations2D)
 

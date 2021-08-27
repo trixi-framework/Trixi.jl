@@ -175,6 +175,15 @@ struct BoundaryConditionFlux{B}
   boundary_flux_function::B
 end
 
+# Flux-based boundary condition for use with structured meshes such as
+# `TreeMesh` and `StructuredMesh`.
+@inline function (boundary_condition::BoundaryConditionFlux)(u_inner, orientation_or_normal,
+                                                             direction,
+                                                             x, t,
+                                                             surface_flux_function, equations)
+  return boundary_condition.boundary_flux_function(u_inner, orientation_or_normal, equations)
+end
+
 # Flux-based boundary condition for use with unstructured meshes such as
 # `UnstructuredMesh2D` and `P4estMesh2D`.
 # Note: For unstructured meshes, we lose the concept of an "absolute direction"
