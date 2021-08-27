@@ -214,8 +214,9 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}
   alpha_tmp = similar(alpha)
   A = Array{real(basis), ndims(equations)}
 
-  indicator_threaded  = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+  prototype = A(undef, nnodes(basis))
+  indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
 end
@@ -228,7 +229,8 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
   alpha_tmp = similar(alpha)
   A = Array{real(basis), ndims(equations)}
 
-  indicator_threaded  = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+  prototype = A(undef, nnodes(basis))
+  indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
   neighbor_ids = Vector{Int}(undef, 2)
 
   return (; alpha, alpha_tmp, indicator_threaded, neighbor_ids)

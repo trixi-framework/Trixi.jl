@@ -239,9 +239,11 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}
   A = Array{real(basis), ndims(equations)}
 
   @assert nnodes(basis) >= 4 "Indicator only works for nnodes >= 4 (polydeg > 2)"
-  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+  prototype = A(undef, nnodes(basis), nnodes(basis))
+  indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
@@ -254,10 +256,11 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
   alpha_tmp = similar(alpha)
   A = Array{real(basis), ndims(equations)}
 
-  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  #X = Vector{Float64}(undef, 3, nelements(dg, cache))
+  prototype = A(undef, nnodes(basis), nnodes(basis))
+  indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+
   network_input = Vector{Float64}(undef, 15)
   neighbor_ids= Array{Int64}(undef, 8)
   neighbor_mean = Array{Float64}(undef, 4, 3)
@@ -274,7 +277,8 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkCNN}},
   alpha_tmp = similar(alpha)
   A = Array{real(basis), ndims(equations)}
 
-  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  prototype = A(undef, nnodes(basis), nnodes(basis))
+  indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
   n_cnn = 4
   nodes,_ = gauss_lobatto_nodes_weights(nnodes(basis))
   cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
