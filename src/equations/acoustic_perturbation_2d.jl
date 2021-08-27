@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-# TODO: Adjust documentation
+
 @doc raw"""
     AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
@@ -12,24 +12,22 @@ Acoustic perturbation equations (APE) in two space dimensions. The equations are
 ```math
 \begin{aligned}
   \frac{\partial\mathbf{v'}}{\partial t} + \nabla (\bar{\mathbf{v}}\cdot\mathbf{v'})
-    + \nabla\left( \frac{p'}{\bar{\rho}} \right) &= 0 \\
-  \frac{\partial p'}{\partial t} + \nabla\cdot (\bar{c}^2 \bar{\rho}^2 \mathbf{v'} + \bar{v} p')
-    &= \left( \bar{\rho}\mathbf{v'} + \bar{\mathbf{v}}\frac{p'}{\bar{c}^2} \right)\cdot\nabla\bar{c}^2.
+    + \nabla\left( \frac{\bar{c}^2 \tilde{p}}{\bar{\rho}} \right) &= 0 \\
+  \frac{\partial \tilde{p}}{\partial t} +
+    \nabla\cdot (\bar{\rho}^2 \mathbf{v'} + \bar{\mathbf{v}} \tilde{p}) &= 0.
 \end{aligned}
 ```
 The bar ``\bar{(\cdot)}`` indicates time-averaged quantities. The unknowns of the APE are the
-perturbed velocities ``\mathbf{v'} = (v_1', v_2')^T`` and the perturbed pressure ``p'``, where
+perturbed velocities ``\mathbf{v'} = (v_1', v_2')^T`` and the adjusted pressure
+``\tilde{p} = \frac{p'}{\bar{c}^2}``, where ``p'`` denotes the perturbed pressure and the
 perturbed variables are defined by ``\phi' = \phi - \bar{\phi}``.
-
-Note that the source term must be defined separately and passed manually to
-[`SemidiscretizationHyperbolic`](@ref).
 
 In addition to the unknowns, Trixi currently stores the mean values in the state vector,
 i.e. the state vector used internally is given by
 ```math
 \mathbf{u} =
   \begin{pmatrix}
-    v_1' \\ v_2' \\ p' \\ \bar{v_1} \\ \bar{v_2} \\ \bar{c} \\ \bar{\rho}
+    v_1' \\ v_2' \\ \tilde{p} \\ \bar{v_1} \\ \bar{v_2} \\ \bar{c} \\ \bar{\rho}
   \end{pmatrix}.
 ```
 This affects the implementation and use of these equations in various ways:
@@ -387,7 +385,6 @@ end
 end
 
 
-# TODO: Adjust boundary_state_slip_wall to new conservative variables
 """
     boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
                              equations::AcousticPertubationEquations2D)
