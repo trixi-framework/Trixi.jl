@@ -71,22 +71,22 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       maxiters = 30)
   end
 
-  @trixi_testset "elixir_euler_blast_wave_nnpp_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_nnpp_shockcapturing.jl"),
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl"),
       l2   = [1.39326478e-01, 1.15714111e-01, 1.15714077e-01, 3.39939895e-01],
       linf = [1.44697452e+00, 1.32561295e+00, 1.32561295e+00, 1.81112285e+00],
       maxiters = 30)
   end
 
-  @trixi_testset "elixir_euler_blast_wave_nnrh_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_nnrh_shockcapturing.jl"),
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
       l2   = [1.37149011e-01, 1.14936250e-01, 1.14814589e-01, 3.39064561e-01],
       linf = [1.47771619e+00, 1.32383912e+00, 1.31919917e+00, 1.81607622e+00],
       maxiters = 30)
   end
 
-  @trixi_testset "elixir_euler_blast_wave_cnn_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_cnn_shockcapturing.jl"),
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_cnn.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_cnn.jl"),
       l2   = [1.37604283e-01, 1.14537144e-01, 1.14811941e-01, 3.37168891e-01],
       linf = [1.54890677e+00, 1.39018409e+00, 1.34309015e+00, 1.81474446e+00],
       maxiters = 30)
@@ -113,8 +113,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       tspan = (0.0, 1.0))
   end
 
-  @trixi_testset "elixir_euler_sedov_blast_wave_nnpp.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_nnpp.jl"),
+  @trixi_testset "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl"),
       l2   = [8.29516192e-02, 9.18870398e-02, 9.18870398e-02, 4.37449170e-01],
       linf = [1.23402442e+00, 1.63254552e+00, 1.63254552e+00, 4.21977821e+00],
       maxiters = 30)
@@ -155,8 +155,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       tspan = (0.0, 0.2))
   end
 
-  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_nnpp.jl"),
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl"),
       l2   = [0.0009932162527962933, 0.004946122604416242, 0.004863174253792848, 0.005019630958200973],
       linf = [0.008603757244273202, 0.02090493316272357, 0.01712529102069524, 0.028966987799588395],
       maxiters = 30)
