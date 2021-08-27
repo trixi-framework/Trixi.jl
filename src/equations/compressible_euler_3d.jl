@@ -864,11 +864,15 @@ end
   rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
-  v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
-  v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
+  # Don't use normalize(normal_direction) because we need the norm anyway
+  norm_ = norm(normal_direction)
+  normal_normalized = normal_direction / norm_
 
-  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm(normal_direction)
-  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm(normal_direction)
+  v_normal_ll = v1_ll * normal_normalized[1] + v2_ll * normal_normalized[2] + v3_ll * normal_normalized[3]
+  v_normal_rr = v1_rr * normal_normalized[1] + v2_rr * normal_normalized[2] + v3_rr * normal_normalized[3]
+
+  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm_
+  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm_
 
   return λ_min, λ_max
 end
