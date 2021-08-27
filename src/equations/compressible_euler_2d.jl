@@ -622,7 +622,11 @@ end
   # compute the primitive variables
   rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
 
-  # get the solution of the pressure Riemann problem
+  # Get the solution of the pressure Riemann problem
+  # See Section 6.3.3 of 
+  # Eleuterio F. Toro (2009)
+  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
   if v_normal <= 0.0
     sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
     p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)

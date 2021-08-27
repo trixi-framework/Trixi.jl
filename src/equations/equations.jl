@@ -169,7 +169,8 @@ julia> BoundaryConditionFlux(boundary_flux_slip_wall)
 
 !!! warning "Experimental code"
     This boundary condition can change any time and is currently only implemented for the
-    [`CompressibleEulerEquations2D`](@ref) and [`CompressibleEulerEquations3D`](@ref).
+    [`CompressibleEulerEquations2D`](@ref) and [`CompressibleEulerEquations3D`](@ref),
+    see [`boundary_flux_slip_wall`](@ref).
 """
 struct BoundaryConditionFlux{B}
   boundary_flux_function::B
