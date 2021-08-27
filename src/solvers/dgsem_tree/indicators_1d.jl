@@ -421,7 +421,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     network_input = SVector(X1, X2, X3, X4, X5)
 
     # Scale input data
-    network_input = network_input ./ max(maximum(abs.(network_input)),1)
+    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
     probability_troubled_cell = network(network_input)[1]
     if alpha_continuous && !alpha_amr
       # Set good cells to 0 and troubled cells to continuous value of the network prediction
