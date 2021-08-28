@@ -358,12 +358,12 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
       if probability_troubled_cell > 0.5
         alpha_element = probability_troubled_cell
       else
-        alpha_element = 0
+        alpha_element = zero(probability_troubled_cell)
       end
 
       # Take care of the case close to pure FV
       if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
+        alpha_element = one(alpha_element)
       end
 
       # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
@@ -373,7 +373,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
       if probability_troubled_cell > 0.5
         alpha[element] = alpha_max
       else
-        alpha[element] = 0
+        alpha[element] = zero(alpha_max)
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
@@ -542,12 +542,12 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
       if probability_troubled_cell > 0.5
         alpha_element = probability_troubled_cell
       else
-        alpha_element = 0
+        alpha_element = zero(probability_troubled_cell)
       end
 
       # Take care of the case close to pure FV
       if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
+        alpha_element = one(alpha_element)
       end
 
       # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
@@ -557,7 +557,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
       if probability_troubled_cell > 0.5
         alpha[element] = alpha_max
       else
-        alpha[element] = 0
+        alpha[element] = zero(alpha_max)
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
@@ -644,12 +644,12 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
       if probability_troubled_cell > 0.5
         alpha_element = probability_troubled_cell
       else
-        alpha_element = 0
+        alpha_element = zero(probability_troubled_cell)
       end
 
       # Take care of the case close to pure FV
       if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
+        alpha_element = one(alpha_element)
       end
 
       # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
@@ -659,7 +659,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
       if probability_troubled_cell > 0.5
         alpha[element] = alpha_max
       else
-        alpha[element] = 0
+        alpha[element] = zero(alpha_max)
       end
     elseif alpha_amr
       # The entire continuous output of the neural network is used for AMR
