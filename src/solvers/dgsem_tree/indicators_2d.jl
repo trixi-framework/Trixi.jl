@@ -90,40 +90,46 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
     alpha[element] = min(alpha_max, alpha_element)
   end
 
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower = cache.mortars.neighbor_ids[1, mortar]
-      upper = cache.mortars.neighbor_ids[2, mortar]
-      large = cache.mortars.neighbor_ids[3, mortar]
-
-      # Apply smoothing
-      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
-    end
+  if alpha_smooth
+    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
 end
 
+
+# Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+function apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_tmp .= alpha
+
+  # Loop over interfaces
+  for interface in eachinterface(dg, cache)
+    # Get neighboring element ids
+    left  = cache.interfaces.neighbor_ids[1, interface]
+    right = cache.interfaces.neighbor_ids[2, interface]
+
+    # Apply smoothing
+    alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
+    alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
+  end
+
+  # Loop over L2 mortars
+  for mortar in eachmortar(dg, cache)
+    # Get neighboring element ids
+    lower = cache.mortars.neighbor_ids[1, mortar]
+    upper = cache.mortars.neighbor_ids[2, mortar]
+    large = cache.mortars.neighbor_ids[3, mortar]
+
+    # Apply smoothing
+    alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
+    alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
+    alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
+  end
+
+  return alpha
+end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -385,35 +391,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
 
   end
 
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower = cache.mortars.neighbor_ids[1, mortar]
-      upper = cache.mortars.neighbor_ids[2, mortar]
-      large = cache.mortars.neighbor_ids[3, mortar]
-
-      # Apply smoothing
-      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
-    end
+  if alpha_smooth
+    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -568,35 +547,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     end
   end
 
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower = cache.mortars.neighbor_ids[1, mortar]
-      upper = cache.mortars.neighbor_ids[2, mortar]
-      large = cache.mortars.neighbor_ids[3, mortar]
-
-      # Apply smoothing
-      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
-    end
+  if alpha_smooth
+    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -671,35 +623,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
 
   end
 
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower = cache.mortars.neighbor_ids[1, mortar]
-      upper = cache.mortars.neighbor_ids[2, mortar]
-      large = cache.mortars.neighbor_ids[3, mortar]
-
-      # Apply smoothing
-      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
-    end
+  if alpha_smooth
+    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
