@@ -301,35 +301,10 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     # Scale input data
     network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
     probability_troubled_cell = network(network_input)[1]
-    if alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if probability_troubled_cell > 0.5
-        alpha_element = probability_troubled_cell
-      else
-        alpha_element = zero(probability_troubled_cell)
-      end
 
-      # Take care of the case close to pure FV
-      if alpha_element > 1 - alpha_min
-        alpha_element = one(alpha_element)
-      end
-
-      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-      alpha[element] = alpha_max * alpha_element
-    elseif !alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to 1
-      if probability_troubled_cell > 0.5
-        alpha[element] = alpha_max
-      else
-        alpha[element] = zero(alpha_max)
-      end
-    elseif alpha_amr
-      # The entire continuous output of the neural network is used for AMR
-      alpha_element  = probability_troubled_cell
-
-      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-      alpha[element] = alpha_max * alpha_element
-    end
+    # Compute indicator value
+    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
+                                              alpha_amr, alpha_min, alpha_max)
   end
 
   if alpha_smooth
@@ -415,35 +390,10 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     # Scale input data
     network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
     probability_troubled_cell = network(network_input)[1]
-    if alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to continuous value of the network prediction
-      if probability_troubled_cell > 0.5
-        alpha_element = probability_troubled_cell
-      else
-        alpha_element = zero(probability_troubled_cell)
-      end
 
-      # Take care of the case close to pure FV
-      if alpha_element > 1 - alpha_min
-        alpha_element = one(alpha_element)
-      end
-
-      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-      alpha[element] = alpha_max * alpha_element
-    elseif !alpha_continuous && !alpha_amr
-      # Set good cells to 0 and troubled cells to 1
-      if probability_troubled_cell > 0.5
-        alpha[element] = alpha_max
-      else
-        alpha[element] = zero(alpha_max)
-      end
-    elseif alpha_amr
-      # The entire continuous output of the neural network is used for AMR
-      alpha_element  = probability_troubled_cell
-
-      # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-      alpha[element] = alpha_max * alpha_element
-    end
+    # Compute indicator value
+    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
+                                              alpha_amr, alpha_min, alpha_max)
   end
 
   if alpha_smooth
