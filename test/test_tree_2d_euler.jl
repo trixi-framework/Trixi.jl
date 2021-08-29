@@ -89,9 +89,11 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl with mortars" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
-      l2   = [0.03392070537121059, 0.052519948946315405, 0.052093252750605994, 0.19475196652489327],
-      linf = [0.4233487046911011, 0.999154631528289, 0.959295597974531, 2.1492077008884043],
-      refinement_patches=((type="box", coordinates_min=(-0.25, -0.25), coordinates_max=(0.25, 0.25)),),
+      l2   = [0.016398689755743465, 0.03074685501652015, 0.03078660152836722, 0.15176702545248866],
+      linf = [0.27612812614937343, 0.5598351620373528, 0.5601415330040513, 2.48372589562021],
+      refinement_patches=(
+          (type="box", coordinates_min=(-0.25, -0.25), coordinates_max=(0.25, 0.25)),
+          (type="box", coordinates_min=(-0.125, -0.125), coordinates_max=(0.125, 0.125)),),
       initial_refinement_level = 4,
       maxiters = 5)
   end
