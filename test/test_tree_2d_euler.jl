@@ -73,23 +73,26 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl"),
-      l2   = [1.39326478e-01, 1.15714111e-01, 1.15714077e-01, 3.39939895e-01],
-      linf = [1.44697452e+00, 1.32561295e+00, 1.32561295e+00, 1.81112285e+00],
-      maxiters = 30)
+      l2   = [0.470793846459279, 0.20772743006225688, 0.20772649286847356, 0.7011946441199758],
+      linf = [1.459980543578883, 0.976674580177999, 0.9759214032734075, 2.960406757135902],
+      initial_refinement_level = 4,
+      maxiters = 50)
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
-      l2   = [1.37149011e-01, 1.14936250e-01, 1.14814589e-01, 3.39064561e-01],
-      linf = [1.47771619e+00, 1.32383912e+00, 1.31919917e+00, 1.81607622e+00],
-      maxiters = 30)
+      l2   = [0.4667685563568254, 0.20611874363505156, 0.20588110990842964, 0.6993986008683889],
+      linf = [1.4753582207406488, 0.9904209156187197, 0.9841399353882521, 2.9346283218997806],
+      initial_refinement_level = 4,
+      maxiters = 50)
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_cnn.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_cnn.jl"),
-      l2   = [1.37604283e-01, 1.14537144e-01, 1.14811941e-01, 3.37168891e-01],
-      linf = [1.54890677e+00, 1.39018409e+00, 1.34309015e+00, 1.81474446e+00],
-      maxiters = 30)
+      l2   = [0.47425390570612547, 0.20990014031106777, 0.2103622732820483, 0.7022475294762982],
+      linf = [1.6366874508175182, 0.9734578279971777, 0.9412921347930632, 2.949655726363399],
+      initial_refinement_level = 4,
+      maxiters = 50)
   end
 
   @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
