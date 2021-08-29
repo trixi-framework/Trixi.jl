@@ -289,11 +289,9 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkCNN}},
   nodes,_ = gauss_lobatto_nodes_weights(nnodes(basis))
   cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
   vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
-  data_cnn = Array{Float64}(undef, n_cnn, n_cnn)
   network_input = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
 
-  return (; alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, data_cnn,
-            network_input)
+  return (; alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -508,7 +506,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     u, mesh::TreeMesh{2}, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, data_cnn, network_input = indicator_ann.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input = indicator_ann.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -532,13 +530,11 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
       for jj in eachnode(dg), ii in eachnode(dg)
         acc += vandermonde[i,ii] * indicator[ii,jj] * vandermonde[j,jj]
       end
-      data_cnn[i,j] = acc
+      network_input[i,j,1,1] = acc
     end
 
-    network_input[:,:,1,1] = data_cnn[:,:]
-
     # Scale input data
-    network_input[:,:,1,1] = network_input[:,:,1,1] ./ max(maximum(abs.(network_input[:,:,1,1])),1)
+    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
     probability_troubled_cell = network(network_input)[1]
 
     # Compute indicator value
