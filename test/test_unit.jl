@@ -410,7 +410,7 @@ Cassette.@context Ctx
     equations = CompressibleEulerEquations2D(1.4)
     basis = LobattoLegendreBasis(3)
     indicator_neuralnetwork = IndicatorNeuralNetwork(
-        equations, basis, indicator_type=NeuralNetworkIndicatorPerssonPeraire(), variable=density,
+        equations, basis, indicator_type=NeuralNetworkPerssonPeraire(), variable=density,
         network=nothing)
     @test_nowarn show(stdout, indicator_neuralnetwork)
   end
