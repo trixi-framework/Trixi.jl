@@ -41,8 +41,10 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = ( 2.0,  2.0)
+refinement_patches = () # To allow for specifying them via `trixi_include`
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
+                refinement_patches=refinement_patches,
                 n_cells_max=10_000)
 
 

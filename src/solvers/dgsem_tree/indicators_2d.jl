@@ -481,7 +481,6 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
         network_input[3*dir+1] = X[1,neighbor_id]
         network_input[3*dir+2] = X[2,neighbor_id]
         network_input[3*dir+3] = X[3,neighbor_id]
-
       end
     end
 
