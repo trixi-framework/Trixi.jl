@@ -68,7 +68,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
       total_energy_clip2 += modal[i]^2
     end
 
-    # Calculate energy in lower modes
+    # Calculate energy in higher modes
     energy = max((total_energy - total_energy_clip1) / total_energy,
                  (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
 

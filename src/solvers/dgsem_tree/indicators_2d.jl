@@ -70,7 +70,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
       total_energy_clip2 += modal[i, j]^2
     end
 
-    # Calculate energy in lower modes
+    # Calculate energy in higher modes
     energy = max((total_energy - total_energy_clip1) / total_energy,
                  (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
 
@@ -347,7 +347,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
       total_energy_clip3 += modal[i, j]^2
     end
 
-    # Calculate energy in lower modes and polynomial degree for the network input
+    # Calculate energy in higher modes and polynomial degree for the network input
     X1 = (total_energy - total_energy_clip1)/total_energy
     X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
     X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
