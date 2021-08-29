@@ -525,7 +525,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
 
     # Interpolate nodal data to 4x4 LGL nodes
     for j in 1:4, i in 1:4
-      acc = 0
+      acc = zero(eltype(indicator))
       for jj in eachnode(dg), ii in eachnode(dg)
         acc += vandermonde[i,ii] * indicator[ii,jj] * vandermonde[j,jj]
       end
