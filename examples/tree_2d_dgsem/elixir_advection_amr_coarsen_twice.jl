@@ -24,7 +24,7 @@ function IndicatorAlwaysCoarsen(semi)
 end
 
 function (indicator::IndicatorAlwaysCoarsen)(u::AbstractArray{<:Any,4},
-                                             equations, dg, cache;
+                                             mesh, equations, dg, cache;
                                              t, kwargs...)
   alpha = indicator.cache.alpha
   resize!(alpha, nelements(dg, cache))

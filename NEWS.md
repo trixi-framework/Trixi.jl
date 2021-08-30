@@ -9,6 +9,9 @@ for human readability.
 
 #### Added
 
+- Experimental support for artifial neural network-based indicators for shock capturing and
+  adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
+
 #### Changed
 
 #### Deprecated
