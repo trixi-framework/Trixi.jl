@@ -14,7 +14,7 @@ Acoustic perturbation equations (APE) in two space dimensions. The equations are
   \frac{\partial\mathbf{v'}}{\partial t} + \nabla (\bar{\mathbf{v}}\cdot\mathbf{v'})
     + \nabla\left( \frac{\bar{c}^2 \tilde{p}'}{\bar{\rho}} \right) &= 0 \\
   \frac{\partial \tilde{p}'}{\partial t} +
-    \nabla\cdot (\bar{\rho}^2 \mathbf{v'} + \bar{\mathbf{v}} \tilde{p}') &= 0.
+    \nabla\cdot (\bar{\rho} \mathbf{v'} + \bar{\mathbf{v}} \tilde{p}') &= 0.
 \end{aligned}
 ```
 The bar ``\bar{(\cdot)}`` indicates time-averaged quantities. The unknowns of the APE are the
