@@ -12,14 +12,14 @@ Acoustic perturbation equations (APE) in two space dimensions. The equations are
 ```math
 \begin{aligned}
   \frac{\partial\mathbf{v'}}{\partial t} + \nabla (\bar{\mathbf{v}}\cdot\mathbf{v'})
-    + \nabla\left( \frac{\bar{c}^2 \tilde{p}}{\bar{\rho}} \right) &= 0 \\
-  \frac{\partial \tilde{p}}{\partial t} +
-    \nabla\cdot (\bar{\rho}^2 \mathbf{v'} + \bar{\mathbf{v}} \tilde{p}) &= 0.
+    + \nabla\left( \frac{\bar{c}^2 \tilde{p}'}{\bar{\rho}} \right) &= 0 \\
+  \frac{\partial \tilde{p}'}{\partial t} +
+    \nabla\cdot (\bar{\rho}^2 \mathbf{v'} + \bar{\mathbf{v}} \tilde{p}') &= 0.
 \end{aligned}
 ```
 The bar ``\bar{(\cdot)}`` indicates time-averaged quantities. The unknowns of the APE are the
-perturbed velocities ``\mathbf{v'} = (v_1', v_2')^T`` and the adjusted pressure
-``\tilde{p} = \frac{p'}{\bar{c}^2}``, where ``p'`` denotes the perturbed pressure and the
+perturbed velocities ``\mathbf{v'} = (v_1', v_2')^T`` and the scaled perturbed pressure
+``\tilde{p}' = \frac{p'}{\bar{c}^2}``, where ``p'`` denotes the perturbed pressure and the
 perturbed variables are defined by ``\phi' = \phi - \bar{\phi}``.
 
 In addition to the unknowns, Trixi currently stores the mean values in the state vector,
@@ -27,7 +27,7 @@ i.e. the state vector used internally is given by
 ```math
 \mathbf{u} =
   \begin{pmatrix}
-    v_1' \\ v_2' \\ \tilde{p} \\ \bar{v_1} \\ \bar{v_2} \\ \bar{c} \\ \bar{\rho}
+    v_1' \\ v_2' \\ \tilde{p}' \\ \bar{v}_1 \\ \bar{v}_2 \\ \bar{c} \\ \bar{\rho}
   \end{pmatrix}.
 ```
 This affects the implementation and use of these equations in various ways:
@@ -64,7 +64,7 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2,<:Real}, c_me
 end
 
 
-varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_tilde",
+varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime_scaled",
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
 varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime",
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
@@ -79,7 +79,7 @@ function cons2mean(u, equations::AcousticPerturbationEquations2D)
   return SVector(u[4], u[5], u[6], u[7])
 end
 
-varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_tilde")
+varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime_scaled")
 varnames(::typeof(cons2mean), ::AcousticPerturbationEquations2D) = ("v1_mean", "v2_mean", "c_mean", "rho_mean")
 
 
@@ -104,9 +104,9 @@ Uses the global mean values from `equations`.
 function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
   v1_prime = 0.0
   v2_prime = 0.0
-  p_tilde = 0.0
+  p_prime_scaled = 0.0
 
-  return SVector(v1_prime, v2_prime, p_tilde, global_mean_vars(equations)...)
+  return SVector(v1_prime, v2_prime, p_prime_scaled, global_mean_vars(equations)...)
 end
 
 
@@ -306,18 +306,18 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::AcousticPerturbationEquations2D)
-  v1_prime, v2_prime, p_tilde = cons2state(u, equations)
+  v1_prime, v2_prime, p_prime_scaled = cons2state(u, equations)
   v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
   # Calculate flux for conservative state variables
   if orientation == 1
-    f1 = v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean
+    f1 = v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_prime_scaled / rho_mean
     f2 = zero(eltype(u))
-    f3 = rho_mean * v1_prime + v1_mean * p_tilde
+    f3 = rho_mean * v1_prime + v1_mean * p_prime_scaled
   else
     f1 = zero(eltype(u))
-    f2 = v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean
-    f3 = rho_mean * v2_prime + v2_mean * p_tilde
+    f2 = v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_prime_scaled / rho_mean
+    f3 = rho_mean * v2_prime + v2_mean * p_prime_scaled
   end
 
   # The rest of the state variables are actually variable coefficients, hence the flux should be
@@ -350,13 +350,13 @@ end
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::AcousticPerturbationEquations2D)
-  v1_prime, v2_prime, p_tilde = cons2state(u, equations)
+  v1_prime, v2_prime, p_prime_scaled = cons2state(u, equations)
   v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
-  f1 = normal_direction[1] * (v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean)
-  f2 = normal_direction[2] * (v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_tilde / rho_mean)
-  f3 = ( normal_direction[1] * (rho_mean * v1_prime + v1_mean * p_tilde)
-       + normal_direction[2] * (rho_mean * v2_prime + v2_mean * p_tilde) )
+  f1 = normal_direction[1] * (v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_prime_scaled / rho_mean)
+  f2 = normal_direction[2] * (v1_mean * v1_prime + v2_mean * v2_prime + c_mean^2 * p_prime_scaled / rho_mean)
+  f3 = ( normal_direction[1] * (rho_mean * v1_prime + v1_mean * p_prime_scaled)
+       + normal_direction[2] * (rho_mean * v2_prime + v2_mean * p_prime_scaled) )
 
   # The rest of the state variables are actually variable coefficients, hence the flux should be
   # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
@@ -426,9 +426,9 @@ end
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::AcousticPerturbationEquations2D)
-  p_tilde = u[3]
+  p_prime_scaled = u[3]
   c_mean = u[6]
-  p_prime = p_tilde * c_mean^2
+  p_prime = p_prime_scaled * c_mean^2
 
   return SVector(u[1], u[2], p_prime, u[4], u[5], u[6], u[7])
 end
@@ -437,9 +437,9 @@ end
 @inline function prim2cons(u, equations::AcousticPerturbationEquations2D)
   p_prime = u[3]
   c_mean = u[6]
-  p_tilde = p_prime / c_mean^2
+  p_prime_scaled = p_prime / c_mean^2
 
-  return SVector(u[1], u[2], p_tilde, u[4], u[5], u[6], u[7])
+  return SVector(u[1], u[2], p_prime_scaled, u[4], u[5], u[6], u[7])
 end
 
 # Convert conservative variables to entropy variables
