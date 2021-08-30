@@ -535,7 +535,7 @@ function get_element_variables!(element_variables, u, mesh, equations, solver, c
                                 controller::ControllerThreeLevel, amr_callback::AMRCallback;
                                 kwargs...)
   # call the indicator to get up-to-date values for IO
-  controller.indicator(u, equations, solver, cache; kwargs...)
+  controller.indicator(u, mesh, equations, solver, cache; kwargs...)
   get_element_variables!(element_variables, controller.indicator, amr_callback)
 end
 
@@ -596,7 +596,7 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
   @unpack controller_value = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
-  alpha = controller.indicator(u, equations, dg, cache; kwargs...)
+  alpha = controller.indicator(u, mesh, equations, dg, cache; kwargs...)
   current_levels = current_element_levels(mesh, dg, cache)
 
   @threaded for element in eachelement(dg, cache)
@@ -712,7 +712,7 @@ function get_element_variables!(element_variables, u, mesh, equations, solver, c
                                 controller::ControllerThreeLevelCombined, amr_callback::AMRCallback;
                                 kwargs...)
   # call the indicator to get up-to-date values for IO
-  controller.indicator_primary(u, equations, solver, cache; kwargs...)
+  controller.indicator_primary(u, mesh, equations, solver, cache; kwargs...)
   get_element_variables!(element_variables, controller.indicator_primary, amr_callback)
 end
 
@@ -724,8 +724,8 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
   @unpack controller_value = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
-  alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
-  alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
+  alpha = controller.indicator_primary(u, mesh, equations, dg, cache; kwargs...)
+  alpha_secondary = controller.indicator_secondary(u, mesh, equations, dg, cache)
 
   current_levels = current_element_levels(mesh, dg, cache)
 

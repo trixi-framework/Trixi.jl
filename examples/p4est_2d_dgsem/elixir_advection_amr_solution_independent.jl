@@ -19,7 +19,7 @@ function IndicatorSolutionIndependent(semi)
 end
 
 function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
-                                                   equations, dg, cache;
+                                                   mesh, equations, dg, cache;
                                                    t, kwargs...)
 
   mesh = indicator.cache.mesh
