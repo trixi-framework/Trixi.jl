@@ -15,7 +15,7 @@ for human readability.
 #### Changed
 
 - Implementation of acoustic perturbation equations now uses the conservative form, i.e. the
-  perturbed pressure `p_prime` has been replaced with `p_tilde = p_prime / c_mean^2`.
+  perturbed pressure `p_prime` has been replaced with `p_prime_scaled = p_prime / c_mean^2`.
 
 #### Deprecated
 
