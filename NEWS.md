@@ -9,7 +9,13 @@ for human readability.
 
 #### Added
 
+- Experimental support for artifial neural network-based indicators for shock capturing and
+  adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
+
 #### Changed
+
+- Implementation of acoustic perturbation equations now uses the conservative form, i.e. the
+  perturbed pressure `p_prime` has been replaced with `p_prime_scaled = p_prime / c_mean^2`.
 
 #### Deprecated
 

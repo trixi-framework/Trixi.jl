@@ -27,7 +27,7 @@ end
 
 
 function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5},
-                                                   equations, dg::DGSEM, cache;
+                                                   mesh, equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
@@ -154,7 +154,7 @@ end
 
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,5},
-                                   equations, dg::DGSEM, cache;
+                                   mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
   @unpack alpha, indicator_threaded = löhner.cache
@@ -221,7 +221,7 @@ end
 
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5},
-                                       equations, dg::DGSEM, cache;
+                                       mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
   @unpack alpha, indicator_threaded = indicator_max.cache
   resize!(alpha, nelements(dg, cache))
