@@ -406,6 +406,13 @@ Cassette.@context Ctx
 
     indicator_max = IndicatorMax("variable", (; cache=nothing))
     @test_nowarn show(stdout, indicator_max)
+
+    equations = CompressibleEulerEquations2D(1.4)
+    basis = LobattoLegendreBasis(3)
+    indicator_neuralnetwork = IndicatorNeuralNetwork(
+        equations, basis, indicator_type=NeuralNetworkPerssonPeraire(), variable=density,
+        network=nothing)
+    @test_nowarn show(stdout, indicator_neuralnetwork)
   end
 
   @timed_testset "LBM 2D constructor" begin

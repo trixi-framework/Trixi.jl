@@ -193,7 +193,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
 export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
+       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven, NeuralNetworkCNN
 
 export PositivityPreservingLimiterZhangShu
 
@@ -220,6 +221,10 @@ function __init__()
     include("visualization/recipes_makie.jl")
     using .Makie: Makie
     export iplot # interactive plot
+  end
+
+  @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+    using Flux: params
   end
 
   # FIXME upstream. This is a hacky workaround for
