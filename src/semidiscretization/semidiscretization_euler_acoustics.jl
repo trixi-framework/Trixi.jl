@@ -36,8 +36,13 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, SourceRegion, 
     # Currently both semidiscretizations need to use a shared mesh
     @assert semi_acoustics.mesh == semi_euler.mesh
 
-    @assert ndims(semi_acoustics) == ndims(semi_euler)
-    @assert polydeg(semi_acoustics.solver) == polydeg(semi_euler.solver)
+    # Check if both solvers use the same polynomial basis
+    @assert typeof(semi_acoustics.solver.basis) == typeof(semi_euler.solver.basis)
+    for field in fieldnames(typeof(semi_acoustics.solver.basis))
+      value_acoustics = getfield(semi_acoustics.solver.basis, field)
+      value_euler = getfield(semi_euler.solver.basis, field)
+      @assert value_acoustics == value_euler
+    end
 
     performance_counter = PerformanceCounter()
     new(semi_acoustics, semi_euler, source_region, weights, performance_counter, cache)
