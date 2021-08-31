@@ -31,7 +31,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
   averaging_callback = cb.affect!
   @unpack tspan = averaging_callback
 
-  print(io, "AveragingCallback(tspan=", tspan)
+  print(io, "AveragingCallback(tspan=", tspan, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AveragingCallback})
@@ -50,8 +50,8 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ave
   end
 end
 
-function AveragingCallback(semi::SemidiscretizationHyperbolic; tspan, output_directory="out",
-                           filename="averaging.h5")
+function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any, <:CompressibleEulerEquations2D};
+                           tspan, output_directory="out", filename="averaging.h5")
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   mean_values = initialize_mean_values(mesh, equations, solver, cache)
   cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
@@ -100,7 +100,7 @@ function (averaging_callback::AveragingCallback)(integrator)
                                                       u, u_prev, integration_constant,
                                                       mesh, equations, solver, cache)
 
-  # Store final mean values in a file this is the last time step
+  # Store mean values in a file if this is the last time step
   if isfinished(integrator)
     save_averaging_file(averaging_callback, semi)
   end
