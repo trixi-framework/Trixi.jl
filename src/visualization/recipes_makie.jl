@@ -4,10 +4,12 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
+default_colormap() = :inferno
 
 """
     iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-          solution_variables=nothing, nvisnodes=nnodes(solver), variable_to_plot_in=1)
+          solution_variables=nothing, nvisnodes=nnodes(solver), variable_to_plot_in=1,
+          colormap = default_colormap())
 
 Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
 
@@ -20,7 +22,8 @@ Inputs:
     This is an experimental feature and may change in future releases.
 """
 function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-               solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1)
+               solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
+               colormap = default_colormap())
 
   pd = PlotData2D(u, mesh, equations, solver, cache;
                   solution_variables=solution_variables, nvisnodes=nvisnodes)
@@ -62,7 +65,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
   # Plot the actual solution.
-  Makie.mesh!(ax, plotting_mesh, color=solution_z, nvisnodes=nvisnodes)
+  Makie.mesh!(ax, plotting_mesh, color=solution_z, nvisnodes=nvisnodes, colormap=colormap)
 
   # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
   wire_points = Makie.@lift(mesh_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
@@ -109,7 +112,7 @@ iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_sol
 # custom `trixiheatmap` plots. See also https://makie.juliaplots.org/stable/recipes.html
 @Makie.recipe(TrixiHeatmap, plot_data_series) do scene
   Makie.Theme(
-    colormap = :inferno
+    colormap = default_colormap()
   )
 end
 
@@ -145,8 +148,9 @@ Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.UnstructuredPlotData2D}) = TrixiHe
 
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution;
-                    plot_mesh=true, solution_variables=nothing)
-  return Makie.plot(PlotData2D(sol, solution_variables=solution_variables); plot_mesh=plot_mesh)
+                    plot_mesh=true, solution_variables=nothing, colormap=default_colormap())
+  return Makie.plot(PlotData2D(sol, solution_variables=solution_variables);
+                    plot_mesh=plot_mesh, colormap=colormap)
 end
 
 # convenience struct for editing Makie plots after they're created.
@@ -171,14 +175,14 @@ function Base.iterate(fa::FigureAndAxes, state=1)
 end
 
 function Makie.plot(pd::UnstructuredPlotData2D, fig=Makie.Figure();
-                    plot_mesh=true)
-  figAxes = Makie.plot!(fig, pd; plot_mesh=plot_mesh)
+                    plot_mesh=true, colormap=default_colormap())
+  figAxes = Makie.plot!(fig, pd; plot_mesh=plot_mesh, colormap=colormap)
   display(figAxes.fig)
   return figAxes
 end
 
 function Makie.plot!(fig, pd::UnstructuredPlotData2D;
-                     plot_mesh = true)
+                     plot_mesh = true, colormap)
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
@@ -193,7 +197,7 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
 
   for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
     ax = axes[variable_to_plot]
-    trixiheatmap!(ax, pds; plot_mesh=plot_mesh)
+    trixiheatmap!(ax, pds; plot_mesh=plot_mesh, colormap=colormap)
     ax.aspect = Makie.DataAspect() # equal aspect ratio
     ax.title  = variable_name
     Makie.xlims!(ax, extrema(pd.x))
