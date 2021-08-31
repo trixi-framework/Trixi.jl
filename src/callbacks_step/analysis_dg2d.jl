@@ -58,9 +58,34 @@ function calc_error_norms(func, u, t, analyzer,
   @unpack node_coordinates = cache.elements
   @unpack u_local, u_tmp1, x_local, x_tmp1 = cache_analysis
 
+  # Calculate error norms for each element
+  l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
+                                                        mesh, equations, initial_condition,
+                                                        dg, cache, cache_analysis)
+
+  # Aggregate element error norms
+  l2_error = sum(l2_errors)
+  max_broadcasted(args...) = broadcast(max, args...)
+  linf_error = reduce(max_broadcasted, linf_errors)
+
+  # For L2 error, divide by total volume
+  total_volume_ = total_volume(mesh)
+  l2_error = @. sqrt(l2_error / total_volume_)
+
+  return l2_error, linf_error
+end
+
+function calc_error_norms_per_element(func, u, t, analyzer,
+                                      mesh::TreeMesh{2}, equations, initial_condition,
+                                      dg::DGSEM, cache, cache_analysis)
+  @unpack vandermonde, weights = analyzer
+  @unpack node_coordinates = cache.elements
+  @unpack u_local, u_tmp1, x_local, x_tmp1 = cache_analysis
+
   # Set up data structures
-  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
-  linf_error = copy(l2_error)
+  T = typeof(zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations)))
+  l2_errors = zeros(T, nelements(dg, cache))
+  linf_errors = copy(l2_errors)
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
@@ -74,16 +99,12 @@ function calc_error_norms(func, u, t, analyzer,
     for j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
-      l2_error += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
-      linf_error = @. max(linf_error, abs(diff))
+      l2_errors[element] += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
+      linf_errors[element] = @. max(linf_errors[element], abs(diff))
     end
   end
 
-  # For L2 error, divide by total volume
-  total_volume_ = total_volume(mesh)
-  l2_error = @. sqrt(l2_error / total_volume_)
-
-  return l2_error, linf_error
+  return l2_errors, linf_errors
 end
 
 
