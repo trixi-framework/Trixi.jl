@@ -147,7 +147,7 @@ function calc_damping_factor(x, direction, sponge_layer_min, sponge_layer_max)
   end
 
   # Determine where the sponge layer begins/ends to allow calculating the damping factor
-  if direction in (2, 4)
+  if iseven(direction)
     sponge_begin = sponge_layer_min[direction]
     sponge_end = sponge_layer_max[direction]
   else
@@ -181,7 +181,7 @@ function (bc::BoundaryCondition)(u_inner, orientation, direction, x, t,
   u_boundary = SVector(bc.rho, zero(uEltype), zero(uEltype), bc.rho_e)
 
   # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -200,10 +200,10 @@ import .VortexPairSetup
 # shared parameters, mesh and solver for both semidiscretizations
 
 # Parameters of the vortex pair
-mach = 1/9
+Mach = 1/9
 c0 = 1.0
 r0 = 1.0
-circulation = 4 * pi * r0 * c0 * mach
+circulation = 4 * pi * r0 * c0 * Mach
 rho = 1.0
 
 rc = 2/9 * r0 * 1.0
