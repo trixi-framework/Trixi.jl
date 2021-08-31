@@ -393,14 +393,23 @@ julia> fig, axes = plot(sol)
 julia> axes[1,1].title = "New title for subplot (1,1)"
 ```
 
-Trixi also supports interactive surface plots using `iplot`:
+Trixi also supports interactive surface plots using `iplot`.
+After executing `examples/unstructured_2d_dgsem/elixir_euler_wall_bc.jl`, we can run
 ```julia
 julia> iplot(sol)
 ```
 This will open up an interactive visualization window:
 
-![makie-example](https://user-images.githubusercontent.com/1156048/127914785-bb87cff5-92b2-4e72-9ed1-9c04f4f81a73.png)
+![makie-example](https://user-images.githubusercontent.com/1156048/131539850-affd6a48-f152-4d67-8ed1-cac939daaf75.png)
 
 The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and panned
 (hold right click and drag). Two toggle buttons control whether mesh lines are visible on top
 of and below the solution.
+
+Both `plot` and `iplot` use `colormap = :inferno` by default.
+[https://docs.juliaplots.org/latest/generated/colorschemes/](A different colormap) can be selected
+by providing an appropriate keyword argument. For example, `plot(sol, colormap=:blues)` and
+`iplot(sol, colormap=:blues)` produce the following figures:
+
+![makie-plot-example](https://user-images.githubusercontent.com/1156048/131539853-2ab51c33-5fd3-4d3b-a49b-3b1de8f63a98.png)
+![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131539834-7bc357d1-072b-4153-bb14-a68fc964ecbd.png)
