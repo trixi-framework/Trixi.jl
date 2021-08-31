@@ -37,14 +37,14 @@ function initialize_cache!(averaging_callback_cache, u,
   # Calculate vorticity for initial solution
   @threaded for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
-      v2_x = 0.0 # derivative of v2 in x direction
+      v2_x = zero(eltype(u)) # derivative of v2 in x direction
       for ii in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, ii, j, element)
         v2 = u_node[3] / u_node[1]
         v2_x += derivative_matrix[i, ii] * v2
       end
 
-      v1_y = 0.0 # derivative of v1 in y direction
+      v1_y = zero(eltype(u)) # derivative of v1 in y direction
       for jj in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, jj, element)
         v1 = u_node[2] / u_node[1]
@@ -69,14 +69,14 @@ function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, int
   @threaded for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       # Calculate vorticity
-      v2_x = 0.0 # derivative of v2 in x direction
+      v2_x = zero(eltype(u)) # derivative of v2 in x direction
       for ii in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, ii, j, element)
         v2 = u_node[3] / u_node[1]
         v2_x += derivative_matrix[i, ii] * v2
       end
 
-      v1_y = 0.0 # derivative of v1 in y direction
+      v1_y = zero(eltype(u)) # derivative of v1 in y direction
       for jj in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, jj, element)
         v1 = u_node[2] / u_node[1]

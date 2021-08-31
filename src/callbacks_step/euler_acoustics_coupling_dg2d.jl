@@ -11,7 +11,7 @@ function calc_gradient_c_mean_square!(grad_c_mean_sq, u, mesh,
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      c_mean_sq_x = 0.0 # partial derivative of c_mean square in x direction on the ref. element
+      c_mean_sq_x = zero(eltype(u)) # partial derivative of c_mean square in x direction on the ref. element
       for ii in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, ii, j, element)
         c_mean = u_node[6]
@@ -19,7 +19,7 @@ function calc_gradient_c_mean_square!(grad_c_mean_sq, u, mesh,
       end
       grad_c_mean_sq[1, i, j, element] = c_mean_sq_x * cache.elements.inverse_jacobian[element]
 
-      c_mean_sq_y = 0.0 # partial derivative of c_mean square in y direction on the ref. element
+      c_mean_sq_y = zero(eltype(u)) # partial derivative of c_mean square in y direction on the ref. element
       for jj in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, jj, element)
         c_mean = u_node[6]
@@ -47,14 +47,14 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vor
       # Only calculate sources on nodes that lie within the acoustic source region
       if source_region(x)
         # Calculate vorticity
-        v2_x = 0.0 # derivative of v2 in x direction
+        v2_x = zero(eltype(u_euler)) # derivative of v2 in x direction
         for ii in eachnode(dg)
           u_euler_node = get_node_vars(u_euler, equations, dg, ii, j, element)
           v2 = u_euler_node[3] / u_euler_node[1]
           v2_x += derivative_matrix[i, ii] * v2
         end
 
-        v1_y = 0.0 # derivative of v1 in y direction
+        v1_y = zero(eltype(u_euler)) # derivative of v1 in y direction
         for jj in eachnode(dg)
           u_euler_node = get_node_vars(u_euler, equations, dg, i, jj, element)
           v1 = u_euler_node[2] / u_euler_node[1]
