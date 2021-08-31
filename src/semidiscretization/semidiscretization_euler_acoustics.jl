@@ -172,7 +172,7 @@ end
 function calc_conservation_source_term!(du_acoustics, u_acoustics, grad_c_mean_sq,
                                         mesh::TreeMesh{2}, equations::AcousticPerturbationEquations2D,
                                         dg::DGSEM, cache)
-  @threaded for element in eachelement(cache.elements)
+  @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u_acoustics, equations, dg, i, j, element)
       v1_prime, v2_prime, p_prime = cons2state(u_node, equations)

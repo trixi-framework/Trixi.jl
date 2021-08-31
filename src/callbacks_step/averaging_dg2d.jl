@@ -35,7 +35,7 @@ function initialize_cache!(averaging_callback_cache, u,
   @unpack vorticity_prev = averaging_callback_cache
 
   # Calculate vorticity for initial solution
-  @threaded for element in eachelement(cache.elements)
+  @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       v2_x = zero(eltype(u)) # derivative of v2 in x direction
       for ii in eachnode(dg)
@@ -66,7 +66,7 @@ function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, int
   @unpack vorticity_prev = averaging_callback_cache
   @unpack derivative_matrix = dg.basis
 
-  @threaded for element in eachelement(cache.elements)
+  @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       # Calculate vorticity
       v2_x = zero(eltype(u)) # derivative of v2 in x direction
