@@ -43,45 +43,47 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vor
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      x = get_node_coords(node_coordinates, equations, dg, i, j, element)
       # Only calculate sources on nodes that lie within the acoustic source region
-      if source_region(x)
-        # Calculate vorticity
-        v2_x = zero(eltype(u_euler)) # derivative of v2 in x direction
-        for ii in eachnode(dg)
-          u_euler_node = get_node_vars(u_euler, equations, dg, ii, j, element)
-          v2 = u_euler_node[3] / u_euler_node[1]
-          v2_x += derivative_matrix[i, ii] * v2
-        end
-
-        v1_y = zero(eltype(u_euler)) # derivative of v1 in y direction
-        for jj in eachnode(dg)
-          u_euler_node = get_node_vars(u_euler, equations, dg, i, jj, element)
-          v1 = u_euler_node[2] / u_euler_node[1]
-          v1_y += derivative_matrix[j, jj] * v1
-        end
-
-        vorticity = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
-
-        prim_euler = cons2prim(get_node_vars(u_euler, equations, dg, i, j, element), equations)
-        v1 = prim_euler[2]
-        v2 = prim_euler[3]
-        v1_mean = u_acoustics[4, i, j, element]
-        v2_mean = u_acoustics[5, i, j, element]
-
-        vorticity_prime = vorticity - vorticity_mean[i, j, element]
-        v1_prime = v1 - v1_mean
-        v2_prime = v2 - v2_mean
-
-        acoustic_source_terms[1, i, j, element] -= -vorticity_prime * v2_mean -
-                                                    vorticity_mean[i, j, element] * v2_prime
-        acoustic_source_terms[2, i, j, element] -=  vorticity_prime * v1_mean +
-                                                    vorticity_mean[i, j, element] * v1_prime
-
-        # Apply acoustic source weighting function
-        acoustic_source_terms[1, i, j, element] *= weights(x)
-        acoustic_source_terms[2, i, j, element] *= weights(x)
+      x = get_node_coords(node_coordinates, equations, dg, i, j, element)
+      if !source_region(x)
+        continue
       end
+
+      # Calculate vorticity
+      v2_x = zero(eltype(u_euler)) # derivative of v2 in x direction
+      for ii in eachnode(dg)
+        u_euler_node = get_node_vars(u_euler, equations, dg, ii, j, element)
+        v2 = u_euler_node[3] / u_euler_node[1]
+        v2_x += derivative_matrix[i, ii] * v2
+      end
+
+      v1_y = zero(eltype(u_euler)) # derivative of v1 in y direction
+      for jj in eachnode(dg)
+        u_euler_node = get_node_vars(u_euler, equations, dg, i, jj, element)
+        v1 = u_euler_node[2] / u_euler_node[1]
+        v1_y += derivative_matrix[j, jj] * v1
+      end
+
+      vorticity = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
+
+      prim_euler = cons2prim(get_node_vars(u_euler, equations, dg, i, j, element), equations)
+      v1 = prim_euler[2]
+      v2 = prim_euler[3]
+      v1_mean = u_acoustics[4, i, j, element]
+      v2_mean = u_acoustics[5, i, j, element]
+
+      vorticity_prime = vorticity - vorticity_mean[i, j, element]
+      v1_prime = v1 - v1_mean
+      v2_prime = v2 - v2_mean
+
+      acoustic_source_terms[1, i, j, element] -= -vorticity_prime * v2_mean -
+                                                  vorticity_mean[i, j, element] * v2_prime
+      acoustic_source_terms[2, i, j, element] -=  vorticity_prime * v1_mean +
+                                                  vorticity_mean[i, j, element] * v1_prime
+
+      # Apply acoustic source weighting function
+      acoustic_source_terms[1, i, j, element] *= weights(x)
+      acoustic_source_terms[2, i, j, element] *= weights(x)
     end
   end
 
