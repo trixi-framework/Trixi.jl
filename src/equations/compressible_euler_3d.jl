@@ -428,6 +428,74 @@ end
 
 
 """
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::CompressibleEulerEquations3D)
+
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
+- J. J. W. van der Vegt and H. van der Ven (2002)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
+
+Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of the book
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  3rd edition
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+
+!!! warning "Experimental code"
+    This wall function can change any time.
+"""
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+                                      surface_flux_function, equations::CompressibleEulerEquations3D)
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
+
+  # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
+  tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
+  # Orthogonal projection
+  tangent1 -= dot(normal, tangent1) * normal
+  tangent1 = normalize(tangent1)
+
+  # Third orthogonal vector
+  tangent2 = normalize(cross(normal_direction, tangent1))
+
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_inner, normal, tangent1, tangent2, equations)
+
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent1, v_tangent2, p_local = cons2prim(u_local, equations)
+
+  # Get the solution of the pressure Riemann problem
+  # See Section 6.3.3 of
+  # Eleuterio F. Toro (2009)
+  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+  if v_normal <= 0.0
+    sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+  else # v_normal > 0.0
+    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+  end
+
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_inner)),
+                 p_star * normal[1],
+                 p_star * normal[2],
+                 p_star * normal[3],
+                 zero(eltype(u_inner))) * norm_
+end
+
+
+"""
     boundary_flux_slip_wall(u_internal, normal_direction::AbstractVector,
                             equations::CompressibleEulerEquations3D)
 
@@ -473,7 +541,7 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   rho_local, v_normal, v_tangent1, v_tangent2, p_local = cons2prim(u_local, equations)
 
   # Get the solution of the pressure Riemann problem
-  # See Section 6.3.3 of 
+  # See Section 6.3.3 of
   # Eleuterio F. Toro (2009)
   # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
   # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
