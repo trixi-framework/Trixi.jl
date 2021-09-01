@@ -444,7 +444,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
       boundaries.neighbor_ids[count] = element
 
       # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
-      if direction in (2, 4)
+      if iseven(direction)
         boundaries.neighbor_sides[count] = 1
       else
         boundaries.neighbor_sides[count] = 2
@@ -832,7 +832,7 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
       count += 1
       mpi_interfaces.local_element_ids[count] = element
 
-      if direction in (2, 4) # element is "left" of interface, remote cell is "right" of interface
+      if iseven(direction) # element is "left" of interface, remote cell is "right" of interface
         mpi_interfaces.remote_sides[count] = 2
       else
         mpi_interfaces.remote_sides[count] = 1

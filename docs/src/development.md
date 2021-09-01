@@ -74,10 +74,9 @@ to load Revise and Trixi. You can then proceed with the usual commands and run T
 the example [above](#Running-Trixi-interactively-in-the-global-environment-1).
 The `--project` flag is required such that Julia can properly load Trixi and all dependencies
 if Trixi is not installed in the global environment. The same procedure also
-applies should you opt to install the postprocessing tools
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl) and
-[Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) manually such that
-you can modify their implementations.
+applies should you opt to install the postprocessing tool
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
+manually such that you can modify their implementations.
 
 
 ### Pitfalls when using Revise
@@ -156,37 +155,38 @@ than can increase your productivity in the Julia REPL.
   for function arguments.
   ```julia-repl
   julia> flux_ranocha( # and TAB
-  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D) in Trixi at ~/.julia/dev/Trixi/src/equations/1d/compressible_euler.jl:416
-  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:865
-  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D) in Trixi at ~/.julia/dev/Trixi/src/equations/3d/compressible_euler.jl:710
+  flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D) in Trixi at ~/.julia/dev/Trixi/src/equations/compressible_euler_1d.jl:390
+  flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/compressible_euler_2d.jl:839
+  [...]
   ```
 - Use `methodswith` to discover methods associated to a given type etc.
   ```julia-repl
   julia> methodswith(CompressibleEulerEquations2D)
-  [1] initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:38
+  [1] initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/compressible_euler_2d.jl:51
   [...]
   ```
 - Use `@which` (or `@edit`) for method calls.
   ```julia-repl
   julia> @which trixi_include(default_example())
-  trixi_include(elixir::AbstractString; kwargs...) in Trixi at ~/.julia/dev/Trixi/src/run.jl:72
+  trixi_include(elixir::AbstractString; kwargs...) in Trixi at ~/.julia/dev/Trixi/src/auxiliary/special_elixirs.jl:36
   ```
 - Use `apropos` to search through the documentation and docstrings.
   ```julia-repl
-  julia> apropos("MHD") # TODO: nonconservative terms. Update this once the old code is removed
-  Trixi.initial_condition_constant
-  Trixi.initial_condition_rotor
-  Trixi.IdealGlmMhdEquations2D
-  Trixi.initial_condition_jeans_instability
+  julia> apropos("MHD")
   Trixi.IdealGlmMhdEquations3D
-  Trixi.flux_derigs_etal
-  Trixi.initial_condition_weak_blast_wave
-  Trixi.initial_condition_blast_wave
-  Trixi.initial_condition_convergence_test
-  Trixi.noncons_interface_flux
-  Trixi.initial_condition_orszag_tang
+  Trixi.IdealGlmMhdMulticomponentEquations2D
   Trixi.calc_fast_wavespeed_roe
-  Trixi.flux_hll
+  Trixi.IdealGlmMhdEquations1D
+  Trixi.initial_condition_constant
+  Trixi.flux_nonconservative_powell
+  Trixi.GlmSpeedCallback
+  Trixi.flux_derigs_etal
+  Trixi.flux_hindenlang_gassner
+  Trixi.initial_condition_convergence_test
+  Trixi.min_max_speed_naive
+  Trixi.IdealGlmMhdEquations2D
+  Trixi.IdealGlmMhdMulticomponentEquations1D
+  [...]
   ```
 
 
@@ -229,7 +229,7 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 
 
-## Releasing a new version of Trixi, Trixi2Vtk, Trixi2Img
+## Releasing a new version of Trixi, Trixi2Vtk
 
 - Check whether everything is okay, tests pass etc.
 - Set the new version number in `Project.toml` according to the Julian version of semver.
@@ -239,18 +239,14 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
   Wait for it to be merged.
 - Increment the version number in `Project.toml` again with suffix `-pre`. For example,
   if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
-- Set the correct version number in the badge "GitHub commits since tagged version"
-  in README.md.
-  The badge will only show up correctly if TagBot has released a new version. This will
-  be done automatically.
 - When a new version of Trixi was released, check whether the `[compat]` entries
-  in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
-  When a new version of Trixi2Vtk/Trixi2Img was released, check whether the `[compat]`
+  in `test/Project.toml` in Trixi2Vtk should be updated.
+  When a new version of Trixi2Vtk was released, check whether the `[compat]`
   entries in `docs/Project.toml` in Trixi should be updated.
 
   These entries will also be checked regularly by CompatHelper (once a day). Hence,
   if everything was released correctly, you should only need to do these checks manually
-  if new minor versions with changes in the docs of Trixi2Vtk/Trixi2Img were released
+  if new minor versions with changes in the docs of Trixi2Vtk were released
   but no new version of Trixi was released afterwards.
 
 

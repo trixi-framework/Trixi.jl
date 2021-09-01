@@ -15,6 +15,10 @@
   <img width="300px" src="docs/src/assets/logo.png">
 </p>
 
+**>> Trixi was present at JuliaCon 2021: Watch the talk on
+[YouTube](https://www.youtube.com/watch?v=hoViWRAhCBE) or revisit the
+[live demonstration](https://github.com/trixi-framework/talk-2021-juliacon)! <<**
+
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -44,9 +48,10 @@ installation and postprocessing procedures. Its features include:
   * Compressible Euler equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
+  * Acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
-  * Scalar advection
+  * Several scalar conservation laws (e.g., linear advection, Burgers' equation)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
@@ -129,7 +134,7 @@ julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
 <p align="center">
-  <img width="300px" src="https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png">
+  <img width="300px" src="https://user-images.githubusercontent.com/72009492/130952732-633159ff-c167-4d36-ba36-f2a2eac0a8d6.PNG">
 </p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a
@@ -161,9 +166,20 @@ using Git. The latest documentation can be accessed either
 
 ## Referencing
 If you use Trixi in your own research or write a paper using results obtained
-with the help of Trixi, please cite the following
-[paper](https://arxiv.org/abs/2008.10593):
+with the help of Trixi, please cite the following articles:
 ```bibtex
+@online{ranocha2021adaptive,
+  title={Adaptive numerical simulations with {T}rixi.jl:
+         {A} case study of {J}ulia for scientific computing},
+  author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
+          and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
+  year={2021},
+  month={08},
+  eprint={2108.06476},
+  eprinttype={arXiv},
+  eprintclass={cs.MS}
+}
+
 @article{schlottkelakemper2021purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
          self-gravitating gas dynamics},
@@ -173,6 +189,7 @@ with the help of Trixi, please cite the following
   pages={110467},
   year={2021},
   month={06},
+  volume={442},
   publisher={Elsevier},
   doi={10.1016/j.jcp.2021.110467},
   eprint={2008.10593},

@@ -417,7 +417,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
   u_boundary = prim2cons(SVector(rho, v1, v2, v3, p), equations)
 
   # Calculate boundary flux
-  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -461,7 +461,7 @@ end
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1 * v1 + p
@@ -867,8 +867,10 @@ end
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
 
-  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm(normal_direction)
-  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm(normal_direction)
+  norm_ = norm(normal_direction)
+  # The v_normals are already scaled by the norm
+  λ_min = v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) * norm_
+  λ_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
   return λ_min, λ_max
 end

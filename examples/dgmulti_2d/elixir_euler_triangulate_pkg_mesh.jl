@@ -1,5 +1,3 @@
-
-using Triangulate
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Tri(),
@@ -10,7 +8,8 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-meshIO = StartUpDG.square_hole_domain(.25) # pre-defined Triangulate geometry in StartUpDG
+# use pre-defined Triangulate geometry in StartUpDG
+meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole())
 
 # the pre-defined Triangulate geometry in StartUpDG has integer boundary tags. this routine
 # assigns boundary faces based on these integer boundary tags.
