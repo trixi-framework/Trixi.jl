@@ -287,7 +287,7 @@ function flux_mars(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
 end
 
 function indicator_test(u::AbstractArray{<:Any,5},
-                        equations, dg::DGSEM, cache;
+                        mesh, equations, dg::DGSEM, cache;
                         kwargs...)
   alpha = zeros(Int, nelements(dg, cache))
 
@@ -311,20 +311,21 @@ end
 
 initial_condition = initial_condition_baroclinic_instability
 
-boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
-# boundary_condition_slip_wall = BoundaryConditionDirichlet(initial_condition)
+boundary_condition = BoundaryConditionWall(boundary_state_slip_wall)
+# boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(
-  :inside  => boundary_condition_slip_wall,
-  :outside => boundary_condition_slip_wall,
+  :inside  => boundary_condition,
+  :outside => boundary_condition,
 )
 
 # surface_flux = flux_lax_friedrichs
 surface_flux = FluxRotated(flux_mars)
+# surface_flux = FluxRotated(flux_hllc)
 volume_flux  = flux_kennedy_gruber
-solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=8, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 mesh = Trixi.P4estMeshCubedSphere(8, 4, 6371220.0, 30000.0,
-                                  polydeg=5, initial_refinement_level=0)
+                                  polydeg=4, initial_refinement_level=0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_baroclinic_instability,
@@ -339,12 +340,12 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 5000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
@@ -360,7 +361,8 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine=true)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
+                        analysis_callback,
+                        alive_callback,
                         save_solution,
                         amr_callback,
                         stepsize_callback)

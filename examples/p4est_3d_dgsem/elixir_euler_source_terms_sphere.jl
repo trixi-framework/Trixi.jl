@@ -9,74 +9,59 @@ using LinearAlgebra
 gamma = 1.4
 equations = CompressibleEulerEquations3D(gamma)
 
+function initial_condition_convergence_test_sphere(x_, t_, equations::CompressibleEulerEquations3D)
+  x = x_ / 6371220
+  t = t_ / 6371220
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  ini = c + A * sin(ω * (x[1] + x[2] + x[3] - t))
 
-function initial_condition_test(x, t, equations::CompressibleEulerEquations3D)
-  RadEarth = 6371220.0 # Earth radius
-  p = 1e5
-  rho = 100.0
-  v1 = -10 * x[2] / RadEarth
-  v2 = 10 * x[1] / RadEarth
-  v3 = 0.0
+  rho = ini
+  rho_v1 = ini
+  rho_v2 = ini
+  rho_v3 = ini
+  rho_e = ini^2
 
-  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
-@inline function source_terms_test(u, x, t, equations::CompressibleEulerEquations3D)
-  RadEarth = 6371220.0 # Earth radius
-  rho = 100.0
+@inline function source_terms_convergence_test_sphere(u, x_, t_, equations::CompressibleEulerEquations3D)
+  x = x_ / 6371220
+  t = t_ / 6371220
+  # Same settings as in `initial_condition`
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  γ = equations.gamma
 
-  du1 = 0.0
-  du2 = -rho * (10 / RadEarth) * (10 * x[1] / RadEarth)
-  du3 = -rho * (10 / RadEarth) * (10 * x[2] / RadEarth)
-  du4 = 0.0
-  du5 = 0.0
+  x1, x2, x3 = x
+  si, co = sincos(((x1 + x2 + x3) - t) * ω)
+  tmp1 = si * A
+  tmp2 = co * A * ω
+  tmp3 = ((((((4 * tmp1 * γ - 4 * tmp1) + 4 * c * γ) - 4c) - 3γ) + 7) * tmp2) / 2
 
-  return SVector(du1, du2, du3, du4, du5)
+  du1 = 2 * tmp2
+  du2 = tmp3
+  du3 = tmp3
+  du4 = tmp3
+  du5 = ((((((12 * tmp1 * γ - 4 * tmp1) + 12 * c * γ) - 4c) - 9γ) + 9) * tmp2) / 2
+
+  # Original terms (without performance enhancements)
+  # tmp2 = ((((((4 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 4 * c * γ) - 4c) - 3γ) + 7) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+  # du1 = 2 * cos(((x1 + x2 + x3) - t) * ω) * A * ω
+  # du2 = tmp2
+  # du3 = tmp2
+  # du4 = tmp2
+  # du5 = ((((((12 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 12 * c * γ) - 4c) - 9γ) + 9) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+
+  return SVector(du1, du2, du3, du4, du5) / 6371220
 end
 
-function flux_mars(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
-  # This only works in x-direction
-  @assert orientation == 1
-
-  cS = 360
-
-  sRho_L = 1 / u_ll[1]
-  sRho_R = 1 / u_rr[1]
-
-  Vel_L_1 = u_ll[2] * sRho_L
-  Vel_L_2 = u_ll[3] * sRho_L
-  Vel_L_3 = u_ll[4] * sRho_L
-  Vel_R_1 = u_rr[2] * sRho_R
-  Vel_R_2 = u_rr[3] * sRho_R
-  Vel_R_3 = u_rr[4] * sRho_R
-
-  p_L = (equations.gamma - 1) * (u_ll[5] - 0.5 * (u_ll[2] * Vel_L_1 + u_ll[3] * Vel_L_2 + u_ll[4] * Vel_L_3))
-  p_R = (equations.gamma - 1) * (u_rr[5] - 0.5 * (u_rr[2] * Vel_R_1 + u_rr[3] * Vel_R_2 + u_rr[4] * Vel_R_3))
-  rhoM = 0.5 * (u_ll[1] + u_rr[1])
-  pM = 0.5*(p_L + p_R) -0.5*cS*rhoM*(Vel_R_1 - Vel_L_1)
-  vM = 0.5*(Vel_R_1 + Vel_L_1) -1.0/(2.0*rhoM*cS)*(p_R - p_L)
-  if vM >= 0
-    f1 = u_ll[1] * vM
-    f2 = u_ll[2] * vM
-    f3 = u_ll[3] * vM
-    f4 = u_ll[4] * vM
-    f5 = u_ll[5] * vM
-
-    f2 += pM
-    f5 += pM*vM
-  else
-    f1 = u_rr[1] * vM
-    f2 = u_rr[2] * vM
-    f3 = u_rr[3] * vM
-    f4 = u_rr[4] * vM
-    f5 = u_rr[5] * vM
-
-    f2 += pM
-    f5 += pM*vM
-  end
-
-  return SVector(f1, f2, f3, f4, f5)
-end
 
 function indicator_test(u::AbstractArray{<:Any,5},
                         mesh, equations, dg::DGSEM, cache;
@@ -101,19 +86,19 @@ function Trixi.get_element_variables!(element_variables, indicator::typeof(indic
   return nothing
 end
 
-initial_condition = initial_condition_test
+initial_condition = initial_condition_convergence_test_sphere
 
 # boundary_condition = BoundaryConditionWall(boundary_state_slip_wall)
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(
-  # :inside  => boundary_condition,
-  # :outside => boundary_condition,
-  :x_neg => boundary_condition,
-  :x_pos => boundary_condition,
-  :y_neg => boundary_condition,
-  :y_pos => boundary_condition,
-  :z_neg => boundary_condition,
-  :z_pos => boundary_condition,
+  :inside  => boundary_condition,
+  :outside => boundary_condition,
+  # :x_neg => boundary_condition,
+  # :x_pos => boundary_condition,
+  # :y_neg => boundary_condition,
+  # :y_pos => boundary_condition,
+  # :z_neg => boundary_condition,
+  # :z_pos => boundary_condition,
 )
 
 # surface_flux = flux_lax_friedrichs
@@ -122,22 +107,11 @@ surface_flux = FluxRotated(flux_hllc)
 volume_flux  = flux_kennedy_gruber
 solver = DGSEM(polydeg=8, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-# # Cylinder
-# function mapping(xi, eta, zeta)
-#   RadEarth = 6371220.0 # Earth radius
-
-#   x = cos((xi + 1) * pi) * (RadEarth + (0.5 * zeta + 0.5) * 30000)
-#   y = sin((xi + 1) * pi) * (RadEarth + (0.5 * zeta + 0.5) * 30000)
-#   z = eta * 1000000
-
-#   return SVector(x, y, z)
-# end
-
 # # One face of the cubed sphere
 # mapping(xi, eta, zeta) = Trixi.cubed_sphere_mapping(xi, eta, zeta, 6371220.0, 30000.0, 1)
 
 # trees_per_dimension = (8, 8, 4)
-# mesh = P4estMesh(trees_per_dimension, polydeg=3,
+# mesh = P4estMesh(trees_per_dimension, polydeg=5,
 #                  mapping=mapping,
 #                  initial_refinement_level=0,
 #                  periodicity=(false, false, false))
@@ -146,24 +120,24 @@ mesh = Trixi.P4estMeshCubedSphere(8, 4, 6371220.0, 30000.0,
                                   polydeg=4, initial_refinement_level=0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_test,
+                                    source_terms=source_terms_convergence_test_sphere,
                                     boundary_conditions=boundary_conditions)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 60 * 60.0)
+tspan = (0.0, 5.0 * 6371220)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1000,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
