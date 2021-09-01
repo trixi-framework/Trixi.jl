@@ -1,7 +1,7 @@
 using Trixi, Triangulate, Plots, TriplotRecipes
 
 # The following methods are based on PR#613 by Jesse Chan. Instead of using Makie.jl this uses Plots.jl.
-function triangulation_plot(sol, variable_to_plot::Int; nvisnodes=5, solution_variables=nothing)
+function triangulation_plot(sol, variable_to_plot::Int; nvisnodes=5, solution_variables=nothing, show_mesh=false)
 
     semi = sol.prob.p
     dg = semi.solver
@@ -53,19 +53,43 @@ function triangulation_plot(sol, variable_to_plot::Int; nvisnodes=5, solution_va
     n_tri = size(t,1)
     t_out = zeros(n_tri*n_elements, 3)
     for element in 0:n_elements-1
-        coordinates_out[(1:n_plot_nodes).+(element*n_plot_nodes),:] = coordinates[:,:,element+1]
         t_out[(1:n_tri).+(element*n_tri),1:3] = t.+n_plot_nodes*element
     end
 
     # Extract data for plotting.
     solution_variables_ = Trixi.digest_solution_variables(equations, solution_variables)
     variable_names = SVector(Trixi.varnames(solution_variables_, equations))
-    x = coordinates_out[:,1]
-    y = coordinates_out[:,2]
-    z = coordinates_out[:,3]
+    x = reshape(coordinates[:,1,:],:)
+    y = reshape(coordinates[:,2,:],:)
+    z = reshape(coordinates[:,3,:],:)
 
     plot(aspect_ratio=:equal, size=(800,811), xguide="x", yguide="y", title=variable_names[variable_to_plot])
     tripcolor!(x,y,z,convert(Matrix{Int64}, t_out'))
+
+    if show_mesh
+        coordinate_matrix = zeros(nvisnodes, nvisnodes, 2, n_elements)
+        mesh_points = zeros(4*nvisnodes, 2, n_elements)
+        for element in 1:n_elements
+            coordinate_matrix[:,:,1,element] = reshape(coordinates[:,1,element], nvisnodes, :)
+            coordinate_matrix[:,:,2,element] = reshape(coordinates[:,2,element], nvisnodes, :)
+        end
+        mesh_points[0*nvisnodes+1:1*nvisnodes,:,:] = coordinate_matrix[:,1,:,:]
+        mesh_points[1*nvisnodes+1:2*nvisnodes,:,:] = coordinate_matrix[1,:,:,:]
+        mesh_points[2*nvisnodes+1:3*nvisnodes,:,:] = coordinate_matrix[:,end,:,:]
+        mesh_points[3*nvisnodes+1:4*nvisnodes,:,:] = coordinate_matrix[end,:,:,:]
+
+        temp = zeros(4*nvisnodes+1, n_elements, 2)
+        for element in 1:n_elements
+            temp[1:end-1, element, 1] = vec(mesh_points[:,1,element])
+            temp[1:end-1, element, 2] = vec(mesh_points[:,2,element])
+            temp[end, element, :] .= NaN
+        end
+        x_mesh = vec(temp[:,:,1])
+        y_mesh = vec(temp[:,:,2])
+
+        plot!(x_mesh, y_mesh, label=:none, color=:grey)
+    end
+    plot!()
 end
 
 plotting_interpolation_matrix(dg; kwargs...) = I(length(dg.basis.nodes)) # is this the right thing for FD-SBP?
