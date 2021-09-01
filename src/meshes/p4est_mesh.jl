@@ -24,9 +24,9 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh
   function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
                             current_filename, unsaved_changes) where NDIMS
     if NDIMS == 2
-      @assert p4est isa Ptr{p4est_t}
+      @assert p4est isa Cptr{p4est_t}
     elseif NDIMS == 3
-      @assert p4est isa Ptr{p8est_t}
+      @assert p4est isa Cptr{p8est_t}
     end
 
     mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(p4est), NDIMS+2, length(nodes)}(

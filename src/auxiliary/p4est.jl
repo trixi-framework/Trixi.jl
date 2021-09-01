@@ -38,13 +38,13 @@ function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
 
   @assert element_size == sizeof(T)
 
-  return unsafe_load(Ptr{T}(sc_array.array), i)
+  return sc_array.array[i]
 end
 
 
 # Create new p4est from a p4est_connectivity
 # 2D
-function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
+function new_p4est(conn::Cptr{p4est_connectivity_t}, initial_refinement_level)
   p4est_new_ext(0, # No MPI communicator
                 conn,
                 0, # No minimum initial qudrants per processor
@@ -56,7 +56,7 @@ function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
 end
 
 # 3D
-function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
+function new_p4est(conn::Cptr{p8est_connectivity_t}, initial_refinement_level)
   p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 end
 
