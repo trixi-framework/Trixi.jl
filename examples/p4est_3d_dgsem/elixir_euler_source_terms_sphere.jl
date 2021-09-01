@@ -9,6 +9,17 @@ using LinearAlgebra
 gamma = 1.4
 equations = CompressibleEulerEquations3D(gamma)
 
+function cart_to_sphere(x)
+  r = norm(x)
+  lambda = atan(x[2], x[1])
+  if x[2] < 0
+    lambda += 8.0 * atan(1.0)
+  end
+  phi = asin(x[3] / r)
+
+  return lambda, phi, r
+end
+
 function initial_condition_convergence_test_sphere(x_, t_, equations::CompressibleEulerEquations3D)
   x = x_ / 6371220
   t = t_ / 6371220
