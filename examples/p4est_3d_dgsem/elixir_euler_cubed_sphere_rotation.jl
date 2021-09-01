@@ -116,14 +116,14 @@ initial_condition = initial_condition_test
 # boundary_condition = BoundaryConditionWall(boundary_state_slip_wall)
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(
-  # :inside  => boundary_condition,
-  # :outside => boundary_condition,
-  :x_neg => boundary_condition,
-  :x_pos => boundary_condition,
-  :y_neg => boundary_condition,
-  :y_pos => boundary_condition,
-  :z_neg => boundary_condition,
-  :z_pos => boundary_condition,
+  :inside  => boundary_condition,
+  :outside => boundary_condition,
+  # :x_neg => boundary_condition,
+  # :x_pos => boundary_condition,
+  # :y_neg => boundary_condition,
+  # :y_pos => boundary_condition,
+  # :z_neg => boundary_condition,
+  # :z_pos => boundary_condition,
 )
 
 # surface_flux = flux_lax_friedrichs
