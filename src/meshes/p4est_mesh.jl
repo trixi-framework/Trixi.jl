@@ -56,8 +56,8 @@ end
 @inline Base.ndims(::P4estMesh{NDIMS}) where NDIMS = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count
-@inline ncells(mesh::P4estMesh) = mesh.p4est.global_num_quadrants
+@inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count[]
+@inline ncells(mesh::P4estMesh) = mesh.p4est.global_num_quadrants[]
 
 
 function Base.show(io::IO, mesh::P4estMesh)

@@ -26,7 +26,7 @@ end
 
 # Convert sc_array of type T to Julia array
 function unsafe_wrap_sc(::Type{T}, sc_array) where T
-  element_count = sc_array.elem_count
+  element_count = sc_array.elem_count[]
 
   return [unsafe_load_sc(T, sc_array, i) for i in 1:element_count]
 end
@@ -34,7 +34,7 @@ end
 
 # Load the ith element (1-indexed) of an sc array of type T
 function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
-  element_size = sc_array.elem_size
+  element_size = sc_array.elem_size[]
 
   @assert element_size == sizeof(T)
 
