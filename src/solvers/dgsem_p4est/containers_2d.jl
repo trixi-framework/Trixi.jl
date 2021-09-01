@@ -50,8 +50,9 @@ function calc_node_coordinates!(node_coordinates,
   baryweights_in = barycentric_weights(mesh.nodes)
 
   # Macros from p4est
-  p4est_root_len = 1 << @P4EST_MAXLEVEL
-  p4est_quadrant_len(l) = 1 << (@P4EST_MAXLEVEL - l)
+  p4est_max_level = @P4EST_MAXLEVEL
+  p4est_root_len = 1 << p4est_max_level
+  p4est_quadrant_len(l) = 1 << (p4est_max_level - l)
 
   trees = unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
 
