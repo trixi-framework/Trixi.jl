@@ -86,7 +86,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
 
   # Resets the colorbar each time the solution changes.
-  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap = :viridis, flipaxis = false)
+  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap=colormap, flipaxis = false)
 
   # This syncs the toggle buttons to the mesh plots.
   Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)
