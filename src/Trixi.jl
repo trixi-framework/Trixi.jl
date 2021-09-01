@@ -24,6 +24,7 @@ using Printf: @printf, @sprintf, println
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
+using CBinding: Cptr
 import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,

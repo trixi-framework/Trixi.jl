@@ -4,6 +4,7 @@ authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Ga
 version = "0.4.0-pre"
 
 [deps]
+CBinding = "d43a6710-96b8-4a2d-833c-c424785e5374"
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
