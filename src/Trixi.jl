@@ -141,7 +141,7 @@ export initial_condition_constant,
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
-       boundary_condition_wall_noslip,
+       boundary_condition_noslip_wall,
        boundary_condition_wall_slip,
        boundary_condition_wall,
        boundary_condition_zero,

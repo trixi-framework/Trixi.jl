@@ -11,7 +11,7 @@ initial_condition = initial_condition_couette_unsteady
 boundary_conditions = (
                        x_neg=boundary_condition_periodic,
                        x_pos=boundary_condition_periodic,
-                       y_neg=boundary_condition_wall_noslip,
+                       y_neg=boundary_condition_noslip_wall,
                        y_pos=boundary_condition_couette,
                       )
 
