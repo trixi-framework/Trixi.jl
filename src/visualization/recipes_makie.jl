@@ -65,7 +65,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
   # Plot the actual solution.
-  Makie.mesh!(ax, plotting_mesh, color=solution_z, nvisnodes=nvisnodes, colormap=colormap)
+  Makie.mesh!(ax, plotting_mesh; color=solution_z, nvisnodes, colormap)
 
   # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
   wire_points = Makie.@lift(mesh_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
@@ -149,8 +149,7 @@ Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.UnstructuredPlotData2D}) = TrixiHe
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution;
                     plot_mesh=true, solution_variables=nothing, colormap=default_colormap())
-  return Makie.plot(PlotData2D(sol, solution_variables=solution_variables);
-                    plot_mesh=plot_mesh, colormap=colormap)
+  return Makie.plot(PlotData2D(sol; solution_variables); plot_mesh, colormap)
 end
 
 # convenience struct for editing Makie plots after they're created.
@@ -176,13 +175,13 @@ end
 
 function Makie.plot(pd::UnstructuredPlotData2D, fig=Makie.Figure();
                     plot_mesh=true, colormap=default_colormap())
-  figAxes = Makie.plot!(fig, pd; plot_mesh=plot_mesh, colormap=colormap)
+  figAxes = Makie.plot!(fig, pd; plot_mesh, colormap)
   display(figAxes.fig)
   return figAxes
 end
 
 function Makie.plot!(fig, pd::UnstructuredPlotData2D;
-                     plot_mesh = true, colormap)
+                     plot_mesh=true, colormap=default_colormap())
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
@@ -197,7 +196,7 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
 
   for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
     ax = axes[variable_to_plot]
-    trixiheatmap!(ax, pds; plot_mesh=plot_mesh, colormap=colormap)
+    trixiheatmap!(ax, pds; plot_mesh, colormap)
     ax.aspect = Makie.DataAspect() # equal aspect ratio
     ax.title  = variable_name
     Makie.xlims!(ax, extrema(pd.x))

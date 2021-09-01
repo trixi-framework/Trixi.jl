@@ -394,7 +394,11 @@ julia> axes[1,1].title = "New title for subplot (1,1)"
 ```
 
 Trixi also supports interactive surface plots using `iplot`.
-After executing `examples/unstructured_2d_dgsem/elixir_euler_wall_bc.jl`, we can run
+After executing
+```julia
+julia> trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+```
+we can run
 ```julia
 julia> iplot(sol)
 ```
