@@ -152,51 +152,6 @@ end
 end
 
 
-"""
-    BoundaryConditionFlux(boundary_flux_function)
-
-Create a generic boundary condition that uses an equation specific `boundary_flux_function`
-to specify the numerical flux at a boundary. In doing so, boundary conditions are imposed
-from the internal solution `u_inner` state and a provided `normal_direction`, e.g.,
-```julia
-boundary_flux_function(u_inner, normal_direction, equations)
-```
-
-# Example
-```julia
-julia> BoundaryConditionFlux(boundary_flux_slip_wall)
-```
-
-!!! warning "Experimental code"
-    This boundary condition can change any time and is currently only implemented for the
-    [`CompressibleEulerEquations2D`](@ref) and [`CompressibleEulerEquations3D`](@ref),
-    see [`boundary_flux_slip_wall`](@ref).
-"""
-struct BoundaryConditionFlux{B}
-  boundary_flux_function::B
-end
-
-# Flux-based boundary condition for use with structured meshes such as
-# `TreeMesh` and `StructuredMesh`.
-@inline function (boundary_condition::BoundaryConditionFlux)(u_inner, orientation_or_normal,
-                                                             direction,
-                                                             x, t,
-                                                             surface_flux_function, equations)
-  return boundary_condition.boundary_flux_function(u_inner, orientation_or_normal, equations)
-end
-
-# Flux-based boundary condition for use with unstructured meshes such as
-# `UnstructuredMesh2D` and `P4estMesh2D`.
-# Note: For unstructured meshes, we lose the concept of an "absolute direction"
-#       that is used for Cartesian and structured meshes.
-@inline function (boundary_condition::BoundaryConditionFlux)(u_inner,
-                                                             normal_direction::AbstractVector,
-                                                             x, t,
-                                                             surface_flux_function, equations)
-  return boundary_condition.boundary_flux_function(u_inner, normal_direction, equations)
-end
-
-
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)

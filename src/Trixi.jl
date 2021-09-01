@@ -144,9 +144,7 @@ export boundary_condition_periodic,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
        boundary_condition_wall,
-       boundary_condition_zero,
-       BoundaryConditionFlux,
-       boundary_flux_slip_wall
+       boundary_condition_zero
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic

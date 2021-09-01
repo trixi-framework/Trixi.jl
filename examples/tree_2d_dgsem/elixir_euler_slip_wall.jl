@@ -19,12 +19,11 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 
-boundary_condition_wall = BoundaryConditionFlux(boundary_flux_slip_wall)
 boundary_conditions = (
-                       x_neg=boundary_condition_wall,
-                       x_pos=boundary_condition_wall,
-                       y_neg=boundary_condition_wall,
-                       y_pos=boundary_condition_wall,
+                       x_neg=boundary_condition_slip_wall,
+                       x_pos=boundary_condition_slip_wall,
+                       y_neg=boundary_condition_slip_wall,
+                       y_pos=boundary_condition_slip_wall,
                       )
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
