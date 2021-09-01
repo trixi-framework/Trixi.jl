@@ -4,12 +4,13 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-default_colormap() = :inferno
+# We set the Makie default colormap to match Plots.jl, which uses `:inferno` by default.
+default_Makie_colormap() = :inferno
 
 """
     iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
           solution_variables=nothing, nvisnodes=nnodes(solver), variable_to_plot_in=1,
-          colormap = default_colormap())
+          colormap = default_Makie_colormap())
 
 Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
 
@@ -23,7 +24,7 @@ Inputs:
 """
 function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
                solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
-               colormap = default_colormap())
+               colormap = default_Makie_colormap())
 
   pd = PlotData2D(u, mesh, equations, solver, cache;
                   solution_variables=solution_variables, nvisnodes=nvisnodes)
@@ -112,7 +113,7 @@ iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_sol
 # custom `trixiheatmap` plots. See also https://makie.juliaplots.org/stable/recipes.html
 @Makie.recipe(TrixiHeatmap, plot_data_series) do scene
   Makie.Theme(
-    colormap = default_colormap()
+    colormap = default_Makie_colormap()
   )
 end
 
@@ -148,7 +149,7 @@ Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.UnstructuredPlotData2D}) = TrixiHe
 
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution;
-                    plot_mesh=true, solution_variables=nothing, colormap=default_colormap())
+                    plot_mesh=true, solution_variables=nothing, colormap=default_Makie_colormap())
   return Makie.plot(PlotData2D(sol; solution_variables); plot_mesh, colormap)
 end
 
@@ -174,14 +175,14 @@ function Base.iterate(fa::FigureAndAxes, state=1)
 end
 
 function Makie.plot(pd::UnstructuredPlotData2D, fig=Makie.Figure();
-                    plot_mesh=true, colormap=default_colormap())
+                    plot_mesh=true, colormap=default_Makie_colormap())
   figAxes = Makie.plot!(fig, pd; plot_mesh, colormap)
   display(figAxes.fig)
   return figAxes
 end
 
 function Makie.plot!(fig, pd::UnstructuredPlotData2D;
-                     plot_mesh=true, colormap=default_colormap())
+                     plot_mesh=true, colormap=default_Makie_colormap())
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
