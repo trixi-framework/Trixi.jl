@@ -404,7 +404,7 @@ julia> iplot(sol)
 ```
 This will open up an interactive visualization window:
 
-![makie-example](https://user-images.githubusercontent.com/1156048/131539850-affd6a48-f152-4d67-8ed1-cac939daaf75.png)
+![makie-example](https://user-images.githubusercontent.com/1156048/131613261-dccd1c73-1c06-4770-afe5-d625d3426dfd.png)
 
 The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and panned
 (hold right click and drag). Two toggle buttons control whether mesh lines are visible on top
@@ -416,4 +416,4 @@ by providing an appropriate keyword argument. For example, `plot(sol, colormap=:
 `iplot(sol, colormap=:blues)` produce the following figures:
 
 ![makie-plot-example](https://user-images.githubusercontent.com/1156048/131539853-2ab51c33-5fd3-4d3b-a49b-3b1de8f63a98.png)
-![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131539834-7bc357d1-072b-4153-bb14-a68fc964ecbd.png)
+![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)
