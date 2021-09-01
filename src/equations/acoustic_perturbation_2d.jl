@@ -309,7 +309,7 @@ end
 
 
 """
-    boundary_condition_wall_slip(u_inner, normal_direction, x, t, surface_flux_function,
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
                                  equations::AcousticPerturbationEquations2D)
 
 Use an orthogonal projection of the perturbed velocities to zero out the normal velocity
@@ -319,7 +319,7 @@ Further details are available in the paper:
   Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
   [DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
 """
-function boundary_condition_wall_slip(u_inner, normal_direction::AbstractVector, x, t,
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
                                       surface_flux_function, equations::AcousticPerturbationEquations2D)
 
   # normalize the outward pointing direction
