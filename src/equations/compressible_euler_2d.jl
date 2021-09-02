@@ -642,8 +642,6 @@ Should be used together with [`StructuredMesh`](@ref).
 function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
                                       surface_flux_function, equations::CompressibleEulerEquations2D)
 
-  # get the normal direction; note, as implemntented, this boundary condition assumes
-  # an outward pointing normal
   if iseven(direction) # normal is already outward pointing
     normal = normal_direction
   else # flip sign to make it outward pointing
