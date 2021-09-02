@@ -34,21 +34,16 @@ end
 
 
 function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vorticity_mean,
-                                source_region, weights, mesh,
+                                coupled_element_ids, mesh,
                                 equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM, cache)
   @unpack derivative_matrix = dg.basis
-  @unpack node_coordinates = cache.elements
 
   acoustic_source_terms .= zero(eltype(acoustic_source_terms))
 
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      # Only calculate sources on nodes that lie within the acoustic source region
-      x = get_node_coords(node_coordinates, equations, dg, i, j, element)
-      if !source_region(x)
-        continue
-      end
+  @threaded for k in 1:length(coupled_element_ids)
+    element = coupled_element_ids[k]
 
+    for j in eachnode(dg), i in eachnode(dg)
       # Calculate vorticity
       v2_x = zero(eltype(u_euler)) # derivative of v2 in x direction
       for ii in eachnode(dg)
@@ -76,14 +71,10 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vor
       v1_prime = v1 - v1_mean
       v2_prime = v2 - v2_mean
 
-      acoustic_source_terms[1, i, j, element] -= -vorticity_prime * v2_mean -
-                                                  vorticity_mean[i, j, element] * v2_prime
-      acoustic_source_terms[2, i, j, element] -=  vorticity_prime * v1_mean +
-                                                  vorticity_mean[i, j, element] * v1_prime
-
-      # Apply acoustic source weighting function
-      acoustic_source_terms[1, i, j, element] *= weights(x)
-      acoustic_source_terms[2, i, j, element] *= weights(x)
+      acoustic_source_terms[1, i, j, k] -= -vorticity_prime * v2_mean -
+                                            vorticity_mean[i, j, element] * v2_prime
+      acoustic_source_terms[2, i, j, k] -=  vorticity_prime * v1_mean +
+                                            vorticity_mean[i, j, element] * v1_prime
     end
   end
 
