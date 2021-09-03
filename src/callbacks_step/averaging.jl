@@ -81,7 +81,6 @@ end
 # This function is called during time integration and updates the mean values according to the
 # trapezoidal rule
 function (averaging_callback::AveragingCallback)(integrator)
-  @unpack v_mean, c_mean, rho_mean, vorticity_mean = averaging_callback.mean_values
   @unpack mean_values = averaging_callback
 
   u_ode = integrator.u
