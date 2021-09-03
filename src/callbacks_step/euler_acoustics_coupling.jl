@@ -94,7 +94,7 @@ The mean values for the acoustic perturbation equations are read from `averaging
 function EulerAcousticsCouplingCallback(ode_euler, averaging_file::AbstractString, alg,
                                         cfl_acoustics::Real, cfl_euler::Real; kwargs...)
   semi_euler = ode_euler.p
-  mean_values = load_averaging_file(averaging_file, mesh_equations_solver_cache(semi_euler)...)
+  mean_values = load_averaging_file(averaging_file, semi_euler)
 
   return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
                                         kwargs...)
@@ -116,8 +116,7 @@ function EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acousti
 end
 
 
-# This is called before the main loop and calculates the gradient of the squared mean speed of sound
-# which is needed for the conservation source term
+# This is called before the main loop and initializes the mean values in u_ode
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator_acoustics) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
   euler_acoustics_coupling = cb.affect!
   semi = integrator_acoustics.p

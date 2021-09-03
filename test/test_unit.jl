@@ -610,6 +610,22 @@ Cassette.@context Ctx
       end
     end
   end
+
+  @timed_testset "EulerAcoustics" begin
+    @test_nowarn_debug trixi_include(
+      @__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euleracoustics_co-rotating_vortex_pair.jl"),
+      tspan=(0.0, 0.05), tspan1=(0.0, 0.05), tspan_averaging=(0.0, 0.05))
+
+    @testset "AveragingCallback" begin
+      @test_nowarn show(stdout, averaging_callback)
+    end
+    @testset "EulerAcousticsCouplingCallback" begin
+      @test_nowarn show(stdout, euler_acoustics_coupling)
+    end
+    @testset "SemidiscretizationEulerAcoustics" begin
+      @test_nowarn show(stdout, semi)
+    end
+  end
 end
 
 

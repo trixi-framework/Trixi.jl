@@ -108,7 +108,7 @@ end
 function Base.show(io::IO, semi::SemidiscretizationEulerAcoustics)
   @nospecialize semi # reduce precompilation time
 
-  print(io, "SemidiscretizationApeEuler(")
+  print(io, "SemidiscretizationEulerAcoustics(")
   print(io,       semi.semi_acoustics)
   print(io, ", ", semi.semi_euler)
   print(io, ", cache(")
@@ -125,7 +125,7 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEuler
   if get(io, :compact, false)
     show(io, semi)
   else
-    summary_header(io, "SemidiscretizationApeEuler")
+    summary_header(io, "SemidiscretizationEulerAcoustics")
     summary_line(io, "semidiscretization Euler", semi.semi_euler |> typeof |> nameof)
     show(increment_indent(io), mime, semi.semi_euler)
     summary_line(io, "semidiscretization acoustics", semi.semi_acoustics |> typeof |> nameof)
