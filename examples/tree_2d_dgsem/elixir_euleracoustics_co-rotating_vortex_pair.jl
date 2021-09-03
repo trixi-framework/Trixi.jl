@@ -279,7 +279,7 @@ analysis_interval = 5000
 alive = AliveCallback(analysis_interval=analysis_interval)
 
 tspan_averaging = (50.0, 400.0)
-averaging_callback = AveragingCallback(semi_euler, tspan=tspan_averaging)
+averaging_callback = AveragingCallback(semi_euler, tspan_averaging)
 
 cfl = 0.8
 stepsize_callback = StepsizeCallback(cfl=cfl)

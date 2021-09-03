@@ -6,7 +6,7 @@
 
 
 """
-    AveragingCallback(semi::SemidiscretizationHyperbolic; tspan, output_directory="out",
+    AveragingCallback(semi::SemidiscretizationHyperbolic, tspan; output_directory="out",
                       filename="averaging.h5")
 
 !!! warning "Experimental code"
@@ -50,8 +50,8 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ave
   end
 end
 
-function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any, <:CompressibleEulerEquations2D};
-                           tspan, output_directory="out", filename="averaging.h5")
+function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any, <:CompressibleEulerEquations2D},
+                           tspan; output_directory="out", filename="averaging.h5")
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   mean_values = initialize_mean_values(mesh, equations, solver, cache)
   cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
