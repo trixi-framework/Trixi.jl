@@ -627,6 +627,7 @@ function boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
   else # orientation == 2
     normal = SVector(0, 1)
   end
+
   # compute and return the flux using `boundary_condition_slip_wall` routine above
   return boundary_condition_slip_wall(u_inner, normal, x, t, surface_flux_function, equations)
 end
@@ -641,20 +642,14 @@ Should be used together with [`StructuredMesh`](@ref).
 """
 function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
                                       surface_flux_function, equations::CompressibleEulerEquations2D)
-
-  if iseven(direction) # normal is already outward pointing
-    normal = normal_direction
-  else # flip sign to make it outward pointing
-    normal = -normal_direction
-  end
-
-  # compute and return the flux using `boundary_condition_slip_wall` routine above
-  boundary_flux = boundary_condition_slip_wall(u_inner, normal, x, t, surface_flux_function, equations)
-
-  # flip the sign of the normal flux back to be inward pointing on the -x and -y sides due to
-  # the orientation convention used by StructuredMesh
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
   if isodd(direction)
-    boundary_flux = -boundary_flux
+    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+                                                  x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                 x, t, surface_flux_function, equations)
   end
 
   return boundary_flux

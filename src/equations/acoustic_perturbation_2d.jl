@@ -321,7 +321,6 @@ Further details are available in the paper:
 """
 function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
                                       surface_flux_function, equations::AcousticPerturbationEquations2D)
-
   # normalize the outward pointing direction
   normal = normal_direction / norm(normal_direction)
 
