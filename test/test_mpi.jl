@@ -1,4 +1,4 @@
-module TestExamplesParallel2D
+module TestExamplesMPI
 
 using Test
 using Trixi
@@ -12,7 +12,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
 
-@testset "Parallel 2D" begin
+@testset "MPI 2D" begin
 
 # Run basic tests
 @testset "Examples 2D" begin
@@ -124,6 +124,6 @@ end
 # Clean up afterwards: delete Trixi output directory
 Trixi.mpi_isroot() && @test_nowarn rm(outdir, recursive=true)
 
-end # Parallel 2D
+end # MPI 2D
 
 end # module

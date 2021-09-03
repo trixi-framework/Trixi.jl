@@ -21,9 +21,10 @@ mul_by!(A::UniformScaling) = MulByUniformScaling()
 mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 
 # StructArray fallback
-@inline apply_to_each_field(f, args...) = StructArrays.foreachfield(f, args...)
+@inline apply_to_each_field(f::F, args::Vararg{Any, N}) where {F, N} = StructArrays.foreachfield(f, args...)
 
-# specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}.
+# specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}
+# solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
 @inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
   for (i, x_i) in enumerate(x)
@@ -97,7 +98,7 @@ function allocate_coefficients(mesh::AbstractMeshData, equations, dg::DGMulti, c
 end
 
 function compute_coefficients!(u, initial_condition, t,
-                               mesh::AbstractMeshData{NDIMS}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+                               mesh::AbstractMeshData, equations, dg::DGMulti, cache)
   md = mesh.md
   rd = dg.basis
   @unpack u_values = cache
@@ -116,6 +117,26 @@ end
 function estimate_dt(mesh::AbstractMeshData, dg::DGMulti)
   rd = dg.basis # RefElemData
   return StartUpDG.estimate_h(rd, mesh.md) / StartUpDG.inverse_trace_constant(rd)
+end
+
+# for the stepsize callback
+function max_dt(u, t, mesh::AbstractMeshData,
+                constant_speed::Val{false}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+
+  @unpack md = mesh
+  rd = dg.basis
+
+  dt_min = Inf
+  for e in eachelement(mesh, dg, cache)
+    h_e = StartUpDG.estimate_h(e, rd, md)
+    max_speeds = ntuple(_->nextfloat(zero(t)), NDIMS)
+    for i in Base.OneTo(rd.Np) # loop over nodes
+      lambda_i = max_abs_speeds(u[i, e], equations)
+      max_speeds = max.(max_speeds, lambda_i)
+    end
+    dt_min = min(dt_min, h_e / sum(max_speeds))
+  end
+  return 2.0 * dt_min / StartUpDG.inverse_trace_constant(rd)
 end
 
 # interpolates from solution coefficients to face quadrature points
@@ -137,7 +158,7 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
   # interpolate to quadrature points
   apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-  # Todo: simplices. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
+  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
 
     flux_values = local_values_threaded[Threads.threadid()]
@@ -152,7 +173,7 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                mesh::VertexMappedMesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+                              mesh::VertexMappedMesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
 
   @unpack surface_flux = surface_integral
   md = mesh.md
@@ -177,8 +198,8 @@ end
 # assumes cache.flux_face_values is computed and filled with
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                mesh::VertexMappedMesh, equations,
-                dg::DGMulti, cache)
+                                mesh::VertexMappedMesh, equations,
+                                dg::DGMulti, cache)
   rd = dg.basis
   apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
 end
@@ -273,7 +294,7 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key,
 end
 
 
-# Todo: simplices. Specialize for modal DG on curved meshes using WADG
+# Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
 function invert_jacobian!(du, mesh::Mesh, equations, dg::DGMulti,
                           cache) where {Mesh <: AbstractMeshData}
   @threaded for i in each_dof_global(mesh, dg, cache)
@@ -281,12 +302,15 @@ function invert_jacobian!(du, mesh::Mesh, equations, dg::DGMulti,
   end
 end
 
+# Multiple calc_sources! to resolve method ambiguities
 calc_sources!(du, u, t, source_terms::Nothing,
-              mesh::VertexMappedMesh, equations, dg::DGMulti, cache) = nothing
+              mesh, equations, dg::DGMulti, cache) = nothing
+calc_sources!(du, u, t, source_terms::Nothing,
+              mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache) = nothing
 
 # uses quadrature + projection to compute source terms.
-function calc_sources!(du, u, t, source_terms::SourceTerms,
-                       mesh::VertexMappedMesh, equations, dg::DGMulti, cache) where {SourceTerms}
+function calc_sources!(du, u, t, source_terms,
+                       mesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
