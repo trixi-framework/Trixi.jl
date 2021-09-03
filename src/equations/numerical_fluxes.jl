@@ -53,9 +53,6 @@ computing the numerical flux in x-direction, and rotating the calculated flux ba
 
 Requires a rotationally invariant equation with equation-specific functions
 [`rotate_to_x`](@ref) and [`rotate_from_x`](@ref).
-
-!!! warning "Experimental code"
-    This flux is experimental and is likely to change in a future release. Do not use it in production code.
 """
 struct FluxRotated{NumericalFlux}
   numerical_flux::NumericalFlux

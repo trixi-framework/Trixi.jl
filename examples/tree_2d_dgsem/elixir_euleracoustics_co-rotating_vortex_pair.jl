@@ -115,7 +115,7 @@ function source_term_sponge_layer(u, x, t, equations::AcousticPerturbationEquati
                                            Val(2*Trixi.ndims(equations)))
   alpha_square = maximum(alphas)^2
 
-  return SVector(0.0, 0.0, -alpha_square*(u[3] - reference_values[1]), 0.0, 0.0, 0.0, 0.0, 0.0)
+  return SVector(0.0, 0.0, -alpha_square*(u[3] - reference_values[1]/u[6]^2), 0.0, 0.0, 0.0, 0.0)
 end
 
 function source_term_sponge_layer(u, x, t, equations::CompressibleEulerEquations2D,
@@ -281,7 +281,7 @@ alive = AliveCallback(analysis_interval=analysis_interval)
 tspan_averaging = (50.0, 400.0)
 averaging_callback = AveragingCallback(semi_euler, tspan=tspan_averaging)
 
-cfl = 1.0
+cfl = 0.8
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 callbacks_averaging = CallbackSet(summary_callback, alive, averaging_callback, stepsize_callback)
@@ -318,8 +318,8 @@ ode = semidiscretize(semi, tspan)
 ode_euler = semidiscretize(semi.semi_euler, tspan)
 
 # Set up coupling callback
-cfl_acoustics = 1.0
-cfl_euler = 1.0
+cfl_acoustics = 0.8
+cfl_euler = 0.8
 euler_acoustics_coupling = EulerAcousticsCouplingCallback(
   ode_euler, "out/averaging.h5", CarpenterKennedy2N54(williamson_condition=false),
   cfl_acoustics, cfl_euler, callback=SaveRestartCallback(interval=2300, output_directory="out/euler/"))

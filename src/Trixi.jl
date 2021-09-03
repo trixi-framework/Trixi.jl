@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, UniformScaling
+using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -37,6 +37,7 @@ using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 import MPI
+using GeometryBasics: GeometryBasics
 using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
@@ -47,9 +48,11 @@ using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
-using StructArrays: StructArrays, StructArray
+@reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
-using Triangulate: TriangulateIO, triangulate
+using Triangulate: Triangulate, TriangulateIO, triangulate
+using TriplotBase: TriplotBase
+using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
@@ -62,7 +65,6 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
-
 
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
@@ -105,7 +107,6 @@ include("auxiliary/special_elixirs.jl")
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
 
-
 # export types/functions that define the public API of Trixi
 
 export AcousticPerturbationEquations2D,
@@ -131,7 +132,6 @@ export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
-       initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
@@ -198,7 +198,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
 export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
+       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven, NeuralNetworkCNN
 
 export PositivityPreservingLimiterZhangShu
 
@@ -218,7 +219,17 @@ function __init__()
 
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-    using .Plots: plot, plot!, savefig
+    using .Plots: Plots
+  end
+
+  @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
+    include("visualization/recipes_makie.jl")
+    using .Makie: Makie
+    export iplot # interactive plot
+  end
+
+  @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+    using Flux: params
   end
 
   # FIXME upstream. This is a hacky workaround for

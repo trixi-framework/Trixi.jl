@@ -4,11 +4,8 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
-include("plot_recipes.jl")
-include("interpolate.jl")
-include("convert.jl")
-include("adapt.jl")
-
+include("types.jl")
+include("utilities.jl")
+include("recipes_plots.jl")
 
 end # @muladd

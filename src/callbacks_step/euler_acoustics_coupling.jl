@@ -125,15 +125,10 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
 
   # Initialize mean values in u_ode
   u_acoustics = wrap_array(u_ode, semi_acoustics)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack mean_values = euler_acoustics_coupling
   @views @. u_acoustics[4:5, .., :] = mean_values.v_mean
   @views @. u_acoustics[6, .., :] = mean_values.c_mean
   @views @. u_acoustics[7, .., :] = mean_values.rho_mean
-
-  # Calculate gradient of squared mean speed of sound for the q_cons source term
-  @trixi_timeit timer() "calc conservation source term" calc_gradient_c_mean_square!(
-    semi.cache.grad_c_mean_sq, u_acoustics, mesh, equations, solver, cache)
 
   # Adjust stepsize, advance the flow solver by one time step
   cb.affect!(integrator_acoustics)

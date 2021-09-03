@@ -5,7 +5,8 @@ During the development of Trixi, we rely on
 that modifications or new features do not break existing
 functionality or add other errors. In the main
 [Trixi](https://github.com/trixi-framework/Trixi.jl) repository (and the
-repositories for the visualization tools [Trixi2Img](https://github.com/trixi-framework/Trixi.jl) and [Trixi2Vtk](https://github.com/trixi-framework/Trixi.jl)), this is facilitated by
+repositories for the visualization tool
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi.jl)), this is facilitated by
 [GitHub Actions](https://docs.github.com/en/free-pro-team@latest/actions),
 which allows to run tests automatically upon certain events. When, how, and what
 is tested by GitHub Actions is controlled by the workflow file
@@ -31,13 +32,16 @@ executing
 julia> using Pkg; Pkg.test("Trixi")
 ```
 in the REPL. Since there already exist many tests, we have split them up into
-multiple files in the `test` directory to allow for faster testing of individual parts of the code.
+multiple files in the `test` directory to allow for faster testing of individual
+parts of the code.
 Thus in addition to performing all tests, you can also just `include` one of the
 files named `test_xxx.jl` to run only a specific subset, e.g.,
 ```julia
-julia> include(joinpath("test", "test_examples_2d.jl")) # Run all 2D tests
+julia> # Run all 2D tests on the P4estMesh
+       include(joinpath("test", "test_p4est_2d.jl"))
 
-julia> include(joinpath("test", "test_examples_2d_euler.jl")) # Run only 2D tests for the Euler equations
+julia> # Run all 1D tests for the Euler equations on the TreeMesh
+       include(joinpath("test", "test_tree_1d_euler.jl"))
 ```
 For the automated tests with GitHub Actions, we run multiple jobs in parallel to
 reduce the waiting time until all tests are finished. You can see the different
@@ -51,8 +55,8 @@ to configure tests. In general, newly added code must be covered by at least one
 test, and all new elixirs added to the `examples/` directory must be used at
 least once during testing. New tests should be added to the corresponding
 `test/test_xxx.jl` file, e.g., a test involving the 3D linear advection equation
-would go into
-[`test/test_examples_3d_advection.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_examples_3d_advection.jl).
+on the `TreeMesh` would go into
+[`test/test_tree_3d_advection.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_tree_3d_advection.jl).
 Please study one of the existing tests and stay consistent to the current style
 when creating new tests.
 
@@ -61,6 +65,11 @@ frequently create new ones. Naturally, this increases the time to wait for all
 tests to pass with each novel feature added to Trixi. Therefore, new tests should be as
 short as reasonably possible, i.e., without being too insensitive to pick up
 changes or errors in the code.
+
+When you add new tests, please check whether all CI jobs still take approximately
+the same time. If the job where you added new tests takes much longer than
+everything else, please consider moving some tests from one job to another
+(or report this incident and ask the main developers for help).
 
 !!! note "Test duration"
     As a general rule, tests should last **no more than 10 seconds** when run

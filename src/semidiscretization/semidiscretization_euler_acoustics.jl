@@ -62,8 +62,6 @@ end
 function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, weights,
                       mesh, equations::AcousticPerturbationEquations2D, dg::DGSEM, cache)
 
-  grad_c_mean_sq = zeros(eltype(cache.elements), (ndims(equations), nnodes(dg), nnodes(dg),
-                                                  nelements(cache.elements)))
   coupled_element_ids = get_coupled_element_ids(source_region, equations, dg, cache)
 
   acoustic_source_terms = zeros(eltype(cache.elements), (ndims(equations), nnodes(dg), nnodes(dg),
@@ -72,7 +70,7 @@ function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, w
   acoustic_source_weights = precompute_weights(source_region, weights, coupled_element_ids,
                                                equations, dg, cache)
 
-  return (; grad_c_mean_sq, acoustic_source_terms, acoustic_source_weights, coupled_element_ids)
+  return (; acoustic_source_terms, acoustic_source_weights, coupled_element_ids)
 end
 
 function get_coupled_element_ids(source_region, equations, dg::DGSEM, cache)
@@ -167,7 +165,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
   @unpack semi_acoustics, cache = semi
   @unpack acoustic_source_terms, acoustic_source_weights, coupled_element_ids = cache
 
-  u_acoustics = wrap_array(u_ode, semi_acoustics)
   du_acoustics = wrap_array(du_ode, semi_acoustics)
 
   time_start = time_ns()
@@ -177,15 +174,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
   @trixi_timeit timer() "add acoustic source terms" add_acoustic_source_terms!(
     du_acoustics, acoustic_source_terms, acoustic_source_weights, coupled_element_ids,
     mesh_equations_solver_cache(semi_acoustics)...)
-
-  @trixi_timeit timer() "calc conservation source term" begin
-    if ndims(semi_acoustics) == 2
-      calc_conservation_source_term!(du_acoustics, u_acoustics, cache.grad_c_mean_sq,
-                                     mesh_equations_solver_cache(semi_acoustics)...)
-    else
-      error("ndims $(ndims(semi_acoustics)) is not supported")
-    end
-  end
 
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
@@ -204,24 +192,6 @@ function add_acoustic_source_terms!(du_acoustics, acoustic_source_terms, source_
     for j in eachnode(dg), i in eachnode(dg)
       du_acoustics[1, i, j, element] += source_weights[i, j, k] * acoustic_source_terms[1, i, j, k]
       du_acoustics[2, i, j, element] += source_weights[i, j, k] * acoustic_source_terms[2, i, j, k]
-    end
-  end
-
-  return nothing
-end
-
-
-function calc_conservation_source_term!(du_acoustics, u_acoustics, grad_c_mean_sq,
-                                        mesh::TreeMesh{2}, equations::AcousticPerturbationEquations2D,
-                                        dg::DGSEM, cache)
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u_acoustics, equations, dg, i, j, element)
-      v1_prime, v2_prime, p_prime = cons2state(u_node, equations)
-      v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u_node, equations)
-
-      du_acoustics[3, i, j, element] += (rho_mean * v1_prime + v1_mean * p_prime / c_mean^2) * grad_c_mean_sq[1, i, j, element] +
-                                        (rho_mean * v2_prime + v2_mean * p_prime / c_mean^2) * grad_c_mean_sq[2, i, j, element]
     end
   end
 

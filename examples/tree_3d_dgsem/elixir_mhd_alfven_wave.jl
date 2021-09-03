@@ -9,7 +9,7 @@ equations = IdealGlmMhdEquations3D(5/3)
 
 initial_condition = initial_condition_convergence_test
 
-volume_flux = (flux_derigs_etal, flux_nonconservative_powell)
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 

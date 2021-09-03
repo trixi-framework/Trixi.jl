@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations1D(1.4)
 initial_condition = initial_condition_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_chandrashekar
+volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,

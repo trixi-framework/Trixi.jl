@@ -8,6 +8,7 @@
 *.avi
 *.ogv
 *.mesh
+*.bson
 *.inp
 **/Manifest.toml
 out*/

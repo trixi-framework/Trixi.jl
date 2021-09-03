@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
 # `DGMulti` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
 # the use of multi-dimensional operators in the solver.
 const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
@@ -41,6 +40,21 @@ function DGMulti(; polydeg::Integer,
                    surface_integral=SurfaceIntegralWeakForm(surface_flux),
                    volume_integral=VolumeIntegralWeakForm(),
                    kwargs...)
+
+  # call dispatchable constructor
+  DGMulti(element_type, approximation_type, volume_integral, surface_integral;
+          polydeg=polydeg, surface_flux=surface_flux, kwargs...)
+end
+
+# dispatchable constructor for DGMulti to allow for specialization
+function DGMulti(element_type::AbstractElemShape,
+                 approximation_type,
+                 volume_integral,
+                 surface_integral;
+                 polydeg::Integer,
+                 surface_flux,
+                 kwargs...)
+
   rd = RefElemData(element_type, approximation_type, polydeg, kwargs...)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
@@ -72,11 +86,10 @@ Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
   VertexMappedMesh(triangulateIO, dg.basis, boundary_dict)
 
-# Todo: simplices. Add traits for dispatch on affine/curved meshes here.
+# Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
 
 # Matrix type for lazy construction of physical differentiation matrices
-
-# lazy linear combination of B = ∑_i coeffs[i] * A[i]
+# Constructs a lazy linear combination of B = ∑_i coeffs[i] * A[i]
 struct LazyMatrixLinearCombo{Tcoeffs, N, Tv, TA <: AbstractMatrix{Tv}} <: AbstractMatrix{Tv}
   matrices::NTuple{N, TA}
   coeffs::NTuple{N, Tcoeffs}

@@ -63,8 +63,8 @@ function prolong2interfaces!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Copy solution data from the primary element on a case-by-case basis
-    # to get the correct face and orientation.
+    # Copy solution data from the primary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
     # Note that in the current implementation, the interface will be
     # "aligned at the primary element", i.e., the index of the primary side
     # will always run forwards.
@@ -84,8 +84,8 @@ function prolong2interfaces!(cache, u,
       j_primary += j_primary_step
     end
 
-    # Copy solution data from the secondary element on a case-by-case basis
-    # to get the correct face and orientation.
+    # Copy solution data from the secondary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
     secondary_element = interfaces.element_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
@@ -115,6 +115,7 @@ function calc_interface_flux!(surface_flux_values,
   @unpack u, element_ids, node_indices = cache.interfaces
   @unpack contravariant_vectors = cache.elements
   index_range = eachnode(dg)
+  index_end = last(index_range)
 
   @threaded for interface in eachinterface(dg, cache)
     # Get information on the primary element, compute the surface fluxes,
@@ -156,7 +157,7 @@ function calc_interface_flux!(surface_flux_values,
     if :i_backward in secondary_indices
       for i in eachnode(dg)
         for v in eachvariable(equations)
-          surface_flux_values[v, end + 1 - i, secondary_direction, secondary_element] =
+          surface_flux_values[v, index_end + 1 - i, secondary_direction, secondary_element] =
             -surface_flux_values[v, i, primary_direction, primary_element]
         end
       end
@@ -181,8 +182,8 @@ function prolong2boundaries!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for boundary in eachboundary(dg, cache)
-    # Copy solution data from the element on a case-by-case basis to get
-    # the correct face and orientation.
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
 
@@ -259,8 +260,8 @@ function prolong2mortars!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
-    # Copy solution data from the small elements on a case-by-case basis
-    # to get the correct face and orientation.
+    # Copy solution data from the small elements using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
     small_indices = node_indices[1, mortar]
 
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
