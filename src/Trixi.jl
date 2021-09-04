@@ -25,9 +25,10 @@ using Printf: @printf, @sprintf, println
 using Reexport: @reexport
 
 using DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
-                  ODEProblem, ODESolution, ODEFunction,
-                  get_du, get_tmp_cache, u_modified!,
-                  get_proposed_dt, set_proposed_dt!, terminate!, remake
+                  ODEProblem, ODESolution, ODEFunction
+import DiffEqBase: get_du, get_tmp_cache, u_modified!,
+                   get_proposed_dt, set_proposed_dt!, 
+                   terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 using ForwardDiff: ForwardDiff
