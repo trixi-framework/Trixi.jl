@@ -24,26 +24,26 @@ using Printf: @printf, @sprintf, println
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
-                   ODEProblem, ODESolution, ODEFunction,
-                   get_du, get_tmp_cache, u_modified!,
-                   get_proposed_dt, set_proposed_dt!, terminate!, remake
+using DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
+                  ODEProblem, ODESolution, ODEFunction,
+                  get_du, get_tmp_cache, u_modified!,
+                  get_proposed_dt, set_proposed_dt!, terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
-import ForwardDiff
+using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
-import MPI
+using MPI: MPI
 using GeometryBasics: GeometryBasics
 using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
-using RecipesBase
-using Requires
-using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
+using RecipesBase: RecipesBase
+using Requires: @require
+using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
