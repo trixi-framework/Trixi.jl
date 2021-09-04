@@ -136,7 +136,7 @@ jobs:
       #     parallel: true
       #     path-to-lcov: ./lcov.info
       # Instead, we use a more tedious approach:
-      # - Store all inidvidual coverage files as artifacts (directly below)
+      # - Store all individual coverage files as artifacts (directly below)
       # - Download and merge individual coverage reports in another step
       # - Upload only the merged coverage report to Coveralls
       - shell: bash
@@ -162,12 +162,12 @@ jobs:
       #     github-token: ${{ secrets.GITHUB_TOKEN }}
       #     parallel-finished: true
       # Instead, we use the more tedious approach described above.
-      # At first, we download th source files and all artifacts 
+      # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
       - run: ls -R
-      # Next, we merge the individual converage files and upload 
+      # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
       - name: Merge lcov files using Coverage.jl
         shell: julia --color=yes --project=. {0}
