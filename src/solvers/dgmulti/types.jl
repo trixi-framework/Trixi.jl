@@ -1,13 +1,25 @@
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
+# Note: we define type aliases outside of the @muladd block to avoid Revise breaking when code
+# inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
+# for more details.
 
 # `DGMulti` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
 # the use of multi-dimensional operators in the solver.
 const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
   DG{<:RefElemData{NDIMS, ElemType, ApproxType}, Mortar, SurfaceIntegral, VolumeIntegral} where {Mortar}
+
+# Type aliases. The first parameter is `ApproxType` since it is more commonly used for dispatch.
+const DGMultiWeakForm{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
+
+const DGMultiFluxDiff{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
+
+
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
 # these are necessary for pretty printing
 polydeg(dg::DGMulti) = dg.basis.N
@@ -55,16 +67,9 @@ function DGMulti(element_type::AbstractElemShape,
                  surface_flux,
                  kwargs...)
 
-  rd = RefElemData(element_type, approximation_type, polydeg, kwargs...)
+  rd = RefElemData(element_type, approximation_type, polydeg; kwargs...)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
-
-# Type aliases. The first parameter is `ApproxType` since it is more commonly used for dispatch.
-const DGMultiWeakForm{ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
-
-const DGMultiFluxDiff{ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
 
 
 # now that DGMulti is defined, we can define constructors for VertexMappedMesh which use dg::DGMulti
@@ -109,6 +114,9 @@ Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
   end
   return val
 end
+
+
+
 
 
 end # @muladd
