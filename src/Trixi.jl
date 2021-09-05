@@ -27,7 +27,7 @@ using Reexport: @reexport
 using DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                   ODEProblem, ODESolution, ODEFunction
 import DiffEqBase: get_du, get_tmp_cache, u_modified!,
-                   get_proposed_dt, set_proposed_dt!, 
+                   get_proposed_dt, set_proposed_dt!,
                    terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
@@ -42,7 +42,7 @@ using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
-using RecipesBase: RecipesBase, @recipe, @series
+using RecipesBase: RecipesBase
 using Requires: @require
 using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
 @reexport using StaticArrays: SVector
