@@ -186,5 +186,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./lcov.info
+      # Upload merged coverage data as artifact for debugging
+      - uses: actions/upload-artifact@v2
+        with:
+          name: lcov
+          path: ./lcov.info
       # That's it
       - run: echo "Finished testing Trixi"
