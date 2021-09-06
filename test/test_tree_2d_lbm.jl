@@ -61,7 +61,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [5.967448757360216e-16, 6.522560269672795e-16, 6.522560269672795e-16,
               6.245004513516506e-16, 2.1163626406917047e-16, 2.185751579730777e-16,
               2.185751579730777e-16, 2.393918396847994e-16, 1.887379141862766e-15],
-      boundary_conditions=boundary_condition_wall_noslip,
+      boundary_conditions=boundary_condition_noslip_wall,
       tspan = (0, 0.1))
   end
 end

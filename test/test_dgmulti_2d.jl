@@ -102,8 +102,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor_instability.jl"),
       cells_per_dimension = (8,8), tspan = (0.0, 0.2),
-      l2 = [0.03548329484658906, 0.002591414374442459, 0.006916327798945652, 0.016235069350238083],
-      linf = [0.4783963902527284, 0.022527207047954502, 0.040307056331029656, 0.08523654262202474],
+      l2 = [0.03548329484912729, 0.002591414376082683, 0.006916327792623457, 0.016235069002818153],
+      linf = [0.4783963902824797, 0.022527207050681054, 0.040307056293369226, 0.0852365428206836],
     )
   end
 end
