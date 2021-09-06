@@ -70,22 +70,23 @@ num_elements_per_dimension = 32
 cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 4)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
-boundary_conditions = (
-                       x_neg=boundary_condition_slip_wall,
-                       x_pos=boundary_condition_slip_wall,
-                       y_neg=boundary_condition_slip_wall,
-                       y_pos=boundary_condition_slip_wall,
-                      )
-
-## Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
 # boundary_conditions = (
-#                        x_neg=boundary_condition_periodic,
-#                        x_pos=boundary_condition_periodic,
-#                        y_neg=BoundaryConditionDirichlet(initial_condition),
-#                        y_pos=BoundaryConditionDirichlet(initial_condition),
+#                        x_neg=boundary_condition_slip_wall,
+#                        x_pos=boundary_condition_slip_wall,
+#                        y_neg=boundary_condition_slip_wall,
+#                        y_pos=boundary_condition_slip_wall,
 #                       )
 
 initial_condition = initial_condition_rayleigh_taylor_instability
+
+# Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
+boundary_conditions = (
+                       x_neg=boundary_condition_periodic,
+                       x_pos=boundary_condition_periodic,
+                       y_neg=BoundaryConditionDirichlet(initial_condition),
+                       y_pos=BoundaryConditionDirichlet(initial_condition),
+                      )
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms=source_terms_rayleigh_taylor_instability,
                                     boundary_conditions=boundary_conditions)
