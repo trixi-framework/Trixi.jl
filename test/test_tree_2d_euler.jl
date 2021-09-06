@@ -233,11 +233,11 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [4.667437348149228e-5, 0.03175420871507906, 0.0318039789241531, 0.04561735256198318])
   end
 
-  @trixi_testset "elixir_euler_slip_wall.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_slip_wall.jl"),
-      l2   = [0.060472638699108044, 0.05018473187408547, 0.0501867000050881, 0.22105829093621762],
-      linf = [0.2336618915663038, 0.2558043001245953, 0.25539061130810087, 0.8422598272000807],
-      tspan = (0.0, 0.5))
+  @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+      l2   = [0.06176845600430613, 0.05020624043492084, 0.05021389111189423, 0.22592682624517807],
+      linf = [0.29347582879609024, 0.3108124923286465, 0.3107380389949771, 1.054035804988522],
+      periodicity = false, boundary_conditions = boundary_condition_slip_wall)
   end
 end
 
