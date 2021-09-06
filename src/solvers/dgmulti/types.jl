@@ -55,7 +55,7 @@ function DGMulti(element_type::AbstractElemShape,
                  surface_flux,
                  kwargs...)
 
-  rd = RefElemData(element_type, approximation_type, polydeg, kwargs...)
+  rd = RefElemData(element_type, approximation_type, polydeg; kwargs...)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
