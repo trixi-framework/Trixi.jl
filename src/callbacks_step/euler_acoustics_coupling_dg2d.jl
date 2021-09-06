@@ -8,7 +8,6 @@
 function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vorticity_mean,
                                 coupled_element_ids, mesh,
                                 equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM, cache)
-  @unpack derivative_matrix = dg.basis
 
   acoustic_source_terms .= zero(eltype(acoustic_source_terms))
 
@@ -16,22 +15,7 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vor
     element = coupled_element_ids[k]
 
     for j in eachnode(dg), i in eachnode(dg)
-      # Calculate vorticity
-      v2_x = zero(eltype(u_euler)) # derivative of v2 in x direction
-      for ii in eachnode(dg)
-        u_euler_node = get_node_vars(u_euler, equations, dg, ii, j, element)
-        v2 = u_euler_node[3] / u_euler_node[1]
-        v2_x += derivative_matrix[i, ii] * v2
-      end
-
-      v1_y = zero(eltype(u_euler)) # derivative of v1 in y direction
-      for jj in eachnode(dg)
-        u_euler_node = get_node_vars(u_euler, equations, dg, i, jj, element)
-        v1 = u_euler_node[2] / u_euler_node[1]
-        v1_y += derivative_matrix[j, jj] * v1
-      end
-
-      vorticity = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
+      vorticity = calc_vorticity_node(u_euler, equations, dg, cache, i, j, element)
 
       prim_euler = cons2prim(get_node_vars(u_euler, equations, dg, i, j, element), equations)
       v1 = prim_euler[2]

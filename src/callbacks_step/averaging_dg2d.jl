@@ -31,28 +31,10 @@ end
 function initialize_cache!(averaging_callback_cache, u,
                            mesh::TreeMesh{2}, equations::AbstractCompressibleEulerEquations{2},
                            dg::DGSEM, cache)
-  @unpack derivative_matrix = dg.basis
   @unpack vorticity_prev = averaging_callback_cache
 
   # Calculate vorticity for initial solution
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      v2_x = zero(eltype(u)) # derivative of v2 in x direction
-      for ii in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, ii, j, element)
-        v2 = u_node[3] / u_node[1]
-        v2_x += derivative_matrix[i, ii] * v2
-      end
-
-      v1_y = zero(eltype(u)) # derivative of v1 in y direction
-      for jj in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, jj, element)
-        v1 = u_node[2] / u_node[1]
-        v1_y += derivative_matrix[j, jj] * v1
-      end
-      vorticity_prev[i, j, element] = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
-    end
-  end
+  calc_vorticity!(vorticity_prev, u, equations, dg, cache)
 
   return nothing
 end
@@ -64,28 +46,12 @@ function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, int
                            dg::DGSEM, cache)
   @unpack v_mean, c_mean, rho_mean, vorticity_mean = mean_values
   @unpack vorticity_prev = averaging_callback_cache
-  @unpack derivative_matrix = dg.basis
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      # Calculate vorticity
-      v2_x = zero(eltype(u)) # derivative of v2 in x direction
-      for ii in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, ii, j, element)
-        v2 = u_node[3] / u_node[1]
-        v2_x += derivative_matrix[i, ii] * v2
-      end
-
-      v1_y = zero(eltype(u)) # derivative of v1 in y direction
-      for jj in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, jj, element)
-        v1 = u_node[2] / u_node[1]
-        v1_y += derivative_matrix[j, jj] * v1
-      end
-      vorticity = (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
+      vorticity = calc_vorticity_node(u, equations, dg, cache, i, j, element)
       vorticity_prev_node = vorticity_prev[i, j, element]
       vorticity_prev[i, j, element] = vorticity # Cache current velocity for the next time step
-
 
       u_node_prim = cons2prim(get_node_vars(u, equations, dg, i, j, element), equations)
       u_prev_node_prim = cons2prim(get_node_vars(u_prev, equations, dg, i, j, element), equations)
