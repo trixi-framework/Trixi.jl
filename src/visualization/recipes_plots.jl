@@ -128,7 +128,7 @@ RecipesBase.@recipe function f(pd::AbstractPlotData)
 
   # Plot all existing variables
   for (i, (variable_name, series)) in enumerate(pd)
-    @series begin
+    RecipesBase.@series begin
       subplot := i
       series
     end
@@ -136,7 +136,7 @@ RecipesBase.@recipe function f(pd::AbstractPlotData)
 
   # Fill remaining subplots with empty plot
   for i in (length(pd)+1):(rows*cols)
-    @series begin
+    RecipesBase.@series begin
       subplot := i
       axis := false
       ticks := false
@@ -243,7 +243,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
 end
 
 # Visualize a 2D mesh given an `UnstructuredPlotData2D` object
-@recipe function f(pm::PlotMesh{<:UnstructuredPlotData2D})
+RecipesBase.@recipe function f(pm::PlotMesh{<:UnstructuredPlotData2D})
   pd = pm.plot_data
   @unpack x_face, y_face = pd
 

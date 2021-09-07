@@ -232,6 +232,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [2.1325938318497577e-6, 0.003281545066125044, 0.0032806321457482615, 0.00464605975938406],
       linf = [4.667437348149228e-5, 0.03175420871507906, 0.0318039789241531, 0.04561735256198318])
   end
+
+  @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+      l2   = [0.06176845600430613, 0.05020624043492084, 0.05021389111189423, 0.22592682624517807],
+      linf = [0.29347582879609024, 0.3108124923286465, 0.3107380389949771, 1.054035804988522],
+      periodicity = false, boundary_conditions = boundary_condition_slip_wall)
+  end
 end
 
 # Coverage test for all initial conditions
