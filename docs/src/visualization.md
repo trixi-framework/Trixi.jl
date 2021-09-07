@@ -4,11 +4,6 @@ There are two possible approaches to visualize results from Trixi: either
 directly from the REPL using [Plots.jl](@ref) or with ParaView/VisIt by
 postprocessing Trixi's output files with [Trixi2Vtk](@ref).
 
-!!! note
-    There is also a package [Trixi2Img](@ref) that allows to create images
-    from Trixi's HDF5 output files. However, it is deprecated in favor of plotting
-    directly from the REPL with [Plots.jl](@ref).
-
 
 ## [Plots.jl [experimental]](@id Plots.jl)
 By far the easiest and most convenient plotting approach is to use the powerful
@@ -43,7 +38,7 @@ you use one of the example elixirs. This will generate a grid layout with one
 subplot for each solution variable, convenient for getting an overview of
 the current solution:
 
-![plot-sol](https://user-images.githubusercontent.com/3637659/102711618-8c97ac80-42bb-11eb-96c8-af69d789feb0.png)
+![plot-sol](https://user-images.githubusercontent.com/72009492/130951021-677824f1-ba86-4291-8ff3-6fe2b910a2c9.PNG)
 
 You can save the resulting file as a PNG image file by calling `savefig(...)`
 with an output file name that ends in `.png`, e.g.,
@@ -74,7 +69,7 @@ julia> plot(pd["rho"])
 ```
 This will create a single 2D heatmap plot of the variable `rho`:
 
-![plot-rho](https://user-images.githubusercontent.com/3637659/102711621-93beba80-42bb-11eb-8f65-d03e083dc3bc.png)
+![plot-rho](https://user-images.githubusercontent.com/72009492/130951033-e3852c55-918c-4e74-98df-ef2353115b00.PNG)
 
 The default plot type and style can be overridden by passing any additional
 arguments that are understood by the Plots package. For example, to change the
@@ -121,7 +116,7 @@ julia> pd = PlotData2D(adapt_to_mesh_level(sol, 4)...)
 ```
 When plotted together with the mesh, this will yield the following visualization:
 
-![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/3637659/112101404-e0f64500-8ba6-11eb-9516-ad910c6813b2.png)
+![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/72009492/130951039-f2f91760-539a-4e96-ac39-4053e934040b.PNG)
 
 
 ### Plotting a 3D solution as a 2D plot
@@ -143,7 +138,7 @@ All other attributes for [`PlotData2D`](@ref) objects apply here as well.
 For example, to plot the velocity field orthogonal to the yz-plane at different
 x-axis locations, you can execute
 ```julia
-julia> trixi_include(joinpath(examples_dir(), "3d", "elixir_euler_taylor_green_vortex.jl"), tspan=(0, 1))
+julia> trixi_include(joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_taylor_green_vortex.jl"), tspan=(0.0, 1.0))
 [...]
 
 julia> plots = []
@@ -158,7 +153,7 @@ julia> plot(plots..., layout=(2, 3), size=(750,350))
 ```
 which results in a 2x3 grid of slices of the `yz`-plane:
 
-![plot-v1-0.0-to-0.5pi](https://user-images.githubusercontent.com/3637659/102917883-417dc500-4486-11eb-9bd3-d18efd9c8337.png)
+![plot-v1-0.0-to-0.5pi](https://user-images.githubusercontent.com/72009492/130953841-58df57b2-aa96-4130-9b70-30151856f68f.PNG)
 
 
 ### Creating a 1D plot
@@ -211,6 +206,7 @@ All other attributes for [`PlotData1D`](@ref) objects apply here as well.
 
 In the following, is an example for a 2D simulation of the linear scalar advection equation.
 First, we have the regular 2D heatmap plot:
+
 ![2d-plot-for-slice](https://user-images.githubusercontent.com/72009492/116614302-0f033d80-a93a-11eb-91a1-e44de41e0795.PNG)
 
 From this, we can extract a line plot parallel to the `y`-axis going through the
@@ -228,7 +224,8 @@ create a [`PlotData1D`](@ref) with the keyword argument `curve` set to your list
 
 Let's give an example of this with the basic advection equation from above by creating
 a plot along the circle marked in green:
-![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/122980179-a7e19280-d398-11eb-82a8-b7a998d23277.PNG)
+
+![2d-plot-along-cirlce](https://user-images.githubusercontent.com/72009492/130951042-e1849447-8e55-4798-9361-c8badb9f3a49.png)
 
 We can write a function like this, that outputs a list of points on a circle:
 ```julia
@@ -264,7 +261,7 @@ During the simulation, the visualization callback creates and displays
 visualizations of the current solution in regular intervals. This can be useful
 to, e.g., monitor the validity of a long-running simulation or for illustrative
 purposes. An example for how to create a `VisualizationCallback` can be found in
-[examples/2d/elixir\_advection\_amr\_visualization.jl](https://trixi-framework.github.com/Trixi.jl/examples/2d/elixir_advection_amr_visualization.jl):
+[examples/tree_2d_dgsem/elixir\_advection\_amr\_visualization.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl):
 ```julia
 [...]
 
@@ -352,49 +349,71 @@ Further information regarding the development of Trixi2Vtk can be found in the
 [development section](@ref trixi2vtk-dev).
 
 
-## Trixi2Img
-!!! note "Trixi2Img is deprecated"
-    Since it is possible to visualize results from Trixi directly from the REPL
-    using the Plots package, Trixi2Img has been deprecated. There are still some
-    features missing when using Plots, such as postprocessing HDF5 files. Once
-    these have been added to the Plots-based solution, Trixi2Img will be
-    retired.
+## [Makie.jl [experimental]](@id Makie.jl)
 
-Trixi2Img can be used to directly convert Trixi's output files to image files,
-without having to use a third-pary visualization tool such as ParaView or VisIt. The
-downside of this approach is that it generally takes longer to visualize the
-data (especially for large files) and that it does not allow as much
-customization of the generated output files.  Currently, PNG and PDF are
-supported as output formats.
+In addition to [Plots.jl](@ref Plots.jl) support, Trixi includes visualization utilities through
+[Makie.jl](https://github.com/JuliaPlots/Makie.jl/). Trixi provides Makie-based visualization options
+both for heatmap-type plots (similar to the [Plots.jl](@ref Plots.jl) recipes) as well as for
+interactive surface plots. Support is currently limited to the [`UnstructuredMesh2D`](@ref) type.
 
-In the Julia REPL, first load the package Trixi2Img
+!!! note
+    Plotting via Makie.jl is still considered an experimental feature and might
+    change in any future releases.
+
+A Makie plot can be created as follows: after running a simulation with Trixi in the REPL, load a
+Makie backend (for example, [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/) or
+[CairoMakie](https://github.com/JuliaPlots/CairoMakie.jl)).
 ```julia
-julia> using Trixi2Img
-```
-To process an HDF5 file generated by Trixi.jl, execute
-```julia
-julia> trixi2img(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
-```
-This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
-that can be opened with any image viewer:
-
-!["solution_000040_scalar_resized"](https://github.com/trixi-framework/Trixi2Img.jl/raw/main/docs/src/assets/solution_000040_scalar_resized.png)
-
-To visualize 3D data generated by Trixi.jl, a 2D slice must be extracted.
-A slice can only lie in a plane orthogonal to one of the coordinate axes.
-The slice plane is defined by the axis to which it is orthogonal and an axis intercept.
-
-For example, to create a 2D slice in the xy-plane at the axis intercept `z = 0.5` from 3D data, execute
-```julia
-julia> trixi2img(joinpath("out", "solution_000000.h5"), output_directory="out", grid_lines=true, slice_axis=:z, slice_axis_intercept=0.5)
+julia> using GLMakie
 ```
 
-Similar to [Trixi2Vtk](@ref), you can also provide multiple files to
-`trixi2img` or use file globbing, e.g.,
+To visualize the solution and mesh with a heatmap-type plot, simply run
 ```julia
-julia> trixi2img("out/solution_*.h5")
+julia> plot(sol)
 ```
-to convert all solution files. The default is to generate a PNG file for each
-variable found in the respective file. Use `format=:pdf` as a keyword argument
-to create PDF files. A comprehensive list of all possible arguments for
-`trixi2img` can be found in the [Trixi2Img.jl API](@ref).
+!!! note
+    Both Makie.jl and Plots.jl export `plot`, so if you load both libraries, you will have to
+    specify which `plot` function to call via `Plots.plot` or `Makie.plot`.
+
+As with Plots.jl recipes, one can view individual solution components by creating a `PlotData2D`
+object and indexing into it with the desired variable name
+```julia
+julia> pd = PlotData2D(sol)
+julia> plot(pd["rho"])
+```
+Unlike the Plots.jl recipe, mesh plotting is controlled using the keyword argument
+`plot_mesh = false`, e.g.,
+```julia
+julia> plot(sol; plot_mesh=false)
+```
+The plot command also returns figure and axis handles, which can be used to edit plot titles or
+labels:
+```julia
+julia> fig, axes = plot(sol)
+julia> axes[1,1].title = "New title for subplot (1,1)"
+```
+
+Trixi also supports interactive surface plots using `iplot`.
+After executing
+```julia
+julia> trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+```
+we can run
+```julia
+julia> iplot(sol)
+```
+This will open up an interactive visualization window:
+
+![makie-example](https://user-images.githubusercontent.com/1156048/131613261-dccd1c73-1c06-4770-afe5-d625d3426dfd.png)
+
+The plot can be rotated (click and hold), zoomed in and out (scroll up and down), and panned
+(hold right click and drag). Two toggle buttons control whether mesh lines are visible on top
+of and below the solution.
+
+Both `plot` and `iplot` use `colormap = :inferno` by default.
+[https://docs.juliaplots.org/latest/generated/colorschemes/](A different colormap) can be selected
+by providing an appropriate keyword argument. For example, `plot(sol, colormap=:blues)` and
+`iplot(sol, colormap=:blues)` produce the following figures:
+
+![makie-plot-example](https://user-images.githubusercontent.com/1156048/131539853-2ab51c33-5fd3-4d3b-a49b-3b1de8f63a98.png)
+![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)

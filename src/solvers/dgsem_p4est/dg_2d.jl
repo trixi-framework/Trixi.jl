@@ -20,32 +20,86 @@ function create_cache(mesh::P4estMesh{2}, equations, mortar_l2::LobattoLegendreM
 end
 
 
+#     index_to_start_step_2d(index::Symbol, index_range)
+#
+# Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
+# return `index_start, index_step`, i.e., a tuple containing
+# - `index_start`, an index value to begin a loop
+# - `index_step`,  an index step to update during a loop
+# The resulting indices translate surface indices to volume indices.
+#
+# !!! warning
+#     This assumes that loops using the return values are written as
+#
+#     i_volume_start, i_volume_step = index_to_start_step_2d(symbolic_index_i, index_range)
+#     j_volume_start, j_volume_step = index_to_start_step_2d(symbolic_index_j, index_range)
+#
+#     i_volume, j_volume = i_volume_start, j_volume_start
+#     for i_surface in index_range
+#       # do stuff with `i_surface` and `(i_volume, j_volume)`
+#
+#       i_volume += i_volume_step
+#       j_volume += j_volume_step
+#     end
+@inline function index_to_start_step_2d(index::Symbol, index_range)
+  index_begin = first(index_range)
+  index_end   = last(index_range)
+
+  if index === :begin
+    return index_begin, 0
+  elseif index === :end
+    return index_end, 0
+  elseif index === :i_forward
+    return index_begin, 1
+  else # if index === :i_backward
+    return index_end, -1
+  end
+end
+
 function prolong2interfaces!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack interfaces = cache
-
-  size_ = (nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for interface in eachinterface(dg, cache)
-    primary_element   = interfaces.element_ids[1, interface]
-    secondary_element = interfaces.element_ids[2, interface]
+    # Copy solution data from the primary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    # Note that in the current implementation, the interface will be
+    # "aligned at the primary element", i.e., the index of the primary side
+    # will always run forwards.
+    primary_element = interfaces.element_ids[1, interface]
+    primary_indices = interfaces.node_indices[1, interface]
 
-    primary_indices   = interfaces.node_indices[1, interface]
-    secondary_indices = interfaces.node_indices[2, interface]
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
 
-    # Use Tuple `node_indices` and `evaluate_index` to copy values
-    # from the correct face and in the correct orientation
+    i_primary = i_primary_start
+    j_primary = j_primary_start
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        interfaces.u[1, v, i, interface] = u[v, evaluate_index(primary_indices, size_, 1, i),
-                                                evaluate_index(primary_indices, size_, 2, i),
-                                                primary_element]
-
-        interfaces.u[2, v, i, interface] = u[v, evaluate_index(secondary_indices, size_, 1, i),
-                                                evaluate_index(secondary_indices, size_, 2, i),
-                                                secondary_element]
+        interfaces.u[1, v, i, interface] = u[v, i_primary, j_primary, primary_element]
       end
+      i_primary += i_primary_step
+      j_primary += j_primary_step
+    end
+
+    # Copy solution data from the secondary element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    secondary_element = interfaces.element_ids[2, interface]
+    secondary_indices = interfaces.node_indices[2, interface]
+
+    i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1], index_range)
+    j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2], index_range)
+
+    i_secondary = i_secondary_start
+    j_secondary = j_secondary_start
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, i_secondary, j_secondary, secondary_element]
+      end
+      i_secondary += i_secondary_step
+      j_secondary += j_secondary_step
     end
   end
 
@@ -59,40 +113,60 @@ function calc_interface_flux!(surface_flux_values,
                               equations, surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
   @unpack u, element_ids, node_indices = cache.interfaces
-
-  size_ = (nnodes(dg), nnodes(dg))
+  @unpack contravariant_vectors = cache.elements
+  index_range = eachnode(dg)
+  index_end = last(index_range)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Get neighboring elements
-    primary_element   = element_ids[1, interface]
-    secondary_element = element_ids[2, interface]
+    # Get information on the primary element, compute the surface fluxes,
+    # and store them for the primary element
+    primary_element  = element_ids[1, interface]
+    primary_indices  = node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
 
-    primary_indices   = node_indices[1, interface]
-    secondary_indices = node_indices[2, interface]
+    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
+    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
 
-    primary_direction   = indices2direction(primary_indices)
-    secondary_direction = indices2direction(secondary_indices)
-
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
+    i_primary = i_primary_start
+    j_primary = j_primary_start
     for i in eachnode(dg)
       u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
-      normal_vector = get_normal_vector(primary_direction, cache,
-                                        evaluate_index(primary_indices, size_, 1, i),
-                                        evaluate_index(primary_indices, size_, 2, i),
-                                        primary_element)
+      # Contravariant vectors at interfaces in negative coordinate direction
+      # are pointing inwards. This is handled by `get_normal_direction`.
+      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                              i_primary, j_primary, primary_element)
+      flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-      flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
-
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to left and right element storage in the correct orientation
       for v in eachvariable(equations)
-        surf_i = evaluate_index_surface(primary_indices, size_, 1, i)
-        surface_flux_values[v, surf_i, primary_direction, primary_element] = flux_[v]
+        surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
+      end
 
-        surf_i = evaluate_index_surface(secondary_indices, size_, 1, i)
-        surface_flux_values[v, surf_i, secondary_direction, secondary_element] = -flux_[v]
+      i_primary += i_primary_step
+      j_primary += j_primary_step
+    end
+
+    # Get information on the secondary element and copy the numerical fluxes
+    # from the primary element to the secondary one
+    secondary_element = element_ids[2, interface]
+    secondary_indices = node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
+
+    # Note that the index of the primary side will always run forward but
+    # the secondary index might need to run backwards for flipped sides.
+    if :i_backward in secondary_indices
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          surface_flux_values[v, index_end + 1 - i, secondary_direction, secondary_element] =
+            -surface_flux_values[v, i, primary_direction, primary_element]
+        end
+      end
+    else
+      for i in eachnode(dg)
+        for v in eachvariable(equations)
+          surface_flux_values[v, i, secondary_direction, secondary_element] =
+            -surface_flux_values[v, i, primary_direction, primary_element]
+        end
       end
     end
   end
@@ -105,21 +179,25 @@ function prolong2boundaries!(cache, u,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-
-  size_ = (nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for boundary in eachboundary(dg, cache)
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
 
-    # Use Tuple `node_indices` and `evaluate_index` to copy values
-    # from the correct face and in the correct orientation
+    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+    i_node = i_node_start
+    j_node = j_node_start
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        boundaries.u[v, i, boundary] = u[v, evaluate_index(node_indices, size_, 1, i),
-                                            evaluate_index(node_indices, size_, 2, i),
-                                            element]
+        boundaries.u[v, i, boundary] = u[v, i_node, j_node, element]
       end
+      i_node += i_node_step
+      j_node += j_node_step
     end
   end
 
@@ -131,42 +209,44 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-  @unpack surface_flux_values, node_coordinates = cache.elements
+  @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
   @unpack surface_flux = surface_integral
-
-  size_ = (nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for local_index in eachindex(boundary_indexing)
     # Use the local index to get the global boundary index from the pre-sorted list
     boundary = boundary_indexing[local_index]
 
+    # Get information on the adjacent element, compute the surface fluxes,
+    # and store them
     element       = boundaries.element_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
     direction     = indices2direction(node_indices)
 
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
-    for i in eachnode(dg)
-      node_i = evaluate_index(node_indices, size_, 1, i)
-      node_j = evaluate_index(node_indices, size_, 2, i)
+    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
 
+    i_node = i_node_start
+    j_node = j_node_start
+    for i in eachnode(dg)
       # Extract solution data from boundary container
       u_inner = get_node_vars(boundaries.u, equations, dg, i, boundary)
 
-      # Outward-pointing normal vector
-      normal_vector = get_normal_vector(direction, cache, node_i, node_j, element)
+      # Outward-pointing normal direction (not normalized)
+      normal_direction = get_normal_direction(direction, contravariant_vectors, i_node, j_node, element)
 
       # Coordinates at boundary node
-      x = get_node_coords(node_coordinates, equations, dg, node_i, node_j, element)
+      x = get_node_coords(node_coordinates, equations, dg, i_node, j_node, element)
 
-      flux_ = boundary_condition(u_inner, normal_vector, x, t, surface_flux, equations)
+      flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to left and right element storage in the correct orientation
+      # Copy flux to element storage in the correct orientation
       for v in eachvariable(equations)
-        surf_i = evaluate_index_surface(node_indices, size_, 1, i)
-        surface_flux_values[v, surf_i, direction, element] = flux_[v]
+        surface_flux_values[v, i, direction, element] = flux_[v]
       end
+
+      i_node += i_node_step
+      j_node += j_node_step
     end
   end
 end
@@ -177,39 +257,50 @@ function prolong2mortars!(cache, u,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
   @unpack element_ids, node_indices = cache.mortars
-
-  size_ = (nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
+    # Copy solution data from the small elements using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
     small_indices = node_indices[1, mortar]
-    large_indices = node_indices[2, mortar]
 
-    # Copy solution small to small
-    for pos in 1:2
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+
+    for position in 1:2
+      i_small = i_small_start
+      j_small = j_small_start
+      element = element_ids[position, mortar]
       for i in eachnode(dg)
         for v in eachvariable(equations)
-          # Use Tuple `node_indices` and `evaluate_index` to copy values
-          # from the correct face and in the correct orientation
-          cache.mortars.u[1, v, pos, i, mortar] = u[v, evaluate_index(small_indices, size_, 1, i),
-                                                       evaluate_index(small_indices, size_, 2, i),
-                                                       element_ids[pos, mortar]]
+          cache.mortars.u[1, v, position, i, mortar] = u[v, i_small, j_small, element]
         end
+        i_small += i_small_step
+        j_small += j_small_step
       end
     end
+
 
     # Buffer to copy solution values of the large element in the correct orientation
     # before interpolating
     u_buffer = cache.u_threaded[Threads.threadid()]
 
-    # Copy solution of large element face to buffer in the correct orientation
+    # Copy solution of large element face to buffer in the
+    # correct orientation
+    large_indices = node_indices[2, mortar]
+
+    i_large_start, i_large_step = index_to_start_step_2d(large_indices[1], index_range)
+    j_large_start, j_large_step = index_to_start_step_2d(large_indices[2], index_range)
+
+    i_large = i_large_start
+    j_large = j_large_start
+    element = element_ids[3, mortar]
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        # Use Tuple `node_indices` and `evaluate_index` to copy values
-        # from the correct face and in the correct orientation
-        u_buffer[v, i] = u[v, evaluate_index(large_indices, size_, 1, i),
-                              evaluate_index(large_indices, size_, 2, i),
-                              element_ids[3, mortar]]
+        u_buffer[v, i] = u[v, i_large, j_large, element]
       end
+      i_large += i_large_step
+      j_large += j_large_step
     end
 
     # Interpolate large element face data from buffer to small face locations
@@ -232,38 +323,47 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
   @unpack u, element_ids, node_indices = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+  @unpack contravariant_vectors = cache.elements
   @unpack surface_flux = surface_integral
-
-  size_ = (nnodes(dg), nnodes(dg))
+  index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
     # Choose thread-specific pre-allocated container
     fstar = (fstar_lower_threaded[Threads.threadid()],
              fstar_upper_threaded[Threads.threadid()])
 
+    # Get information on the small elements, compute the surface fluxes,
+    # and store them for the small elements
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
-    # Use Tuple `node_indices` and `evaluate_index` to access node indices
-    # at the correct face and in the correct orientation to get normal vectors
-    for pos in 1:2
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+
+    # Contravariant vectors at interfaces in negative coordinate direction
+    # are pointing inwards. This is handled by `get_normal_direction`.
+    for position in 1:2
+      i_small = i_small_start
+      j_small = j_small_start
+      element = element_ids[position, mortar]
       for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, pos, i, mortar)
+        u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, mortar)
 
-        normal_vector = get_normal_vector(small_direction, cache,
-                                          evaluate_index(small_indices, size_, 1, i),
-                                          evaluate_index(small_indices, size_, 2, i),
-                                          element_ids[pos, mortar])
+        normal_direction = get_normal_direction(small_direction, contravariant_vectors,
+                                                i_small, j_small, element)
 
-        flux_ = surface_flux(u_ll, u_rr, normal_vector, equations)
+        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
         # Copy flux to buffer
-        set_node_vars!(fstar[pos], flux_, equations, dg, i)
+        set_node_vars!(fstar[position], flux_, equations, dg, i)
+
+        i_small += i_small_step
+        j_small += j_small_step
       end
     end
 
-    # Buffer to interpolate flux values of the large element to before copying
-    # in the correct orientation
+    # Buffer to interpolate flux values of the large element to before
+    # copying in the correct orientation
     u_buffer = cache.u_threaded[Threads.threadid()]
 
     mortar_fluxes_to_elements!(surface_flux_values,
@@ -281,32 +381,20 @@ end
                                             dg::DGSEM, cache, mortar, fstar, u_buffer)
   @unpack element_ids, node_indices = cache.mortars
 
-  small_indices  = node_indices[1, mortar]
-  large_indices  = node_indices[2, mortar]
-
-  small_direction = indices2direction(small_indices)
-  large_direction = indices2direction(large_indices)
-
-  size_ = (nnodes(dg), nnodes(dg))
-
   # Copy solution small to small
-  for pos in 1:2
+  small_indices   = node_indices[1, mortar]
+  small_direction = indices2direction(small_indices)
+
+  for position in 1:2
+    element = element_ids[position, mortar]
     for i in eachnode(dg)
       for v in eachvariable(equations)
-        # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-        # to left and right element storage in the correct orientation
-        surface_index = evaluate_index_surface(small_indices, size_, 1, i)
-        surface_flux_values[v, surface_index,
-                            small_direction,
-                            element_ids[pos, mortar]] = fstar[pos][v, i]
+        surface_flux_values[v, i, small_direction, element] = fstar[position][v, i]
       end
     end
   end
 
-  large_element = element_ids[3, mortar]
-
   # Project small fluxes to large element.
-  # TODO: Taal performance, see comment in dg_tree/dg_2d.jl
   multiply_dimensionwise!(u_buffer,
                           mortar_l2.reverse_upper, fstar[2],
                           mortar_l2.reverse_lower, fstar[1])
@@ -314,19 +402,31 @@ end
   # The flux is calculated in the outward direction of the small elements,
   # so the sign must be switched to get the flux in outward direction
   # of the large element.
-  # The contravariant vectors of the large element (and therefore the normal vectors
-  # of the large element as well) are twice as large as the contravariant vectors
-  # of the small elements. Therefore, the flux need to be scaled by a factor of 2
-  # to obtain the flux of the large element.
+  # The contravariant vectors of the large element (and therefore the normal
+  # vectors of the large element as well) are twice as large as the
+  # contravariant vectors of the small elements. Therefore, the flux needs
+  # to be scaled by a factor of 2 to obtain the flux of the large element.
   u_buffer .*= -2
 
-  # Copy interpolated flux values from buffer to large element face in the correct orientation
-  for i in eachnode(dg)
-    for v in eachvariable(equations)
-      # Use Tuple `node_indices` and `evaluate_index_surface` to copy flux
-      # to surface flux storage in the correct orientation
-      surface_index = evaluate_index_surface(large_indices, size_, 1, i)
-      surface_flux_values[v, surface_index, large_direction, large_element] = u_buffer[v, i]
+  # Copy interpolated flux values from buffer to large element face in the
+  # correct orientation.
+  # Note that the index of the small sides will always run forward but
+  # the index of the large side might need to run backwards for flipped sides.
+  large_element  = element_ids[3, mortar]
+  large_indices  = node_indices[2, mortar]
+  large_direction = indices2direction(large_indices)
+
+  if :i_backward in large_indices
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v, i]
+      end
+    end
+  else
+    for i in eachnode(dg)
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, large_direction, large_element] = u_buffer[v, i]
+      end
     end
   end
 

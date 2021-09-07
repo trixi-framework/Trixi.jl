@@ -207,52 +207,68 @@ end
 end
 
 
-# Calculate the nonconservative terms from Powell and Galilean invariance
-# OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element,
-                                                    equations::IdealGlmMhdMulticomponentEquations2D,
-                                                    dg, cache)
-  for j in eachnode(dg), i in eachnode(dg)
-    u_node = get_node_vars(u, equations, dg, i, j, element)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u_node
-    rho = density(u_node, equations)
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
 
-    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    prim_rho = SVector{ncomponents(equations), real(equations)}(0 for i in eachcomponent(equations))
-    phi_pow_1 = 0.5 * SVector(B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
-    phi_pow = vcat(phi_pow_1, prim_rho)
+"""
+    flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                equations::IdealGlmMhdMulticomponentEquations2D)
 
-    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    # x-direction
-    phi_gal_x_1 = 0.5 * SVector(0, 0, 0, v1*psi, 0, 0, 0, v1)
-    phi_gal_x = vcat(phi_gal_x_1, prim_rho)
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdMulticomponentEquations2D`](@ref).
 
-    # y-direction
-    phi_gal_y_1 = 0.5 * SVector(0, 0, 0, v2*psi, 0, 0, 0, v2)
-    phi_gal_y = vcat(phi_gal_y_1, prim_rho)
+## References
+- Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
+  Florian Hindenlang, Joachim Saur
+  An entropy stable nodal discontinuous Galerkin method for the resistive MHD
+  equations. Part I: Theory and numerical verification
+  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
+"""
+@inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                             equations::IdealGlmMhdMulticomponentEquations2D)
+  rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
-    # add both nonconservative terms into the volume
-    for l in eachnode(dg)
-      _, _, _, _, B1, _, _, psi = get_node_vars(u, equations, dg, l, j, element)
-      for v in eachvariable(equations)
-        f1[v, l, i, j] += phi_pow[v] * B1 + phi_gal_x[v] * psi
-      end
-      _, _, _, _, _, B2, _, psi = get_node_vars(u, equations, dg, i, l, element)
-      for v in eachvariable(equations)
-        f2[v, l, i, j] += phi_pow[v] * B2 + phi_gal_y[v] * psi
-      end
-    end
+  rho_ll = density(u_ll, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+  # Note that the order of conserved variables is changed compared to the
+  # standard GLM MHD equations, i.e., the densities are moved to the end
+  # Here, we compute the non-density components at first and append zero density
+  # components afterwards
+  zero_densities = SVector{ncomponents(equations), real(equations)}(
+    ntuple(_ -> zero(real(equations)), Val(ncomponents(equations))))
+  if orientation == 1
+    f = SVector(B1_ll      * B1_rr,
+                B2_ll      * B1_rr,
+                B3_ll      * B1_rr,
+                v_dot_B_ll * B1_rr + v1_ll * psi_ll * psi_rr,
+                v1_ll      * B1_rr,
+                v2_ll      * B1_rr,
+                v3_ll      * B1_rr,
+                                     v1_ll * psi_rr)
+  else # orientation == 2
+    f = SVector(B1_ll      * B2_rr,
+                B2_ll      * B2_rr,
+                B3_ll      * B2_rr,
+                v_dot_B_ll * B2_rr + v2_ll * psi_ll * psi_rr,
+                v1_ll      * B2_rr,
+                v2_ll      * B2_rr,
+                v3_ll      * B2_rr,
+                                     v2_ll * psi_rr)
   end
 
-  return nothing
+  return vcat(f, zero_densities)
 end
 
 
 """
-    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations2D)
 
 Entropy conserving two-point flux adapted by
 - Derigs et al. (2018)
@@ -379,6 +395,113 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer, equations::IdealGlmM
 end
 
 
+"""
+    flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction,
+                            equations::IdealGlmMhdMulticomponentEquations2D)
+
+Adaption of the entropy conserving and kinetic energy preserving two-point flux of
+Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
+## References
+- Florian Hindenlang, Gregor Gassner (2019)
+  A new entropy conservative two-point flux for ideal MHD equations derived from
+  first principles.
+  Presented at HONOM 2019: European workshop on high order numerical methods
+  for evolutionary PDEs, theory and applications
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_hindenlang_gassner(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
+  # Unpack left and right states
+  v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll, equations)
+  v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr, equations)
+
+  rho_ll = density(u_ll, equations)
+  rho_rr = density(u_rr, equations)
+
+  # Compute the necessary mean values needed for either direction
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg  = 0.5 * ( v1_ll +  v1_rr)
+  v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+  v3_avg  = 0.5 * ( v3_ll +  v3_rr)
+  p_avg   = 0.5 * (  p_ll +   p_rr)
+  psi_avg = 0.5 * (psi_ll + psi_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+  magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+
+  inv_gamma_minus_one = 1 / (totalgamma(0.5 * (u_ll + u_rr), equations) - 1)
+
+  rhok_mean   = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i+8], u_rr[i+8]) for i in eachcomponent(equations))
+  rhok_avg    = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i+8] + u_rr[i+8]) for i in eachcomponent(equations))
+
+
+  if orientation == 1
+    f1    = zero(rho_ll)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+      f1 += f_rho[i]
+    end
+
+    # Calculate fluxes depending on orientation with specific direction averages
+    f2 = f1 * v1_avg + p_avg + magnetic_square_avg - 0.5 * (B1_ll * B1_rr + B1_rr * B1_ll)
+    f3 = f1 * v2_avg                               - 0.5 * (B1_ll * B2_rr + B1_rr * B2_ll)
+    f4 = f1 * v3_avg                               - 0.5 * (B1_ll * B3_rr + B1_rr * B3_ll)
+    #f5 below
+    f6 = f6 = equations.c_h * psi_avg
+    f7 = 0.5 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
+    f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
+    f9 = equations.c_h * 0.5 * (B1_ll + B1_rr)
+    # total energy flux is complicated and involves the previous components
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one )
+              + 0.5 * (
+              +   p_ll * v1_rr +  p_rr * v1_ll
+              + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
+              + (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
+              - (v2_ll * B1_ll * B2_rr + v2_rr * B1_rr * B2_ll)
+              - (v3_ll * B1_ll * B3_rr + v3_rr * B1_rr * B3_ll)
+              + equations.c_h * (B1_ll * psi_rr + B1_rr * psi_ll) ) )
+  else
+    f1    = zero(rho_ll)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v2_avg for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+      f1 += f_rho[i]
+    end
+
+    # Calculate fluxes depending on orientation with specific direction averages
+    f2 = f1 * v1_avg                               - 0.5 * (B2_ll * B1_rr + B2_rr * B1_ll)
+    f3 = f1 * v2_avg + p_avg + magnetic_square_avg - 0.5 * (B2_ll * B2_rr + B2_rr * B2_ll)
+    f4 = f1 * v3_avg                               - 0.5 * (B2_ll * B3_rr + B2_rr * B3_ll)
+    #f5 below
+    f6 = 0.5 * (v2_ll * B1_ll - v1_ll * B2_ll + v2_rr * B1_rr - v1_rr * B2_rr)
+    f7 = equations.c_h * psi_avg
+    f8 = 0.5 * (v2_ll * B3_ll - v3_ll * B2_ll + v2_rr * B3_rr - v3_rr * B2_rr)
+    f9 = equations.c_h * 0.5 * (B2_ll + B2_rr)
+    # total energy flux is complicated and involves the previous components
+    f5 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one )
+              + 0.5 * (
+              +   p_ll * v2_rr +  p_rr * v2_ll
+              + (v2_ll * B1_ll * B1_rr + v2_rr * B1_rr * B1_ll)
+              + (v2_ll * B3_ll * B3_rr + v2_rr * B3_rr * B3_ll)
+              - (v1_ll * B2_ll * B1_rr + v1_rr * B2_rr * B1_ll)
+              - (v3_ll * B2_ll * B3_rr + v3_rr * B2_rr * B3_ll)
+              + equations.c_h * (B2_ll * psi_rr + B2_rr * psi_ll) ) )
+  end
+
+  f_other = SVector{8, real(equations)}(f2, f3, f4, f5, f6, f7, f8, f9)
+
+  return vcat(f_other, f_rho)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
@@ -406,82 +529,6 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 end
 
-
-"""
-    noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)
-
-Strong form of non-conservative flux on a surface (Powell and GLM terms)
-```math
-phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
-```
-!!! note
-    The non-conservative interface flux depends on the discretization. Following "modes" are available:
-    * `:weak`: 'weak' formulation of split DG already includes the contribution
-      ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
-      analogously for the Galilean nonconservative term
-    * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
-    * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
-      ``(2)-(1) - 1/2 (phi^L B^L)``
-!!! warning
-    This is non-unique along an interface! The normal direction is super important.
-"""
-@inline function noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdMulticomponentEquations2D)
-  rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
-  _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
-
-  # extract velocites from the left
-  rho_ll = density(u_left, equations)
-
-  v1_ll  = rho_v1_ll / rho_ll
-  v2_ll  = rho_v2_ll / rho_ll
-  v3_ll  = rho_v3_ll / rho_ll
-  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
-  # extract magnetic field variable from the right and set the normal velocity
-  # Note, both depend upon the orientation and need psi_rr
-  if mode==:weak
-    if orientation == 1 # x-direction
-      v_normal = v1_ll
-      B_normal = B1_rr
-    else # y-direction
-      v_normal = v2_ll
-      B_normal = B2_rr
-    end
-    psi_norm = psi_rr
-  elseif mode==:whole
-    if orientation == 1 # x-direction
-      v_normal = v1_ll
-      B_normal = B1_rr - B1_ll
-    else # y-direction
-      v_normal = v2_ll
-      B_normal = B2_rr - B2_ll
-    end
-    psi_norm = psi_rr - psi_ll
-  else #mode==:inner
-    if orientation == 1 # x-direction
-      v_normal = v1_ll
-      B_normal =-B1_ll
-    else # y-direction
-      v_normal = v2_ll
-      B_normal =-B2_ll
-    end
-    psi_norm =-psi_ll
-  end
-
-  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
-  noncons1 = 0.5 * B_normal * B1_ll
-  noncons2 = 0.5 * B_normal * B2_ll
-  noncons3 = 0.5 * B_normal * B3_ll
-  noncons4 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_norm
-  noncons5 = 0.5 * B_normal * v1_ll
-  noncons6 = 0.5 * B_normal * v2_ll
-  noncons7 = 0.5 * B_normal * v3_ll
-  noncons8 = 0.5 * v_normal * psi_norm
-
-  noncons_rho = densities(u_left, 0.0, equations)
-  noncons_other = SVector{8, real(equations)}(noncons1, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8)
-
-  return vcat(noncons_other, noncons_rho)
-end
 
 
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMulticomponentEquations2D)

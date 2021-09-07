@@ -18,36 +18,41 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, UniformScaling
+using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-import DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
-                   ODEProblem, ODESolution, ODEFunction,
-                   get_du, get_tmp_cache, u_modified!,
-                   get_proposed_dt, set_proposed_dt!, terminate!, remake
+using DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
+                  ODEProblem, ODESolution, ODEFunction
+import DiffEqBase: get_du, get_tmp_cache, u_modified!,
+                   get_proposed_dt, set_proposed_dt!,
+                   terminate!, remake
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
-import ForwardDiff
+using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
-using LazyArrays: LazyArray, @~
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
-import MPI
+using MPI: MPI
+using GeometryBasics: GeometryBasics
 using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
-using RecipesBase
-using Requires
+using RecipesBase: RecipesBase
+using Requires: @require
+using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
-using StructArrays: StructArrays, StructArray
+@reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+using Triangulate: Triangulate, TriangulateIO, triangulate
+using TriplotBase: TriplotBase
+using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
@@ -60,7 +65,6 @@ import SummationByPartsOperators: integrate, left_boundary_weight, right_boundar
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
-
 
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
@@ -102,7 +106,6 @@ include("auxiliary/special_elixirs.jl")
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
 
-
 # export types/functions that define the public API of Trixi
 
 export AcousticPerturbationEquations2D,
@@ -118,6 +121,7 @@ export AcousticPerturbationEquations2D,
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
+       flux_nonconservative_powell,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
@@ -128,7 +132,6 @@ export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
-       initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
@@ -141,12 +144,12 @@ export initial_condition_constant,
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
-       boundary_condition_wall_noslip,
+       boundary_condition_noslip_wall,
+       boundary_condition_slip_wall,
        boundary_condition_wall,
        boundary_condition_zero,
-       BoundaryConditionWall,
-       boundary_state_slip_wall,
        boundary_condition_reflection
+       
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
@@ -194,7 +197,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
 export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
+       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven, NeuralNetworkCNN
 
 export PositivityPreservingLimiterZhangShu
 
@@ -214,7 +218,33 @@ function __init__()
 
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-    using .Plots: plot, plot!, savefig
+    using .Plots: Plots
+  end
+
+  @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
+    include("visualization/recipes_makie.jl")
+    using .Makie: Makie
+    export iplot # interactive plot
+  end
+
+  @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+    using Flux: params
+  end
+
+  # FIXME upstream. This is a hacky workaround for
+  #       https://github.com/trixi-framework/Trixi.jl/issues/628
+  # The related upstream issues appear to be
+  #       https://github.com/JuliaLang/julia/issues/35800
+  #       https://github.com/JuliaLang/julia/issues/32552
+  #       https://github.com/JuliaLang/julia/issues/41740
+  # See also https://discourse.julialang.org/t/performance-depends-dramatically-on-compilation-order/58425
+  let
+    for T in (Float32, Float64)
+      u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
+      view(u_mortars_2d, 1, :, 1, :, 1)
+      u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
+      view(u_mortars_3d, 1, :, 1, :, :, 1)
+    end
   end
 end
 

@@ -23,7 +23,7 @@ function IndicatorVortex(semi)
 end
 
 function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any,4},
-                                             equations, dg, cache;
+                                             mesh, equations, dg, cache;
                                              t, kwargs...)
   mesh = indicator_vortex.cache.mesh
   alpha = indicator_vortex.cache.alpha

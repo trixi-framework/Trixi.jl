@@ -11,7 +11,7 @@ initial_condition = initial_condition_couette_unsteady
 boundary_conditions = (
                        x_neg=boundary_condition_periodic,
                        x_pos=boundary_condition_periodic,
-                       y_neg=boundary_condition_wall_noslip,
+                       y_neg=boundary_condition_noslip_wall,
                        y_pos=boundary_condition_couette,
                       )
 
@@ -42,9 +42,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=1000,
-                                   save_final_restart=true)
-
 # Custom solution variables: normalize velocities by reference speed `u0`
 @inline function macroscopic_normalized(u, equations::LatticeBoltzmannEquations2D)
   macroscopic = cons2macroscopic(u, equations)
@@ -66,7 +63,7 @@ collision_callback = LBMCollisionCallback()
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         stepsize_callback,
                         collision_callback)
 

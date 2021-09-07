@@ -95,10 +95,10 @@ julia> λ = eigvals(J);
 
 julia> scatter(real.(λ), imag.(λ));
 
-julia> 1.0e-16 < maximum(real, λ) / maximum(abs, λ) < 6.0e-16
+julia> 1.0e-17 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15
 true
 
-julia> 1.0e-12 < maximum(real, λ) < 6.0e-12
+julia> 1.0e-13 < maximum(real, λ) < 1.0e-11
 true
 
 julia> λ, V = eigen(J);
@@ -122,15 +122,15 @@ julia> scatter!(real.(λ), imag.(λ));
 
 julia> λ = eigvals(J);
 
-julia> -1.0e-16 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
+julia> -1.0e-15 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15
 true
 
-julia> -5.0e-13 < maximum(real, λ) < 5.0e-13
+julia> -9.0e-13 < maximum(real, λ) < 9.0e-13
 true
 
 julia> λ, V = eigen(J);
 
-julia> 80_000 < cond(V) < 110_000
+julia> 70_000 < cond(V) < 200_000
 true
 ```
 Note that the condition number of the eigenvector matrix increases but is still smaller than for the

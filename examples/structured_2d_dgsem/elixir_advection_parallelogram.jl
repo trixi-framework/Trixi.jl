@@ -6,9 +6,9 @@ using Trixi
 # initial_condition_convergence_test transformed to the parallelogram
 function initial_condition_parallelogram(x, t, equation::LinearScalarAdvectionEquation2D)
   # Transform back to unit square
-  x_transformed = SVector(x[1] + x[2], x[2])
+  x_transformed = SVector(x[1] - x[2], x[2])
   a = equation.advectionvelocity
-  a_transformed = SVector(a[1] + a[2], a[2])
+  a_transformed = SVector(a[1] - a[2], a[2])
 
   # Store translated coordinate for easy use of exact solution
   x_translated = x_transformed - a_transformed * t

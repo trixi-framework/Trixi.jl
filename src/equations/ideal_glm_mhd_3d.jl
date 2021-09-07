@@ -150,18 +150,19 @@ end
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-  mag_en = 0.5*(B1^2 + B2^2 + B3^2)
-  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p_over_gamma_minus_one = (rho_e - kin_en - mag_en - 0.5 * psi^2)
+  p = (equations.gamma - 1) * p_over_gamma_minus_one
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1*v1 + p + mag_en - B1^2
     f3 = rho_v1*v2 - B1*B2
     f4 = rho_v1*v3 - B1*B3
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
+    f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
     f6 = equations.c_h*psi
     f7 = v1*B2 - v2*B1
     f8 = v1*B3 - v3*B1
@@ -171,7 +172,7 @@ end
     f2 = rho_v2*v1 - B2*B1
     f3 = rho_v2*v2 + p + mag_en - B2^2
     f4 = rho_v2*v3 - B2*B3
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
+    f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
     f6 = v2*B1 - v1*B2
     f7 = equations.c_h*psi
     f8 = v2*B3 - v3*B2
@@ -181,7 +182,7 @@ end
     f2 = rho_v3*v1 - B3*B1
     f3 = rho_v3*v2 - B3*B2
     f4 = rho_v3*v3 + p + mag_en - B3^2
-    f5 = (kin_en + equations.gamma*p * equations.inv_gamma_minus_one + 2*mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B3
+    f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B3
     f6 = v3*B1 - v1*B3
     f7 = v3*B2 - v2*B3
     f8 = equations.c_h*psi
@@ -194,9 +195,14 @@ end
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
-  rho, v1, v2, v3, p, B1, B2, B3, psi = cons2prim(u, equations)
-  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-  mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p_over_gamma_minus_one = (rho_e - kin_en - mag_en - 0.5 * psi^2)
+  p = (equations.gamma - 1) * p_over_gamma_minus_one
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2] + v3 * normal_direction[3]
   B_normal = B1 * normal_direction[1] + B2 * normal_direction[2] + B3 * normal_direction[3]
@@ -206,13 +212,16 @@ end
   f2 = rho_v_normal * v1 - B1 * B_normal + (p + mag_en) * normal_direction[1]
   f3 = rho_v_normal * v2 - B2 * B_normal + (p + mag_en) * normal_direction[2]
   f4 = rho_v_normal * v3 - B3 * B_normal + (p + mag_en) * normal_direction[3]
-  f5 = ( (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en) * v_normal
+  f5 = ( (kin_en + equations.gamma * p_over_gamma_minus_one + 2*mag_en) * v_normal
         - B_normal * (v1*B1 + v2*B2 + v3*B3) + equations.c_h * psi * B_normal )
-  f6 = ( equations.c_h * psi * normal_direction[1] + (v2 * B1 - v1 * B2) * normal_direction[2] +
+  f6 = ( equations.c_h * psi * normal_direction[1] +
+         (v2 * B1 - v1 * B2) * normal_direction[2] +
          (v3 * B1 - v1 * B3) * normal_direction[3] )
-  f7 = ( (v1 * B2 - v2 * B1) * normal_direction[1] + equations.c_h * psi * normal_direction[2] +
+  f7 = ( (v1 * B2 - v2 * B1) * normal_direction[1] +
+         equations.c_h * psi * normal_direction[2] +
          (v3 * B2 - v2 * B3) * normal_direction[3] )
-  f8 = ( (v1 * B3 - v3 * B1) * normal_direction[1] + (v2 * B3 - v3 * B2) * normal_direction[2] +
+  f8 = ( (v1 * B3 - v3 * B1) * normal_direction[1] +
+         (v2 * B3 - v3 * B2) * normal_direction[2] +
          equations.c_h * psi * normal_direction[3] )
   f9 = equations.c_h * B_normal
 
@@ -220,106 +229,113 @@ end
 end
 
 
-# Calculate the nonconservative terms from Powell and Galilean invariance
-# OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
-                                                    equations::IdealGlmMhdEquations3D, dg, cache)
-  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, k, element)
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
 
-    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
+"""
+    flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                equations::IdealGlmMhdEquations3D)
+    flux_nonconservative_powell(u_ll, u_rr,
+                                normal_direction_ll     ::AbstractVector,
+                                normal_direction_average::AbstractVector,
+                                equations::IdealGlmMhdEquations3D)
 
-    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    # x-direction
-    phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
-    # y-direction
-    phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
-    # z-direction
-    phi_gal_z = 0.5 * SVector(0, 0, 0, 0, v3*psi, 0, 0, 0, v3)
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdEquations3D`](@ref).
 
-    # add both nonconservative terms into the volume
-    for l in eachnode(dg)
-      _, _, _, _, _, B1, _, _, psi = get_node_vars(u, equations, dg, l, j, k, element)
-      for v in eachvariable(equations)
-        f1[v, l, i, j, k] += phi_pow[v] * B1 + phi_gal_x[v] * psi
-      end
-      _, _, _, _, _, _, B2, _, psi = get_node_vars(u, equations, dg, i, l, k, element)
-      for v in eachvariable(equations)
-        f2[v, l, i, j, k] += phi_pow[v] * B2 + phi_gal_y[v] * psi
-      end
-      _, _, _, _, _, _, _, B3, psi = get_node_vars(u, equations, dg, i, j, l, element)
-      for v in eachvariable(equations)
-        f3[v, l, i, j, k] += phi_pow[v] * B3 + phi_gal_z[v] * psi
-      end
-    end
+On curvilinear meshes, this nonconservative flux depends on both the
+contravariant vector (normal direction) at the current node and the averaged
+one. This is different from numerical fluxes used to discretize conservative
+terms.
+
+## References
+- Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
+  Florian Hindenlang, Joachim Saur
+  An entropy stable nodal discontinuous Galerkin method for the resistive MHD
+  equations. Part I: Theory and numerical verification
+  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
+"""
+@inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
+                                             equations::IdealGlmMhdEquations3D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
+  if orientation == 1
+    f = SVector(0,
+                B1_ll      * B1_rr,
+                B2_ll      * B1_rr,
+                B3_ll      * B1_rr,
+                v_dot_B_ll * B1_rr + v1_ll * psi_ll * psi_rr,
+                v1_ll      * B1_rr,
+                v2_ll      * B1_rr,
+                v3_ll      * B1_rr,
+                                     v1_ll * psi_rr)
+  elseif orientation == 2
+    f = SVector(0,
+                B1_ll      * B2_rr,
+                B2_ll      * B2_rr,
+                B3_ll      * B2_rr,
+                v_dot_B_ll * B2_rr + v2_ll * psi_ll * psi_rr,
+                v1_ll      * B2_rr,
+                v2_ll      * B2_rr,
+                v3_ll      * B2_rr,
+                                     v2_ll * psi_rr)
+  else # orientation == 3
+    f = SVector(0,
+                B1_ll      * B3_rr,
+                B2_ll      * B3_rr,
+                B3_ll      * B3_rr,
+                v_dot_B_ll * B3_rr + v3_ll * psi_ll * psi_rr,
+                v1_ll      * B3_rr,
+                v2_ll      * B3_rr,
+                v3_ll      * B3_rr,
+                                     v3_ll * psi_rr)
   end
 
-  return nothing
+  return f
 end
 
+@inline function flux_nonconservative_powell(u_ll, u_rr,
+                                             normal_direction_ll::AbstractVector,
+                                             normal_direction_average::AbstractVector,
+                                             equations::IdealGlmMhdEquations3D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
-# Calculate the nonconservative terms from Powell and Galilean invariance for StructuredMesh{3}
-# OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, contravariant_vectors,
-                                                    equations::IdealGlmMhdEquations3D, dg, cache)
-   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, k, element)
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
-    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
+  # Note that `v_dot_n_ll` uses the `normal_direction_ll` (contravariant vector
+  # at the same node location) while `B_dot_n_rr` uses the averaged normal
+  # direction. The reason for this is that `v_dot_n_ll` depends only on the left
+  # state and multiplies some gradient while `B_dot_n_rr` is used to compute
+  # the divergence of B.
+  v_dot_n_ll = v1_ll * normal_direction_ll[1]      + v2_ll * normal_direction_ll[2]      + v3_ll * normal_direction_ll[3]
+  B_dot_n_rr = B1_rr * normal_direction_average[1] + B2_rr * normal_direction_average[2] + B3_rr * normal_direction_average[3]
 
-    # Galilean nonconservative term: Φ^Gal_{1,2,3} = (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
-    # first direction
-    Ja11_ijk, Ja12_ijk, Ja13_ijk = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
-    phi_gal_x = 0.5*(Ja11_ijk*v1 + Ja12_ijk*v2 + Ja13_ijk*v3).*SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
-    # second direction
-    Ja21_ijk, Ja22_ijk, Ja23_ijk = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
-    phi_gal_y = 0.5*(Ja21_ijk*v1 + Ja22_ijk*v2 + Ja23_ijk*v3).*SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
-    # third direction
-    Ja31_ijk, Ja32_ijk, Ja33_ijk = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
-    phi_gal_z = 0.5*(Ja31_ijk*v1 + Ja32_ijk*v2 + Ja33_ijk*v3).*SVector(0, 0, 0, 0, psi, 0, 0, 0, 1)
+  # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+  # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
+  f = SVector(0,
+              B1_ll      * B_dot_n_rr,
+              B2_ll      * B_dot_n_rr,
+              B3_ll      * B_dot_n_rr,
+              v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+              v1_ll      * B_dot_n_rr,
+              v2_ll      * B_dot_n_rr,
+              v3_ll      * B_dot_n_rr,
+                                        v_dot_n_ll * psi_rr)
 
-    # add both nonconservative terms into the volume
-    for l in eachnode(dg)
-      _, _, _, _, _, B1, B2, B3, psi = get_node_vars(u, equations, dg, l, j, k, element)
-      Ja11_ljk, Ja12_ljk, Ja13_ljk = get_contravariant_vector(1, contravariant_vectors, l, j, k, element)
-      Ja11_avg = 0.5 * (Ja11_ijk + Ja11_ljk)
-      Ja12_avg = 0.5 * (Ja12_ijk + Ja12_ljk)
-      Ja13_avg = 0.5 * (Ja13_ijk + Ja13_ljk)
-      for v in eachvariable(equations)
-        f1[v, l, i, j, k] += ( phi_pow[v] * (Ja11_avg * B1 + Ja12_avg * B2 + Ja13_avg * B3) +
-                               phi_gal_x[v] * psi )
-      end
-      _, _, _, _, _, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, l, k, element)
-      Ja21_ilk, Ja22_ilk, Ja23_ilk = get_contravariant_vector(2, contravariant_vectors, i, l, k, element)
-      Ja21_avg = 0.5 * (Ja21_ijk + Ja21_ilk)
-      Ja22_avg = 0.5 * (Ja22_ijk + Ja22_ilk)
-      Ja23_avg = 0.5 * (Ja23_ijk + Ja23_ilk)
-      for v in eachvariable(equations)
-        f2[v, l, i, j, k] += ( phi_pow[v] * (Ja21_avg * B1 + Ja22_avg * B2 + Ja23_avg * B3) +
-                               phi_gal_y[v] * psi )
-      end
-      _, _, _, _, _, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, l, element)
-      Ja31_ijl, Ja32_ijl, Ja33_ijl = get_contravariant_vector(3, contravariant_vectors, i, j, l, element)
-      Ja31_avg = 0.5 * (Ja31_ijk + Ja31_ijl)
-      Ja32_avg = 0.5 * (Ja32_ijk + Ja32_ijl)
-      Ja33_avg = 0.5 * (Ja33_ijk + Ja33_ijl)
-      for v in eachvariable(equations)
-        f3[v, l, i, j, k] += ( phi_pow[v] * (Ja31_avg * B1 + Ja32_avg * B2 + Ja33_avg * B3) +
-                               phi_gal_z[v] * psi )
-      end
-    end
-  end
-
-  return nothing
+  return f
 end
+
 
 
 """
@@ -589,42 +605,47 @@ end
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  v_mag_ll = sqrt(v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll)
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
+  v_mag_rr = sqrt(v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 end
 
-
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdEquations3D)
-    # Compute wave speed estimates in each direction. Requires rotation because
-    # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
-    norm_ = norm(normal_direction)
-    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-    normal_vector = normal_direction / norm_
-    # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
-    tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
-    # Orthogonal projection
-    tangent1 -= dot(normal_vector, tangent1) * normal_vector
-    tangent1 = normalize(tangent1)
-    # Third orthogonal vector
-    tangent2 = normalize(cross(normal_direction, tangent1))
-    # rotate the solution states
-    u_ll_rotated = rotate_to_x(u_ll, normal_vector, tangent1, tangent2, equations)
-    u_rr_rotated = rotate_to_x(u_rr, normal_vector, tangent1, tangent2, equations)
-  return max_abs_speed_naive(u_ll_rotated, u_rr_rotated, 1, equations) * norm(normal_direction)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+
+  norm_squared = (normal_direction[1] * normal_direction[1] +
+                  normal_direction[2] * normal_direction[2] +
+                  normal_direction[3] * normal_direction[3])
+
+  # Calculate velocities and fast magnetoacoustic wave speeds
+  # left
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_mag_ll = sqrt((v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll) * norm_squared)
+  cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+  # right
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  v_mag_rr = sqrt((v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr) * norm_squared)
+  cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+
+  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 end
 
 
 """
-    min_max_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
+    min_max_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations::IdealGlmMhdEquations3D)
 
 Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 - Li (2005)
@@ -668,8 +689,6 @@ Calculate minimum and maximum wave speeds for HLL-type fluxes as in
   return λ_min, λ_max
 end
 
-
-# Very naive way to approximate the edges of the Riemann fan in the normal direction
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
@@ -684,34 +703,20 @@ end
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
 
-  # Compute wave speed estimates in each direction. Requires rotation because
-  # the fast magnetoacoustic wave speed has a nonlinear dependence on the direction
-  norm_ = norm(normal_direction)
-  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal_vector = normal_direction / norm_
-  # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
-  tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
-  # Orthogonal projection
-  tangent1 -= dot(normal_vector, tangent1) * normal_vector
-  tangent1 = normalize(tangent1)
+  v_normal_ll = (v1_ll * normal_direction[1] +
+                 v2_ll * normal_direction[2] +
+                 v3_ll * normal_direction[3])
+  v_normal_rr = (v1_rr * normal_direction[1] +
+                 v2_rr * normal_direction[2] +
+                 v3_rr * normal_direction[3])
 
-  # Third orthogonal vector
-  tangent2 = normalize(cross(normal_direction, tangent1))
-
-  # Compute the rotated velocities and wave speeds
-  v_normal_ll = v1_ll*normal_vector[1] + v2_ll*normal_vector[2] + v3_ll*normal_vector[3]
-  v_normal_rr = v1_rr*normal_vector[1] + v2_rr*normal_vector[2] + v3_rr*normal_vector[3]
-
-  u_ll_rotated = rotate_to_x(u_ll, normal_vector, tangent1, tangent2, equations)
-  u_rr_rotated = rotate_to_x(u_rr, normal_vector, tangent1, tangent2, equations)
-
-  c_f_ll_rotated = calc_fast_wavespeed(u_ll_rotated, 1, equations)
-  c_f_rr_rotated = calc_fast_wavespeed(u_rr_rotated, 1, equations)
-  v_roe_rotated, c_f_roe_rotated = calc_fast_wavespeed_roe(u_ll_rotated, u_rr_rotated, 1, equations)
+  c_f_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+  c_f_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+  v_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, normal_direction, equations)
 
   # Estimate the min/max eigenvalues in the normal direction
-  λ_min = min(v_normal_ll - c_f_ll_rotated, v_roe_rotated - c_f_roe_rotated) * norm_
-  λ_max = max(v_normal_rr + c_f_rr_rotated, v_roe_rotated + c_f_roe_rotated) * norm_
+  λ_min = min(v_normal_ll - c_f_ll, v_roe - c_f_roe)
+  λ_max = max(v_normal_rr + c_f_rr, v_roe + c_f_roe)
 
   return λ_min, λ_max
 end
@@ -767,83 +772,6 @@ end
                  normal_vector[2] * u[6] + tangent1[2] * u[7] + tangent2[2] * u[8],
                  normal_vector[3] * u[6] + tangent1[3] * u[7] + tangent2[3] * u[8],
                  u[9])
-end
-
-
-# strong form of nonconservative flux on a side, e.g., the Powell term
-#     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
-# OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
-#         so this routine only adds 1/2(phi^L B^R nvec)
-#         analogously for the Galilean nonconservative term
-#      2) this is non-unique along an interface! normal direction is super important
-@inline function noncons_interface_flux(u_left, u_right, orientation::Integer,
-                                        equations::IdealGlmMhdEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
-  _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
-
-  # extract velocites from the left
-  v1_ll  = rho_v1_ll / rho_ll
-  v2_ll  = rho_v2_ll / rho_ll
-  v3_ll  = rho_v3_ll / rho_ll
-  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
-  # extract magnetic field variable from the right and set the normal velocity
-  # Note, both depend upon the orientation and need psi_rr
-  if orientation == 1 # x-direction
-    v_normal = v1_ll
-    B_normal = B1_rr
-  elseif orientation == 2 # y-direction
-    v_normal = v2_ll
-    B_normal = B2_rr
-  else # z-direction
-    v_normal = v3_ll
-    B_normal = B3_rr
-  end
-  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
-  noncons2 = 0.5 * B_normal * B1_ll
-  noncons3 = 0.5 * B_normal * B2_ll
-  noncons4 = 0.5 * B_normal * B3_ll
-  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_rr
-  noncons6 = 0.5 * B_normal * v1_ll
-  noncons7 = 0.5 * B_normal * v2_ll
-  noncons8 = 0.5 * B_normal * v3_ll
-  noncons9 = 0.5 * v_normal * psi_rr
-
-  return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
-end
-
-
-# Compute surface nonconservative "flux" computation in the normal direction (3D version)
-# Note, due to the non-uniqueness of this term we cannot use any fancy rotation tricks.
-@inline function noncons_interface_flux(u_left, u_right, normal_direction::AbstractVector, mode,
-                                        equations::IdealGlmMhdEquations3D)
-  @assert mode === :weak "only :weak version of nonconservative coupling is available for curved MHD"
-
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
-  _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
-
-  norm_ = norm(normal_direction)
-  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal_vector = normal_direction / norm_
-
-  # extract velocites from the left
-  v1_ll  = rho_v1_ll / rho_ll
-  v2_ll  = rho_v2_ll / rho_ll
-  v3_ll  = rho_v3_ll / rho_ll
-  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
-  # extract magnetic field variable from the right and set the normal velocity
-  v_normal = normal_vector[1] * v1_ll + normal_vector[2] * v2_ll + normal_vector[3] * v3_ll
-  B_normal = normal_vector[1] * B1_rr + normal_vector[2] * B2_rr + normal_vector[3] * B3_rr
-  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
-  noncons2 = 0.5 * B_normal * B1_ll
-  noncons3 = 0.5 * B_normal * B2_ll
-  noncons4 = 0.5 * B_normal * B3_ll
-  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_rr
-  noncons6 = 0.5 * B_normal * v1_ll
-  noncons7 = 0.5 * B_normal * v2_ll
-  noncons8 = 0.5 * B_normal * v3_ll
-  noncons9 = 0.5 * v_normal * psi_rr
-
-  return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9) * norm_
 end
 
 
@@ -936,21 +864,23 @@ end
 
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-@inline function calc_fast_wavespeed(cons, direction, equations::IdealGlmMhdEquations3D)
+@inline function calc_fast_wavespeed(cons, orientation::Integer, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  v_mag = sqrt(v1^2 + v2^2 + v3^2)
-  p = (equations.gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5 * psi^2)
   a_square = equations.gamma * p / rho
-  b1 = B1/sqrt(rho)
-  b2 = B2/sqrt(rho)
-  b3 = B3/sqrt(rho)
-  b_square = b1^2 + b2^2 + b3^2
-  if direction == 1 # x-direction
+  sqrt_rho = sqrt(rho)
+  b1 = B1 / sqrt_rho
+  b2 = B2 / sqrt_rho
+  b3 = B3 / sqrt_rho
+  b_square = b1 * b1 + b2 * b2 + b3 * b3
+  if orientation == 1 # x-direction
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2))
-  elseif direction == 2 # y-direction
+  elseif orientation == 2 # y-direction
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b2^2))
   else # z-direction
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b3^2))
@@ -958,9 +888,36 @@ end
   return c_f
 end
 
+@inline function calc_fast_wavespeed(cons, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5 * psi^2)
+  a_square = equations.gamma * p / rho
+  sqrt_rho = sqrt(rho)
+  b1 = B1 / sqrt_rho
+  b2 = B2 / sqrt_rho
+  b3 = B3 / sqrt_rho
+  b_square = b1 * b1 + b2 * b2 + b3 * b3
+  norm_squared = (normal_direction[1] * normal_direction[1] +
+                  normal_direction[2] * normal_direction[2] +
+                  normal_direction[3] * normal_direction[3])
+  b_dot_n_squared = (b1 * normal_direction[1] +
+                     b2 * normal_direction[2] +
+                     b3 * normal_direction[3])^2 / norm_squared
+
+  c_f = sqrt(
+    (0.5 * (a_square + b_square) +
+     0.5 * sqrt((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) * norm_squared)
+  return c_f
+end
+
 
 """
-    calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations3D)
+    calc_fast_wavespeed_roe(u_ll, u_rr, orientation_or_normal_direction, equations::IdealGlmMhdEquations3D)
 
 Compute the fast magnetoacoustic wave speed using Roe averages as given by
 - Cargo and Gallice (1997)
@@ -968,28 +925,28 @@ Compute the fast magnetoacoustic wave speed using Roe averages as given by
   of Roe Matrices for Systems of Conservation Laws
   [DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
 """
-@inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations3D)
+@inline function calc_fast_wavespeed_roe(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
   # Calculate primitive variables
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
-  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  kin_en_ll = 0.5 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll + rho_v3_ll * v3_ll)
+  mag_norm_ll = B1_ll * B1_ll + B2_ll * B2_ll + B3_ll * B3_ll
+  p_ll = (equations.gamma - 1)*(rho_e_ll - kin_en_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
 
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
-  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
-  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  kin_en_rr = 0.5 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr + rho_v3_rr * v3_rr)
+  mag_norm_rr = B1_rr * B1_rr + B2_rr * B2_rr + B3_rr * B3_rr
+  p_rr = (equations.gamma - 1)*(rho_e_rr - kin_en_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
 
   # compute total pressure which is thermal + magnetic pressures
-  p_total_ll = p_ll + 0.5*mag_norm_ll
-  p_total_rr = p_rr + 0.5*mag_norm_rr
+  p_total_ll = p_ll + 0.5 * mag_norm_ll
+  p_total_rr = p_rr + 0.5 * mag_norm_rr
 
   # compute the Roe density averages
   sqrt_rho_ll = sqrt(rho_ll)
@@ -1010,7 +967,7 @@ Compute the fast magnetoacoustic wave speed using Roe averages as given by
   H_ll  = (rho_e_ll + p_total_ll) / rho_ll
   H_rr  = (rho_e_rr + p_total_rr) / rho_rr
   H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
-  # temporary vairable see equation (4.12) in Cargo and Gallice
+  # temporary variable see equation (4.12) in Cargo and Gallice
   X = 0.5 * ( (B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2 ) * inv_sqrt_rho_add^2
   # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
   b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
@@ -1018,12 +975,12 @@ Compute the fast magnetoacoustic wave speed using Roe averages as given by
                  (equations.gamma -1.0) * (H_roe - 0.5*(v1_roe^2 + v2_roe^2 + v3_roe^2) -
                                           b_square_roe)) # acoustic speed
   # finally compute the average wave speed and set the output velocity (depends on orientation)
-  if direction == 1 # x-direction
+  if orientation == 1 # x-direction
     c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
     a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
     c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
     vel_out_roe = v1_roe
-  elseif direction == 2 # y-direction
+  elseif orientation == 2 # y-direction
     c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
     a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
     c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
@@ -1034,6 +991,74 @@ Compute the fast magnetoacoustic wave speed using Roe averages as given by
     c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
     vel_out_roe = v3_roe
   end
+
+  return vel_out_roe, c_f_roe
+end
+
+@inline function calc_fast_wavespeed_roe(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations3D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  # Calculate primitive variables
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  kin_en_ll = 0.5 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll + rho_v3_ll * v3_ll)
+  mag_norm_ll = B1_ll * B1_ll + B2_ll * B2_ll + B3_ll * B3_ll
+  p_ll = (equations.gamma - 1)*(rho_e_ll - kin_en_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  kin_en_rr = 0.5 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr + rho_v3_rr * v3_rr)
+  mag_norm_rr = B1_rr * B1_rr + B2_rr * B2_rr + B3_rr * B3_rr
+  p_rr = (equations.gamma - 1)*(rho_e_rr - kin_en_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+
+  # compute total pressure which is thermal + magnetic pressures
+  p_total_ll = p_ll + 0.5 * mag_norm_ll
+  p_total_rr = p_rr + 0.5 * mag_norm_rr
+
+  # compute the Roe density averages
+  sqrt_rho_ll = sqrt(rho_ll)
+  sqrt_rho_rr = sqrt(rho_rr)
+  inv_sqrt_rho_add  = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
+  inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
+  rho_ll_roe =  sqrt_rho_ll * inv_sqrt_rho_add
+  rho_rr_roe =  sqrt_rho_rr * inv_sqrt_rho_add
+  # Roe averages
+  # velocities and magnetic fields
+  v1_roe = v1_ll * rho_ll_roe + v1_rr * rho_rr_roe
+  v2_roe = v2_ll * rho_ll_roe + v2_rr * rho_rr_roe
+  v3_roe = v3_ll * rho_ll_roe + v3_rr * rho_rr_roe
+  B1_roe = B1_ll * rho_ll_roe + B1_rr * rho_rr_roe
+  B2_roe = B2_ll * rho_ll_roe + B2_rr * rho_rr_roe
+  B3_roe = B3_ll * rho_ll_roe + B3_rr * rho_rr_roe
+  # enthalpy
+  H_ll  = (rho_e_ll + p_total_ll) / rho_ll
+  H_rr  = (rho_e_rr + p_total_rr) / rho_rr
+  H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
+  # temporary variable see equation (4.12) in Cargo and Gallice
+  X = 0.5 * ( (B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2 ) * inv_sqrt_rho_add^2
+  # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
+  b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
+  a_square_roe = ((2.0 - equations.gamma) * X +
+                 (equations.gamma -1.0) * (H_roe - 0.5*(v1_roe^2 + v2_roe^2 + v3_roe^2) -
+                                          b_square_roe)) # acoustic speed
+
+  # finally compute the average wave speed and set the output velocity (depends on orientation)
+  norm_squared = (normal_direction[1] * normal_direction[1] +
+                  normal_direction[2] * normal_direction[2] +
+                  normal_direction[3] * normal_direction[3])
+  B_roe_dot_n_squared = (B1_roe * normal_direction[1] +
+                         B2_roe * normal_direction[2] +
+                         B3_roe * normal_direction[3])^2 / norm_squared
+
+  c_a_roe = B_roe_dot_n_squared * inv_sqrt_rho_prod # (squared) Alfvén wave speed
+  a_star_roe = sqrt((a_square_roe + b_square_roe)^2 - 4 * a_square_roe * c_a_roe)
+  c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe) * norm_squared)
+  vel_out_roe = (v1_roe * normal_direction[1] +
+                 v2_roe * normal_direction[2] +
+                 v3_roe * normal_direction[3])
 
   return vel_out_roe, c_f_roe
 end

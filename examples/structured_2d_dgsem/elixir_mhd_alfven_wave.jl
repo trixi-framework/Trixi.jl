@@ -10,16 +10,12 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 initial_condition = initial_condition_convergence_test
 
-###############################################################################
 # Get the DG approximation space
-
-volume_flux = flux_central
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+volume_flux = (flux_central, flux_nonconservative_powell)
+solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-###############################################################################
 # Get the curved quad mesh from a mapping function
-
 # Mapping as described in https://arxiv.org/abs/1809.01178
 function mapping(xi_, eta_)
   # Transform input variables between -1 and 1 onto [0, sqrt(2)]
@@ -39,9 +35,7 @@ end
 cells_per_dimension = (4, 4)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
-###############################################################################
 # create the semi discretization object
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################

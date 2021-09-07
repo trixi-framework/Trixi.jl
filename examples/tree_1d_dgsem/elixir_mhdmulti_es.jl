@@ -7,9 +7,9 @@ using Trixi
 equations = IdealGlmMhdMulticomponentEquations1D(gammas           = (2.0, 2.0, 2.0),
                                                  gas_constants    = (2.0, 2.0, 2.0))
 
-initial_condition = initial_condition_briowu_shock_tube
+initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = flux_derigs_etal
+volume_flux = flux_hindenlang_gassner
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -26,7 +26,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.04)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -38,9 +38,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
@@ -50,7 +47,7 @@ stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         stepsize_callback)
 
 

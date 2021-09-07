@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
 # `DGMulti` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
 # the use of multi-dimensional operators in the solver.
 const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
@@ -41,7 +40,22 @@ function DGMulti(; polydeg::Integer,
                    surface_integral=SurfaceIntegralWeakForm(surface_flux),
                    volume_integral=VolumeIntegralWeakForm(),
                    kwargs...)
-  rd = RefElemData(element_type, approximation_type, polydeg, kwargs...)
+
+  # call dispatchable constructor
+  DGMulti(element_type, approximation_type, volume_integral, surface_integral;
+          polydeg=polydeg, surface_flux=surface_flux, kwargs...)
+end
+
+# dispatchable constructor for DGMulti to allow for specialization
+function DGMulti(element_type::AbstractElemShape,
+                 approximation_type,
+                 volume_integral,
+                 surface_integral;
+                 polydeg::Integer,
+                 surface_flux,
+                 kwargs...)
+
+  rd = RefElemData(element_type, approximation_type, polydeg; kwargs...)
   return DG(rd, nothing #= mortar =#, surface_integral, volume_integral)
 end
 
@@ -72,7 +86,29 @@ Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 VertexMappedMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
   VertexMappedMesh(triangulateIO, dg.basis, boundary_dict)
 
-# Todo: simplices. Add traits for dispatch on affine/curved meshes here.
+# Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
+
+# Matrix type for lazy construction of physical differentiation matrices
+# Constructs a lazy linear combination of B = ∑_i coeffs[i] * A[i]
+struct LazyMatrixLinearCombo{Tcoeffs, N, Tv, TA <: AbstractMatrix{Tv}} <: AbstractMatrix{Tv}
+  matrices::NTuple{N, TA}
+  coeffs::NTuple{N, Tcoeffs}
+  function LazyMatrixLinearCombo(matrices, coeffs)
+    @assert all(matrix -> size(matrix) == size(first(matrices)), matrices)
+    new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)), typeof(first(matrices))}(matrices, coeffs)
+  end
+end
+Base.eltype(A::LazyMatrixLinearCombo) = eltype(first(A.matrices))
+Base.IndexStyle(A::LazyMatrixLinearCombo) = IndexCartesian()
+Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
+
+@inline function Base.getindex(A::LazyMatrixLinearCombo{<:Real, N}, i, j) where {N}
+  val = zero(eltype(A))
+  for k in Base.OneTo(N)
+    val = val + A.coeffs[k] * getindex(A.matrices[k], i, j)
+  end
+  return val
+end
 
 
 end # @muladd
