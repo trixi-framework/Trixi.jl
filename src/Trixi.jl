@@ -107,6 +107,7 @@ include("visualization/visualization.jl")
 
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+       CompressiblePotTempEulerEquations2D
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
@@ -121,7 +122,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxRotated
+       FluxRotated, flux_LMARS
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -135,7 +136,8 @@ export initial_condition_constant,
        initial_condition_orszag_tang,
        initial_condition_rotor,
        initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex
+       initial_condition_taylor_green_vortex,
+       initial_condition_gaussian_bubble
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
@@ -143,7 +145,8 @@ export boundary_condition_periodic,
        boundary_condition_wall,
        boundary_condition_zero,
        BoundaryConditionWall,
-       boundary_state_slip_wall
+       boundary_state_slip_wall,
+       boundary_condition_reflection
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
