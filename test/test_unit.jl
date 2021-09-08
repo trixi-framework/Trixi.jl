@@ -612,18 +612,42 @@ Cassette.@context Ctx
   end
 
   @timed_testset "EulerAcoustics" begin
-    @test_nowarn_debug trixi_include(
-      @__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euleracoustics_co-rotating_vortex_pair.jl"),
-      tspan=(0.0, 0.05), tspan1=(0.0, 0.05), tspan_averaging=(0.0, 0.05))
+    # Shared mesh and solver for both semidiscretizations
+    mesh = TreeMesh((-1.0, 1.0), (-1.0, 1.0), initial_refinement_level=0, n_cells_max=1)
+    solver = DGSEM(polydeg=1, surface_flux=flux_lax_friedrichs)
+
+    # Create coupled semidiscretization
+    equations_euler = CompressibleEulerEquations2D(1.4)
+    semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition_constant,
+                                              solver)
+    equations_acoustics = AcousticPerturbationEquations2D((1.0, 3.0), 3.0, 7.0)
+    semi_acoustics = SemidiscretizationHyperbolic(mesh, equations_acoustics,
+                                                  initial_condition_constant, solver)
+    semi = SemidiscretizationEulerAcoustics(semi_acoustics, semi_euler)
+
+    # Create callbacks
+    averaging_callback = AveragingCallback(semi_euler, (0.0, 1.0))
+    ode_euler = semidiscretize(semi_euler, (0.0, 1.0))
+    euler_acoustics_coupling = EulerAcousticsCouplingCallback(
+      ode_euler, averaging_callback, CarpenterKennedy2N54(williamson_condition=false), 1.0, 1.0)
 
     @testset "AveragingCallback" begin
       @test_nowarn show(stdout, averaging_callback)
+      println()
+      @test_nowarn show(stdout, "text/plain", averaging_callback)
+      println()
     end
     @testset "EulerAcousticsCouplingCallback" begin
       @test_nowarn show(stdout, euler_acoustics_coupling)
+      println()
+      @test_nowarn show(stdout, "text/plain", euler_acoustics_coupling)
+      println()
     end
     @testset "SemidiscretizationEulerAcoustics" begin
       @test_nowarn show(stdout, semi)
+      println()
+      @test_nowarn show(stdout, "text/plain", semi)
+      println()
     end
   end
 end
