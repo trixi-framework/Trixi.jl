@@ -13,9 +13,9 @@ Shallow water equations (SWE) in two space dimensions. The equations are given b
 \begin{aligned}
   \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}(h v_1)
     + \frac{\partial}{\partial y}(h v_2) &= 0 \\
-    \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}\left(h v_1^2 + \frac{g}{2}h^2\right)
+    \frac{\partial}{\partial t}(h v_1) + \frac{\partial}{\partial x}\left(h v_1^2 + \frac{g}{2}h^2\right)
     + \frac{\partial}{\partial y}(h v_1 v_2) + g h \frac{\partial b}{\partial x} &= 0 \\
-    \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}(h v_1 v_2)
+    \frac{\partial}{\partial t}(h v_2) + \frac{\partial}{\partial x}(h v_1 v_2)
     + \frac{\partial}{\partial y}\left(h v_2^2 + \frac{g}{2}h^2\right) + g h \frac{\partial b}{\partial y} &= 0.
 \end{aligned}
 ```
