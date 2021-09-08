@@ -22,7 +22,10 @@ Shallow water equations (SWE) in two space dimensions. The equations are given b
 The unknown quantities of the SWE are the water height ``h`` and the velocities ``\mathbf{v} = (v_1, v_2)^T``.
 The gravitational constant is denoted by `g` and the (possibly) variable bottom topography function ``b(x,y)``.
 Conservative variable water height ``h`` is measured from the bottom topography ``b``, therefore one
-also defines the *total water height* as ``H = h + b``.
+also defines the total water height as ``H = h + b``.
+
+The `bottom_topography` is set to zero by default, i.e., ``b(x,y) = 0`` but can be changed to a general function
+within an elixir.
 
 In addition to the unknowns, Trixi currently stores the bottom topography values at the approximation points
 despite being fixed in time. This is done for convenience of computing the bottom topography gradients
@@ -40,13 +43,15 @@ References for the SWE are many but a good introduction is available in Chapter 
   Finite Volume Methods for Hyperbolic Problems
   [DOI: 10.1017/CBO9780511791253]( https://doi.org/10.1017/CBO9780511791253)
 """
-struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
-  gravity::RealT # gravitational constant
-
-  function ShallowWaterEquations2D(gravity_constant)
-    new{typeof(gravity_constant)}(gravity_constant)
-  end
+struct ShallowWaterEquations2D{RealT<:Real, BottomTopography} <: AbstractShallowWaterEquations{2, 4}
+  gravity::RealT                      # gravitational constant
+  bottom_topography::BottomTopography # bottom toporaphy function b(x,y)
 end
+
+function ShallowWaterEquations2D(gravity_constant; bottom_topography=zero_bottom_topography)
+  ShallowWaterEquations2D(gravity_constant, bottom_topography)
+end
+
 
 have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
 varnames(::typeof(cons2cons), ::ShallowWaterEquations2D) = ("h", "h_v1", "h_v2", "b")
@@ -63,7 +68,7 @@ function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquati
   H = 2.1
   v1 = 0.0
   v2 = 0.0
-  b = bottom_topography(x, equations)
+  b = equations.bottom_topography(x, equations)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -85,7 +90,7 @@ function initial_condition_convergence_test(x, t, equations::ShallowWaterEquatio
   h = c + cos(x[1]) * sin(x[2]) * cos(t)
   h_v1 = h * v1
   h_v2 = h * v2
-  b = bottom_topography(x, equations)
+  b = equations.bottom_topography(x, equations)
   return SVector(h, h_v1, h_v2, b)
 end
 
@@ -136,10 +141,10 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
   sin_phi, cos_phi = sincos(phi)
 
   # Calculate primitive variables
-  H  = r > 0.5 ? 2.0 : 2.1691
+  H = r > 0.5 ? 2.0 : 2.1691
   v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  b  = bottom_topography(x, equations)
+  b = equations.bottom_topography(x, equations)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -476,24 +481,11 @@ end
 end
 
 
-# TODO: figure out where this function should "live". probably always in the elixir
-#       because it is part of the particular test case. But then would this function live in
-#       the ShallowWaterEquations2D struct??
-@inline function bottom_topography(x, equations::ShallowWaterEquations2D)
-
-  # for testing with no bottom topography
-  # b = 0.0
-
-  # periodic bottom for the periodic with a twist mesh [0, sqrt(2)]^2
-  x1, x2 = x
-  b = 1.0 + 0.5 * sin(sqrt(2.0)*pi*x1) * sin(2.0*sqrt(2.0)*pi*x2)
-
-  # # this is the "pond" bottom for the circle.mesh
-  # x1, x2 = x
-  # b = ( 1.50 / exp(0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2))
-  #     + 0.75 / exp(0.5 * ((x1 + 1.0)^2 + (x2 + 1.0)^2)) )
-  return b
+# Default bottom topography is the constant zero
+@inline function zero_bottom_topography(x, equations::ShallowWaterEquations2D)
+  return 0.0
 end
+
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::ShallowWaterEquations2D)
@@ -545,7 +537,7 @@ end
 end
 
 
-@inline function density(u, equations::ShallowWaterEquations2D)
+@inline function water_height(u, equations::ShallowWaterEquations2D)
   h = u[1]
   return h
 end
