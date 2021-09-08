@@ -30,7 +30,7 @@ function load_averaging_file(averaging_file, mesh::TreeMesh, equations, dg::DGSE
   h5open(averaging_file, "r") do file
     n_dims = read(attributes(file)["ndims"])
     n_nodes = read(attributes(file)["polydeg"]) + 1
-    n_elements = read(attributes(file)["nelements"])
+    n_elements = read(attributes(file)["n_elements"])
 
     @assert n_dims == ndims(mesh) "ndims differs from value in averaging file"
     @assert n_nodes - 1 == polydeg(dg) "polynomial degree in solver differs from value in averaging file"
