@@ -6,7 +6,7 @@
 
 
 @doc raw"""
-    ShallowWaterEquations2D(gravity)
+    ShallowWaterEquations2D(gravity; bottom_topography)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
