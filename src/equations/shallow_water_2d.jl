@@ -50,9 +50,9 @@ end
 
 have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
 varnames(::typeof(cons2cons), ::ShallowWaterEquations2D) = ("h", "h_v1", "h_v2", "b")
-varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("h", "v1", "v2", "b")
+varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("H", "v1", "v2", "b") # total water height: H = h + b
 
-# TODO: need to make sure that the initial conditions are h = H - b !
+
 # Set initial conditions at physical location `x` for time `t`
 """
     initial_condition_constant(x, t, equations::ShallowWaterEquations2D)
@@ -60,11 +60,11 @@ varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("h", "v1", "v2", "b"
 A constant initial condition to test free-stream preservation / well-balancedness.
 """
 function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
-  h = 2.1
-  h_v1 = 0.0
-  h_v2 = 0.0
+  H = 2.1
+  v1 = 0.0
+  v2 = 0.0
   b = bottom_topography(x, equations)
-  return SVector(h - b, h_v1, h_v2, b)
+  return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
 
@@ -123,7 +123,8 @@ end
 """
     initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations2D)
 
-A weak blast wave useful for testing, e.g., entropy conservation
+A weak blast wave useful for testing, e.g., total energy conservation.
+Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations2D)
   # Set up polar coordinates
@@ -135,11 +136,11 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
   sin_phi, cos_phi = sincos(phi)
 
   # Calculate primitive variables
-  h  = r > 0.5 ? 2.0 : 2.1691
+  H  = r > 0.5 ? 2.0 : 2.1691
   v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
   b  = bottom_topography(x, equations)
-  return prim2cons(SVector(h - b, v1, v2, b), equations)
+  return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
 
@@ -147,9 +148,8 @@ end
 # Note the bottom topography has no flux
 @inline function flux(u, orientation::Integer, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, _ = u
+  _, v1, v2, _ = cons2prim(u, equations)
 
-  v1 = h_v1 / h
-  v2 = h_v2 / h
   p = 0.5 * equations.gravity * h^2
   if orientation == 1
     f1 = h_v1
@@ -166,7 +166,8 @@ end
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized and the bottom topography has no flux
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
-  h, v1, v2, _ = cons2prim(u, equations)
+  h = u[1]
+  _, v1, v2, _ = cons2prim(u, equations)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   h_v_normal = h * v_normal
@@ -209,9 +210,9 @@ Further details are available in the paper:
   # Note this routine only uses the `normal_direction_average` and the average of the
   # bottom topography to get a quadratic split form DG gradient on curved elements
   return SVector(0.0,
-              normal_direction_average[1] * equations.gravity * h_ll * b_rr,
-              normal_direction_average[2] * equations.gravity * h_ll * b_rr,
-              0.0)
+                 normal_direction_average[1] * equations.gravity * h_ll * b_rr,
+                 normal_direction_average[2] * equations.gravity * h_ll * b_rr,
+                 0.0)
 end
 
 
@@ -284,8 +285,10 @@ Details are available in Eq. (4.1) in the paper:
 """
 @inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
   # Unpack left and right state
-  h_ll, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  h_rr, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  h_ll = u_ll[1]
+  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  h_rr = u_rr[1]
+  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
   h_avg  = 0.5 * (h_ll   + h_rr  )
@@ -310,8 +313,10 @@ end
 
 @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
-  h_ll, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  h_rr, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  h_ll = u_ll[1]
+  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  h_rr = u_rr[1]
+  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
 
   v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -349,12 +354,12 @@ Further details are available in Theorem 1 of the paper:
 """
 @inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
   # Unpack left and right state
-  _, h_v1_ll, h_v2_ll, _ = u_ll
-  _, h_v1_rr, h_v2_rr, _ = u_rr
+  h_ll, h_v1_ll, h_v2_ll, _ = u_ll
+  h_rr, h_v1_rr, h_v2_rr, _ = u_rr
 
   # Get the primitive variables
-  h_ll, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  h_rr, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
   v1_avg = 0.5 * (v1_ll + v1_rr )
@@ -377,12 +382,12 @@ end
 
 @inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
-  _, h_v1_ll, h_v2_ll, _ = u_ll
-  _, h_v1_rr, h_v2_rr, _ = u_rr
+  h_ll, h_v1_ll, h_v2_ll, _ = u_ll
+  h_rr, h_v1_rr, h_v2_rr, _ = u_rr
 
   # Get the primitive variables
-  h_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
-  h_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
 
   # Average each factor of products in flux
   h_v1_avg = 0.5 * (h_v1_ll + h_v1_rr )
@@ -404,8 +409,10 @@ end
 # maximum velocity magnitude plus the maximum speed of sound
 # TODO: This doesn't really use the `orientation` - should it?
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
-  h_ll, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  h_rr, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  h_ll = u_ll[1]
+  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  h_rr = u_rr[1]
+  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
 
   # Calculate velocity magnitude and wave celerity on the left and right
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
@@ -424,8 +431,10 @@ end
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::ShallowWaterEquations2D)
-  h_ll, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  h_rr, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  h_ll = u_ll[1]
+  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  h_rr = u_rr[1]
+  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
 
   if orientation == 1 # x-direction
     λ_min = v1_ll - sqrt(equations.gravity * h_ll)
@@ -441,8 +450,10 @@ end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::ShallowWaterEquations2D)
-  h_ll, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  h_rr, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  h_ll = u_ll[1]
+  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  h_rr = u_rr[1]
+  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
 
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -457,7 +468,8 @@ end
 
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations2D)
-  h, v1, v2, _ = cons2prim(u, equations)
+  h = u[1]
+  _, v1, v2, _ = cons2prim(u, equations)
 
   c = equations.gravity * sqrt(h)
   return abs(v1) + c, abs(v2) + c
@@ -487,9 +499,10 @@ end
 @inline function cons2prim(u, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, b = u
 
+  H  = h + b
   v1 = h_v1 / h
   v2 = h_v2 / h
-  return SVector(h, v1, v2, b)
+  return SVector(H, v1, v2, b)
 end
 
 
@@ -523,8 +536,9 @@ end
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::ShallowWaterEquations2D)
-  h, v1, v2, b = prim
+  H, v1, v2, b = prim
 
+  h    = H - b
   h_v1 = h * v1
   h_v2 = h * v2
   return SVector(h, h_v1, h_v2, b)
