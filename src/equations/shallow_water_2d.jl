@@ -73,7 +73,6 @@ function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquati
 end
 
 
-# TODO: this manufactured solution and source term need updated with the bottom topography
 """
     initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
 
@@ -82,45 +81,61 @@ A smooth initial condition used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
-  # domain must be of length 2π in each direction to use periodic boundary conditions
-  c  = 8.0
+  # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
+  c  = 7.0
+  ωx = 2.0 * pi * sqrt(2.0)
+  ωt = 2.0 * pi
+
+  H = c + cos(ωx * x[1]) * sin(ωx * x[2]) * cos(ωt * t)
   v1 = 0.5
   v2 = 1.5
-
-  h = c + cos(x[1]) * sin(x[2]) * cos(t)
-  h_v1 = h * v1
-  h_v2 = h * v2
   b = equations.bottom_topography(x, equations)
-  return SVector(h, h_v1, h_v2, b)
+  return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
-# TODO: update once the bottom topography is nonzero
 """
     source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations2D)
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
+
+This manufactured solution source term is specifically designed for the bottom topography function
+`b(x,y) = 2 + 0.5 * sin(sqrt(2)*pi*x) + 0.5 * sin(sqrt(2)*pi*y)`
+as defined in `elixir_shallow_water_convergence.jl` with the function `mms_bottom_topography`.
 """
 @inline function source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations2D)
-  # Same settings as in `initial_condition`
-  c  = 8.0
+  # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
+  # this manufactured solution velocities are taken to be constants
+  c  = 7.0
+  ωx = 2.0 * pi * sqrt(2.0)
+  ωt = 2.0 * pi
+  ωb = sqrt(2.0) * pi
   v1 = 0.5
   v2 = 1.5
 
   x1, x2 = x
-  sinX, cosX = sincos(x1)
-  sinY, cosY = sincos(x2)
-  sinT, cosT = sincos(t)
 
-  H   = c + cosX * sinY * cosT
-  H_t = -cosX * sinY * sinT
-  H_x = -sinX * sinY * cosT
-  H_y =  cosX * cosY * cosT
+  sinX, cosX = sincos(ωx * x1)
+  sinY, cosY = sincos(ωx * x2)
+  sinT, cosT = sincos(ωt * t )
 
-  du1 = H_t + v1 * H_x + v2 * H_y
-  du2 = v1 * du1 + equations.gravity * H * H_x
-  du3 = v2 * du1 + equations.gravity * H * H_y
+  H = c + cosX * sinY * cosT
+  H_x = -ωx * sinX * sinY * cosT
+  H_y =  ωx * cosX * cosY * cosT
+  # this time derivative for the water height exploits that the bottom topography is
+  # fixed in time such that H_t = (h+b)_t = h_t + 0
+  H_t = -ωt * cosX * sinY * sinT
+
+  # bottom topography and its gradient
+  b = equations.bottom_topography(x, equations)
+  tmp1 = 0.5 * ωb
+  b_x = tmp1 * cos(ωb * x1)
+  b_y = tmp1 * cos(ωb * x2)
+
+  du1 = H_t + v1 * (H_x - b_x) + v2 * (H_y - b_y)
+  du2 = v1 * du1 + equations.gravity * (H - b) * H_x
+  du3 = v2 * du1 + equations.gravity * (H - b) * H_y
   return SVector(du1, du2, du3, 0.0)
 end
 
