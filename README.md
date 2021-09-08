@@ -218,8 +218,9 @@ Trixi was initiated by [Michael
 Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner) (both
 University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), they are the principal developers of Trixi.
+(University of Münster, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+they are the principal developers of Trixi.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
 
