@@ -90,6 +90,20 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.00013645610312810813],
       tspan = (0.0, 0.5))
   end
+
+  @trixi_testset "elixir_shallow_water_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallow_water_ec.jl"),
+      l2   = [0.12470316639541885, 0.22207460441752064, 0.2185616473567534, 7.72073461973929e-5],
+      linf = [0.25401274914185634, 0.7109875519116594, 0.6284803382167524, 0.00025476677100799705],
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallow_water_well_balanced.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallow_water_well_balanced.jl"),
+      l2   = [7.720734619722412e-5, 7.225895849099508e-13, 4.2553768001460197e-13, 7.72073461973929e-5],
+      linf = [0.0002547667710142143, 1.3015241695670216e-11, 9.294027315031304e-12, 0.00025476677100799705],
+      tspan = (0.0, 0.25))
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
