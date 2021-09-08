@@ -22,7 +22,6 @@ mesh = UnstructuredMesh2D(mesh_file)
 
 initial_condition = initial_condition_gauss_wall
 
-boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
 boundary_conditions = Dict( :OuterCircle  => boundary_condition_slip_wall,
                             :InnerCircle1 => boundary_condition_slip_wall,
                             :InnerCircle2 => boundary_condition_slip_wall,
