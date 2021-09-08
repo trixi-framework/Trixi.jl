@@ -237,6 +237,10 @@ include("linear_scalar_advection_3d.jl")
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("inviscid_burgers_1d.jl")
 
+# Shallow water equations
+abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("shallow_water_2d.jl")
+
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_1d.jl")
@@ -281,10 +285,6 @@ include("lattice_boltzmann_3d.jl")
 # Acoustic perturbation equations
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
-
-# Shallow water equations
-abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("shallow_water_2d.jl")
 
 
 end # @muladd
