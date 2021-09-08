@@ -11,9 +11,9 @@ function save_averaging_file(averaging_callback, mesh::TreeMesh, equations, dg::
     # Add context information
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["polydeg"] = polydeg(dg)
-    attributes(file)["nelements"] = nelements(dg, cache)
+    attributes(file)["n_elements"] = nelements(dg, cache)
 
-    # Store all mean variables as 1D arrays
+    # Store all mean variables as multi-dimensional arrays
     for field in fieldnames(typeof(mean_values))
       name = string(field)
       data = getfield(mean_values, field)
