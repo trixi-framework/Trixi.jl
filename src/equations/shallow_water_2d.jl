@@ -8,9 +8,37 @@
 @doc raw"""
     ShallowWaterEquations2D(gravity)
 
-TODO: put in documentation
-The bottom topography is not time dependent but it is stored as a fourth variable for
-convenience
+Shallow water equations (SWE) in two space dimensions. The equations are given by
+```math
+\begin{aligned}
+  \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}(h v_1)
+    + \frac{\partial}{\partial y}(h v_2) &= 0 \\
+    \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}\left(h v_1^2 + \frac{g}{2}h^2\right)
+    + \frac{\partial}{\partial y}(h v_1 v_2) + g h \frac{\partial b}{\partial x} &= 0 \\
+    \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}(h v_1 v_2)
+    + \frac{\partial}{\partial y}\left(h v_2^2 + \frac{g}{2}h^2\right) + g h \frac{\partial b}{\partial y} &= 0.
+\end{aligned}
+```
+The unknown quantities of the SWE are the water height ``h`` and the velocities ``\mathbf{v} = (v_1, v_2)^T``.
+The gravitational constant is denoted by `g` and the (possibly) variable bottom topography function ``b(x,y)``.
+Conservative variable water height ``h`` is measured from the bottom topography ``b``, therefore one
+also defines the *total water height* as ``H = h + b``.
+
+In addition to the unknowns, Trixi currently stores the bottom topography values at the approximation points
+despite being fixed in time. This is done for convenience of computing the bottom topography gradients
+on the fly during the approximation as well as computing auxiliary quantities like the total water height ``H``
+or the entropy variables.
+This affects the implementation and use of these equations in various ways:
+* The flux values corresponding to the bottom topography must be zero.
+* The bottom topography values must be included when defining initial conditions, boundary conditions or
+  source terms.
+* [`AnalysisCallback`](@ref) analyzes these variables too.
+* Trixi's visualization tools will visualize the bottom topography by default.
+
+References for the SWE are many but a good introduction is available in Chapter 13 of the book:
+- Randall J. LeVeque (2002)
+  Finite Volume Methods for Hyperbolic Problems
+  [DOI: 10.1017/CBO9780511791253]( https://doi.org/10.1017/CBO9780511791253)
 """
 struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
   gravity::RealT # gravitational constant
@@ -20,7 +48,7 @@ struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 
   end
 end
 
-#have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
+have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
 varnames(::typeof(cons2cons), ::ShallowWaterEquations2D) = ("h", "h_v1", "h_v2", "b")
 varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("h", "v1", "v2", "b")
 
@@ -29,15 +57,16 @@ varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("h", "v1", "v2", "b"
 """
     initial_condition_constant(x, t, equations::ShallowWaterEquations2D)
 
-A constant initial condition to test free-stream preservation or well-balancedness.
+A constant initial condition to test free-stream preservation / well-balancedness.
 """
-function initial_condition_constant(x, t, equations::ShallowWaterEquations2D)
+function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
   h = 2.1
-  h_v1 = 0.1
-  h_v2 = -0.2
+  h_v1 = 0.0
+  h_v2 = 0.0
   b = bottom_topography(x, equations)
-  return SVector(h, h_v1, h_v2, b)
+  return SVector(h - b, h_v1, h_v2, b)
 end
+
 
 # TODO: this manufactured solution and source term need updated with the bottom topography
 """
@@ -106,11 +135,11 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
   sin_phi, cos_phi = sincos(phi)
 
   # Calculate primitive variables
-  h  = r > 0.5 ? 1.0 : 1.1691
+  h  = r > 0.5 ? 2.0 : 2.1691
   v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
   b  = bottom_topography(x, equations)
-  return prim2cons(SVector(h, v1, v2, b), equations)
+  return prim2cons(SVector(h - b, v1, v2, b), equations)
 end
 
 
@@ -150,58 +179,94 @@ end
 end
 
 
-# """
-#     flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
-#                                 equations::ShallowWaterEquations2D)
-#     flux_nonconservative_powell(u_ll, u_rr,
-#                                 normal_direction_ll     ::AbstractVector,
-#                                 normal_direction_average::AbstractVector,
-#                                 equations::ShallowWaterEquations2D)
+"""
+    flux_nonconservative_shallow_water_volume(u_ll, u_rr,
+                                              normal_direction_ll     ::AbstractVector,
+                                              normal_direction_average::AbstractVector,
+                                              equations::ShallowWaterEquations2D)
 
-# Non-symmetric two-point flux discretizing the nonconservative (source) term of
-# that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
+Non-symmetric two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
 
-# On curvilinear meshes, this nonconservative flux depends on both the
-# contravariant vector (normal direction) at the current node and the averaged
-# one. This is different from numerical fluxes used to discretize conservative
-# terms.
+On curvilinear meshes, this nonconservative flux depends on both the
+contravariant vector (normal direction) at the current node and the averaged
+one. This is different from numerical fluxes used to discretize conservative
+terms.
 
-# ## References
-# - wintermeyer
-# """
-# @inline function flux_nonconservative_wintermeyer(u_ll, u_rr, orientation::Integer,
-#                                                   equations::ShallowWaterEquations2D)
-#   h_ll = u_ll[1]
-#   b_rr = u_rr[4]
+Further details are available in the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+"""
+@inline function flux_nonconservative_shallow_water_volume(u_ll, u_rr,
+                                                           normal_direction_ll::AbstractVector,
+                                                           normal_direction_average::AbstractVector,
+                                                           equations::ShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h_ll = u_ll[1]
+  b_rr = u_rr[4]
+  # Note this routine only uses the `normal_direction_average` and the average of the
+  # bottom topography to get a quadratic split form DG gradient on curved elements
+  return SVector(0.0,
+              normal_direction_average[1] * equations.gravity * h_ll * b_rr,
+              normal_direction_average[2] * equations.gravity * h_ll * b_rr,
+              0.0)
+end
 
-#   # nonconservative term: (0, h b_x, h b_y, 0)
-#   if orientation == 1
-#     f = SVector(0, equations.gravity * h_ll * b_rr, 0, 0)
-#   else # orientation == 2
-#     f = SVector(0, 0, equations.gravity * h_ll * b_rr, 0)
-#   end
 
-#   return f
-# end
+# TODO: make and test for discontinuous bottom topography. For continuous topography b_jump
+#       is machine epsilon.
+"""
+    flux_nonconservative_wintermeyer(u_ll, u_rr,
+                                     normal_direction_ll     ::AbstractVector,
+                                     normal_direction_average::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
 
-# @inline function flux_nonconservative_wintermeyer(u_ll, u_rr,
-#                                                   normal_direction_ll::AbstractVector,
-#                                                   normal_direction_average::AbstractVector,
-#                                                   equations::ShallowWaterEquations2D)
-#   h_ll = u_ll[1]
-#   b_rr = u_rr[4]
+Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
+that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
 
-#   # Note this routine only uses the `normal_direction_ll` (contravariant vector
-#   # at the same node location) with its components added together.
-#   # The reason being that the terms on the left state multiplies some gradient.
+On curvilinear meshes, this nonconservative flux depends on both the
+contravariant vector (normal direction) at the current node and the averaged
+one. This is different from numerical fluxes used to discretize conservative
+terms.
 
-#   # nonconservative term: (0, h b_x, h b_y, 0)
-#   f = SVector(0,
-#               v_dot_n_ll * psi_ll * psi_rr,
-#               v_dot_n_ll * psi_rr)
+This contains additional terms compared to [`flux_nonconservative_shallow_water_volume`](@ref)
+that account for possible discontinuities in the bottom topogarphy function
 
-#   return f
-# end
+Further details are available in the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+"""
+@inline function flux_nonconservative_wintermeyer(u_ll, u_rr,
+                                                  normal_direction_ll::AbstractVector,
+                                                  normal_direction_average::AbstractVector,
+                                                  equations::ShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h_ll, _, _, b_ll = u_ll
+  h_rr, _, _, b_rr = u_rr
+
+  # Comes in two parts:
+  #   (i)  Analogous to the volume flux that uses `normal_direction_average`, `h_ll` and `b_rr`
+  f2 = normal_direction_average[1] * equations.gravity * h_ll * b_rr
+  f3 = normal_direction_average[2] * equations.gravity * h_ll * b_rr
+
+  #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
+  #        to handle discontinuous bathymetry
+  # TODO: test and possibly simplify this term if possible
+  h_average = 0.5 * (h_ll + h_rr)
+  b_jump    = b_rr - b_ll
+
+  f2 += normal_direction_ll[1] * equations.gravity * h_average * b_jump
+  f3 += normal_direction_ll[2] * equations.gravity * h_average * b_jump
+
+  # First and last equations do not have a nonconservative flux
+  f1 = f4 = 0.0
+
+  return SVector(f1, f2, f3, f4)
+end
 
 
 """
@@ -211,7 +276,11 @@ end
 Total energy conservative (mathematical entropy for shallow water equations). When the bottom topography
 is nonzero this should only be used as a surface flux otherwise the scheme will not be well-balanced.
 For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
-- put in paper reference
+
+Details are available in Eq. (4.1) in the paper:
+- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+  Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
+  [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
 @inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
   # Unpack left and right state
@@ -271,7 +340,12 @@ end
 Total energy conservative (mathematical entropy for shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
 The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref) or [`flux_hll](@ref).
-- put in paper reference
+
+Further details are available in Theorem 1 of the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
 @inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
   # Unpack left and right state
@@ -382,50 +456,6 @@ end
 end
 
 
-# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
-# has been normalized prior to this rotation of the state vector
-@inline function rotate_to_x(u, normal_vector, equations::ShallowWaterEquations2D)
-  # cos and sin of the angle between the x-axis and the normalized normal_vector are
-  # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1]
-  s = normal_vector[2]
-
-  # Apply the 2D rotation matrix with normal and tangent directions of the form
-  # [ 1    0    0   0;
-  #   0   n_1  n_2  0;
-  #   0   t_1  t_2  0;
-  #   0    0    0   1 ]
-  # where t_1 = -n_2 and t_2 = n_1
-
-  return SVector(u[1],
-                  c * u[2] + s * u[3],
-                 -s * u[2] + c * u[3],
-                 u[4])
-end
-
-
-# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
-# has been normalized prior to this back-rotation of the state vector
-@inline function rotate_from_x(u, normal_vector, equations::ShallowWaterEquations2D)
-  # cos and sin of the angle between the x-axis and the normalized normal_vector are
-  # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1]
-  s = normal_vector[2]
-
-  # Apply the 2D back-rotation matrix with normal and tangent directions of the form
-  # [ 1    0    0   0;
-  #   0   n_1  t_1  0;
-  #   0   n_2  t_2  0;
-  #   0    0    0   1 ]
-  # where t_1 = -n_2 and t_2 = n_1
-
-  return SVector(u[1],
-                 c * u[2] - s * u[3],
-                 s * u[2] + c * u[3],
-                 u[4])
-end
-
-
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations2D)
   h, v1, v2, _ = cons2prim(u, equations)
 
@@ -438,7 +468,15 @@ end
 #       because it is part of the particular test case. But then would this function live in
 #       the ShallowWaterEquations2D struct??
 @inline function bottom_topography(x, equations::ShallowWaterEquations2D)
-  b = 0.0
+
+  # for testing with no bottom topography
+  # b = 0.0
+
+  # periodic bottom for the periodic with a twist mesh [0, sqrt(2)]^2
+  x1, x2 = x
+  b = 1.0 + 0.5 * sin(sqrt(2.0)*pi*x1) * sin(2.0*sqrt(2.0)*pi*x2)
+
+  # # this is the "pond" bottom for the circle.mesh
   # x1, x2 = x
   # b = ( 1.50 / exp(0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2))
   #     + 0.75 / exp(0.5 * ((x1 + 1.0)^2 + (x2 + 1.0)^2)) )

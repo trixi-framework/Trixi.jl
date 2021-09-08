@@ -127,7 +127,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxRotated
+       FluxRotated,
+       flux_nonconservative_shallow_water_volume, flux_nonconservative_wintermeyer
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -140,7 +141,8 @@ export initial_condition_constant,
        initial_condition_orszag_tang,
        initial_condition_rotor,
        initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex
+       initial_condition_taylor_green_vortex,
+       initial_condition_well_balancedness
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
