@@ -297,9 +297,9 @@ In addition, you can also refer to Trixi directly as
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
          of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
-          Ranocha, Hendrik and Winters, Andrew R},
-  year={2020},
-  month={08},
+          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse},
+  year={2021},
+  month={09},
   howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
   doi={10.5281/zenodo.3996439}
 }
