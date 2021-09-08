@@ -18,6 +18,8 @@ for human readability.
 
 - Implementation of acoustic perturbation equations now uses the conservative form, i.e. the
   perturbed pressure `p_prime` has been replaced with `p_prime_scaled = p_prime / c_mean^2`.
+- Removed the experimental `BoundaryConditionWall` and instead directly compute slip wall boundary
+  condition flux term using the function `boundary_condition_slip_wall`.
 
 #### Deprecated
 
