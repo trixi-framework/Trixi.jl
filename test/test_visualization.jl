@@ -86,6 +86,11 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug Plots.plot(pd)
       @test_nowarn_debug Plots.plot(pd["p"])
       @test_nowarn_debug Plots.plot(getmesh(pd))
+
+      if mesh == "DGMulti"
+        scalar_data = StructArrays.component(sol.u[end], 1)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+      end
     end
 
     @testset "1D plot from 2D solution" begin
