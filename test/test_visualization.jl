@@ -90,6 +90,11 @@ isdir(outdir) && rm(outdir, recursive=true)
       if mesh == "DGMulti"
         scalar_data = StructArrays.component(sol.u[end], 1)
         @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+      else
+        semi = sol.prob.p
+        cache = semi.cache
+        x = view(cache.elements.node_coordinates, 1, :, :, :)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
       end
     end
 
