@@ -60,6 +60,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       linf = [0.3954458125573179, 0.26876916180359345, 0.26876916180359345, 0.26933123042178553, 1.3724137121660251])
   end
 
+  # TODO: ICs, remove this one?
   @trixi_testset "elixir_euler_shockcapturing.jl with initial_condition_sedov_blast_wave" begin
     # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),

@@ -154,6 +154,7 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEqu
 end
 
 
+# TODO: ICs, remove this one?
 """
     initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
 
