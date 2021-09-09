@@ -20,7 +20,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
-  # Run 2D tests with elixirs for both mesh types
+  # Run 2D tests with elixirs for all mesh types
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
