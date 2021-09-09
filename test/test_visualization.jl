@@ -92,14 +92,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "1D plot from 2D solution" begin
       if mesh != "DGMulti"
-        if mesh == "StructuredMesh" || mesh == "P4estMesh"
-          point = (1.0, 0.0)
-        else
-          point = (-0.5, 0.0)
-        end
         @testset "Create 1D plot as slice" begin
-          @test_nowarn_debug PlotData1D(sol, slice=:y, point=point) isa PlotData1D
-          pd1D = PlotData1D(sol, slice=:y, point=point
+          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
           @test_nowarn_debug Plots.plot(pd1D)
         end
       end
