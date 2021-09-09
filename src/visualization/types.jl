@@ -432,10 +432,48 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
   # construct a triangulation of the reference plotting nodes
   t = reference_plotting_triangulation(rd.rstp) # rd.rstp = reference coordinates of plotting points
 
-  x_face, y_face = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
+  # Ignore face data when plotting `ScalarPlotData2D`, since mesh lines can be plotted using
+  # existing functionality based on `PlotData2D(sol)`.
+  x_face, y_face, face_data = nothing, nothing, nothing
 
-  # Values of solution on faces are not used for Plots.jl recipes
-  face_data = nothing
+  # wrap solution in ScalarData struct for recipe dispatch
+  return UnstructuredPlotData2D(x_plot, y_plot, ScalarData(u_plot), t,
+                                x_face, y_face, face_data, variable_name)
+end
+
+function ScalarPlotData2D(u, mesh::Union{UnstructuredMesh2D, StructuredMesh, P4estMesh}, equations, dg, cache;
+                          variable_name=nothing, nvisnodes=2*nnodes(dg))
+
+  n_nodes_2d = nnodes(dg)^ndims(mesh)
+  n_elements = nelements(dg, cache)
+
+  # build nodes on reference element (seems to be the right ordering)
+  r, s = reference_node_coordinates_2d(dg)
+
+  # reference plotting nodes
+  if nvisnodes == 0 || nvisnodes === nothing
+    nvisnodes = polydeg(dg) + 1
+  end
+  plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+
+  # create triangulation for plotting nodes
+  r_plot, s_plot = (x->plotting_interp_matrix*x).((r, s)) # interpolate dg nodes to plotting nodes
+
+  # construct a triangulation of the plotting nodes
+  t = reference_plotting_triangulation((r_plot, s_plot))
+
+  # extract x,y coordinates and reshape them into matrices of size (n_nodes_2d, n_elements)
+  x = view(cache.elements.node_coordinates, 1, :, :, :)
+  y = view(cache.elements.node_coordinates, 2, :, :, :)
+  x, y = reshape.((x, y), n_nodes_2d, n_elements)
+
+  # interpolate to volume plotting points by multiplying each column by `plotting_interp_matrix`
+  x_plot, y_plot = plotting_interp_matrix * x, plotting_interp_matrix * y
+  u_plot = plotting_interp_matrix * reshape(u, size(x))
+
+  # Ignore face data when plotting `ScalarPlotData2D`, since mesh lines can be plotted using
+  # existing functionality based on `PlotData2D(sol)`.
+  x_face, y_face, face_data = nothing, nothing, nothing
 
   # wrap solution in ScalarData struct for recipe dispatch
   return UnstructuredPlotData2D(x_plot, y_plot, ScalarData(u_plot), t,
