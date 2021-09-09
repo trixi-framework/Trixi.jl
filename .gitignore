@@ -12,6 +12,7 @@
 **/Manifest.toml
 out*/
 docs/build
+docs/literate/src/notebooks
 docs/src/authors.md
 public/
 coverage/
