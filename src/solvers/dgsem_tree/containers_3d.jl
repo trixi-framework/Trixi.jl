@@ -442,7 +442,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
       boundaries.neighbor_ids[count] = element
 
       # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
-      if direction in (2, 4, 6)
+      if iseven(direction)
         boundaries.neighbor_sides[count] = 1
       else
         boundaries.neighbor_sides[count] = 2
@@ -763,7 +763,7 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
       end
 
       # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
-      if direction in (2, 4, 6)
+      if iseven(direction)
         mortars.large_sides[count] = 1
       else
         mortars.large_sides[count] = 2

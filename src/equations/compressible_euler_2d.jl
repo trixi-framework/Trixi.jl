@@ -346,29 +346,6 @@ end
 
 
 """
-    initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
-
-A version of the classical Kelvin-Helmholtz instability based on
-- Andrés M. Rueda-Ramírez, Gregor J. Gassner (2021)
-  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations
-  of the Euler Equations
-  [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
-"""
-function initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
-  # change discontinuity to tanh
-  # typical resolution 128^2, 256^2
-  # domain size is [-1,+1]^2
-  slope = 15
-  amplitude = 0.02
-  B = tanh(slope * x[2] + 7.5) - tanh(slope * x[2] - 7.5)
-  rho = 0.5 + 0.75 * B
-  v1 = 0.5 * (B - 1)
-  v2 = 0.1 * sin(2 * pi * x[1])
-  p = 1.0
-  return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
-"""
     initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 
 The blob test case taken from
@@ -498,7 +475,6 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   return SVector(du1, du2, du3, du4)
 end
 
-
 """
     initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
 
@@ -566,7 +542,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
   u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
 
   # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -577,29 +553,106 @@ end
 
 
 """
-    boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-                             equations::CompressibleEulerEquations2D)
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::CompressibleEulerEquations2D)
 
-Determine the external solution value for a slip wall condition. Sets the normal
-velocity of the the exterior fictitious element to the negative of the internal value.
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
+- J. J. W. van der Vegt and H. van der Ven (2002)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
+
+Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of the book
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  3rd edition
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+
+Should be used together with [`UnstructuredMesh2D`](@ref).
 
 !!! warning "Experimental code"
     This wall function can change any time.
 """
-@inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-                                          equations::CompressibleEulerEquations2D)
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+                                      surface_flux_function, equations::CompressibleEulerEquations2D)
 
-  # normalize the outward pointing direction
-  normal = normal_direction / norm(normal_direction)
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
 
-  # compute the normal and tangential components of the velocity
-  u_normal  = normal[1] * u_internal[2] + normal[2] * u_internal[3]
-  u_tangent = (u_internal[2] - u_normal * normal[1], u_internal[3] - u_normal * normal[2])
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_inner, normal, equations)
 
-  return SVector(u_internal[1],
-                 u_tangent[1] - u_normal * normal[1],
-                 u_tangent[2] - u_normal * normal[2],
-                 u_internal[4])
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
+
+  # Get the solution of the pressure Riemann problem
+  # See Section 6.3.3 of
+  # Eleuterio F. Toro (2009)
+  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+  if v_normal <= 0.0
+    sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+  else # v_normal > 0.0
+    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+  end
+
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_inner)),
+                 p_star * normal[1],
+                 p_star * normal[2],
+                 zero(eltype(u_inner))) * norm_
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerEquations2D)
+Should be used together with [`TreeMesh`](@ref).
+
+!!! warning "Experimental code"
+    This wall function can change any time.
+"""
+function boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+  # get the appropriate normal vector from the orientation
+  if orientation == 1
+    normal = SVector(1, 0)
+  else # orientation == 2
+    normal = SVector(0, 1)
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  return boundary_condition_slip_wall(u_inner, normal, x, t, surface_flux_function, equations)
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerEquations2D)
+Should be used together with [`StructuredMesh`](@ref).
+
+!!! warning "Experimental code"
+    This wall function can change any time.
+"""
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
+                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+                                                  x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                 x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
 end
 
 
@@ -952,8 +1005,10 @@ end
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
-  λ_min = ( v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) ) * norm(normal_direction)
-  λ_max = ( v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) ) * norm(normal_direction)
+  norm_ = norm(normal_direction)
+  # The v_normals are already scaled by the norm
+  λ_min = v_normal_ll - sqrt(equations.gamma * p_ll / rho_ll) * norm_
+  λ_max = v_normal_rr + sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
   return λ_min, λ_max
 end

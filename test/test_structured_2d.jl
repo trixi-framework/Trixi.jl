@@ -1,4 +1,4 @@
-module TestExamples2DStructured
+module TestExamplesStructuredMesh2D
 
 using Test
 using Trixi
@@ -8,7 +8,11 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "structured_2d_dgsem")
 
-@testset "Structured Mesh" begin
+# Start with a clean environment: remove Trixi output directory if it exists
+outdir = "out"
+isdir(outdir) && rm(outdir, recursive=true)
+
+@testset "StructuredMesh2D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [9.14468177884088e-6],
@@ -56,8 +60,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
 
   @trixi_testset "elixir_advection_parallelogram.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_parallelogram.jl"),
-      l2   = [0.0005165995033861579],
-      linf = [0.002506176163321605])
+      l2   = [9.14468177884088e-6],
+      linf = [6.437440532947036e-5])
   end
 
   @trixi_testset "elixir_advection_waving_flag.jl" begin
@@ -176,6 +180,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
       tspan = (0.0, 0.3))
   end
 
+  @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor_instability.jl"),
+      l2   = [0.06365630381017849, 0.007166887387738937, 0.002878708825497772, 0.010247678114070121],
+      linf = [0.4799214336153155, 0.024595483032220266, 0.02059808120543466, 0.03190756362943725],
+      cells_per_dimension = (8,8),
+      tspan = (0.0, 0.3))
+  end
+
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
@@ -212,5 +224,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
       tspan = (0.0, 1.0))
   end
 end
+
+# Clean up afterwards: delete Trixi output directory
+@test_nowarn rm(outdir, recursive=true)
 
 end # module

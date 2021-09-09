@@ -127,7 +127,7 @@ end
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
-  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
@@ -146,43 +146,6 @@ end
   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
   # Calculate boundary flux
-  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-
-  return flux
-end
-
-"""
-    BoundaryConditionWall(boundary_value_function)
-
-Create a generic wall type boundary condition that uses the function `boundary_value_function`
-to specify the external solution values.
-The boundary wall function is called with arguments for an internal solution state from inside an
-element `u_inner`, an outward pointing `normal_direction` and a particular set of `equations`, e.g.,
-```julia
-boundary_value_function(u_inner, normal_direction, equations)
-```
-which will return an external solution state.
-
-# Example
-```julia
-julia> BoundaryConditionWall(boundary_state_slip_wall)
-```
-
-!!! warning "Experimental code"
-    This boundary condition can change any time and is currently only implemented for the
-    [`CompressibleEulerEquations2D`](@ref) and [`AcousticPerturbationEquations2D`](@ref).
-"""
-struct BoundaryConditionWall{B}
-  boundary_value_function::B
-end
-
-@inline function (boundary_condition::BoundaryConditionWall)(u_inner,
-                                                             normal_direction::AbstractVector,
-                                                             x, t,
-                                                             surface_flux_function, equations)
-  # get the external value of the solution
-  u_boundary = boundary_condition.boundary_value_function(u_inner, normal_direction, equations)
-
   flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
   return flux

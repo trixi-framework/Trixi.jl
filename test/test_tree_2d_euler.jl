@@ -71,6 +71,41 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       maxiters = 30)
   end
 
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl"),
+      l2   = [0.470793846459279, 0.20772743006225688, 0.20772649286847356, 0.7011946441199758],
+      linf = [1.459980543578883, 0.976674580177999, 0.9759214032734075, 2.960406757135902],
+      initial_refinement_level = 4,
+      maxiters = 50)
+  end
+
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
+      l2   = [0.4667685563568254, 0.20611874363505156, 0.20588110990842964, 0.6993986008683889],
+      linf = [1.4753582207406488, 0.9904209156187197, 0.9841399353882521, 2.9346283218997806],
+      initial_refinement_level = 4,
+      maxiters = 50)
+  end
+
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl with mortars" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
+      l2   = [0.016398689755743465, 0.03074685501652015, 0.03078660152836722, 0.15176702545248866],
+      linf = [0.27612812614937343, 0.5598351620373528, 0.5601415330040513, 2.48372589562021],
+      refinement_patches=(
+          (type="box", coordinates_min=(-0.25, -0.25), coordinates_max=(0.25, 0.25)),
+          (type="box", coordinates_min=(-0.125, -0.125), coordinates_max=(0.125, 0.125)),),
+      initial_refinement_level = 4,
+      maxiters = 5)
+  end
+
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_cnn.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_cnn.jl"),
+      l2   = [0.47425390570612547, 0.20990014031106777, 0.2103622732820483, 0.7022475294762982],
+      linf = [1.6366874508175182, 0.9734578279971777, 0.9412921347930632, 2.949655726363399],
+      initial_refinement_level = 4,
+      maxiters = 50)
+  end
+
   @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_pure_fv.jl"),
       l2   = [0.39957047631960346, 0.21006912294983154, 0.21006903549932, 0.6280328163981136],
@@ -90,6 +125,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.4819231474652106, 0.1655453843075888, 0.16554538430758944, 0.6182451347074112],
       linf = [2.4849541392059202, 1.2816207838889486, 1.2816207838888944, 6.4743208586529875],
       tspan = (0.0, 1.0))
+  end
+
+  @trixi_testset "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl"),
+      l2   = [8.29516192e-02, 9.18870398e-02, 9.18870398e-02, 4.37449170e-01],
+      linf = [1.23402442e+00, 1.63254552e+00, 1.63254552e+00, 4.21977821e+00],
+      maxiters = 30)
   end
 
   @trixi_testset "elixir_euler_positivity.jl" begin
@@ -125,6 +167,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.05569140599245201, 0.033108757924402134, 0.05223526059785845, 0.08007239985228143],
       linf = [0.2540392117514094, 0.17432468822204936, 0.12323401271048683, 0.26897998287356195],
       tspan = (0.0, 0.2))
+  end
+
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl"),
+      l2   = [0.0009932162527962933, 0.004946122604416242, 0.004863174253792848, 0.005019630958200973],
+      linf = [0.008603757244273202, 0.02090493316272357, 0.01712529102069524, 0.028966987799588395],
+      maxiters = 30)
   end
 
   @trixi_testset "elixir_euler_colliding_flow.jl" begin
@@ -182,6 +231,62 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
       l2   = [2.1325938318497577e-6, 0.003281545066125044, 0.0032806321457482615, 0.00464605975938406],
       linf = [4.667437348149228e-5, 0.03175420871507906, 0.0318039789241531, 0.04561735256198318])
+  end
+
+  @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+      l2   = [0.06176845600430613, 0.05020624043492084, 0.05021389111189423, 0.22592682624517807],
+      linf = [0.29347582879609024, 0.3108124923286465, 0.3107380389949771, 1.054035804988522],
+      periodicity = false, boundary_conditions = boundary_condition_slip_wall)
+  end
+end
+
+# Coverage test for all initial conditions
+@testset "Compressible Euler: Tests for initial conditions" begin
+  @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_density_pulse" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [0.003489659044164644, 0.0034896590441646494, 0.0034896590441646502, 0.003489659044164646],
+      linf = [0.04761180654650543, 0.04761180654650565, 0.047611806546505875, 0.04761180654650454],
+      maxiters = 1,
+      initial_condition = initial_condition_density_pulse)
+  end
+
+  @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_pressure_pulse" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [0.00021747693728234874, 0.0022010142997830533, 0.0022010142997830485, 0.010855273768135729],
+      linf = [0.005451116856088789, 0.03126448432601536, 0.03126448432601536, 0.14844305553724624],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_pressure_pulse)
+  end
+
+  @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_density_pressure_pulse" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [0.003473649182284682, 0.005490887132955628, 0.005490887132955635, 0.015625074774949926],
+      linf = [0.046582178207169145, 0.07332265196082899, 0.07332265196082921, 0.2107979471941368],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_density_pressure_pulse)
+  end
+
+  @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_constant" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [7.89034964747135e-17, 8.095575651413758e-17, 1.0847287658433571e-16, 1.2897732640029767e-15],
+      linf = [2.220446049250313e-16, 3.191891195797325e-16, 4.163336342344337e-16, 3.552713678800501e-15],
+      maxiters = 1,
+      initial_condition = initial_condition_constant)
+  end
+
+  @trixi_testset "elixir_euler_sedov_blast_wave.jl one step" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
+      l2   = [0.0021037031798961914, 0.010667428589443025, 0.01066742858944302, 0.10738893384136498],
+      linf = [0.11854059147646778, 0.7407961272348982, 0.7407961272348981, 3.92623931433345],
+      maxiters=1)
+  end
+
+  @trixi_testset "elixir_euler_sedov_blast_wave.jl one step with initial_condition_medium_sedov_blast_wave" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
+      l2   = [0.0021025532272874827, 0.010661548568022292, 0.010661548568022284, 0.10734939168392313],
+      linf = [0.11848345578926645, 0.7404217490990809, 0.7404217490990809, 3.9247328712525973],
+      maxiters=1, initial_condition=initial_condition_medium_sedov_blast_wave)
   end
 end
 

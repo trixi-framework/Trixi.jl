@@ -161,7 +161,7 @@ julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
 
-![image](https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png)
+![image](https://user-images.githubusercontent.com/72009492/130952732-633159ff-c167-4d36-ba36-f2a2eac0a8d6.PNG)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
@@ -297,9 +297,9 @@ In addition, you can also refer to Trixi directly as
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
          of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
-          Ranocha, Hendrik and Winters, Andrew R},
-  year={2020},
-  month={08},
+          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse},
+  year={2021},
+  month={09},
   howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
   doi={10.5281/zenodo.3996439}
 }
@@ -311,7 +311,8 @@ Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner) (both
 University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), they are the principal developers of Trixi.
+(Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+they are the principal developers of Trixi.
 The full list of contributors can be found under [Authors](@ref).
 
 

@@ -24,7 +24,7 @@ function IndicatorAlwaysCoarsen(semi)
 end
 
 function (indicator::IndicatorAlwaysCoarsen)(u::AbstractArray{<:Any,4},
-                                             equations, dg, cache;
+                                             mesh, equations, dg, cache;
                                              t, kwargs...)
   alpha = indicator.cache.alpha
   resize!(alpha, nelements(dg, cache))
@@ -73,9 +73,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
@@ -94,7 +91,7 @@ stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         amr_callback, stepsize_callback);
 
 

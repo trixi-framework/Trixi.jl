@@ -1,4 +1,4 @@
-module TestExamples2DPart3
+module TestExamplesTreeMesh2DPart3
 
 using Test
 using Trixi
@@ -9,21 +9,18 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "2D-Part3" begin
+@testset "TreeMesh2D Part 3" begin
 
 # Run basic tests
 @testset "Examples 2D" begin
-  # Acoustic perturbation
-  include("test_examples_2d_ape.jl")
+  # MHD
+  include("test_tree_2d_mhd.jl")
 
-  # Curved mesh
-  include("test_examples_2d_structured.jl")
+  # MHD Multicomponent
+  include("test_tree_2d_mhdmulti.jl")
 
-  # Unstructured curved mesh
-  include("test_examples_2d_unstructured.jl")
-
-  # P4estMesh
-  include("test_examples_2d_p4est.jl")
+  # Lattice-Boltzmann
+  include("test_tree_2d_lbm.jl")
 
   # FDSBP methods on the TreeMesh
   include("test_tree_2d_fdsbp.jl")
@@ -32,6 +29,6 @@ end
 # Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
 
-end # 2D-Part3
+end # TreeMesh2D Part 3
 
 end #module

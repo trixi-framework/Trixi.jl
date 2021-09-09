@@ -36,15 +36,12 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         analysis_callback, alive_callback)
 
 

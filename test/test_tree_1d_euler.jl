@@ -135,6 +135,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [1.513525457073142, 1.5328754303137992, 2.0467706106669556],
       maxiters = 30)
   end
+
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl"),
+        l2   = [2.13605618e-01, 2.79953055e-01, 5.54424459e-01],
+        linf = [1.55151701e+00, 1.55696782e+00, 2.05525953e+00],
+        maxiters = 30)
+  end
+
+  @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
+        l2   = [2.18148857e-01, 2.83182959e-01, 5.59096194e-01],
+        linf = [1.62706876e+00, 1.61680275e+00, 2.05876517e+00],
+        maxiters = 30)
+  end
 end
 
 end # module
