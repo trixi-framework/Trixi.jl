@@ -408,6 +408,41 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equation
   return UnstructuredPlotData2D(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
 end
 
+# Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
+struct ScalarData{T}
+  data::T
+end
+
+ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...) =
+  ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
+
+# Returns an `UnstructuredPlotData2D` which is used to visualize a single scalar field
+function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
+                          variable_name=nothing, nvisnodes=2*nnodes(dg))
+
+  rd = dg.basis
+  md = mesh.md
+
+  # Vp = the interpolation matrix from nodal points to plotting points
+  @unpack Vp = rd
+
+  # interpolate nodal coordinates and solution field to plotting points
+  x_plot, y_plot = map(x->Vp * x, md.xyz) # md.xyz is a tuple of arrays containing nodal coordinates
+  u_plot = Vp * u
+
+  # construct a triangulation of the reference plotting nodes
+  t = reference_plotting_triangulation(rd.rstp) # rd.rstp = reference coordinates of plotting points
+
+  x_face, y_face = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
+
+  # Values of solution on faces are not used for Plots.jl recipes
+  face_data = nothing
+
+  # wrap solution in ScalarData struct for recipe dispatch
+  return UnstructuredPlotData2D(x_plot, y_plot, ScalarData(u_plot), t,
+                                x_face, y_face, face_data, variable_name)
+end
+
 
 """
     PlotData1D(u, semi [or mesh, equations, solver, cache];
