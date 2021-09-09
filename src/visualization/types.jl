@@ -92,9 +92,9 @@ end
 
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
-struct UnstructuredPlotData2D{DataType, FaceNodeType, FaceDataType, VariableNames, PlottingTriangulation, RealT} <: AbstractPlotData{2}
-  x::Array{RealT, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
-  y::Array{RealT, 2}
+struct UnstructuredPlotData2D{DataType, NodeType, FaceNodeType, FaceDataType, VariableNames, PlottingTriangulation} <: AbstractPlotData{2}
+  x::NodeType # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::NodeType
   data::DataType
   t::PlottingTriangulation
   x_face::FaceNodeType
@@ -441,7 +441,7 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
                                 x_face, y_face, face_data, variable_name)
 end
 
-function ScalarPlotData2D(u, mesh::Union{UnstructuredMesh2D, StructuredMesh, P4estMesh}, equations, dg, cache;
+function ScalarPlotData2D(u, mesh::Union{TreeMesh, UnstructuredMesh2D, StructuredMesh, P4estMesh}, equations, dg, cache;
                           variable_name=nothing, nvisnodes=2*nnodes(dg))
 
   n_nodes_2d = nnodes(dg)^ndims(mesh)
