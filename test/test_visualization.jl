@@ -25,7 +25,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
     "UnstructuredMesh" => ("unstructured_2d_dgsem", "elixir_euler_basic.jl"),
-    "P4estMesh" => ("p4est_2d_dgsem", "elixir_euler_free_stream.jl"),
+    "P4estMesh" => ("p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
     "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
   )
 
