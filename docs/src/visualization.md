@@ -118,6 +118,30 @@ When plotted together with the mesh, this will yield the following visualization
 
 ![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/72009492/130951039-f2f91760-539a-4e96-ac39-4053e934040b.PNG)
 
+## Plotting a user-defined scalar field
+
+To plot a scalar quantity, one can call `plot(ScalarPlotData2D(u, semi))`, where
+`u` is an array of nodal values of the scalar field to plot. The layout of `u` should
+match the layout of the `x` and `y` nodal coordinates of the respective solver. For
+example, after running
+`trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))`,
+the following can be used to plot the function `f(x, y) = x * y`:
+```julia
+x = view(semi.cache.elements.node_coordinates, 1, :, :, :)
+y = view(semi.cache.elements.node_coordinates, 2, :, :, :)
+plot(ScalarPlotData2D(x .* y, semi))
+```
+This produces the following plot:
+
+![scalar-plotting-example](https://user-images.githubusercontent.com/1156048/132762371-da141802-34e8-4035-a88d-4d60e66c9f19.png)
+
+This routine can be used to visualized scalar quantities which depend on the solution,
+such as the norm of a velocity vector or two-dimensional vorticity.
+
+!!! note
+    When visualizing a scalar field, the plotted solution is reinterpolated using a
+    high order polynomial approximation. Thus, small discrepancies may be observed when
+    the underlying data is highly non-smooth or under-resolved.
 
 ### Plotting a 3D solution as a 2D plot
 It is possible to plot 2D slices from 3D simulation data with the same commands
