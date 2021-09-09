@@ -151,7 +151,7 @@ export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
 export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
-export initial_condition_briowu_shock_tube, initial_condition_torrilhon_shock_tube, initial_condition_ryujones_shock_tube,
+export initial_condition_torrilhon_shock_tube, initial_condition_ryujones_shock_tube,
        initial_condition_shu_osher_shock_tube, initial_condition_shu_osher_shock_tube_flipped
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
@@ -164,6 +164,7 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
+export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
