@@ -204,9 +204,9 @@ In addition, you can also refer to Trixi directly as
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
          of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
-          Ranocha, Hendrik and Winters, Andrew R},
-  year={2020},
-  month={08},
+          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse},
+  year={2021},
+  month={09},
   howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
   doi={10.5281/zenodo.3996439}
 }
@@ -218,8 +218,9 @@ Trixi was initiated by [Michael
 Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner) (both
 University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), they are the principal developers of Trixi.
+(University of Münster, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+they are the principal developers of Trixi.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
 
