@@ -9,9 +9,9 @@ equations = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
 
 initial_condition = initial_condition_lid_driven_cavity
 boundary_conditions = (
-                       x_neg=boundary_condition_wall_noslip,
-                       x_pos=boundary_condition_wall_noslip,
-                       y_neg=boundary_condition_wall_noslip,
+                       x_neg=boundary_condition_noslip_wall,
+                       x_pos=boundary_condition_noslip_wall,
+                       y_neg=boundary_condition_noslip_wall,
                        y_pos=boundary_condition_lid_driven_cavity,
                       )
 

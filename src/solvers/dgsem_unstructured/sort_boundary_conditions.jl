@@ -14,7 +14,7 @@ during the call to `calc_boundary_flux!`. The original dictionary form of the bo
 set by the user in the elixir file is also stored for printing.
 """
 mutable struct UnstructuredSortedBoundaryTypes{N, BCs<:NTuple{N, Any}}
-  boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionWall
+  boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
   boundary_indices::NTuple{N, Vector{Int}} # integer vectors containing global boundary indices
   boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
 end
