@@ -92,13 +92,13 @@ end
 
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
-struct UnstructuredPlotData2D{DataType, FaceDataType, VariableNames, PlottingTriangulation, RealT} <: AbstractPlotData{2}
+struct UnstructuredPlotData2D{DataType, FaceNodeType, FaceDataType, VariableNames, PlottingTriangulation, RealT} <: AbstractPlotData{2}
   x::Array{RealT, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
   y::Array{RealT, 2}
   data::DataType
   t::PlottingTriangulation
-  x_face::Array{RealT, 2}
-  y_face::Array{RealT, 2}
+  x_face::FaceNodeType
+  y_face::FaceNodeType
   face_data::FaceDataType
   variable_names::VariableNames
 end
