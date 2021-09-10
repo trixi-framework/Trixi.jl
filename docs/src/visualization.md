@@ -147,30 +147,33 @@ julia> redirect_stdout(devnull) do
          trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
        end
 
-julia> compute_vorticity(velocity, semi) =
-         compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
-
 julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D, dg::DGMulti, cache)
-         rd = dg.basis
-         md = mesh.md
-         @unpack Dr, Ds = rd
-         @unpack rxJ, sxJ, ryJ, syJ, J = md
-         v1, v2 = velocity
-         dv1dy = ryJ .* (Dr * v1) + syJ .*(Ds * v1)
-         dv2dx = rxJ .* (Dr * v2) + sxJ .*(Ds * v2)
-         return dv2dx - dv1dy
+          rd = dg.basis
+          md = mesh.md
+          @unpack Dr, Ds = rd
+          @unpack rxJ, sxJ, ryJ, syJ, J = md
+          v1, v2 = velocity
+          dv1dy = ryJ .* (Dr * v1) + syJ .* (Ds * v1)
+          dv2dx = rxJ .* (Dr * v2) + sxJ .* (Ds * v2)
+          return dv2dx - dv1dy
        end;
 
-julia> rho, rhou, rhov, E = StructArrays.components(sol.u[end]);
+julia> compute_vorticity(velocity, semi) =
+          compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
 
-julia> v1 = rhou ./ rho;
+julia> function get_velocity(sol)
+          rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+          v1 = rhou ./ rho
+          v2 = rhov ./ rho
+          return v1, v2
+       end;
 
-julia> v2 = rhov ./ rho;
+julia> vorticity = compute_vorticity(get_velocity(sol), semi);
 
-julia> vorticity = compute_vorticity((v1, v2), semi);
+julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(sol.prob.tspan[end])"))
 
-julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(tspan[end])"))
 ```
+
 This produces the following plot of vorticity.
 
 ![vorticity-example](https://user-images.githubusercontent.com/1156048/132884563-f371dd63-29c5-4856-a9c5-b1867fb1b1f6.png)
