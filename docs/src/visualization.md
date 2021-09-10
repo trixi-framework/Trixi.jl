@@ -142,10 +142,13 @@ can visualize vorticity for a compressible version of the Brown-Minion vortex pr
 ```jldoctest brown_minion_vortex
 julia> using Trixi, Plots
 
-julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
+julia> redirect_stdout(devnull) do
+         # runs the elixir without any output
+         trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
+       end
 
 julia> compute_vorticity(velocity, semi) =
-         compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...)
+         compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
 
 julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D, dg::DGMulti, cache)
          rd = dg.basis
@@ -157,17 +160,17 @@ julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEq
          dv1dy = ryJ .* (Dr * v1) + syJ .*(Ds * v1)
          dv2dx = rxJ .* (Dr * v2) + sxJ .*(Ds * v2)
          return dv2dx - dv1dy
-       end
+       end;
 
-julia> rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+julia> rho, rhou, rhov, E = StructArrays.components(sol.u[end]);
 
-julia> v1 = rhou ./ rho
+julia> v1 = rhou ./ rho;
 
-julia> v2 = rhov ./ rho
+julia> v2 = rhov ./ rho;
 
-julia> vorticity = compute_vorticity((v1, v2), semi)
+julia> vorticity = compute_vorticity((v1, v2), semi);
 
-julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(tspan[end])"))
+julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(tspan[end])"));
 ```
 This produces the following plot of vorticity.
 
