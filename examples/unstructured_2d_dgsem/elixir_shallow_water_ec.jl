@@ -8,8 +8,7 @@ using Trixi
 # bottom topography function
 
 @inline function periodic_bottom_topography(x, equations::ShallowWaterEquations2D)
-  # periodic bottom for the periodic with a twist mesh domain [0, sqrt(2)]^2
-  return 1.0 + 0.5 * sin(sqrt(2.0)*pi*x[1]) * sin(2.0*sqrt(2.0)*pi*x[2])
+  return 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
 end
 
 equations = ShallowWaterEquations2D(9.81, bottom_topography=periodic_bottom_topography)
@@ -19,8 +18,8 @@ initial_condition = initial_condition_weak_blast_wave
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_shallow_water_volume)
-solver = DGSEM(polydeg=6, surface_flux=(flux_fjordholm_etal, flux_nonconservative_wintermeyer),
+volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
+solver = DGSEM(polydeg=6, surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################

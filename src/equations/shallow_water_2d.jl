@@ -65,10 +65,17 @@ varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("H", "v1", "v2", "b"
 A constant initial condition to test free-stream preservation / well-balancedness.
 """
 function initial_condition_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
-  H = 2.1
+  # Set the background values
+  H = 3.0
   v1 = 0.0
   v2 = 0.0
-  b = equations.bottom_topography(x, equations)
+  b = 0.0
+
+  # Setup a discontinuous bottom topography using the element id number
+  if element_id == 7
+    b = equations.bottom_topography(x, equations)
+  end
+
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -143,7 +150,7 @@ end
 """
     initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations2D)
 
-A weak blast wave useful for testing, e.g., total energy conservation.
+A weak blast wave discontinuity useful for testing, e.g., total energy conservation.
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
 function initial_condition_weak_blast_wave(x, t, element_id, equations::ShallowWaterEquations2D)
@@ -155,11 +162,24 @@ function initial_condition_weak_blast_wave(x, t, element_id, equations::ShallowW
   phi = atan(y_norm, x_norm)
   sin_phi, cos_phi = sincos(phi)
 
-  # Calculate primitive variables
-  H = r > 0.5 ? 2.0 : 2.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  b = equations.bottom_topography(x, equations)
+  # Set the background values
+  H = 3.25
+  v1 = 0.0
+  v2 = 0.0
+  b = 0.0 # equations.bottom_topography(x, equations)
+
+  # setup the discontinuous water height and velocities
+  if element_id == 10
+    H = 4.0
+    v1 = 0.1882 * cos_phi
+    v2 = 0.1882 * sin_phi
+  end
+
+  # Setup a discontinuous bottom topography using the element id number
+  if element_id == 7
+    b = equations.bottom_topography(x, equations)
+  end
+
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 

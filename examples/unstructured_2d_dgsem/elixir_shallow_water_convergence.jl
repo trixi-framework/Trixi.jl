@@ -19,12 +19,12 @@ initial_condition = initial_condition_convergence_test
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_shallow_water_volume)
-solver = DGSEM(polydeg=6, surface_flux=(flux_fjordholm_etal, flux_nonconservative_wintermeyer),
+volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
+solver = DGSEM(polydeg=6, surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# This setup is for the curved, split form entropy conservation testing (needs periodic BCs)
+# This setup is for the curved, split form convergence test on a periodic domain
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 default_mesh_file = joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh")

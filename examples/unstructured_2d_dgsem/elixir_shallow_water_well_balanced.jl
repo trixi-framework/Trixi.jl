@@ -4,12 +4,11 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the shallow water equations with a particular
+# semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
 @inline function periodic_bottom_topography(x, equations::ShallowWaterEquations2D)
-  # periodic bottom for the periodic with a twist mesh domain [0, sqrt(2)]^2
-  return 1.0 + 0.5 * sin(sqrt(2.0)*pi*x[1]) * sin(2.0*sqrt(2.0)*pi*x[2])
+  return 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
 end
 
 equations = ShallowWaterEquations2D(9.81, bottom_topography=periodic_bottom_topography)
@@ -19,12 +18,12 @@ initial_condition = initial_condition_well_balancedness
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_shallow_water_volume)
-solver = DGSEM(polydeg=6, surface_flux=(flux_fjordholm_etal, flux_nonconservative_wintermeyer),
+volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
+solver = DGSEM(polydeg=6, surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# This setup is for the curved, split form well-balancedness testing (need periodic BCs for now)
+# This setup is for the curved, split form well-balancedness testing
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 default_mesh_file = joinpath(@__DIR__, "mesh_alfven_wave_with_twist_and_flip.mesh")
