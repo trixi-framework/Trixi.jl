@@ -140,6 +140,8 @@ such as the norm of a velocity vector or two-dimensional vorticity. For example,
 can visualize vorticity for a compressible version of the Brown-Minion vortex problem:
 
 ```jldoctest brown_minion_vortex
+julia> using Trixi, Plots
+
 julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
 
 julia> compute_vorticity(velocity, semi) =
