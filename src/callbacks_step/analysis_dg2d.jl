@@ -54,10 +54,6 @@ end
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates = cache.elements
-  @unpack u_local, u_tmp1, x_local, x_tmp1 = cache_analysis
-
   # Calculate error norms for each element
   l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
                                                         mesh, equations, initial_condition,
