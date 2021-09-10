@@ -216,8 +216,8 @@ RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh}
   end
 end
 
-# Series recipe for UnstructuredPlotData2D
-RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
+# Series recipe for PlotData2DTriangulated
+RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2DTriangulated})
 
   pd = pds.plot_data
   @unpack variable_id = pds
@@ -242,8 +242,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
   return DGTriPseudocolor(global_plotting_triangulation_triplot((x, y), data_field, t)...)
 end
 
-# Visualize a 2D mesh given an `UnstructuredPlotData2D` object
-RecipesBase.@recipe function f(pm::PlotMesh{<:UnstructuredPlotData2D})
+# Visualize a 2D mesh given an `PlotData2DTriangulated` object
+RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DTriangulated})
   pd = pm.plot_data
   @unpack x_face, y_face = pd
 

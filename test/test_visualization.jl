@@ -38,8 +38,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test PlotData2D(sol) isa PlotData2D
       @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
     else
-      @test PlotData2D(sol) isa Trixi.UnstructuredPlotData2D
-      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.UnstructuredPlotData2D
+      @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.PlotData2DTriangulated
     end
     pd = PlotData2D(sol)
 
