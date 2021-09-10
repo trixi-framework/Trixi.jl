@@ -257,8 +257,8 @@ function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
 
   orientation_x, orientation_y = _get_orientations(mesh, slice)
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
-                    orientation_x, orientation_y)
+  return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+                             orientation_x, orientation_y)
 end
 
 
