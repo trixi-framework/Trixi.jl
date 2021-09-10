@@ -6,7 +6,7 @@
 
 
 @doc raw"""
-    ShallowWaterEquations2D(gravity; bottom_topography)
+    ShallowWaterEquations2D(gravity)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -24,8 +24,9 @@ The gravitational constant is denoted by `g` and the (possibly) variable bottom 
 Conservative variable water height ``h`` is measured from the bottom topography ``b``, therefore one
 also defines the total water height as ``H = h + b``.
 
-The `bottom_topography` is set to zero by default, i.e., ``b(x,y) = 0`` but can be changed to a general function
-within an elixir.
+The bottom topography function ``b(x,y)`` is set inside the initial condition routine
+for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
+variable `b` to zero.
 
 In addition to the unknowns, Trixi currently stores the bottom topography values at the approximation points
 despite being fixed in time. This is done for convenience of computing the bottom topography gradients
@@ -35,7 +36,7 @@ This affects the implementation and use of these equations in various ways:
 * The flux values corresponding to the bottom topography must be zero.
 * The bottom topography values must be included when defining initial conditions, boundary conditions or
   source terms.
-* [`AnalysisCallback`](@ref) analyzes these variables too.
+* [`AnalysisCallback`](@ref) analyzes this variable.
 * Trixi's visualization tools will visualize the bottom topography by default.
 
 References for the SWE are many but a good introduction is available in Chapter 13 of the book:
@@ -43,13 +44,12 @@ References for the SWE are many but a good introduction is available in Chapter 
   Finite Volume Methods for Hyperbolic Problems
   [DOI: 10.1017/CBO9780511791253]( https://doi.org/10.1017/CBO9780511791253)
 """
-struct ShallowWaterEquations2D{RealT<:Real, BottomTopography} <: AbstractShallowWaterEquations{2, 4}
-  gravity::RealT                      # gravitational constant
-  bottom_topography::BottomTopography # bottom toporaphy function b(x,y)
+struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
+  gravity::RealT # gravitational constant
 end
 
-function ShallowWaterEquations2D(gravity_constant; bottom_topography=zero_bottom_topography)
-  ShallowWaterEquations2D(gravity_constant, bottom_topography)
+function ShallowWaterEquations2D(gravity_constant)
+  ShallowWaterEquations2D(gravity_constant)
 end
 
 
@@ -73,7 +73,7 @@ function initial_condition_well_balancedness(x, t, element_id, equations::Shallo
 
   # Setup a discontinuous bottom topography using the element id number
   if element_id == 7
-    b = equations.bottom_topography(x, equations)
+    b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
   end
 
   return prim2cons(SVector(H, v1, v2, b), equations)
@@ -93,10 +93,12 @@ function initial_condition_convergence_test(x, t, element_id, equations::Shallow
   ωx = 2.0 * pi * sqrt(2.0)
   ωt = 2.0 * pi
 
-  H = c + cos(ωx * x[1]) * sin(ωx * x[2]) * cos(ωt * t)
+  x1, x2 = x
+
+  H = c + cos(ωx * x1) * sin(ωx * x2) * cos(ωt * t)
   v1 = 0.5
   v2 = 1.5
-  b = equations.bottom_topography(x, equations)
+  b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x1) + 0.5 * sin(sqrt(2.0) * pi * x2)
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -109,7 +111,7 @@ Source terms used for convergence tests in combination with
 
 This manufactured solution source term is specifically designed for the bottom topography function
 `b(x,y) = 2 + 0.5 * sin(sqrt(2)*pi*x) + 0.5 * sin(sqrt(2)*pi*y)`
-as defined in `elixir_shallow_water_convergence.jl` with the function `mms_bottom_topography`.
+as defined in [`initial_condition_convergence_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations2D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
@@ -135,7 +137,7 @@ as defined in `elixir_shallow_water_convergence.jl` with the function `mms_botto
   H_t = -ωt * cosX * sinY * sinT
 
   # bottom topography and its gradient
-  b = equations.bottom_topography(x, equations)
+  b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x1) + 0.5 * sin(sqrt(2.0) * pi * x2)
   tmp1 = 0.5 * ωb
   b_x = tmp1 * cos(ωb * x1)
   b_y = tmp1 * cos(ωb * x2)
@@ -166,7 +168,7 @@ function initial_condition_weak_blast_wave(x, t, element_id, equations::ShallowW
   H = 3.25
   v1 = 0.0
   v2 = 0.0
-  b = 0.0 # equations.bottom_topography(x, equations)
+  b = 0.0
 
   # setup the discontinuous water height and velocities
   if element_id == 10
@@ -177,7 +179,7 @@ function initial_condition_weak_blast_wave(x, t, element_id, equations::ShallowW
 
   # Setup a discontinuous bottom topography using the element id number
   if element_id == 7
-    b = equations.bottom_topography(x, equations)
+    b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
   end
 
   return prim2cons(SVector(H, v1, v2, b), equations)
@@ -518,17 +520,11 @@ end
 end
 
 
-# Default bottom topography is the constant zero
-@inline function zero_bottom_topography(x, equations::ShallowWaterEquations2D)
-  return 0.0
-end
-
-
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, b = u
 
-  H  = h + b
+  H = h + b
   v1 = h_v1 / h
   v2 = h_v2 / h
   return SVector(H, v1, v2, b)
@@ -556,7 +552,7 @@ end
 @inline function entropy2cons(w, equations::ShallowWaterEquations2D)
   w1, w2, w3, b = w
 
-  h    = (w1 + 0.5 * (w2^2 + w3^2)) / equations.gravity - b
+  h = (w1 + 0.5 * (w2^2 + w3^2)) / equations.gravity - b
   h_v1 = h * w2
   h_v2 = h * w3
   return SVector(h, h_v1, h_v2, b)
@@ -567,7 +563,7 @@ end
 @inline function prim2cons(prim, equations::ShallowWaterEquations2D)
   H, v1, v2, b = prim
 
-  h    = H - b
+  h = H - b
   h_v1 = h * v1
   h_v2 = h * v2
   return SVector(h, h_v1, h_v2, b)

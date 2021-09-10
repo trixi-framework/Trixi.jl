@@ -4,15 +4,10 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the shallow water equations with a particular
-# bottom topography function
+# semidiscretization of the shallow water equations with a periodic
+# bottom topography function (set in the initial conditions)
 
-@inline function mms_bottom_topography(x, equations::ShallowWaterEquations2D)
-  # periodic bottom for the periodic with a twist mesh domain [0, sqrt(2)]^2
-  return 2.0 + 0.5 * sin(sqrt(2.0)*pi*x[1]) + 0.5 * sin(sqrt(2.0)*pi*x[2])
-end
-
-equations = ShallowWaterEquations2D(9.81, bottom_topography=mms_bottom_topography)
+equations = ShallowWaterEquations2D(9.81)
 
 initial_condition = initial_condition_convergence_test
 
