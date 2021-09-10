@@ -1,6 +1,6 @@
 using Trixi, OrdinaryDiffEq
 
-polydeg = 3
+polydeg = 4
 dg = DGMulti(polydeg=polydeg, element_type = Quad(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
@@ -27,7 +27,7 @@ function initial_condition_BM_vortex(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_BM_vortex
 
-num_cells_per_dimension = 32
+num_cells_per_dimension = 16
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
 vertex_coordinates = map(x -> .5 .* x, vertex_coordinates) # map domain to [-.5, .5]^2
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
