@@ -126,7 +126,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
   pd = pds.plot_data
   solution_z = vec(StructArrays.component(pd.data, variable_id))
   Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false, colormap=myplot[:colormap])
-  myplot.colorrange=extrema(solution_z)
+  myplot.colorrange = extrema(solution_z)
 
   # Makie hides keyword arguments within `myplot`; see also
   # https://github.com/JuliaPlots/Makie.jl/issues/837#issuecomment-845985070
