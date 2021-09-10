@@ -42,7 +42,7 @@ This affects the implementation and use of these equations in various ways:
 References for the SWE are many but a good introduction is available in Chapter 13 of the book:
 - Randall J. LeVeque (2002)
   Finite Volume Methods for Hyperbolic Problems
-  [DOI: 10.1017/CBO9780511791253]( https://doi.org/10.1017/CBO9780511791253)
+  [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
   gravity::RealT # gravitational constant
@@ -276,7 +276,7 @@ This contains additional terms compared to [`flux_nonconservative_wintermeyer_et
 that account for possible discontinuities in the bottom topography function
 
 Further details for the original finite volume formulation are available in
-  - Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 and for curvilinear 2D case in the paper:
@@ -302,7 +302,7 @@ and for curvilinear 2D case in the paper:
   #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
   #        to handle discontinuous bathymetry
   h_average = 0.5 * (h_ll + h_rr)
-  b_jump    = b_rr - b_ll
+  b_jump = b_rr - b_ll
 
   f2 += normal_direction_ll[1] * equations.gravity * h_average * b_jump
   f3 += normal_direction_ll[2] * equations.gravity * h_average * b_jump
@@ -388,7 +388,7 @@ end
 
 Total energy conservative (mathematical entropy for shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
-The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref) or [`flux_hll](@ref).
+The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref).
 
 Further details are available in Theorem 1 of the paper:
 - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
