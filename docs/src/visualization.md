@@ -135,7 +135,7 @@ This produces the following plot:
 
 ![scalar-plotting-example](https://user-images.githubusercontent.com/1156048/132762371-da141802-34e8-4035-a88d-4d60e66c9f19.png)
 
-This routine can be used to visualized scalar quantities which depend on the solution,
+This routine can be used to visualize scalar quantities which depend on the solution,
 such as the norm of a velocity vector or two-dimensional vorticity.
 
 !!! note
