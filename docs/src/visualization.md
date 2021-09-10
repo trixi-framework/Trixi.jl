@@ -155,7 +155,6 @@ julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEq
          md = mesh.md
          @unpack Dr, Ds = rd
          @unpack rxJ, sxJ, ryJ, syJ, J = md
-
          v1, v2 = velocity
          dv1dy = ryJ .* (Dr * v1) + syJ .*(Ds * v1)
          dv2dx = rxJ .* (Dr * v2) + sxJ .*(Ds * v2)
@@ -170,7 +169,7 @@ julia> v2 = rhov ./ rho;
 
 julia> vorticity = compute_vorticity((v1, v2), semi);
 
-julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(tspan[end])"));
+julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(tspan[end])"))
 ```
 This produces the following plot of vorticity.
 
