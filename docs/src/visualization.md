@@ -136,7 +136,49 @@ This produces the following plot:
 ![scalar-plotting-example](https://user-images.githubusercontent.com/1156048/132762371-da141802-34e8-4035-a88d-4d60e66c9f19.png)
 
 This routine can be used to visualize scalar quantities which depend on the solution,
-such as the norm of a velocity vector or two-dimensional vorticity.
+such as the norm of a velocity vector or two-dimensional vorticity. For example, we
+can visualize vorticity for a compressible version of the Brown-Minion vortex problem:
+
+```jldoctest brown_minion_vortex
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
+
+julia> compute_vorticity(velocity, semi) =
+         compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...)
+
+julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D, dg::DGMulti, cache)
+         rd = dg.basis
+         md = mesh.md
+         @unpack Dr, Ds = rd
+         @unpack rxJ, sxJ, ryJ, syJ, J = md
+
+         v1, v2 = velocity
+         dv1dy = ryJ .* (Dr * v1) + syJ .*(Ds * v1)
+         dv2dx = rxJ .* (Dr * v2) + sxJ .*(Ds * v2)
+         return dv2dx - dv1dy
+       end
+
+julia> rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+
+julia> v1 = rhou ./ rho
+
+julia> v2 = rhov ./ rho
+
+julia> vorticity = compute_vorticity((v1, v2), semi)
+
+julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(tspan[end])"))
+```
+This produces the following plot of vorticity.
+
+![vorticity-example](https://user-images.githubusercontent.com/1156048/132884563-f371dd63-29c5-4856-a9c5-b1867fb1b1f6.png)
+
+Since the mesh is fairly coarse, we observe numerical artifacts due to the low resolution.
+These errors vanish under mesh refinement; for example, doubling the mesh resolution by running
+```julia
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"), num_cells_per_dimension = 32)
+```
+yields the following plot of vorticity:
+
+![vorticity-example-refined](https://user-images.githubusercontent.com/1156048/132885068-c2e37c97-c71a-489d-9a64-4f08db86552a.png)
 
 !!! note
     When visualizing a scalar field, the plotted solution is reinterpolated using a
