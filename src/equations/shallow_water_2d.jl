@@ -64,7 +64,7 @@ varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("H", "v1", "v2", "b"
 
 A constant initial condition to test free-stream preservation / well-balancedness.
 """
-function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
+function initial_condition_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
   H = 2.1
   v1 = 0.0
   v2 = 0.0
@@ -80,7 +80,7 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
+function initial_condition_convergence_test(x, t, element_id, equations::ShallowWaterEquations2D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
   c  = 7.0
   ωx = 2.0 * pi * sqrt(2.0)
@@ -146,7 +146,7 @@ end
 A weak blast wave useful for testing, e.g., total energy conservation.
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
-function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations2D)
+function initial_condition_weak_blast_wave(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set up polar coordinates
   inicenter = SVector(0.7, 0.7)
   x_norm = x[1] - inicenter[1]
@@ -201,10 +201,10 @@ end
 
 
 """
-    flux_nonconservative_shallow_water_volume(u_ll, u_rr,
-                                              normal_direction_ll     ::AbstractVector,
-                                              normal_direction_average::AbstractVector,
-                                              equations::ShallowWaterEquations2D)
+    flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
+                                          normal_direction_ll     ::AbstractVector,
+                                          normal_direction_average::AbstractVector,
+                                          equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
@@ -220,10 +220,10 @@ Further details are available in the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-@inline function flux_nonconservative_shallow_water_volume(u_ll, u_rr,
-                                                           normal_direction_ll::AbstractVector,
-                                                           normal_direction_average::AbstractVector,
-                                                           equations::ShallowWaterEquations2D)
+@inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
+                                                       normal_direction_ll::AbstractVector,
+                                                       normal_direction_average::AbstractVector,
+                                                       equations::ShallowWaterEquations2D)
   # Pull the necessary left and right state information
   h_ll = u_ll[1]
   b_rr = u_rr[4]
@@ -236,13 +236,11 @@ Further details are available in the paper:
 end
 
 
-# TODO: make and test for discontinuous bottom topography. For continuous topography b_jump
-#       is machine epsilon.
 """
-    flux_nonconservative_wintermeyer(u_ll, u_rr,
-                                     normal_direction_ll     ::AbstractVector,
-                                     normal_direction_average::AbstractVector,
-                                     equations::ShallowWaterEquations2D)
+    flux_nonconservative_fjordholm_etal(u_ll, u_rr,
+                                        normal_direction_ll     ::AbstractVector,
+                                        normal_direction_average::AbstractVector,
+                                        equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
 that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
@@ -252,31 +250,35 @@ contravariant vector (normal direction) at the current node and the averaged
 one. This is different from numerical fluxes used to discretize conservative
 terms.
 
-This contains additional terms compared to [`flux_nonconservative_shallow_water_volume`](@ref)
-that account for possible discontinuities in the bottom topogarphy function
+This contains additional terms compared to [`flux_nonconservative_wintermeyer_etal`](@ref)
+that account for possible discontinuities in the bottom topography function
 
-Further details are available in the paper:
+Further details for the original finite volume formulation are available in
+  - Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+  Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
+  [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
+and for curvilinear 2D case in the paper:
 - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
   An entropy stable nodal discontinuous Galerkin method for the two dimensional
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-@inline function flux_nonconservative_wintermeyer(u_ll, u_rr,
-                                                  normal_direction_ll::AbstractVector,
-                                                  normal_direction_average::AbstractVector,
-                                                  equations::ShallowWaterEquations2D)
+@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
+                                                     normal_direction_ll::AbstractVector,
+                                                     normal_direction_average::AbstractVector,
+                                                     equations::ShallowWaterEquations2D)
   # Pull the necessary left and right state information
   h_ll, _, _, b_ll = u_ll
   h_rr, _, _, b_rr = u_rr
 
   # Comes in two parts:
-  #   (i)  Analogous to the volume flux that uses `normal_direction_average`, `h_ll` and `b_rr`
-  f2 = normal_direction_average[1] * equations.gravity * h_ll * b_rr
-  f3 = normal_direction_average[2] * equations.gravity * h_ll * b_rr
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
+  #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
+  f2 = normal_direction_average[1] * equations.gravity * h_ll * b_ll
+  f3 = normal_direction_average[2] * equations.gravity * h_ll * b_ll
 
   #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
   #        to handle discontinuous bathymetry
-  # TODO: test and possibly simplify this term if possible
   h_average = 0.5 * (h_ll + h_rr)
   b_jump    = b_rr - b_ll
 
