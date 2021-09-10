@@ -57,7 +57,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
+struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
   x::Coordinates
   y::Coordinates
   data::Data
@@ -69,10 +69,10 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pd::PlotData2D)
+function Base.show(io::IO, pd::PlotData2DCartesian)
   @nospecialize pd # reduce precompilation time
 
-  print(io, "PlotData2D{",
+  print(io, "PlotData2DCartesian{",
             typeof(pd.x), ",",
             typeof(pd.data), ",",
             typeof(pd.variable_names), ",",

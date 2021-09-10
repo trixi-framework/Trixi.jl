@@ -57,7 +57,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
