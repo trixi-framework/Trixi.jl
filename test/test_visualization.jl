@@ -20,10 +20,12 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
-  # Run 2D tests with elixirs for both mesh types
+  # Run 2D tests with elixirs for all mesh types
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
+    "UnstructuredMesh" => ("unstructured_2d_dgsem", "elixir_euler_basic.jl"),
+    "P4estMesh" => ("p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
     "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
   )
 
@@ -91,8 +93,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @testset "1D plot from 2D solution" begin
       if mesh != "DGMulti"
         @testset "Create 1D plot as slice" begin
-          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-          pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
           @test_nowarn_debug Plots.plot(pd1D)
         end
       end
