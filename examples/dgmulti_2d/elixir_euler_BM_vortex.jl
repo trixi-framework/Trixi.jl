@@ -1,24 +1,25 @@
 using Trixi, OrdinaryDiffEq
 
-polydeg = 4
-dg = DGMulti(polydeg=polydeg, element_type = Quad(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg=4, element_type = Quad(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations2D(1.4)
 
 """
-A compressible version of the double shear layer initial condition. Adapted from the paper
-"Performance of Under-resolved Two-Dimensional Incompressible Flow Simulations" by Brown and
-Minion (1995). See Section 3, equations (27)-(28) for the original incompressible version.
+A compressible version of the double shear layer initial condition. Adapted from 
+Brown and Minion (1995). See Section 3, equations (27)-(28) for the original 
+incompressible version.
 
-[DOI](https://doi.org/10.1006/jcph.1995.1205)
+- David L. Brown and Michael L. Minion (1995)
+  Performance of Under-resolved Two-Dimensional Incompressible Flow Simulations.
+  [DOI: 10.1006/jcph.1995.1205](https://doi.org/10.1006/jcph.1995.1205)
 """
 function initial_condition_BM_vortex(x, t, equations::CompressibleEulerEquations2D)
   pbar = 9.0 / equations.gamma
-  delta = .05
+  delta = 0.05
   epsilon = 30
-  H = (x[2] < 0) ? tanh(epsilon * (x[2] + .25)) :  tanh(epsilon * (.25 - x[2]))
+  H = (x[2] < 0) ? tanh(epsilon * (x[2] + 0.25)) :  tanh(epsilon * (0.25 - x[2]))
   rho = 1.0
   v1 = H
   v2 = delta * cos(2.0 * pi * x[1])
@@ -29,7 +30,7 @@ initial_condition = initial_condition_BM_vortex
 
 num_cells_per_dimension = 16
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
-vertex_coordinates = map(x -> .5 .* x, vertex_coordinates) # map domain to [-.5, .5]^2
+vertex_coordinates = map(x -> 0.5 .* x, vertex_coordinates) # map domain to [-0.5, 0.5]^2
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 

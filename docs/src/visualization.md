@@ -137,7 +137,8 @@ This produces the following plot:
 
 This routine can be used to visualize scalar quantities which depend on the solution,
 such as the norm of a velocity vector or two-dimensional vorticity. For example, we
-can visualize vorticity for a compressible version of the Brown-Minion vortex problem:
+can visualize vorticity for a compressible version of the 
+[Brown-Minion vortex problem](https://doi.org/10.1006/jcph.1995.1205):
 
 ```jldoctest brown_minion_vortex
 julia> using Trixi, Plots
