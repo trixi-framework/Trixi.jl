@@ -37,11 +37,11 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # Constructor tests
     if mesh == "TreeMesh"
-      @test PlotData2D(sol) isa PlotData2D
-      @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
+      @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
+      @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa Trixi.PlotData2DCartesian
     else
-      @test PlotData2D(sol) isa Trixi.UnstructuredPlotData2D
-      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.UnstructuredPlotData2D
+      @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.PlotData2DTriangulated
     end
     pd = PlotData2D(sol)
 
@@ -184,7 +184,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       data2d = [rand(11,11) for _ in 1:5]
       mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
       mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
-      fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
+      fake2d = Trixi.PlotData2DCartesian(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
       @test_nowarn_debug Plots.plot(fake2d)
     end
   end
@@ -214,7 +214,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
-    @test PlotData2D(sol) isa PlotData2D
+    @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
 
     @testset "1D plot from 3D solution" begin
       @testset "Create 1D plot as slice" begin
