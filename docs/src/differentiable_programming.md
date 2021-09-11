@@ -335,6 +335,11 @@ As an example, let's create a system representing the linear advection equation
 in 1D with an uncertain velocity. Then, we create a semidiscretization using a
 sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 in the primitive variables.
+
+```@meta
+DocTestFilters = r"[┌│└].*"
+```
+
 ```jldoctest;  output = false
 using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
 
@@ -356,6 +361,10 @@ plot(sol)
 # output
 
 Plot{Plots.GRBackend() n=1}
+```
+
+```@meta
+DocTestFilters = nothing
 ```
 
 You should see a plot like the following, where small error bars are shown around
