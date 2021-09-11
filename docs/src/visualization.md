@@ -139,7 +139,7 @@ This routine can be used to visualize scalar quantities which depend on the solu
 such as the norm of a velocity vector or two-dimensional vorticity. For example, we
 can visualize vorticity for a compressible version of the Brown-Minion vortex problem:
 
-```jldoctest brown_minion_vortex; output = false
+```jldoctest brown_minion_vortex
 julia> using Trixi, Plots
 
 julia> redirect_stdout(devnull) do
@@ -174,9 +174,6 @@ julia> vorticity = compute_vorticity(get_velocity(sol), semi);
 
 julia> plot(ScalarPlotData2D(vorticity, semi;
             variable_name = "Vorticity at t = $(sol.prob.tspan[end])"))
-            
-# output 
-
 Plot{Plots.GRBackend() n=1}
 ```
 
