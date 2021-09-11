@@ -238,7 +238,7 @@ end
 
 # Visualizes a single scalar field. Intended for use with ScalarPlotData2D.
 # Example usage: `plot(ScalarPlotData2D(u, semi))`.
-RecipesBase.@recipe function f(pd::UnstructuredPlotData2D{<:ScalarData})
+RecipesBase.@recipe function f(pd::PlotData2DTriangulated{<:ScalarData})
 
   @unpack x, y, data, t, variable_names = pd
 

@@ -415,7 +415,7 @@ end
 ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...) =
   ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
 
-# Returns an `UnstructuredPlotData2D` which is used to visualize a single scalar field
+# Returns an `PlotData2DTriangulated` which is used to visualize a single scalar field
 function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
                           variable_name=nothing, nvisnodes=2*nnodes(dg))
 
@@ -437,7 +437,7 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
   x_face, y_face, face_data = nothing, nothing, nothing
 
   # wrap solution in ScalarData struct for recipe dispatch
-  return UnstructuredPlotData2D(x_plot, y_plot, ScalarData(u_plot), t,
+  return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
                                 x_face, y_face, face_data, variable_name)
 end
 
@@ -476,7 +476,7 @@ function ScalarPlotData2D(u, mesh::Union{TreeMesh, UnstructuredMesh2D, Structure
   x_face, y_face, face_data = nothing, nothing, nothing
 
   # wrap solution in ScalarData struct for recipe dispatch
-  return UnstructuredPlotData2D(x_plot, y_plot, ScalarData(u_plot), t,
+  return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
                                 x_face, y_face, face_data, variable_name)
 end
 
