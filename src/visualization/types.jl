@@ -67,7 +67,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
+struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
   x::Coordinates
   y::Coordinates
   data::Data
@@ -79,10 +79,10 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pd::PlotData2D)
+function Base.show(io::IO, pd::PlotData2DCartesian)
   @nospecialize pd # reduce precompilation time
 
-  print(io, "PlotData2D{",
+  print(io, "PlotData2DCartesian{",
             typeof(pd.x), ",",
             typeof(pd.data), ",",
             typeof(pd.variable_names), ",",
@@ -92,7 +92,7 @@ end
 
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
-struct UnstructuredPlotData2D{DataType, NodeType, FaceNodeType, FaceDataType, VariableNames, PlottingTriangulation} <: AbstractPlotData{2}
+struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType, VariableNames, PlottingTriangulation} <: AbstractPlotData{2}
   x::NodeType # physical nodal coordinates, size (num_plotting_nodes x num_elements)
   y::NodeType
   data::DataType
@@ -104,10 +104,10 @@ struct UnstructuredPlotData2D{DataType, NodeType, FaceNodeType, FaceDataType, Va
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pd::UnstructuredPlotData2D)
+function Base.show(io::IO, pd::PlotData2DTriangulated)
   @nospecialize pd # reduce precompilation time
 
-  print(io, "UnstructuredPlotData2D{",
+  print(io, "PlotData2DTriangulated{",
             typeof(pd.x), ", ",
             typeof(pd.data), ", ",
             typeof(pd.x_face), ", ",
@@ -256,8 +256,8 @@ function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
 
   orientation_x, orientation_y = _get_orientations(mesh, slice)
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
-                    orientation_x, orientation_y)
+  return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+                             orientation_x, orientation_y)
 end
 
 
@@ -288,7 +288,7 @@ function PlotData2D(u::Array{<:SVector, 2}, mesh, equations, dg::DGMulti, cache;
                     solution_variables=solution_variables, nvisnodes=nvisnodes)
 end
 
-# constructor which returns an `UnstructuredPlotData2D` object.
+# constructor which returns an `PlotData2DTriangulated` object.
 function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
                     solution_variables=nothing, nvisnodes=2*nnodes(dg))
 
@@ -327,12 +327,12 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   # only 2D heatmap plots are supported through TriplotBase/TriplotRecipes.
   face_data = nothing
 
-  return UnstructuredPlotData2D(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
+  return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
 end
 
-# specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
+# specializes the PlotData2D constructor to return an PlotData2DTriangulated if the mesh is
 # a non-TreeMesh type.
-function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equations, dg, cache;
+function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D, P4estMesh}, equations, dg, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
   @assert ndims(mesh) == 2
 
@@ -404,7 +404,7 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equation
   transform_to_solution_variables!(uplot, solution_variables_, equations)
   transform_to_solution_variables!(ufp, solution_variables_, equations)
 
-  return UnstructuredPlotData2D(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+  return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
