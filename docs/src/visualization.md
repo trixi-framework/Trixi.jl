@@ -144,33 +144,36 @@ julia> using Trixi, Plots
 
 julia> redirect_stdout(devnull) do
          # runs the elixir without any output
-         trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
+         trixi_include(@__MODULE__,
+           joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
        end
 
-julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D, dg::DGMulti, cache)
-          rd = dg.basis
-          md = mesh.md
-          @unpack Dr, Ds = rd
-          @unpack rxJ, sxJ, ryJ, syJ, J = md
-          v1, v2 = velocity
-          dv1dy = ryJ .* (Dr * v1) + syJ .* (Ds * v1)
-          dv2dx = rxJ .* (Dr * v2) + sxJ .* (Ds * v2)
-          return dv2dx - dv1dy
+julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D,
+                                  dg::DGMulti, cache)
+         rd = dg.basis
+         md = mesh.md
+         @unpack Dr, Ds = rd
+         @unpack rxJ, sxJ, ryJ, syJ, J = md
+         v1, v2 = velocity
+         dv1dy = ryJ .* (Dr * v1) + syJ .* (Ds * v1)
+         dv2dx = rxJ .* (Dr * v2) + sxJ .* (Ds * v2)
+         return dv2dx - dv1dy
        end;
 
 julia> compute_vorticity(velocity, semi) =
-          compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
+         compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
 
 julia> function get_velocity(sol)
-          rho, rhou, rhov, E = StructArrays.components(sol.u[end])
-          v1 = rhou ./ rho
-          v2 = rhov ./ rho
-          return v1, v2
+         rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+         v1 = rhou ./ rho
+         v2 = rhov ./ rho
+         return v1, v2
        end;
 
 julia> vorticity = compute_vorticity(get_velocity(sol), semi);
 
-julia> plot(ScalarPlotData2D(vorticity, semi; variable_name = "Vorticity at t = $(sol.prob.tspan[end])"))
+julia> plot(ScalarPlotData2D(vorticity, semi;
+            variable_name = "Vorticity at t = $(sol.prob.tspan[end])"))
 
 ```
 
