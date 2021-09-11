@@ -30,37 +30,6 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
   x, y, data[variable_id]
 end
 
-
-# Visualize a single variable in a 2D plot. Only works for `scatter` right now.
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
-  @unpack plot_data, variable_id = pds
-  @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
-
-  # Set geometric properties
-  xlims --> (minimum(x), maximum(x))
-  ylims --> (minimum(y), maximum(y))
-  aspect_ratio --> :equal
-
-  # Set annotation properties
-  legend -->  :none
-  title --> variable_names[variable_id]
-  colorbar --> :true
-  xguide --> _get_guide(orientation_x)
-  yguide --> _get_guide(orientation_y)
-
-  # Set series properties
-  seriestype --> :scatter
-  markerstrokewidth --> 0
-
-  marker_z --> data[variable_id]
-
-  # Return data for plotting
-  x, y
-end
-
-
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
@@ -88,7 +57,7 @@ end
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
 
@@ -216,8 +185,8 @@ RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh}
   end
 end
 
-# Series recipe for UnstructuredPlotData2D
-RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
+# Series recipe for PlotData2DTriangulated
+RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2DTriangulated})
 
   pd = pds.plot_data
   @unpack variable_id = pds
@@ -242,8 +211,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:UnstructuredPlotData2D})
   return DGTriPseudocolor(global_plotting_triangulation_triplot((x, y), data_field, t)...)
 end
 
-# Visualize a 2D mesh given an `UnstructuredPlotData2D` object
-RecipesBase.@recipe function f(pm::PlotMesh{<:UnstructuredPlotData2D})
+# Visualize a 2D mesh given an `PlotData2DTriangulated` object
+RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DTriangulated})
   pd = pm.plot_data
   @unpack x_face, y_face = pd
 
