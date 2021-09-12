@@ -415,5 +415,5 @@ Both `plot` and `iplot` use `colormap = :inferno` by default.
 by providing an appropriate keyword argument. For example, `plot(sol, colormap=:blues)` and
 `iplot(sol, colormap=:blues)` produce the following figures:
 
-![makie-plot-example](https://user-images.githubusercontent.com/1156048/131539853-2ab51c33-5fd3-4d3b-a49b-3b1de8f63a98.png)
+![makie-plot-example](https://user-images.githubusercontent.com/1156048/132954265-e7d395a8-f894-4056-841b-87711b7ba012.png)
 ![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)
