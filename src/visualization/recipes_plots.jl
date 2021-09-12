@@ -236,6 +236,29 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DTriangulated})
   return x_face, y_face
 end
 
+# Visualizes a single scalar field. Intended for use with ScalarPlotData2D.
+# Example usage: `plot(ScalarPlotData2D(u, semi))`.
+RecipesBase.@recipe function f(pd::PlotData2DTriangulated{<:ScalarData})
+
+  @unpack x, y, data, t, variable_names = pd
+
+  title_string = isnothing(variable_names) ? "" : variable_names
+
+  legend --> false
+  aspect_ratio --> 1
+  title --> title_string
+  xlims --> extrema(x)
+  ylims --> extrema(y)
+  xguide --> _get_guide(1)
+  yguide --> _get_guide(2)
+  seriestype --> :heatmap
+  colorbar --> :true
+
+  # Since `data` is simply a ScalarData wrapper around the actual plot data, we pass in
+  # `data.data` instead.
+  return DGTriPseudocolor(global_plotting_triangulation_triplot((x, y), data.data, t)...)
+end
+
 RecipesBase.@recipe function f(cb::DiscreteCallback{<:Any, <:TimeSeriesCallback}, point_id::Integer)
   return cb.affect!, point_id
 end
