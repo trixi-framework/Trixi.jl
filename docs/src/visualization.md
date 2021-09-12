@@ -146,7 +146,7 @@ julia> using Trixi, Plots
 julia> redirect_stdout(devnull) do
          # runs the elixir without any output
          trixi_include(@__MODULE__,
-           joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"))
+           joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_brown_minion_vortex.jl"))
        end
 
 julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D,
