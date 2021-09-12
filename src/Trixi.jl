@@ -203,7 +203,7 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
 
 # Visualization-related exports
-export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
+export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
 function __init__()
   init_mpi()
