@@ -91,6 +91,26 @@ function build_lazy_physical_derivative(element, orientation,
   end
 end
 
+@inline function get_normal_direction(element, orientation, mesh::VertexMappedMesh{2})
+  @unpack rxJ, sxJ, ryJ, syJ = mesh.md
+  if orientation == 1
+    return 2 * SVector(rxJ[1, element], ryJ[1, element])
+  else # if orientation == 2
+    return 2 * SVector(sxJ[1, element], syJ[1, element])
+  end
+end
+
+@inline function get_normal_direction(element, orientation, mesh::VertexMappedMesh{3})
+  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
+  if orientation == 1
+    return 2 * SVector(rxJ[1, element], ryJ[1, element], rzJ[1, element])
+  elseif orientation == 2
+    return 2 * SVector(sxJ[1, element], syJ[1, element], szJ[1, element])
+  else # if orientation == 3
+    return 2 * SVector(txJ[1, element], tyJ[1, element], tzJ[1, element])
+  end
+end
+
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
   rd = dg.basis
   Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
@@ -128,7 +148,10 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
 
   # for use with flux differencing schemes
   Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
+  # `sparsity_pattern` is the global sparsity pattern summing
+  # the individual `sparsity_patterns` of each spatial derivative
   sparsity_pattern = compute_sparsity_pattern(Qrst_skew, dg)
+  sparsity_patterns = map(Qi -> compute_sparsity_pattern((Qi,), dg), Qrst_skew)
 
   nvars = nvariables(equations)
 
@@ -144,7 +167,8 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
   # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq) for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew, sparsity_pattern, invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
+  return (; md, Qrst_skew, sparsity_pattern, sparsity_patterns,
+            invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
 end
@@ -155,7 +179,10 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   @unpack md = mesh
 
   Qrst_skew, VhP, Ph = compute_flux_differencing_SBP_matrices(dg)
+  # `sparsity_pattern` is the global sparsity pattern summing
+  # the individual `sparsity_patterns` of each spatial derivative
   sparsity_pattern = compute_sparsity_pattern(Qrst_skew, dg)
+  sparsity_patterns = map(Qi -> compute_sparsity_pattern((Qi,), dg), Qrst_skew)
 
   nvars = nvariables(equations)
 
@@ -185,7 +212,8 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:P
   fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
   rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
 
-  return (; md, Qrst_skew, sparsity_pattern, VhP, Ph, invJ = inv.(md.J),
+  return (; md, Qrst_skew, sparsity_pattern, sparsity_patterns,
+            VhP, Ph, invJ = inv.(md.J),
             entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
             u_values, u_face_values,  flux_face_values,
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
@@ -220,8 +248,7 @@ end
 function calc_volume_integral!(du, u, volume_integral,
                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
-  rd = dg.basis
-  @unpack fluxdiff_local_threaded, sparsity_pattern, inv_wq = cache
+  @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq, Qrst_skew = cache
   @unpack volume_flux = volume_integral
 
   # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
@@ -229,13 +256,36 @@ function calc_volume_integral!(du, u, volume_integral,
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
     u_local = view(u, :, e)
-    for i in eachdim(mesh)
-      Qi_skew = build_lazy_physical_derivative(e, i, mesh, dg, cache)
+    for dim in eachdim(mesh)
+      # There are two ways to write this flux differencing discretization on affine meshes.
+      # 1. Use numerical fluxes in Cartesian directions and sum up the discrete derivative
+      #    operators per coordinate direction accordingly.
+      # 2. Use discrete derivative operators per coordinate direction and corresponding
+      #    numerical fluxes in arbitrary (non-Cartesian) space directions.
+      #
+      # The first option can be implemented using
+      #
+      #   Q_skew = build_lazy_physical_derivative(e, dim, mesh, dg, cache)
+      #   hadamard_sum!(fluxdiff_local, Q_skew, volume_flux, dim,
+      #                 u_local, equations, sparsity_pattern)
+      #
+      # with `sparsity_pattern === cache.sparsity_pattern`.
+      # However, this option makes it necessary to sum up the individual
+      # `sparsity_patterns` of each reference coordinate direction. On tensor-product
+      # elements such as `Quad()` or `Hex()` elements, this increases the number of
+      # potentially expensive numerical flux evaluations by a factor of `ndims(mesh)`.
+      # Thus, we use the second option below (which basically corresponds to the
+      # well-known sum factorization on tensor product elements).
+      # Note that there is basically no difference for dense derivative operators.
+      normal_direction = get_normal_direction(e, dim, mesh)
+      sparsity_pattern = sparsity_patterns[dim]
+      Q_skew = Qrst_skew[dim]
 
-      # use `sparsity_pattern` to dispatch hadamard_sum!. If using Tri or Tet elements, the
-      # Qi_skew matrices are dense, and sparsity_pattern = nothing. If using Quad or Hex
-      # elements with an SBP approximationType, then sparsity_pattern::AbstractSparseMatrix{Bool}.
-      hadamard_sum!(fluxdiff_local, Qi_skew, volume_flux, i,
+      # Use a `sparsity_pattern` to dispatch `hadamard_sum!`.
+      # If using `Tri()` or `Tet()` elements, the `Q_skew` matrices are dense,
+      # and `sparsity_pattern === nothing`. If using `Quad()` or `Hex()` elements
+      # with an `SBP` `approximation_type`, then `sparsity_pattern::AbstractSparseMatrix{Bool}`.
+      hadamard_sum!(fluxdiff_local, Q_skew, volume_flux, normal_direction,
                     u_local, equations, sparsity_pattern)
     end
 
