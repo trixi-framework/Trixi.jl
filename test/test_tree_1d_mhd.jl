@@ -64,6 +64,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
   end
 
   @trixi_testset "elixir_mhd_shu_osher_shock_tube.jl with flipped shock direction" begin
+    # Include this elixir to make `initial_condition_shu_osher_shock_tube_flipped` available, which is used below
     trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher_shock_tube.jl"), tspan=(0.0, 0.0))
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher_shock_tube.jl"),
       l2   = [1.01539817e+00, 8.29625810e+00, 1.29548008e+00, 0.00000000e+00, 5.23565514e+01, 3.18641825e-16, 1.00485291e+00, 0.00000000e+00],
