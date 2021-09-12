@@ -8,8 +8,52 @@ using Trixi
 equations = CompressibleEulerMulticomponentEquations1D(gammas           = (1.4, 1.4, 1.4),
                                                        gas_constants    = (0.4, 0.4, 0.4))
 
+"""
+    initial_condition_two_interacting_blast_waves(x, t, equations::CompressibleEulerMulticomponentEquations1D)
+
+A multicomponent two interacting blast wave test taken from
+- T. Plewa & E. Müller (1999)
+  The consistent multi-fluid advection method
+  [arXiv: 9807241](https://arxiv.org/pdf/astro-ph/9807241.pdf)
+"""
+function initial_condition_two_interacting_blast_waves(x, t, equations::CompressibleEulerMulticomponentEquations1D)
+
+  rho1        = 0.5 * x[1]^2
+  rho2        = 0.5 * (sin(20 * x[1]))^2
+  rho3        = 1 - rho1 - rho2
+
+  prim_rho    = SVector{3, real(equations)}(rho1, rho2, rho3)
+
+  v1          = 0.0
+
+  if x[1] <= 0.1
+    p = 1000
+  elseif x[1] < 0.9
+    p = 0.01
+  else
+    p = 100
+  end
+
+  prim_other  = SVector{2, real(equations)}(v1, p)
+
+  return prim2cons(vcat(prim_other, prim_rho), equations)
+end
 initial_condition = initial_condition_two_interacting_blast_waves
 
+function boundary_condition_two_interacting_blast_waves(u_inner, orientation, direction, x, t,
+                                                        surface_flux_function,
+                                                        equations::CompressibleEulerMulticomponentEquations1D)
+
+  u_inner_reflect = SVector(-u_inner[1], u_inner[2], u_inner[3], u_inner[4], u_inner[5])
+  # Calculate boundary flux
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_inner_reflect, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_inner_reflect, u_inner, orientation, equations)
+  end
+
+  return flux
+end
 boundary_conditions = boundary_condition_two_interacting_blast_waves
 
 surface_flux = flux_lax_friedrichs
@@ -58,14 +102,14 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.1)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),   #stage_limiter!, step_limiter!, 
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), 
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary

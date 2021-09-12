@@ -106,6 +106,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.4783963902824797, 0.022527207050681054, 0.040307056293369226, 0.0852365428206836],
     )
   end
+
+  @trixi_testset "elixir_euler_brown_minion_vortex.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_brown_minion_vortex.jl"),
+      num_cells_per_dimension = 4, tspan = (0.0, 0.1),
+      l2 = [0.006818116685388498, 0.02123358215096057, 0.009928432022103199, 0.15364518920518527],
+      linf = [0.015838346753841548, 0.09449772987646823, 0.021276761322582504, 0.3470925282340751],
+    )
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory

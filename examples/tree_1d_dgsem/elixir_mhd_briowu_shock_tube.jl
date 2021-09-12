@@ -7,6 +7,27 @@ using Trixi
 gamma = 2
 equations = IdealGlmMhdEquations1D(gamma)
 
+"""
+    initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+
+Compound shock tube test case for one dimensional ideal MHD equations. It is bascially an
+MHD extension of the Sod shock tube. Taken from Section V of the article
+- Brio and Wu (1988)
+  An Upwind Differencing Scheme for the Equations of Ideal Magnetohydrodynamics
+  [DOI: 10.1016/0021-9991(88)90120-9](https://doi.org/10.1016/0021-9991(88)90120-9)
+"""
+function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+  # domain must be set to [0, 1], γ = 2, final time = 0.12
+  rho = x[1] < 0.5 ? 1.0 : 0.125
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  p = x[1] < 0.5 ? 1.0 : 0.1
+  B1 = 0.75
+  B2 = x[1] < 0.5 ? 1.0 : -1.0
+  B3 = 0.0
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
+end
 initial_condition = initial_condition_briowu_shock_tube
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)

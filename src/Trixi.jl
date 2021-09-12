@@ -131,9 +131,8 @@ export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
-       initial_condition_weak_blast_wave, initial_condition_blast_wave,
-       initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
-       initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
+       initial_condition_weak_blast_wave,
+       initial_condition_medium_sedov_blast_wave,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
@@ -151,8 +150,6 @@ export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
 export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
-export initial_condition_briowu_shock_tube, initial_condition_torrilhon_shock_tube, initial_condition_ryujones_shock_tube,
-       initial_condition_shu_osher_shock_tube, initial_condition_shu_osher_shock_tube_flipped
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
@@ -164,6 +161,7 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
+export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
@@ -205,7 +203,7 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
 
 # Visualization-related exports
-export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
+export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
 function __init__()
   init_mpi()

@@ -155,37 +155,6 @@ end
 
 
 """
-    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
-
-The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-"""
-function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
-  # Calculate radius as distance from origin
-  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.25 # = 4.0 * smallest dx (for domain length=8 and max-ref=7)
-  E = 1.0
-  p_inner   = (equations.gamma - 1) * E / (4/3 * pi * r0^3)
-  p_ambient = 1e-5 # = true Sedov setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  v3 = 0.0
-
-  # use a logistic function to tranfer pressure value smoothly
-  k  = -50.0 # sharpness of transfer
-  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
-  p = max(logistic_function_p, p_ambient)
-
-  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
-end
-
-
-"""
     initial_condition_blob(x, t, equations::CompressibleEulerEquations3D)
 
 The blob test case taken from
