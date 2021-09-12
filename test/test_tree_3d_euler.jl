@@ -60,14 +60,6 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       linf = [0.3954458125573179, 0.26876916180359345, 0.26876916180359345, 0.26933123042178553, 1.3724137121660251])
   end
 
-  @trixi_testset "elixir_euler_shockcapturing.jl with initial_condition_sedov_blast_wave" begin
-    # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-      l2   = [0.03627061709701234, 0.05178777768691398, 0.05178777768691404, 0.051787777686913984, 0.2308467334945545],
-      linf = [0.9542995612960261, 1.2654683412445416, 1.2654683412445418, 1.2654683412445418, 12.805752164787227],
-      initial_condition=initial_condition_sedov_blast_wave, cfl=0.7, alpha_max=1.0, tspan=(0.0, 0.1))
-  end
-
   @trixi_testset "elixir_euler_shockcapturing.jl with initial_condition_sedov_self_gravity" begin
     # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),

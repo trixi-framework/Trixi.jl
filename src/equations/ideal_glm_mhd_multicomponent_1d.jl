@@ -107,46 +107,15 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMulticomp
   if r > 0.5
     rho = 1.0
     prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  else 
+  else
     rho = 1.1691
     prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  end 
+  end
   v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
   prim_other = SVector{7, real(equations)}(v1, 0.0, 0.0, p, 1.0, 1.0, 1.0)
 
-  return prim2cons(vcat(prim_other, prim_rho), equations)
-end
-
-
-"""
-    initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdMulticomponentEquations1D)
-
-Compound shock tube test case for one dimensional ideal MHD equations. It is bascially an
-MHD extension of the Sod shock tube. Taken from Section V of the article
-- Brio and Wu (1988)
-  An Upwind Differencing Scheme for the Equations of Ideal Magnetohydrodynamics
-  [DOI: 10.1016/0021-9991(88)90120-9](https://doi.org/10.1016/0021-9991(88)90120-9)
-"""
-function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdMulticomponentEquations1D)
-  # domain must be set to [0, 1], γ = 2, final time = 0.12
-  if x[1] < 0.5
-    rho       = 1.0
-    prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  else
-    rho       = 0.125
-    prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  end
-  v1 = 0.0
-  v2 = 0.0
-  v3 = 0.0
-  p = x[1] < 0.5 ? 1.0 : 0.1
-  B1 = 0.75
-  B2 = x[1] < 0.5 ? 1.0 : -1.0
-  B3 = 0.0
-
-  prim_other = SVector{7, real(equations)}(v1, v2, v3, p, B1, B2, B3)
   return prim2cons(vcat(prim_other, prim_rho), equations)
 end
 
