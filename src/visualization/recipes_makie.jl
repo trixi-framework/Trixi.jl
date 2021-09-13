@@ -126,7 +126,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
   pd = pds.plot_data
   solution_z = vec(StructArrays.component(pd.data, variable_id))
   Makie.mesh!(myplot, plotting_mesh, color=solution_z, shading=false, colormap=myplot[:colormap])
-  myplot.colorrange=extrema(solution_z)
+  myplot.colorrange = extrema(solution_z)
 
   # Makie hides keyword arguments within `myplot`; see also
   # https://github.com/JuliaPlots/Makie.jl/issues/837#issuecomment-845985070
@@ -145,11 +145,11 @@ function Makie.plot!(myplot::TrixiHeatmap)
 end
 
 # redirects Makie.plot(pd::PlotDataSeries) to custom recipe TrixiHeatmap(pd)
-Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.UnstructuredPlotData2D}) = TrixiHeatmap
+Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.PlotData2DTriangulated}) = TrixiHeatmap
 
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution;
-                    plot_mesh=true, solution_variables=nothing, colormap=default_Makie_colormap())
+                    plot_mesh=false, solution_variables=nothing, colormap=default_Makie_colormap())
   return Makie.plot(PlotData2D(sol; solution_variables); plot_mesh, colormap)
 end
 
@@ -160,7 +160,7 @@ struct FigureAndAxes{Axes}
 end
 
 # for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
-# Makie.plot(::UnstructuredPlotData2D)
+# Makie.plot(::PlotData2DTriangulated)
 Base.show(io::IO, fa::FigureAndAxes) = nothing
 
 # allows for returning fig, axes = Makie.plot(...)
@@ -174,15 +174,15 @@ function Base.iterate(fa::FigureAndAxes, state=1)
   end
 end
 
-function Makie.plot(pd::UnstructuredPlotData2D, fig=Makie.Figure();
-                    plot_mesh=true, colormap=default_Makie_colormap())
+function Makie.plot(pd::PlotData2DTriangulated, fig=Makie.Figure();
+                    plot_mesh=false, colormap=default_Makie_colormap())
   figAxes = Makie.plot!(fig, pd; plot_mesh, colormap)
   display(figAxes.fig)
   return figAxes
 end
 
-function Makie.plot!(fig, pd::UnstructuredPlotData2D;
-                     plot_mesh=true, colormap=default_Makie_colormap())
+function Makie.plot!(fig, pd::PlotData2DTriangulated;
+                     plot_mesh=false, colormap=default_Makie_colormap())
   # Create layout that is as square as possible, when there are more than 3 subplots.
   # This is done with a preference for more columns than rows if not.
   if length(pd) <= 3
@@ -194,10 +194,16 @@ function Makie.plot!(fig, pd::UnstructuredPlotData2D;
   end
 
   axes = [Makie.Axis(fig[i,j], xlabel="x", ylabel="y") for j in 1:rows, i in 1:cols]
+  row_list, col_list = [i for j in 1:rows, i in 1:cols], [j for j in 1:rows, i in 1:cols]
 
   for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
     ax = axes[variable_to_plot]
-    trixiheatmap!(ax, pds; plot_mesh, colormap)
+    plt = trixiheatmap!(ax, pds; plot_mesh, colormap)
+
+    row = row_list[variable_to_plot]
+    col = col_list[variable_to_plot]
+    Makie.Colorbar(fig[row, col][1,2], plt)
+
     ax.aspect = Makie.DataAspect() # equal aspect ratio
     ax.title  = variable_name
     Makie.xlims!(ax, extrema(pd.x))
