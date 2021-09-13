@@ -48,6 +48,8 @@ struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 
   gravity::RealT # gravitational constant
 end
 
+# Allow for flexibilty to set the gravitaional constant within an elixir depending on the
+# application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 function ShallowWaterEquations2D(gravity_constant)
   ShallowWaterEquations2D(gravity_constant)
 end
