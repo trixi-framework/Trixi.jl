@@ -1,4 +1,5 @@
 using Literate
+using Test
 # using HTTP
 import Pkg
 
@@ -26,7 +27,7 @@ function create_files(title, file; folder="")
     end
     Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs,)
 
-    include(joinpath(repo_src, folder, file))
+    @testset "TrixiTutorials $title" begin include(joinpath(repo_src, folder, file)) end
 
 end
 
