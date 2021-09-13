@@ -24,7 +24,9 @@ function create_files(title, file; folder="")
     function preprocess_docs(content)
         return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $download_badge\n\n", preprocess_links(content))
     end
-    Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs, codefence="```julia" => "```")
+    Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs,)
+
+    include(joinpath(repo_src, folder, file))
 
 end
 
@@ -69,7 +71,7 @@ nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/TrixiTutoria
 download_url = "https://raw.githubusercontent.com/trixi-framework/TrixiTutorials/gh-pages/dev/notebooks"
 
 # Generate markdown for index.jl
-Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate", preprocess=preprocess_links, codefence="```julia" => "```")
+Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate", preprocess=preprocess_links,)
 # Navigation system for makedocs
 pages = ["Introduction" => "introduction_literate.md",]
 list = ["introduction_literate.md"]
