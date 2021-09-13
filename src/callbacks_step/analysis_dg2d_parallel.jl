@@ -22,15 +22,16 @@ function calc_error_norms(func, u, t, analyzer,
   T = typeof(l2_errors[1]) # for type conversion of final errors
 
   # Convert errors from Vector of SVectors to Matrix for MPI communication
-  l2_errors = [l2_errors[element][v] for v in 1:nvars, element in eachelement(dg, cache)]
-  linf_errors = [linf_errors[element][v] for v in 1:nvars, element in eachelement(dg, cache)]
+  FT = eltype(l2_errors[1])
+  l2_errors = reshape(reinterpret(FT, l2_errors), nvars, :) |> Matrix
+  linf_errors = reshape(reinterpret(FT, linf_errors), nvars, :) |> Matrix
 
   # Collect local error norms of all elements on root process
   if mpi_isroot()
     global_l2_errors = zeros(eltype(l2_errors), nvars, cache.mpi_cache.n_elements_global)
     global_linf_errors = similar(global_l2_errors)
 
-    n_elements_by_rank = cache.mpi_cache.n_elements_by_rank |> parent # convert OffsetArray to Array
+    n_elements_by_rank = parent(cache.mpi_cache.n_elements_by_rank) # convert OffsetArray to Array
     l2_buf = MPI.VBuffer(global_l2_errors, nvars*n_elements_by_rank)
     linf_buf = MPI.VBuffer(global_linf_errors, nvars*n_elements_by_rank)
     MPI.Gatherv!(l2_errors, l2_buf, mpi_root(), mpi_comm())
@@ -47,9 +48,11 @@ function calc_error_norms(func, u, t, analyzer,
     global_linf_errors = reinterpret(T, vec(global_linf_errors))
 
     # Aggregate element errors
+
+    # global_l2_errors is a Base.ReinterpretArray, by accessing it via [:] we convert it into a
+    # proper Vector so that sum always produces the same result as in the serial case
     l2_error = sum(global_l2_errors[:])
-    max_broadcasted(args...) = broadcast(max, args...)
-    linf_error = reduce(max_broadcasted, global_linf_errors)
+    linf_error = reduce((x, y) -> max.(x, y), global_linf_errors)
 
     # For L2 error, divide by total volume
     total_volume = mesh.tree.length_level_0^ndims(mesh)

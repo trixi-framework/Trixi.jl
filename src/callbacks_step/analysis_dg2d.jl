@@ -61,8 +61,7 @@ function calc_error_norms(func, u, t, analyzer,
 
   # Aggregate element error norms
   l2_error = sum(l2_errors)
-  max_broadcasted(args...) = broadcast(max, args...)
-  linf_error = reduce(max_broadcasted, linf_errors)
+  linf_error = reduce((x, y) -> max.(x, y), linf_errors)
 
   # For L2 error, divide by total volume
   total_volume_ = total_volume(mesh)
