@@ -253,10 +253,10 @@ Further details are available in the paper:
   b_rr = u_rr[4]
   # Note this routine only uses the `normal_direction_average` and the average of the
   # bottom topography to get a quadratic split form DG gradient on curved elements
-  return SVector(0.0,
+  return SVector(zero(eltype(u_ll)),
                  normal_direction_average[1] * equations.gravity * h_ll * b_rr,
                  normal_direction_average[2] * equations.gravity * h_ll * b_rr,
-                 0.0)
+                 zero(eltype(u_ll)))
 end
 
 
@@ -310,7 +310,7 @@ and for curvilinear 2D case in the paper:
   f3 += normal_direction_ll[2] * equations.gravity * h_average * b_jump
 
   # First and last equations do not have a nonconservative flux
-  f1 = f4 = 0.0
+  f1 = f4 = zero(eltype(u_ll))
 
   return SVector(f1, f2, f3, f4)
 end
@@ -616,7 +616,7 @@ end
 end
 
 
-@inline function water_height(u, equations::ShallowWaterEquations2D)
+@inline function waterheight(u, equations::ShallowWaterEquations2D)
   h = u[1]
   return h
 end
@@ -629,7 +629,7 @@ end
 end
 
 
-@inline function density_pressure(u, equations::ShallowWaterEquations2D)
+@inline function waterheight_pressure(u, equations::ShallowWaterEquations2D)
   h = u[1]
   h_times_p = 0.5 * equations.gravity * h^3
   return h_times_p

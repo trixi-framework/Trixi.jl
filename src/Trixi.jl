@@ -166,7 +166,7 @@ export initial_condition_monopole, boundary_condition_monopole
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity, water_height
+export density, pressure, density_pressure, velocity, waterheight, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
