@@ -92,12 +92,12 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t, element_id, equations::ShallowWaterEquations2D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
   c  = 7.0
-  ωx = 2.0 * pi * sqrt(2.0)
-  ωt = 2.0 * pi
+  omega_x = 2.0 * pi * sqrt(2.0)
+  omega_t = 2.0 * pi
 
   x1, x2 = x
 
-  H = c + cos(ωx * x1) * sin(ωx * x2) * cos(ωt * t)
+  H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
   v1 = 0.5
   v2 = 1.5
   b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x1) + 0.5 * sin(sqrt(2.0) * pi * x2)
@@ -119,30 +119,30 @@ as defined in [`initial_condition_convergence_test`](@ref).
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
   # this manufactured solution velocities are taken to be constants
   c  = 7.0
-  ωx = 2.0 * pi * sqrt(2.0)
-  ωt = 2.0 * pi
-  ωb = sqrt(2.0) * pi
+  omega_x = 2.0 * pi * sqrt(2.0)
+  omega_t = 2.0 * pi
+  omega_b = sqrt(2.0) * pi
   v1 = 0.5
   v2 = 1.5
 
   x1, x2 = x
 
-  sinX, cosX = sincos(ωx * x1)
-  sinY, cosY = sincos(ωx * x2)
-  sinT, cosT = sincos(ωt * t )
+  sinX, cosX = sincos(omega_x * x1)
+  sinY, cosY = sincos(omega_x * x2)
+  sinT, cosT = sincos(omega_t * t )
 
   H = c + cosX * sinY * cosT
-  H_x = -ωx * sinX * sinY * cosT
-  H_y =  ωx * cosX * cosY * cosT
+  H_x = -omega_x * sinX * sinY * cosT
+  H_y =  omega_x * cosX * cosY * cosT
   # this time derivative for the water height exploits that the bottom topography is
   # fixed in time such that H_t = (h+b)_t = h_t + 0
-  H_t = -ωt * cosX * sinY * sinT
+  H_t = -omega_t * cosX * sinY * sinT
 
   # bottom topography and its gradient
   b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x1) + 0.5 * sin(sqrt(2.0) * pi * x2)
-  tmp1 = 0.5 * ωb
-  b_x = tmp1 * cos(ωb * x1)
-  b_y = tmp1 * cos(ωb * x2)
+  tmp1 = 0.5 * omega_b
+  b_x = tmp1 * cos(omega_b * x1)
+  b_y = tmp1 * cos(omega_b * x2)
 
   du1 = H_t + v1 * (H_x - b_x) + v2 * (H_y - b_y)
   du2 = v1 * du1 + equations.gravity * (H - b) * H_x
