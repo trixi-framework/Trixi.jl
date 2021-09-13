@@ -1016,8 +1016,7 @@ end
 
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
 # has been normalized prior to this rotation of the state vector
-@inline function rotate_to_x(u, normal_vector,
-                             equations::Union{CompressibleEulerEquations2D, ShallowWaterEquations2D})
+@inline function rotate_to_x(u, normal_vector, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
   c = normal_vector[1]
@@ -1039,8 +1038,7 @@ end
 
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
 # has been normalized prior to this back-rotation of the state vector
-@inline function rotate_from_x(u, normal_vector,
-                               equations::Union{CompressibleEulerEquations2D, ShallowWaterEquations2D})
+@inline function rotate_from_x(u, normal_vector, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
   c = normal_vector[1]
