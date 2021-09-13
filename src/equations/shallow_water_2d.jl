@@ -192,7 +192,7 @@ end
 # Note the bottom topography has no flux
 @inline function flux(u, orientation::Integer, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, _ = u
-  _, v1, v2, _ = cons2prim(u, equations)
+  v1, v2 = velocity(u, equations)
 
   p = 0.5 * equations.gravity * h^2
   if orientation == 1
@@ -211,7 +211,7 @@ end
 # Note, this directional vector is not normalized and the bottom topography has no flux
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   h = u[1]
-  _, v1, v2, _ = cons2prim(u, equations)
+  v1, v2 = velocity(u, equations)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
   h_v_normal = h * v_normal
@@ -332,9 +332,9 @@ Details are available in Eq. (4.1) in the paper:
 @inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll = u_ll[1]
-  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
   h_rr = u_rr[1]
-  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
   h_avg  = 0.5 * (h_ll   + h_rr  )
@@ -360,9 +360,9 @@ end
 @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll = u_ll[1]
-  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
   h_rr = u_rr[1]
-  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
 
   v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -403,9 +403,9 @@ Further details are available in Theorem 1 of the paper:
   h_ll, h_v1_ll, h_v2_ll, _ = u_ll
   h_rr, h_v1_rr, h_v2_rr, _ = u_rr
 
-  # Get the primitive variables
-  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  # Get the velocities on either side
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
   v1_avg = 0.5 * (v1_ll + v1_rr )
@@ -431,9 +431,9 @@ end
   h_ll, h_v1_ll, h_v2_ll, _ = u_ll
   h_rr, h_v1_rr, h_v2_rr, _ = u_rr
 
-  # Get the primitive variables
-  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
-  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  # Get the velocities on either side
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
   h_v1_avg = 0.5 * (h_v1_ll + h_v1_rr )
@@ -456,9 +456,9 @@ end
 # TODO: This doesn't really use the `orientation` - should it?
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
   h_ll = u_ll[1]
-  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
   h_rr = u_rr[1]
-  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Calculate velocity magnitude and wave celerity on the left and right
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
@@ -478,9 +478,9 @@ end
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::ShallowWaterEquations2D)
   h_ll = u_ll[1]
-  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
   h_rr = u_rr[1]
-  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
 
   if orientation == 1 # x-direction
     λ_min = v1_ll - sqrt(equations.gravity * h_ll)
@@ -497,9 +497,9 @@ end
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::ShallowWaterEquations2D)
   h_ll = u_ll[1]
-  _, v1_ll, v2_ll, _ = cons2prim(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
   h_rr = u_rr[1]
-  _, v1_rr, v2_rr, _ = cons2prim(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
 
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -559,10 +559,17 @@ end
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations2D)
   h = u[1]
-  _, v1, v2, _ = cons2prim(u, equations)
+  v1, v2 = velocity(u, equations)
 
   c = equations.gravity * sqrt(h)
   return abs(v1) + c, abs(v2) + c
+end
+
+
+# Helper function to extract the velocity vector from the conservative variables
+@inline function velocity(u, equations::ShallowWaterEquations2D)
+  _, v1, v2, _ = cons2prim(u, equations)
+  return SVector(v1, v2)
 end
 
 
