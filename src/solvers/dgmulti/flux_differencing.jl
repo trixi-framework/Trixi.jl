@@ -91,7 +91,14 @@ function build_lazy_physical_derivative(element, orientation,
   end
 end
 
-@inline function get_normal_direction(element, orientation, mesh::VertexMappedMesh{2})
+# Return the contravariant basis vector corresponding to the Cartesian
+# coordinate diretion `orientation` in a given `element` of the `mesh`.
+# The contravariant basis vectors have entries `dx_i / dxhat_j` where
+# j ∈ {1, ..., NDIMS}. Here, `x_i` and `xhat_j` are the ith physical coordinate
+# and jth reference coordinate, respectively. These are geometric terms which
+# appear when using the chain rule to compute physical derivatives as a linear
+# combination of reference derivatives.
+@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{2})
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   if orientation == 1
     return 2 * SVector(rxJ[1, element], ryJ[1, element])
@@ -100,7 +107,7 @@ end
   end
 end
 
-@inline function get_normal_direction(element, orientation, mesh::VertexMappedMesh{3})
+@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{3})
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   if orientation == 1
     return 2 * SVector(rxJ[1, element], ryJ[1, element], rzJ[1, element])
@@ -277,7 +284,7 @@ function calc_volume_integral!(du, u, volume_integral,
       # Thus, we use the second option below (which basically corresponds to the
       # well-known sum factorization on tensor product elements).
       # Note that there is basically no difference for dense derivative operators.
-      normal_direction = get_normal_direction(e, dim, mesh)
+      normal_direction = get_contravariant_vector(e, dim, mesh)
       sparsity_pattern = sparsity_patterns[dim]
       Q_skew = Qrst_skew[dim]
 
