@@ -21,7 +21,7 @@ write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
 
-include(joinpath(@__DIR__, "literate", "make.jl"))
+tutorials = include(joinpath(@__DIR__, "literate", "make.jl"))
 
 # Make documentation
 makedocs(
@@ -53,10 +53,7 @@ makedocs(
             "Differentiable programming" => "differentiable_programming.md",
             "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.md",
         ],
-        "Tutorials Literate" => [
-            "Introduction" => "introduction_literate.md",
-            "Differentiable programming" => "differentiable_programming_literate.md",
-        ],
+        "Tutorials Literate" => tutorials,
         "Basic building blocks" => [
             "Meshes" => [
                 "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
@@ -89,8 +86,8 @@ makedocs(
     strict = true # to make the GitHub action fail when doctests fail, see https://github.com/neuropsychology/Psycho.jl/issues/34
 )
 
-deploydocs(
-    repo = "github.com/trixi-framework/Trixi.jl",
-    devbranch = "main",
-    push_preview = true
-)
+# deploydocs(
+#     repo = "github.com/trixi-framework/Trixi.jl",
+#     devbranch = "main",
+#     push_preview = true
+# )

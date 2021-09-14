@@ -1,6 +1,6 @@
 using Literate
 using Test
-# using HTTP
+using HTTP
 import Pkg
 
 # Function to create markdown and notebook files for specific file
@@ -37,9 +37,8 @@ end
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
-    # "Setting up a simulation" => "setting_up_a_simulation.jl",
-    # "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations", "cubic_conservation_law.jl"),
-    #                             "Nonconservative equation" => ("adding_new_equations", "nonconservative_advection.jl")],
+    "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations_literate", "cubic_conservation_law_literate.jl"),
+                                "Nonconservative equation" => ("adding_new_equations_literate", "nonconservative_advection_literate.jl")],
     "Differentiable programming" => "differentiable_programming_literate.jl",
     ]
 
@@ -74,7 +73,7 @@ download_url = "https://raw.githubusercontent.com/trixi-framework/TrixiTutorials
 # Generate markdown for index.jl
 Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate", preprocess=preprocess_links,)
 # Navigation system for makedocs
-pages = ["Introduction" => "introduction_literate.md",]
+pages = Any["Introduction" => "introduction_literate.md",]
 list = ["introduction_literate.md"]
 
 # Create markdown and notebook files for tutorials.
