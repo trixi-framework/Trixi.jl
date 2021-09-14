@@ -88,6 +88,16 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug Plots.plot(pd)
       @test_nowarn_debug Plots.plot(pd["p"])
       @test_nowarn_debug Plots.plot(getmesh(pd))
+
+      semi = sol.prob.p
+      if mesh == "DGMulti"
+        scalar_data = StructArrays.component(sol.u[end], 1)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+      else
+        cache = semi.cache
+        x = view(cache.elements.node_coordinates, 1, :, :, :)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
+      end
     end
 
     @testset "1D plot from 2D solution" begin
@@ -281,7 +291,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
     @test_nowarn_debug Trixi.iplot(sol) # test interactive surface plot
-    @test_nowarn_debug Makie.plot(sol) # test heatmap plot
+    @test_nowarn_debug Makie.plot(sol, plot_mesh=true) # test heatmap plot
 
     fa = Makie.plot(sol) # test heatmap plot
     fig, axes = fa # test unpacking/iteration for FigureAndAxes

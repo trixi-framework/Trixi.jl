@@ -7,6 +7,55 @@ using Trixi
 gamma = 5/3
 equations = IdealGlmMhdEquations1D(gamma)
 
+"""
+    initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+
+Extended version of the test of Shu and Osher for one dimensional ideal MHD equations.
+Taken from Section 4.1 of
+- Derigs et al. (2016)
+  A Novel High-Order, Entropy Stable, 3D AMR MHD Solver withGuaranteed Positive Pressure
+  [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
+"""
+function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+  # domain must be set to [-5, 5], γ = 5/3, final time = 0.7
+  # initial shock location is taken to be at x = -4
+  x_0 = -4.0
+  rho = x[1] <= x_0 ? 3.5 : 1.0 + 0.2 * sin(5.0 * x[1])
+  v1 = x[1] <= x_0 ? 5.8846 : 0.0
+  v2 = x[1] <= x_0 ? 1.1198 : 0.0
+  v3 = 0.0
+  p = x[1] <= x_0 ? 42.0267 : 1.0
+  B1 = 1.0
+  B2 = x[1] <= x_0 ? 3.6359 : 1.0
+  B3 = 0.0
+
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
+end
+
+"""
+    initial_condition_shu_osher_shock_tube_flipped(x, t, equations::IdealGlmMhdEquations1D)
+
+Extended version of the test of Shu and Osher for one dimensional ideal MHD equations
+but shock propogates from right to left.
+
+!!! note
+    This is useful to exercise some of the components of the HLL flux.
+"""
+function initial_condition_shu_osher_shock_tube_flipped(x, t, equations::IdealGlmMhdEquations1D)
+  # domain must be set to [-5, 5], γ = 5/3, final time = 0.7
+  # initial shock location is taken to be at x = 4
+  x_0 = 4.0
+  rho = x[1] <= x_0 ? 1.0 + 0.2 * sin(5.0 * x[1]) : 3.5
+  v1 = x[1] <= x_0 ? 0.0 : -5.8846
+  v2 = x[1] <= x_0 ? 0.0 : -1.1198
+  v3 = 0.0
+  p = x[1] <= x_0 ? 1.0 : 42.0267
+  B1 = 1.0
+  B2 = x[1] <= x_0 ? 1.0 : 3.6359
+  B3 = 0.0
+
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
+end
 initial_condition = initial_condition_shu_osher_shock_tube
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
