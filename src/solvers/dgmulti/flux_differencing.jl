@@ -63,6 +63,23 @@ end
   end
 end
 
+@inline function hadamard_sum_nonsymmetric!(du, A, volume_flux, orientation, u,
+                                            equations, sparsity_pattern::AbstractSparseMatrix{Bool},
+                                            skip_index::Union{Function, Nothing})
+  n = size(sparsity_pattern, 2)
+  rows = rowvals(sparsity_pattern)
+  for i in 1:n
+    u_i = u[i]
+    du_i = du[i]
+    for id in nzrange(sparsity_pattern, i)
+      j = rows[id]
+      du_i = du_i + A[i,j] * volume_flux(u_i, u[j], orientation, equations)
+    end
+    du[i] = du_i
+  end
+end
+
+
 # For DGMulti implementations, we construct "physical" differentiation operators by taking linear
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
 # We use a lazy evaluation of physical differentiation operators, so that we can compute linear
@@ -217,8 +234,9 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   end
 end
 
-function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
+                               have_nonconservative_terms::Val{false}, equations,
+                               dg::DGMultiFluxDiff{<:SBP}, cache)
 
   rd = dg.basis
   @unpack fluxdiff_local_threaded, sparsity_pattern, inv_wq = cache
@@ -245,8 +263,9 @@ function calc_volume_integral!(du, u, volume_integral,
   end
 end
 
-function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, cache)
+function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
+                               have_nonconservative_terms::Val{false}, equations,
+                               dg::DGMultiFluxDiff{<:Polynomial}, cache)
 
   rd = dg.basis
   @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
@@ -265,6 +284,42 @@ function calc_volume_integral!(du, u, volume_integral,
       Qi_skew = build_lazy_physical_derivative(e, i, mesh, dg, cache)
       hadamard_sum!(fluxdiff_local, Qi_skew, volume_flux, i,
                     u_local, equations, sparsity_pattern, skip_index)
+    end
+
+    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
+    # apply_to_each_field performance.
+    rhs_local = rhs_local_threaded[Threads.threadid()]
+    for i in Base.OneTo(length(fluxdiff_local))
+      rhs_local[i] = fluxdiff_local[i]
+    end
+    apply_to_each_field(mul_by_accum!(Ph), view(du, :, e), rhs_local)
+  end
+end
+
+function calc_volume_integral!(du, u, volume_integral, mesh,
+                               have_nonconservative_terms::Val{true}, equations,
+                               dg::DGMultiFluxDiff{<:Polynomial}, cache)
+  @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
+  @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
+  rd = dg.basis
+  skip_index(i,j) = i > rd.Nq && j > rd.Nq
+
+  flux_conservative, flux_nonconservative = volume_integral.volume_flux
+
+  @threaded for e in eachelement(mesh, dg, cache)
+    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
+    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+    u_local = view(entropy_projected_u_values, :, e)
+    for i in eachdim(mesh)
+      # Todo: DGMulti. Dispatch on curved meshes, this code only works for affine meshes (accessing rxJ[1,e],...)
+      Qi_skew = build_lazy_physical_derivative(e, i, mesh, dg, cache)
+
+      # compute conservative flux differencing contribution
+      hadamard_sum!(fluxdiff_local, Qi_skew, flux_conservative, i,
+                    u_local, equations, sparsity_pattern, skip_index)
+
+      hadamard_sum_nonsymmetric!(fluxdiff_local, Qi_skew, flux_nonconservative, i,
+                                 u_local, equations, sparsity_pattern, skip_index)
     end
 
     # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
@@ -303,23 +358,26 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
   # done in `prolong2interfaces` and `calc_volume_integral`)
   @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh, equations, dg)
 
-  @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(du, u, dg.volume_integral,
-                                                                      mesh, equations, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u,
+                                                                dg.volume_integral, mesh,
+                                                                have_nonconservative_terms(equations),
+                                                                equations, dg, cache)
 
   # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
-  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral,
-                                                                    mesh, equations, dg)
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral, mesh,
+                                                              have_nonconservative_terms(equations),
+                                                              equations, dg)
 
-  @trixi_timeit timer() "calc_boundary_flux!" calc_boundary_flux!(cache, t, boundary_conditions,
-                                                                  mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+                                                            mesh, equations, dg)
 
-  @trixi_timeit timer() "calc_surface_integral!" calc_surface_integral!(du, u, dg.surface_integral,
-                                                                        mesh, equations, dg, cache)
+  # @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
+  #                                                                 mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "invert_jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "invert jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "calc_sources!" calc_sources!(du, u, t, source_terms,
-                                                      mesh, equations, dg, cache)
+  @trixi_timeit timer() "calc sources" calc_sources!(du, u, t, source_terms,
+                                                     mesh, equations, dg, cache)
 
   return nothing
 end
