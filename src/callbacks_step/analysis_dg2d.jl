@@ -60,7 +60,12 @@ function calc_error_norms(func, u, t, analyzer,
                                                         dg, cache, cache_analysis)
 
   # Aggregate element error norms
-  l2_error = sum(l2_errors)
+  # sum(l2_errors) produces different results for the serial and parallel cases, thus we use
+  # a hand-written loop here for reproducibility
+  l2_error = zero(eltype(l2_errors))
+  for error in l2_errors
+    l2_error += error
+  end
   linf_error = reduce((x, y) -> max.(x, y), linf_errors)
 
   # For L2 error, divide by total volume

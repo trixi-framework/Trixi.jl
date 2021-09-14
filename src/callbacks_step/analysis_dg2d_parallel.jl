@@ -19,7 +19,7 @@ function calc_error_norms(func, u, t, analyzer,
     func, u, t, analyzer, mesh, equations, initial_condition, dg, cache, cache_analysis)
 
   nvars = length(l2_errors[1])
-  T = typeof(l2_errors[1]) # for type conversion of final errors
+  T = eltype(l2_errors)
 
   # Convert errors from Vector of SVectors to Matrix for MPI communication
   FT = eltype(l2_errors[1])
@@ -48,10 +48,13 @@ function calc_error_norms(func, u, t, analyzer,
     global_linf_errors = reinterpret(T, vec(global_linf_errors))
 
     # Aggregate element errors
-
-    # global_l2_errors is a Base.ReinterpretArray, by accessing it via [:] we convert it into a
-    # proper Vector so that sum always produces the same result as in the serial case
-    l2_error = sum(global_l2_errors[:])
+    # sum(global_l2_errors) does not produce the same result as in the serial case, while
+    # sum(global_l2_errors[:]) produces the same results but leads to unnecessary allocations.
+    # Therefore we use a hand-written loop here
+    l2_error = zero(T)
+    for error in global_l2_errors
+      l2_error += error
+    end
     linf_error = reduce((x, y) -> max.(x, y), global_linf_errors)
 
     # For L2 error, divide by total volume
