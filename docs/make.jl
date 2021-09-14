@@ -86,8 +86,8 @@ makedocs(
     strict = true # to make the GitHub action fail when doctests fail, see https://github.com/neuropsychology/Psycho.jl/issues/34
 )
 
-# deploydocs(
-#     repo = "github.com/trixi-framework/Trixi.jl",
-#     devbranch = "main",
-#     push_preview = true
-# )
+deploydocs(
+    repo = "github.com/trixi-framework/Trixi.jl",
+    devbranch = "main",
+    push_preview = true
+)

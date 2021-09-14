@@ -44,10 +44,10 @@ files = [
 
 repo_src        = joinpath(@__DIR__, "src", "files")
 
-pages_dir       = joinpath(@__DIR__, "..", "src")
+pages_dir       = joinpath(@__DIR__, "..", "src", "tutorials")
 notebooks_dir   = joinpath(@__DIR__, "src", "notebooks")
 
-# Sys.rm(pages_dir;       recursive=true, force=true)
+Sys.rm(pages_dir;       recursive=true, force=true)
 Sys.rm(notebooks_dir;   recursive=true, force=true)
 
 # Preprocess files to add reference web links automatically.
@@ -73,7 +73,7 @@ download_url = "https://raw.githubusercontent.com/trixi-framework/TrixiTutorials
 # Generate markdown for index.jl
 Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate", preprocess=preprocess_links,)
 # Navigation system for makedocs
-pages = Any["Introduction" => "introduction_literate.md",]
+pages = Any["Introduction" => "tutorials/introduction_literate.md",]
 list = ["introduction_literate.md"]
 
 # Create markdown and notebook files for tutorials.
@@ -85,7 +85,7 @@ for (i, (title, filename)) in enumerate(files)
             create_files("$i.$j: $title: $(filename[j][1])", filename[j][2][2]; folder=filename[j][2][1])
 
             path = "$(filename[j][2][1])/$(splitext(filename[j][2][2])[1]).md"
-            push!(vector, "$i.$j $(filename[j][1])" => path)
+            push!(vector, "$i.$j $(filename[j][1])" => "tutorials/$path")
             push!(list, path)
         end
         # Add to navigation menu
@@ -94,27 +94,29 @@ for (i, (title, filename)) in enumerate(files)
         create_files("$i: $title", filename)
         # Add to navigation menu
         path = "$(splitext(filename)[1]).md"
-        push!(pages, ("$i $title" => path))
+        push!(pages, ("$i $title" => "tutorials/$path"))
         push!(list, path)
     end
 end
 
-# # Simple version of checking links
-# for file in list
-#     content = read(joinpath(@__DIR__, "src", file), String)
-#     if occursin(r"\(https://[^\(\)]+\)", content)
-#         matches = collect(eachmatch(r"\(https://[^\(\)]+\)", content))
-#         for i in 1:length(matches)
-#             link = string(chop(matches[i].match, head=1, tail=1))
-#             try 
-#                 HTTP.get(link, retry=false, connect_timeout=15)
-#             catch
-#                 if get(ENV, "CI", nothing) == "true"
-#                     error("URL doesn't exist: ", link)
-#                 else
-#                     @warn "URL doesn't exist: " link
-#                 end
-#             end
-#         end
-#     end
-# end
+# Simple version of checking links
+for file in list
+    content = read(joinpath(pages_dir, file), String)
+    if occursin(r"\(https://[^\(\)]+\)", content)
+        matches = collect(eachmatch(r"\(https://[^\(\)]+\)", content))
+        for i in 1:length(matches)
+            link = string(chop(matches[i].match, head=1, tail=1))
+            try 
+                HTTP.get(link, retry=false, connect_timeout=15)
+            catch
+                if get(ENV, "CI", nothing) == "true"
+                    error("URL doesn't exist: ", link)
+                else
+                    @warn "URL doesn't exist: " link
+                end
+            end
+        end
+    end
+end
+
+return pages

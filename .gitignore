@@ -15,6 +15,7 @@ out*/
 docs/build
 docs/literate/src/notebooks
 docs/src/authors.md
+docs/src/tutorials
 public/
 coverage/
 coverage_report/
