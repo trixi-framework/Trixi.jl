@@ -51,6 +51,17 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.0003674374460325147, 0.0004253921341716982, 0.0004253921340786615, 0.0004253921340831024, 0.0014333414071048267]
     )
   end
+
+  @trixi_testset "elixir_euler_weakform_periodic.jl (Hexahedral elements, SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
+      element_type = Hex(),
+      volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
+      surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
+      approximation_type = SBP(),
+      l2 = [0.001712443468716032, 0.002491315550718859, 0.0024913155507195303, 0.002491315550720031, 0.008585818982343299],
+      linf = [0.003810078279323559, 0.004998778644230928, 0.004998778643986235, 0.0049987786444081195, 0.016455044373650196]
+    )
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
