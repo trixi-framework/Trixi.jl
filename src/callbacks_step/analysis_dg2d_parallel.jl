@@ -58,8 +58,8 @@ function calc_error_norms(func, u, t, analyzer,
     linf_error = reduce((x, y) -> max.(x, y), global_linf_errors)
 
     # For L2 error, divide by total volume
-    total_volume = mesh.tree.length_level_0^ndims(mesh)
-    l2_error = @. sqrt(l2_error / total_volume)
+    total_volume_ = total_volume(mesh)
+    l2_error = @. sqrt(l2_error / total_volume_)
   else
     l2_error = convert(T, NaN * l2_errors[:, 1])
     linf_error = convert(T, NaN * linf_errors[:, 1])
