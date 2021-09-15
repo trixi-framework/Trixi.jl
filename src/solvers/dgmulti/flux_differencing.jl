@@ -267,9 +267,8 @@ has_sparse_operators(::Union{Quad, Hex}) = Val{true}()
 
 # e = element index, i = Cartesian direction for the flux
 function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                  volume_flux::Flux, skip_index::Skip,
-                                  has_sparse_operators::Val{false},
-                                  mesh, equations, dg, cache) where {Flux, Skip}
+                                  volume_flux::Flux, has_sparse_operators::Val{false},
+                                  mesh, equations, dg, cache, skip_index=(i,j)->false) where {Flux}
   @unpack sparsity_pattern = cache
   for i in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, i, mesh, dg, cache)
@@ -281,9 +280,8 @@ end
 # Uses the sum-factorization approach to computing flux differencing. See the comments for the
 # function `calc_volume_integral(du, u,..., dg::DGMultiFluxDiff{<:SBP}`) for more details.
 function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                  volume_flux::F, skip_index,
-                                  has_sparse_operators::Val{true},
-                                  mesh, equations, dg, cache) where {F}
+                                  volume_flux::Flux, has_sparse_operators::Val{true},
+                                  mesh, equations, dg, cache, skip_index=(i,j)->false) where {Flux}
   @unpack Qrst_skew, sparsity_patterns = cache
   for dim in eachdim(mesh)
     # There are two ways to write this flux differencing discretization on affine meshes.
@@ -333,8 +331,7 @@ function calc_volume_integral!(du, u, volume_integral,
     u_local = view(u, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             volume_flux, nothing,
-                             has_sparse_operators(dg),
+                             volume_flux, has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
     for i in each_quad_node(mesh, dg, cache)
@@ -362,9 +359,8 @@ function calc_volume_integral!(du, u, volume_integral,
     u_local = view(entropy_projected_u_values, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             volume_flux, skip_index,
-                             has_sparse_operators(dg),
-                             mesh, equations, dg, cache)
+                             volume_flux, has_sparse_operators(dg),
+                             mesh, equations, dg, cache, skip_index)
 
     # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
     # apply_to_each_field performance.
