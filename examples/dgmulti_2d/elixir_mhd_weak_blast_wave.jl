@@ -17,7 +17,7 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = Polynomial()
 
 num_cells_per_dimension = 16
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
-vertex_coordinates = map(x -> 2.0 .* x, vertex_coordinates) # map domain to [-2, 2]^2
+vertex_coordinates = map(x -> 2 * x, vertex_coordinates) # map domain to [-2, 2]^2
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
@@ -32,7 +32,7 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
-alive_callback = AliveCallback(alive_interval=10, analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 cfl = 1.0
 stepsize_callback = StepsizeCallback(cfl=cfl)

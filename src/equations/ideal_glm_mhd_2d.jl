@@ -817,7 +817,7 @@ end
   # the entropy variables for `-rho * s / (gamma - 1)` to the entropy variables for the entropy
   # `-rho * s` used by Hughes, Franca, Mallet (1986).
   @unpack gamma = equations
-  V1, V2, V3, V4, V5 = w[1:5] .* (gamma-1)
+  V1, V2, V3, V4, V5 = SVector(w1, w2, w3, w4, w5) * (gamma - 1)
   s = gamma - V1 + (V2^2 + V3^2 + V4^2)/(2*V5)
   rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_gamma_minus_one)*exp(-s * equations.inv_gamma_minus_one)
   rho = -rho_iota * V5

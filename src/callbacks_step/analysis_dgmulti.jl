@@ -67,7 +67,8 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 # This function is used in `analyze(::Val{:l2_divb},...)` and `analyze(::Val{:linf_divb},...)`
-function compute_local_divergence!(local_divergence, element, vector_field, mesh, dg, cache)
+function compute_local_divergence!(local_divergence, element, vector_field, 
+                                   mesh, dg::DGMulti, cache)
   @unpack md = mesh
   rd = dg.basis
   uEltype = eltype(first(vector_field))
@@ -77,8 +78,8 @@ function compute_local_divergence!(local_divergence, element, vector_field, mesh
 
   # computes dU_i/dx_i = ∑_j dxhat_j/dx_i * dU_i / dxhat_j
   # dU_i/dx_i is then accumulated into local_divergence.
-  for i in Base.OneTo(ndims(mesh))
-    for j in Base.OneTo(ndims(mesh))
+  for i in eachdim(mesh)
+    for j in eachdim(mesh)
       geometric_scaling = md.rstxyzJ[i, j][1, element]
       jth_ref_derivative_matrix = rd.Drst[j]
       mul!(local_divergence, jth_ref_derivative_matrix, vector_field[i], geometric_scaling, one(uEltype))
@@ -87,7 +88,8 @@ function compute_local_divergence!(local_divergence, element, vector_field, mesh
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations, dg::DGMulti, cache)
+                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D, 
+                 dg::DGMulti, cache)
   @unpack md = mesh
   rd = dg.basis
 
@@ -102,7 +104,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
     compute_local_divergence!(local_divB, e, view.(B, :, e), mesh, dg, cache)
 
     # compute L2 norm squared via J[1, e] * u' * M * u
-    local_l2norm_divB = md.J[1, e] * dot(local_divB, rd.M * local_divB)
+    local_l2norm_divB = md.J[1, e] * dot(local_divB, rd.M, local_divB)
     l2norm_divB += local_l2norm_divB
   end
 
@@ -110,7 +112,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations, dg::DGMulti, cache)
+                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D, 
+                 dg::DGMulti, cache)
   B1 = StructArrays.component(u, 6)
   B2 = StructArrays.component(u, 7)
   B = (B1, B2)
@@ -121,8 +124,8 @@ function analyze(::Val{:linf_divb}, du, u, t,
   for e in eachelement(mesh, dg, cache)
     compute_local_divergence!(local_divB, e, view.(B, :, e), mesh, dg, cache)
 
-    # compute L2 norm squared via J[1, e] * u' * M * u
-    linf_divB = max(linf_divB, maximum(abs.(local_divB)))
+    # compute maximum norm
+    linf_divB = max(linf_divB, maximum(abs, local_divB))
   end
 
   return linf_divB

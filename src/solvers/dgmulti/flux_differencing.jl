@@ -375,8 +375,9 @@ function calc_volume_integral!(du, u, volume_integral, mesh,
       hadamard_sum!(fluxdiff_local, Qi_skew, flux_conservative, i,
                     u_local, equations, sparsity_pattern, skip_index)
 
-      # scale the non-conservative part (it doesn't include 1/2 factor for a central flux)
-      half_Qi_skew = LazyMatrixLinearCombo(tuple(Qi_skew), tuple(.5))
+      # Scale the non-conservative part (it doesn't include 1/2 factor for a central flux).
+      # This effectively removes the multiplication by two included in `Qi_skew`.
+      half_Qi_skew = LazyMatrixLinearCombo(tuple(Qi_skew), tuple(0.5))
       hadamard_sum_nonsymmetric!(fluxdiff_local, half_Qi_skew, flux_nonconservative, i,
                                  u_local, equations, sparsity_pattern, skip_index)
     end
