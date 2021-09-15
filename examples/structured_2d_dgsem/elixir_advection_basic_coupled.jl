@@ -24,9 +24,9 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of right mesh
-                                       x_neg=BoundaryConditionCoupled(2, (:end, :i), Float64),
+                                       x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
                                        # Connect right boundary with left boundary of right mesh
-                                       x_pos=BoundaryConditionCoupled(2, (1, :i),  Float64),
+                                       x_pos=BoundaryConditionCoupled(2, (1, :i_forward),  Float64),
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 
@@ -42,9 +42,9 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of left mesh
-                                       x_neg=BoundaryConditionCoupled(1, (:end, :i), Float64),
+                                       x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
                                        # Connect right boundary with left boundary of left mesh
-                                       x_pos=BoundaryConditionCoupled(1, (1, :i),  Float64),
+                                       x_pos=BoundaryConditionCoupled(1, (1, :i_forward),  Float64),
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 

@@ -261,9 +261,9 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     # This is needed to make indices a Tuple of Symbols and prevent type instabilities
     indices_ = one_to_symbol.(indices)
 
-    if indices_[1] in (:one, :end)
+    if indices_[1] in (:begin, :end)
       other_orientation = 1
-    elseif indices_[2] in (:one, :end)
+    elseif indices_[2] in (:begin, :end)
       other_orientation = 2
     else
       other_orientation = 3
@@ -275,7 +275,7 @@ end
 
 function one_to_symbol(i)
   if i == 1
-    return :one
+    return :begin
   else
     return i
   end

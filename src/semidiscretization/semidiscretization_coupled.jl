@@ -264,7 +264,6 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
   @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
 
-  size_ = (nnodes(solver), nnodes(solver))
   linear_indices = LinearIndices(size(mesh))
 
   if other_orientation == 1
@@ -273,11 +272,32 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3
     cells = axes(mesh, 1)
   end
 
-  for cell in cells, i in eachnode(solver), v in 1:size(u, 1)
-    boundary_condition.u_boundary[v, i, cell] = u[v, evaluate_index(indices, size_, 1, i),
-                                                     evaluate_index(indices, size_, 2, i),
-                                                     linear_indices[evaluate_index(indices, size(mesh), 1, cell),
-                                                                    evaluate_index(indices, size(mesh), 2, cell)]]
+  # Copy solution data from the primary element using "delayed indexing" with
+  # a start value and a step size to get the correct face and orientation.
+  node_index_range = eachnode(solver)
+  i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
+  j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
+
+  i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
+  j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
+
+  i_cell = i_cell_start
+  j_cell = j_cell_start
+
+  for cell in cells
+    i_node = i_node_start
+    j_node = j_node_start
+
+    for i in eachnode(solver)
+      for v in 1:size(u, 1)
+        boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node, 
+                                                      linear_indices[i_cell, j_cell]]
+      end
+      i_node += i_node_step
+      j_node += j_node_step
+    end
+    i_cell += i_cell_step
+    j_cell += j_cell_step
   end
 end
 
