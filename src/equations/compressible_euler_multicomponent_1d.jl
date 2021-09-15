@@ -178,54 +178,6 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMul
 end
 
 
-"""
-    initial_condition_two_interacting_blast_waves(x, t, equations::CompressibleEulerMulticomponentEquations1D)
-
-A multicomponent two interacting blast wave test taken from
-- T. Plewa & E. Müller (1999)
-  The consistent multi-fluid advection method
-  [arXiv: 9807241](https://arxiv.org/pdf/astro-ph/9807241.pdf)
-"""
-function initial_condition_two_interacting_blast_waves(x, t, equations::CompressibleEulerMulticomponentEquations1D)
-
-  rho1        = 0.5 * x[1]^2
-  rho2        = 0.5 * (sin(20 * x[1]))^2
-  rho3        = 1 - rho1 - rho2
-
-  prim_rho    = SVector{3, real(equations)}(rho1, rho2, rho3)
-
-  v1          = 0.0
-
-  if x[1] <= 0.1
-    p = 1000
-  elseif x[1] < 0.9
-    p = 0.01
-  else
-    p = 100
-  end
-
-  prim_other  = SVector{2, real(equations)}(v1, p)
-
-  return prim2cons(vcat(prim_other, prim_rho), equations)
-end
-
-
-function boundary_condition_two_interacting_blast_waves(u_inner, orientation, direction, x, t,
-                                                        surface_flux_function,
-                                                        equations::CompressibleEulerMulticomponentEquations1D)
-
-u_inner_reflect = SVector{nvariables(equations), real(equations)}(-u_inner[1], u_inner[2], u_inner[3], u_inner[4], u_inner[5])
-# Calculate boundary flux
-if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-  flux = surface_flux_function(u_inner, u_inner_reflect, orientation, equations)
-else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-  flux = surface_flux_function(u_inner_reflect, u_inner, orientation, equations)
-end
-
-  return flux
-end
-
-
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerMulticomponentEquations1D)
   rho_v1, rho_e  = u
@@ -303,6 +255,77 @@ Entropy conserving two-point flux by
   f1 = (help2) * v1_avg + enth/T
   f2 = (help1)/T_log - 0.5 * (v1_square) * (help2) + v1_avg * f1
 
+  f_other  = SVector{2, real(equations)}(f1, f2)
+
+  return vcat(f_other, f_rho)
+end
+
+
+"""
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerMulticomponentEquations1D)
+
+Adaption of the entropy conserving and kinetic energy preserving two-point flux by
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+See also
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerMulticomponentEquations1D)
+  # Unpack left and right state
+  @unpack gammas, gas_constants, cv = equations
+  rho_v1_ll, rho_e_ll = u_ll
+  rho_v1_rr, rho_e_rr = u_rr
+  rhok_mean   = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i+2], u_rr[i+2]) for i in eachcomponent(equations))
+  rhok_avg    = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i+2] + u_rr[i+2]) for i in eachcomponent(equations))
+
+  # Iterating over all partial densities
+  rho_ll      = density(u_ll, equations)
+  rho_rr      = density(u_rr, equations)
+
+  # Calculating gamma
+  gamma               = totalgamma(0.5*(u_ll+u_rr), equations)
+  inv_gamma_minus_one = 1/(gamma-1)
+
+  # extract velocities
+  v1_ll               = rho_v1_ll / rho_ll
+  v1_rr               = rho_v1_rr / rho_rr
+  v1_avg              = 0.5 * (v1_ll + v1_rr)
+  velocity_square_avg = 0.5 * (v1_ll * v1_rr)
+
+  # density flux
+  f_rho     = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
+
+  # helpful variables
+  f_rho_sum = zero(v1_ll)
+  help1_ll  = zero(v1_ll)
+  help1_rr  = zero(v1_rr)
+  enth_ll   = zero(v1_ll)
+  enth_rr   = zero(v1_rr)
+  for i in eachcomponent(equations)
+    enth_ll   += u_ll[i+2] * gas_constants[i]
+    enth_rr   += u_rr[i+2] * gas_constants[i]
+    f_rho_sum += f_rho[i]
+    help1_ll  += u_ll[i+2] * cv[i]
+    help1_rr  += u_rr[i+2] * cv[i]
+  end
+
+  # temperature and pressure
+  T_ll            = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2)) / help1_ll
+  T_rr            = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2)) / help1_rr
+  p_ll            = T_ll * enth_ll
+  p_rr            = T_rr * enth_rr
+  p_avg           = 0.5 * (p_ll + p_rr)
+  inv_rho_p_mean  = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+
+  # momentum and energy flux
+  f1 = f_rho_sum * v1_avg + p_avg
+  f2 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
   f_other  = SVector{2, real(equations)}(f1, f2)
 
   return vcat(f_other, f_rho)
@@ -393,27 +416,25 @@ end
 
   rho       = density(u, equations)
 
+  help1         = zero(rho)
+  gas_constant  = zero(rho)
+  for i in eachcomponent(equations)
+    help1         += u[i+2] * cv[i]
+    gas_constant  += gas_constants[i] * (u[i+2]/rho)
+  end
+
   v1        = rho_v1 / rho
   v_square  = v1^2
   gamma     = totalgamma(u, equations)
 
   p         = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
-  s         = log(p) - gamma * log(rho)
+  s         = log(p) - gamma * log(rho) - log(gas_constant)
   rho_p     = rho / p
-
-  # Multicomponent stuff
-  help1 = zero(v1)
-
-  for i in eachcomponent(equations)
-    help1 += u[i+2] * cv[i]
-  end
-
   T         = (rho_e - 0.5 * rho * v_square) / (help1)
+  entrop_rho  = SVector{ncomponents(equations), real(equations)}( gas_constant * ((gamma - s)/(gamma - 1.0) - (0.5 * v_square * rho_p)) for i in eachcomponent(equations))
 
-  entrop_rho  = SVector{ncomponents(equations), real(equations)}( -1.0 * (cv[i] * log(T) - gas_constants[i] * log(u[i+2])) + gas_constants[i] + cv[i] - (v_square / (2*T)) for i in eachcomponent(equations))
-
-  w1        = v1/T
-  w2        = -1.0/T
+  w1        = gas_constant * v1 * rho_p
+  w2        = gas_constant * (-1.0 * rho_p)
 
   entrop_other = SVector{2, real(equations)}(w1, w2)
 

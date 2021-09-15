@@ -121,6 +121,15 @@ mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, Alg, Simp
   finalstep::Bool # added for convenience
 end
 
+# Forward integrator.destats.naccept to integrator.iter (see GitHub PR#771)
+function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
+  if field === :destats
+    return (naccept = getfield(integrator, :iter),)
+  end
+  # general fallback
+  return getfield(integrator, field)
+end
+
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 function solve(ode::ODEProblem, alg::T;
                dt, callback=nothing, kwargs...) where {T<:SimpleAlgorithm3Sstar}

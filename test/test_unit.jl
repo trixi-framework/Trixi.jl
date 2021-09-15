@@ -238,8 +238,8 @@ Cassette.@context Ctx
       @test isapprox(Trixi.multiply_dimensionwise(matrix, data_in), [3.0 4.0 5.0 6.0])
 
       n_vars   = 3
-      size_in  = 4
-      size_out = 5
+      size_in  = 2
+      size_out = 3
       matrix   = randn(size_out, size_in)
       # 1D
       data_in  = randn(n_vars, size_in)
@@ -406,6 +406,13 @@ Cassette.@context Ctx
 
     indicator_max = IndicatorMax("variable", (; cache=nothing))
     @test_nowarn show(stdout, indicator_max)
+
+    equations = CompressibleEulerEquations2D(1.4)
+    basis = LobattoLegendreBasis(3)
+    indicator_neuralnetwork = IndicatorNeuralNetwork(
+        equations, basis, indicator_type=NeuralNetworkPerssonPeraire(), variable=density,
+        network=nothing)
+    @test_nowarn show(stdout, indicator_neuralnetwork)
   end
 
   @timed_testset "LBM 2D constructor" begin
@@ -472,7 +479,7 @@ Cassette.@context Ctx
     rho_mean_global = 1.0
     equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
-    @test Trixi.varnames(cons2state, equations) == ("v1_prime", "v2_prime", "p_prime")
+    @test Trixi.varnames(cons2state, equations) == ("v1_prime", "v2_prime", "p_prime_scaled")
     @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 

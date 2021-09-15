@@ -4,16 +4,16 @@ using Trixi
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-equations = AcousticPerturbationEquations2D(v_mean_global=(0.5, 0.3), c_mean_global=1.0,
-                                            rho_mean_global=1.0)
+equations = AcousticPerturbationEquations2D(v_mean_global=(0.5, 0.3), c_mean_global=2.0,
+                                            rho_mean_global=0.9)
 
 initial_condition = initial_condition_convergence_test
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (0, 0) # minimum coordinates (min(x), min(y))
-coordinates_max = (2, 2) # maximum coordinates (max(x), max(y))
+coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
+coordinates_max = (2.0, 2.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,

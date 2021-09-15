@@ -5,6 +5,30 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes when updating to v0.4 from v0.3.x
+
+#### Added
+
+- Experimental support for artificial neural network-based indicators for shock capturing and
+  adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
+
+#### Changed
+
+- Implementation of acoustic perturbation equations now uses the conservative form, i.e. the
+  perturbed pressure `p_prime` has been replaced with `p_prime_scaled = p_prime / c_mean^2`.
+- Removed the experimental `BoundaryConditionWall` and instead directly compute slip wall boundary
+  condition flux term using the function `boundary_condition_slip_wall`.
+
+#### Deprecated
+
+#### Removed
+
+- Many initial/boundary conditions and source terms for typical setups were
+  moved from `Trixi/src` to the example elixirs `Trixi/examples`. Thus, they
+  are no longer available when `using Trixi`, e.g., the initial condition
+  for the Kelvin Helmholtz instability.
+
+
 ## Changes in the v0.3 lifecycle
 
 #### Added

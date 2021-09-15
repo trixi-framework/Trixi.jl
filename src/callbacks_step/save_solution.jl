@@ -123,8 +123,14 @@ end
 function (solution_callback::SaveSolutionCallback)(u, t, integrator)
   @unpack interval, save_final_solution = solution_callback
 
+  # With error-based step size control, some steps can be rejected. Thus,
+  #   `integrator.iter >= integrator.destats.naccept`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
   return interval > 0 && (
-    (integrator.iter % interval == 0) || (save_final_solution && isfinished(integrator)))
+    ((integrator.destats.naccept % interval == 0) && !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
+    (save_final_solution && isfinished(integrator)))
 end
 
 
@@ -147,7 +153,8 @@ end
 
 @inline function save_solution_file(semi::AbstractSemidiscretization, u_ode, solution_callback,
                                     integrator; system="")
-  @unpack t, dt, iter = integrator
+  @unpack t, dt = integrator
+  iter = integrator.destats.naccept
 
   element_variables = Dict{Symbol, Any}()
   @trixi_timeit timer() "get element variables" begin
@@ -155,10 +162,10 @@ end
     callbacks = integrator.opts.callback
     if callbacks isa CallbackSet
       for cb in callbacks.continuous_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
+        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=iter)
       end
       for cb in callbacks.discrete_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
+        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=iter)
       end
     end
   end

@@ -13,7 +13,7 @@ function calc_error_norms(func, u, t, analyzer,
   @unpack u_values = cache
 
   # interpolate u to quadrature points
-  StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
+  apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
   component_l2_errors = zero(eltype(u_values))
   component_linf_errors = zero(eltype(u_values))
@@ -34,7 +34,7 @@ function integrate(func::Func, u,
   @unpack u_values = cache
 
   # interpolate u to quadrature points
-  StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
+  apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
   integral = sum(md.wJq .* func.(u_values, equations))
   if normalize == true
@@ -51,9 +51,9 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
   @unpack u_values = cache
 
   # interpolate u, du to quadrature points
-  du_values = similar(u_values) # Todo: simplices. Can we move this to the analysis cache somehow?
-  StructArrays.foreachfield(mul_by!(rd.Vq), du_values, du)
-  StructArrays.foreachfield(mul_by!(rd.Vq), u_values, u)
+  du_values = similar(u_values) # Todo: DGMulti. Can we move this to the analysis cache somehow?
+  apply_to_each_field(mul_by!(rd.Vq), du_values, du)
+  apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
   # compute ∫v(u) * du/dt = ∫dS/dt. We can directly compute v(u) instead of computing the entropy
   # projection here, since the RHS will be projected to polynomials of degree N and testing with
