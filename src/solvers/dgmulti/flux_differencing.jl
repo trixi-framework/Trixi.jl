@@ -252,8 +252,76 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   end
 end
 
+# Trait-like system to dispatch based on whether or not the SBP operators are sparse.
+# Designed to be extendable to include specialized approximation_types too.
+function has_sparse_operators(dg::DGMultiFluxDiff)
+  rd = dg.basis
+  return has_sparse_operators(rd.elementType)
+end
+has_sparse_operators(::Union{Tri, Tet}) = Val{false}()
+# Todo: DGMulti.
+# For default kwargs, `DGMultiFluxDiff{<:Polynomial, Union{Quad, Hex}}` has sparse operators.
+# However, increasing quadrature accuracy can produce dense operators. This behavior should be
+# changed when `approximation_type = GSBP()` is introduced.
+has_sparse_operators(::Union{Quad, Hex}) = Val{true}()
+
+# e = element index, i = Cartesian direction for the flux
+function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+                                  volume_flux::Flux, skip_index::Skip,
+                                  has_sparse_operators::Val{false},
+                                  mesh, equations, dg, cache) where {Flux, Skip}
+  @unpack sparsity_pattern = cache
+  for i in eachdim(mesh)
+    Qi_skew = build_lazy_physical_derivative(element_index, i, mesh, dg, cache)
+    hadamard_sum!(fluxdiff_local, Qi_skew, volume_flux, i,
+                  u_local, equations, sparsity_pattern, skip_index)
+  end
+end
+
+# Uses the sum-factorization approach to computing flux differencing. See the comments for the
+# function `calc_volume_integral(du, u,..., dg::DGMultiFluxDiff{<:SBP}`) for more details.
+function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+                                  volume_flux::F, skip_index,
+                                  has_sparse_operators::Val{true},
+                                  mesh, equations, dg, cache) where {F}
+  @unpack Qrst_skew, sparsity_patterns = cache
+  for dim in eachdim(mesh)
+    # There are two ways to write this flux differencing discretization on affine meshes.
+    # 1. Use numerical fluxes in Cartesian directions and sum up the discrete derivative
+    #    operators per coordinate direction accordingly.
+    # 2. Use discrete derivative operators per coordinate direction and corresponding
+    #    numerical fluxes in arbitrary (non-Cartesian) space directions.
+    #
+    # The first option can be implemented using
+    #
+    #   Q_skew = build_lazy_physical_derivative(e, dim, mesh, dg, cache)
+    #   hadamard_sum!(fluxdiff_local, Q_skew, volume_flux, dim,
+    #                 u_local, equations, sparsity_pattern)
+    #
+    # with `sparsity_pattern === cache.sparsity_pattern`.
+    # However, this option makes it necessary to sum up the individual
+    # `sparsity_patterns` of each reference coordinate direction. On tensor-product
+    # elements such as `Quad()` or `Hex()` elements, this increases the number of
+    # potentially expensive numerical flux evaluations by a factor of `ndims(mesh)`.
+    # Thus, we use the second option below (which basically corresponds to the
+    # well-known sum factorization on tensor product elements).
+    # Note that there is basically no difference for dense derivative operators.
+    normal_direction = get_contravariant_vector(element_index, dim, mesh)
+    sparsity_pattern = sparsity_patterns[dim]
+    Q_skew = Qrst_skew[dim]
+
+    # Use a `sparsity_pattern` to dispatch `hadamard_sum!`.
+    # If using `Tri()` or `Tet()` elements, the `Q_skew` matrices are dense,
+    # and `sparsity_pattern === nothing`. If using `Quad()` or `Hex()` elements
+    # with an `SBP` `approximation_type`, then `sparsity_pattern::AbstractSparseMatrix{Bool}`.
+    hadamard_sum!(fluxdiff_local, Q_skew, volume_flux, normal_direction,
+                  u_local, equations, sparsity_pattern)
+  end
+end
+
 function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+                               mesh::VertexMappedMesh, equations,
+                               dg::DGMultiFluxDiff{<:SBP}, cache)
 
   @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq, Qrst_skew = cache
   @unpack volume_flux = volume_integral
@@ -263,38 +331,11 @@ function calc_volume_integral!(du, u, volume_integral,
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
     u_local = view(u, :, e)
-    for dim in eachdim(mesh)
-      # There are two ways to write this flux differencing discretization on affine meshes.
-      # 1. Use numerical fluxes in Cartesian directions and sum up the discrete derivative
-      #    operators per coordinate direction accordingly.
-      # 2. Use discrete derivative operators per coordinate direction and corresponding
-      #    numerical fluxes in arbitrary (non-Cartesian) space directions.
-      #
-      # The first option can be implemented using
-      #
-      #   Q_skew = build_lazy_physical_derivative(e, dim, mesh, dg, cache)
-      #   hadamard_sum!(fluxdiff_local, Q_skew, volume_flux, dim,
-      #                 u_local, equations, sparsity_pattern)
-      #
-      # with `sparsity_pattern === cache.sparsity_pattern`.
-      # However, this option makes it necessary to sum up the individual
-      # `sparsity_patterns` of each reference coordinate direction. On tensor-product
-      # elements such as `Quad()` or `Hex()` elements, this increases the number of
-      # potentially expensive numerical flux evaluations by a factor of `ndims(mesh)`.
-      # Thus, we use the second option below (which basically corresponds to the
-      # well-known sum factorization on tensor product elements).
-      # Note that there is basically no difference for dense derivative operators.
-      normal_direction = get_contravariant_vector(e, dim, mesh)
-      sparsity_pattern = sparsity_patterns[dim]
-      Q_skew = Qrst_skew[dim]
 
-      # Use a `sparsity_pattern` to dispatch `hadamard_sum!`.
-      # If using `Tri()` or `Tet()` elements, the `Q_skew` matrices are dense,
-      # and `sparsity_pattern === nothing`. If using `Quad()` or `Hex()` elements
-      # with an `SBP` `approximation_type`, then `sparsity_pattern::AbstractSparseMatrix{Bool}`.
-      hadamard_sum!(fluxdiff_local, Q_skew, volume_flux, normal_direction,
-                    u_local, equations, sparsity_pattern)
-    end
+    local_flux_differencing!(fluxdiff_local, u_local, e,
+                             volume_flux, nothing,
+                             has_sparse_operators(dg),
+                             mesh, equations, dg, cache)
 
     for i in each_quad_node(mesh, dg, cache)
       du[i, e] = du[i, e] + fluxdiff_local[i] * inv_wq[i]
@@ -303,7 +344,8 @@ function calc_volume_integral!(du, u, volume_integral,
 end
 
 function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, cache)
+                               mesh::VertexMappedMesh, equations,
+                               dg::DGMultiFluxDiff{<:Polynomial}, cache)
 
   rd = dg.basis
   @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
@@ -318,11 +360,11 @@ function calc_volume_integral!(du, u, volume_integral,
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
     u_local = view(entropy_projected_u_values, :, e)
-    for i in eachdim(mesh)
-      Qi_skew = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum!(fluxdiff_local, Qi_skew, volume_flux, i,
-                    u_local, equations, sparsity_pattern, skip_index)
-    end
+
+    local_flux_differencing!(fluxdiff_local, u_local, e,
+                             volume_flux, skip_index,
+                             has_sparse_operators(dg),
+                             mesh, equations, dg, cache)
 
     # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
     # apply_to_each_field performance.
