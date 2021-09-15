@@ -67,7 +67,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 # This function is used in `analyze(::Val{:l2_divb},...)` and `analyze(::Val{:linf_divb},...)`
-function compute_local_divergence!(local_divergence, element, vector_field, 
+function compute_local_divergence!(local_divergence, element, vector_field,
                                    mesh, dg::DGMulti, cache)
   @unpack md = mesh
   rd = dg.basis
