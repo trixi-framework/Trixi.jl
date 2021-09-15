@@ -804,21 +804,6 @@ end
 @inline function entropy2cons(w, equations::IdealGlmMhdEquations2D)
   w1, w2, w3, w4, w5, w6, w7, w8, w9 = w
 
-  # hack to imitate compressible Euler 3D entropy2cons
-  # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
-  # instead of `-rho * s / (gamma - 1)`
-  @unpack gamma = equations
-  V1, V2, V3, V4, V5 = w[1:5] .* (gamma-1)
-  V_square    = V2^2 + V3^2 + V4^2
-  s = gamma - V1 + V_square/(2*V5)
-
-  # eq. (52)
-  rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_gamma_minus_one)*exp(-s * equations.inv_gamma_minus_one)
-
-  # eq. (51)
-  rho = -rho_iota * V5
-  p = -rho / w5
-
   v1 = - w2 / w5
   v2 = - w3 / w5
   v3 = - w4 / w5
@@ -827,6 +812,17 @@ end
   B2 = - w7 / w5
   B3 = - w8 / w5
   psi = - w9 / w5
+
+  # This imitates what is done for compressible Euler 3D `entropy2cons`: we convert from
+  # the entropy variables for `-rho * s / (gamma - 1)` to the entropy variables for the entropy
+  # `-rho * s` used by Hughes, Franca, Mallet (1986).
+  @unpack gamma = equations
+  V1, V2, V3, V4, V5 = w[1:5] .* (gamma-1)
+  s = gamma - V1 + (V2^2 + V3^2 + V4^2)/(2*V5)
+  rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_gamma_minus_one)*exp(-s * equations.inv_gamma_minus_one)
+  rho = -rho_iota * V5
+  p = -rho / w5
+
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
