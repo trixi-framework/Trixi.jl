@@ -28,7 +28,7 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <: Abst
   cache::Cache
 
   function SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache}(
-    semi_acoustics, semi_euler, cache) where {SemiAcoustics, SemiEuler, Cache}
+      semi_acoustics, semi_euler, cache) where {SemiAcoustics, SemiEuler, Cache}
 
     # Currently both semidiscretizations need to use a shared mesh
     @assert semi_acoustics.mesh == semi_euler.mesh

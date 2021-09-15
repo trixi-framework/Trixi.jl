@@ -51,20 +51,13 @@ function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, int
     for j in eachnode(dg), i in eachnode(dg)
       vorticity = calc_vorticity_node(u, equations, dg, cache, i, j, element)
       vorticity_prev_node = vorticity_prev[i, j, element]
-      vorticity_prev[i, j, element] = vorticity # Cache current velocity for the next time step
+      vorticity_prev[i, j, element] = vorticity # Cache current vorticity for the next time step
 
       u_node_prim = cons2prim(get_node_vars(u, equations, dg, i, j, element), equations)
       u_prev_node_prim = cons2prim(get_node_vars(u_prev, equations, dg, i, j, element), equations)
 
-      rho = u_node_prim[1]
-      v1 = u_node_prim[2]
-      v2 = u_node_prim[3]
-      p = u_node_prim[4]
-
-      rho_prev = u_prev_node_prim[1]
-      v1_prev = u_prev_node_prim[2]
-      v2_prev = u_prev_node_prim[3]
-      p_prev = u_prev_node_prim[4]
+      rho,      v1,      v2,      p      = u_node_prim
+      rho_prev, v1_prev, v2_prev, p_prev = u_prev_node_prim
 
       c = sqrt(equations.gamma * p / rho)
       c_prev = sqrt(equations.gamma * p_prev / rho_prev)

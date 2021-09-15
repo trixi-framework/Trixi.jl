@@ -14,7 +14,7 @@
 
 A callback that averages the flow field described by `semi` which must be a semidiscretization of
 the compressible Euler equations in two dimensions. The callback records the mean velocity,
-mean speed of sound, mean density and mean vorticity for each node over the time interval given by
+mean speed of sound, mean density, and mean vorticity for each node over the time interval given by
 `tspan` and stores the results in an HDF5 file `filename` in the directory `output_directory`.
 """
 struct AveragingCallback{TSpan, MeanValues, Cache}
@@ -57,7 +57,7 @@ function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any, <:Compressi
   cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
 
   averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory, filename)
-  condition = (u, t, integrator) -> first(tspan) <= t <= last(tspan) ? true : false
+  condition = (u, t, integrator) -> first(tspan) <= t <= last(tspan)
 
   return DiscreteCallback(condition, averaging_callback, save_positions=(false,false),
                           initialize=initialize!)

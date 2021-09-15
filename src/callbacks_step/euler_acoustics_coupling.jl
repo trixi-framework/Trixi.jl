@@ -144,7 +144,7 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
 
   @assert integrator_acoustics.t == integrator_euler.t
 
-  # Use the the minimum of the acoustics and Euler stepsizes for both solvers
+  # Use the minimum of the acoustics and Euler stepsizes for both solvers
   stepsize_callback_acoustics(integrator_acoustics)
   stepsize_callback_euler(integrator_euler)
   dt = min(get_proposed_dt(integrator_acoustics), get_proposed_dt(integrator_euler))
@@ -161,7 +161,7 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
   if !isfinished(integrator_euler)
     @trixi_timeit timer() "Euler solver" step!(integrator_euler)
     return_code = check_error(integrator_euler)
-    if return_code != :Success && return_code != :Default
+    if return_code !== :Success && return_code !== :Default
       error("Error during Euler time integration. Received return code $(return_code)")
     end
   end
