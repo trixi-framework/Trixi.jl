@@ -318,7 +318,9 @@ function calc_volume_integral!(du, u, volume_integral, mesh,
       hadamard_sum!(fluxdiff_local, Qi_skew, flux_conservative, i,
                     u_local, equations, sparsity_pattern, skip_index)
 
-      hadamard_sum_nonsymmetric!(fluxdiff_local, Qi_skew, flux_nonconservative, i,
+      # scale the non-conservative part (it doesn't include 1/2 factor for a central flux)
+      half_Qi_skew = LazyMatrixLinearCombo(tuple(Qi_skew), tuple(.5))
+      hadamard_sum_nonsymmetric!(fluxdiff_local, half_Qi_skew, flux_nonconservative, i,
                                  u_local, equations, sparsity_pattern, skip_index)
     end
 
@@ -371,8 +373,8 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
   @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
                                                             mesh, equations, dg)
 
-  # @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
-  #                                                                 mesh, equations, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
+                                                                  mesh, equations, dg, cache)
 
   @trixi_timeit timer() "invert jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
