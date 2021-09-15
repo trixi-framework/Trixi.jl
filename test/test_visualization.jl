@@ -20,10 +20,12 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
-  # Run 2D tests with elixirs for both mesh types
+  # Run 2D tests with elixirs for all mesh types
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
+    "UnstructuredMesh" => ("unstructured_2d_dgsem", "elixir_euler_basic.jl"),
+    "P4estMesh" => ("p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
     "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
   )
 
@@ -86,13 +88,23 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug Plots.plot(pd)
       @test_nowarn_debug Plots.plot(pd["p"])
       @test_nowarn_debug Plots.plot(getmesh(pd))
+
+      semi = sol.prob.p
+      if mesh == "DGMulti"
+        scalar_data = StructArrays.component(sol.u[end], 1)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+      else
+        cache = semi.cache
+        x = view(cache.elements.node_coordinates, 1, :, :, :)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
+      end
     end
 
     @testset "1D plot from 2D solution" begin
       if mesh != "DGMulti"
         @testset "Create 1D plot as slice" begin
-          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-          pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
           @test_nowarn_debug Plots.plot(pd1D)
         end
       end
@@ -279,7 +291,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
     @test_nowarn_debug Trixi.iplot(sol) # test interactive surface plot
-    @test_nowarn_debug Makie.plot(sol) # test heatmap plot
+    @test_nowarn_debug Makie.plot(sol, plot_mesh=true) # test heatmap plot
 
     fa = Makie.plot(sol) # test heatmap plot
     fig, axes = fa # test unpacking/iteration for FigureAndAxes

@@ -9,7 +9,7 @@ for human readability.
 
 #### Added
 
-- Experimental support for artifial neural network-based indicators for shock capturing and
+- Experimental support for artificial neural network-based indicators for shock capturing and
   adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
 - Experimental support for direct-hybrid aeroacoustics simulations
   ([#712](https://github.com/trixi-framework/Trixi.jl/pull/712))
@@ -29,9 +29,6 @@ for human readability.
   moved from `Trixi/src` to the example elixirs `Trixi/examples`. Thus, they
   are no longer available when `using Trixi`, e.g., the initial condition
   for the Kelvin Helmholtz instability.
-- Some initial/boundary conditions and source terms for academic verification
-  setups were removed, e.g., `initial_condition_linear_x` for the 2D linear
-  advection equation.
 
 
 ## Changes in the v0.3 lifecycle
