@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-equations = IdealGlmMhdEquations2D(5/3)
+equations = IdealGlmMhdEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
@@ -31,7 +31,6 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
 alive_callback = AliveCallback(alive_interval=10, analysis_interval=analysis_interval)
 
 cfl = 1.0
@@ -40,7 +39,6 @@ stepsize_callback = StepsizeCallback(cfl=cfl)
 glm_speed_callback = GlmSpeedCallback(glm_scale=1.0, cfl=cfl)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
                         stepsize_callback,
                         alive_callback,
                         glm_speed_callback)
