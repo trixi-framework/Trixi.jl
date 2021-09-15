@@ -336,7 +336,7 @@ in 1D with an uncertain velocity. Then, we create a semidiscretization using a
 sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 in the primitive variables.
 
-```jldoctest; output = false, filter = r"[┌│└].*"
+```jldoctest; output = false, filter = r"((┌.*[\n\r]+)(│.*[\n\r]+)+(└.*[\n\r]+))?Plot{"
 using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1);
