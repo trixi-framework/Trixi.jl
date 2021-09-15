@@ -221,10 +221,12 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
       normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
       conservative_part = flux_conservative(uM, uP, normal, equations)
 
-      # In general, nonconservative fluxes can depend on both the contravariant
-      # vectors (normal direction) at the current node and the averaged ones.
-      # However, both are the same at watertight interfaces, so we pass the
-      # `normal` twice.
+      # Two notes on the use of `flux_nonconservative`:
+      # 1. In contrast to other mesh types, only one nonconservative part needs to be
+      #    computed since we loop over the elements, not the unique interfaces.
+      # 2. In general, nonconservative fluxes can depend on both the contravariant
+      #    vectors (normal direction) at the current node and the averaged ones. However,
+      #    both are the same at watertight interfaces, so we pass `normal` twice.
       nonconservative_part = flux_nonconservative(uM, uP, normal, normal, equations)
       # The factor 0.5 is necessary for the nonconservative fluxes based on the
       # interpretation of global SBP operators.
