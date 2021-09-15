@@ -73,11 +73,11 @@ function compute_local_divergence!(local_divergence, element, vector_field,
   rd = dg.basis
   uEltype = eltype(first(vector_field))
 
-  # the dimension of the divergence for MHD is 3, independent of the mesh
   fill!(local_divergence, zero(uEltype))
 
   # computes dU_i/dx_i = ∑_j dxhat_j/dx_i * dU_i / dxhat_j
   # dU_i/dx_i is then accumulated into local_divergence.
+      # TODO: DGMulti. Extend to curved elements.
   for i in eachdim(mesh)
     for j in eachdim(mesh)
       geometric_scaling = md.rstxyzJ[i, j][1, element]
@@ -103,6 +103,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
   for e in eachelement(mesh, dg, cache)
     compute_local_divergence!(local_divB, e, view.(B, :, e), mesh, dg, cache)
 
+    # TODO: DGMulti. Extend to curved elements.
     # compute L2 norm squared via J[1, e] * u' * M * u
     local_l2norm_divB = md.J[1, e] * dot(local_divB, rd.M, local_divB)
     l2norm_divB += local_l2norm_divB
