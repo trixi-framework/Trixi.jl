@@ -1274,16 +1274,16 @@ function calc_vorticity_node(u, equations::CompressibleEulerEquations2D, dgsem, 
 
   v2_x = zero(eltype(u)) # derivative of v2 in x direction
   for ii in eachnode(dgsem)
-    u_node = get_node_vars(u, equations, dgsem, ii, j, element)
-    v2 = u_node[3] / u_node[1]
-    v2_x += derivative_matrix[i, ii] * v2
+    rho, _, rho_v2 = get_node_vars(u, equations, dgsem, ii, j, element)
+    v2 = rho_v2 / rho
+    v2_x = v2_x + derivative_matrix[i, ii] * v2
   end
 
   v1_y = zero(eltype(u)) # derivative of v1 in y direction
   for jj in eachnode(dgsem)
-    u_node = get_node_vars(u, equations, dgsem, i, jj, element)
-    v1 = u_node[2] / u_node[1]
-    v1_y += derivative_matrix[j, jj] * v1
+    rho, rho_v1 = get_node_vars(u, equations, dgsem, i, jj, element)
+    v1 = rho_v1 / rho
+    v1_y = v1_y + derivative_matrix[j, jj] * v1
   end
 
   return (v2_x - v1_y) * cache.elements.inverse_jacobian[element]

@@ -275,14 +275,15 @@ ode_averaging = semidiscretize(semi_euler, tspan1)
 summary_callback = SummaryCallback()
 
 analysis_interval = 5000
-alive = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 tspan_averaging = (50.0, 400.0)
 averaging_callback = AveragingCallback(semi_euler, tspan_averaging)
 
 stepsize_callback = StepsizeCallback(cfl=0.8)
 
-callbacks_averaging = CallbackSet(summary_callback, alive, averaging_callback, stepsize_callback)
+callbacks_averaging = CallbackSet(summary_callback, alive_callback, averaging_callback,
+                                  stepsize_callback)
 
 ###############################################################################
 # run simulation for averaging the flow field
@@ -328,14 +329,14 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 5000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-alive = AliveCallback(analysis_interval=analysis_interval)
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 output_directory = "out/"
 save_solution = SaveSolutionCallback(interval=2300, output_directory=output_directory)
 save_restart = SaveRestartCallback(interval=2300, output_directory=output_directory)
 
-callbacks = CallbackSet(summary_callback, alive, analysis_callback, save_solution, save_restart,
-                        euler_acoustics_coupling)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution,
+                        save_restart, euler_acoustics_coupling)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

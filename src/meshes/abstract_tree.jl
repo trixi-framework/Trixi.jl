@@ -421,7 +421,7 @@ function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS}, radius) 
 
   # Find all leaf cells within sphere
   cells = filter_leaf_cells(t) do cell_id
-    return all(sum((cell_coordinates(t, cell_id) - center).^2) < radius^2)
+    return sum(abs2, cell_coordinates(t, cell_id) - center) < radius^2
   end
 
   # Refine cells

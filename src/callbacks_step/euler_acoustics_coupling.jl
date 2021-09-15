@@ -162,7 +162,7 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
     @trixi_timeit timer() "Euler solver" step!(integrator_euler)
     return_code = check_error(integrator_euler)
     if return_code !== :Success && return_code !== :Default
-      error("Error during Euler time integration. Received return code $(return_code)")
+      error("Error during compressible Euler time integration. Received return code $(return_code)")
     end
   end
 
