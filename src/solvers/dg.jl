@@ -452,18 +452,6 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg:
   end
 end
 
-# TODO: fix me. this is a hacky workaround for setting up discontinuities for testing of SWE
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations::ShallowWaterEquations2D, dg::DG, cache)
-
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
-      u_node = func(x_node, t, element, equations)
-      set_node_vars!(u, u_node, equations, dg, i, j, element)
-    end
-  end
-end
-
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)

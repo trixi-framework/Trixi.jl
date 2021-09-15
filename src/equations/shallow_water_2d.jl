@@ -66,18 +66,12 @@ varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("H", "v1", "v2", "b"
 
 A constant initial condition to test free-stream preservation / well-balancedness.
 """
-function initial_condition_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
+function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
   # Set the background values
   H = 3.0
   v1 = 0.0
   v2 = 0.0
   b = 0.0
-
-  # Setup a discontinuous bottom topography using the element id number
-  if element_id == 7
-    b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
-  end
-
   return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -89,7 +83,7 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-function initial_condition_convergence_test(x, t, element_id, equations::ShallowWaterEquations2D)
+function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
   c  = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
@@ -157,7 +151,7 @@ end
 A weak blast wave discontinuity useful for testing, e.g., total energy conservation.
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
-function initial_condition_weak_blast_wave(x, t, element_id, equations::ShallowWaterEquations2D)
+function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations2D)
   # Set up polar coordinates
   inicenter = SVector(0.7, 0.7)
   x_norm = x[1] - inicenter[1]
@@ -166,23 +160,11 @@ function initial_condition_weak_blast_wave(x, t, element_id, equations::ShallowW
   phi = atan(y_norm, x_norm)
   sin_phi, cos_phi = sincos(phi)
 
-  # Set the background values
-  H = 3.25
-  v1 = 0.0
-  v2 = 0.0
-  b = 0.0
-
-  # setup the discontinuous water height and velocities
-  if element_id == 10
-    H = 4.0
-    v1 = 0.1882 * cos_phi
-    v2 = 0.1882 * sin_phi
-  end
-
-  # Setup a discontinuous bottom topography using the element id number
-  if element_id == 7
-    b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
-  end
+  # Calculate primitive variables
+  H = r > 0.5 ? 3.25 : 4.0
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
+  b = 0.0 # by default assume there is no bottom topography
 
   return prim2cons(SVector(H, v1, v2, b), equations)
 end

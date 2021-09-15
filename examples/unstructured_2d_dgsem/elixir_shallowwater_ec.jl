@@ -33,10 +33,60 @@ mesh = UnstructuredMesh2D(mesh_file, periodicity=true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
-# ODE solvers, callbacks etc.
+# ODE solver
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
+
+###############################################################################
+# Workaround to set a discontinuous bottom topography and initial condition for debugging and testing.
+
+# alternative version of the initial conditinon used to setup a truly discontinuous
+# bottom topography function and initial condtion for this academic testcase of entropy conservation.
+# The errors from the analysis callback are not important but ∑∂S/∂U ⋅ Uₜ should be around machine roundoff
+function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::ShallowWaterEquations2D)
+  # Set up polar coordinates
+  inicenter = SVector(0.7, 0.7)
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+  sin_phi, cos_phi = sincos(phi)
+
+  # Set the background values
+  H = 3.25
+  v1 = 0.0
+  v2 = 0.0
+  b = 0.0
+
+  # setup the discontinuous water height and velocities
+  if element_id == 10
+    H = 4.0
+    v1 = 0.1882 * cos_phi
+    v2 = 0.1882 * sin_phi
+  end
+
+  # Setup a discontinuous bottom topography using the element id number
+  if element_id == 7
+    b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
+  end
+
+  return Trixi.prim2cons(SVector(H, v1, v2, b), equations)
+end
+
+# point to the data we want to augment
+u = Trixi.wrap_array(ode.u0, semi)
+# reset the initial condition
+for element in Trixi.eachelement(semi.solver, semi.cache)
+  for j in Trixi.eachnode(semi.solver), i in Trixi.eachnode(semi.solver)
+    x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, semi.solver, i, j, element)
+    u_node = initial_condition_ec_discontinuous_bottom(x_node, first(tspan), element, equations)
+    Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, j, element)
+  end
+end
+
+###############################################################################
+# Callbacks
 
 summary_callback = SummaryCallback()
 

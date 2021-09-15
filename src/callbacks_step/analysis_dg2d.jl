@@ -124,45 +124,6 @@ function calc_error_norms(func, u, t, analyzer,
   return l2_error, linf_error
 end
 
-# TODO: fix me. this is a temoporary workaround for discontinuous ICs
-function calc_error_norms(func, u, t, analyzer,
-                          mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                          equations::ShallowWaterEquations2D,
-                          initial_condition, dg::DGSEM, cache, cache_analysis)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates, inverse_jacobian = cache.elements
-  @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
-
-  # Set up data structures
-  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
-  linf_error = copy(l2_error)
-  total_volume = zero(real(mesh))
-
-  # Iterate over all elements for error calculations
-  for element in eachelement(dg, cache)
-    # Interpolate solution and node locations to analysis nodes
-    multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
-    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, element), x_tmp1)
-    multiply_scalar_dimensionwise!(jacobian_local, vandermonde, inv.(view(inverse_jacobian, :, :, element)), jacobian_tmp1)
-
-    # Calculate errors at each analysis node
-    @. jacobian_local = abs(jacobian_local)
-
-    #TODO: remove me, this is only for discontinuous bottom testing
-    for j in eachnode(analyzer), i in eachnode(analyzer)
-      u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, element, equations)
-      diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
-      l2_error += diff.^2 * (weights[i] * weights[j] * jacobian_local[i, j])
-      linf_error = @. max(linf_error, abs(diff))
-      total_volume += weights[i] * weights[j] * jacobian_local[i, j]
-    end
-  end
-
-  # For L2 error, divide by total volume
-  l2_error = @. sqrt(l2_error / total_volume)
-
-  return l2_error, linf_error
-end
 
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
