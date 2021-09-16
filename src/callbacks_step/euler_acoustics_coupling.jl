@@ -5,7 +5,7 @@
 @muladd begin
 
 
-"""
+@doc raw"""
     EulerAcousticsCouplingCallback
 
 !!! warning "Experimental code"
@@ -14,8 +14,19 @@
 A callback that couples the acoustic perturbation equations and compressible Euler equations. Must
 be used in conjunction with [`SemidiscretizationEulerAcoustics`](@ref).
 This callback manages the flow solver - which is always one time step ahead of the
-acoustics solver - and calculates the acoustic source terms based on the linearized lamb vector of
-the flow solution after each time step. Furthermore, it manages the step size for both solvers
+acoustics solver - and calculates the acoustic source term after each time step. The linearized
+Lamb vector is used as the source term, i.e.
+```math
+\mathbf{s} = -(\mathbf{\omega'} \times \bar{\mathbf{v}}
+  + \bar{\mathbf{\omega}} \times \mathbf{v'}),
+```
+where ``\mathbf{v}`` denotes the velocity, ``\mathbf{\omega}`` denotes the vorticity, the bar
+``\bar{(\cdot)}`` indicates time-averaged quantities (see [`AveragingCallback`](@ref)) and prime
+``(\cdot)'`` denotes perturbed quantities defined by ``\phi' = \phi - \bar{\phi}``. Note that
+the perturbed quantities here are entirely based on the pure flow solution and should not be
+confused with the state variables of the acoustic perturbation equations.
+
+In addition, this callback manages the step size for both solvers
 and initializes the mean values of the acoustic perturbation equations using results obtained with
 the [`AveragingCallback`](@ref).
 """
