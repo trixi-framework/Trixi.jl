@@ -29,6 +29,10 @@ confused with the state variables of the acoustic perturbation equations.
 In addition, this callback manages the step size for both solvers
 and initializes the mean values of the acoustic perturbation equations using results obtained with
 the [`AveragingCallback`](@ref).
+
+- Michael Schlottke-Lakemper (2017)
+  A direct-hybrid method for aeroacoustic analysis
+  [DOI: 10.18154/RWTH-2017-04082](https://doi.org/10.18154/RWTH-2017-04082)
 """
 mutable struct EulerAcousticsCouplingCallback{RealT<:Real, MeanValues, IntegratorEuler}
   stepsize_callback_acoustics::StepsizeCallback{RealT}
