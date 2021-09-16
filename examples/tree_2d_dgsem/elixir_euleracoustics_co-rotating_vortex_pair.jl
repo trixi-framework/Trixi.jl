@@ -91,7 +91,7 @@ function (sponge_layer::SpongeLayer)(u, x, t, equations)
   elseif source_terms !== nothing
     return source_terms(u, x, t, equations)
   else
-    return SVector(ntuple(v -> zero(eltype(u)), Val(Trixi.nvariables(equations))))
+    return SVector(ntuple(v -> zero(eltype(u)), Val(nvariables(equations))))
   end
 end
 
