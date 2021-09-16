@@ -7,7 +7,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function (set in the initial conditions)
 
-equations = ShallowWaterEquations2D(9.81)
+equations = ShallowWaterEquations2D(9.81, H0=3.0)
 
 initial_condition = initial_condition_well_balancedness
 
@@ -42,10 +42,12 @@ ode = semidiscretize(semi, tspan)
 # Workaround to set a discontinuous bottom topography for debugging and testing.
 
 # alternative version of the initial conditinon used to setup a truly discontinuous
-# bottom topography function for this academic testcase
+# bottom topography function for this academic testcase.
+# The errors from the analysis callback are not important but the error for this lake at rest test case
+# `∑(H0-(h+b))` should be around machine roundoff
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set the background values
-  H = 3.0
+  H = equations.H0
   v1 = 0.0
   v2 = 0.0
   b = 0.0
@@ -75,7 +77,8 @@ end
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(lake_at_rest_error,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 

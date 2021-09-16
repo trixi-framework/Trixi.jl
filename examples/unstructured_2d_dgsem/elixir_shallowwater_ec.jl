@@ -43,7 +43,7 @@ ode = semidiscretize(semi, tspan)
 
 # alternative version of the initial conditinon used to setup a truly discontinuous
 # bottom topography function and initial condtion for this academic testcase of entropy conservation.
-# The errors from the analysis callback are not important but ∑∂S/∂U ⋅ Uₜ should be around machine roundoff
+# The errors from the analysis callback are not important but `∑∂S/∂U ⋅ Uₜ` should be around machine roundoff
 function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set up polar coordinates
   inicenter = SVector(0.7, 0.7)

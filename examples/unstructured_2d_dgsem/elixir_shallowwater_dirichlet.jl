@@ -7,7 +7,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a continuous
 # bottom topography function (set in the initial conditions)
 
-equations = ShallowWaterEquations2D(1.0)
+equations = ShallowWaterEquations2D(1.0, H0=3.0)
 
 initial_condition = initial_condition_well_balancedness
 
@@ -45,7 +45,8 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(lake_at_rest_error,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 

@@ -46,12 +46,15 @@ References for the SWE are many but a good introduction is available in Chapter 
 """
 struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 4}
   gravity::RealT # gravitational constant
+  H0::RealT      # constant "lake-at-rest" total water height
 end
 
 # Allow for flexibilty to set the gravitaional constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
-function ShallowWaterEquations2D(gravity_constant)
-  ShallowWaterEquations2D(gravity_constant)
+# The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
+# well-balancedness test cases
+function ShallowWaterEquations2D(gravity_constant; H0=0.0)
+  ShallowWaterEquations2D(gravity_constant, H0)
 end
 
 
@@ -68,7 +71,7 @@ A constant initial condition to test free-stream preservation / well-balancednes
 """
 function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
   # Set the background values
-  H = 3.0
+  H = equations.H0
   v1 = 0.0
   v2 = 0.0
   # bottom topography taken from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
@@ -651,5 +654,11 @@ end
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
+
+# Calculate the error for the "lake-at-rest" test case where H = h+b should
+# be a constant value over time
+@inline function lake_at_rest_error(u, equations::ShallowWaterEquations2D)
+  return abs(equations.H0 - ( u[1] + u[4] ))
+end
 
 end # @muladd
