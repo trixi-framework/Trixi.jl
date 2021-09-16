@@ -55,7 +55,7 @@ function initial_condition_discontinuous_well_balancedness(x, t, element_id, equ
     b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
   end
 
-  return Trixi.prim2cons(SVector(H, v1, v2, b), equations)
+  return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
 # point to the data we want to augment
