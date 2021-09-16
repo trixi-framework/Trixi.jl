@@ -34,12 +34,7 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <: Abst
     @assert semi_acoustics.mesh == semi_euler.mesh
 
     # Check if both solvers use the same polynomial basis
-    @assert typeof(semi_acoustics.solver.basis) == typeof(semi_euler.solver.basis)
-    for field in fieldnames(typeof(semi_acoustics.solver.basis))
-      value_acoustics = getfield(semi_acoustics.solver.basis, field)
-      value_euler = getfield(semi_euler.solver.basis, field)
-      @assert value_acoustics == value_euler
-    end
+    @assert semi_acoustics.solver.basis == semi_euler.solver.basis
 
     performance_counter = PerformanceCounter()
     new(semi_acoustics, semi_euler, performance_counter, cache)
