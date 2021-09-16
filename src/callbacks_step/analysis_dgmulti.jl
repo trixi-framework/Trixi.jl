@@ -88,7 +88,7 @@ function compute_local_divergence!(local_divergence, element, vector_field,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D, 
+                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
   @unpack md = mesh
   rd = dg.basis
@@ -109,11 +109,11 @@ function analyze(::Val{:l2_divb}, du, u, t,
     l2norm_divB += local_l2norm_divB
   end
 
-  return l2norm_divB
+  return sqrt(l2norm_divB)
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D, 
+                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
   B1 = StructArrays.component(u, 6)
   B2 = StructArrays.component(u, 7)
