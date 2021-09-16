@@ -25,13 +25,13 @@ function create_files(title, file; folder="")
     
     # Generate notebooks
     function preprocess_notebook(content)
-        return string("# # $title\n\n", preprocess_links(content))
+        return string("# # $title\n\n", content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
 
     # Generate markdowns
     function preprocess_docs(content)
-        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $download_badge\n\n", preprocess_links(content))
+        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $download_badge\n\n", content)
     end
     Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs,)
 
@@ -60,7 +60,7 @@ Sys.rm(notebooks_dir;   recursive=true, force=true)
 
 
 # Generate markdown for index.jl
-Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate", preprocess=preprocess_links,)
+Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate")
 # Navigation system for makedocs
 pages = Any["Introduction" => "tutorials/introduction_literate.md",]
 list = ["introduction_literate.md"]
