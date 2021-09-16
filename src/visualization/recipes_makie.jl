@@ -22,16 +22,11 @@ Inputs:
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-               solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
+function iplot(pd::PlotData2DTriangulated;
+               solution_variables=nothing, variable_to_plot_in=1,
                colormap = default_Makie_colormap())
 
-  pd = PlotData2D(u, mesh, equations, solver, cache;
-                  solution_variables=solution_variables, nvisnodes=nvisnodes)
-
   @unpack variable_names = pd
-
-  @assert ndims(mesh) == 2
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
   fig = Makie.Figure()
@@ -66,7 +61,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
   # Plot the actual solution.
-  Makie.mesh!(ax, plotting_mesh; color=solution_z, nvisnodes, colormap)
+  Makie.mesh!(ax, plotting_mesh; color=solution_z, 2*sqrt(size(pd.x,1)), colormap)
 
   # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
   wire_points = Makie.@lift(mesh_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
@@ -105,6 +100,21 @@ end
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
 iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
 iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
+function iplot(u, mesh, equations, solver, cache;
+               solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
+               colormap = default_Makie_colormap())
+
+  @assert ndims(mesh) == 2
+  pd = PlotData2D(u, mesh, equations, solver, cache;
+                  solution_variables=solution_variables, nvisnodes=nvisnodes)
+
+  iplot(pd; solution_variables, variable_to_plot_in, colormap)
+end
+
+
+
+
+
 
 
 # ================== new Makie plot recipes ====================
