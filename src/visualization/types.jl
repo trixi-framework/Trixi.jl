@@ -235,6 +235,7 @@ PlotData2DTriangulated(u_ode, semi; kwargs...) = PlotData2DTriangulated(wrap_arr
                                                                         mesh_equations_solver_cache(semi)...;
                                                                         kwargs...)
 
+PlotData2D(u, mesh::TreeMesh, equations, solver, cache; kwargs...) = PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
 
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
