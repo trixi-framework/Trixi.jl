@@ -177,7 +177,7 @@ end
 
 
 # Calculate 1D flux for a single point
-# Note the bottom topography has no flux
+# Note, the bottom topography has no flux
 @inline function flux(u, orientation::Integer, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, _ = u
   v1, v2 = velocity(u, equations)
