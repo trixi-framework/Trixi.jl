@@ -519,7 +519,6 @@ end
                  u[4])
 end
 
-
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
 # has been normalized prior to this back-rotation of the state vector
 @inline function rotate_from_x(u, normal_vector, equations::ShallowWaterEquations2D)
@@ -609,8 +608,7 @@ end
 
 
 @inline function waterheight(u, equations::ShallowWaterEquations2D)
-  h = u[1]
-  return h
+  return u[1]
 end
 
 
