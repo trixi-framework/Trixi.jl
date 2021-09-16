@@ -82,26 +82,26 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
 
-    @testset "2D plot recipes" begin
-      pd = PlotData2D(sol)
-
-      @test_nowarn_debug Plots.plot(sol)
-      @test_nowarn_debug Plots.plot(pd)
-      @test_nowarn_debug Plots.plot(pd["p"])
-      @test_nowarn_debug Plots.plot(getmesh(pd))
-
-      semi = sol.prob.p
-      if mesh == "DGMulti"
-        scalar_data = StructArrays.component(sol.u[end], 1)
-        @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
-      else
-        cache = semi.cache
-        x = view(cache.elements.node_coordinates, 1, :, :, :)
-        @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
-      end
-    end
-
     if mesh != "Coupled StructuredMesh"
+      @testset "2D plot recipes" begin
+        pd = PlotData2D(sol)
+
+        @test_nowarn_debug Plots.plot(sol)
+        @test_nowarn_debug Plots.plot(pd)
+        @test_nowarn_debug Plots.plot(pd["p"])
+        @test_nowarn_debug Plots.plot(getmesh(pd))
+
+        semi = sol.prob.p
+        if mesh == "DGMulti"
+          scalar_data = StructArrays.component(sol.u[end], 1)
+          @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+        else
+          cache = semi.cache
+          x = view(cache.elements.node_coordinates, 1, :, :, :)
+          @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
+        end
+      end
+
       @testset "1D plot from 2D solution" begin
         if mesh != "DGMulti"
           @testset "Create 1D plot as slice" begin
@@ -118,16 +118,6 @@ isdir(outdir) && rm(outdir, recursive=true)
             @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
             pd1D = PlotData1D(sol, curve=curve)
             @test_nowarn_debug Plots.plot(pd1D)
-          end
-
-          if mesh == "TreeMesh"
-            @testset "Create 1D plot along curve" begin
-              curve = zeros(2,10)
-              curve[1,:] = range(-1,-0.5,length=10)
-              @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
-              pd1D = PlotData1D(sol, curve=curve)
-              @test_nowarn_debug plot(pd1D)
-            end
           end
         end
       end
