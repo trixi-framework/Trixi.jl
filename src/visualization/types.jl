@@ -231,7 +231,12 @@ PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 
-function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
+PlotData2DTriangulated(u_ode, semi; kwargs...) = PlotData2DTriangulated(wrap_array_native(u_ode, semi),
+                                                                        mesh_equations_solver_cache(semi)...;
+                                                                        kwargs...)
+
+
+function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                     slice=:xy, point=(0.0, 0.0, 0.0))
@@ -272,6 +277,15 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
     This is an experimental feature and may change in future releases.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
+
+function PlotData2D(u, mesh, equations, solver, cache, kwargs...)
+  if get_name(mesh) == "TreeMesh"
+    return PlotData2DCartesian(u, mesh, equations, solver, cache, kwargs...)
+  else
+    return PlotData2DTriangulated(u, mesh, equations, solver, cache, kwargs...)
+  end
+end
 
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
@@ -332,7 +346,7 @@ end
 
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated if the mesh is
 # a non-TreeMesh type.
-function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D, P4estMesh}, equations, dg, cache;
+function PlotData2DTriangulated(u, mesh, equations, dg, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
   @assert ndims(mesh) == 2
 
