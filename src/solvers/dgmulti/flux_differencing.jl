@@ -135,6 +135,7 @@ end
   end
 end
 
+# use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
   rd = dg.basis
   Qrst_hybridized, VhP, Ph = StartUpDG.hybridized_SBP_operators(rd)
@@ -142,6 +143,7 @@ function compute_flux_differencing_SBP_matrices(dg::DGMulti)
   return Qrst_skew, VhP, Ph
 end
 
+# use traditional multidimensional SBP operators for SBP approximation types.
 function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP})
   rd = dg.basis
   @unpack M, Drst, Pq = rd
@@ -277,7 +279,7 @@ function has_sparse_operators(dg::DGMultiFluxDiff)
   return has_sparse_operators(rd.elementType)
 end
 has_sparse_operators(::Union{Tri, Tet}) = Val{false}()
-# Todo: DGMulti.
+# Todo: DGMulti. Fix when GSBP() is introduced.
 # For default kwargs, `DGMultiFluxDiff{<:Polynomial, Union{Quad, Hex}}` has sparse operators.
 # However, increasing quadrature accuracy can produce dense operators. This behavior should be
 # changed when `approximation_type = GSBP()` is introduced.
