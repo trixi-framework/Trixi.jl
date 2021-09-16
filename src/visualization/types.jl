@@ -280,11 +280,11 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
 
-function PlotData2D(u, mesh, equations, solver, cache, kwargs...)
+function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
   if get_name(mesh) == "TreeMesh"
-    return PlotData2DCartesian(u, mesh, equations, solver, cache, kwargs...)
+    return PlotData2DCartesian(u, mesh, equations, solver, cache; kwargs...)
   else
-    return PlotData2DTriangulated(u, mesh, equations, solver, cache, kwargs...)
+    return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
   end
 end
 
