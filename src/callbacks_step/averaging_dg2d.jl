@@ -34,7 +34,7 @@ function initialize_cache!(averaging_callback_cache, u,
   @unpack vorticity_prev = averaging_callback_cache
 
   # Calculate vorticity for initial solution
-  calc_vorticity!(vorticity_prev, u, equations, dg, cache)
+  calc_vorticity!(vorticity_prev, u, mesh, equations, dg, cache)
 
   return nothing
 end
@@ -49,7 +49,7 @@ function calc_mean_values!(mean_values, averaging_callback_cache, u, u_prev, int
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      vorticity = calc_vorticity_node(u, equations, dg, cache, i, j, element)
+      vorticity = calc_vorticity_node(u, mesh, equations, dg, cache, i, j, element)
       vorticity_prev_node = vorticity_prev[i, j, element]
       vorticity_prev[i, j, element] = vorticity # Cache current vorticity for the next time step
 

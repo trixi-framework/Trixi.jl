@@ -15,7 +15,7 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics, vor
     element = coupled_element_ids[k]
 
     for j in eachnode(dg), i in eachnode(dg)
-      vorticity = calc_vorticity_node(u_euler, equations, dg, cache, i, j, element)
+      vorticity = calc_vorticity_node(u_euler, mesh, equations, dg, cache, i, j, element)
 
       prim_euler = cons2prim(get_node_vars(u_euler, equations, dg, i, j, element), equations)
       v1 = prim_euler[2]
