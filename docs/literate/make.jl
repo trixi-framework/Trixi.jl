@@ -1,6 +1,6 @@
 using Literate: Literate
 using Test: @testset
-using HTTP: get
+using HTTP: HTTP
 import Pkg
 
 # Function to create markdown and notebook files for specific file
@@ -58,17 +58,6 @@ notebooks_dir   = joinpath(@__DIR__, "src", "notebooks")
 Sys.rm(pages_dir;       recursive=true, force=true)
 Sys.rm(notebooks_dir;   recursive=true, force=true)
 
-# Preprocess files to add reference web links automatically.
-# trixi_version = Pkg.dependencies()[Pkg.project().dependencies["Trixi"]].version
-trixi_link = "https://trixi-framework.github.io/Trixi.jl/v0.3.61/"
-
-# Function that replaces `@trixi-docs` and `@trixi-ref` with the links to the Trixi documentation
-function preprocess_links(content)
-    # Replacing `@trixi-docs:` in `content` with the defined `trixi_link`
-    content = replace(content, "@trixi-docs:" => trixi_link)
-    # Searching for `[`Example`](@trixi-ref)` in content and replace it with `[`Example`](trixi_link/reference_trixi/#Trixi.Example)`.
-    content = replace(content, r"\[`(?<ref>\w+)`\]\(@trixi-ref\)" => SubstitutionString("[`\\g<ref>`]($(trixi_link)reference-trixi/#Trixi.\\g<ref>)"))
-end
 
 # Generate markdown for index.jl
 Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate", preprocess=preprocess_links,)

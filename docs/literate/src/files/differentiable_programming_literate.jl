@@ -18,7 +18,7 @@ using Test #src
 
 
 # ### Computing the Jacobian
-# The high-level interface to compute the Jacobian this way is [`jacobian_ad_forward`](@trixi-docs:reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
+# The high-level interface to compute the Jacobian this way is [`jacobian_ad_forward`](@ref).
 
 using Trixi, LinearAlgebra, Plots
 #-
@@ -162,7 +162,7 @@ round.(extrema(J), sigdigits=2)
 # which we want to perform the linearization. Next, we wrap the RHS evaluation inside a closure
 # and pass that to `ForwardDiff.jacobian`. There, we need to make sure that the internal caches
 # are able to store dual numbers from ForwardDiff.jl by setting `uEltype` appropriately. A similar
-# approach is used by [`jacobian_ad_forward`](@trixi-docs:reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
+# approach is used by [`jacobian_ad_forward`](@ref).
 
 # Note that the ideal gas constant does not influence the semidiscrete rate of change of the
 # density, as demonstrated by
@@ -347,7 +347,7 @@ plot(sol);
 
 # ## Finite difference approximations
 
-# Trixi provides the convenience function [`jacobian_fd`](@trixi-docs:reference-trixi/#Trixi.jacobian_fd-Tuple{Trixi.AbstractSemidiscretization}) to approximate the Jacobian
+# Trixi provides the convenience function [`jacobian_fd`](@ref) to approximate the Jacobian
 # via central finite differences.
 
 using Trixi, LinearAlgebra
@@ -380,7 +380,7 @@ norm(J_fd - J_ad) / size(J_fd, 1) < 7.0e-7
 # ```
 
 # where `A` is a linear operator ("matrix") and `b` is a vector. Trixi allows you
-# to obtain this linear structure in a matrix-free way by using [`linear_structure`](@trixi-docs:reference-trixi/#Trixi.linear_structure-Tuple{Trixi.AbstractSemidiscretization}).
+# to obtain this linear structure in a matrix-free way by using [`linear_structure`](@ref).
 # The resulting operator `A` can be used in multiplication, e.g. `mul!` from
 # LinearAlgebra, converted to a sparse matrix using `sparse` from SparseArrays,
 # or converted to a dense matrix using `Matrix` for detailed eigenvalue analyses.

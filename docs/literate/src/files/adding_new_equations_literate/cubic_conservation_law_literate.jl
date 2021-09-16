@@ -8,7 +8,7 @@ using Test #src
 # \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
 # ```
 # in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
-# is encoded as a subtype of [`AbstractEquations`](@trixi-ref).
+# is encoded as a subtype of [`AbstractEquations`](@ref).
 
 # ## Basic setup
   
@@ -75,7 +75,7 @@ ode = semidiscretize(semi, tspan);
 # The `ode` is an `ODEProblem` from the SciML/DifferentialEquations ecosystem.
 # Thus, we can solve this ODE numerically using any time integration method,
 # e.g., `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
-# Before, we set up a [callback](@trixi-docs:callbacks/#callbacks-id) to summarize the simulation setup.
+# Before, we set up a [callback](@ref) to summarize the simulation setup.
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
   
@@ -142,8 +142,8 @@ plot(sol)
   return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
 end
 
-# and use a [`VolumeIntegralFluxDifferencing`](@trixi-ref) instead of the standard
-# [`VolumeIntegralWeakForm`](@trixi-ref) in the DGSEM.
+# and use a [`VolumeIntegralFluxDifferencing`](@ref) instead of the standard
+# [`VolumeIntegralWeakForm`](@ref) in the DGSEM.
 
 ## Let's use a provably entropy-dissipative semidiscretization
 semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
@@ -155,16 +155,16 @@ plot(sol)
 
 # Possible next steps could be
 # - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`
-#   to use CFL-based time step control via a [`StepsizeCallback`](@trixi-ref)
+#   to use CFL-based time step control via a [`StepsizeCallback`](@ref)
 # - to define quantities of interest like `Trixi.entropy(u, equations::CubicEquation) = u[1]^2`
-#   and integrate them in a simulation using the [`AnalysisCallback`](@trixi-ref)
-# - to experiment with shock-capturing volume integrals [`VolumeIntegralShockCapturingHG`](@trixi-ref)
-#   and adaptive mesh refinement [`AMRCallback`](@trixi-ref)
+#   and integrate them in a simulation using the [`AnalysisCallback`](@ref)
+# - to experiment with shock-capturing volume integrals [`VolumeIntegralShockCapturingHG`](@ref)
+#   and adaptive mesh refinement [`AMRCallback`](@ref)
 
 
 # ## Summary of the code
 
-# To sum up, here is the complete code that we used (without the [`SummaryCallback`](@trixi-docs:callbacks/#callbacks-id)
+# To sum up, here is the complete code that we used (without the [`SummaryCallback`](@ref)
 # since that creates a lot of unnecessary output in the doctests of this tutorial).
 
 ## Define new physics
