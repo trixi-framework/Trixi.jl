@@ -308,9 +308,7 @@ function local_flux_differencing!(fluxdiff_local, u_local, element_index,
     Q_skew = Qrst_skew[dim]
 
     # Use a `sparsity_pattern` to dispatch `hadamard_sum!`.
-    # If using `Tri()` or `Tet()` elements, the `Q_skew` matrices are dense,
-    # and `sparsity_pattern === nothing`. If using `Quad()` or `Hex()` elements
-    # with an `SBP` `approximation_type`, then `sparsity_pattern::AbstractSparseMatrix{Bool}`.
+    # For all elements, `sparsity_pattern::AbstractSparseMatrix{Bool}`.
     hadamard_sum!(fluxdiff_local, Q_skew,
                   flux_is_symmetric, volume_flux,
                   normal_direction, u_local, equations, sparsity_pattern)
@@ -325,7 +323,6 @@ function calc_volume_integral!(du, u, volume_integral,
   @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq, Qrst_skew = cache
   @unpack volume_flux = volume_integral
 
-  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
@@ -352,7 +349,6 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
   @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
   @unpack volume_flux = volume_integral
 
-  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
