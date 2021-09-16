@@ -26,7 +26,7 @@ semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_converge
                                        # Connect left boundary with right boundary of right mesh
                                        x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
                                        # Connect right boundary with left boundary of right mesh
-                                       x_pos=BoundaryConditionCoupled(2, (1, :i_forward),  Float64),
+                                       x_pos=BoundaryConditionCoupled(2, (:begin, :i_forward),  Float64),
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 
@@ -44,7 +44,7 @@ semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_converge
                                        # Connect left boundary with right boundary of left mesh
                                        x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
                                        # Connect right boundary with left boundary of left mesh
-                                       x_pos=BoundaryConditionCoupled(1, (1, :i_forward),  Float64),
+                                       x_pos=BoundaryConditionCoupled(1, (:begin, :i_forward),  Float64),
                                        y_neg=boundary_condition_periodic,
                                        y_pos=boundary_condition_periodic))
 

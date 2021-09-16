@@ -272,7 +272,7 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3
     cells = axes(mesh, 1)
   end
 
-  # Copy solution data from the primary element using "delayed indexing" with
+  # Copy solution data to the coupled boundary using "delayed indexing" with
   # a start value and a step size to get the correct face and orientation.
   node_index_range = eachnode(solver)
   i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
@@ -310,7 +310,6 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi.semis[other_semi_index])
   @views u = wrap_array(u_ode[u_indices[other_semi_index]], mesh, equations, solver, cache)
 
-  size_ = (nnodes(solver), nnodes(solver), nnodes(solver))
   linear_indices = LinearIndices(size(mesh))
 
   if other_orientation == 1
@@ -321,12 +320,47 @@ function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5
     cells = (axes(mesh, 1), axes(mesh, 2))
   end
 
-  for cell_j in cells[2], cell_i in cells[1], j in eachnode(solver), i in eachnode(solver), v in 1:size(u, 1)
-    boundary_condition.u_boundary[v, i, j, cell_i, cell_j] = u[v, evaluate_index(indices, size_, 1, i, j),
-                                                                  evaluate_index(indices, size_, 2, i, j),
-                                                                  evaluate_index(indices, size_, 3, i, j),
-                                                                  linear_indices[evaluate_index(indices, size(mesh), 1, cell_i, cell_j),
-                                                                                 evaluate_index(indices, size(mesh), 2, cell_i, cell_j),
-                                                                                 evaluate_index(indices, size(mesh), 3, cell_i, cell_j)]]
+  # Copy solution data to the coupled boundary using "delayed indexing" with
+  # a start value and a step size to get the correct face and orientation.
+  node_index_range = eachnode(solver)
+  i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(indices[1], node_index_range)
+  j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(indices[2], node_index_range)
+  k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(indices[3], node_index_range)
+
+  i_cell_start, i_cell_step_i, i_cell_step_j = index_to_start_step_3d(indices[1], axes(mesh, 1))
+  j_cell_start, j_cell_step_i, j_cell_step_j = index_to_start_step_3d(indices[2], axes(mesh, 2))
+  k_cell_start, k_cell_step_i, k_cell_step_j = index_to_start_step_3d(indices[3], axes(mesh, 3))
+
+  i_cell = i_cell_start
+  j_cell = j_cell_start
+  k_cell = k_cell_start
+
+  for cell_j in cells[2]
+    for cell_i in cells[1]
+      i_node = i_node_start
+      j_node = j_node_start
+      k_node = k_node_start
+
+      for j in eachnode(solver)
+        for i in eachnode(solver)
+          for v in 1:size(u, 1)
+            boundary_condition.u_boundary[v, i, j, cell_i, cell_j] = u[v, i_node, j_node, k_node,
+                                                                       linear_indices[i_cell, j_cell, k_cell]]
+          end
+          i_node += i_node_step_i
+          j_node += j_node_step_i
+          k_node += k_node_step_i
+        end
+        i_node += i_node_step_j
+        j_node += j_node_step_j
+        k_node += k_node_step_j
+      end
+      i_cell += i_cell_step_i
+      j_cell += j_cell_step_i
+      k_cell += k_cell_step_i
+    end
+    i_cell += i_cell_step_j
+    j_cell += j_cell_step_j
+    k_cell += k_cell_step_j
   end
 end

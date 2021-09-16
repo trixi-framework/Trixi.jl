@@ -64,8 +64,10 @@ end
     return index_end, -1, index_end + 1 - index_begin
   elseif index === :j_forward
     return index_begin, 0, 1
-  else # if index === :j_backward
+  elseif index === :j_backward
     return index_end, 0, -1
+  else
+    error("Invalid identifier $index. Only :begin, :end, :i_forward, :j_forward, :i_backward, :j_backward are valid index identifiers")
   end
 end
 

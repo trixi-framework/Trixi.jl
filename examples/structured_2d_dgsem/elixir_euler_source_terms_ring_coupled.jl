@@ -69,8 +69,8 @@ mesh1 = StructuredMesh((8, 4), ring_mapping(1, 1, 1),
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=BoundaryConditionCoupled(3, (1, :i), Float64),
-    x_pos=BoundaryConditionCoupled(4, (1, :i), Float64),
+    x_neg=BoundaryConditionCoupled(3, (:begin, :i_forward), Float64),
+    x_pos=BoundaryConditionCoupled(4, (:begin, :i_forward), Float64),
     y_neg=boundary_condition,
     y_pos=boundary_condition,
   ))
@@ -80,8 +80,8 @@ mesh2 = StructuredMesh((8, 4), ring_mapping(1, 1, 2),
 
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=BoundaryConditionCoupled(3, (:end, :i), Float64),
-    x_pos=BoundaryConditionCoupled(4, (:end, :i), Float64),
+    x_neg=BoundaryConditionCoupled(3, (:end, :i_forward), Float64),
+    x_pos=BoundaryConditionCoupled(4, (:end, :i_forward), Float64),
     y_neg=boundary_condition,
     y_pos=boundary_condition,
   ))
@@ -91,8 +91,8 @@ mesh3 = StructuredMesh((8, 4), ring_mapping(1, 1, 3),
 
 semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=BoundaryConditionCoupled(1, (1, :i), Float64),
-    x_pos=BoundaryConditionCoupled(2, (1, :i), Float64),
+    x_neg=BoundaryConditionCoupled(1, (:begin, :i_forward), Float64),
+    x_pos=BoundaryConditionCoupled(2, (:begin, :i_forward), Float64),
     y_neg=boundary_condition,
     y_pos=boundary_condition,
   ))
@@ -102,8 +102,8 @@ mesh4 = StructuredMesh((8, 4), ring_mapping(1, 1, 4),
 
 semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition, solver,
   source_terms=source_terms, boundary_conditions=(
-    x_neg=BoundaryConditionCoupled(1, (:end, :i), Float64),
-    x_pos=BoundaryConditionCoupled(2, (:end, :i), Float64),
+    x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
+    x_pos=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
     y_neg=boundary_condition,
     y_pos=boundary_condition,
   ))
