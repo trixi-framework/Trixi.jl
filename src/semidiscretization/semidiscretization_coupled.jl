@@ -99,9 +99,9 @@ end
 end
 
 @inline function polydeg(semi::SemidiscretizationCoupled)
-  solver(semi_) = mesh_equations_solver_cache(semi_)[3]
+  _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
 
-  semi.semis .|> solver .|> polydeg
+  polydeg(solver)
 end
 
 @inline function nelements(semi::SemidiscretizationCoupled)

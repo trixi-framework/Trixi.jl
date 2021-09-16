@@ -330,89 +330,42 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
 end
 
-# function PlotData2D(u, mesh::Union{StructuredMesh,UnstructuredMesh2D}, equations, solver, cache;
-#                     solution_variables=nothing, grid_lines=true, kwargs...)
 
-#   @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
-#   solution_variables_ = digest_solution_variables(equations, solution_variables)
-#   variable_names = SVector(varnames(solution_variables_, equations))
+function PlotData2D(u_ode::AbstractVector, semi::SemidiscretizationCoupled;
+                    solution_variables=nothing, nvisnodes=2*polydeg(semi), kwargs...)
+  @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
 
-#   (x, y, data, mesh_vertices_x, mesh_vertices_y) = get_plot_data(u, solution_variables_, mesh, equations, solver, cache;
-#                                                                  grid_lines=grid_lines, kwargs...)
+  x_vec = []
+  y_vec = []
+  data_vec = []
+  pd = 0
 
-#   orientation_x, orientation_y = _get_orientations(mesh, nothing)
+  @unpack semis, u_indices = semi
+  for i in 1:nmeshes(semi)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
 
-#   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
-#                     orientation_x, orientation_y)
-# end
+    u = wrap_array(u_ode[u_indices[i]], semis[i])
 
+    pd = PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D, P4estMesh}, equations, solver, cache;
+                    solution_variables=solution_variables, nvisnodes=nvisnodes)
 
-# function get_plot_data(u, solution_variables, mesh::Union{StructuredMesh,UnstructuredMesh2D}, equations, solver, cache;
-#                        grid_lines=true, kwargs...)
-#   @unpack node_coordinates = cache.elements
+    push!(x_vec, pd.x)
+    push!(y_vec, pd.y)
+    push!(data_vec, pd.data)
+  end
 
-#   unstructured_data = get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
+  xplot = hcat(x_vec...)
+  yplot = hcat(y_vec...)
+  data = hcat(data_vec...)
 
-#   x = vec(view(node_coordinates, 1, ..))
-#   y = vec(view(node_coordinates, 2, ..))
+  t = pd.t
+  xfp = pd.x_face
+  yfp = pd.y_face
+  ufp = pd.face_data
+  variable_names = pd.variable_names
 
-#   data = [vec(unstructured_data[.., v]) for v in eachvariable(equations)]
-
-#   if grid_lines
-#     mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
-#   else
-#     mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
-#     mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
-#   end
-
-#   return x, y, data, mesh_vertices_x, mesh_vertices_y
-# end
-
-
-# function PlotData2D(u_ode::AbstractVector,
-#                     semi::SemidiscretizationCoupled;
-#                     solution_variables=nothing, grid_lines=true, kwargs...)
-
-#   _, equations_, _, _ = mesh_equations_solver_cache(semi)
-
-#   @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
-#   solution_variables_ = digest_solution_variables(equations_, solution_variables)
-#   variable_names = SVector(varnames(solution_variables_, equations_))
-
-#   x_vec = []
-#   y_vec = []
-#   data_vec = []
-#   mesh_vertices_x_vec = []
-#   mesh_vertices_y_vec = []
-
-#   @unpack semis, u_indices = semi
-#   for i in 1:nmeshes(semi)
-#     mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
-
-#     x_, y_, data_, mesh_vertices_x_, mesh_vertices_y_ = get_plot_data(
-#       wrap_array(u_ode[u_indices[i]], semis[i]), solution_variables_,
-#       mesh, equations, solver, cache; grid_lines=grid_lines)
-
-#     push!(x_vec, x_)
-#     push!(y_vec, y_)
-#     push!(data_vec, data_)
-#     push!(mesh_vertices_x_vec, mesh_vertices_x_)
-#     push!(mesh_vertices_y_vec, mesh_vertices_y_)
-#   end
-
-#   x = vcat(x_vec...)
-#   y = vcat(y_vec...)
-#   data = [vcat([data_vec[i][v] for i in 1:nmeshes(semi)]...) for v in 1:nvariables(equations_)]
-
-#   mesh_vertices_x = hcat(mesh_vertices_x_vec...)
-#   mesh_vertices_y = hcat(mesh_vertices_y_vec...)
-
-#   # TODO why pass mesh when we only need ndims?
-#   orientation_x, orientation_y = _get_orientations(semis[1].mesh, nothing)
-
-#   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
-#                     orientation_x, orientation_y)
-# end
+  return PlotData2DTriangulated(xplot, yplot, data, t, xfp, yfp, ufp, variable_names)
+end
 
 
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated if the mesh is
