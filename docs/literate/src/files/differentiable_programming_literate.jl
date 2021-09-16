@@ -1,5 +1,5 @@
 #src # Differentiable programming
-using Test #src
+using Test: @test #src
 
 # [Julia and its ecosystem provide some tools for differentiable programming](https://sinews.siam.org/Details-Page/scientific-machine-learning-how-julia-employs-differentiable-programming-to-do-it-best).
 # Trixi.jl is designed to be flexible, extendable, and composable with Julia's growing ecosystem for
@@ -39,11 +39,11 @@ size(J)
 
 scatter(real.(λ), imag.(λ));
 
-3.0e-10 < maximum(real, λ) / maximum(abs, λ) < 8.0e-10
-@test (3.0e-10 < maximum(real, λ) / maximum(abs, λ) < 8.0e-10) == true #src
+maximum(real, λ) / maximum(abs, λ)
+@test 3.0e-10 < maximum(real, λ) / maximum(abs, λ) < 8.0e-10 #src
 #-
-1.0e-7 < maximum(real, λ) < 5.0e-7
-@test (1.0e-7 < maximum(real, λ) < 5.0e-7) == true #src
+maximum(real, λ)
+@test 1.0e-7 < maximum(real, λ) < 5.0e-7 #src
 
 # Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs` at the interfaces,
 # the maximal real part of the eigenvalues increases.
@@ -58,19 +58,19 @@ J = jacobian_ad_forward(semi);
 
 scatter!(real.(λ), imag.(λ));
 
-λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
-@test (round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)) == 2.1e-5 #src
+λ = eigvals(J); maximum(real, λ) / maximum(abs, λ)
+@test isapprox(maximum(real, λ) / maximum(abs, λ), 2.068177e-5) #src
 #-
-round(maximum(real, λ), sigdigits=2)
-@test round(maximum(real, λ), sigdigits=2) == 0.0057 #src
+maximum(real, λ)
+@test isapprox(maximum(real, λ), 0.0057172852717) #src
 
 # However, we should be careful when using this analysis, since the eigenvectors are not necessarily
 # well-conditioned.
 
 λ, V = eigen(J);
 
-round(cond(V), sigdigits=2)
-@test round(cond(V), sigdigits=2) == 1.8e6 #src
+cond(V)
+@test isapprox(cond(V), 1.76050623519e6) #src
 
 # In one space dimension, the situation is a bit different.
 
@@ -88,16 +88,16 @@ J = jacobian_ad_forward(semi);
 
 scatter(real.(λ), imag.(λ));
 
-1.0e-17 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15
-@test (1.0e-17 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15) == true #src
+maximum(real, λ) / maximum(abs, λ)
+@test 1.0e-17 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15 #src
 #-
-1.0e-13 < maximum(real, λ) < 1.0e-11
-@test (1.0e-13 < maximum(real, λ) < 1.0e-11) == true #src
+maximum(real, λ)
+@test 1.0e-13 < maximum(real, λ) < 1.0e-11 #src
 #-
 λ, V = eigen(J);
 
-200 < cond(V) < 300
-@test (200 < cond(V) < 300) == true #src
+cond(V)
+@test 200 < cond(V) < 300 #src
 
 # If we add dissipation, the maximal real part is still approximately zero.
 
@@ -113,16 +113,16 @@ scatter!(real.(λ), imag.(λ));
 
 λ = eigvals(J);
 
--1.0e-15 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15
-@test (-1.0e-15 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15) == true #src
+maximum(real, λ) / maximum(abs, λ)
+@test -1.0e-15 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15 #src
 #-
--9.0e-13 < maximum(real, λ) < 9.0e-13
-@test (-9.0e-13 < maximum(real, λ) < 9.0e-13) == true #src
+maximum(real, λ)
+@test -9.0e-13 < maximum(real, λ) < 9.0e-13 #src
 #-
 λ, V = eigen(J);
 
-70_000 < cond(V) < 200_000
-@test (70_000 < cond(V) < 200_000) == true #src
+cond(V)
+@test 70_000 < cond(V) < 200_000 #src
 
 # Note that the condition number of the eigenvector matrix increases but is still smaller than for the
 # example in 2D.
@@ -364,8 +364,8 @@ J_fd = jacobian_fd(semi);
 
 J_ad = jacobian_ad_forward(semi);
 
-norm(J_fd - J_ad) / size(J_fd, 1) < 7.0e-7
-@test (norm(J_fd - J_ad) / size(J_fd, 1) < 7.0e-7) == true #src
+norm(J_fd - J_ad) / size(J_fd, 1)
+@test norm(J_fd - J_ad) / size(J_fd, 1) < 7.0e-7 #src
 
 # This discrepancy is of the expected order of magnitude for central finite difference approximations.
 
@@ -405,5 +405,5 @@ size(A), size(b)
 
 scatter(real.(λ), imag.(λ));
 
-λ = eigvals(Matrix(A)); maximum(real, λ) / maximum(abs, λ) < 1.0e-15
-@test (maximum(real, λ) / maximum(abs, λ) < 1.0e-15) == true #src
+λ = eigvals(Matrix(A)); maximum(real, λ) / maximum(abs, λ)
+@test maximum(real, λ) / maximum(abs, λ) < 1.0e-15 #src

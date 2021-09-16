@@ -1,5 +1,5 @@
 #src # Adding a new equation: nonconservative linear advection
-using Test #src
+using Test: @test #src
 
 # If you want to use Trixi for your own research, you might be interested in
 # a new physics model that is not present in Trixi.jl. In this tutorial,
@@ -138,7 +138,7 @@ plot(sol)
 # above.
 
 error_1 = analysis_callback(sol).l2 |> first
-@test error_1 == 0.0002961027497248901 #src
+@test isapprox(error_1, 0.0002961027497) #src
 # Next, we increase the grid resolution by one refinement level and run the
 # simulation again.
 
@@ -159,10 +159,10 @@ sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
 summary_callback()
 #-
 error_2 = analysis_callback(sol).l2 |> first
-@test error_2 == 1.8602958478441613e-5 #src
+@test isapprox(error_2, 1.8602958478e-5) #src
 #-
 error_1 / error_2
-@test (error_1 / error_2) == 15.916970952122176 #src
+@test isapprox(error_1 / error_2, 15.91697095) #src
 # As expected, the new error is roughly reduced by a factor of 16, corresponding
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
 
