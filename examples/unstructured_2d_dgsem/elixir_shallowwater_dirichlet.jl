@@ -11,8 +11,8 @@ equations = ShallowWaterEquations2D(1.0, H0=3.0)
 
 initial_condition = initial_condition_well_balancedness
 
-boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_condition = Dict( :OuterCircle => boundary_condition_convergence_test )
+boundary_condition_constant = BoundaryConditionDirichlet(initial_condition)
+boundary_condition = Dict( :OuterCircle => boundary_condition_constant )
 
 ###############################################################################
 # Get the DG approximation space
