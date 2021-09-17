@@ -531,7 +531,7 @@ end
 
 
 # Calculate total energy for a conservative state `cons`
-@inline function energy_total(cons, ::ShallowWaterEquations2D)
+@inline function energy_total(cons, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, b = cons
 
   e = (h_v1^2 + h_v2^2) / (2 * h) + 0.5 * equations.gravity * h^2 + equations.gravity * h * b
@@ -555,7 +555,7 @@ end
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
 # be a constant value over time
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations2D)
-  return abs(equations.H0 - ( u[1] + u[4] ))
+  return abs(equations.H0 - (u[1] + u[4]))
 end
 
 end # @muladd
