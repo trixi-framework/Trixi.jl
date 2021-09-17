@@ -251,7 +251,7 @@ function has_sparse_operators(dg::DGMultiFluxDiff)
   rd = dg.basis
   return has_sparse_operators(rd.elementType)
 end
-has_sparse_operators(::Union{Tri, Tet}) = Val{false}()
+has_sparse_operators(::Union{Tri, Tet}) = Val{true}()
 # Todo: DGMulti. Fix when GSBP() is introduced.
 # For default kwargs, `DGMultiFluxDiff{<:Polynomial, Union{Quad, Hex}}` has sparse operators.
 # However, increasing quadrature accuracy can produce dense operators. This behavior should be
