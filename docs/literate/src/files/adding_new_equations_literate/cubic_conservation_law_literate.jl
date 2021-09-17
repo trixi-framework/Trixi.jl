@@ -29,8 +29,8 @@ end; # module
 # ideal gas constant for the compressible Euler equations.
 
 # From here on, the following code snippets normally are written inside the `module`.
-# To make this work outside `CubicConservationLaw.CubicEquation` is used instead of `CubicEquation`.
-# The complete code can be found at the end.
+# To make it work outside the module we use `CubicConservationLaw.CubicEquation` instead
+# of `CubicEquation`. The complete code can be found at the end.
 # Next, we define the physical flux `f(u) = u^3` using the calling structure
 # used in Trixi.jl.
 
@@ -91,6 +91,8 @@ summary_callback()
 
 using Plots
 plot(sol)
+#src # TODO: In the static tutorial version the plot (1) is slighly different than the executed one (1b).
+#src # Storing the link for possible changes.
 #src # ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
 #src # ![tutorial_adding_new_equations_plot1b](https://user-images.githubusercontent.com/74359358/126663757-b8fb3ecb-72c8-4246-ab64-2bb4dbdf621a.png)
 
@@ -118,6 +120,8 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback()
 plot!(sol)
+#src # TODO: In the static tutorial version the plot (2) is slighly different than the executed one (2b).
+#src # Storing the link for possible changes.
 #src # ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
 #src # ![tutorial_adding_new_equations_plot2b](https://user-images.githubusercontent.com/74359358/126664312-e2f2fc93-42b0-4082-a009-b4268b15ff21.png)
 
