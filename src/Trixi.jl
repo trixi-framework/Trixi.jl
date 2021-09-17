@@ -218,7 +218,7 @@ function __init__()
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/recipes_makie.jl")
     using .Makie: Makie
-    export iplot # interactive plot
+    export iplot, iplot! # interactive plot
   end
 
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
