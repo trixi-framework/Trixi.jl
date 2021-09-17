@@ -74,7 +74,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_cubed_sphere_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cubed_sphere_coupled.jl"),
       l2   = [0.004772751902799928, 0.004508606545076189, 0.004508606545076109, 0.004508606545076116, 0.008767829559836243],
-      linf = [0.037694511197162495, 0.030289012817550365, 0.04729357296588943, 0.04729357296587011, 0.08406230656858238])
+      linf = [0.037694511197162495, 0.04729357296587011, 0.04729357296588943, 0.030289012817550365, 0.08406230656858238])
   end
 
   @trixi_testset "elixir_mhd_ec.jl" begin
