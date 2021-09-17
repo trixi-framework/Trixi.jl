@@ -211,25 +211,6 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
 end
 
 
-# Calculate 1D flux for a single point
-# Note, the bottom topography has no flux
-@inline function flux(u, orientation::Integer, equations::ShallowWaterEquations2D)
-  h, h_v1, h_v2, _ = u
-  v1, v2 = velocity(u, equations)
-
-  p = 0.5 * equations.gravity * h^2
-  if orientation == 1
-    f1 = h_v1
-    f2 = h_v1 * v1 + p
-    f3 = h_v1 * v2
-  else
-    f1 = h_v2
-    f2 = h_v2 * v1
-    f3 = h_v2 * v2 + p
-  end
-  return SVector(f1, f2, f3, zero(eltype(u)))
-end
-
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized and the bottom topography has no flux
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
@@ -340,7 +321,7 @@ end
 
 
 """
-    flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction,
+    flux_fjordholm_etal(u_ll, u_rr, normal_direction,
                         equations::ShallowWaterEquations2D)
 
 Total energy conservative (mathematical entropy for shallow water equations). When the bottom topography
@@ -352,34 +333,6 @@ Details are available in Eq. (4.1) in the paper:
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
-@inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
-  # Unpack left and right state
-  h_ll = u_ll[1]
-  v1_ll, v2_ll = velocity(u_ll, equations)
-  h_rr = u_rr[1]
-  v1_rr, v2_rr = velocity(u_rr, equations)
-
-  # Average each factor of products in flux
-  h_avg  = 0.5 * (h_ll   + h_rr  )
-  v1_avg = 0.5 * (v1_ll  + v1_rr )
-  v2_avg = 0.5 * (v2_ll  + v2_rr )
-  h2_avg = 0.5 * (h_ll^2 + h_rr^2)
-  p_avg  = 0.5 * equations.gravity * h2_avg
-
-  # Calculate fluxes depending on orientation
-  if orientation == 1
-    f1 = h_avg * v1_avg
-    f2 = h_avg * v1_avg * v1_avg + p_avg
-    f3 = h_avg * v1_avg * v2_avg
-  else
-    f1 = h_avg * v2_avg
-    f2 = h_avg * v2_avg * v1_avg
-    f3 = h_avg * v2_avg * v2_avg + p_avg
-  end
-
-  return SVector(f1, f2, f3, zero(eltype(u_ll)))
-end
-
 @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll = u_ll[1]
@@ -408,7 +361,7 @@ end
 
 
 """
-    flux_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction,
+    flux_wintermeyer_etal(u_ll, u_rr, normal_direction,
                           equations::ShallowWaterEquations2D)
 
 Total energy conservative (mathematical entropy for shallow water equations) split form.
@@ -421,34 +374,6 @@ Further details are available in Theorem 1 of the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-@inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
-  # Unpack left and right state
-  h_ll, h_v1_ll, h_v2_ll, _ = u_ll
-  h_rr, h_v1_rr, h_v2_rr, _ = u_rr
-
-  # Get the velocities on either side
-  v1_ll, v2_ll = velocity(u_ll, equations)
-  v1_rr, v2_rr = velocity(u_rr, equations)
-
-  # Average each factor of products in flux
-  v1_avg = 0.5 * (v1_ll + v1_rr )
-  v2_avg = 0.5 * (v2_ll + v2_rr )
-  p_avg  = 0.5 * equations.gravity * h_ll * h_rr
-
-  # Calculate fluxes depending on orientation
-  if orientation == 1
-    f1 = 0.5 * (h_v1_ll + h_v1_rr) # h_v1_avg
-    f2 = f1 * v1_avg + p_avg
-    f3 = f1 * v2_avg
-  else
-    f1 = 0.5 * (h_v2_ll + h_v2_rr) # h_v2_avg
-    f2 = f1 * v1_avg
-    f3 = f1 * v2_avg + p_avg
-  end
-
-  return SVector(f1, f2, f3, zero(eltype(u_ll)))
-end
-
 @inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll, h_v1_ll, h_v2_ll, _ = u_ll
@@ -497,26 +422,6 @@ end
 end
 
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                     equations::ShallowWaterEquations2D)
-  h_ll = u_ll[1]
-  v1_ll, v2_ll = velocity(u_ll, equations)
-  h_rr = u_rr[1]
-  v1_rr, v2_rr = velocity(u_rr, equations)
-
-  if orientation == 1 # x-direction
-    λ_min = v1_ll - sqrt(equations.gravity * h_ll)
-    λ_max = v1_rr + sqrt(equations.gravity * h_rr)
-  else # y-direction
-    λ_min = v2_ll - sqrt(equations.gravity * h_ll)
-    λ_max = v2_rr + sqrt(equations.gravity * h_rr)
-  end
-
-  return λ_min, λ_max
-end
-
-
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::ShallowWaterEquations2D)
   h_ll = u_ll[1]
@@ -533,49 +438,6 @@ end
   λ_max = v_normal_rr + sqrt(equations.gravity * h_rr) * norm_
 
   return λ_min, λ_max
-end
-
-
-# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
-# has been normalized prior to this rotation of the state vector
-@inline function rotate_to_x(u, normal_vector, equations::ShallowWaterEquations2D)
-  # cos and sin of the angle between the x-axis and the normalized normal_vector are
-  # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1]
-  s = normal_vector[2]
-
-  # Apply the 2D rotation matrix with normal and tangent directions of the form
-  # [ 1    0    0   0;
-  #   0   n_1  n_2  0;
-  #   0   t_1  t_2  0;
-  #   0    0    0   1 ]
-  # where t_1 = -n_2 and t_2 = n_1
-
-  return SVector(u[1],
-                 c * u[2] + s * u[3],
-                 -s * u[2] + c * u[3],
-                 u[4])
-end
-
-# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
-# has been normalized prior to this back-rotation of the state vector
-@inline function rotate_from_x(u, normal_vector, equations::ShallowWaterEquations2D)
-  # cos and sin of the angle between the x-axis and the normalized normal_vector are
-  # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1]
-  s = normal_vector[2]
-
-  # Apply the 2D back-rotation matrix with normal and tangent directions of the form
-  # [ 1    0    0   0;
-  #   0   n_1  t_1  0;
-  #   0   n_2  t_2  0;
-  #   0    0    0   1 ]
-  # where t_1 = -n_2 and t_2 = n_1
-
-  return SVector(u[1],
-                 c * u[2] - s * u[3],
-                 s * u[2] + c * u[3],
-                 u[4])
 end
 
 
