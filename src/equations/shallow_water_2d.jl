@@ -6,7 +6,7 @@
 
 
 @doc raw"""
-    ShallowWaterEquations2D(gravity)
+    ShallowWaterEquations2D(gravity, H0)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -23,6 +23,9 @@ The unknown quantities of the SWE are the water height ``h`` and the velocities 
 The gravitational constant is denoted by `g` and the (possibly) variable bottom topography function ``b(x,y)``.
 Conservative variable water height ``h`` is measured from the bottom topography ``b``, therefore one
 also defines the total water height as ``H = h + b``.
+
+The additional quantity ``H_0`` is also available to store a reference value for the total water height that
+is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
 
 The bottom topography function ``b(x,y)`` is set inside the initial condition routine
 for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
