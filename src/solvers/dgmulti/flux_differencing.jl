@@ -59,7 +59,7 @@ end
 # combinations of reference differentiation operators scaled by geometric change of variables terms.
 # We use a lazy evaluation of physical differentiation operators, so that we can compute linear
 # combinations of differentiation operators on-the-fly in an allocation-free manner.
-function build_lazy_physical_derivative(element, orientation,
+@inline function build_lazy_physical_derivative(element, orientation,
                                         mesh::VertexMappedMesh{2}, dg, cache)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
@@ -70,7 +70,7 @@ function build_lazy_physical_derivative(element, orientation,
   end
 end
 
-function build_lazy_physical_derivative(element, orientation,
+@inline function build_lazy_physical_derivative(element, orientation,
                                         mesh::VertexMappedMesh{3}, dg, cache)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
@@ -247,28 +247,28 @@ end
 
 # Trait-like system to dispatch based on whether or not the SBP operators are sparse.
 # Designed to be extendable to include specialized approximation_types too.
-function has_sparse_operators(dg::DGMultiFluxDiff)
+@inline function has_sparse_operators(dg::DGMultiFluxDiff)
   rd = dg.basis
   return has_sparse_operators(rd.elementType, rd.approximationType)
 end
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
+@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{true}()
 
 # Polynomial-based solvers use hybridized SBP operators, which have blocks scaled by outward
 # normal components. This implies that operators for different coordinate directions have
 # different sparsity patterns. We default to using sum factorization (which is faster when
 # operators are sparse) for all `<:Polynomial` approximation types.
-has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
-has_sparse_operators(element_type, approx_type::AT) where {AT <: Polynomial} = Val{true}()
+@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
+@inline has_sparse_operators(element_type, approx_type::AT) where {AT <: Polynomial} = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
-function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                  flux_is_symmetric, volume_flux::Flux,
-                                  has_sparse_operators::Val{false}, mesh,
-                                  equations, dg, cache) where {Flux}
+@inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+                                          flux_is_symmetric, volume_flux::Flux,
+                                          has_sparse_operators::Val{false}, mesh,
+                                          equations, dg, cache) where {Flux}
   @unpack sparsity_pattern = cache
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
@@ -281,10 +281,10 @@ end
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
-function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                  flux_is_symmetric, volume_flux::Flux,
-                                  has_sparse_operators::Val{true}, mesh,
-                                  equations, dg, cache) where {Flux}
+@inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+                                          flux_is_symmetric, volume_flux::Flux,
+                                          has_sparse_operators::Val{true}, mesh,
+                                          equations, dg, cache) where {Flux}
   @unpack Qrst_skew, sparsity_patterns = cache
   for dim in eachdim(mesh)
     # There are two ways to write this flux differencing discretization on affine meshes.
