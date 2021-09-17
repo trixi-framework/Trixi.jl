@@ -321,11 +321,8 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   # construct a triangulation of the reference plotting nodes
   t = reference_plotting_triangulation(rd.rstp) # rd.rstp = reference coordinates of plotting points
 
-  x_face, y_face = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
-
-  # Set the plotting values of solution on faces to nothing - they're not used for Plots.jl since
-  # only 2D heatmap plots are supported through TriplotBase/TriplotRecipes.
-  face_data = nothing
+  x_face, y_face, face_data = mesh_plotting_wireframe(u, mesh, equations, dg, cache;
+                                                      nvisnodes=nvisnodes)
 
   return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
 end
@@ -357,16 +354,14 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D, P4estMesh
   # extract x,y coordinates and solutions on each element
   uEltype = eltype(u)
   nvars = nvariables(equations)
-  x, y = ntuple(_->zeros(real(dg), n_nodes_2d, n_elements), 2)
-  u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x), nvars))
+  x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d, n_elements)
+  y = reshape(view(cache.elements.node_coordinates, 2, :, :, :), n_nodes_2d, n_elements)
+  u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x, (n_nodes_2d, n_elements)), nvars))
   for element in eachelement(dg, cache)
     sk = 1
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
-      xy_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
       u_extracted[sk, element] = u_node
-      x[sk, element] = xy_node[1]
-      y[sk, element] = xy_node[2]
       sk += 1
     end
   end
@@ -376,26 +371,7 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D, P4estMesh
   uplot = StructArray{SVector{nvars, uEltype}}(map(x->plotting_interp_matrix*x,
                                                    StructArrays.components(u_extracted)))
 
-  # extract indices of local face nodes for wireframe plotting
-  tol = 100*eps()
-  face_1 = findall(@. abs(s+1) < tol)
-  face_2 = findall(@. abs(r-1) < tol)
-  face_3 = findall(@. abs(s-1) < tol)
-  face_4 = findall(@. abs(r+1) < tol)
-  Fmask = hcat(face_1, face_2, face_3, face_4)
-  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
-
-  # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
-  # The resulting arrays are then reshaped so that xf, yf, sol_f are Matrix types of size
-  # (Number of face plotting nodes) x (Number of faces).
-  function face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
-      num_reference_faces = 2 * ndims(mesh)
-      xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
-      return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
-  end
-  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
-  xfp, yfp = map(reshape_and_interpolate, (x, y))
-  ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate, StructArrays.components(u_extracted)))
+  xfp, yfp, ufp = mesh_plotting_wireframe(u_extracted, mesh, equations, dg, cache; nvisnodes=nvisnodes)
 
   # convert variables based on solution_variables mapping
   solution_variables_ = digest_solution_variables(equations, solution_variables)

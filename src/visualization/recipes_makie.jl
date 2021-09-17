@@ -22,16 +22,12 @@ Inputs:
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-               solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
-               colormap = default_Makie_colormap())
-
-  pd = PlotData2D(u, mesh, equations, solver, cache;
-                  solution_variables=solution_variables, nvisnodes=nvisnodes)
-
+# Enables `iplot(PlotData2D(sol))`. Note that `nvisnodes=nothing` since
+# `PlotData2DTriangulated` doesn't contain any information about the solver.
+function iplot(pd::PlotData2DTriangulated;
+               nvisnodes=nothing, variable_to_plot_in=1,
+               colormap=default_Makie_colormap())
   @unpack variable_names = pd
-
-  @assert ndims(mesh) == 2
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
   fig = Makie.Figure()
@@ -87,7 +83,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
 
   # Resets the colorbar each time the solution changes.
-  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap=colormap, flipaxis = false)
+  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap=colormap)
 
   # This syncs the toggle buttons to the mesh plots.
   Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)
@@ -100,6 +96,17 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
 
   # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
   fig
+end
+
+function iplot(u, mesh, equations, solver, cache;
+  solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
+  colormap = default_Makie_colormap())
+  @assert ndims(mesh) == 2
+
+  pd = PlotData2D(u, mesh, equations, solver, cache;
+      solution_variables=solution_variables, nvisnodes=nvisnodes)
+
+  iplot(pd; nvisnodes=nvisnodes, variable_to_plot_in=variable_to_plot_in, colormap=colormap)
 end
 
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
