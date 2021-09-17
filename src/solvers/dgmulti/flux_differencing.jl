@@ -266,11 +266,11 @@ function local_flux_differencing!(fluxdiff_local, u_local, element_index,
                                   has_sparse_operators::Val{false}, mesh,
                                   equations, dg, cache) where {Flux}
   @unpack sparsity_pattern = cache
-  for i in eachdim(mesh)
-    Qi_skew = build_lazy_physical_derivative(element_index, i, mesh, dg, cache)
+  for dim in eachdim(mesh)
+    Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
     hadamard_sum!(fluxdiff_local, Qi_skew,
                   flux_is_symmetric, volume_flux,
-                  i, u_local, equations, sparsity_pattern)
+                  dim, u_local, equations, sparsity_pattern)
   end
 end
 
