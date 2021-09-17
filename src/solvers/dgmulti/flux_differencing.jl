@@ -249,14 +249,17 @@ end
 # Designed to be extendable to include specialized approximation_types too.
 function has_sparse_operators(dg::DGMultiFluxDiff)
   rd = dg.basis
-  return has_sparse_operators(rd.elementType)
+  return has_sparse_operators(rd.elementType, rd.approximationType)
 end
-has_sparse_operators(::Union{Tri, Tet}) = Val{true}()
-# Todo: DGMulti. Fix when GSBP() is introduced.
-# For default kwargs, `DGMultiFluxDiff{<:Polynomial, Union{Quad, Hex}}` has sparse operators.
-# However, increasing quadrature accuracy can produce dense operators. This behavior should be
-# changed when `approximation_type = GSBP()` is introduced.
-has_sparse_operators(::Union{Quad, Hex}) = Val{true}()
+# For traditional SBP operators on triangles, the operators are fully dense. We avoid using
+# sum factorization here, which is slower for fully dense matrices.
+has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
+
+# Polynomial-based solvers use hybridized SBP operators, which have blocks scaled by outward
+# normal components. This implies that operators for different coordinate directions have
+# different sparsity patterns. We default to using sum factorization (which is faster when
+# operators are sparse) for all `<:Polynomial` approximation types.
+has_sparse_operators(element_type, approx_type::AT) where {AT <: Polynomial} = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
