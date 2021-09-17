@@ -54,41 +54,21 @@ end
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  # Calculate error norms for each element
-  l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
-                                                        mesh, equations, initial_condition,
-                                                        dg, cache, cache_analysis)
-
-  # Aggregate element error norms
-  # sum(l2_errors) produces different results for the serial and parallel cases, thus we use
-  # a hand-written loop here for reproducibility
-  l2_error = zero(eltype(l2_errors))
-  for error in l2_errors
-    l2_error += error
-  end
-  linf_error = reduce((x, y) -> max.(x, y), linf_errors)
-
-  # For L2 error, divide by total volume
-  total_volume_ = total_volume(mesh)
-  l2_error = @. sqrt(l2_error / total_volume_)
-
-  return l2_error, linf_error
-end
-
-function calc_error_norms_per_element(func, u, t, analyzer,
-                                      mesh::TreeMesh{2}, equations, initial_condition,
-                                      dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
   @unpack u_local, u_tmp1, x_local, x_tmp1 = cache_analysis
 
   # Set up data structures
-  T = typeof(zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations)))
-  l2_errors = zeros(T, nelements(dg, cache))
-  linf_errors = copy(l2_errors)
+  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
+  linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations
+  # Accumulate L2 error on the element first to ensure that the order of summation is the
+  # same as in the parallel case
   for element in eachelement(dg, cache)
+    # Set up data structures for local element L2 error
+    l2_error_local = zero(l2_error)
+
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, element), x_tmp1)
@@ -99,12 +79,17 @@ function calc_error_norms_per_element(func, u, t, analyzer,
     for j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
-      l2_errors[element] += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
-      linf_errors[element] = @. max(linf_errors[element], abs(diff))
+      l2_error_local += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
+      linf_error = @. max(linf_error, abs(diff))
     end
+    l2_error += l2_error_local
   end
 
-  return l2_errors, linf_errors
+  # For L2 error, divide by total volume
+  total_volume_ = total_volume(mesh)
+  l2_error = @. sqrt(l2_error / total_volume_)
+
+  return l2_error, linf_error
 end
 
 

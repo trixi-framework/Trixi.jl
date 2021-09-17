@@ -12,11 +12,9 @@ function calc_error_norms(func, u, t, analyzer,
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
   #       Then, this specific array type should also work well with DiffEq etc.
-  l2_errors, linf_errors = invoke(calc_error_norms_per_element,
-    Tuple{typeof(func), typeof(u), typeof(t), typeof(analyzer), TreeMesh{2},
-          typeof(equations), typeof(initial_condition), typeof(dg), typeof(cache),
-          typeof(cache_analysis)},
-    func, u, t, analyzer, mesh, equations, initial_condition, dg, cache, cache_analysis)
+  l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
+                                                        mesh, equations, initial_condition,
+                                                        dg, cache, cache_analysis)
 
   nvars = length(l2_errors[1])
   T = eltype(l2_errors)
@@ -66,6 +64,38 @@ function calc_error_norms(func, u, t, analyzer,
   end
 
   return l2_error, linf_error
+end
+
+function calc_error_norms_per_element(func, u, t, analyzer,
+                                      mesh::ParallelTreeMesh{2}, equations, initial_condition,
+                                      dg::DGSEM, cache, cache_analysis)
+  @unpack vandermonde, weights = analyzer
+  @unpack node_coordinates = cache.elements
+  @unpack u_local, u_tmp1, x_local, x_tmp1 = cache_analysis
+
+  # Set up data structures
+  T = typeof(zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations)))
+  l2_errors = zeros(T, nelements(dg, cache))
+  linf_errors = copy(l2_errors)
+
+  # Iterate over all elements for error calculations
+  for element in eachelement(dg, cache)
+    # Interpolate solution and node locations to analysis nodes
+    multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
+    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, element), x_tmp1)
+
+    # Calculate errors at each analysis node
+    volume_jacobian_ = volume_jacobian(element, mesh, cache)
+
+    for j in eachnode(analyzer), i in eachnode(analyzer)
+      u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
+      diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
+      l2_errors[element] += diff.^2 * (weights[i] * weights[j] * volume_jacobian_)
+      linf_errors[element] = @. max(linf_errors[element], abs(diff))
+    end
+  end
+
+  return l2_errors, linf_errors
 end
 
 
