@@ -7,6 +7,12 @@
 # We set the Makie default colormap to match Plots.jl, which uses `:inferno` by default.
 default_Makie_colormap() = :inferno
 
+# convenience struct for editing Makie plots after they're created.
+struct FigureAndAxes{Axes}
+  fig::Makie.Figure
+  axes::Axes
+end
+
 """
     iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
           solution_variables=nothing, nvisnodes=nnodes(solver), variable_to_plot_in=1,
@@ -199,12 +205,6 @@ Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.PlotData2DTriangulated}) = TrixiHe
 function Makie.plot(sol::TrixiODESolution;
                     plot_mesh=false, solution_variables=nothing, colormap=default_Makie_colormap())
   return Makie.plot(PlotData2D(sol; solution_variables); plot_mesh, colormap)
-end
-
-# convenience struct for editing Makie plots after they're created.
-struct FigureAndAxes{Axes}
-  fig::Makie.Figure
-  axes::Axes
 end
 
 # for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
