@@ -259,6 +259,7 @@ has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val
 # normal components. This implies that operators for different coordinate directions have
 # different sparsity patterns. We default to using sum factorization (which is faster when
 # operators are sparse) for all `<:Polynomial` approximation types.
+has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
 has_sparse_operators(element_type, approx_type::AT) where {AT <: Polynomial} = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
