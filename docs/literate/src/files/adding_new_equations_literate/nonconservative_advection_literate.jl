@@ -159,10 +159,10 @@ sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
 summary_callback()
 #-
 error_2 = analysis_callback(sol).l2 |> first
-@test isapprox(error_2, 1.8602958478e-5) #src
+@test isapprox(error_2, 1.860295931682964e-5, rtol=0.05) #src
 #-
 error_1 / error_2
-@test isapprox(error_1 / error_2, 15.91697095) #src
+@test isapprox(error_1 / error_2, 15.916970234784808, rtol=0.05) #src
 # As expected, the new error is roughly reduced by a factor of 16, corresponding
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
 

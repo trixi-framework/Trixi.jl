@@ -70,7 +70,7 @@ maximum(real, λ)
 λ, V = eigen(J);
 
 cond(V)
-@test isapprox(cond(V), 1.76050623519e6) #src
+@test isapprox(cond(V), 1.7604474878472006e6, rtol=0.05) #src
 
 # In one space dimension, the situation is a bit different.
 
