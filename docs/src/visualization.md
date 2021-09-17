@@ -199,6 +199,8 @@ yields the following plot of vorticity:
 `ScalarPlotData2D` objects can also be used with Makie through `iplot`. For example, the
 following code plots two figures atop each other
 ```jldoctest iplot_with_ScalarPlotData2D
+julia> using Trixi, Plots
+
 julia> redirect_stdout(devnull) do
          # runs the elixir without any output
          trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
