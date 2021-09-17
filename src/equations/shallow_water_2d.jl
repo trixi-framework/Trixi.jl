@@ -176,6 +176,41 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
 end
 
 
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::ShallowWaterEquations2D)
+
+Create a boundary state by reflecting the normal velocity component and keep
+the tangential velocity component unchanged. The boundary water height is taken from
+the internal value.
+
+For details see Section 9.2.5 of the book:
+- Eleuterio F. Toro (2001)
+  Shock-Capturing Methods for Free-Surface Shallow Flows
+  1st edition
+  ISBN 0471987662
+"""
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+                                      surface_flux_function, equations::ShallowWaterEquations2D)
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal velocity
+  u_normal = normal[1] * u_inner[2] + normal[2] * u_inner[3]
+
+  # create the "external" boundary solution state
+  u_boundary = SVector(u_inner[1],
+                       u_inner[2] - 2.0 * u_normal * normal[1],
+                       u_inner[3] - 2.0 * u_normal * normal[2],
+                       u_inner[4])
+
+  # calculate the boundary flux
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+  return flux
+end
+
+
 # Calculate 1D flux for a single point
 # Note, the bottom topography has no flux
 @inline function flux(u, orientation::Integer, equations::ShallowWaterEquations2D)
