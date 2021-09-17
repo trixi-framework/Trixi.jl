@@ -12,8 +12,56 @@
 #
 # - `du`, `u` are vectors
 # - `A` is the skew-symmetric flux differencing matrix.
-# - `sparsity_pattern`: an AbstractSparseMatrix which specifies the sparsity pattern of `A`
-@inline function hadamard_sum!(du, A, flux_is_symmetric::Val{true}, volume_flux,
+# - `sparsity_pattern`: an AbstractSparseMatrix which specifies the sparsity pattern of `A`.
+#                       Alternatively, if `sparsity_pattern::Nothing`, then we use assume the
+#                       operator is fully dense.
+
+# Version for symmetric fluxes and dense operators
+@inline function hadamard_sum!(du, A,
+                               flux_is_symmetric::Val{true}, volume_flux,
+                               orientation, u, equations,
+                               sparsity_pattern::Nothing)
+
+  rows, cols = axes(A)
+  for i in rows
+    u_i = u[i]
+    du_i = du[i]
+    for j in cols
+      # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+      # We avoid computing the lower-triangular part, and instead accumulate those contributions
+      # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+      # is symmetric).
+      if j > i
+          AF_ij = A[i,j] * volume_flux(u_i, u[j], orientation, equations)
+          du_i = du_i + AF_ij
+          du[j] = du[j] - AF_ij
+      end
+    end
+    du[i] = du_i
+  end
+end
+
+# Version for dense matrices and non-symmetric fluxes
+@inline function hadamard_sum!(du, A,
+                               flux_is_symmetric::Val{false}, volume_flux,
+                               orientation, u, equations,
+                               sparsity_pattern::Nothing)
+
+  rows, cols = axes(A)
+  for i in rows
+    u_i = u[i]
+    du_i = du[i]
+    for j in cols
+        AF_ij = A[i,j] * volume_flux(u_i, u[j], orientation, equations)
+        du_i = du_i + AF_ij
+    end
+    du[i] = du_i
+  end
+end
+
+# Version for symmetric fluxes and sparse operators
+@inline function hadamard_sum!(du, A,
+                               flux_is_symmetric::Val{true}, volume_flux,
                                orientation, u, equations,
                                sparsity_pattern::AbstractSparseMatrix{Bool})
   n = size(sparsity_pattern, 2)
@@ -37,8 +85,9 @@
   end
 end
 
-# do not exploit flux symmetry when evaluating non-conservative fluxes.
-@inline function hadamard_sum!(du, A, flux_is_symmetric::Val{false}, volume_flux,
+# Version for non-symmetric fluxes and sparse operators
+@inline function hadamard_sum!(du, A,
+                               flux_is_symmetric::Val{false}, volume_flux,
                                orientation, u, equations,
                                sparsity_pattern::AbstractSparseMatrix{Bool})
   n = size(sparsity_pattern, 2)
@@ -127,12 +176,18 @@ function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP})
   return Qrst_skew
 end
 
-# precompute sparsity pattern for optimized flux differencing routines for tensor product elements
-function compute_sparsity_pattern(flux_diff_matrices, dg::DGMultiFluxDiff,
-                                  tol = 100 * eps(real(dg)))
+# precompute sparsity pattern, dispatching on the `has_sparse_operators` trait.
+function compute_sparsity_pattern(flux_diff_matrices, dg::DGMultiFluxDiff, tol = 100 * eps(real(dg)))
+  return compute_sparsity_pattern(flux_diff_matrices, has_sparse_operators(dg), tol)
+end
+
+compute_sparsity_pattern(flux_diff_matrices, has_sparse_operators::Val{false}, tol) = nothing
+
+function compute_sparsity_pattern(flux_diff_matrices, has_sparse_operators::Val{true}, tol)
   sparsity_pattern = sum(map(A->abs.(A), droptol!.(sparse.(flux_diff_matrices), tol))) .!= 0
   return sparsity_pattern
 end
+
 
 # For flux differencing SBP-type approximations, store solutions in Matrix{SVector{nvars}}.
 # This results in a slight speedup for `calc_volume_integral!`.
@@ -253,7 +308,7 @@ end
 end
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{true}()
+@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
 
 # Polynomial-based solvers use hybridized SBP operators, which have blocks scaled by outward
 # normal components. This implies that operators for different coordinate directions have
