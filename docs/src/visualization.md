@@ -197,7 +197,7 @@ yields the following plot of vorticity:
     the underlying data is highly non-smooth or under-resolved.
 
 `ScalarPlotData2D` objects can also be used with Makie through `iplot`. For example, the
-following code plots two figures atop each other
+following code plots two surfaces on a single plot:
 ```jldoctest iplot_with_ScalarPlotData2D
 julia> using Trixi, GLMakie
 
