@@ -23,10 +23,10 @@ Lamb vector is used as the source term, i.e.
 where ``\mathbf{v}`` denotes the velocity, ``\mathbf{\omega}`` denotes the vorticity, the bar
 ``\bar{(\cdot)}`` indicates time-averaged quantities (see [`AveragingCallback`](@ref)) and prime
 ``(\cdot)'`` denotes perturbed quantities defined by ``\phi' = \phi - \bar{\phi}``. Note that
-the perturbed quantities here are entirely based on the pure flow solution and should not be
+the perturbed quantities here are based entirely on the pure flow solution and should not be
 confused with the state variables of the acoustic perturbation equations.
 
-In addition, this callback manages the step size for both solvers
+In addition, this callback manages the time step size for both solvers
 and initializes the mean values of the acoustic perturbation equations using results obtained with
 the [`AveragingCallback`](@ref).
 
