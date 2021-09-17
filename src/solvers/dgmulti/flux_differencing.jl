@@ -46,7 +46,6 @@ end
                                flux_is_symmetric::Val{false}, volume_flux,
                                orientation, u, equations,
                                sparsity_pattern::Nothing)
-
   rows, cols = axes(A)
   for i in rows
     u_i = u[i]
@@ -66,7 +65,7 @@ end
                                sparsity_pattern::AbstractSparseMatrix{Bool})
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
-  for i in 1:n
+  for i in Base.OneTo(n)
     u_i = u[i]
     du_i = du[i]
     for id in nzrange(sparsity_pattern, i)
@@ -92,7 +91,7 @@ end
                                sparsity_pattern::AbstractSparseMatrix{Bool})
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
-  for i in 1:n
+  for i in Base.OneTo(n)
     u_i = u[i]
     du_i = du[i]
     for id in nzrange(sparsity_pattern, i)
