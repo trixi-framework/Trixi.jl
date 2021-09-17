@@ -10,7 +10,7 @@ equations = ShallowWaterEquations2D(9.81)
 initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg=3, surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal),
+solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0.0, 0.0)

@@ -114,9 +114,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
-      l2   = [1.1577518608985667e-5, 1.2540306421350313e-13, 1.1981115294701297e-13, 1.1577518608947122e-5],
-      linf = [8.394063879646474e-5, 2.87937001354371e-12, 1.9844159023102567e-12, 8.39406387957986e-5],
-      tspan = (0.0, 1.0))
+      l2   = [1.1577518664678527e-5, 4.2329007808029837e-13, 5.380473644095362e-13, 1.157751866448228e-5],
+      linf = [8.394063878802704e-5, 1.0260949960672727e-10, 1.3895272424890089e-10, 8.394063879602065e-5],
+      tspan = (0.0, 2.0))
   end
 end
 
