@@ -410,7 +410,8 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
 
   # Ignore face data when plotting `ScalarPlotData2D`, since mesh lines can be plotted using
   # existing functionality based on `PlotData2D(sol)`.
-  x_face, y_face, face_data = nothing, nothing, nothing
+  x_face, y_face, face_data = mesh_plotting_wireframe(ScalarData(u), mesh, equations, dg, cache;
+                                                      nvisnodes=2*nnodes(dg))
 
   # wrap solution in ScalarData struct for recipe dispatch
   return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
@@ -449,7 +450,9 @@ function ScalarPlotData2D(u, mesh::Union{TreeMesh, UnstructuredMesh2D, Structure
 
   # Ignore face data when plotting `ScalarPlotData2D`, since mesh lines can be plotted using
   # existing functionality based on `PlotData2D(sol)`.
-  x_face, y_face, face_data = nothing, nothing, nothing
+  x_face, y_face, face_data = mesh_plotting_wireframe(ScalarData(u), mesh, equations, dg, cache;
+                                                      nvisnodes=2*nnodes(dg))
+
 
   # wrap solution in ScalarData struct for recipe dispatch
   return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,

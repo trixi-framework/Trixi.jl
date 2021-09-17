@@ -113,6 +113,47 @@ end
 iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
 iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
 
+# Interactive visualization of user-defined ScalarData.
+function iplot(pd::PlotData2DTriangulated{<:ScalarData};
+               show_axis=false, colormap=default_Makie_colormap(), plot_mesh=false)
+  fig = Makie.Figure()
+
+  # Create a zoomable interactive axis object on top of which to plot the solution.
+  ax = Makie.LScene(fig[1, 1], scenekw=(show_axis=show_axis,))
+
+  # plot the user-defined ScalarData
+  fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap=colormap, plot_mesh=plot_mesh)
+
+  fig
+  return fig_axis_plt
+end
+
+function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
+                pd::PlotData2DTriangulated{<:ScalarData};
+                colormap=default_Makie_colormap(), plot_mesh=false)
+
+  # destructure first two fields of either FigureAndAxes or Makie.FigureAxisPlot
+  fig, ax = fig_axis
+
+  # create triangulation of the scalar data to plot
+  plotting_mesh = global_plotting_triangulation_makie(pd)
+  solution_z = getindex.(plotting_mesh.position, 3)
+  plt = Makie.mesh!(ax, plotting_mesh; color=solution_z, colormap)
+
+  if plot_mesh
+    wire_points = mesh_plotting_wireframe(pd)
+    wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
+    wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
+    Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
+    Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
+  end
+
+  # Add a colorbar to the rightmost part of the layout
+  Makie.Colorbar(fig[1, end+1], plt)
+
+  fig
+  return Makie.FigureAxisPlot(fig, ax, plt)
+end
 
 # ================== new Makie plot recipes ====================
 
