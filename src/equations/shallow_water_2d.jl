@@ -52,7 +52,7 @@ struct ShallowWaterEquations2D{RealT<:Real} <: AbstractShallowWaterEquations{2, 
   H0::RealT      # constant "lake-at-rest" total water height
 end
 
-# Allow for flexibilty to set the gravitaional constant within an elixir depending on the
+# Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases

@@ -438,8 +438,7 @@ end
     # Note the factor 0.5 necessary for the nonconservative fluxes based on
     # the interpretation of global SBP operators coupled discontinuously via
     # central fluxes/SATs
-    surface_flux_values[v, node_index, side_index, element_index] = (
-      flux[v] + 0.5 * noncons_flux[v] )
+    surface_flux_values[v, node_index, side_index, element_index] = flux[v] + 0.5 * noncons_flux[v]
   end
 end
 
