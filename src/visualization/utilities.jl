@@ -193,6 +193,34 @@ function mesh_plotting_wireframe(u::ScalarData, mesh::UnstructuredMesh2D, equati
   return xfp, yfp, ufp
 end
 
+function mesh_plotting_wireframe(u::uType, mesh, equations, dg::DGMulti, cache;
+                                 nvisnodes=2*nnodes(dg)) where {uType <: ScalarData}
+
+  @unpack md = mesh
+  rd = dg.basis
+
+  # Construct 1D plotting interpolation matrix `Vp1D` for a single face
+  @unpack N, Fmask = rd
+  vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
+  rplot = LinRange(-1, 1, nvisnodes)
+  Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
+
+  num_face_points = N+1
+  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  xf, yf, uf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), (md.xyz..., u.data))
+
+  num_face_plotting_points = size(Vp1D, 1)
+  x_mesh, y_mesh = ntuple(_->zeros(num_face_plotting_points, num_faces_total), 2)
+  u_mesh = similar(u.data, (num_face_plotting_points, num_faces_total))
+  for f in 1:num_faces_total
+    mul!(view(x_mesh, :, f), Vp1D, view(xf, :, f))
+    mul!(view(y_mesh, :, f), Vp1D, view(yf, :, f))
+    mul!(view(u_mesh, :, f), Vp1D, view(uf, :, f))
+  end
+
+  return x_mesh, y_mesh, u_mesh
+end
+
 
 
 # These methods are used internally to set the default value of the solution variables:
