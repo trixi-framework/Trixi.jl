@@ -282,5 +282,15 @@ include("lattice_boltzmann_3d.jl")
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
 
+# Advection-Diffusion equation: first order hyperbolic system
+abstract type AbstractHyperbolicAdvectionDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("hyperbolic_advection_diffusion_1d.jl")
+include("hyperbolic_advection_diffusion_2d.jl")
+
+# Advection-Diffusion equation: first order hyperbolic system
+abstract type AbstractHyperbolicNavierStokesEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("hyperbolic_navier_stokes_1d.jl")
+include("hyperbolic_navier_stokes_2d.jl")
+
 
 end # @muladd

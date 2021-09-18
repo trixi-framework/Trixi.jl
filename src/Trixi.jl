@@ -118,7 +118,9 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
-       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
+       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
+       HyperbolicAdvectionDiffusionEquations1D, HyperbolicAdvectionDiffusionEquations2D,
+       HyperbolicNavierStokesEquations1D, HyperbolicNavierStokesEquations2D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
@@ -158,6 +160,18 @@ export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
+
+export initial_condition_boundary_layer
+export initial_condition_sin, source_terms_sin
+export initial_condition_exp_nonperiodic
+export initial_condition_constructed_lin, source_terms_constructed_lin
+export initial_condition_constructed_square, source_terms_constructed_square
+export initial_condition_constructed_exp, source_terms_constructed_exp
+export initial_condition_constructed_exp2, source_terms_constructed_exp2
+export initial_condition_constructed_periodic, source_terms_constructed_periodic
+export boundary_condition_viscous_shock
+
+export calc_viscous_shock_solution
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
