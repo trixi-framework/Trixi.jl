@@ -199,7 +199,7 @@ yields the following plot of vorticity:
 `ScalarPlotData2D` objects can also be used with Makie through `iplot`. For example, the
 following code plots two surfaces on a single plot:
 ```jldoctest iplot_with_ScalarPlotData2D
-julia> using Trixi, GLMakie
+julia> using Trixi, CairoMakie
 
 julia> redirect_stdout(devnull) do
          # runs the elixir without any output
