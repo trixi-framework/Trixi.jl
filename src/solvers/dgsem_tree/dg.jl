@@ -53,5 +53,8 @@ include("dg_2d_parallel.jl")
 # 3D DG implementation
 include("dg_3d.jl")
 
+# Auxiliary functions that are specialized on this solver
+include("dg_2d_compressible_euler.jl")
+
 
 end # @muladd

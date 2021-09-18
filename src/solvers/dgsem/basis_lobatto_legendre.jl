@@ -82,6 +82,20 @@ function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis)
   print(io, "LobattoLegendreBasis{", real(basis), "} with polynomials of degree ", polydeg(basis))
 end
 
+function Base.:(==)(b1::LobattoLegendreBasis, b2::LobattoLegendreBasis)
+  if typeof(b1) != typeof(b2)
+    return false
+  end
+
+  for field in fieldnames(typeof(b1))
+    if getfield(b1, field) != getfield(b2, field)
+      return false
+    end
+  end
+
+  return true
+end
+
 @inline Base.real(basis::LobattoLegendreBasis{RealT}) where {RealT} = RealT
 
 @inline nnodes(basis::LobattoLegendreBasis{RealT, NNODES}) where {RealT, NNODES} = NNODES
