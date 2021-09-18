@@ -211,7 +211,7 @@ julia> x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts th
 
 julia> y = view(semi.cache.elements.node_coordinates, 2, :, :, :); # extracts the node y coordinates
 
-julia> fig_ax_plt = iplot(ScalarPlotData2D((@. 1 - .25*(x^2 + y^2)), semi), plot_mesh=false, colormap=:viridis);
+julia> fig_ax_plt = iplot(ScalarPlotData2D((@. 1 - .25*(x^2 + y^2)), semi), plot_mesh=true, colormap=:viridis);
 
 julia> fig_ax_plt2 = iplot!(fig_ax_plt, ScalarPlotData2D((@. .125*(x+y)), semi), plot_mesh=true, colormap=:blues)
 FigureAxisPlot()
