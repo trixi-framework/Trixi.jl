@@ -203,7 +203,7 @@ julia> using Trixi, CairoMakie
 
 julia> redirect_stdout(devnull) do
          # runs the elixir without any output
-         trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+         trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
        end
 
 julia> x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates
