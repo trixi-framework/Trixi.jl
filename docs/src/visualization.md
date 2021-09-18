@@ -197,13 +197,14 @@ yields the following plot of vorticity:
     the underlying data is highly non-smooth or under-resolved.
 
 `ScalarPlotData2D` objects can also be used with Makie through `iplot`. For example, the
-following code plots two surfaces on a single plot:
+following code plots two surfaces:
 ```jldoctest iplot_with_ScalarPlotData2D
 julia> using Trixi, CairoMakie
 
 julia> redirect_stdout(devnull) do
          # runs the elixir without any output
-         trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+         trixi_include(@__MODULE__,
+           joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
        end
 
 julia> x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates
@@ -213,9 +214,9 @@ julia> y = view(semi.cache.elements.node_coordinates, 2, :, :, :); # extracts th
 julia> fig_ax_plt = iplot(ScalarPlotData2D((@. 1 - .25*(x^2 + y^2)), semi), plot_mesh=false, colormap=:viridis);
 
 julia> fig_ax_plt2 = iplot!(fig_ax_plt, ScalarPlotData2D((@. .125*(x+y)), semi), plot_mesh=true, colormap=:blues)
-
+FigureAxisPlot()
 ```
-creates the following plot:
+This creates the following plot:
 
 ![ScalarPlotData2D_example](https://user-images.githubusercontent.com/1156048/133856590-a9f0be02-8200-483b-af96-eab4a69bf2c7.png)
 
