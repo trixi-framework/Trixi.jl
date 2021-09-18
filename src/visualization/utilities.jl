@@ -131,7 +131,7 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, c
 end
 
 function mesh_plotting_wireframe(u::StructArray,
-                                 mesh::Union{P4estMesh, StructuredMesh2D, UnstructuredMesh2D},
+                                 mesh::Union{P4estMesh, StructuredMesh, UnstructuredMesh2D},
                                  equations, dg, cache; nvisnodes=2*nnodes(dg))
 
   # build nodes on reference element (seems to be the right ordering)
