@@ -420,6 +420,16 @@ end
 end
 
 
+# Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the mean values
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation_or_normal_direction,
+                                                              equations::AcousticPerturbationEquations2D)
+  λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
+  diss = -0.5 * λ * (u_rr - u_ll)
+  z = zero(eltype(u_ll))
+  return SVector(diss[1], diss[2], diss[3], z, z, z, z)
+end
+
+
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = Val(false)
 
 @inline function max_abs_speeds(u, equations::AcousticPerturbationEquations2D)
