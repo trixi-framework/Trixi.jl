@@ -130,9 +130,7 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, c
   return x_mesh, y_mesh, u_mesh
 end
 
-function mesh_plotting_wireframe(u::StructArray,
-                                 mesh::Union{TreeMesh, P4estMesh, StructuredMesh, UnstructuredMesh2D},
-                                 equations, dg, cache; nvisnodes=2*nnodes(dg))
+function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cache; nvisnodes=2*nnodes(dg))
 
   # build nodes on reference element (seems to be the right ordering)
   r, s = reference_node_coordinates_2d(dg)
@@ -164,8 +162,7 @@ function mesh_plotting_wireframe(u::StructArray,
   return xfp, yfp, ufp
 end
 
-function mesh_plotting_wireframe(u::ScalarData, mesh::UnstructuredMesh2D, equations, dg, cache;
-                                 nvisnodes=2*nnodes(dg))
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cache; nvisnodes=2*nnodes(dg))
 
   # build nodes on reference element (seems to be the right ordering)
   r, s = reference_node_coordinates_2d(dg)

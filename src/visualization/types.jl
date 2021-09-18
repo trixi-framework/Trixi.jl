@@ -329,7 +329,7 @@ end
 
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated if the mesh is
 # a non-TreeMesh type.
-function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D, P4estMesh}, equations, dg, cache;
+function PlotData2D(u, mesh, equations, dg::DGSEM, cache;
                     solution_variables=nothing, nvisnodes=2*polydeg(dg))
   @assert ndims(mesh) == 2
 
@@ -418,8 +418,7 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
                                 x_face, y_face, face_data, variable_name)
 end
 
-function ScalarPlotData2D(u, mesh::Union{TreeMesh, UnstructuredMesh2D, StructuredMesh, P4estMesh}, equations, dg, cache;
-                          variable_name=nothing, nvisnodes=2*nnodes(dg))
+function ScalarPlotData2D(u, mesh, equations, dg::DGSEM, cache; variable_name=nothing, nvisnodes=2*nnodes(dg))
 
   n_nodes_2d = nnodes(dg)^ndims(mesh)
   n_elements = nelements(dg, cache)
