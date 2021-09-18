@@ -130,8 +130,9 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, c
   return x_mesh, y_mesh, u_mesh
 end
 
-function mesh_plotting_wireframe(u::StructArray, mesh::UnstructuredMesh2D, equations, dg, cache;
-                                 nvisnodes=2*nnodes(dg))
+function mesh_plotting_wireframe(u::StructArray,
+                                 mesh::Union{P4estMesh, StructuredMesh2D, UnstructuredMesh2D},
+                                 equations, dg, cache; nvisnodes=2*nnodes(dg))
 
   # build nodes on reference element (seems to be the right ordering)
   r, s = reference_node_coordinates_2d(dg)
