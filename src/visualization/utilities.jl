@@ -191,8 +191,7 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cach
   return xfp, yfp, ufp
 end
 
-function mesh_plotting_wireframe(u::uType, mesh, equations, dg::DGMulti, cache;
-                                 nvisnodes=2*nnodes(dg)) where {uType <: ScalarData}
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, cache; nvisnodes=2*nnodes(dg))
 
   @unpack md = mesh
   rd = dg.basis
