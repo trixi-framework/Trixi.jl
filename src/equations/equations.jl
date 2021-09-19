@@ -258,26 +258,15 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
     NDIMS = length(indices)
     u_boundary = Array{uEltype, NDIMS*2-1}(undef, ntuple(_ -> 0, NDIMS*2-1))
 
-    # This is needed to make indices a Tuple of Symbols and prevent type instabilities
-    indices_ = one_to_symbol.(indices)
-
-    if indices_[1] in (:begin, :end)
+    if indices[1] in (:begin, :end)
       other_orientation = 1
-    elseif indices_[2] in (:begin, :end)
+    elseif indices[2] in (:begin, :end)
       other_orientation = 2
     else
       other_orientation = 3
     end
 
-    new{NDIMS*2-1, uEltype, typeof(indices_)}(u_boundary, other_semi_index, other_orientation, indices_)
-  end
-end
-
-function one_to_symbol(i)
-  if i == 1
-    return :begin
-  else
-    return i
+    new{NDIMS*2-1, uEltype, typeof(indices)}(u_boundary, other_semi_index, other_orientation, indices)
   end
 end
 
@@ -298,17 +287,6 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
   end
 
   return flux
-end
-
-
-function Base.show(io::IO, boundary_condition::BoundaryConditionCoupled)
-  @nospecialize boundary_condition # reduce precompilation time
-
-  print(io, "BoundaryConditionCoupled(")
-  print(io,       boundary_condition.other_semi_index)
-  print(io, ", ", boundary_condition.other_orientation)
-  print(io, ", ", boundary_condition.indices)
-  print(io, ")")
 end
 
 

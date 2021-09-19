@@ -263,9 +263,6 @@ end
 
 @inline Base.eltype(semi::SemidiscretizationHyperbolic) = eltype(semi.cache.elements)
 
-# TODO: Taal refactor, polydeg is specific to DGSEM
-@inline polydeg(semi::SemidiscretizationHyperbolic) = polydeg(semi.solver)
-
 @inline nelements(semi::SemidiscretizationHyperbolic) = nelements(semi.mesh, semi.solver, semi.cache)
 
 
