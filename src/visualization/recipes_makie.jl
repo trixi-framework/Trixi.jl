@@ -31,8 +31,8 @@ Inputs:
 # Enables `iplot(PlotData2D(sol))`. Note that `nvisnodes=nothing` since
 # `PlotData2DTriangulated` doesn't contain any information about the solver.
 function iplot(pd::PlotData2DTriangulated;
-               nvisnodes=nothing, variable_to_plot_in=1,
-               colormap=default_Makie_colormap())
+               plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
+               nvisnodes=nothing, variable_to_plot_in=1)
   @unpack variable_names = pd
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
@@ -43,8 +43,8 @@ function iplot(pd::PlotData2DTriangulated;
   menu = Makie.Menu(fig, options=menu_options)
 
   # Initialize toggle switches for viewing the mesh
-  toggle_solution_mesh = Makie.Toggle(fig, active=true)
-  toggle_mesh = Makie.Toggle(fig, active=true)
+  toggle_solution_mesh = Makie.Toggle(fig, active=plot_mesh)
+  toggle_mesh = Makie.Toggle(fig, active=plot_mesh)
 
   # Add dropdown menu and toggle switches to the left side of the figure.
   fig[1, 1] = Makie.vgrid!(
@@ -55,7 +55,7 @@ function iplot(pd::PlotData2DTriangulated;
   )
 
   # Create a zoomable interactive axis object on top of which to plot the solution.
-  ax = Makie.LScene(fig[1, 2], scenekw=(show_axis = false,))
+  ax = Makie.LScene(fig[1, 2], scenekw=(show_axis=show_axis,))
 
   # Initialize the dropdown menu to `variable_to_plot_in`
   # Since menu.selection is an Observable type, we need to dereference it using `[]` to set.
@@ -105,14 +105,13 @@ function iplot(pd::PlotData2DTriangulated;
 end
 
 function iplot(u, mesh, equations, solver, cache;
-  solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
-  colormap = default_Makie_colormap())
+               solution_variables=nothing, nvisnodes=2*nnodes(solver), kwargs...)
   @assert ndims(mesh) == 2
 
   pd = PlotData2D(u, mesh, equations, solver, cache;
       solution_variables=solution_variables, nvisnodes=nvisnodes)
 
-  iplot(pd; nvisnodes=nvisnodes, variable_to_plot_in=variable_to_plot_in, colormap=colormap)
+  iplot(pd; nvisnodes=nvisnodes, kwargs...)
 end
 
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
