@@ -24,8 +24,10 @@ Create a coupled semidiscretization that consists of the semidiscretizations con
 function SemidiscretizationCoupled(semis)
   @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
+  _, equations, _, _ = mesh_equations_solver_cache(semis[1])
+
   # Number of coefficients as Vector
-  n_coeffs = semis .|> mesh_equations_solver_cache .|> (x -> n_coefficients(x...)) |> collect
+  n_coeffs = semis .|> (x -> nvariables(equations) * ndofs(x)) |> collect
   u_indices = Vector{UnitRange{Int}}(undef, length(semis))
 
   for i in 1:length(semis)
@@ -200,7 +202,7 @@ end
 function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver) end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg::DG)
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg::DGSEM)
   if direction in (1, 2)
     cell_size = size(mesh, 2)
   else
@@ -210,7 +212,7 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
 end
 
 # In 3D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{5}, direction, mesh, equations, dg::DG)
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{5}, direction, mesh, equations, dg::DGSEM)
   if direction in (1, 2)
     cell_size = (size(mesh, 2), size(mesh, 3))
   elseif direction in (3, 4)

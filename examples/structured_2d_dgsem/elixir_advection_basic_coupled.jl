@@ -13,15 +13,15 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 # First mesh is the left half of a [-1,1]^2 square
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_min1 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
+coordinates_max1 = ( 0.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (8, 16)
+cells_per_dimension1 = (8, 16)
 
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh1 = StructuredMesh(cells_per_dimension1, coordinates_min1, coordinates_max1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
+semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of right mesh
                                        x_neg=BoundaryConditionCoupled(2, (:end, :i_forward), Float64),
@@ -32,14 +32,14 @@ semi1 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_converge
 
 
 # Second mesh is the right half of a [-1,1]^2 square
-coordinates_min = (0.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (1.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_min2 = (0.0, -1.0) # minimum coordinates (min(x), min(y))
+coordinates_max2 = (1.0,  1.0) # maximum coordinates (max(x), max(y))
 
-cells_per_dimension = (8, 16)
+cells_per_dimension2 = (8, 16)
 
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh2 = StructuredMesh(cells_per_dimension2, coordinates_min2, coordinates_max2)
 
-semi2 = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
+semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test, solver,
                                      boundary_conditions=(
                                        # Connect left boundary with right boundary of left mesh
                                        x_neg=BoundaryConditionCoupled(1, (:end, :i_forward), Float64),
