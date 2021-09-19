@@ -7,7 +7,7 @@
 # \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
 # ```
 # in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
-# is encoded as a subtype of [`AbstractEquations`](@ref).
+# is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
 
 # ## Basic setup
   
@@ -74,7 +74,7 @@ ode = semidiscretize(semi, tspan);
 # The `ode` is an `ODEProblem` from the SciML/DifferentialEquations ecosystem.
 # Thus, we can solve this ODE numerically using any time integration method,
 # e.g., `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
-# Before, we set up a [callback](@ref) to summarize the simulation setup.
+# Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
   

@@ -6,7 +6,7 @@ import Pkg
 function create_files(title, file; folder="")
     notebook_filename = first(splitext(file)) * ".ipynb"
     if folder != ""
-        notebook_filename = "$folder/$notebook_filename"
+        notebook_filename = joinpath(folder, notebook_filename)
     end
     
     binder_logo   = "https://mybinder.org/badge_logo.svg"
