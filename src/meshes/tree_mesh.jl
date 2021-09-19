@@ -136,6 +136,8 @@ function initialize!(mesh::TreeMesh, initial_refinement_level,
     # TODO: Taal refactor, use multiple dispatch?
     if patch.type == "box"
       refine_box!(mesh.tree, patch.coordinates_min, patch.coordinates_max)
+    elseif patch.type == "sphere"
+      refine_sphere!(mesh.tree, patch.center, patch.radius)
     else
       error("unknown refinement patch type '$(patch.type)'")
     end
