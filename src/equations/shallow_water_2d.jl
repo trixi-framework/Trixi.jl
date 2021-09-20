@@ -63,7 +63,9 @@ end
 
 have_nonconservative_terms(::ShallowWaterEquations2D) = Val(true)
 varnames(::typeof(cons2cons), ::ShallowWaterEquations2D) = ("h", "h_v1", "h_v2", "b")
-varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("H", "v1", "v2", "b") # total water height: H = h + b
+# Note, we use the total water height, H = h + b, as the first primitive variable for easier
+# visualization and setting initial conditions
+varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("H", "v1", "v2", "b")
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -440,18 +442,20 @@ end
 
 # Helper function to extract the velocity vector from the conservative variables
 @inline function velocity(u, equations::ShallowWaterEquations2D)
-  _, v1, v2, _ = cons2prim(u, equations)
+  h, h_v1, h_v2, _ = u
+
+  v1 = h_v1 / h
+  v2 = h_v2 / h
   return SVector(v1, v2)
 end
 
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::ShallowWaterEquations2D)
-  h, h_v1, h_v2, b = u
+  h, _, _, b = u
 
   H = h + b
-  v1 = h_v1 / h
-  v2 = h_v2 / h
+  v1, v2 = velocity(u, equations)
   return SVector(H, v1, v2, b)
 end
 
@@ -496,18 +500,6 @@ end
 
 @inline function waterheight(u, equations::ShallowWaterEquations2D)
   return u[1]
-end
-
-
-@inline function pressure(u, equations::ShallowWaterEquations2D)
-  h = waterheight(u, equations)
-  p = 0.5 * equations.gravity * h^2
-  return p
-end
-
-
-@inline function waterheight_pressure(u, equations::ShallowWaterEquations2D)
-  return waterheight(u, equations) * pressure(u, equations)
 end
 
 
