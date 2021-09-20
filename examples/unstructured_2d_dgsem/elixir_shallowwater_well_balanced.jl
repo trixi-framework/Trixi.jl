@@ -59,7 +59,7 @@ ode = semidiscretize(semi, tspan)
 # alternative version of the initial conditinon used to setup a truly discontinuous
 # bottom topography function for this academic testcase.
 # The errors from the analysis callback are not important but the error for this lake at rest test case
-# `∑(H0-(h+b))` should be around machine roundoff
+# `∑|H0-(h+b)|` should be around machine roundoff
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set the background values
   H = equations.H0
