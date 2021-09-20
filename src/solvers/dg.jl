@@ -369,11 +369,7 @@ include("dgsem/dgsem.jl")
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
   # cf. wrap_array
-  zeros(eltype(cache.elements), n_coefficients(mesh, equations, dg, cache))
-end
-
-@inline function n_coefficients(mesh::Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh}, equations, dg::DG, cache)
-  nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
 end
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DGSEM, cache)
