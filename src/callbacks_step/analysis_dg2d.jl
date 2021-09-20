@@ -63,8 +63,10 @@ function calc_error_norms(func, u, t, analyzer,
   linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations
-  # Accumulate L2 error on the element first to ensure that the order of summation is the
-  # same as in the parallel case
+  # Accumulate L2 error on the element first so that the order of summation is the
+  # same as in the parallel case to ensure exact equality. This facilitates easier parallel
+  # development and debugging (see
+  # https://github.com/trixi-framework/Trixi.jl/pull/850#pullrequestreview-757463943 for details).
   for element in eachelement(dg, cache)
     # Set up data structures for local element L2 error
     l2_error_local = zero(l2_error)

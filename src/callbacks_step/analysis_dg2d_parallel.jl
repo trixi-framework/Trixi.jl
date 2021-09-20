@@ -8,15 +8,15 @@
 function calc_error_norms(func, u, t, analyzer,
                           mesh::ParallelTreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
-  # call the method accepting a general `mesh::TreeMesh{2}`
-  # TODO: MPI, we should improve this; maybe we should dispatch on `u`
-  #       and create some MPI array type, overloading broadcasting and mapreduce etc.
-  #       Then, this specific array type should also work well with DiffEq etc.
   l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
                                                         mesh, equations, initial_condition,
                                                         dg, cache, cache_analysis)
 
-  # Collect local error norms of all elements on root process
+  # Collect local error norms for each element on root process. That way, when aggregating the L2
+  # errors, the order of summation is the same as in the serial case to ensure exact equality.
+  # This facilitates easier parallel development and debugging (see
+  # https://github.com/trixi-framework/Trixi.jl/pull/850#pullrequestreview-757463943 for details).
+  # Note that this approach does not scale.
   if mpi_isroot()
     global_l2_errors = zeros(eltype(l2_errors), cache.mpi_cache.n_elements_global)
     global_linf_errors = similar(global_l2_errors)
