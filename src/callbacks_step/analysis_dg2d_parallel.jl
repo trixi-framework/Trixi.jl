@@ -16,22 +16,14 @@ function calc_error_norms(func, u, t, analyzer,
                                                         mesh, equations, initial_condition,
                                                         dg, cache, cache_analysis)
 
-  nvars = length(l2_errors[1])
-  T = eltype(l2_errors)
-
-  # Convert errors from Vector of SVectors to Matrix for MPI communication
-  FT = eltype(l2_errors[1])
-  l2_errors = reshape(reinterpret(FT, l2_errors), nvars, :) |> Matrix
-  linf_errors = reshape(reinterpret(FT, linf_errors), nvars, :) |> Matrix
-
   # Collect local error norms of all elements on root process
   if mpi_isroot()
-    global_l2_errors = zeros(eltype(l2_errors), nvars, cache.mpi_cache.n_elements_global)
+    global_l2_errors = zeros(eltype(l2_errors), cache.mpi_cache.n_elements_global)
     global_linf_errors = similar(global_l2_errors)
 
     n_elements_by_rank = parent(cache.mpi_cache.n_elements_by_rank) # convert OffsetArray to Array
-    l2_buf = MPI.VBuffer(global_l2_errors, nvars*n_elements_by_rank)
-    linf_buf = MPI.VBuffer(global_linf_errors, nvars*n_elements_by_rank)
+    l2_buf = MPI.VBuffer(global_l2_errors, n_elements_by_rank)
+    linf_buf = MPI.VBuffer(global_linf_errors, n_elements_by_rank)
     MPI.Gatherv!(l2_errors, l2_buf, mpi_root(), mpi_comm())
     MPI.Gatherv!(linf_errors, linf_buf, mpi_root(), mpi_comm())
   else
@@ -41,15 +33,9 @@ function calc_error_norms(func, u, t, analyzer,
 
   # Aggregate element error norms on root process
   if mpi_isroot()
-    # Convert from Matrix to Vector of SVectors
-    global_l2_errors = reinterpret(T, vec(global_l2_errors))
-    global_linf_errors = reinterpret(T, vec(global_linf_errors))
-
-    # Aggregate element errors
-    # sum(global_l2_errors) does not produce the same result as in the serial case, while
-    # sum(global_l2_errors[:]) produces the same results but leads to unnecessary allocations.
-    # Therefore we use a hand-written loop here
-    l2_error = zero(T)
+    # sum(global_l2_errors) does not produce the same result as in the serial case, thus a
+    # hand-written loop is used
+    l2_error = zero(eltype(global_l2_errors))
     for error in global_l2_errors
       l2_error += error
     end
@@ -59,8 +45,8 @@ function calc_error_norms(func, u, t, analyzer,
     total_volume_ = total_volume(mesh)
     l2_error = @. sqrt(l2_error / total_volume_)
   else
-    l2_error = convert(T, NaN * zero(T))
-    linf_error = convert(T, NaN * zero(T))
+    l2_error = convert(eltype(l2_errors), NaN * zero(eltype(l2_errors)))
+    linf_error = convert(eltype(linf_errors), NaN * zero(eltype(linf_errors)))
   end
 
   return l2_error, linf_error
