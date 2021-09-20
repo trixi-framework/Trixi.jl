@@ -11,6 +11,8 @@ for human readability.
 
 - Experimental support for artificial neural network-based indicators for shock capturing and
   adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
+- Experimental support for direct-hybrid aeroacoustics simulations
+  ([#712](https://github.com/trixi-framework/Trixi.jl/pull/712))
 
 #### Changed
 
