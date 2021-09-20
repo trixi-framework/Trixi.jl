@@ -56,7 +56,7 @@ end
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases
-function ShallowWaterEquations2D(gravity_constant; H0=0.0)
+function ShallowWaterEquations2D(; gravity_constant, H0=0.0)
   ShallowWaterEquations2D(gravity_constant, H0)
 end
 

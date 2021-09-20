@@ -7,7 +7,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function (set in the initial conditions)
 
-equations = ShallowWaterEquations2D(9.81, H0=3.0)
+equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=3.0)
 
 initial_condition = initial_condition_well_balancedness
 
