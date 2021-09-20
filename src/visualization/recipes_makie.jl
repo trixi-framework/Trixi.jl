@@ -13,26 +13,39 @@ struct FigureAndAxes{Axes}
   axes::Axes
 end
 
+# for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
+# Makie.plot(::PlotData2DTriangulated)
+Base.show(io::IO, fa::FigureAndAxes) = nothing
+
+# allows for returning fig, axes = Makie.plot(...)
+function Base.iterate(fa::FigureAndAxes, state=1)
+  if state == 1
+    return (fa.fig, 2)
+  elseif state == 2
+    return (fa.axes, 3)
+  else
+    return nothing
+  end
+end
+
 """
     iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-          solution_variables=nothing, nvisnodes=nnodes(solver), variable_to_plot_in=1,
-          colormap = default_Makie_colormap())
+          plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
+          variable_to_plot_in=1)
 
 Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
 
-Inputs:
-- solution_variables: either `nothing` or a variable transformation function (e.g., `cons2prim`)
-- nvisnodes: number of visualization nodes per dimension
+Keywords:
 - variable_to_plot_in: variable to show by default
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-# Enables `iplot(PlotData2D(sol))`. Note that `nvisnodes=nothing` since
-# `PlotData2DTriangulated` doesn't contain any information about the solver.
+
+# Enables `iplot(PlotData2D(sol))`.
 function iplot(pd::PlotData2DTriangulated;
                plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
-               nvisnodes=nothing, variable_to_plot_in=1)
+               variable_to_plot_in=1)
   @unpack variable_names = pd
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
@@ -68,7 +81,7 @@ function iplot(pd::PlotData2DTriangulated;
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
   # Plot the actual solution.
-  Makie.mesh!(ax, plotting_mesh; color=solution_z, nvisnodes, colormap)
+  Makie.mesh!(ax, plotting_mesh; color=solution_z, colormap)
 
   # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
   wire_points = Makie.@lift(mesh_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
@@ -111,7 +124,7 @@ function iplot(u, mesh, equations, solver, cache;
   pd = PlotData2D(u, mesh, equations, solver, cache;
       solution_variables=solution_variables, nvisnodes=nvisnodes)
 
-  iplot(pd; nvisnodes=nvisnodes, kwargs...)
+  iplot(pd; kwargs...)
 end
 
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
@@ -204,21 +217,6 @@ Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.PlotData2DTriangulated}) = TrixiHe
 function Makie.plot(sol::TrixiODESolution;
                     plot_mesh=false, solution_variables=nothing, colormap=default_Makie_colormap())
   return Makie.plot(PlotData2D(sol; solution_variables); plot_mesh, colormap)
-end
-
-# for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
-# Makie.plot(::PlotData2DTriangulated)
-Base.show(io::IO, fa::FigureAndAxes) = nothing
-
-# allows for returning fig, axes = Makie.plot(...)
-function Base.iterate(fa::FigureAndAxes, state=1)
-  if state == 1
-    return (fa.fig, 2)
-  elseif state == 2
-    return (fa.axes, 3)
-  else
-    return nothing
-  end
 end
 
 function Makie.plot(pd::PlotData2DTriangulated, fig=Makie.Figure();
