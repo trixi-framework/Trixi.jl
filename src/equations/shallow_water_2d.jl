@@ -282,7 +282,10 @@ one. This is different from numerical fluxes used to discretize conservative
 terms.
 
 This contains additional terms compared to [`flux_nonconservative_wintermeyer_etal`](@ref)
-that account for possible discontinuities in the bottom topography function
+that account for possible discontinuities in the bottom topography function.
+Thus, this flux should be used in general at interfaces. For flux differencing volume terms,
+[`flux_nonconservative_wintermeyer_etal`](@ref) is analytically equivalent but slightly
+cheaper.
 
 Further details for the original finite volume formulation are available in
 - Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
@@ -477,8 +480,7 @@ end
 @inline function cons2entropy(u, equations::ShallowWaterEquations2D)
   h, h_v1, h_v2, b = u
 
-  v1 = h_v1 / h
-  v2 = h_v2 / h
+  v1, v2 = velocity(u, equations)
   v_square = v1^2 + v2^2
 
   w1 = equations.gravity * (h + b) - 0.5 * v_square
@@ -558,7 +560,8 @@ end
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
 # be a constant value over time
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations2D)
-  return abs(equations.H0 - (u[1] + u[4]))
+  h, _, _, b = u
+  return abs(equations.H0 - (h + b))
 end
 
 end # @muladd
