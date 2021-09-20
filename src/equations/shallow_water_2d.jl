@@ -217,7 +217,7 @@ end
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized and the bottom topography has no flux
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
-  h = u[1]
+  h = waterheight(u, equations)
   v1, v2 = velocity(u, equations)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
@@ -256,7 +256,7 @@ Further details are available in the paper:
                                                        normal_direction_average::AbstractVector,
                                                        equations::ShallowWaterEquations2D)
   # Pull the necessary left and right state information
-  h_ll = u_ll[1]
+  h_ll = waterheight(u_ll, equations)
   b_rr = u_rr[4]
   # Note this routine only uses the `normal_direction_average` and the average of the
   # bottom topography to get a quadratic split form DG gradient on curved elements
@@ -341,9 +341,9 @@ Details are available in Eq. (4.1) in the paper:
 """
 @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
-  h_ll = u_ll[1]
+  h_ll = waterheight(u_ll, equations)
   v1_ll, v2_ll = velocity(u_ll, equations)
-  h_rr = u_rr[1]
+  h_rr = waterheight(u_rr, equations)
   v1_rr, v2_rr = velocity(u_rr, equations)
 
   v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
@@ -409,9 +409,9 @@ end
 # maximum velocity magnitude plus the maximum speed of sound
 # TODO: This doesn't really use the `orientation` - should it?
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
-  h_ll = u_ll[1]
+  h_ll = waterheight(u_ll, equations)
   v1_ll, v2_ll = velocity(u_ll, equations)
-  h_rr = u_rr[1]
+  h_rr = waterheight(u_rr, equations)
   v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Calculate velocity magnitude and wave celerity on the left and right
@@ -430,9 +430,9 @@ end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::ShallowWaterEquations2D)
-  h_ll = u_ll[1]
+  h_ll = waterheight(u_ll, equations)
   v1_ll, v2_ll = velocity(u_ll, equations)
-  h_rr = u_rr[1]
+  h_rr = waterheight(u_rr, equations)
   v1_rr, v2_rr = velocity(u_rr, equations)
 
   v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
@@ -448,7 +448,7 @@ end
 
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations2D)
-  h = u[1]
+  h = waterheight(u, equations)
   v1, v2 = velocity(u, equations)
 
   c = equations.gravity * sqrt(h)
@@ -518,14 +518,14 @@ end
 
 
 @inline function pressure(u, equations::ShallowWaterEquations2D)
-  h = u[1]
+  h = waterheight(u, equations)
   p = 0.5 * equations.gravity * h^2
   return p
 end
 
 
 @inline function waterheight_pressure(u, equations::ShallowWaterEquations2D)
-  h = u[1]
+  h = waterheight(u, equations)
   h_times_p = 0.5 * equations.gravity * h^3
   return h_times_p
 end
