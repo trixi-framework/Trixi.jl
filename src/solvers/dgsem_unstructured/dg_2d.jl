@@ -432,7 +432,7 @@ end
   #         nonconservative part only depends on `u_inner`, the bottom topography is
   #         assumed continuous at physical boundaries such that the `b_jump` term in
   #         [`flux_nonconservative_fjordholm_etal`](@ref) vanishes.
-  # TODO: test and debug for [`IdealGlmMhdEquations2D`](@ref) when needed
+  # TODO: nonconservative. Test and debug for [`IdealGlmMhdEquations2D`](@ref) when needed
   noncons_flux = nonconservative_flux(u_inner, u_inner, outward_direction, outward_direction, equations)
 
   for v in eachvariable(equations)
