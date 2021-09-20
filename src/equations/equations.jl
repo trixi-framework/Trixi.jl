@@ -247,7 +247,7 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
+mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype<:Real, I}
   # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
   u_boundary       ::Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
   other_semi_index ::Int
@@ -266,7 +266,8 @@ mutable struct BoundaryConditionCoupled{NDIMST2M1, uEltype<:Real, I}
       other_orientation = 3
     end
 
-    new{NDIMS*2-1, uEltype, typeof(indices)}(u_boundary, other_semi_index, other_orientation, indices)
+    new{NDIMS, NDIMS*2-1, uEltype, typeof(indices)}(
+      u_boundary, other_semi_index, other_orientation, indices)
   end
 end
 

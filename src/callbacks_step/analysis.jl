@@ -119,6 +119,7 @@ function AnalysisCallback(semi::SemidiscretizationCoupled; kwargs...)
 end
 
 
+# The SemidiscretizationCoupled needs multiple analyzers (one for each mesh)
 function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
                           interval=0,
                           save_analysis=false,
@@ -238,7 +239,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with ", summary_solver(semi))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(semi))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *

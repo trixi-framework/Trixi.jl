@@ -82,9 +82,9 @@ function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_cont
   println(io, "\n")
 end
 
-function summary_solver(semi::SemidiscretizationCoupled)
+function summary(semi::SemidiscretizationCoupled)
   _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
-  summary(solver)
+  Base.summary(solver)
 end
 
 
@@ -186,6 +186,7 @@ function compute_coefficients(t, semi::SemidiscretizationCoupled)
 end
 
 
+# Don't do anything for other BCs than BoundaryConditionCoupled
 function allocate_coupled_boundary_conditions(boundary_conditions, semi) end
 
 function allocate_coupled_boundary_conditions(boundary_conditions::Union{Tuple, NamedTuple}, semi)
@@ -202,7 +203,7 @@ end
 function allocate_coupled_boundary_condition(boundary_condition, direction, mesh, equations, solver) end
 
 # In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg::DGSEM)
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2}, direction, mesh, equations, dg::DGSEM)
   if direction in (1, 2)
     cell_size = size(mesh, 2)
   else
@@ -212,7 +213,7 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
 end
 
 # In 3D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{5}, direction, mesh, equations, dg::DGSEM)
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{3}, direction, mesh, equations, dg::DGSEM)
   if direction in (1, 2)
     cell_size = (size(mesh, 2), size(mesh, 3))
   elseif direction in (3, 4)
@@ -250,6 +251,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 end
 
 
+# Don't do anything for other BCs than BoundaryConditionCoupled
 function copy_to_coupled_boundary(boundary_condition, u_ode, semi) end
 
 function copy_to_coupled_boundary(boundary_conditions::Union{Tuple, NamedTuple}, u_ode, semi)
@@ -259,7 +261,7 @@ function copy_to_coupled_boundary(boundary_conditions::Union{Tuple, NamedTuple},
 end
 
 # In 2D
-function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3}, u_ode, semi)
+function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{2}, u_ode, semi)
   @unpack u_indices = semi
   @unpack other_semi_index, other_orientation, indices = boundary_condition
 
@@ -305,7 +307,7 @@ end
 
 
 # In 3D
-function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{5}, u_ode, semi)
+function copy_to_coupled_boundary(boundary_condition::BoundaryConditionCoupled{3}, u_ode, semi)
   @unpack u_indices = semi
   @unpack other_semi_index, other_orientation, indices = boundary_condition
 
