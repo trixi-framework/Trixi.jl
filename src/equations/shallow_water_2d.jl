@@ -525,9 +525,7 @@ end
 
 
 @inline function waterheight_pressure(u, equations::ShallowWaterEquations2D)
-  h = waterheight(u, equations)
-  h_times_p = 0.5 * equations.gravity * h^3
-  return h_times_p
+  return waterheight(u, equations) * pressure(u, equations)
 end
 
 
