@@ -142,8 +142,7 @@ export initial_condition_constant,
        initial_condition_orszag_tang,
        initial_condition_rotor,
        initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex,
-       initial_condition_well_balancedness
+       initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,

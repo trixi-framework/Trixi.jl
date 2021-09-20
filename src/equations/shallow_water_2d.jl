@@ -68,24 +68,6 @@ varnames(::typeof(cons2prim), ::ShallowWaterEquations2D) = ("H", "v1", "v2", "b"
 
 # Set initial conditions at physical location `x` for time `t`
 """
-    initial_condition_constant(x, t, equations::ShallowWaterEquations2D)
-
-A constant initial condition to test free-stream preservation / well-balancedness.
-"""
-function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
-  # Set the background values
-  H = equations.H0
-  v1 = 0.0
-  v2 = 0.0
-  # bottom topography taken from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
-  x1, x2 = x
-  b = (  1.5 / exp( 0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2) )
-       + 0.75 / exp( 0.5 * ((x1 + 1.0)^2 + (x2 + 1.0)^2) ) )
-  return prim2cons(SVector(H, v1, v2, b), equations)
-end
-
-
-"""
     initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
 
 A smooth initial condition used for convergence tests in combination with

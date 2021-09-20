@@ -9,6 +9,19 @@ using Trixi
 
 equations = ShallowWaterEquations2D(gravity_constant=1.0, H0=3.0)
 
+# An initial condition with constant total water height and zero velocities to test well-balancedness.
+function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
+  # Set the background values
+  H = equations.H0
+  v1 = 0.0
+  v2 = 0.0
+  # bottom topography taken from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
+  x1, x2 = x
+  b = (  1.5 / exp( 0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2) )
+       + 0.75 / exp( 0.5 * ((x1 + 1.0)^2 + (x2 + 1.0)^2) ) )
+  return prim2cons(SVector(H, v1, v2, b), equations)
+end
+
 initial_condition = initial_condition_well_balancedness
 
 boundary_condition_constant = BoundaryConditionDirichlet(initial_condition)
