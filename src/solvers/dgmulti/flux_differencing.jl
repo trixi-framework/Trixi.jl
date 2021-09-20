@@ -313,8 +313,8 @@ end
 # normal components. This implies that operators for different coordinate directions have
 # different sparsity patterns. We default to using sum factorization (which is faster when
 # operators are sparse) for all `<:Polynomial` approximation types.
+@inline has_sparse_operators(element_type, approx_type::Polynomial) = Val{true}()
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
-@inline has_sparse_operators(element_type, approx_type::AT) where {AT <: Polynomial} = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
@@ -381,14 +381,14 @@ function calc_volume_integral!(du, u, volume_integral,
   @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq, Qrst_skew = cache
   @unpack volume_flux = volume_integral
 
+  flux_is_symmetric = Val{true}()
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
     u_local = view(u, :, e)
 
-    # Val{true} indicates flux is symmetric
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             Val{true}(), volume_flux,
+                             flux_is_symmetric, volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
