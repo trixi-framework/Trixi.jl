@@ -386,7 +386,7 @@ end
   # get the external solution values from the prescribed external state
   x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
 
-  # Call pointwise numerical flux function in the rotated direction on the boundary
+  # Call pointwise numerical flux function in the normal direction on the boundary
   flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
 
   for v in eachvariable(equations)
@@ -419,7 +419,7 @@ end
   x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
 
   # Call pointwise numerical flux function for the conservative part
-  # in the rotated direction on the boundary
+  # in the normal direction on the boundary
   flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
 
   # Compute pointwise nonconservative numerical flux at the boundary.
@@ -429,8 +429,9 @@ end
   # `outward_direction` twice.
   # Note 1: This does not set any type of boundary condition for the nonconservative term
   # Note 2: Only tested for [`ShallowWaterEquations2D`](@ref) where the necessary
-  #         nonconservative part only depends on `u_inner`, the discontinuous bottom term
-  #         is assumed to vanish at physical boundaries
+  #         nonconservative part only depends on `u_inner`, the bottom topography is
+  #         assumed continuous at physical boundaries such that the `b_jump` term in
+  #         [`flux_nonconservative_fjordholm_etal`](@ref) vanishes.
   # TODO: test and debug for [`IdealGlmMhdEquations2D`](@ref) when needed
   noncons_flux = nonconservative_flux(u_inner, u_inner, outward_direction, outward_direction, equations)
 
