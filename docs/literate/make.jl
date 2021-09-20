@@ -2,8 +2,8 @@ using Literate: Literate
 using Test: @testset
 import Pkg
 
-# Function to create markdown and notebook files for specific file
-function create_files(title, file; folder="")
+# Create markdown and notebook file for `file`
+function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder="")
     notebook_filename = first(splitext(file)) * ".ipynb"
     if folder != ""
         notebook_filename = joinpath(folder, notebook_filename)
@@ -22,66 +22,67 @@ function create_files(title, file; folder="")
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
     download_badge = "# [![]($download_logo)]($download_url)"
     
-    # Generate notebooks
+    # Generate notebook file
     function preprocess_notebook(content)
         return string("# # $title\n\n", content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
 
-    # Generate markdowns
+    # Generate markdown file
     function preprocess_docs(content)
         return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $download_badge\n\n", content)
     end
     Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs,)
-
-    @testset "TrixiTutorials $title" begin include(joinpath(repo_src, folder, file)) end
-
 end
 
-# Creating tutorials for the following files:
-# Normal structure: "title" => "filename.jl"
-# If there are several files for one topic and folder, the structure is:
-#   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
-#               "subtitle 2" => ("folder 2", "filename 2.jl")]
-files = [
-    "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations_literate", "cubic_conservation_law_literate.jl"),
-                                "Nonconservative equation" => ("adding_new_equations_literate", "nonconservative_advection_literate.jl")],
-    "Differentiable programming" => "differentiable_programming_literate.jl",
-    ]
+# Create tutorials with Literate.jl
+function create_tutorials(files)
+    repo_src        = joinpath(@__DIR__, "src", "files")
 
-repo_src        = joinpath(@__DIR__, "src", "files")
+    pages_dir       = joinpath(@__DIR__, "..", "src", "tutorials")
+    notebooks_dir   = joinpath(@__DIR__, "src", "notebooks")
 
-pages_dir       = joinpath(@__DIR__, "..", "src", "tutorials")
-notebooks_dir   = joinpath(@__DIR__, "src", "notebooks")
+    Sys.rm(pages_dir;       recursive=true, force=true)
+    Sys.rm(notebooks_dir;   recursive=true, force=true)
 
-Sys.rm(pages_dir;       recursive=true, force=true)
-Sys.rm(notebooks_dir;   recursive=true, force=true)
-
-
-# Generate markdown for index.jl
-Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate")
-# Navigation system for makedocs
-pages = Any["Introduction" => "tutorials/introduction_literate.md",]
-
-# Create markdown and notebook files for tutorials.
-for (i, (title, filename)) in enumerate(files)
-    # Several files of one topic are created seperately and pushed to `pages` together.
-    if filename isa Vector
-        vector = []
-        for j in eachindex(filename)
-            create_files("$i.$j: $title: $(filename[j][1])", filename[j][2][2]; folder=filename[j][2][1])
-
-            path = "$(filename[j][2][1])/$(splitext(filename[j][2][2])[1]).md"
-            push!(vector, "$i.$j $(filename[j][1])" => "tutorials/$path")
+    # Run tests on all tutorial files
+    @testset "TrixiTutorials" begin
+        for (i, (title, filename)) in enumerate(files)
+            if filename isa Vector # Several files of one topic
+                for j in eachindex(filename)
+                    @testset "$(filename[j][2][2])" begin include(joinpath(repo_src, filename[j][2][1], filename[j][2][2])) end
+                end
+            else # Single files
+                @testset "$title" begin include(joinpath(repo_src, filename)) end
+            end
         end
-        # Add to navigation menu
-        push!(pages, ("$i $title" => vector))
-    else # Single files
-        create_files("$i: $title", filename)
-        # Add to navigation menu
-        path = "$(splitext(filename)[1]).md"
-        push!(pages, ("$i $title" => "tutorials/$path"))
     end
-end
 
-return pages
+    # Generate markdown file for introduction page
+    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate")
+    # Navigation system for makedocs
+    pages = Any["Introduction" => "tutorials/introduction_literate.md",]
+
+    # Create markdown and notebook files for tutorials
+    for (i, (title, filename)) in enumerate(files)
+        # Several files of one topic are created seperately and pushed to `pages` together.
+        if filename isa Vector
+            vector = []
+            for j in eachindex(filename)
+                create_files("$i.$j: $title: $(filename[j][1])", filename[j][2][2], repo_src, pages_dir, notebooks_dir; folder=filename[j][2][1])
+
+                path = "$(filename[j][2][1])/$(splitext(filename[j][2][2])[1]).md"
+                push!(vector, "$i.$j $(filename[j][1])" => "tutorials/$path")
+            end
+            # Add to navigation menu
+            push!(pages, ("$i $title" => vector))
+        else # Single files
+            create_files("$i: $title", filename, repo_src, pages_dir, notebooks_dir)
+            # Add to navigation menu
+            path = first(splitext(filename)) * ".md"
+            push!(pages, ("$i $title" => "tutorials/$path"))
+        end
+    end
+
+    return pages
+end
