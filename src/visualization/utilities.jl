@@ -1227,8 +1227,8 @@ end
 
 # Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
-function mesh_plotting_wireframe(pds::PlotDataSeries{<:PlotData2DTriangulated};
-                                 set_z_coordinate_zero = false)
+function convert_PlotData2D_to_mesh_Points(pds::PlotDataSeries{<:PlotData2DTriangulated};
+                                           set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
   @unpack x_face, y_face, face_data = pd
@@ -1277,10 +1277,10 @@ function global_plotting_triangulation_makie(pd::PlotData2DTriangulated{<:Scalar
   return plotting_mesh
 end
 
-# Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
+# Returns a list of `GeometryBasics.Point`s which can be used to plot the mesh, or a solution "wireframe"
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
-function mesh_plotting_wireframe(pd::PlotData2DTriangulated{<:ScalarData};
-                                 set_z_coordinate_zero = false)
+function convert_PlotData2D_to_mesh_Points(pd::PlotData2DTriangulated{<:ScalarData};
+                                           set_z_coordinate_zero = false)
   @unpack x_face, y_face, face_data = pd
 
   if set_z_coordinate_zero

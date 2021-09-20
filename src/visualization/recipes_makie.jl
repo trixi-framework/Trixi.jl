@@ -84,7 +84,7 @@ function iplot(pd::PlotData2DTriangulated;
   Makie.mesh!(ax, plotting_mesh; color=solution_z, colormap)
 
   # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
-  wire_points = Makie.@lift(mesh_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
+  wire_points = Makie.@lift(convert_PlotData2D_to_mesh_Points(getindex(pd, variable_names[$(menu.selection)])))
   wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
   wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
   Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
@@ -159,7 +159,7 @@ function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
   plt = Makie.mesh!(ax, plotting_mesh; color=solution_z, colormap)
 
   if plot_mesh
-    wire_points = mesh_plotting_wireframe(pd)
+    wire_points = convert_PlotData2D_to_mesh_Points(pd)
     wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
     wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
     Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
@@ -203,7 +203,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
   end
 
   if plot_mesh
-    xyz_wireframe = mesh_plotting_wireframe(pds; set_z_coordinate_zero = true)
+    xyz_wireframe = convert_PlotData2D_to_mesh_Points(pds; set_z_coordinate_zero = true)
     Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
   end
 
