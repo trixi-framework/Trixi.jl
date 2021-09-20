@@ -307,7 +307,7 @@ end
 end
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{true}()
+@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
 
 # Polynomial-based solvers use hybridized SBP operators, which have blocks scaled by outward
 # normal components. This implies that operators for different coordinate directions have
