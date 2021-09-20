@@ -336,9 +336,9 @@ end
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          flux_is_symmetric, volume_flux::Flux,
+                                          flux_is_symmetric, volume_flux,
                                           has_sparse_operators::Val{true}, mesh,
-                                          equations, dg, cache) where {Flux}
+                                          equations, dg, cache)
   @unpack Qrst_skew, sparsity_patterns = cache
   for dim in eachdim(mesh)
     # There are two ways to write this flux differencing discretization on affine meshes.
