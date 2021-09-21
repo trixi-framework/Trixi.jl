@@ -136,7 +136,12 @@ function max_dt(u, t, mesh::AbstractMeshData,
     end
     dt_min = min(dt_min, h_e / sum(max_speeds))
   end
-  return 2.0 * dt_min / StartUpDG.inverse_trace_constant(rd)
+  # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+  # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+  # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+  # the number of 1D nodes for `DGSEM` solvers.
+  polydeg = rd.N
+  return 2.0 * dt_min / (polydeg + 1)
 end
 
 # interpolates from solution coefficients to face quadrature points
