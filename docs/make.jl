@@ -23,7 +23,7 @@ write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
 
-# Creating tutorials for the following files:
+# Create tutorials for the following files:
 # Normal structure: "title" => "filename.jl"
 # If there are several files for one topic and one folder, the structure is:
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),

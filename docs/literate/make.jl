@@ -2,7 +2,7 @@ using Literate: Literate
 using Test: @testset
 import Pkg
 
-# Create markdown and notebook file for `file`
+# Create markdown and notebook files for `file`
 function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder="")
     notebook_filename = first(splitext(file)) * ".ipynb"
     if folder != ""
@@ -69,7 +69,8 @@ function create_tutorials(files)
         if filename isa Vector
             vector = []
             for j in eachindex(filename)
-                create_files("$i.$j: $title: $(filename[j][1])", filename[j][2][2], repo_src, pages_dir, notebooks_dir; folder=filename[j][2][1])
+                create_files("$i.$j: $title: $(filename[j][1])", filename[j][2][2], repo_src,
+                             pages_dir, notebooks_dir; folder=filename[j][2][1])
 
                 path = "$(filename[j][2][1])/$(splitext(filename[j][2][2])[1]).md"
                 push!(vector, "$i.$j $(filename[j][1])" => "tutorials/$path")
