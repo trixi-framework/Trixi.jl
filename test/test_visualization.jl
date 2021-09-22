@@ -290,11 +290,22 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
-    @test_nowarn_debug Trixi.iplot(sol) # test interactive surface plot
-    @test_nowarn_debug Makie.plot(sol, plot_mesh=true) # test heatmap plot
 
-    fa = Makie.plot(sol) # test heatmap plot
-    fig, axes = fa # test unpacking/iteration for FigureAndAxes
+    # test interactive surface plot
+    @test_nowarn_debug Trixi.iplot(sol)
+
+    # test interactive ScalarPlotData2D plotting
+    semi = sol.prob.p
+    x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates
+    y = view(semi.cache.elements.node_coordinates, 2, :, :, :); # extracts the node x coordinates
+    @test_nowarn_debug iplot(ScalarPlotData2D(x.+y, semi), plot_mesh=true)
+
+    # test heatmap plot
+    @test_nowarn_debug Makie.plot(sol, plot_mesh=true)
+
+    # test unpacking/iteration for FigureAndAxes
+    fa = Makie.plot(sol)
+    fig, axes = fa
     @test_nowarn_debug Base.show(fa) === nothing
     @test_nowarn_debug typeof(fig) <: Makie.Figure
     @test_nowarn_debug typeof(axes) <: AbstractArray{<:Makie.Axis}
