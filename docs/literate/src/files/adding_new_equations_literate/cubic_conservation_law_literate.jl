@@ -134,7 +134,6 @@ ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
-#src # ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
 
 # You can observe that nonclassical shocks develop and are stable under grid refinement,
 # e.g. for `initial_refinement_level=12`. In this case, these nonclassical shocks
@@ -154,7 +153,6 @@ ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
-#src # ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
 
 # Possible next steps could be
 # - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`

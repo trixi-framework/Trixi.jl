@@ -129,9 +129,7 @@ summary_callback()
 using Plots: plot
 plot(sol)
 
-#md # You see a plot of the final solution.
-#nb # Now, you should see a plot of the final solution.
-#src # ![tutorial_nonconservative_advection](https://user-images.githubusercontent.com/12693098/124343365-1f9a9300-dbcb-11eb-93a5-0f75db2a99f8.png)
+# You see a plot of the final solution.
     
 # We can check whether everything fits together by refining the grid and comparing
 # the numerical errors. First, we look at the error using the grid resolution

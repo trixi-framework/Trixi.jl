@@ -197,12 +197,10 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 #-
-#src No doctest for return "energy_at_final_time (generic function with 1 method)"
 k_values = range(0.9, 1.1, length=101)
 @test k_values == 0.9:0.002:1.1 #src
 #-
 plot(k_values, energy_at_final_time.(k_values), label="Energy")
-#src # ![tutorial_totalenergy](https://user-images.githubusercontent.com/74359358/126673315-15fc87a9-d236-4216-876f-5f1d3219595a.png)
 
 # You see a plot of a curve that resembles a parabola with local maximum around `k = 1.0`.
 # Why's that? Well, the domain is fixed but the wave number changes. Thus, if the wave number is
@@ -330,7 +328,6 @@ ode = semidiscretize(semi, (0.0, 1.5));
 sol = solve(ode, BS3(), save_everystep=false);
 
 plot(sol);
-#src # Plot{Plots.GRBackend() n=1} TODO
 
 # You should see a plot like the following, where small error bars are shown around
 # the extrema and larger error bars are shown in the remaining parts.
