@@ -5,7 +5,7 @@ import Pkg
 # Create markdown and notebook files for `file`
 function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder="")
     notebook_filename = first(splitext(file)) * ".ipynb"
-    if folder != ""
+    if !isempty(folder)
         notebook_filename = joinpath(folder, notebook_filename)
     end
     
@@ -13,7 +13,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     nbviewer_logo = "https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg"
     download_logo = "https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e"
 
-    # TODO: Fix the links for tutorials in Trixi, not TrixiTutorials
+    # TODO: tutorials. Fix the links for tutorials in Trixi, not TrixiTutorials
     binder_url   = "https://mybinder.org/v2/gh/trixi-framework/TrixiTutorials/gh-pages?filepath=dev/notebooks/$notebook_filename"
     nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/TrixiTutorials/blob/gh-pages/dev/notebooks/$notebook_filename"
     download_url = "https://raw.githubusercontent.com/trixi-framework/TrixiTutorials/gh-pages/dev/notebooks/$notebook_filename"
