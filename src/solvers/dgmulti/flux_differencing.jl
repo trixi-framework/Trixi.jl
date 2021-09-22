@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-#   hadamard_sum!(du, A, flux_is_symmetric, volume_flux, 
+#   hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
 #                 orientation_or_normal_direction, u, equations, sparsity_pattern)
 #
 # Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`.
@@ -384,14 +384,14 @@ function calc_volume_integral!(du, u, volume_integral,
   @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq, Qrst_skew = cache
   @unpack volume_flux = volume_integral
 
-  flux_is_symmetric = Val{true}()
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
     u_local = view(u, :, e)
 
+    # Val{true} indicates flux is symmetric
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             flux_is_symmetric, volume_flux,
+                             Val{true}(), volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
