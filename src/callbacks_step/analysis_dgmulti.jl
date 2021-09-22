@@ -87,14 +87,16 @@ function compute_local_divergence!(local_divergence, element, vector_field,
   end
 end
 
+get_component(u::StructArray, i::Int) = StructArrays.component(u, i)
+get_component(u::AbstractArray{<:SVector}, i::Int) = getindex.(u, i)
+
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
   @unpack md = mesh
   rd = dg.basis
-
-  B1 = StructArrays.component(u, 6)
-  B2 = StructArrays.component(u, 7)
+  B1 = get_component(u, 6)
+  B2 = get_component(u, 7)
   B = (B1, B2)
 
   uEltype = eltype(B1)
@@ -115,8 +117,8 @@ end
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
-  B1 = StructArrays.component(u, 6)
-  B2 = StructArrays.component(u, 7)
+  B1 = get_component(u, 6)
+  B2 = get_component(u, 7)
   B = (B1, B2)
 
   uEltype = eltype(B1)
