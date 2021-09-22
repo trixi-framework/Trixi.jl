@@ -42,10 +42,9 @@
 end
 
 # Version for dense matrices and non-symmetric fluxes
-@inline function hadamard_sum!(du, A,
+@inline function hadamard_sum!(du, sparsity_pattern::Nothing, A,
                                flux_is_symmetric::Val{false}, volume_flux,
-                               orientation, u, equations,
-                               sparsity_pattern::Nothing)
+                               orientation, u, equations)
   rows, cols = axes(A)
   for i in rows
     u_i = u[i]
@@ -59,10 +58,9 @@ end
 end
 
 # Version for symmetric fluxes and sparse operators
-@inline function hadamard_sum!(du, A,
+@inline function hadamard_sum!(du, sparsity_pattern::AbstractSparseMatrix{Bool}, A,
                                flux_is_symmetric::Val{true}, volume_flux,
-                               orientation, u, equations,
-                               sparsity_pattern::AbstractSparseMatrix{Bool})
+                               orientation, u, equations)
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
   for i in Base.OneTo(n)
@@ -85,10 +83,9 @@ end
 end
 
 # Version for non-symmetric fluxes and sparse operators
-@inline function hadamard_sum!(du, A,
+@inline function hadamard_sum!(du, sparsity_pattern::AbstractSparseMatrix{Bool}, A,
                                flux_is_symmetric::Val{false}, volume_flux,
-                               orientation, u, equations,
-                               sparsity_pattern::AbstractSparseMatrix{Bool})
+                               orientation, u, equations)
   n = size(sparsity_pattern, 2)
   rows = rowvals(sparsity_pattern)
   for i in Base.OneTo(n)
@@ -329,9 +326,9 @@ end
   @unpack sparsity_pattern = cache
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
-    hadamard_sum!(fluxdiff_local, Qi_skew,
+    hadamard_sum!(fluxdiff_local, sparsity_pattern, Qi_skew,
                   flux_is_symmetric, volume_flux,
-                  dim, u_local, equations, sparsity_pattern)
+                  dim, u_local, equations)
   end
 end
 
@@ -353,8 +350,8 @@ end
     # The first option can be implemented using
     #
     #   Q_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
-    #   hadamard_sum!(fluxdiff_local, Q_skew, flux_is_symmetric, volume_flux, dim,
-    #                 u_local, equations, sparsity_pattern)
+    #   hadamard_sum!(fluxdiff_local, sparsity_pattern, Q_skew, flux_is_symmetric, volume_flux, dim,
+    #                 u_local, equations)
     #
     # with `sparsity_pattern === cache.sparsity_pattern`.
     # However, this option makes it necessary to sum up the individual
@@ -370,9 +367,9 @@ end
 
     # Use a `sparsity_pattern` to dispatch `hadamard_sum!`.
     # For all elements, `sparsity_pattern::AbstractSparseMatrix{Bool}`.
-    hadamard_sum!(fluxdiff_local, Q_skew,
+    hadamard_sum!(fluxdiff_local, sparsity_pattern, Q_skew,
                   flux_is_symmetric, volume_flux,
-                  normal_direction, u_local, equations, sparsity_pattern)
+                  normal_direction, u_local, equations)
   end
 end
 
@@ -462,9 +459,9 @@ function calc_volume_integral!(du, u, volume_integral, mesh,
       half_Q_skew = LazyMatrixLinearCombo((Q_skew, ), (0.5, ))
 
       # Val{false}() indicates the flux is non-symmetric
-      hadamard_sum!(fluxdiff_local, half_Q_skew,
+      hadamard_sum!(fluxdiff_local, sparsity_pattern, half_Q_skew,
                     Val{false}(), flux_nonconservative,
-                    dim, u_local, equations, sparsity_pattern)
+                    dim, u_local, equations)
     end
 
     # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
