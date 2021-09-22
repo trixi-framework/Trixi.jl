@@ -391,24 +391,20 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-# TODO: This doesn't really use the `orientation` - should it?
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
-  h_ll = waterheight(u_ll, equations)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
+  # Extract and compute the velocities in the normal direction
   v1_ll, v2_ll = velocity(u_ll, equations)
-  h_rr = waterheight(u_rr, equations)
   v1_rr, v2_rr = velocity(u_rr, equations)
+  v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
-  # Calculate velocity magnitude and wave celerity on the left and right
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+  # Compute the wave celerity on the left and right
+  h_ll = waterheight(u_ll, equations)
+  h_rr = waterheight(u_rr, equations)
   c_ll = sqrt(equations.gravity * h_ll)
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
   c_rr = sqrt(equations.gravity * h_rr)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-end
-
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
-  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
+  return (max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)) * norm(normal_direction)
 end
 
 
