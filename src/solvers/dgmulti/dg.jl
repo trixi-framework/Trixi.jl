@@ -141,7 +141,7 @@ function max_dt(u, t, mesh::AbstractMeshData,
   # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
   # the number of 1D nodes for `DGSEM` solvers.
   polydeg = rd.N
-  return 2.0 * dt_min / (polydeg + 1)
+  return 2 * dt_min / (polydeg + 1)
 end
 
 # interpolates from solution coefficients to face quadrature points
