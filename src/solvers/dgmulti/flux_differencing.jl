@@ -119,7 +119,7 @@ end
 end
 
 @inline function build_lazy_physical_derivative(element, orientation,
-                                        mesh::VertexMappedMesh{3}, dg, cache)
+                                                mesh::VertexMappedMesh{3}, dg, cache)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   if orientation == 1
