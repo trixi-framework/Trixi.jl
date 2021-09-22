@@ -4,7 +4,8 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-#   hadamard_sum!(du, A, volume_flux, orientation, u, equations, sparsity_pattern)
+#   hadamard_sum!(du, A, flux_is_symmetric, volume_flux, 
+#                 orientation_or_normal_direction, u, equations, sparsity_pattern)
 #
 # Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`.
 # Called by `local_flux_differencing` to compute local contributions to flux differencing
@@ -17,10 +18,9 @@
 #                       operator is fully dense.
 
 # Version for symmetric fluxes and dense operators
-@inline function hadamard_sum!(du, A,
+@inline function hadamard_sum!(du, sparsity_pattern::Nothing, A,
                                flux_is_symmetric::Val{true}, volume_flux,
-                               orientation, u, equations,
-                               sparsity_pattern::Nothing)
+                               orientation, u, equations)
 
   rows, cols = axes(A)
   for i in rows
@@ -51,8 +51,8 @@ end
     u_i = u[i]
     du_i = du[i]
     for j in cols
-        AF_ij = A[i,j] * volume_flux(u_i, u[j], orientation, equations)
-        du_i = du_i + AF_ij
+        f_ij = volume_flux(u_i, u[j], orientation, equations)
+        du_i = du_i + A[i,j] * f_ij
     end
     du[i] = du_i
   end
@@ -108,7 +108,7 @@ end
 # We use a lazy evaluation of physical differentiation operators, so that we can compute linear
 # combinations of differentiation operators on-the-fly in an allocation-free manner.
 @inline function build_lazy_physical_derivative(element, orientation,
-                                        mesh::VertexMappedMesh{2}, dg, cache)
+                                                mesh::VertexMappedMesh{2}, dg, cache)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   if orientation == 1
@@ -300,7 +300,7 @@ end
 
 
 # Trait-like system to dispatch based on whether or not the SBP operators are sparse.
-# Designed to be extendable to include specialized approximation_types too.
+# Designed to be extendable to include specialized `approximation_types` too.
 @inline function has_sparse_operators(dg::DGMultiFluxDiff)
   rd = dg.basis
   return has_sparse_operators(rd.elementType, rd.approximationType)
@@ -314,6 +314,9 @@ end
 # different sparsity patterns. We default to using sum factorization (which is faster when
 # operators are sparse) for all `<:Polynomial` approximation types.
 @inline has_sparse_operators(element_type, approx_type::Polynomial) = Val{true}()
+
+# SBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
+# more efficient and we use the sparsity structure.
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
@@ -349,8 +352,8 @@ end
     #
     # The first option can be implemented using
     #
-    #   Q_skew = build_lazy_physical_derivative(e, dim, mesh, dg, cache)
-    #   hadamard_sum!(fluxdiff_local, Q_skew, volume_flux, dim,
+    #   Q_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
+    #   hadamard_sum!(fluxdiff_local, Q_skew, flux_is_symmetric, volume_flux, dim,
     #                 u_local, equations, sparsity_pattern)
     #
     # with `sparsity_pattern === cache.sparsity_pattern`.
@@ -456,7 +459,7 @@ function calc_volume_integral!(du, u, volume_integral, mesh,
 
       # Scale the non-conservative part (it doesn't include 1/2 factor for a central flux).
       # This effectively removes the multiplication by two included in `Qi_skew`.
-      half_Q_skew = LazyMatrixLinearCombo(tuple(Q_skew), tuple(0.5))
+      half_Q_skew = LazyMatrixLinearCombo((Q_skew, ), (0.5, ))
 
       # Val{false}() indicates the flux is non-symmetric
       hadamard_sum!(fluxdiff_local, half_Q_skew,
