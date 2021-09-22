@@ -67,8 +67,8 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
 
   @testset "UnstructuredMesh" begin
-    @trixi_testset "elixir_ape_gauss_wall.jl" begin
-      @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_ape_gauss_wall.jl"),
+    @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_acoustics_gauss_wall.jl"),
         l2   = [0.029331247985489625, 0.02934616721732521, 0.03803253571320854, 0.0,
                 7.465932985352019e-16, 1.4931865970704038e-15, 1.4931865970704038e-15],
         linf = [0.3626825396196784, 0.3684490307932018, 0.8477478712580901, 0.0,
