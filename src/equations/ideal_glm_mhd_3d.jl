@@ -622,25 +622,27 @@ end
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
 
-  norm_squared = (normal_direction[1] * normal_direction[1] +
-                  normal_direction[2] * normal_direction[2] +
-                  normal_direction[3] * normal_direction[3])
-
-  # Calculate velocities and fast magnetoacoustic wave speeds
+  # Calculate normal velocities and fast magnetoacoustic wave speeds
   # left
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt((v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll) * norm_squared)
+  v_ll = (  v1_ll * normal_direction[1]
+          + v2_ll * normal_direction[2]
+          + v3_ll * normal_direction[3] )
   cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt((v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr) * norm_squared)
+  v_rr = (  v1_rr * normal_direction[1]
+          + v2_rr * normal_direction[2]
+          + v3_rr * normal_direction[3] )
   cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
 
-  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  # Only the velocity needs scaled by norm(normal_direction)
+  # wave speeds already scaled in [`calc_fast_wavespeed`](@ref)
+  return max(abs(v_ll), abs(v_rr)) * norm(normal_direction) + max(cf_ll, cf_rr)
 end
 
 
