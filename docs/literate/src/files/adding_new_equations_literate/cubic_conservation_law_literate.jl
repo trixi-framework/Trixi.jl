@@ -83,18 +83,13 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
   
 ## Print the timer summary
-summary_callback()
-#src # TODO summary_callback() is printing summary automatically (even with ;)
+## summary_callback()
 
 # That's it, you ran your first simulation using your new equation with Trixi! Now,
 # we can plot the solution at the final time using Plots.jl.
 
 using Plots
 plot(sol)
-#src # TODO: In the static tutorial version the plot (1) is slighly different than the executed one (1b).
-#src # Storing the link for possible changes.
-#src # ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
-#src # ![tutorial_adding_new_equations_plot1b](https://user-images.githubusercontent.com/74359358/126663757-b8fb3ecb-72c8-4246-ab64-2bb4dbdf621a.png)
 
 # You can already see that discontinuities will develop and oscillations start to
 # occur around steep parts of the wave. That's expected from our central discretization.
@@ -120,10 +115,6 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback()
 plot!(sol)
-#src # TODO: In the static tutorial version the plot (2) is slighly different than the executed one (2b).
-#src # Storing the link for possible changes.
-#src # ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
-#src # ![tutorial_adding_new_equations_plot2b](https://user-images.githubusercontent.com/74359358/126664312-e2f2fc93-42b0-4082-a009-b4268b15ff21.png)
 
 # You can see that there are fewer oscillations, in particular around steep edges.
 # Now let's increase the final time (and also the spatial resolution).
