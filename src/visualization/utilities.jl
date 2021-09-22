@@ -108,11 +108,11 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, c
 
   # Construct 1D plotting interpolation matrix `Vp1D` for a single face
   @unpack N, Fmask = rd
-  vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
+  num_face_points = length(Fmask) ÷ num_faces(rd.elementType)
+  vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), num_face_points - 1))
   rplot = LinRange(-1, 1, nvisnodes)
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
-  num_face_points = N+1
   num_faces_total = num_faces(rd.elementType) * md.num_elements
   xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
   uf = similar(u, size(xf))
