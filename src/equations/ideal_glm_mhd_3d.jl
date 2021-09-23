@@ -640,9 +640,8 @@ end
           + v3_rr * normal_direction[3] )
   cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
 
-  # Only the velocity needs scaled by norm(normal_direction)
-  # wave speeds already scaled in [`calc_fast_wavespeed`](@ref)
-  return max(abs(v_ll), abs(v_rr)) * norm(normal_direction) + max(cf_ll, cf_rr)
+  # wave speeds already scaled by norm(normal_direction) in [`calc_fast_wavespeed`](@ref)
+  return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 
