@@ -496,6 +496,8 @@ pretty_form_ascii(::Val{:l2_divb}) = "l2_divb"
 pretty_form_utf(::Val{:linf_divb}) = "L∞ ∇⋅B"
 pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
+pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
+pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
 
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
