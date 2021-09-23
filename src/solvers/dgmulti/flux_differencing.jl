@@ -114,7 +114,7 @@ end
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
-  scaling = operator_scaling * 2.0
+  scaling = 2 * operator_scaling
   if orientation == 1
     return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element], sxJ[1,element]))
   else # if orientation == 2
@@ -127,7 +127,7 @@ end
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
-  scaling = operator_scaling * 2.0
+  scaling = 2 * operator_scaling
   if orientation == 1
     return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element], sxJ[1,element], txJ[1,element]))
   elseif orientation == 2
