@@ -4,8 +4,9 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-#   hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
-#                 orientation_or_normal_direction, u, equations, sparsity_pattern)
+#   hadamard_sum!(du, sparsity_pattern, A,
+#                 flux_is_symmetric, volume_flux,
+#                 orientation_or_normal_direction, u, equations)
 #
 # Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`.
 # Called by `local_flux_differencing` to compute local contributions to flux differencing
@@ -13,6 +14,7 @@
 #
 # - `du`, `u` are vectors
 # - `A` is the skew-symmetric flux differencing matrix.
+# - `flux_is_symmetric` is a `Val{<:Bool}` indicating if f(u_i, u_j) = f(u_j, u_i).
 # - `sparsity_pattern`: an AbstractSparseMatrix which specifies the sparsity pattern of `A`.
 #                       Alternatively, if `sparsity_pattern::Nothing`, then we use assume the
 #                       operator is fully dense.
@@ -84,9 +86,6 @@ end
 
 # TODO: DGMulti. Fix for curved meshes.
 # Version for non-symmetric fluxes and sparse operators.
-# When `orientation::AbstractVector` it has to be passed in twice. This is because
-# on curved meshes, nonconservative terms require evaluation at two sets of normal
-# vectors.
 @inline function hadamard_sum!(du, sparsity_pattern::AbstractSparseMatrix{Bool}, A,
                                flux_is_symmetric::Val{false}, volume_flux,
                                orientation::AbstractVector, u, equations)
@@ -97,6 +96,9 @@ end
     du_i = du[i]
     for id in nzrange(sparsity_pattern, i)
       j = rows[id]
+      # When `orientation::AbstractVector` it has to be passed in twice.
+      # This is because on curved meshes, nonconservative fluxes are
+      # evaluated using both the normal and its average at interfaces.
       f_ij = volume_flux(u_i, u[j], orientation, orientation, equations)
       du_i = du_i + A[i,j] * f_ij
     end
