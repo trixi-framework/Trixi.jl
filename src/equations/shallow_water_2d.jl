@@ -404,7 +404,39 @@ end
   c_ll = sqrt(equations.gravity * h_ll)
   c_rr = sqrt(equations.gravity * h_rr)
 
-  return (max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)) * norm(normal_direction)
+  # The normal velocities are already scaled by the norm
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
+end
+
+
+# Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, normal_direction,
+                                                              equations::ShallowWaterEquations2D)
+  λ = dissipation.max_abs_speed(u_ll, u_rr, normal_direction, equations)
+  diss = -0.5 * λ * (u_rr - u_ll)
+  return SVector(diss[1], diss[2], diss[3], zero(eltype(u_ll)))
+end
+
+
+# Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
+# TODO: TreeMesh. Adjust variable naming conventions here once TreeMesh2D capability is added
+@inline function (numflux::FluxHLL)(u_ll, u_rr, normal_direction, equations::ShallowWaterEquations2D)
+  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, normal_direction, equations)
+
+  if λ_min >= 0 && λ_max >= 0
+    return flux(u_ll, normal_direction, equations)
+  elseif λ_max <= 0 && λ_min <= 0
+    return flux(u_rr, normal_direction, equations)
+  else
+    f_ll = flux(u_ll, normal_direction, equations)
+    f_rr = flux(u_rr, normal_direction, equations)
+    inv_λ_max_minus_λ_min = inv(λ_max - λ_min)
+    factor_ll = λ_max * inv_λ_max_minus_λ_min
+    factor_rr = λ_min * inv_λ_max_minus_λ_min
+    factor_diss = λ_min * λ_max * inv_λ_max_minus_λ_min
+    diss = u_rr - u_ll
+    return factor_ll * f_ll - factor_rr * f_rr + factor_diss * SVector(diss[1], diss[2], diss[3], zero(eltype(u_ll)))
+  end
 end
 
 

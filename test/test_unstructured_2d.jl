@@ -105,8 +105,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_convergence.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_convergence.jl"),
+  @trixi_testset "elixir_shallowwater_source_terms.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0011197623982310795, 0.04456344888447023, 0.014317376629669337, 5.089218476758975e-6],
       linf = [0.007835284004819698, 0.3486891284278597, 0.11242778979399048, 2.6407324614119432e-5],
       tspan = (0.0, 0.025))
@@ -114,15 +114,15 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
-      l2   = [1.1577518664678527e-5, 4.2329007808029837e-13, 5.380473644095362e-13, 1.157751866448228e-5],
-      linf = [8.394063878802704e-5, 1.0260949960672727e-10, 1.3895272424890089e-10, 8.394063879602065e-5],
+      l2   = [1.1577518608963063e-5, 4.371173779970303e-13, 4.2152984234036224e-13, 1.1577518608935235e-5],
+      linf = [8.394063878491842e-5, 9.632644747754261e-11, 9.54898901893391e-11, 8.394063879602065e-5],
       tspan = (0.0, 2.0))
   end
 
   @trixi_testset "elixir_shallowwater_wall_bc.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_wall_bc.jl"),
-      l2   = [0.04443210036005487, 0.14454582374113853, 0.15239799057671494, 6.225080477027564e-8],
-      linf = [0.7727399447958305, 2.1273761444921924, 3.3616777239905264, 3.982097160903919e-7],
+      l2   = [0.04443210036005491, 0.14454582374113853, 0.15239799057671485, 6.225080477024867e-8],
+      linf = [0.7727399447958347, 2.127376144492187, 3.361677723990531, 3.982097160903919e-7],
       tspan = (0.0, 0.05))
   end
 end
