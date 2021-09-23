@@ -97,7 +97,8 @@ end
     du_i = du[i]
     for id in nzrange(sparsity_pattern, i)
       j = rows[id]
-      du_i = du_i + A[i,j] * volume_flux(u_i, u[j], orientation, orientation, equations)
+      f_ij = volume_flux(u_i, u[j], orientation, orientation, equations)
+      du_i = du_i + A[i,j] * f_ij
     end
     du[i] = du_i
   end
