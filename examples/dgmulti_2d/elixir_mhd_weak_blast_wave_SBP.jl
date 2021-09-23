@@ -6,7 +6,7 @@ using Trixi
 # semidiscretization of the compressible ideal GLM-MHD equations
 
 # For approximation_type = SBP(), Github CI results differ from those attained locally.
-#
+# See https://github.com/trixi-framework/Trixi.jl/issues/881.
 num_cells_per_dimension = 16
 c_h = num_cells_per_dimension
 equations = IdealGlmMhdEquations2D(1.4, c_h)
