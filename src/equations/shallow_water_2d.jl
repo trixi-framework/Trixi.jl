@@ -410,9 +410,9 @@ end
 
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, normal_direction,
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation_or_normal_direction,
                                                               equations::ShallowWaterEquations2D)
-  λ = dissipation.max_abs_speed(u_ll, u_rr, normal_direction, equations)
+  λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
   diss = -0.5 * λ * (u_rr - u_ll)
   return SVector(diss[1], diss[2], diss[3], zero(eltype(u_ll)))
 end
