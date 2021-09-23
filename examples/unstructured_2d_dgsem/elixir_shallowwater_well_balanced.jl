@@ -60,6 +60,9 @@ ode = semidiscretize(semi, tspan)
 # bottom topography function for this academic testcase.
 # The errors from the analysis callback are not important but the error for this lake at rest test case
 # `∑|H0-(h+b)|` should be around machine roundoff
+# In contrast to the usual signature of initial conditions, this one get passed the
+# `element_id` explicitly. In particular, this initial conditions works as intended 
+# only for the specific mesh loaded above!
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set the background values
   H = equations.H0
@@ -78,8 +81,8 @@ end
 # point to the data we want to augment
 u = Trixi.wrap_array(ode.u0, semi)
 # reset the initial condition
-for element in Trixi.eachelement(semi.solver, semi.cache)
-  for j in Trixi.eachnode(semi.solver), i in Trixi.eachnode(semi.solver)
+for element in eachelement(semi.solver, semi.cache)
+  for j in eachnode(semi.solver), i in eachnode(semi.solver)
     x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, semi.solver, i, j, element)
     u_node = initial_condition_discontinuous_well_balancedness(x_node, first(tspan), element, equations)
     Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, j, element)
