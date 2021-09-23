@@ -27,6 +27,7 @@ using Reexport: @reexport
 using DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
                   ODEProblem, ODESolution, ODEFunction
 import DiffEqBase: get_du, get_tmp_cache, u_modified!,
+                   AbstractODEIntegrator, init, step!, check_error,
                    get_proposed_dt, set_proposed_dt!,
                    terminate!, remake
 using CodeTracking: code_string
@@ -95,6 +96,7 @@ include("meshes/meshes.jl")
 include("solvers/solvers.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
+include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
@@ -179,13 +181,16 @@ export nelements, nnodes, nvariables,
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
+export SemidiscretizationEulerAcoustics
+
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
+       AveragingCallback,
        AMRCallback, StepsizeCallback,
-       GlmSpeedCallback, LBMCollisionCallback,
+       GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback
 
 export load_mesh, load_time
@@ -218,7 +223,7 @@ function __init__()
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/recipes_makie.jl")
     using .Makie: Makie
-    export iplot # interactive plot
+    export iplot, iplot! # interactive plot
   end
 
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin

@@ -67,8 +67,8 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
 
   @testset "UnstructuredMesh" begin
-    @trixi_testset "elixir_ape_gauss_wall.jl" begin
-      @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_ape_gauss_wall.jl"),
+    @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_acoustics_gauss_wall.jl"),
         l2   = [0.029331247985489625, 0.02934616721732521, 0.03803253571320854, 0.0,
                 7.465932985352019e-16, 1.4931865970704038e-15, 1.4931865970704038e-15],
         linf = [0.3626825396196784, 0.3684490307932018, 0.8477478712580901, 0.0,
@@ -101,8 +101,8 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
         surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
         approximation_type = SBP(),
-        l2 = [0.01285864081726596, 0.010650165503847099, 0.01065016550381281, 0.026286162111579015],
-        linf = [0.037333313274372504, 0.05308320130762212, 0.05308320130841948, 0.13378665881805185],
+        l2 = [0.01280067571168776, 0.010607599608273158, 0.010607599608239976, 0.026408338014056502],
+        linf = [0.03798302318566282, 0.05321027922532284, 0.05321027922605448, 0.13392025411839015],
       )
     end
 

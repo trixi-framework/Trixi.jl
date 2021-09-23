@@ -136,7 +136,12 @@ function max_dt(u, t, mesh::AbstractMeshData,
     end
     dt_min = min(dt_min, h_e / sum(max_speeds))
   end
-  return 2.0 * dt_min / StartUpDG.inverse_trace_constant(rd)
+  # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+  # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+  # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+  # the number of 1D nodes for `DGSEM` solvers.
+  polydeg = rd.N
+  return 2 * dt_min / (polydeg + 1)
 end
 
 # interpolates from solution coefficients to face quadrature points
@@ -148,7 +153,9 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
 end
 
 function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
-                               mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
+                               mesh::VertexMappedMesh,
+                               have_nonconservative_terms::Val{false}, equations,
+                               dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
@@ -173,7 +180,9 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                              mesh::VertexMappedMesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+                              mesh::VertexMappedMesh,
+                              have_nonconservative_terms::Val{false}, equations,
+                              dg::DGMulti{NDIMS}) where {NDIMS}
 
   @unpack surface_flux = surface_integral
   md = mesh.md
@@ -191,6 +200,42 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
       uP = u_face_values[idP]
       normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
       flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
+    end
+  end
+end
+
+function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
+                              mesh::VertexMappedMesh,
+                              have_nonconservative_terms::Val{true}, equations,
+                              dg::DGMulti{NDIMS}) where {NDIMS}
+
+  flux_conservative, flux_nonconservative = surface_integral.surface_flux
+  md = mesh.md
+  @unpack mapM, mapP, nxyzJ, Jf = md
+  @unpack u_face_values, flux_face_values = cache
+
+  @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
+
+    # inner (idM -> minus) and outer (idP -> plus) indices
+    idM, idP = mapM[face_node_index], mapP[face_node_index]
+    uM = u_face_values[idM]
+
+    # compute flux if node is not a boundary node
+    if idM != idP
+      uP = u_face_values[idP]
+      normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
+      conservative_part = flux_conservative(uM, uP, normal, equations)
+
+      # Two notes on the use of `flux_nonconservative`:
+      # 1. In contrast to other mesh types, only one nonconservative part needs to be
+      #    computed since we loop over the elements, not the unique interfaces.
+      # 2. In general, nonconservative fluxes can depend on both the contravariant
+      #    vectors (normal direction) at the current node and the averaged ones. However,
+      #    both are the same at watertight interfaces, so we pass `normal` twice.
+      nonconservative_part = flux_nonconservative(uM, uP, normal, normal, equations)
+      # The factor 0.5 is necessary for the nonconservative fluxes based on the
+      # interpretation of global SBP operators.
+      flux_face_values[idM] = (conservative_part + 0.5 * nonconservative_part) * Jf[idM]
     end
   end
 end
@@ -336,11 +381,13 @@ function rhs!(du, u, t, mesh, equations,
   @trixi_timeit timer() "Reset du/dt" fill!(du,zero(eltype(du)))
 
   @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(du, u, dg.volume_integral,
-                                    mesh, equations, dg, cache)
+                                    mesh, have_nonconservative_terms(equations), equations, dg, cache)
 
   @trixi_timeit timer() "prolong2interfaces!" prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
 
-  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral, mesh, equations, dg)
+  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral, mesh,
+                                                                    have_nonconservative_terms(equations),
+                                                                    equations, dg)
 
   @trixi_timeit timer() "calc_boundary_flux!" calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg)
 

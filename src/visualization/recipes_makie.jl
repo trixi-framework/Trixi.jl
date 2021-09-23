@@ -7,31 +7,46 @@
 # We set the Makie default colormap to match Plots.jl, which uses `:inferno` by default.
 default_Makie_colormap() = :inferno
 
+# convenience struct for editing Makie plots after they're created.
+struct FigureAndAxes{Axes}
+  fig::Makie.Figure
+  axes::Axes
+end
+
+# for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
+# Makie.plot(::PlotData2DTriangulated)
+Base.show(io::IO, fa::FigureAndAxes) = nothing
+
+# allows for returning fig, axes = Makie.plot(...)
+function Base.iterate(fa::FigureAndAxes, state=1)
+  if state == 1
+    return (fa.fig, 2)
+  elseif state == 2
+    return (fa.axes, 3)
+  else
+    return nothing
+  end
+end
+
 """
     iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-          solution_variables=nothing, nvisnodes=nnodes(solver), variable_to_plot_in=1,
-          colormap = default_Makie_colormap())
+          plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
+          variable_to_plot_in=1)
 
 Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
 
-Inputs:
-- solution_variables: either `nothing` or a variable transformation function (e.g., `cons2prim`)
-- nvisnodes: number of visualization nodes per dimension
+Keywords:
 - variable_to_plot_in: variable to show by default
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-               solution_variables=nothing, nvisnodes=2*nnodes(solver), variable_to_plot_in=1,
-               colormap = default_Makie_colormap())
 
-  pd = PlotData2D(u, mesh, equations, solver, cache;
-                  solution_variables=solution_variables, nvisnodes=nvisnodes)
-
+# Enables `iplot(PlotData2D(sol))`.
+function iplot(pd::PlotData2DTriangulated;
+               plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
+               variable_to_plot_in=1)
   @unpack variable_names = pd
-
-  @assert ndims(mesh) == 2
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
   fig = Makie.Figure()
@@ -41,8 +56,8 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   menu = Makie.Menu(fig, options=menu_options)
 
   # Initialize toggle switches for viewing the mesh
-  toggle_solution_mesh = Makie.Toggle(fig, active=true)
-  toggle_mesh = Makie.Toggle(fig, active=true)
+  toggle_solution_mesh = Makie.Toggle(fig, active=plot_mesh)
+  toggle_mesh = Makie.Toggle(fig, active=plot_mesh)
 
   # Add dropdown menu and toggle switches to the left side of the figure.
   fig[1, 1] = Makie.vgrid!(
@@ -53,7 +68,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   )
 
   # Create a zoomable interactive axis object on top of which to plot the solution.
-  ax = Makie.LScene(fig[1, 2], scenekw=(show_axis = false,))
+  ax = Makie.LScene(fig[1, 2], scenekw=(show_axis=show_axis,))
 
   # Initialize the dropdown menu to `variable_to_plot_in`
   # Since menu.selection is an Observable type, we need to dereference it using `[]` to set.
@@ -66,10 +81,10 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   solution_z = Makie.@lift(getindex.($plotting_mesh.position, 3))
 
   # Plot the actual solution.
-  Makie.mesh!(ax, plotting_mesh; color=solution_z, nvisnodes, colormap)
+  Makie.mesh!(ax, plotting_mesh; color=solution_z, colormap)
 
   # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
-  wire_points = Makie.@lift(mesh_plotting_wireframe(getindex(pd, variable_names[$(menu.selection)])))
+  wire_points = Makie.@lift(convert_PlotData2D_to_mesh_Points(getindex(pd, variable_names[$(menu.selection)])))
   wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
   wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
   Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
@@ -87,7 +102,7 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
 
   # Resets the colorbar each time the solution changes.
-  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap=colormap, flipaxis = false)
+  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap=colormap)
 
   # This syncs the toggle buttons to the mesh plots.
   Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)
@@ -102,10 +117,61 @@ function iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
   fig
 end
 
+function iplot(u, mesh, equations, solver, cache;
+               solution_variables=nothing, nvisnodes=2*nnodes(solver), kwargs...)
+  @assert ndims(mesh) == 2
+
+  pd = PlotData2D(u, mesh, equations, solver, cache;
+      solution_variables=solution_variables, nvisnodes=nvisnodes)
+
+  iplot(pd; kwargs...)
+end
+
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
 iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
 iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
 
+# Interactive visualization of user-defined ScalarData.
+function iplot(pd::PlotData2DTriangulated{<:ScalarData};
+               show_axis=false, colormap=default_Makie_colormap(), plot_mesh=false)
+  fig = Makie.Figure()
+
+  # Create a zoomable interactive axis object on top of which to plot the solution.
+  ax = Makie.LScene(fig[1, 1], scenekw=(show_axis=show_axis,))
+
+  # plot the user-defined ScalarData
+  fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap=colormap, plot_mesh=plot_mesh)
+
+  fig
+  return fig_axis_plt
+end
+
+function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
+                pd::PlotData2DTriangulated{<:ScalarData};
+                colormap=default_Makie_colormap(), plot_mesh=false)
+
+  # destructure first two fields of either FigureAndAxes or Makie.FigureAxisPlot
+  fig, ax = fig_axis
+
+  # create triangulation of the scalar data to plot
+  plotting_mesh = global_plotting_triangulation_makie(pd)
+  solution_z = getindex.(plotting_mesh.position, 3)
+  plt = Makie.mesh!(ax, plotting_mesh; color=solution_z, colormap)
+
+  if plot_mesh
+    wire_points = convert_PlotData2D_to_mesh_Points(pd)
+    wire_mesh_top = Makie.lines!(ax, wire_points, color=:white)
+    wire_mesh_bottom = Makie.lines!(ax, wire_points, color=:white)
+    Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
+    Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
+  end
+
+  # Add a colorbar to the rightmost part of the layout
+  Makie.Colorbar(fig[1, end+1], plt)
+
+  fig
+  return Makie.FigureAxisPlot(fig, ax, plt)
+end
 
 # ================== new Makie plot recipes ====================
 
@@ -137,7 +203,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
   end
 
   if plot_mesh
-    xyz_wireframe = mesh_plotting_wireframe(pds; set_z_coordinate_zero = true)
+    xyz_wireframe = convert_PlotData2D_to_mesh_Points(pds; set_z_coordinate_zero = true)
     Makie.lines!(myplot, xyz_wireframe, color=:lightgrey)
   end
 
@@ -151,27 +217,6 @@ Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.PlotData2DTriangulated}) = TrixiHe
 function Makie.plot(sol::TrixiODESolution;
                     plot_mesh=false, solution_variables=nothing, colormap=default_Makie_colormap())
   return Makie.plot(PlotData2D(sol; solution_variables); plot_mesh, colormap)
-end
-
-# convenience struct for editing Makie plots after they're created.
-struct FigureAndAxes{Axes}
-  fig::Makie.Figure
-  axes::Axes
-end
-
-# for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
-# Makie.plot(::PlotData2DTriangulated)
-Base.show(io::IO, fa::FigureAndAxes) = nothing
-
-# allows for returning fig, axes = Makie.plot(...)
-function Base.iterate(fa::FigureAndAxes, state=1)
-  if state == 1
-    return (fa.fig, 2)
-  elseif state == 2
-    return (fa.axes, 3)
-  else
-    return nothing
-  end
 end
 
 function Makie.plot(pd::PlotData2DTriangulated, fig=Makie.Figure();
