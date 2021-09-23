@@ -352,8 +352,9 @@ end
   @unpack volume_flux = volume_integral
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
+    # Val{true}() indicates the volume flux is symmetric
     hadamard_sum!(fluxdiff_local, sparsity_pattern, Qi_skew,
-                  flux_is_symmetric, volume_flux,
+                  Val{true}(), volume_flux,
                   dim, u_local, equations)
   end
 end
@@ -386,7 +387,7 @@ end
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
                                           has_nonconservative_terms::Val{false}, volume_integral,
                                           has_sparse_operators::Val{true}, mesh,
-                                          equations, dg, cache, operator_scaling=1.0)
+                                          equations, dg, cache)
   @unpack Qrst_skew, sparsity_patterns = cache
   @unpack volume_flux = volume_integral
   for dim in eachdim(mesh)
@@ -412,7 +413,7 @@ end
     # Note that there is basically no difference for dense derivative operators.
     normal_direction = get_contravariant_vector(element_index, dim, mesh)
     sparsity_pattern = sparsity_patterns[dim]
-    Q_skew = LazyMatrixLinearCombo((Qrst_skew[dim], ), (operator_scaling, ))
+    Q_skew = Qrst_skew[dim]
 
     # 1. Use a `sparsity_pattern` to dispatch `hadamard_sum!`.
     #    For all elements, `sparsity_pattern::AbstractSparseMatrix{Bool}`.
@@ -486,7 +487,7 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
     u_local = view(entropy_projected_u_values, :, e)
 
     local_flux_differencing!(fluxdiff_local, u_local, e,
-                             have_nonconservative_terms, volume_flux,
+                             have_nonconservative_terms, volume_integral,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
