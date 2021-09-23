@@ -5,9 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-num_cells_per_dimension = 16
-c_h = num_cells_per_dimension
-equations = IdealGlmMhdEquations2D(1.4, c_h)
+equations = IdealGlmMhdEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
@@ -17,6 +15,7 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = Polynomial()
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
+num_cells_per_dimension = 16
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
 vertex_coordinates = map(x -> 2 * x, vertex_coordinates) # map domain to [-2, 2]^2
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
@@ -45,7 +44,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         stepsize_callback,
                         alive_callback,
-                        #=glm_speed_callback=#)
+                        glm_speed_callback)
 
 ###############################################################################
 # run the simulation
