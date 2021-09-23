@@ -419,17 +419,17 @@ end
 
 
 # Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
-# TODO: TreeMesh. Adjust variable naming conventions here once TreeMesh2D capability is added
-@inline function (numflux::FluxHLL)(u_ll, u_rr, normal_direction, equations::ShallowWaterEquations2D)
-  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, normal_direction, equations)
+@inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
+                  equations::ShallowWaterEquations2D)
+  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
 
   if λ_min >= 0 && λ_max >= 0
-    return flux(u_ll, normal_direction, equations)
+    return flux(u_ll, orientation_or_normal_direction, equations)
   elseif λ_max <= 0 && λ_min <= 0
-    return flux(u_rr, normal_direction, equations)
+    return flux(u_rr, orientation_or_normal_direction, equations)
   else
-    f_ll = flux(u_ll, normal_direction, equations)
-    f_rr = flux(u_rr, normal_direction, equations)
+    f_ll = flux(u_ll, orientation_or_normal_direction, equations)
+    f_rr = flux(u_rr, orientation_or_normal_direction, equations)
     inv_λ_max_minus_λ_min = inv(λ_max - λ_min)
     factor_ll = λ_max * inv_λ_max_minus_λ_min
     factor_rr = λ_min * inv_λ_max_minus_λ_min
