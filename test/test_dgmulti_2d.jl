@@ -125,7 +125,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_mhd_weak_blast_wave.jl (Quad, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
-      num_cells_per_dimension = 4, approximation_type=SBP(), cfl = .5,
+      num_cells_per_dimension = 4, approximation_type=SBP(), cfl = 0.5,
       l2 = [0.15819852787432703, 0.2005817748602469, 0.19755861113059794, 0.10507976435796945, 0.7334250302876919, 0.07453624613978425, 0.07452738383366823, 0.10807854091049794, 0.01060506973555037],
       linf = [0.1855766240255481, 0.26713755684041474, 0.2687581432173838, 0.1260329552527552, 0.7906407572419436, 0.07054303647451743, 0.06883034551721989, 0.1092119039206263, 0.015959667603072346],
     )
@@ -141,7 +141,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
-      num_cells_per_dimension = 4, element_type=Tri(), approximation_type = SBP(), cfl = .5,
+      num_cells_per_dimension = 4, element_type=Tri(), approximation_type = SBP(), cfl = 0.5,
       l2 = [0.15127981853435116, 0.1894746829321331, 0.17971661925546695, 0.09619672299310533, 0.7060076038236979, 0.07352535439944866, 0.07333669235299438, 0.10355591748395487, 0.006993463177228327],
       linf = [0.19878852251592938, 0.2646521511970933, 0.26796931932114965, 0.10908661431838862, 0.7734476220151678, 0.06107876410327462, 0.061988856523786495, 0.09365502259154623, 0.017323196252498743],
     )
