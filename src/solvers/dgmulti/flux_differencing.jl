@@ -82,23 +82,6 @@ end
   end
 end
 
-# Version for non-symmetric fluxes and sparse operators
-@inline function hadamard_sum!(du, sparsity_pattern::AbstractSparseMatrix{Bool}, A,
-                               flux_is_symmetric::Val{false}, volume_flux,
-                               orientation::Int, u, equations)
-  n = size(sparsity_pattern, 2)
-  rows = rowvals(sparsity_pattern)
-  for i in Base.OneTo(n)
-    u_i = u[i]
-    du_i = du[i]
-    for id in nzrange(sparsity_pattern, i)
-      j = rows[id]
-      du_i = du_i + A[i,j] * volume_flux(u_i, u[j], orientation, equations)
-    end
-    du[i] = du_i
-  end
-end
-
 # TODO: DGMulti. Fix for curved meshes.
 # Version for non-symmetric fluxes and sparse operators.
 # When `orientation::AbstractVector` it has to be passed in twice. This is because
