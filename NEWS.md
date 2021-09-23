@@ -13,8 +13,7 @@ for human readability.
   adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
 - Experimental support for direct-hybrid aeroacoustics simulations
   ([#712](https://github.com/trixi-framework/Trixi.jl/pull/712))
-- Implementation of shallow water equations in 2D on the conforming mesh types
-  `UnstructuredMesh2D` and `StructuredMesh`
+- Implementation of shallow water equations in 2D
 
 #### Changed
 
