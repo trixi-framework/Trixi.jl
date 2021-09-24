@@ -52,8 +52,10 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+#             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+#             save_everystep=false, callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-8, reltol=1.0e-8,
+            save_everystep=false, callback=callbacks, maxiters=1e5)
 
 summary_callback() # print the timer summary
