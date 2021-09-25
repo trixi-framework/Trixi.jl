@@ -51,6 +51,7 @@ installation and postprocessing procedures. Its features include:
   * Acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
+  * Shallow water equations
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)

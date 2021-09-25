@@ -358,7 +358,8 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
     # calc boundary flux on the current boundary interface
     for node in eachnode(dg)
       calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                          mesh, equations, surface_integral, dg, cache,
+                          mesh, have_nonconservative_terms(equations),
+                          equations, surface_integral, dg, cache,
                           node, side, element, boundary)
     end
   end
@@ -368,7 +369,8 @@ end
 # inlined version of the boundary flux calculation along a physical interface where the
 # boundary flux values are set according to a particular `boundary_condition` function
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::UnstructuredMesh2D, equations,
+                                     mesh::UnstructuredMesh2D,
+                                     nonconservative_terms::Val{false}, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index, boundary_index)
   @unpack normal_directions = cache.elements
@@ -384,12 +386,60 @@ end
   # get the external solution values from the prescribed external state
   x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
 
-  # Call pointwise numerical flux function in the rotated direction on the boundary
-  #    Note! the direction is normalized inside this function
+  # Call pointwise numerical flux function in the normal direction on the boundary
   flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
 
   for v in eachvariable(equations)
     surface_flux_values[v, node_index, side_index, element_index] = flux[v]
+  end
+end
+
+# inlined version of the boundary flux and nonconseravtive terms calculation along a
+# physical interface. The conservative portion of the boundary flux values
+# are set according to a particular `boundary_condition` function
+# Note, it is necessary to set and add in the nonconservative values because
+# the upper left/lower right diagonal terms have been peeled off due to the use of
+# `derivative_split` from `dg.basis` in [`split_form_kernel!`](@ref)
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::UnstructuredMesh2D,
+                                     nonconservative_terms::Val{true}, equations,
+                                     surface_integral, dg::DG, cache,
+                                     node_index, side_index, element_index, boundary_index)
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+  @unpack normal_directions = cache.elements
+  @unpack u, node_coordinates = cache.boundaries
+
+  # pull the inner solution state from the boundary u values on the boundary element
+  u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
+
+  # pull the outward pointing (normal) directional vector
+  outward_direction = get_surface_normal(normal_directions, node_index, side_index, element_index)
+
+  # get the external solution values from the prescribed external state
+  x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
+
+  # Call pointwise numerical flux function for the conservative part
+  # in the normal direction on the boundary
+  flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
+
+  # Compute pointwise nonconservative numerical flux at the boundary.
+  # In general, nonconservative fluxes can depend on both the contravariant
+  # vectors (normal direction) at the current node and the averaged ones.
+  # However, both are the same at watertight interfaces, so we pass the
+  # `outward_direction` twice.
+  # Note 1: This does not set any type of boundary condition for the nonconservative term
+  # Note 2: Only tested for [`ShallowWaterEquations2D`](@ref) where the necessary
+  #         nonconservative part only depends on `u_inner`, the bottom topography is
+  #         assumed continuous at physical boundaries such that the `b_jump` term in
+  #         [`flux_nonconservative_fjordholm_etal`](@ref) vanishes.
+  # TODO: nonconservative. Test and debug for [`IdealGlmMhdEquations2D`](@ref) when needed
+  noncons_flux = nonconservative_flux(u_inner, u_inner, outward_direction, outward_direction, equations)
+
+  for v in eachvariable(equations)
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    surface_flux_values[v, node_index, side_index, element_index] = flux[v] + 0.5 * noncons_flux[v]
   end
 end
 
