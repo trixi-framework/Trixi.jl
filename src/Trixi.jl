@@ -119,12 +119,15 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
-       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
+       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
+       ShallowWaterEquations2D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
+       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
+       flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
@@ -165,6 +168,7 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
+export lake_at_rest_error
 export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
@@ -227,7 +231,7 @@ function __init__()
   @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
     include("visualization/recipes_makie.jl")
     using .Makie: Makie
-    export iplot # interactive plot
+    export iplot, iplot! # interactive plot
   end
 
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
