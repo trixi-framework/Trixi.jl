@@ -42,7 +42,7 @@ save_solution = SaveSolutionCallback(interval=10,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-cfl = 0.1
+cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 callbacks = CallbackSet(summary_callback,
