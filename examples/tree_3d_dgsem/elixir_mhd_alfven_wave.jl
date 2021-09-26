@@ -40,7 +40,7 @@ save_solution = SaveSolutionCallback(interval=10,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-cfl = 1.4
+cfl = 1.5
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
