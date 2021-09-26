@@ -504,41 +504,34 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
-  rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+  rho_v1_ll, rho_v2_ll, _ = u_ll
+  rho_v1_rr, rho_v2_rr, _ = u_rr
 
   rho_ll   = density(u_ll, equations)
   rho_rr   = density(u_rr, equations)
-  gamma_ll = totalgamma(u_ll, equations)
-  gamma_rr = totalgamma(u_rr, equations)
 
   # Calculate velocities and fast magnetoacoustic wave speeds
-  # left
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  if orientation == 1
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+  else # orientation == 2
+    v_ll = rho_v2_ll / rho_ll
+    v_rr = rho_v2_rr / rho_rr
+  end
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
-  # right
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 
-
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMulticomponentEquations2D)
-  rho_v1, rho_v2, rho_v3, _ = u
+  rho_v1, rho_v2, _ = u
 
   rho = density(u, equations)
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  v3 = rho_v3 / rho
 
   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)
