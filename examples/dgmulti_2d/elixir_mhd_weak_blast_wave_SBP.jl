@@ -41,7 +41,8 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 cfl = 1.0
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
-glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
+# See comment above and https://github.com/trixi-framework/Trixi.jl/issues/881
+# glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
