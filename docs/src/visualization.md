@@ -50,7 +50,7 @@ In Trixi, two plot types are available: 2D heatmap plots and 1D line plots.
 If you use `plot(sol)`, Trixi will automatically choose the plot type that fits the dimensions
 of the `sol` input: 2D/3D data will be visualized as a heatmap, 1D data as a line plot.
 For more fine-grained control over what to plot, you can create such an object
-yourself, which can either be a [`PlotData2D`](@ref) or a [`PlotData1D`](@ref) object.
+yourself, which can either be a [`Trixi.PlotData2D`](@ref) or a [`PlotData1D`](@ref) object.
 For further details on both of these see below:
 
 
