@@ -81,27 +81,17 @@ Source terms used for convergence tests in combination with
   γ = equations.gamma
 
   x1, x2 = x
-  si, co = sincos((x1 + x2 - t)*ω)
-  tmp1 = co * A * ω
-  tmp2 = si * A
-  tmp3 = γ - 1
-  tmp4 = (2*c - 1)*tmp3
-  tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
-  tmp6 = tmp2 + c
+  si, co = sincos(ω * (x1 + x2 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
+  # Note that d/dt rho = -d/dx rho = -d/dy rho.
 
-  du1 = tmp1
-  du2 = tmp5
-  du3 = tmp5
-  du4 = 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
+  tmp = (2 * rho - 1) * (γ - 1)
 
-  # Original terms (without performanc enhancements)
-  # du1 = cos((x1 + x2 - t)*ω)*A*ω
-  # du2 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-  # du3 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-  # du3 = 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
-  #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
+  du1 = rho_x
+  du2 = rho_x * (1 + tmp)
+  du3 = du2
+  du4 = 2 * rho_x * (rho + tmp)
 
   return SVector(du1, du2, du3, du4)
 end
