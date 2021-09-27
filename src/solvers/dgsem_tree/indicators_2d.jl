@@ -364,7 +364,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
   end
 
   if alpha_smooth
-    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing_2d!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -494,7 +494,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
   end
 
   if alpha_smooth
-    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing_2d!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -542,7 +542,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
   end
 
   if alpha_smooth
-    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing_2d!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
