@@ -262,12 +262,12 @@ isdir(outdir) && rm(outdir, recursive=true)
                                visualization = VisualizationCallback(interval=20,
                                                clims=(0,1),
                                                plot_creator=Trixi.save_plot),
-                               tspan=(0.0, 2.0))
+                               tspan=(0.0, 3.0))
 
     @testset "elixir_advection_amr_visualization.jl with save_plot" begin
       @test isfile(joinpath(outdir, "solution_000000.png"))
       @test isfile(joinpath(outdir, "solution_000020.png"))
-      @test isfile(joinpath(outdir, "solution_000024.png"))
+      @test isfile(joinpath(outdir, "solution_000022.png"))
     end
 
     @testset "show" begin
