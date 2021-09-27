@@ -25,6 +25,7 @@ end
 ###############################################################################
 # semidiscretization of the linear advection equation
 
+# Transformed advection_velocity = (0.2, -0.7) by transformation mapping
 advection_velocity = (-0.5, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
