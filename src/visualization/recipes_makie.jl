@@ -46,7 +46,7 @@ Keywords:
 function iplot(pd::PlotData2DTriangulated;
                plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
                variable_to_plot_in=1)
-               
+
   @unpack variable_names = pd
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.

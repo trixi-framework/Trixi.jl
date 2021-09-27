@@ -280,7 +280,6 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-# Redirect when input is a Trixi solution "sol" .
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
 # Also redirect when using PlotData2DTriangulate.
