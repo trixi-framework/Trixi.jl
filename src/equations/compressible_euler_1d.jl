@@ -79,19 +79,16 @@ Source terms used for convergence tests in combination with
 
   x1, = x
 
-  si, co = sincos((t - x1)*ω)
-  tmp = (-((4 * si * A - 4c) + 1) * (γ - 1) * co * A * ω) / 2
+  si, co = sincos(ω * (x1 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
 
+  # Note that d/dt rho = -d/dx rho.
+  # This yields du2 = du3 = d/dx p (derivative of pressure).
+  # Other terms vanish because of v = 1.
   du1 = zero(eltype(u))
-  du2 = tmp
-  du3 = tmp
-
-  # Original terms (without performanc enhancements)
-  # du1 = 0
-  # du2 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
-  # du3 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
+  du2 = rho_x * (2 * rho - 0.5) * (γ - 1)
+  du3 = du2
 
   return SVector(du1, du2, du3)
 end
