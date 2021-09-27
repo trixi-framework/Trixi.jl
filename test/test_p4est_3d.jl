@@ -82,8 +82,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-      l2   = [9.03393977e-02, 5.08757709e-02, 5.08757709e-02, 5.08757709e-02, 5.06597371e-01],
-      linf = [7.55834213e-01, 3.50366456e-01, 3.50366456e-01, 3.50366456e-01, 6.39477672e+00],
+      l2   = [9.09320902e-02, 5.16140743e-02, 5.16140743e-02, 5.16140743e-02, 5.06583378e-01],
+      linf = [7.63914923e-01, 3.66081129e-01, 3.66081129e-01, 3.66081129e-01, 6.40819790e+00],
       tspan = (0.0, 0.3))
   end
 
