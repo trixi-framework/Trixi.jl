@@ -22,8 +22,8 @@ function IndicatorVortex(semi)
   return IndicatorVortex{typeof(cache)}(cache)
 end
 
-function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any,4}, mesh, 
-                                             equations, dg, cache;
+function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any,4},
+                                             mesh, equations, dg, cache;
                                              t, kwargs...)
   mesh = indicator_vortex.cache.mesh
   alpha = indicator_vortex.cache.alpha

@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleEulerEquations1D(1.4)
 
-initial_condition = initial_condition_sedov_blast_wave
+initial_condition = initial_condition_medium_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar

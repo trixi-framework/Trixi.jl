@@ -158,13 +158,13 @@ end
 
 
 """
-    boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
+    boundary_condition_noslip_wall(u_inner, orientation, direction, x, t,
                                    surface_flux_function,
                                    equations::LatticeBoltzmannEquations2D)
 
 No-slip wall boundary condition using the bounce-back approach.
 """
-function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
+function boundary_condition_noslip_wall(u_inner, orientation, direction, x, t,
                                         surface_flux_function,
                                         equations::LatticeBoltzmannEquations2D)
   # For LBM no-slip wall boundary conditions, we set the boundary state to
@@ -215,7 +215,7 @@ function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
   u_boundary = SVector(pdf1, pdf2, pdf3, pdf4, pdf5, pdf6, pdf7, pdf8, pdf9)
 
   # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
@@ -256,7 +256,7 @@ end
     initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations2D)
 
 Initial state for a lid-driven cavity flow setup. To be used in combination with
-[`boundary_condition_lid_driven_cavity`](@ref) and [`boundary_condition_wall_noslip`](@ref).
+[`boundary_condition_lid_driven_cavity`](@ref) and [`boundary_condition_noslip_wall`](@ref).
 """
 function initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations2D)
   @unpack L, u0, nu = equations
@@ -290,7 +290,7 @@ end
 
 Initial state for an *unsteady* Couette flow setup, which is also the exact solution for the
 incompressible Navier-Stokes equations. To be used in combination with
-[`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref). In the limit,
+[`boundary_condition_couette`](@ref) and [`boundary_condition_noslip_wall`](@ref). In the limit,
 this setup will converge to the state set in [`initial_condition_couette_steady`](@ref).
 """
 function initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations2D)
@@ -314,7 +314,7 @@ end
     initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations2D)
 
 Initial state for a *steady* Couette flow setup. To be used in combination with
-[`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref).
+[`boundary_condition_couette`](@ref) and [`boundary_condition_noslip_wall`](@ref).
 """
 function initial_condition_couette_steady(x, t, equations::LatticeBoltzmannEquations2D)
   @unpack L, u0, rho0 = equations
@@ -333,7 +333,7 @@ end
                                equations::LatticeBoltzmannEquations2D)
 
 Moving *upper* wall boundary condition for a Couette flow setup. To be used in combination with
-[`boundary_condition_wall_noslip`](@ref) for the lower wall and
+[`boundary_condition_noslip_wall`](@ref) for the lower wall and
 [`boundary_condition_periodic`](@ref) for the lateral boundaries.
 """
 function boundary_condition_couette(u_inner, orientation, direction, x, t,

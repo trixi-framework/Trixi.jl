@@ -15,12 +15,15 @@ provided substantial additions or modifications. Together, these two groups form
   University of Münster, Germany
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
+* [Jesse Chan](https://jlchan.github.io),
+  Rice University, US
 
 ## Contributors
 The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
 * Benjamin Bolm
+* Jesse Chan
 * Lars Christmann
 * Christof Czernik
 * Erik Faulhaber

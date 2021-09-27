@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_isentropic_vortex
 
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_kennedy_gruber
+volume_flux = flux_shima_etal
 
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -52,9 +52,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
@@ -64,7 +61,7 @@ stepsize_callback = StepsizeCallback(cfl=0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         stepsize_callback)
 
 

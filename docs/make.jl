@@ -8,7 +8,6 @@ end
 
 using Trixi
 using Trixi2Vtk
-using Trixi2Img
 
 # Get Trixi root directory
 trixi_root_dir = dirname(@__DIR__)
@@ -21,12 +20,11 @@ write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 # Define module-wide setups such that the respective modules are available in doctests
 DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
-DocMeta.setdocmeta!(Trixi2Img, :DocTestSetup, :(using Trixi2Img); recursive=true)
 
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
-    modules = [Trixi, Trixi2Vtk, Trixi2Img],
+    modules = [Trixi, Trixi2Vtk],
     # Set sitename to Trixi
     sitename="Trixi.jl",
     # Provide additional formatting options
@@ -51,6 +49,7 @@ makedocs(
                 "Nonconservative equation" => joinpath("adding_new_equations", "nonconservative_advection.md")
             ],
             "Differentiable programming" => "differentiable_programming.md",
+            "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.md",
         ],
         "Basic building blocks" => [
             "Meshes" => [
@@ -58,6 +57,7 @@ makedocs(
                 "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                 "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
                 "P4est-based mesh" => joinpath("meshes", "p4est_mesh.md"),
+                "Simplicial mesh" => joinpath("meshes", "mesh_data_meshes.md"),
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
@@ -74,8 +74,7 @@ makedocs(
         "Troubleshooting and FAQ" => "troubleshooting.md",
         "Reference" => [
                         "Trixi.jl" => "reference-trixi.md",
-                        "Trixi2Vtk.jl" => "reference-trixi2vtk.md",
-                        "Trixi2Img.jl" => "reference-trixi2img.md",
+                        "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
                        ],
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",

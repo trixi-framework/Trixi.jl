@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_sedov_blast_wave
+initial_condition = initial_condition_medium_sedov_blast_wave
 
 # Get the DG approximation space
 surface_flux = flux_lax_friedrichs

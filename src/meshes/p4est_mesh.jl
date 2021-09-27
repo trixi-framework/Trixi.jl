@@ -10,9 +10,6 @@
 
 An unstructured curved mesh based on trees that uses the C library p4est
 to manage trees and mesh refinement.
-
-!!! warning "Experimental code"
-    This mesh type is experimental and can change any time.
 """
 mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
   p4est                 ::P # Either Ptr{p4est_t} or Ptr{p8est_t}

@@ -6,6 +6,7 @@
 
 
 include("dg.jl")
+include("dgmulti.jl")
 
 
 end # @muladd

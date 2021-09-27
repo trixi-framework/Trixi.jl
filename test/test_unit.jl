@@ -238,8 +238,8 @@ Cassette.@context Ctx
       @test isapprox(Trixi.multiply_dimensionwise(matrix, data_in), [3.0 4.0 5.0 6.0])
 
       n_vars   = 3
-      size_in  = 4
-      size_out = 5
+      size_in  = 2
+      size_out = 3
       matrix   = randn(size_out, size_in)
       # 1D
       data_in  = randn(n_vars, size_in)
@@ -406,6 +406,13 @@ Cassette.@context Ctx
 
     indicator_max = IndicatorMax("variable", (; cache=nothing))
     @test_nowarn show(stdout, indicator_max)
+
+    equations = CompressibleEulerEquations2D(1.4)
+    basis = LobattoLegendreBasis(3)
+    indicator_neuralnetwork = IndicatorNeuralNetwork(
+        equations, basis, indicator_type=NeuralNetworkPerssonPeraire(), variable=density,
+        network=nothing)
+    @test_nowarn show(stdout, indicator_neuralnetwork)
   end
 
   @timed_testset "LBM 2D constructor" begin
@@ -466,13 +473,13 @@ Cassette.@context Ctx
     println()
   end
 
-  @timed_testset "APE 2D varnames" begin
+  @timed_testset "Acoustic perturbation 2D varnames" begin
     v_mean_global = (0.0, 0.0)
     c_mean_global = 1.0
     rho_mean_global = 1.0
     equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
-    @test Trixi.varnames(cons2state, equations) == ("v1_prime", "v2_prime", "p_prime")
+    @test Trixi.varnames(cons2state, equations) == ("v1_prime", "v2_prime", "p_prime_scaled")
     @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 
@@ -513,9 +520,24 @@ Cassette.@context Ctx
     end
   end
 
+  @timed_testset "Shallow water conversion between conservative/entropy variables" begin
+    H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
+
+    let equations = ShallowWaterEquations2D(gravity_constant=9.8)
+      cons_vars = prim2cons(SVector(H,v1,v2,b),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      # test tuple args
+      cons_vars = prim2cons((H, v1, v2, b), equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+  end
+
   @timed_testset "TimeSeriesCallback" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
-                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
+                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
     point_data_1 = time_series.affect!.point_data[1]
@@ -574,7 +596,7 @@ Cassette.@context Ctx
                            SVector(-1.2, 0.3)]
       u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
-      fluxes = [flux_central, flux_hindenlang]
+      fluxes = [flux_central, flux_hindenlang_gassner]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)
@@ -593,7 +615,7 @@ Cassette.@context Ctx
                           SVector(-1.2, 0.3, 1.4)]
       u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),]
-      fluxes = [flux_central, flux_hindenlang]
+      fluxes = [flux_central, flux_hindenlang_gassner]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)

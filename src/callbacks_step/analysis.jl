@@ -88,8 +88,14 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           RealT=real(solver),
                           uEltype=eltype(cache.elements),
                           kwargs...)
-  # when is the callback activated
-  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
+  # Decide when the callback is activated.
+  # With error-based step size control, some steps can be rejected. Thus,
+  #   `integrator.iter >= integrator.destats.naccept`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
+  condition = (u, t, integrator) -> interval > 0 && ( (integrator.destats.naccept % interval == 0 &&
+                                                       !(integrator.destats.naccept == 0 && integrator.iter > 0)) ||
                                                      isfinished(integrator))
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
@@ -174,7 +180,8 @@ end
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack dt, t, iter = integrator
+  @unpack dt, t = integrator
+  iter = integrator.destats.naccept
 
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
   runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
@@ -489,6 +496,8 @@ pretty_form_ascii(::Val{:l2_divb}) = "l2_divb"
 pretty_form_utf(::Val{:linf_divb}) = "L∞ ∇⋅B"
 pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
+pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
+pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
 
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")

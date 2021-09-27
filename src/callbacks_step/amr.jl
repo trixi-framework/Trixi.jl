@@ -36,8 +36,15 @@ function AMRCallback(semi, controller, adaptor;
   end
 
   # AMR every `interval` time steps, but not after the final step
+  # With error-based step size control, some steps can be rejected. Thus,
+  #   `integrator.iter >= integrator.destats.naccept`
+  #    (total #steps)       (#accepted steps)
+  # We need to check the number of accepted steps since callbacks are not
+  # activated after a rejected step.
   if interval > 0
-    condition = (u, t, integrator) -> integrator.iter % interval == 0 && !isfinished(integrator)
+    condition = (u, t, integrator) -> ( (integrator.destats.naccept % interval == 0) &&
+                                        !(integrator.destats.naccept == 0 && integrator.iter > 0) &&
+                                        !isfinished(integrator) )
   else # disable the AMR callback except possibly for initial refinement during initialization
     condition = (u, t, integrator) -> false
   end

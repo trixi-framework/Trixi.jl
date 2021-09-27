@@ -26,8 +26,8 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
-                                                   equations, dg::DGSEM, cache;
+function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5},
+                                                   mesh, equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
@@ -94,15 +94,14 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{3}, S
   end
 
   if alpha_smooth
-    apply_smoothing!(u, mesh, equations, dg, alpha, alpha_tmp, cache)
+    apply_smoothing_3d!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
 end
 
 
-function apply_smoothing!(u, mesh::Union{TreeMesh{3}, P4estMesh{3}}, 
-                          equations, dg::DGSEM, alpha, alpha_tmp, cache)
+function apply_smoothing_3d!(mesh::Union{TreeMesh{3}, P4estMesh{3}}, alpha, alpha_tmp, dg, cache)
 
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
   # Copy alpha values such that smoothing is indpedenent of the element access order
@@ -160,8 +159,8 @@ function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEqua
 end
 
 
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,5}, mesh, 
-                                   equations, dg::DGSEM, cache;
+function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,5},
+                                   mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
   @unpack alpha, indicator_threaded = löhner.cache
@@ -227,8 +226,8 @@ function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquation
 end
 
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5}, mesh, 
-                                       equations, dg::DGSEM, cache;
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,5},
+                                       mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
   @unpack alpha, indicator_threaded = indicator_max.cache
   resize!(alpha, nelements(dg, cache))

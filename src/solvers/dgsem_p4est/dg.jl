@@ -28,20 +28,20 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
 end
 
 
-# Extract outward-pointing normal vector (contravariant vector ±Ja^i, i = index) as SVector
+# Extract outward-pointing normal direction
+# (contravariant vector ±Ja^i, i = index)
 # Note that this vector is not normalized
-@inline function get_normal_vector(direction, cache, indices...)
-  @unpack contravariant_vectors, inverse_jacobian = cache.elements
+@inline function get_normal_direction(direction, contravariant_vectors, indices...)
 
-  orientation = div(direction + 1, 2)
+  orientation = (direction + 1) >> 1
   normal = get_contravariant_vector(orientation, contravariant_vectors, indices...)
 
   # Contravariant vectors at interfaces in negative coordinate direction are pointing inwards
-  if direction in (1, 3, 5)
-    normal *= -1
+  if isodd(direction)
+    return -normal
+  else
+    return normal
   end
-
-  return normal
 end
 
 

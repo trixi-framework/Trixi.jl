@@ -9,12 +9,12 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 initial_condition = initial_condition_convergence_test
 
-volume_flux = flux_central
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+volume_flux = (flux_central, flux_nonconservative_powell)
+solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservative_powell),
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (0, 0)
-coordinates_max = (sqrt(2), sqrt(2))
+coordinates_min = (0.0, 0.0)
+coordinates_max = (sqrt(2.0), sqrt(2.0))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)
