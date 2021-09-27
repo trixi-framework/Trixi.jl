@@ -73,24 +73,24 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl"),
-      l2   = [0.470793846459279, 0.20772743006225688, 0.20772649286847356, 0.7011946441199758],
-      linf = [1.459980543578883, 0.976674580177999, 0.9759214032734075, 2.960406757135902],
+      l2   = [0.4758794741390833, 0.21045415565179362, 0.21045325630191866, 0.7022517958549878],
+      linf = [1.710832148442441, 0.9711663578827681, 0.9703787873632452, 2.9619758810532653],
       initial_refinement_level = 4,
       maxiters = 50)
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
-      l2   = [0.4667685563568254, 0.20611874363505156, 0.20588110990842964, 0.6993986008683889],
-      linf = [1.4753582207406488, 0.9904209156187197, 0.9841399353882521, 2.9346283218997806],
+      l2   = [0.472445774440313, 0.2090782039442978, 0.20885558673697927, 0.700569533591275],
+      linf = [1.7066492792835155, 0.9856122336679919, 0.9784316656930644, 2.9372978989672873],
       initial_refinement_level = 4,
       maxiters = 50)
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl with mortars" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_rayhesthaven.jl"),
-      l2   = [0.016398689755743465, 0.03074685501652015, 0.03078660152836722, 0.15176702545248866],
-      linf = [0.27612812614937343, 0.5598351620373528, 0.5601415330040513, 2.48372589562021],
+      l2   = [0.016486406327766923, 0.03097329879894433, 0.03101012918167401, 0.15157175775429868],
+      linf = [0.27688647744873407, 0.5653724536715139, 0.565695523611447, 2.513047611639946],
       refinement_patches=(
           (type="box", coordinates_min=(-0.25, -0.25), coordinates_max=(0.25, 0.25)),
           (type="box", coordinates_min=(-0.125, -0.125), coordinates_max=(0.125, 0.125)),),
@@ -100,8 +100,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_cnn.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_neuralnetwork_cnn.jl"),
-      l2   = [0.47425390570612547, 0.20990014031106777, 0.2103622732820483, 0.7022475294762982],
-      linf = [1.6366874508175182, 0.9734578279971777, 0.9412921347930632, 2.949655726363399],
+      l2   = [0.4795795496408325, 0.2125148972465021, 0.21311260934645868, 0.7033388737692883],
+      linf = [1.8295385992182336, 0.9687795218482794, 0.9616033072376108, 2.9513245978047133],
       initial_refinement_level = 4,
       maxiters = 50)
   end
@@ -129,8 +129,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_neuralnetwork_perssonperaire.jl"),
-      l2   = [8.29516192e-02, 9.18870398e-02, 9.18870398e-02, 4.37449170e-01],
-      linf = [1.23402442e+00, 1.63254552e+00, 1.63254552e+00, 4.21977821e+00],
+      l2   = [0.0845430093623868, 0.09271459184623232, 0.09271459184623232, 0.4377291875101709],
+      linf = [1.3608553480069898, 1.6822884847136004, 1.6822884847135997, 4.220147414536653],
       maxiters = 30)
   end
 
@@ -171,8 +171,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl"),
-      l2   = [0.0009932162527962933, 0.004946122604416242, 0.004863174253792848, 0.005019630958200973],
-      linf = [0.008603757244273202, 0.02090493316272357, 0.01712529102069524, 0.028966987799588395],
+      l2   = [0.0009823702998067061, 0.004943231496200673, 0.0048604522073091815, 0.00496983530893294],
+      linf = [0.00855717053383187, 0.02087422420794427, 0.017121993783086185, 0.02720703869972585],
       maxiters = 30)
   end
 
