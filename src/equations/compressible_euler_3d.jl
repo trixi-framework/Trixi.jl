@@ -81,24 +81,18 @@ Source terms used for convergence tests in combination with
   γ = equations.gamma
 
   x1, x2, x3 = x
-  si, co = sincos(((x1 + x2 + x3) - t) * ω)
-  tmp1 = si * A
-  tmp2 = co * A * ω
-  tmp3 = ((((((4 * tmp1 * γ - 4 * tmp1) + 4 * c * γ) - 4c) - 3γ) + 7) * tmp2) / 2
+  si, co = sincos(ω * (x1 + x2 + x3 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
+  # Note that d/dt rho = -d/dx rho = -d/dy rho = - d/dz rho.
 
-  du1 = 2 * tmp2
-  du2 = tmp3
-  du3 = tmp3
-  du4 = tmp3
-  du5 = ((((((12 * tmp1 * γ - 4 * tmp1) + 12 * c * γ) - 4c) - 9γ) + 9) * tmp2) / 2
+  tmp = (2 * rho - 1.5) * (γ - 1)
 
-  # Original terms (without performance enhancements)
-  # tmp2 = ((((((4 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 4 * c * γ) - 4c) - 3γ) + 7) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
-  # du1 = 2 * cos(((x1 + x2 + x3) - t) * ω) * A * ω
-  # du2 = tmp2
-  # du3 = tmp2
-  # du4 = tmp2
-  # du5 = ((((((12 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 12 * c * γ) - 4c) - 9γ) + 9) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+  du1 = 2 * rho_x
+  du2 = rho_x * (2 + tmp)
+  du3 = du2
+  du4 = du2
+  du5 = rho_x * (4 * rho + 3 * tmp)
 
   return SVector(du1, du2, du3, du4, du5)
 end
