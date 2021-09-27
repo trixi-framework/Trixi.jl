@@ -197,7 +197,7 @@ wave number (frequency) of the initial data.
 julia> using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
 
 julia> function energy_at_final_time(k) # k is the wave number of the initial condition
-           equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+           equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
            mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
            solver = DGSEM(3, flux_lax_friedrichs)
            initial_condition = (x, t, equation) -> begin
@@ -254,7 +254,7 @@ julia> round(ForwardDiff.derivative(
 Having seen this application, let's break down what happens step by step.
 ```julia
 julia> function energy_at_final_time(k) # k is the wave number of the initial condition
-           equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+           equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
            mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
            solver = DGSEM(3, flux_lax_friedrichs)
            initial_condition = (x, t, equation) -> begin
@@ -283,7 +283,7 @@ that all types are generic enough, in particular the ones of internal caches.
 
 The first step in this example creates some basic ingredients of our simulation.
 ```julia
-equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
 mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
 solver = DGSEM(3, flux_lax_friedrichs)
 ```
@@ -417,7 +417,7 @@ For example,
 ```jldoctest
 julia> using Trixi, LinearAlgebra, Plots
 
-julia> equations = LinearScalarAdvectionEquation2D(1.0, -0.3);
+julia> equations = LinearScalarAdvectionEquation2D(0.2, -0.7);
 
 julia> solver = DGSEM(3, flux_lax_friedrichs);
 
