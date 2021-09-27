@@ -65,7 +65,7 @@ julia> λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
 2.1e-5
 
 julia> round(maximum(real, λ), sigdigits=2)
-0.0057
+0.0058
 ```
 
 However, we should be careful when using this analysis, since the eigenvectors are not necessarily
@@ -75,7 +75,7 @@ well-conditioned.
 julia> λ, V = eigen(J);
 
 julia> round(cond(V), sigdigits=2)
-1.8e6
+1.6e6
 ```
 
 In one space dimension, the situation is a bit different.
