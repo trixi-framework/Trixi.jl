@@ -39,22 +39,25 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "elixir_advection_rotated.jl" begin
     @trixi_testset "elixir_advection_rotated.jl with α = 0.0" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
-        l2   = [7.013143474176369e-6],
-        linf = [4.906526503622999e-5],
+        # Expected errors are exactly the same in elixir_advection_basic!
+        l2   = [8.311947673061856e-6], 
+        linf = [6.627000273229378e-5],
         alpha = 0.0)
     end
 
     @trixi_testset "elixir_advection_rotated.jl with α = 0.1" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
-        l2   = [7.013143474176369e-6],
-        linf = [4.906526503622999e-5],
+        # Expected errors are only slightly different from elixir_advection_basic!
+        l2   = [8.3122750550501e-6], 
+        linf = [6.626802581322089e-5]
         alpha = 0.1)
     end
 
     @trixi_testset "elixir_advection_rotated.jl with α = 0.5 * pi" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
-        l2   = [7.013143474176369e-6],
-        linf = [4.906526503622999e-5],
+        # Expected errors are exactly the same in elixir_advection_basic!
+        l2   = [8.311947673061856e-6], 
+        linf = [6.627000273229378e-5],
         alpha = 0.5 * pi)
     end
   end
