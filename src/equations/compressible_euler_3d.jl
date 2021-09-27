@@ -817,51 +817,41 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
   # Get the velocity value in the appropriate direction
   if orientation == 1
-    v_ll = rho_v1_ll / rho_ll
-    v_rr = rho_v1_rr / rho_rr
+    v_ll = v1_ll
+    v_rr = v1_rr
   elseif orientation == 2
-    v_ll = rho_v2_ll / rho_ll
-    v_rr = rho_v2_rr / rho_rr
+    v_ll = v2_ll
+    v_rr = v2_rr
   else # orientation == 3
-    v_ll = rho_v3_ll / rho_ll
-    v_rr = rho_v3_rr / rho_rr
+    v_ll = v3_ll
+    v_rr = v3_rr
   end
-  # Calculate pressure and sound speed
-  p_ll = pressure(u_ll, equations)
+  # Calculate sound speeds
   c_ll = sqrt(equations.gamma * p_ll / rho_ll)
-  p_rr = pressure(u_rr, equations)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
   # Calculate normal velocities and sound speed
   # left
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
   v_ll = (  v1_ll * normal_direction[1]
           + v2_ll * normal_direction[2]
           + v3_ll * normal_direction[3] )
-  p_ll = pressure(u_ll, equations)
   c_ll = sqrt(equations.gamma * p_ll / rho_ll)
   # right
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
   v_rr = (  v1_rr * normal_direction[1]
           + v2_rr * normal_direction[2]
           + v3_rr * normal_direction[3] )
-  p_rr = pressure(u_rr, equations)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
