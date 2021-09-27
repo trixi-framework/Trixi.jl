@@ -27,8 +27,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       # Expected errors are exactly the same as in the serial test!
-      l2   = [4.219208035626337e-6], 
-      linf = [3.4384344042126536e-5])
+      l2   = [7.81674284320524e-6],
+      linf = [6.314906965243505e-5])
   end
 
   # Linear scalar advection with AMR
