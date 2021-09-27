@@ -248,7 +248,7 @@ vanishes and the second derivative is negative. We can also check this discretel
 julia> round(ForwardDiff.derivative(
            k -> Trixi.ForwardDiff.derivative(energy_at_final_time, k),
        1.0), sigdigits=2)
--0.9
+-0.87
 ```
 
 Having seen this application, let's break down what happens step by step.
@@ -269,7 +269,7 @@ julia> function energy_at_final_time(k) # k is the wave number of the initial co
        end
 
 julia> round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
-1.4e-5
+1.1e-5
 ```
 When calling `ForwardDiff.derivative(energy_at_final_time, 1.0)`, ForwardDiff.jl
 will basically use the chain rule and known derivatives of existing basic functions
