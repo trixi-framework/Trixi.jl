@@ -15,20 +15,21 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "P4estMesh3D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.00013446460962856976],
-      linf = [0.0012577781391462928])
+      # Expected errors are exactly the same as with TreeMesh!
+      l2   = [0.00016263963870641478], 
+      linf = [0.0014537194925779984])
   end
 
   @trixi_testset "elixir_advection_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_curved.jl"),
-      l2   = [0.0006244885699399409],
-      linf = [0.04076651402041587])
+      l2   = [0.0004750004258546538], 
+      linf = [0.026527551737137167])
   end
 
   @trixi_testset "elixir_advection_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
-      l2   = [0.0024774648310858928],
-      linf = [0.021727876954353964])
+      l2   = [0.00253595715323843], 
+      linf = [0.016486952252155795])
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
@@ -45,14 +46,14 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_cubed_sphere.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
-      l2   = [0.0077828979483271195],
-      linf = [0.08759188779479488])
+      l2   = [0.002006918015656413], 
+      linf = [0.027655117058380085])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [0.0281388160824776],
-      linf = [0.08740635193023694])
+      l2   = [0.002590388934758452], 
+      linf = [0.01840757696885409])
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin

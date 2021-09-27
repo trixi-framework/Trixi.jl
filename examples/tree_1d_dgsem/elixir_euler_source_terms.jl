@@ -9,6 +9,8 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
+# Note that the expected EOC of 5 is not reached with this flux.
+# Using flux_hll instead yields the expected EOC.
 solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = 0
