@@ -94,8 +94,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       cells_per_dimension = (8,8), tspan = (0.0, 0.2),
-      l2 = [0.11140371194266245, 0.06598148257331912, 0.10448950567476646, 0.1602319547232773],
-      linf = [0.2403274017090733, 0.1659961476843728, 0.12354683515032569, 0.2691592411995334],
+      l2 = [0.11140378947116614, 0.06598161188703612, 0.10448953167839563, 0.16023209181809595],
+      linf = [0.24033843177853664, 0.1659992245272325, 0.1235468309508845, 0.26911424973147735],
     )
   end
 
@@ -110,8 +110,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_brown_minion_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_brown_minion_vortex.jl"),
       num_cells_per_dimension = 4, tspan = (0.0, 0.1),
-      l2 = [0.006818116685388498, 0.02123358215096057, 0.009928432022103199, 0.15364518920518527],
-      linf = [0.015838346753841548, 0.09449772987646823, 0.021276761322582504, 0.3470925282340751],
+      l2 = [0.0066800016110776066, 0.021516763475855016, 0.01069652423536524, 0.15052841129693573],
+      linf = [0.01544756362800248, 0.09517304772476806, 0.021957154972646383, 0.33773439650806303],
     )
   end
 

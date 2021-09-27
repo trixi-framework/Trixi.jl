@@ -53,14 +53,14 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
-      l2   = [2.3653424742684444e-6, 2.1388875095440695e-6, 2.1388875095548492e-6, 6.010896863397195e-6],
-      linf = [1.4080465931654018e-5, 1.7579850587257084e-5, 1.7579850592586155e-5, 5.956893531156027e-5])
+      l2   = [2.2594405120861626e-6, 2.3188881560096627e-6, 2.318888156064081e-6, 6.332786324236605e-6],
+      linf = [1.4987382633613322e-5, 1.9182011925522602e-5, 1.9182011924634423e-5, 6.0526717124531615e-5])
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic_unstructured.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_unstructured.jl"),
-      l2   = [0.005689496253354319, 0.004522481295923261, 0.004522481295922983, 0.009971628336802528],
-      linf = [0.05125433503504517, 0.05343803272241532, 0.053438032722404216, 0.09032097668196482])
+      l2   = [0.005238881525717585, 0.0043246899191607775, 0.0043246899191606925, 0.00986166157942196],
+      linf = [0.052183952487556695, 0.05393708345945791, 0.05393708345946191, 0.09119199890635965])
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin

@@ -108,50 +108,50 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
-      linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5])
+      l2   = [9.321181253877613e-7, 1.4181210743440328e-6, 1.4181210744199937e-6, 4.824553091402777e-6],
+      linf = [9.577246540715123e-6, 1.1707525988002843e-5, 1.1707525988002843e-5, 4.886961560224279e-5])
   end
 
   @testset "elixir_euler_source_terms_rotated.jl" begin
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.0" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
-      l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
-      linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5],
+      l2   = [9.321181252866306e-7, 1.4181210743538732e-6, 1.4181210742955931e-6, 4.824553091287347e-6],
+      linf = [9.577246546710327e-6, 1.1707525997328716e-5, 1.1707525993553958e-5, 4.886961556316294e-5],
       alpha = 0.0)
     end
 
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.1" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
-      l2   = [8.517816067144339e-7, 1.1545335192659009e-6, 1.3105743360575469e-6, 4.2778880887284874e-6],
-      linf = [8.357837601113971e-6, 9.243793987812055e-6, 1.1305611891110345e-5, 4.496194865932779e-5],
+      l2   = [9.321188057029291e-7, 1.3195106906473365e-6, 1.510307360354032e-6, 4.82455408101712e-6],
+      linf = [9.57723626271445e-6, 1.0480225511866337e-5, 1.2817828088262928e-5, 4.886962393513272e-5],
       alpha = 0.1)
     end
 
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.2 * pi" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
-      l2   = [8.517916398386897e-7, 7.775434972297097e-7, 1.5639649498758719e-6, 4.277897693664215e-6],
-      linf = [8.357487707666422e-6, 4.287882448716918e-6, 1.4423290043641401e-5, 4.496211536153538e-5],
+      l2   = [9.32127973957391e-7, 8.477824799744325e-7, 1.8175286311402784e-6, 4.824562453521076e-6],
+      linf = [9.576898420737834e-6, 5.057704352218195e-6, 1.635260719945464e-5, 4.886978754825577e-5],
       alpha = 0.2 * pi)
     end
 
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.5 * pi" begin
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
-      l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
-      linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5],
+      l2   = [9.321181251295825e-7, 1.4181210742069683e-6, 1.4181210743242745e-6, 4.824553091237043e-6],
+      linf = [9.57724653671832e-6, 1.1707525996440538e-5, 1.170752599466418e-5, 4.886961557826197e-5],
       alpha = 0.5 * pi)
     end
   end
 
   @trixi_testset "elixir_euler_source_terms_parallelogram.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_parallelogram.jl"),
-      l2   = [1.0893247337495366e-5, 1.0425688625462763e-5, 1.755222105014883e-5, 5.136512290929069e-5],
-      linf = [7.449791413693951e-5, 7.621073881791673e-5, 0.00011093303834863733, 0.00039625209916493986])
+      l2   = [1.1167802955144833e-5, 1.0805775514153104e-5, 1.953188337010932e-5, 5.5033856574857146e-5],
+      linf = [8.297006495561199e-5, 8.663281475951301e-5, 0.00012264160606778596, 0.00041818802502024965])
   end
 
   @trixi_testset "elixir_euler_source_terms_waving_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_waving_flag.jl"),
-      l2   = [3.2280277059090205e-5, 3.481614479752735e-5, 2.8784017747658748e-5, 0.00011549476000734391],
-      linf = [0.00025339087459608223, 0.0003425481056145152, 0.0002454647901921625, 0.0012806891514367535])
+      l2   = [2.991891317562739e-5, 3.6063177168283174e-5, 2.7082941743640572e-5, 0.00011414695350996946],
+      linf = [0.0002437454930492855, 0.0003438936171968887, 0.00024217622945688078, 0.001266380414757684])
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -171,8 +171,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
-      l2   = [2.3653424742684444e-6, 2.1388875095440695e-6, 2.1388875095548492e-6, 6.010896863397195e-6],
-      linf = [1.4080465931654018e-5, 1.7579850587257084e-5, 1.7579850592586155e-5, 5.956893531156027e-5])
+      l2   = [2.259440511901724e-6, 2.3188881559075347e-6, 2.3188881559568146e-6, 6.332786324137878e-6],
+      linf = [1.4987382622067003e-5, 1.918201192063762e-5, 1.918201192019353e-5, 6.052671713430158e-5])
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin
