@@ -39,7 +39,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     if mesh == "TreeMesh"
       @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
       @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa Trixi.PlotData2DCartesian
-      @test PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+      @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
     else
       @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
       @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.PlotData2DTriangulated
