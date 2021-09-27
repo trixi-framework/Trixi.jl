@@ -13,20 +13,21 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   @testset "TreeMesh" begin
     @trixi_testset "elixir_advection_restart.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_restart.jl"),
-        l2   = [1.2148032444677485e-5],
-        linf = [6.495644794757283e-5])
+        # Expected errors are exactly the same as in the serial test!
+        l2   = [7.81674284320524e-6],
+        linf = [6.314906965243505e-5])
     end
 
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_refine_twice.jl"),
-        l2   = [0.00019847333806230843],
-        linf = [0.005591345460895569])
+        l2   = [0.00020547512522578292], 
+        linf = [0.007831753383083506])
     end
 
     @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_coarsen_twice.jl"),
-        l2   = [0.00519897841357112],
-        linf = [0.06272325552264647])
+        l2   = [0.0014321062757891826], 
+        linf = [0.0253454486893413])
     end
 
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
