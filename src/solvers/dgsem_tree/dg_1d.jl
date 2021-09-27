@@ -297,7 +297,7 @@ end
 
   # Calculate FV two-point fluxes
   fstar1 = fstar1_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1, u, mesh, nonconservative_terms, equations, volume_flux_fv, dg, element)
+  calcflux_fv!(fstar1, u, mesh, nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
 
   # Calculate FV volume integral contribution
   for i in eachnode(dg)
@@ -314,7 +314,7 @@ end
 @inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3}, 
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               nonconservative_terms::Val{false}, 
-                              equations, volume_flux_fv, dg::DGSEM, element)
+                              equations, volume_flux_fv, dg::DGSEM, element, cache)
 
   fstar1[:, 1,           ] .= zero(eltype(fstar1))
   fstar1[:, nnodes(dg)+1,] .= zero(eltype(fstar1))
