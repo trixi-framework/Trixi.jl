@@ -1,16 +1,11 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the compressible Euler equations
 
-advection_velocity = (0.2, -0.7, 0.5)
-equations = LinearScalarAdvectionEquation3D(advection_velocity)
-
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
@@ -18,6 +13,12 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(
   :all => boundary_condition
 )
+
+# Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
+# The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
+# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralWeakForm())
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
@@ -49,51 +50,62 @@ mesh_file = joinpath(@__DIR__, "cube_unstructured_1.inp")
 isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/d45c8ac1e248618885fa7cc31a50ab40/raw/37fba24890ab37cfa49c39eae98b44faf4502882/cube_unstructured_1.inp",
                               mesh_file)
 
-mesh = P4estMesh{3}(mesh_file, polydeg=3,
+# Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
+mesh = P4estMesh{3}(mesh_file, polydeg=2,
                     mapping=mapping,
-                    initial_refinement_level=2)
+                    initial_refinement_level=0)
 
-# A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
+# Refine bottom left quadrant of each tree to level 2
+function refine_fn(p8est, which_tree, quadrant)
+  if quadrant.x == 0 && quadrant.y == 0 && quadrant.z == 0 && quadrant.level < 2
+    # return true (refine)
+    return Cint(1)
+  else
+    # return false (don't refine)
+    return Cint(0)
+  end
+end
+
+# Refine recursively until each bottom left quadrant of a tree has level 2
+# The mesh will be rebalanced before the simulation starts
+refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p8est_quadrant_t}))
+Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms=source_terms_convergence_test,
+                                    boundary_conditions=boundary_conditions)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 0.1
-ode = semidiscretize(semi, (0.0, 0.1));
+tspan = (0.0, 0.1)
+ode = semidiscretize(semi, tspan)
 
-# At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
-# and resets the timers
 summary_callback = SummaryCallback()
 
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
-# The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
                                      solution_variables=cons2prim)
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.2)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
-# Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_restart, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
+                        save_solution,
+                        stepsize_callback)
 
 
 ###############################################################################
 # run the simulation
 
-# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
-
-# Print the timer summary
-summary_callback()
+summary_callback() # print the timer summary

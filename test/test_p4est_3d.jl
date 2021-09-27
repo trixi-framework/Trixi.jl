@@ -34,14 +34,15 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
+      # Expected errors are exactly the same as with TreeMesh!
       l2   = [9.773852895157622e-6],
       linf = [0.0005853874124926162])
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_curved.jl"),
-      l2   = [0.00014665036779554962],
-      linf = [0.00845936405684372])
+      l2   = [3.28458370046859e-5],
+      linf = [0.003607158327703943])
   end
 
   @trixi_testset "elixir_advection_cubed_sphere.jl" begin
@@ -56,10 +57,10 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.01840757696885409])
   end
 
-  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
-      l2   = [0.0015695663270396166, 0.001549091994386831, 0.0015490919943869353, 0.0015490919943868698, 0.003014232118596731],
-      linf = [0.011169568009152364, 0.012122645263170417, 0.012122645263174858, 0.012122645263175968, 0.022766806484094904])
+  @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+    l2   = [0.00021757212589041148, 0.00019534151270623714, 0.00025208289643522584, 0.00024988472667179605, 0.0005480299111663858], 
+    linf = [0.015799452222350796, 0.010260801179984291, 0.018117183892979005, 0.022204661640161216, 0.03730597786808776])
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
