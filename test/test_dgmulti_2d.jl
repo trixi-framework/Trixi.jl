@@ -128,7 +128,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Quad)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
+    # These setups do not pass CI reliably, see
+    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
+    # https://github.com/trixi-framework/Trixi.jl/issues/881
+    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
       num_cells_per_dimension = 4,
       l2 = [0.15825983698241494, 0.19897219694837923, 0.19784182473275247, 0.10482833997417325,
             0.7310752391255246, 0.07374056714564853, 0.07371172293240634, 0.10782032253431281,
@@ -152,7 +155,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Tri)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
+    # These setups do not pass CI reliably, see
+    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
+    # https://github.com/trixi-framework/Trixi.jl/issues/881
+    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
       num_cells_per_dimension = 4, element_type=Tri(), tspan = (0.0, 0.2),
       l2 = [0.13825044764021147, 0.15472815448314997, 0.1549093274293255, 0.053103596213755405,
             0.7246162776815603, 0.07730777596615901, 0.07733438386480523, 0.109893463921706,
