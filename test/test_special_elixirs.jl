@@ -174,7 +174,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
         mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
         solver = DGSEM(3, flux_lax_friedrichs)
         initial_condition = (x, t, equation) -> begin
-          x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+          x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
           return SVector(sinpi(k * sum(x_trans)))
         end
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
