@@ -229,7 +229,7 @@ We can compute the discrete derivative of the energy at the final time with resp
 number `k` as follows.
 ```jldoctest advection_differentiate_simulation
 julia> round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
-1.4e-5
+1.1e-5
 ```
 
 This is rather small and we can treat it as zero in comparison to the value of this derivative at
