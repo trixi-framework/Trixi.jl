@@ -231,7 +231,7 @@ PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 
-# Also redirect if PlotData is specified to be triangulated.
+# Redirect `PlotDataTriangulated2D` constructor.
 PlotData2DTriangulated(u_ode, semi; kwargs...) = PlotData2DTriangulated(wrap_array_native(u_ode, semi),
                                                                         mesh_equations_solver_cache(semi)...;
                                                                         kwargs...)
