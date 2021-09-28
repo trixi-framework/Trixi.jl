@@ -239,6 +239,9 @@ PlotData2DTriangulated(u_ode, semi; kwargs...) = PlotData2DTriangulated(wrap_arr
 # Create a PlotData2DCartesian object for TreeMeshes on default.
 PlotData2D(u, mesh::TreeMesh, equations, solver, cache; kwargs...) = PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
 
+# Create a PlotData2DTriangulated object for any type of mesh other than the TreeMesh.
+PlotData2D(u, mesh, equations, solver, cache; kwargs...) = PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
+
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables=nothing,
@@ -284,15 +287,6 @@ PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p
 
 # Also redirect when using PlotData2DTriangulate.
 PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
-
-# Create a PlotData2DCartesian if the mesh is a TreeMesh; else create a PlotData2DTriangulated.
-function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
-  if get_name(mesh) == "TreeMesh"
-    return PlotData2DCartesian(u, mesh, equations, solver, cache; kwargs...)
-  else
-    return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
-  end
-end
 
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
