@@ -244,9 +244,9 @@ PlotData2D(u, mesh, equations, solver, cache; kwargs...) = PlotData2DTriangulate
 
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
-                    solution_variables=nothing,
-                    grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice=:xy, point=(0.0, 0.0, 0.0))
+                             solution_variables=nothing,
+                             grid_lines=true, max_supported_level=11, nvisnodes=nothing,
+                             slice=:xy, point=(0.0, 0.0, 0.0))
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -344,7 +344,7 @@ end
 
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
 function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
-                    solution_variables=nothing, nvisnodes=2*polydeg(dg))
+                                solution_variables=nothing, nvisnodes=2*polydeg(dg))
   @assert ndims(mesh) == 2
 
   n_nodes_2d = nnodes(dg)^ndims(mesh)
