@@ -39,6 +39,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     if mesh == "TreeMesh"
       @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
       @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa Trixi.PlotData2DCartesian
+      @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
     else
       @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
       @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.PlotData2DTriangulated
@@ -293,6 +294,10 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # test interactive surface plot
     @test_nowarn_debug Trixi.iplot(sol)
+
+    # also test when using PlotData2D object
+    @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+    @test_nowarn_debug Makie.plot(PlotData2D(sol))
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
