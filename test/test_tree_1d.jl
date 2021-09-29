@@ -193,7 +193,7 @@ end
                                                                      2 #= two variables (u,a) =#}
   end
 
-  Trixi.varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advectionvelocity")
+  Trixi.varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advection_velocity")
 
   Trixi.default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
 
@@ -203,10 +203,10 @@ end
 
   # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
   function Trixi.max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
-    _, advectionvelocity_ll = u_ll
-    _, advectionvelocity_rr = u_rr
+    _, advection_velocity_ll = u_ll
+    _, advection_velocity_rr = u_rr
 
-    return max(abs(advectionvelocity_ll), abs(advectionvelocity_rr))
+    return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
   end
 
 
@@ -215,10 +215,10 @@ end
 
   function flux_nonconservative(u_mine, u_other, orientation,
                                 equations::NonconservativeLinearAdvectionEquation)
-    _, advectionvelocity = u_mine
+    _, advection_velocity = u_mine
     scalar, _            = u_other
 
-    return SVector(advectionvelocity * scalar, zero(scalar))
+    return SVector(advection_velocity * scalar, zero(scalar))
   end
 
 
@@ -233,8 +233,8 @@ end
   function initial_condition_sine(x, t, equation::NonconservativeLinearAdvectionEquation)
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
-    advectionvelocity = 2 + cos(x[1])
-    SVector(scalar, advectionvelocity)
+    advection_velocity = 2 + cos(x[1])
+    SVector(scalar, advection_velocity)
   end
 
   # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries

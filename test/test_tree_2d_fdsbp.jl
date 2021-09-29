@@ -11,9 +11,9 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 @testset "Linear scalar advection" begin
   @trixi_testset "elixir_advection_extended.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-      l2   = [2.29497319e-06],
-      linf = [8.48027655e-06],
-      rtol = 5.0e-7) # These results change a little bit and depend on the CI system
+      l2   = [2.898644263922225e-6], 
+      linf = [8.491517930142578e-6],
+      rtol = 1.0e-7) # These results change a little bit and depend on the CI system
   end
 end
 
