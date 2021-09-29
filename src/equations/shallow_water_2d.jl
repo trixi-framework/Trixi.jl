@@ -333,8 +333,7 @@ and for curvilinear 2D case in the paper:
   # Includes two parts:
   #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
   #        cross-averaging across a discontinuous bottom topography
-  #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
-  #        to handle discontinuous bathymetry
+  #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
   z = zero(eltype(u_ll))
   if orientation == 1
     f = SVector(z,
@@ -407,12 +406,12 @@ Details are available in Eq. (4.1) in the paper:
   # Calculate fluxes depending on orientation
   if orientation == 1
     f1 = h_avg * v1_avg
-    f2 = h_avg * v1_avg * v1_avg + p_avg
-    f3 = h_avg * v1_avg * v2_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
   else
     f1 = h_avg * v2_avg
-    f2 = h_avg * v2_avg * v1_avg
-    f3 = h_avg * v2_avg * v2_avg + p_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
   end
 
   return SVector(f1, f2, f3, zero(eltype(u_ll)))
