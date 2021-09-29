@@ -32,7 +32,7 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equat
   # Multiply with [  cos(α)  sin(α);
   #                 -sin(α)  cos(α)]
   x_rot = SVector(cos_ * x[1] + sin_ * x[2], -sin_ * x[1] + cos_ * x[2])
-  a = equation.advectionvelocity
+  a = equation.advection_velocity
   a_rot = SVector(cos_ * a[1] + sin_ * a[2], -sin_ * a[1] + cos_ * a[2])
 
   # Store translated coordinate for easy use of exact solution
@@ -61,8 +61,8 @@ sin_ = initial_condition.sin_alpha
 cos_ = initial_condition.cos_alpha
 T = [cos_ -sin_; sin_ cos_]
 
-advectionvelocity = Tuple(T * [1.0, 1.0])
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = Tuple(T * [1.0, 1.0])
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)

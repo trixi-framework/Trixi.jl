@@ -15,20 +15,21 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "StructuredMesh2D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [9.14468177884088e-6],
-      linf = [6.437440532947036e-5])
+      # Expected errors are exactly the same as with StructuredMesh!
+      l2   = [8.311947673061856e-6], 
+      linf = [6.627000273229378e-5])
   end
 
   @trixi_testset "elixir_advection_extended.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-      l2   = [4.842990962468553e-6],
-      linf = [3.47372094784415e-5])
+      l2   = [4.220397559713772e-6], 
+      linf = [3.477948874874848e-5])
   end
 
   @trixi_testset "elixir_advection_extended.jl with polydeg=4" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-      l2   = [2.0610527374594057e-6],
-      linf = [7.21793425673134e-6],
+      l2   = [5.32996976442737e-7], 
+      linf = [4.1344662966569246e-6],
       atol = 1e-12, # required to make CI tests pass on macOS
       cells_per_dimension = (16, 23),
       polydeg = 4,
@@ -60,48 +61,50 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_parallelogram.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_parallelogram.jl"),
-      l2   = [9.14468177884088e-6],
-      linf = [6.437440532947036e-5])
+      # Expected errors are exactly the same in elixir_advection_basic!
+      l2   = [8.311947673061856e-6], 
+      linf = [6.627000273229378e-5])
   end
 
   @trixi_testset "elixir_advection_waving_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_waving_flag.jl"),
-      l2   = [0.00017007823031108628],
-      linf = [0.0015264963372674245])
+      l2   = [0.00018553859900545866], 
+      linf = [0.0016167719118129753])
   end
 
   @trixi_testset "elixir_advection_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream.jl"),
-      l2   = [5.984863383701255e-15],
-      linf = [1.8207657603852567e-13])
+      l2   = [6.8925194184204476e-15], 
+      linf = [9.903189379656396e-14])
   end
 
   @trixi_testset "elixir_advection_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic.jl"),
-      l2   = [0.00023766972629056245],
-      linf = [0.004142508319267935])
+      l2   = [0.00025552740731641223],
+      linf = [0.007252625722805939])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [6.398955192910044e-6],
-      linf = [3.474337336717426e-5])
+      l2   = [4.219208035582454e-6], 
+      linf = [3.438434404412494e-5])
   end
 
   @trixi_testset "elixir_advection_restart.jl with waving flag mesh" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [0.00017274040834067234],
-      linf = [0.0015435741643734513],
+      l2   = [0.00016265538283059892],
+      linf = [0.0015194298895079283],
+      rtol = 3e-7, # Higher tolerance to make tests pass in CI
       elixir_file="elixir_advection_waving_flag.jl",
-      restart_file="restart_000041.h5")
+      restart_file="restart_000021.h5")
   end
 
   @trixi_testset "elixir_advection_restart.jl with free stream mesh" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [6.639325026542281e-15],
-      linf = [1.829647544582258e-13],
+      l2   = [7.841217436552029e-15],
+      linf = [1.0857981180834031e-13],
       elixir_file="elixir_advection_free_stream.jl",
-      restart_file="restart_000068.h5")
+      restart_file="restart_000036.h5")
   end
 
   @trixi_testset "elixir_euler_source_terms.jl" begin
