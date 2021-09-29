@@ -78,9 +78,16 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-      l2   = [3.75745254e-01, 2.46684350e-01, 2.46684350e-01, 1.28863602e+00],
-      linf = [1.21734130e+00, 1.17533147e+00, 1.17533147e+00, 6.20558451e+00],
+      l2   = [3.76149952e-01, 2.46970327e-01, 2.46970327e-01, 1.28889042e+00],
+      linf = [1.22139001e+00, 1.17742626e+00, 1.17742626e+00, 6.20638482e+00],
       tspan = (0.0, 0.3))
+  end
+
+  @trixi_testset "elixir_euler_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_amr.jl"),
+      l2   = [9.77167251e-02, 7.85814733e-02, 7.85814010e-02, 2.08656399e-01],
+      linf = [2.07569959e+00, 1.78963061e+00, 1.78963061e+00, 2.18728474e+00],
+      tspan = (0.0, 0.05))
   end
 
   @trixi_testset "elixir_eulergravity_convergence.jl" begin

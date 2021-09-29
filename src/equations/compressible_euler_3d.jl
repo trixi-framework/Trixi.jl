@@ -149,40 +149,6 @@ end
 
 
 """
-    initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
-
-The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-with smaller strength of the initial discontinuity.
-"""
-function initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
-  # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0, 0.0)
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  z_norm = x[3] - inicenter[3]
-  r = sqrt(x_norm^2 + y_norm^2 + z_norm^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # r0 = 0.5 # = more reasonable setup
-  E = 1.0
-  p0_inner = 3 * (equations.gamma - 1) * E / (3 * pi * r0^2)
-  # p0_outer = 1.0e-5 # = true Sedov setup
-  p0_outer = 1.0e-3 # = more reasonable setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1  = 0.0
-  v2  = 0.0
-  v3  = 0.0
-  p   = r > r0 ? p0_outer : p0_inner
-
-  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
-end
-
-
-"""
     initial_condition_blob(x, t, equations::CompressibleEulerEquations3D)
 
 The blob test case taken from

@@ -38,51 +38,7 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-  create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
-end
-
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
-                      nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
-end
-
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
-                      nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
-
-  A = Array{uEltype, 5}
-  f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                  for _ in 1:Threads.nthreads()]
-  f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                  for _ in 1:Threads.nthreads()]
-  f3_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                  for _ in 1:Threads.nthreads()]
-
-  A3d = Array{uEltype, 3}
-  fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_upper_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_lower_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_lower_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  fstar_tmp1_threaded        = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                   for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                                             for _ in 1:Threads.nthreads()]
-
-  return (; f1_threaded, f2_threaded, f3_threaded,
-            fstar_upper_left_threaded, fstar_upper_right_threaded,
-            fstar_lower_left_threaded, fstar_lower_right_threaded,
-            fstar_tmp1_threaded,
-            noncons_diamond_upper_left_threaded, noncons_diamond_upper_right_threaded,
-            noncons_diamond_lower_left_threaded, noncons_diamond_lower_right_threaded,)
 end
 
 
@@ -109,7 +65,7 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
 end
 
 
-function create_cache(mesh::TreeMesh{3}, equations,
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
 
   A4dp1_x = Array{uEltype, 4}
@@ -126,10 +82,9 @@ function create_cache(mesh::TreeMesh{3}, equations,
 end
 
 
-
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal compare performance of different types
   A3d = Array{uEltype, 3}
   fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
@@ -237,69 +192,6 @@ function calc_volume_integral!(du, u,
   end
 
   return nothing
-end
-
-
-# Calculate 3D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f3, u, element,
-                                    mesh::TreeMesh{3}, equations, volume_flux, dg::DG, cache)
-
-  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-    # Pull the solution values at the node i,j,k
-    u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    # diagonal (consistent) part not needed since diagonal of
-    # dg.basis.derivative_split_transpose is zero!
-    set_node_vars!(f1, zero(u_node), equations, dg, i, i, j, k)
-    set_node_vars!(f2, zero(u_node), equations, dg, j, i, j, k)
-    set_node_vars!(f3, zero(u_node), equations, dg, k, i, j, k)
-
-    # Flux in x-direction
-    for ii in (i+1):nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i,  j, k, element)
-      u_rr = get_node_vars(u, equations, dg, ii, j, k, element)
-      flux = volume_flux(u_ll, u_rr, 1, equations) # 1-> x-direction
-      set_node_vars!(f1, flux, equations, dg, i, ii, j, k)
-      set_node_vars!(f1, flux, equations, dg, ii, i, j, k)
-    end
-
-    # Flux in y-direction
-    for jj in (j+1):nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i, j,  k, element)
-      u_rr = get_node_vars(u, equations, dg, i, jj, k, element)
-      flux = volume_flux(u_ll, u_rr, 2, equations) # 2 -> y-direction
-      set_node_vars!(f2, flux, equations, dg, j, i, jj, k)
-      set_node_vars!(f2, flux, equations, dg, jj, i, j, k)
-    end
-
-    # Flux in z-direction
-    for kk in (k+1):nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i, j, k,  element)
-      u_rr = get_node_vars(u, equations, dg, i, j, kk, element)
-      flux = volume_flux(u_ll, u_rr, 3, equations) # 3 -> z-direction
-      set_node_vars!(f3, flux, equations, dg, k, i, j, kk)
-      set_node_vars!(f3, flux, equations, dg, kk, i, j, k)
-    end
-  end
-
-  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
-                                     have_nonconservative_terms(equations),
-                                     mesh, equations, dg, cache)
-end
-
-function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
-                                            nonconservative_terms::Val{false},
-                                            mesh::Union{TreeMesh{3}, StructuredMesh{3}},
-                                            equations, dg::DG, cache)
-  return nothing
-end
-
-function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element,
-                                            nonconservative_terms::Val{true},
-                                            mesh::TreeMesh{3},
-                                            equations, dg::DG, cache)
-  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-  #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element, equations, dg, cache)
 end
 
 

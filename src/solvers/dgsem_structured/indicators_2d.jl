@@ -4,7 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-function apply_smoothing_2d!(mesh::StructuredMesh{2}, alpha, alpha_tmp, dg, cache)
+function apply_smoothing!(mesh::StructuredMesh{2}, alpha, alpha_tmp, dg, cache)
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
   # Copy alpha values such that smoothing is indpedenent of the element access order
   alpha_tmp .= alpha

@@ -34,28 +34,13 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}}, equations,
                       volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-  create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
-end
-
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, nonconservative_terms::Val{false}, equations,
-                      ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, nonconservative_terms::Val{true}, equations,
-                      ::VolumeIntegralFluxDifferencing, dg, uEltype)
 
-  prototype = Array{uEltype, 3}(undef,
-                nvariables(equations), nnodes(dg), nnodes(dg))
-  f1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
-
-  return (; f1_threaded)
-end
-
-
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
@@ -71,7 +56,7 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
 end
 
 
-function create_cache(mesh::TreeMesh{1}, equations,
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
 
   A2dp1_x = Array{uEltype, 2}
@@ -81,10 +66,9 @@ function create_cache(mesh::TreeMesh{1}, equations,
 end
 
 
-
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{1}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   NamedTuple()
 end
 

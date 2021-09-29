@@ -94,14 +94,14 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5},
   end
 
   if alpha_smooth
-    apply_smoothing_3d!(mesh, alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
 end
 
 
-function apply_smoothing_3d!(mesh::Union{TreeMesh{3}, P4estMesh{3}}, alpha, alpha_tmp, dg, cache)
+function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}}, alpha, alpha_tmp, dg, cache)
 
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
   # Copy alpha values such that smoothing is indpedenent of the element access order
