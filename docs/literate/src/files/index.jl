@@ -5,10 +5,10 @@
 
 # Right now, you are using the classic documentation. The corresponding interactive notebooks can
 # be viewed in [nbviewer](https://nbviewer.jupyter.org/) and opened in [Binder](https://mybinder.org/)
-# via the icons ![]("https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg")
+# via the icons ![](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)
 # and ![](https://mybinder.org/badge_logo.svg) in the respective tutorial.
 
-# You can also download the notebook files via ![]("https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e").
+# You can also download the notebook files via ![](https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e).
     
 # There are tutorials for the following topics:
 

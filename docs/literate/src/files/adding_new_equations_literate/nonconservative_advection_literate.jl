@@ -12,13 +12,7 @@ using Test: @test #src
 
 # ## Basic setup
 
-# Let's start by creating a module (in the REPL, in a file, in a Jupyter notebook, ...).
-# That ensures that we can re-create `struct`s defined therein without having to
-# restart Julia.
-
 ## Define new physics
-module NonconservativeLinearAdvection
-
 using Trixi
 using Trixi: AbstractEquations, get_node_vars
 import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
@@ -62,9 +56,7 @@ function flux_nonconservative(u_mine, u_other, orientation,
     scalar, _            = u_other
     
     return SVector(advectionvelocity * scalar, zero(scalar))
-end
-
-end; # module
+end;
 
 # The implementation of nonconservative terms uses a single "nonconservative flux"
 # function `flux_nonconservative`. It will basically be applied in a loop of the
@@ -73,19 +65,17 @@ end; # module
 du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)); # orientation 1: x
 # where `D` is the derivative matrix and `u` contains the nodal solution values.
 
-# Now, we can run a simple simulation using a DGSEM discretization. This code is
-# written outside of our new `module`.
+# Now, we can run a simple simulation using a DGSEM discretization.
 
 ## Create a simulation setup
-import .NonconservativeLinearAdvection
 using Trixi
 using OrdinaryDiffEq
 
-equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation()
+equation = NonconservativeLinearAdvectionEquation()
 
 ## You can derive the exact solution for this setup using the method of
 ## characteristics
-function initial_condition_sine(x, t, equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
+function initial_condition_sine(x, t, equation::NonconservativeLinearAdvectionEquation)
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advectionvelocity = 2 + cos(x[1])
@@ -99,8 +89,8 @@ mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
 ## as `surface_flux` and `volume_flux` when working with nonconservative terms
-volume_flux  = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
-surface_flux = (flux_lax_friedrichs, NonconservativeLinearAdvection.flux_nonconservative)
+volume_flux  = (flux_central, flux_nonconservative)
+surface_flux = (flux_lax_friedrichs, flux_nonconservative)
 solver = DGSEM(polydeg=3, surface_flux=surface_flux,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -155,7 +145,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback);
 sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
             save_everystep=false, callback=callbacks);
 summary_callback()
-#-
+
+#nb #-
 error_2 = analysis_callback(sol).l2 |> first
 @test isapprox(error_2, 1.860295931682964e-5, rtol=0.05) #src
 #-
@@ -170,6 +161,9 @@ error_1 / error_2
     
 # Here is the complete code that we used (without the callbacks since these
 # create a lot of unnecessary output in the doctests of this tutorial).
+# In addition, we create the `struct` inside the new module `NonconservativeLinearAdvection`.
+# That ensures that we can re-create `struct`s defined therein without having to
+# restart Julia.
 
 
 # Define new physics

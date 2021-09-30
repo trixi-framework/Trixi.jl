@@ -195,7 +195,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     ode = semidiscretize(semi, (0.0, 1.0))
     sol = solve(ode, BS3(), save_everystep=false)
     Trixi.integrate(energy_total, sol.u[end], semi)
-end
+end;
 #-
 k_values = range(0.9, 1.1, length=101)
 @test k_values == 0.9:0.002:1.1 #src
@@ -245,7 +245,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     ode = semidiscretize(semi, (0.0, 1.0))
     sol = solve(ode, BS3(), save_everystep=false)
     Trixi.integrate(energy_total, sol.u[end], semi)
-end
+end;
 #-
 k = 1.0
 round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits=2)
@@ -325,7 +325,10 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 ode = semidiscretize(semi, (0.0, 1.5));
 
+redirect_stdout(devnull) do #hide #md
+## code that prints annoying stuff we don't want to see here #hide #md
 sol = solve(ode, BS3(), save_everystep=false);
+end #hide #md
 
 plot(sol);
 
