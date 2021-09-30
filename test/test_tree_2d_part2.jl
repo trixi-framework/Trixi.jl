@@ -14,7 +14,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 # Run basic tests
 @testset "Examples 2D" begin
   # Acoustic perturbation
-  include("test_tree_2d_ape.jl")
+  include("test_tree_2d_acoustics.jl")
 
   # Compressible Euler
   include("test_tree_2d_euler.jl")

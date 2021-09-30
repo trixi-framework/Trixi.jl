@@ -201,7 +201,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "plot time series" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
-                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
+                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
     @test_nowarn_debug Plots.plot(time_series, 1)

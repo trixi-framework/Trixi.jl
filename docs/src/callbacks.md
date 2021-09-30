@@ -44,7 +44,7 @@ An example showing how to restart a simulation from a restart file can be found 
 Sometimes it is useful to record the evoluation of state variables over time at
 a given set of points. This can be achieved by the [`TimeSeriesCallback`](@ref), which is used,
 e.g., in
-[examples/tree_2d_dgsem/elixir\_ape\_gaussian\_source.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_ape_gaussian_source.jl).
+[examples/tree_2d_dgsem/elixir\_acoustics\_gaussian\_source.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_acoustics_gaussian_source.jl).
 The `TimeSeriesCallback` constructor expects a semidiscretization and a list of points at
 which the solution should be recorded in regular time step intervals. After the
 last time step, the entire record is stored in an HDF5 file.
@@ -84,7 +84,7 @@ example, executing
 ```julia
 julia> using Trixi, Plots
 
-julia> trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"))
+julia> trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"))
 
 julia> pd1 = PlotData1D(time_series, 1)
 
