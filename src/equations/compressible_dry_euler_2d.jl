@@ -5,13 +5,7 @@
 @muladd begin
 
 
-@doc raw"""
-    CompressibleEulerEquations2D(gamma)
-
-The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
-in two space dimensions.
-"""
-struct CompressibleDryEulerEquations2D{RealT<:Real} <: AbstractCompressiblePotTempEulerEquations{2, 4}
+struct CompressibleDryEulerEquations2D{RealT<:Real} <: AbstractCompressibleDryEulerEquations{2, 4}
   p_0::RealT   # constant reference pressure 1000 hPa(100000 Pa)
   c_p::RealT
   c_v::RealT
@@ -31,12 +25,13 @@ function CompressibleDryEulerEquations2D(;RealT=Float64)
    gamma = c_p / c_v # = 1/(1 - kappa)
    kappa = 1 - inv(gamma)
    a=360
-   return CompressiblePotTempEulerEquations2D{RealT}(p_0, c_p, c_v, R_d, g, kappa, gamma, a)
+   return CompressibleDryEulerEquations2D{RealT}(p_0, c_p, c_v, R_d, g, kappa, gamma, a)
   end
 
 
 varnames(::typeof(cons2cons), ::CompressibleDryEulerEquations2D) = ("rho", "rho_v1", "rho_v2", "rho_e")
 varnames(::typeof(cons2prim), ::CompressibleDryEulerEquations2D) = ("rho", "v1", "v2", "p")
+varnames(::typeof(cons2pot), ::CompressibleDryEulerEquations2D) = ("rho", "v1", "v2", "pottemp")
 
 
 function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
@@ -117,6 +112,26 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
   return boundary_flux
 end
 
+# Calculate 1D flux for a single point
+@inline function flux(u, orientation::Integer, equations::CompressibleDryEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+  if orientation == 1
+    f1 = rho_v1
+    f2 = rho_v1 * v1 + p
+    f3 = rho_v1 * v2
+    f4 = (rho_e + p) * v1
+  else
+    f1 = rho_v2
+    f2 = rho_v2 * v1
+    f3 = rho_v2 * v2 + p
+    f4 = (rho_e + p) * v2
+  end
+  return SVector(f1, f2, f3, f4)
+end
+
 
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
@@ -131,6 +146,125 @@ end
   f3 = rho_v_normal * v2 + p * normal_direction[2]
   f4 = (rho_e + p) * v_normal
   return SVector(f1, f2, f3, f4)
+end
+
+
+function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEulerEquations2D)
+  # Gaussian bubble at the center (x0, z0) with a potential Temperature 
+  # perturbation of 0.5 K (for a 1x1.5 km^2 box)
+  
+  #Initial potential temperature
+  theta_ini = 303.15
+  v1 = 20
+  v2 = 0
+
+  # Bubble center (x0, z0) in meters
+  x0 = 750
+  z0 = 260
+
+  # Distance from the bubble center
+  r = sqrt((x[1]-x0)^2 + (x[2]-z0)^2)
+
+  # Scaling parameters
+  A = 0.5
+  a = 50
+  s = 100
+
+  # Potential temperature perturbation 
+  if r > a
+    theta_pert = A * exp(- inv(s^2) * (r-a)^2)
+  else
+    theta_pert = A
+  end
+
+  # potential temperature
+  theta = theta_ini + theta_pert
+
+  pi_exner = 1 - equations.g / (equations.c_p * theta) * x[2]
+  rho = equations.p_0 / (equations.R_d * theta) * (pi_exner)^(equations.c_v / equations.R_d)
+  p = equations.p_0 * (1 - equations.kappa * equations.g * x[2] / (equations.R_d * theta_ini))^(equations.c_p / equations.R_d)
+  T = p / (equations.R_d * rho)
+
+  rho_v1 = rho*v1
+  rho_v2 = rho*v2
+  rho_e = rho * equations.c_v * T + 0.5 * rho *(v1^2 + v2^2)
+  return SVector(rho, rho_v1, rho_v2, rho_e)
+end
+
+
+function source_terms_warm_bubble(du, u, equations::CompressibleDryEulerEquations2D, dg)
+  for j in eachnode(dg), i in eachnode(dg)
+    # TODO: performance use temp
+    #x1 = x[1, i, j, element_id]
+    #x2 = x[2, i, j, element_id]
+    du[3, i, j, :] -=  equations.g * u[1, i, j, :]
+    du[4, i, j, :] -=  equations.g * u[3, i, j, :]
+  end
+  return nothing
+end
+
+
+@inline function flux_LMARS(u_ll, u_rr, orientation::Integer , equations::CompressibleDryEulerEquations2D)
+  @unpack a, gamma = equations
+  
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_v2_ll
+
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_v2_rr
+  
+  # Compute the necessary interface flux components
+
+  rho_mean = 0.5*(rho_ll + rho_rr) # TODO why choose the mean value here?
+
+  p_ll = (gamma - 1) * (rho_e_ll - 0.5 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll))
+  p_rr = (gamma - 1) * (rho_e_rr - 0.5 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr))
+
+  if orientation == 1
+
+    beta = 0.5 # diffusion parameter <= 1 
+
+    v_interface = 0.5*(v1_rr + v1_ll) - beta*inv(2*rho_mean*a)*(p_rr-p_ll)
+    p_interface = 0.5*(p_rr + p_ll) - beta*0.5*rho_mean*a*(v1_rr-v1_ll)
+
+    if (v_interface > 0)
+      f1 = rho_ll
+      f2 = rho_v1_ll
+      f3 = rho_v2_ll
+      f4 = rho_e_ll + p_ll
+    else
+      f1 = rho_rr
+      f2 = rho_v1_rr
+      f3 = rho_v2_rr
+      f4 = rho_e_rr + p_rr
+    end
+
+    flux = SVector(f1, f2, f3, f4) *v_interface + SVector(0, 1, 0, 0) * p_interface
+
+  else # orientation = 2
+
+    v_interface = 0.5*(v2_rr + v2_ll) - inv(2*rho_mean*a)*(p_rr-p_ll)
+    p_interface = 0.5*(p_rr + p_ll) - 0.5*rho_mean*a*(v2_rr-v2_ll)
+
+    if (v_interface > 0)
+      f1 = rho_ll
+      f2 = rho_v1_ll
+      f3 = rho_v2_ll
+      f4 = rho_e_ll + p_ll
+    else
+      f1 = rho_rr
+      f2 = rho_v1_rr
+      f3 = rho_v2_rr
+      f4 = rho_e_rr + p_rr
+    end
+
+    flux = SVector(f1, f2, f3, f4) * v_interface + SVector(0, 0, 1, 0) * p_interface
+  end
+
+  return flux
 end
 
 
@@ -254,10 +388,11 @@ end
   v2 = rho_v2 / rho
   v_square = v1^2 + v2^2
   p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
+
   s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equations.gamma - s) * equations.inv_gamma_minus_one - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) * inv(equations.gamma - 1) - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = rho_p * v2
   w4 = -rho_p
@@ -289,8 +424,6 @@ end
 end
 
 
-
-
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::CompressibleDryEulerEquations2D)
   rho, v1, v2, p = prim
@@ -298,6 +431,21 @@ end
   rho_v2 = rho * v2
   rho_e  = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
   return SVector(rho, rho_v1, rho_v2, rho_e)
+end
+
+@inline function cons2pot(u, equation::CompressibleDryEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+
+  pot1 = rho
+  pot2 = v1
+  pot3 = v2
+  pot4 = equation.p_0 * (((equation.gamma - 1) * (rho_e - 1/2 * (rho_v1 * v1 + rho_v2 * v2)))
+                        / equation.p_0)^(1-equation.kappa) / (equation.R_d * rho)
+
+  return SVector(pot1, pot2, pot3, pot4)
 end
 
 

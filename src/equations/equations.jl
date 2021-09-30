@@ -212,6 +212,15 @@ performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
 
+"""
+    cons2pot(u, equations)
+
+Convert the conservative variables `u` based on a standard [`entropy`](@ref) to the
+potential temperature of `CompressibleDryEulerEquations` . The inverse conversion is
+performed by [`pot2cons`](@ref).
+"""
+function cons2pot end
+
 
 # FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
@@ -244,8 +253,8 @@ include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 
 # CompressibleEulerEquations
-abstract type AbstractCompressiblePotTempEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("compressible_euler_warmbubble_2d.jl")
+abstract type AbstractCompressibleDryEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("compressible_dry_euler_2d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end

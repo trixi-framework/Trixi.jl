@@ -992,6 +992,12 @@ function calc_sources!(du, u, t, source_terms::Nothing,
 end
 
 function calc_sources!(du, u, t, source_terms,
+  equations::CompressibleDryEulerEquations2D, dg::DG, cache)
+  source_terms(du, u, equations, dg)
+return nothing
+end
+
+function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{2}, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)

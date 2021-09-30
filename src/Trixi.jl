@@ -110,7 +110,7 @@ include("visualization/visualization.jl")
 
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
-       CompressiblePotTempEulerEquations2D
+       CompressibleDryEulerEquations2D
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
@@ -140,7 +140,7 @@ export initial_condition_constant,
        initial_condition_rotor,
        initial_condition_shock_bubble,
        initial_condition_taylor_green_vortex,
-       initial_condition_gaussian_bubble
+       initial_condition_gaussian_bubble, source_terms_warm_bubble
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
@@ -165,7 +165,7 @@ export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons
+       cons2entropy, entropy2cons, cons2pot
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
