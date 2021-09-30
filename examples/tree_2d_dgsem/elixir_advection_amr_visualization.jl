@@ -6,13 +6,13 @@ using Plots
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, -0.5)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 function initial_condition_gauss_largedomain(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   domain_length = SVector(10, 10)
-  x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t, domain_length)
+  x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t, domain_length)
 
   return SVector(exp(-(x_trans[1]^2 + x_trans[2]^2)))
 end
