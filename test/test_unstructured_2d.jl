@@ -60,8 +60,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.0017401556568237275])
   end
 
-  @trixi_testset "elixir_ape_gauss_wall.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_ape_gauss_wall.jl"),
+  @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall.jl"),
       l2   = [0.02933124798548954, 0.029346167217325133, 0.03803253571320853, 0.0,
               7.175152371650832e-16, 1.4350304743301665e-15, 1.4350304743301665e-15],
       linf = [0.3626825396196767, 0.3684490307932009, 0.847747871258089, 0.0,
