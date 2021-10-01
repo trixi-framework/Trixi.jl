@@ -992,8 +992,8 @@ function calc_sources!(du, u, t, source_terms::Nothing,
 end
 
 function calc_sources!(du, u, t, source_terms,
-  equations::CompressibleDryEulerEquations2D, dg::DG, cache)
-  source_terms(du, u, equations, dg)
+                       equations::CompressibleDryEulerEquations2D, dg::DG, cache)
+  source_terms(du, u, equations, dg, cache)
 return nothing
 end
 

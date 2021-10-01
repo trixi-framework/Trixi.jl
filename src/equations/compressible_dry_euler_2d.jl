@@ -24,7 +24,7 @@ function CompressibleDryEulerEquations2D(;RealT=Float64)
    g = 9.81
    gamma = c_p / c_v # = 1/(1 - kappa)
    kappa = 1 - inv(gamma)
-   a=360
+   a = 360.0
    return CompressibleDryEulerEquations2D{RealT}(p_0, c_p, c_v, R_d, g, kappa, gamma, a)
   end
 
@@ -33,84 +33,6 @@ varnames(::typeof(cons2cons), ::CompressibleDryEulerEquations2D) = ("rho", "rho_
 varnames(::typeof(cons2prim), ::CompressibleDryEulerEquations2D) = ("rho", "v1", "v2", "p")
 varnames(::typeof(cons2pot), ::CompressibleDryEulerEquations2D) = ("rho", "v1", "v2", "pottemp")
 
-
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-                                      surface_flux_function, equations::CompressibleDryEulerEquations2D)
-
-  norm_ = norm(normal_direction)
-  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal = normal_direction / norm_
-
-  # rotate the internal solution state
-  u_local = rotate_to_x(u_inner, normal, equations)
-
-  # compute the primitive variables
-  rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
-
-  # Get the solution of the pressure Riemann problem
-  # See Section 6.3.3 of
-  # Eleuterio F. Toro (2009)
-  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
-  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
-  if v_normal <= 0.0
-    sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
-  else # v_normal > 0.0
-    A = 2.0 / ((equations.gamma + 1) * rho_local)
-    B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
-    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
-  end
-
-  # For the slip wall we directly set the flux as the normal velocity is zero
-  return SVector(zero(eltype(u_inner)),
-                 p_star * normal[1],
-                 p_star * normal[2],
-                 zero(eltype(u_inner))) * norm_
-end
-
-"""
-    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                 surface_flux_function, equations::CompressibleDryEulerEquations2D)
-Should be used together with [`TreeMesh`](@ref).
-
-!!! warning "Experimental code"
-    This wall function can change any time.
-"""
-function boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                      surface_flux_function, equations::CompressibleDryEulerEquations2D)
-  # get the appropriate normal vector from the orientation
-  if orientation == 1
-    normal = SVector(1, 0)
-  else # orientation == 2
-    normal = SVector(0, 1)
-  end
-
-  # compute and return the flux using `boundary_condition_slip_wall` routine above
-  return boundary_condition_slip_wall(u_inner, normal, x, t, surface_flux_function, equations)
-end
-
-"""
-    boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
-                                 surface_flux_function, equations::CompressibleDryEulerEquations2D)
-Should be used together with [`StructuredMesh`](@ref).
-
-!!! warning "Experimental code"
-    This wall function can change any time.
-"""
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
-                                      surface_flux_function, equations::CompressibleDryEulerEquations2D)
-  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
-  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
-  if isodd(direction)
-    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
-                                                  x, t, surface_flux_function, equations)
-  else
-    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
-                                                 x, t, surface_flux_function, equations)
-  end
-
-  return boundary_flux
-end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleDryEulerEquations2D)
@@ -133,29 +55,59 @@ end
 end
 
 
-# Calculate 1D flux for a single point in the normal direction
-# Note, this directional vector is not normalized
-@inline function flux(u, normal_direction::AbstractVector, equations::CompressibleDryEulerEquations2D)
-  rho_e = last(u)
-  rho, v1, v2, p = cons2prim(u, equations)
+function boundary_condition_reflection(u_inner, orientation::Integer, direction, x, t,
+                                       surface_flux_function,
+                                       equations::CompressibleDryEulerEquations2D)
+  # Orientation 3 neg-y-direction/unten
+  # Orientation 4 pos-y-direction/oben
 
-  v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
-  rho_v_normal = rho * v_normal
-  f1 = rho_v_normal
-  f2 = rho_v_normal * v1 + p * normal_direction[1]
-  f3 = rho_v_normal * v2 + p * normal_direction[2]
-  f4 = (rho_e + p) * v_normal
-  return SVector(f1, f2, f3, f4)
+  if !(orientation == 2)
+    @info(orientation)
+    error("This boundary condition is not supposed to be called in x direction")
+  end
+
+  rho, rho_v1, rho_v2, rho_e = u_inner
+  p = (equations.gamma - 1) * (rho_e - 0.5 * inv(rho) * (rho_v1^2 + rho_v2^2))
+  a_local = sqrt(equations.gamma * p * inv(rho))
+
+  if direction == 3
+    p_wall = p + (a_local * rho_v2 / rho)
+  else # direction == 4
+    p_wall = p - (a_local * rho_v2 / rho)
+  end
+
+return SVector(0, 0,  p_wall, 0)
+end
+
+
+function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, x, t,
+                                       surface_flux_function,
+                                       equation::CompressibleDryEulerEquations2D)
+if orientation == 1 # interface in x-direction
+u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4])
+else # interface in y-direction
+u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4])
+end
+
+# Calculate boundary flux
+if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+end
+
+return flux
 end
 
 
 function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEulerEquations2D)
+@unpack p_0, R_d, c_p, c_v, g, gamma, kappa = equations 
   # Gaussian bubble at the center (x0, z0) with a potential Temperature 
   # perturbation of 0.5 K (for a 1x1.5 km^2 box)
   
   #Initial potential temperature
   theta_ini = 303.15
-  v1 = 20
+  v1 = 0
   v2 = 0
 
   # Bubble center (x0, z0) in meters
@@ -163,7 +115,7 @@ function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEuler
   z0 = 260
 
   # Distance from the bubble center
-  r = sqrt((x[1]-x0)^2 + (x[2]-z0)^2)
+  r = sqrt((x[1] - x0)^2 + (x[2] - z0)^2)
 
   # Scaling parameters
   A = 0.5
@@ -180,25 +132,29 @@ function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEuler
   # potential temperature
   theta = theta_ini + theta_pert
 
-  pi_exner = 1 - equations.g / (equations.c_p * theta) * x[2]
-  rho = equations.p_0 / (equations.R_d * theta) * (pi_exner)^(equations.c_v / equations.R_d)
-  p = equations.p_0 * (1 - equations.kappa * equations.g * x[2] / (equations.R_d * theta_ini))^(equations.c_p / equations.R_d)
-  T = p / (equations.R_d * rho)
+  # exner pressure
+  pi_exner = 1 - g / (c_p * theta) * x[2]
 
-  rho_v1 = rho*v1
-  rho_v2 = rho*v2
-  rho_e = rho * equations.c_v * T + 0.5 * rho *(v1^2 + v2^2)
+  rho = p_0 / (R_d * theta) * (pi_exner)^(c_v / R_d)
+  p = p_0 * (1 - kappa * g * x[2] / (R_d * theta_ini) )^(c_p / R_d)
+  T = p / (R_d * rho)
+
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_e = rho * c_v * T + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
   return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
 
-function source_terms_warm_bubble(du, u, equations::CompressibleDryEulerEquations2D, dg)
-  for j in eachnode(dg), i in eachnode(dg)
-    # TODO: performance use temp
-    #x1 = x[1, i, j, element_id]
-    #x2 = x[2, i, j, element_id]
-    du[3, i, j, :] -=  equations.g * u[1, i, j, :]
-    du[4, i, j, :] -=  equations.g * u[3, i, j, :]
+function source_terms_warm_bubble(du, u, equations::CompressibleDryEulerEquations2D, dg, cache)
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      # TODO: performance use temp
+      #x1 = x[1, i, j, element_id]
+      #x2 = x[2, i, j, element_id]
+      du[3, i, j, element] -=  equations.g * u[1, i, j, element]
+      du[4, i, j, element] -=  equations.g * u[3, i, j, element]
+    end
   end
   return nothing
 end
@@ -209,26 +165,26 @@ end
   
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_v2_ll
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
 
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_v2_rr
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
   
   # Compute the necessary interface flux components
 
-  rho_mean = 0.5*(rho_ll + rho_rr) # TODO why choose the mean value here?
+  rho_mean = 0.5 * (rho_ll + rho_rr) # TODO why choose the mean value here?
 
   p_ll = (gamma - 1) * (rho_e_ll - 0.5 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll))
   p_rr = (gamma - 1) * (rho_e_rr - 0.5 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr))
 
   if orientation == 1
 
-    beta = 0.5 # diffusion parameter <= 1 
+    beta = 1 # diffusion parameter <= 1 
 
-    v_interface = 0.5*(v1_rr + v1_ll) - beta*inv(2*rho_mean*a)*(p_rr-p_ll)
-    p_interface = 0.5*(p_rr + p_ll) - beta*0.5*rho_mean*a*(v1_rr-v1_ll)
+    v_interface = 0.5 * (v1_rr + v1_ll) - beta * inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * a * (v1_rr - v1_ll)
 
     if (v_interface > 0)
       f1 = rho_ll
@@ -242,12 +198,12 @@ end
       f4 = rho_e_rr + p_rr
     end
 
-    flux = SVector(f1, f2, f3, f4) *v_interface + SVector(0, 1, 0, 0) * p_interface
+    flux = SVector(f1, f2, f3, f4) * v_interface + SVector(0, 1, 0, 0) * p_interface
 
   else # orientation = 2
 
-    v_interface = 0.5*(v2_rr + v2_ll) - inv(2*rho_mean*a)*(p_rr-p_ll)
-    p_interface = 0.5*(p_rr + p_ll) - 0.5*rho_mean*a*(v2_rr-v2_ll)
+    v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
 
     if (v_interface > 0)
       f1 = rho_ll
