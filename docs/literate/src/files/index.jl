@@ -31,3 +31,11 @@
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
 # a few semidiscretizations. Moreover, an example for propagating errors with Measurement.jl is given
 # at the end.
+
+# ### [3 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_literate)
+#-
+# The purpose of this tutorial is to demonstrate how to use the `UnstructuredMesh2D`
+# functionality of Trixi.jl. This begins by running and visualizing an available unstructured
+# quadrilateral mesh example. Then, the tutorial will demonstrate how to conceptualize a problem
+# with curved boundaries, generate a curvilinear mesh using the available [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
+# software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.

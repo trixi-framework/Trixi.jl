@@ -47,6 +47,8 @@ function create_tutorials(files)
     Sys.rm(pages_dir;       recursive=true, force=true)
     Sys.rm(notebooks_dir;   recursive=true, force=true)
 
+    Sys.rm("out"; recursive=true, force=true)
+
     # Run tests on all tutorial files
     @testset "TrixiTutorials" begin
         for (i, (title, filename)) in enumerate(files)
