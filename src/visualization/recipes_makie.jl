@@ -46,6 +46,7 @@ Keywords:
 function iplot(pd::PlotData2DTriangulated;
                plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
                variable_to_plot_in=1)
+
   @unpack variable_names = pd
 
   # Initialize a Makie figure that we'll add the solution and toggle switches to.
@@ -121,7 +122,7 @@ function iplot(u, mesh, equations, solver, cache;
                solution_variables=nothing, nvisnodes=2*nnodes(solver), kwargs...)
   @assert ndims(mesh) == 2
 
-  pd = PlotData2D(u, mesh, equations, solver, cache;
+  pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
       solution_variables=solution_variables, nvisnodes=nvisnodes)
 
   iplot(pd; kwargs...)
@@ -216,7 +217,7 @@ Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.PlotData2DTriangulated}) = TrixiHe
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution;
                     plot_mesh=false, solution_variables=nothing, colormap=default_Makie_colormap())
-  return Makie.plot(PlotData2D(sol; solution_variables); plot_mesh, colormap)
+  return Makie.plot(PlotData2DTriangulated(sol; solution_variables); plot_mesh, colormap)
 end
 
 function Makie.plot(pd::PlotData2DTriangulated, fig=Makie.Figure();

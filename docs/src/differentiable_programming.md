@@ -65,7 +65,7 @@ julia> λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
 2.1e-5
 
 julia> round(maximum(real, λ), sigdigits=2)
-0.0057
+0.0058
 ```
 
 However, we should be careful when using this analysis, since the eigenvectors are not necessarily
@@ -75,7 +75,7 @@ well-conditioned.
 julia> λ, V = eigen(J);
 
 julia> round(cond(V), sigdigits=2)
-1.8e6
+1.6e6
 ```
 
 In one space dimension, the situation is a bit different.
@@ -197,11 +197,11 @@ wave number (frequency) of the initial data.
 julia> using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
 
 julia> function energy_at_final_time(k) # k is the wave number of the initial condition
-           equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+           equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
            mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
            solver = DGSEM(3, flux_lax_friedrichs)
            initial_condition = (x, t, equation) -> begin
-               x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+               x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
                return SVector(sinpi(k * sum(x_trans)))
            end
            semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -229,7 +229,7 @@ We can compute the discrete derivative of the energy at the final time with resp
 number `k` as follows.
 ```jldoctest advection_differentiate_simulation
 julia> round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
-1.4e-5
+1.1e-5
 ```
 
 This is rather small and we can treat it as zero in comparison to the value of this derivative at
@@ -248,17 +248,17 @@ vanishes and the second derivative is negative. We can also check this discretel
 julia> round(ForwardDiff.derivative(
            k -> Trixi.ForwardDiff.derivative(energy_at_final_time, k),
        1.0), sigdigits=2)
--0.9
+-0.87
 ```
 
 Having seen this application, let's break down what happens step by step.
 ```julia
 julia> function energy_at_final_time(k) # k is the wave number of the initial condition
-           equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+           equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
            mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
            solver = DGSEM(3, flux_lax_friedrichs)
            initial_condition = (x, t, equation) -> begin
-               x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+               x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
                return SVector(sinpi(k * sum(x_trans)))
            end
            semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -269,7 +269,7 @@ julia> function energy_at_final_time(k) # k is the wave number of the initial co
        end
 
 julia> round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
-1.4e-5
+1.1e-5
 ```
 When calling `ForwardDiff.derivative(energy_at_final_time, 1.0)`, ForwardDiff.jl
 will basically use the chain rule and known derivatives of existing basic functions
@@ -283,7 +283,7 @@ that all types are generic enough, in particular the ones of internal caches.
 
 The first step in this example creates some basic ingredients of our simulation.
 ```julia
-equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
 mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
 solver = DGSEM(3, flux_lax_friedrichs)
 ```
@@ -295,7 +295,7 @@ wrap everything in another function).
 Next, we define the initial condition
 ```julia
 initial_condition = (x, t, equation) -> begin
-    x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+    x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
     return SVector(sinpi(k * sum(x_trans)))
 end
 ```
@@ -417,7 +417,7 @@ For example,
 ```jldoctest
 julia> using Trixi, LinearAlgebra, Plots
 
-julia> equations = LinearScalarAdvectionEquation2D(1.0, -0.3);
+julia> equations = LinearScalarAdvectionEquation2D(0.2, -0.7);
 
 julia> solver = DGSEM(3, flux_lax_friedrichs);
 

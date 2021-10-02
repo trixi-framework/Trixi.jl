@@ -13,26 +13,27 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   @testset "TreeMesh" begin
     @trixi_testset "elixir_advection_restart.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_restart.jl"),
-        l2   = [1.2148032444677485e-5],
-        linf = [6.495644794757283e-5])
+        # Expected errors are exactly the same as in the serial test!
+        l2   = [7.81674284320524e-6],
+        linf = [6.314906965243505e-5])
     end
 
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_refine_twice.jl"),
-        l2   = [0.00019847333806230843],
-        linf = [0.005591345460895569])
+        l2   = [0.00020547512522578292], 
+        linf = [0.007831753383083506])
     end
 
     @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_coarsen_twice.jl"),
-        l2   = [0.00519897841357112],
-        linf = [0.06272325552264647])
+        l2   = [0.0014321062757891826], 
+        linf = [0.0253454486893413])
     end
 
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
-        l2   = [2.3652137675654753e-6, 2.1386731303685556e-6, 2.138673130413185e-6, 6.009920290578574e-6],
-        linf = [1.4080448659026246e-5, 1.7581818010814487e-5, 1.758181801525538e-5, 5.9568540361709665e-5],
+        l2   = [2.259440511766445e-6, 2.318888155713922e-6, 2.3188881557894307e-6, 6.3327863238858925e-6],
+        linf = [1.498738264560373e-5, 1.9182011928187137e-5, 1.918201192685487e-5, 6.0526717141407005e-5],
         rtol = 0.001)
     end
 
@@ -47,10 +48,11 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   @testset "StructuredMesh" begin
     @trixi_testset "elixir_advection_restart.jl with waving flag mesh" begin
       @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem", "elixir_advection_restart.jl"),
-        l2   = [0.00017274040834067234],
-        linf = [0.0015435741643734513],
+        l2   = [0.00016265538283059892],
+        linf = [0.0015194298895079283],
+        rtol = 7e-6, # Higher tolerance to make tests pass in CI with macOS
         elixir_file="elixir_advection_waving_flag.jl",
-        restart_file="restart_000041.h5")
+        restart_file="restart_000021.h5")
     end
 
     @trixi_testset "elixir_mhd_ec.jl" begin
@@ -69,10 +71,10 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   @testset "UnstructuredMesh" begin
     @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_acoustics_gauss_wall.jl"),
-        l2   = [0.029331247985489625, 0.02934616721732521, 0.03803253571320854, 0.0,
-                7.465932985352019e-16, 1.4931865970704038e-15, 1.4931865970704038e-15],
-        linf = [0.3626825396196784, 0.3684490307932018, 0.8477478712580901, 0.0,
-                8.881784197001252e-16, 1.7763568394002505e-15, 1.7763568394002505e-15],
+      l2   = [0.029330394861252995, 0.029345079728907965, 0.03803795043486467, 0.0,
+              7.175152371650832e-16, 1.4350304743301665e-15, 1.4350304743301665e-15],
+      linf = [0.36236334472179443, 0.3690785638275256, 0.8475748723784078, 0.0,
+              8.881784197001252e-16, 1.7763568394002505e-15, 1.7763568394002505e-15],
         tspan = (0.0, 5.0))
     end
   end
@@ -81,8 +83,8 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   @testset "P4estMesh" begin
     @trixi_testset "elixir_euler_source_terms_nonperiodic_unstructured.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic_unstructured.jl"),
-        l2   = [0.005689496253354319, 0.004522481295923261, 0.004522481295922983, 0.009971628336802528],
-        linf = [0.05125433503504517, 0.05343803272241532, 0.053438032722404216, 0.09032097668196482])
+        l2   = [0.005238881525717353, 0.00432468991916032, 0.004324689919160557, 0.009861661579421543],
+        linf = [0.05218395248755403, 0.05393708345946013, 0.05393708345946102, 0.09119199890634944])
     end
 
     @trixi_testset "elixir_eulergravity_convergence.jl" begin

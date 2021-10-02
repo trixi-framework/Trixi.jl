@@ -15,50 +15,52 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "P4estMesh2D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [9.14468177884088e-6],
-      linf = [6.437440532947036e-5])
+      # Expected errors are exactly the same as with StructuredMesh!
+      l2   = [8.311947673061856e-6], 
+      linf = [6.627000273229378e-5])
   end
 
   @trixi_testset "elixir_advection_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
-      l2   = [2.58174252995893e-5],
-      linf = [2.65115939055204e-4])
+      l2   = [2.7905480848832338e-5], 
+      linf = [0.00022847020768290704])
   end
 
   @trixi_testset "elixir_advection_nonconforming_unstructured.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_unstructured.jl"),
-      l2   = [3.038384623519386e-3],
-      linf = [6.324792487776842e-2])
+      l2   = [0.0026958321660563362], 
+      linf = [0.04122573088346193])
   end
 
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
-      l2   = [7.945073295691892e-5],
-      linf = [0.0007454287896710293])
+      # Expected errors are exactly the same as with StructuredMesh!
+      l2   = [4.949660644033807e-5], 
+      linf = [0.0004867846262313763])
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_flag.jl"),
-      l2   = [1.29561551e-03],
-      linf = [3.92061383e-02])
+      l2   = [0.0012766060609964525],
+      linf = [0.01750280631586159])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [6.398955192910044e-6],
-      linf = [3.474337336717426e-5])
+      l2   = [4.219208035626337e-6], 
+      linf = [3.4384344042126536e-5])
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
-      l2   = [2.3653424742684444e-6, 2.1388875095440695e-6, 2.1388875095548492e-6, 6.010896863397195e-6],
-      linf = [1.4080465931654018e-5, 1.7579850587257084e-5, 1.7579850592586155e-5, 5.956893531156027e-5])
+      l2   = [2.2594405120861626e-6, 2.3188881560096627e-6, 2.318888156064081e-6, 6.332786324236605e-6],
+      linf = [1.4987382633613322e-5, 1.9182011925522602e-5, 1.9182011924634423e-5, 6.0526717124531615e-5])
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic_unstructured.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_unstructured.jl"),
-      l2   = [0.005689496253354319, 0.004522481295923261, 0.004522481295922983, 0.009971628336802528],
-      linf = [0.05125433503504517, 0.05343803272241532, 0.053438032722404216, 0.09032097668196482])
+      l2   = [0.005238881525717585, 0.0043246899191607775, 0.0043246899191606925, 0.00986166157942196],
+      linf = [0.052183952487556695, 0.05393708345945791, 0.05393708345946191, 0.09119199890635965])
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin

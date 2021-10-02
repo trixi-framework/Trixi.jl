@@ -34,17 +34,7 @@ function (initial_condition::InitialConditionSourceTermsRotated)(x, t, equations
   x1 =  cos_ * x[1] + sin_ * x[2] + 1
   x2 = -sin_ * x[1] + cos_ * x[2] + 1
 
-  c = 2
-  A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  ini = c + A * sin(ω * (x1 + x2 - t))
-
-  rho = ini
-  rho_v1 = ini
-  rho_v2 = ini
-  rho_e = ini^2
+  rho, rho_v1, rho_v2, rho_e = initial_condition_convergence_test(SVector(x1, x2), t, equations)
 
   # Rotate velocity vector counterclockwise
   # Multiply with [ cos(α)  -sin(α);
@@ -68,35 +58,7 @@ end
   x1 =  cos_ * x[1] + sin_ * x[2] + 1
   x2 = -sin_ * x[1] + cos_ * x[2] + 1
 
-  # Same settings as in `initial_condition`
-  c = 2
-  A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  γ = equations.gamma
-
-  si, co = sincos((x1 + x2 - t)*ω)
-  tmp1 = co * A * ω
-  tmp2 = si * A
-  tmp3 = γ - 1
-  tmp4 = (2*c - 1)*tmp3
-  tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
-  tmp6 = tmp2 + c
-
-  du1 = tmp1
-  du2 = tmp5
-  du3 = tmp5
-  du4 = 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
-
-  # Original terms (without performanc enhancements)
-  # du1 = cos((x1 + x2 - t)*ω)*A*ω
-  # du2 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-  # du3 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-  # du3 = 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
-  #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
+  du1, du2, du3, du4 = source_terms_convergence_test(u, SVector(x1, x2), t, equations)
 
   # Rotate velocity vector counterclockwise
   # Multiply with [ cos(α)  -sin(α);
