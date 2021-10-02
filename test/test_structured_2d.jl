@@ -86,8 +86,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_basic_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_coupled.jl"),
-      l2   = [9.14468177884088e-6],
-      linf = [6.437440532947036e-5])
+      # Expected errors are exactly the same in elixir_advection_basic!
+      l2   = [8.311947673061856e-6], 
+      linf = [6.627000273229378e-5])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
@@ -199,8 +200,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_ring_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_ring_coupled.jl"),
-      l2   = [0.00042501870952235703, 0.00033999522089480847, 0.00033999522089480847, 0.000898573730078033],
-      linf = [0.0039937119484019235, 0.0014937420921838918, 0.004340822615227724, 0.008556182287533076])
+    l2   = [0.0004088046701166566, 0.0003290232523293822, 0.00032902325232927305, 0.0008767682077298699], 
+    linf = [0.003915651173388213, 0.004235484846439652, 0.0015621946011661336, 0.008294628404661886])
   end
 
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
