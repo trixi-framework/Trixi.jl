@@ -34,7 +34,7 @@
 
 # ### [3 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_literate)
 #-
-# The purpose of this tutorial is to demonstrate how to use the `UnstructuredMesh2D`
+# The purpose of this tutorial is to demonstrate how to use the [`UnstructuredMesh2D`](@ref)
 # functionality of Trixi.jl. This begins by running and visualizing an available unstructured
 # quadrilateral mesh example. Then, the tutorial will demonstrate how to conceptualize a problem
 # with curved boundaries, generate a curvilinear mesh using the available [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)

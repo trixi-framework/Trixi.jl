@@ -89,65 +89,67 @@ end #hide #md
 
 # ![mesh_boundary_cartoon](https://user-images.githubusercontent.com/25242486/129603954-9788500d-bba8-49be-8e6f-7555099dbf7c.png)
 
-# The associated `ice_cream_straight_sides.control` file is given below.
-# ```
-# \begin{CONTROL_INPUT}
-#    \begin{RUN_PARAMETERS}
-#       mesh file name   = mesh_ice_cream_straight.mesh
-#       plot file name   = mesh_ice_cream_straight.tec
-#       stats file name  = none
-#       mesh file format = ISM-v2
-#       polynomial order = 4
-#       plot file format = skeleton
-#    \end{RUN_PARAMETERS}
-#
-#    \begin{BACKGROUND_GRID}
-#        x0 = [-8.0, -8.0, 0.0]
-#        dx = [1.0, 1.0, 0.0]
-#        N  = [16,16,1]
-#    \end{BACKGROUND_GRID}
-#
-#    \begin{SPRING_SMOOTHER}
-#       smoothing            = ON
-#       smoothing type       = LinearAndCrossBarSpring
-#       number of iterations = 25
-#    \end{SPRING_SMOOTHER}
-#
-# \end{CONTROL_INPUT}
-#
-# \begin{MODEL}
-#
-#    \begin{INNER_BOUNDARIES}
-#
-#       \begin{CHAIN}
-#          name = IceCreamCone
-#          \begin{END_POINTS_LINE}
-#             name = LeftSlant
-#             xStart = [-2.0, 1.0, 0.0]
-#             xEnd   = [ 0.0, -3.0, 0.0]
-#          \end{END_POINTS_LINE}
-# 
-#          \begin{END_POINTS_LINE}
-#             name = RightSlant
-#             xStart = [ 0.0, -3.0, 0.0]
-#             xEnd   = [ 2.0, 1.0, 0.0]
-#          \end{END_POINTS_LINE}
-# 
-#          \begin{CIRCULAR_ARC}
-#             name        = IceCream
-#             units       = degrees
-#             center      = [ 0.0, 1.0, 0.0]
-#             radius      = 2.0
-#             start angle = 0.0
-#             end angle   = 180.0
-#          \end{CIRCULAR_ARC}
-#       \end{CHAIN}
-#
-#    \end{INNER_BOUNDARIES}
-# 
-# \end{MODEL}
-# \end{FILE}
-# ```
+# The associated `ice_cream_straight_sides.control` file is created below.
+open("out/ice_cream_straight_sides.control", "w") do io 
+  println(io, raw"""
+\begin{CONTROL_INPUT}
+    \begin{RUN_PARAMETERS}
+        mesh file name   = mesh_ice_cream_straight.mesh
+        plot file name   = mesh_ice_cream_straight.tec
+        stats file name  = none
+        mesh file format = ISM-v2
+        polynomial order = 4
+        plot file format = skeleton
+    \end{RUN_PARAMETERS}
+
+    \begin{BACKGROUND_GRID}
+        x0 = [-8.0, -8.0, 0.0]
+        dx = [1.0, 1.0, 0.0]
+        N  = [16,16,1]
+    \end{BACKGROUND_GRID}
+
+    \begin{SPRING_SMOOTHER}
+        smoothing            = ON
+        smoothing type       = LinearAndCrossBarSpring
+        number of iterations = 25
+    \end{SPRING_SMOOTHER}
+
+\end{CONTROL_INPUT}
+
+\begin{MODEL}
+
+    \begin{INNER_BOUNDARIES}
+
+        \begin{CHAIN}
+            name = IceCreamCone
+            \begin{END_POINTS_LINE}
+                name = LeftSlant
+                xStart = [-2.0, 1.0, 0.0]
+                xEnd   = [ 0.0, -3.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{END_POINTS_LINE}
+                name = RightSlant
+                xStart = [ 0.0, -3.0, 0.0]
+                xEnd   = [ 2.0, 1.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{CIRCULAR_ARC}
+                name        = IceCream
+                units       = degrees
+                center      = [ 0.0, 1.0, 0.0]
+                radius      = 2.0
+                start angle = 0.0
+                end angle   = 180.0
+            \end{CIRCULAR_ARC}
+        \end{CHAIN}
+
+    \end{INNER_BOUNDARIES}
+
+\end{MODEL}
+\end{FILE}
+""")
+end
 
 # The first three blocks of information are wrapped within a `CONTROL_INPUT` environment block as they define the
 # core components of the quadrilateral mesh that will be generated.
@@ -273,20 +275,17 @@ end #hide #md
 # * Free slip wall boundary condition on the interior curved boundaries.
 
 # We create the mesh file `ice_cream_straight_sides.mesh` and its associated file for plotting
-# `ice_cream_straight_sides.tec` by using HOHQMesh's function `generate_mesh`.
+# `ice_cream_straight_sides.tec` by using HOHQMesh.jl's function `generate_mesh`.
 using HOHQMesh
-control_file = joinpath(@__DIR__, "..", "ice_cream_straight_sides.control")
-control_file = joinpath("docs", "src", "ice_cream_straight_sides.control") #src
+control_file = joinpath("out", "ice_cream_straight_sides.control")
 output = generate_mesh(control_file);
 
 # To construct the unstructured quadrilateral mesh from the HOHQMesh file we point to the appropriate location
-# with the variable `mesh_file` and then feed this into the constructor for the `UnstructuredMesh2D` type in Trixi.jl
+# with the variable `mesh_file` and then feed this into the constructor for the [`UnstructuredMesh2D`](@ref) type in Trixi.jl
 
-## create the unstructured from your mesh file
+## create the unstructured mesh from your mesh file
 using Trixi
-mesh_file = joinpath(@__DIR__, "out", "ice_cream_straight_sides.mesh") #nb
-mesh_file = joinpath(@__DIR__, "..", "..", "..", "out", "ice_cream_straight_sides.mesh") #md
-mesh_file = joinpath("out", "ice_cream_straight_sides.mesh") #src
+mesh_file = joinpath("out", "ice_cream_straight_sides.mesh")
 mesh = UnstructuredMesh2D(mesh_file);
 
 # The complete elixir file for this simulation example is given below.
@@ -337,9 +336,7 @@ solver = DGSEM(polydeg=4, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ## create the unstructured from your mesh file
-mesh_file = joinpath(@__DIR__, "out", "ice_cream_straight_sides.mesh") #nb
-mesh_file = joinpath(@__DIR__, "..", "..", "..", "out", "ice_cream_straight_sides.mesh") #md
-mesh_file = joinpath("out", "ice_cream_straight_sides.mesh") #src
+mesh_file = joinpath("out", "ice_cream_straight_sides.mesh")
 mesh = UnstructuredMesh2D(mesh_file)
 
 ## Create semidiscretization with all spatial discretization-related components
@@ -381,76 +378,76 @@ end #hide #md
 # of straight-sided outer boundaries.
 # Note, the "ice cream cone" shape is still placed at the center of the domain.
 
-# The new control file `ice_cream_curved_sides.control` file is given below. We will then highlight the
+# We create the new control file `ice_cream_curved_sides.control` file below and will then highlight the
 # major differences compared to `ice_cream_straight_sides.control`.
-# ```
-# \begin{CONTROL_INPUT}
-#
-#    \begin{RUN_PARAMETERS}
-#       mesh file name   = ice_cream_curved_sides.mesh
-#       plot file name   = ice_cream_curved_sides.tec
-#       stats file name  = none
-#       mesh file format = ISM-v2
-#       polynomial order = 4
-#       plot file format = skeleton
-#   \end{RUN_PARAMETERS}
-#
-#    \begin{BACKGROUND_GRID}
-#       background grid size = [1.0, 1.0, 0.0]
-#    \end{BACKGROUND_GRID}
-#
-#    \begin{SPRING_SMOOTHER}
-#       smoothing            = ON
-#       smoothing type       = LinearAndCrossBarSpring
-#       number of iterations = 25
-#    \end{SPRING_SMOOTHER}
-#
-# \end{CONTROL_INPUT}
-#
-# \begin{MODEL}
-#
-#    \begin{OUTER_BOUNDARY}
-#
-#       \begin{PARAMETRIC_EQUATION_CURVE}
-#          name = OuterCircle
-#          xEqn = x(t) = 8.0*sin(2.0*pi*t)
-#          yEqn = y(t) = 8.0*cos(2.0*pi*t)
-#          zEqn = z(t) = 0.0
-#       \end{PARAMETRIC_EQUATION_CURVE}
-#
-#    \end{OUTER_BOUNDARY}
-#
-#    \begin{INNER_BOUNDARIES}
-#
-#       \begin{CHAIN}
-#          name = IceCreamCone
-#          \begin{END_POINTS_LINE}
-#             name = LeftSlant
-#             xStart = [-2.0, 1.0, 0.0]
-#             xEnd   = [ 0.0, -3.0, 0.0]
-#          \end{END_POINTS_LINE}
-#
-#          \begin{END_POINTS_LINE}
-#             name = RightSlant
-#             xStart = [ 0.0, -3.0, 0.0]
-#             xEnd   = [ 2.0, 1.0, 0.0]
-#          \end{END_POINTS_LINE}
-#
-#          \begin{CIRCULAR_ARC}
-#             name        = IceCream
-#             units       = degrees
-#             center      = [ 0.0, 1.0, 0.0]
-#             radius      = 2.0
-#             start angle = 0.0
-#             end angle   = 180.0
-#          \end{CIRCULAR_ARC}
-#       \end{CHAIN}
-#
-#    \end{INNER_BOUNDARIES}
-#
-# \end{MODEL}
-# \end{FILE}
-# ```
+open("out/ice_cream_curved_sides.control", "w") do io 
+  println(io, raw"""
+\begin{CONTROL_INPUT}
+    \begin{RUN_PARAMETERS}
+        mesh file name   = ice_cream_curved_sides.mesh
+        plot file name   = ice_cream_curved_sides.tec
+        stats file name  = none
+        mesh file format = ISM-v2
+        polynomial order = 4
+        plot file format = skeleton
+    \end{RUN_PARAMETERS}
+
+    \begin{BACKGROUND_GRID}
+        background grid size = [1.0, 1.0, 0.0]
+    \end{BACKGROUND_GRID}
+
+    \begin{SPRING_SMOOTHER}
+        smoothing            = ON
+        smoothing type       = LinearAndCrossBarSpring
+        number of iterations = 25
+    \end{SPRING_SMOOTHER}
+
+\end{CONTROL_INPUT}
+
+\begin{MODEL}
+
+    \begin{OUTER_BOUNDARY}
+        \begin{PARAMETRIC_EQUATION_CURVE}
+            name = OuterCircle
+            xEqn = x(t) = 8.0*sin(2.0*pi*t)
+            yEqn = y(t) = 8.0*cos(2.0*pi*t)
+            zEqn = z(t) = 0.0
+        \end{PARAMETRIC_EQUATION_CURVE}
+
+    \end{OUTER_BOUNDARY}
+
+    \begin{INNER_BOUNDARIES}
+
+        \begin{CHAIN}
+            name = IceCreamCone
+            \begin{END_POINTS_LINE}
+                name = LeftSlant
+                xStart = [-2.0, 1.0, 0.0]
+                xEnd   = [ 0.0, -3.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{END_POINTS_LINE}
+                name = RightSlant
+                xStart = [ 0.0, -3.0, 0.0]
+                xEnd   = [ 2.0, 1.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{CIRCULAR_ARC}
+                name        = IceCream
+                units       = degrees
+                center      = [ 0.0, 1.0, 0.0]
+                radius      = 2.0
+                start angle = 0.0
+                end angle   = 180.0
+            \end{CIRCULAR_ARC}
+        \end{CHAIN}
+
+    \end{INNER_BOUNDARIES}
+
+\end{MODEL}
+\end{FILE}
+""")
+end
 
 # The first alteration is that we have altered the second block of information
 # `BACKGOUND_GRID` within the `CONTROL_INPUT` to be
@@ -501,17 +498,14 @@ boundary_conditions = Dict( :OuterCircle => boundary_condition_uniform_flow,
 
 
 # Again, we create the `.mesh` and `.tec` files with HOHQMesh's function `generate_mesh`
-control_file = joinpath(@__DIR__, "..", "ice_cream_curved_sides.control")
-control_file = joinpath("docs", "src", "ice_cream_curved_sides.control") #src
+control_file = joinpath("out", "ice_cream_curved_sides.control")
 output = generate_mesh(control_file);
 
 # Also, we must update the construction of the mesh from our new mesh file `ice_cream_curved_sides.mesh` that
 # is located in the `out` folder.
 
 ## create the unstructured from your mesh file
-mesh_file = joinpath(@__DIR__, "out", "ice_cream_curved_sides.mesh") #nb
-mesh_file = joinpath(@__DIR__, "..", "..", "..", "out", "ice_cream_curved_sides.mesh") #md
-mesh_file = joinpath("out", "ice_cream_curved_sides.mesh") #src
+mesh_file = joinpath("out", "ice_cream_curved_sides.mesh")
 mesh = UnstructuredMesh2D(mesh_file);
 
 
