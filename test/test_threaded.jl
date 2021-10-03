@@ -81,8 +81,8 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
 
   @testset "P4estMesh" begin
-    @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
-      @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+    @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
       l2   = [0.00021757212589041148, 0.00019534151270623714, 0.00025208289643522584, 0.00024988472667179605, 0.0005480299111663858], 
       linf = [0.015799452222350796, 0.010260801179984291, 0.018117183892979005, 0.022204661640161216, 0.03730597786808776])
     end
