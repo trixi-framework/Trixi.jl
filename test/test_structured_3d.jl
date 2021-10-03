@@ -28,10 +28,10 @@ isdir(outdir) && rm(outdir, recursive=true)
       )
   end
 
-  @trixi_testset "elixir_advection_nonperiodic.jl" begin
+  @trixi_testset "elixir_advection_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic_curved.jl"),
-      l2   = [3.858102456736569e-6], 
-      linf = [5.891778653213664e-5])
+      l2   = [0.0004483892474201268],
+      linf = [0.009201820593762955])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
@@ -62,8 +62,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_curved.jl"),
-      l2   = [0.0033651542938756963, 0.003339327842250701, 0.003086766336273107, 0.003345900750868676, 0.005886208100697544], 
-      linf = [0.03460619632858064, 0.03641230838505294, 0.02290387879287903, 0.03621609424632877, 0.06378165828621007])
+    l2   = [0.0032940531178824463, 0.003275679548217804, 0.0030020672748714084, 0.00324007343451744, 0.005721986362580164],
+    linf = [0.03156756290660656, 0.033597629023726316, 0.02095783702361409, 0.03353574465232212, 0.05873635745032857])
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin

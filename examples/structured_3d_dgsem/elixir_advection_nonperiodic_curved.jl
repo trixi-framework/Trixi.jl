@@ -8,7 +8,7 @@ using Trixi
 advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
-initial_condition = initial_condition_gauss
+initial_condition = initial_condition_convergence_test
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
@@ -35,7 +35,7 @@ function mapping(xi, eta, zeta)
   return SVector(x, y, z)
 end
 
-cells_per_dimension = (16, 16, 16)
+cells_per_dimension = (8, 8, 8)
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -45,7 +45,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.3)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

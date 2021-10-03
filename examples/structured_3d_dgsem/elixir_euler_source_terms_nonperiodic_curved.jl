@@ -41,7 +41,8 @@ function mapping(xi, eta, zeta)
                     cos(pi * (2 * y - 3)/3) *
                     cos(0.5 * pi * (2 * zeta - 3)/3))
 
-  return SVector(x, y, z)
+  # Transform the weird deformed cube to be approximately the cube [0,2]^3
+  return SVector(x + 1, y + 1, z + 1)
 end
 
 cells_per_dimension = (4, 4, 4)
