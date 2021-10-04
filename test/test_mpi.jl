@@ -19,28 +19,30 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   # Linear scalar advection
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [9.144681765639205e-6],
-      linf = [6.437440532547356e-5])
+      # Expected errors are exactly the same as in the serial test!
+      l2   = [8.311947673061856e-6], 
+      linf = [6.627000273229378e-5])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [1.2148032444677485e-5],
-      linf = [6.495644794757283e-5])
+      # Expected errors are exactly the same as in the serial test!
+      l2   = [7.81674284320524e-6],
+      linf = [6.314906965243505e-5])
   end
 
   # Linear scalar advection with AMR
   # These example files are only for testing purposes and have no practical use
   @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
-      l2   = [0.00019847333806230843],
-      linf = [0.005591345460895569])
+      l2   = [0.00020547512522578292], 
+      linf = [0.007831753383083506])
   end
 
   @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"),
-      l2   = [0.00519897841357112],
-      linf = [0.06272325552264647])
+      l2   = [0.0014321062757891826], 
+      linf = [0.0253454486893413])
   end
 
   # Hyperbolic diffusion
