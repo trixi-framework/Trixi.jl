@@ -302,9 +302,9 @@ function wrap_array_native(u_ode, semi::AbstractSemidiscretization)
 end
 
 
-function summary(semi::AbstractSemidiscretization)
+function Base.summary(semi::AbstractSemidiscretization)
   _, _, solver, _ = mesh_equations_solver_cache(semi)
-  Base.summary(solver)
+  summary(solver)
 end
 
 

@@ -82,9 +82,9 @@ function summary_semidiscretization(semi::SemidiscretizationCoupled, io, io_cont
   println(io, "\n")
 end
 
-function summary(semi::SemidiscretizationCoupled)
+function Base.summary(semi::SemidiscretizationCoupled)
   _, _, solver, _ = mesh_equations_solver_cache(semi.semis[1])
-  Base.summary(solver)
+  summary(solver)
 end
 
 
