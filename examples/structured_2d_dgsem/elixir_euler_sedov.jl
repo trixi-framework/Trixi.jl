@@ -40,12 +40,12 @@ initial_condition = initial_condition_sedov_blast_wave
 # Get the DG approximation space
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-polydeg = 3
+polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
-                                         alpha_smooth=false,
+                                         alpha_smooth=true,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
