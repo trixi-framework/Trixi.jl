@@ -198,6 +198,26 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
 end
 
 
+# Calculate 1D flux for a single point
+# Note, the bottom topography has no flux
+@inline function flux(u, orientation::Integer, equations::ShallowWaterEquations2D)
+  h, h_v1, h_v2, _ = u
+  v1, v2 = velocity(u, equations)
+
+  p = 0.5 * equations.gravity * h^2
+  if orientation == 1
+    f1 = h_v1
+    f2 = h_v1 * v1 + p
+    f3 = h_v1 * v2
+  else
+    f1 = h_v2
+    f2 = h_v2 * v1
+    f3 = h_v2 * v2 + p
+  end
+  return SVector(f1, f2, f3, zero(eltype(u)))
+end
+
+
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized and the bottom topography has no flux
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
@@ -216,6 +236,8 @@ end
 
 
 """
+    flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
+                                          equations::ShallowWaterEquations2D)
     flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                           normal_direction_ll     ::AbstractVector,
                                           normal_direction_average::AbstractVector,
@@ -235,6 +257,22 @@ Further details are available in the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
+@inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
+                                                       equations::ShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h_ll = waterheight(u_ll, equations)
+  b_rr = u_rr[4]
+
+  z = zero(eltype(u_ll))
+  # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
+  if orientation == 1
+    f = SVector(z, equations.gravity * h_ll * b_rr, z, z)
+  else # orientation == 2
+    f = SVector(z, z, equations.gravity * h_ll * b_rr, z)
+  end
+  return f
+end
+
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                                        normal_direction_ll::AbstractVector,
                                                        normal_direction_average::AbstractVector,
@@ -252,6 +290,8 @@ end
 
 
 """
+    flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
+                                        equations::ShallowWaterEquations2D)
     flux_nonconservative_fjordholm_etal(u_ll, u_rr,
                                         normal_direction_ll     ::AbstractVector,
                                         normal_direction_average::AbstractVector,
@@ -281,6 +321,33 @@ and for curvilinear 2D case in the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
+@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
+                                                     equations::ShallowWaterEquations2D)
+  # Pull the necessary left and right state information
+  h_ll, _, _, b_ll = u_ll
+  h_rr, _, _, b_rr = u_rr
+
+  h_average = 0.5 * (h_ll + h_rr)
+  b_jump = b_rr - b_ll
+
+  # Includes two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
+  #        cross-averaging across a discontinuous bottom topography
+  #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
+  z = zero(eltype(u_ll))
+  if orientation == 1
+    f = SVector(z,
+                equations.gravity * h_ll * b_ll + equations.gravity * h_average * b_jump,
+                z, z)
+  else # orientation == 2
+    f = SVector(z, z,
+                equations.gravity * h_ll * b_ll + equations.gravity * h_average * b_jump,
+                z)
+  end
+
+  return f
+end
+
 @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
                                                      normal_direction_ll::AbstractVector,
                                                      normal_direction_average::AbstractVector,
@@ -311,7 +378,7 @@ end
 
 
 """
-    flux_fjordholm_etal(u_ll, u_rr, normal_direction,
+    flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction,
                         equations::ShallowWaterEquations2D)
 
 Total energy conservative (mathematical entropy for shallow water equations). When the bottom topography
@@ -323,6 +390,33 @@ Details are available in Eq. (4.1) in the paper:
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
+@inline function flux_fjordholm_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
+  # Unpack left and right state
+  h_ll = waterheight(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  h_rr = waterheight(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
+
+  # Average each factor of products in flux
+  h_avg  = 0.5 * (h_ll   + h_rr  )
+  v1_avg = 0.5 * (v1_ll  + v1_rr )
+  v2_avg = 0.5 * (v2_ll  + v2_rr )
+  p_avg  = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f1 = h_avg * v1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+  else
+    f1 = h_avg * v2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+  end
+
+  return SVector(f1, f2, f3, zero(eltype(u_ll)))
+end
+
 @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll = waterheight(u_ll, equations)
@@ -351,7 +445,7 @@ end
 
 
 """
-    flux_wintermeyer_etal(u_ll, u_rr, normal_direction,
+    flux_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction,
                           equations::ShallowWaterEquations2D)
 
 Total energy conservative (mathematical entropy for shallow water equations) split form.
@@ -364,6 +458,34 @@ Further details are available in Theorem 1 of the paper:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
+@inline function flux_wintermeyer_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
+  # Unpack left and right state
+  h_ll, h_v1_ll, h_v2_ll, _ = u_ll
+  h_rr, h_v1_rr, h_v2_rr, _ = u_rr
+
+  # Get the velocities on either side
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
+
+  # Average each factor of products in flux
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * equations.gravity * h_ll * h_rr
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f1 = 0.5 * (h_v1_ll + h_v1_rr)
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+  else
+    f1 = 0.5 * (h_v2_ll + h_v2_rr)
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+  end
+
+  return SVector(f1, f2, f3, zero(eltype(u_ll)))
+end
+
 @inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Unpack left and right state
   h_ll, h_v1_ll, h_v2_ll, _ = u_ll
@@ -391,6 +513,25 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations2D)
+  # Get the velocity quantities in the appropriate direction
+  if orientation == 1
+    v_ll, _ = velocity(u_ll, equations)
+    v_rr, _ = velocity(u_rr, equations)
+  else
+    _, v_ll = velocity(u_ll, equations)
+    _, v_rr = velocity(u_rr, equations)
+  end
+
+  # Calculate the wave celerity on the left and right
+  h_ll = waterheight(u_ll, equations)
+  h_rr = waterheight(u_rr, equations)
+  c_ll = sqrt(equations.gravity * h_ll)
+  c_rr = sqrt(equations.gravity * h_rr)
+
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)
   # Extract and compute the velocities in the normal direction
   v1_ll, v2_ll = velocity(u_ll, equations)
@@ -439,6 +580,25 @@ end
   end
 end
 
+
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
+  h_ll = waterheight(u_ll, equations)
+  v1_ll, v2_ll = velocity(u_ll, equations)
+  h_rr = waterheight(u_rr, equations)
+  v1_rr, v2_rr = velocity(u_rr, equations)
+
+  if orientation == 1 # x-direction
+    λ_min = v1_ll - sqrt(equations.gravity * h_ll)
+    λ_max = v1_rr + sqrt(equations.gravity * h_rr)
+  else # y-direction
+    λ_min = v2_ll - sqrt(equations.gravity * h_ll)
+    λ_max = v2_rr + sqrt(equations.gravity * h_rr)
+  end
+
+  return λ_min, λ_max
+end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::ShallowWaterEquations2D)
