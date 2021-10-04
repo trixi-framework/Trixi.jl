@@ -71,8 +71,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_euler_cubed_sphere_coupled.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cubed_sphere_coupled.jl"),
+  @trixi_testset "elixir_euler_source_terms_cubed_sphere_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_cubed_sphere_coupled.jl"),
     l2   = [0.004431408578259766, 0.004171526709906767, 0.004171526709906793, 0.004171526709906778, 0.008005125796951692], 
     linf = [0.030382705156523082, 0.025131165200025674, 0.04078360878658249, 0.04078360878657472, 0.0774158720823146])
   end
