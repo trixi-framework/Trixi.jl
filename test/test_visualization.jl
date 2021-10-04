@@ -102,11 +102,19 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      if mesh != "DGMulti"
+      if mesh != "DGMulti" && mesh != "P4estMesh"
         @testset "Create 1D plot as slice" begin
           @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
-          pd1D = PlotData1D(sol, slice=:y, point=(0.7, 0.0))
+          pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
           @test_nowarn_debug Plots.plot(pd1D)
+        end
+      elseif mesh == "P4estMesh"
+        @testset "Create 1D plot as slice" begin
+          # Plot along slice axis is broken for unstructured meshes.
+          # See https://github.com/trixi-framework/Trixi.jl/issues/893
+          @test_broken PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          @test_broken pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
+          @test_broken Plots.plot(pd1D)
         end
       end
 
