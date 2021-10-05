@@ -154,15 +154,11 @@ julia> mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_c
 
 julia> solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha));
 
-julia> """
-           initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
-
-       The classical isentropic vortex test case of
-       - Chi-Wang Shu (1997)
-         Essentially Non-Oscillatory and Weighted Essentially Non-Oscillatory
-         Schemes for Hyperbolic Conservation Laws
-         [NASA/CR-97-206253](https://ntrs.nasa.gov/citations/19980007543)
-       """
+julia> # The classical isentropic vortex test case of
+       # - Chi-Wang Shu (1997)
+       #   Essentially Non-Oscillatory and Weighted Essentially Non-Oscillatory
+       #   Schemes for Hyperbolic Conservation Laws
+       #   [NASA/CR-97-206253](https://ntrs.nasa.gov/citations/19980007543)
        function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
          # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
          # make sure that the inicenter does not exit the domain, e.g. T=10.0
