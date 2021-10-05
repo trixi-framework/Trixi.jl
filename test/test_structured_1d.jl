@@ -26,6 +26,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.00021049780975179733])
   end
 
+  @trixi_testset "elixir_euler_sedov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [3.67478226e-01, 3.49491179e-01, 8.08910759e-01],
+      linf = [1.58971947e+00, 1.59812384e+00, 1.94732969e+00],
+      tspan = (0.0, 0.3))
+  end
+
   @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       # Expected errors are exactly the same as with TreeMesh!

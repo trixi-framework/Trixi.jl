@@ -22,6 +22,6 @@ include("mappings_geometry_straight_2d.jl")
 include("containers_2d.jl")
 include("sort_boundary_conditions.jl")
 include("dg_2d.jl")
-
+include("indicators_2d.jl")
 
 end # @muladd

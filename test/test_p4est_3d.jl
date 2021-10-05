@@ -87,6 +87,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.00921799151005215, 0.007057841476498664, 0.0074046565631184, 0.007421119519873141, 0.023272322544764468],
       linf = [0.18671575807969953, 0.2550156016690984, 0.2577539185993992, 0.26308798001518957, 0.443547750485219])
   end
+
+  @trixi_testset "elixir_euler_sedov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [7.82070951e-02, 4.33260474e-02, 4.33260474e-02, 4.33260474e-02, 3.75260911e-01],
+      linf = [7.45329845e-01, 3.21754792e-01, 3.21754792e-01, 3.21754792e-01, 4.76151527e+00],
+      tspan = (0.0, 0.3))
+  end
+
 end
 
 # Clean up afterwards: delete Trixi output directory
