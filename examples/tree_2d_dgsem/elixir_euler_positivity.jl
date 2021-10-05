@@ -106,12 +106,7 @@ stage_limiter! = limiter!
 ###############################################################################
 # run the simulation
 
-sol = solve(ode,
-            SSPRK43(stage_limiter!),
-            # RDPK3SpFSAL49(stage_limiter!), abstol=1.0e-7, reltol=1.0e-7,
-            dt=0.1*stepsize_callback(ode),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks, maxiters=1e5);
-# sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
-#             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#             save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary
