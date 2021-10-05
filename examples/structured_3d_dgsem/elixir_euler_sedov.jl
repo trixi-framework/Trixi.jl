@@ -25,7 +25,7 @@ function initial_condition_medium_sedov_blast_wave(x, t, equations::Compressible
   # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
   r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
   E = 1.0
-  p0_inner = 3 * (equations.gamma - 1) * E / (3 * pi * r0^2)
+  p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
   p0_outer = 1.0e-3 
 
   # Calculate primitive variables

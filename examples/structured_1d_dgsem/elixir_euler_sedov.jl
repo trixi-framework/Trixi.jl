@@ -25,7 +25,6 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
   E = 1.0
   p0_inner = 6 * (equations.gamma - 1) * E / (3 * pi * r0)
   p0_outer = 1.0e-5 # = true Sedov setup
-  # p0_outer = 1.0e-3 # = more reasonable setup
 
   # Calculate primitive variables
   rho = 1.0
