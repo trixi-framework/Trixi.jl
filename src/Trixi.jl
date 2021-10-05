@@ -134,12 +134,10 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
 
 export initial_condition_constant,
        initial_condition_gauss,
-       initial_condition_density_wave, initial_condition_density_pulse,
+       initial_condition_density_wave,
        initial_condition_weak_blast_wave,
        initial_condition_orszag_tang,
-       initial_condition_rotor,
-       initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex
+       initial_condition_rotor
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
