@@ -38,23 +38,7 @@ isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63f
 
 mesh = P4estMesh{2}(mesh_file, polydeg=3,
                     mapping=mapping_flag,
-                    initial_refinement_level=0)
-
-# Refine bottom left quadrant of each tree to level 3
-function refine_fn(p4est, which_tree, quadrant)
-  if quadrant.x == 0 && quadrant.y == 0 && quadrant.level < 3
-    # return true (refine)
-    return Cint(1)
-  else
-    # return false (don't refine)
-    return Cint(0)
-  end
-end
-
-# Refine recursively until each bottom left quadrant of a tree has level 4
-# The mesh will be rebalanced before the simulation starts
-refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p4est_quadrant_t}))
-Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
+                    initial_refinement_level=2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)

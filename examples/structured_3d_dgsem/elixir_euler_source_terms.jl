@@ -1,3 +1,5 @@
+# The same setup as tree_3d_dgsem/elixir_euler_source_terms.jl
+# to verify the StructuredMesh implementation against TreeMesh
 
 using OrdinaryDiffEq
 using Trixi

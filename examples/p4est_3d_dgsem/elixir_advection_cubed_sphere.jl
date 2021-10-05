@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = (1.0, 1.0, 1.0)
+advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -19,7 +19,7 @@ boundary_conditions = Dict(
   :outside => boundary_condition,
 )
 
-mesh = Trixi.P4estMeshCubedSphere(3, 2, 0.5, 0.5,
+mesh = Trixi.P4estMeshCubedSphere(5, 3, 0.5, 0.5,
                                   polydeg=3, initial_refinement_level=0)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
