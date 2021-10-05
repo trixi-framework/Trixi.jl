@@ -10,49 +10,35 @@
 # is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
 
 # ## Basic setup
-  
-# Let's start by creating a module (in the REPL, in a file, in a Jupyter notebook, ...).
-# That ensures that we can re-create `struct`s defined therein without having to
-# restart Julia.
-module CubicConservationLaw
-  
 using Trixi
 
 struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
                                                 1 #= number of primary variables, i.e. scalar =#};
 end
   
-end; # module
-  
 # We create `CubicEquation` as an empty `struct` since we do not use any parameters
 # for this equation. Other models could bundle arbitrary parameters, e.g., the
 # ideal gas constant for the compressible Euler equations.
 
-# From here on, the following code snippets normally are written inside the `module`.
-# To make it work outside the module we use `CubicConservationLaw.CubicEquation` instead
-# of `CubicEquation`. The complete code can be found at the end.
 # Next, we define the physical flux `f(u) = u^3` using the calling structure
 # used in Trixi.jl.
 
-using Trixi
-
-Trixi.flux(u, orientation, equation::CubicConservationLaw.CubicEquation) = u.^3
-Trixi.varnames(_, ::CubicConservationLaw.CubicEquation) = ("scalar",)
+Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
+Trixi.varnames(_, ::CubicEquation) = ("scalar",)
 
 # In Trixi.jl, the conserved variables `u` are usually passed as `SVector`s of variables
 # at a single physical location. Hence, we must use `u.^3` instead of the scalar
 # operation `u^3`.
   
 # That's already enough to run a simple simulation with a standard DGSEM discretization
-# using the non-dissipative central flux at interfaces. This code is written outside
-# of our new `module`.
+# using the non-dissipative central flux at interfaces.
 
 using OrdinaryDiffEq
 
 ## Create a simulation setup
-equation = CubicConservationLaw.CubicEquation()
+equation = CubicEquation()
   
-initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation) = SVector(sinpi(x[1]))
+initial_condition_sine(x, t, equation::CubicEquation) = SVector(sinpi(x[1]))
   
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
                 initial_refinement_level=4,
@@ -77,24 +63,20 @@ ode = semidiscretize(semi, tspan);
 # Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
-  
+
+redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
-  
+
 ## Print the timer summary
 summary_callback()
-#src # TODO summary_callback() is printing summary automatically (even with ;)
+end #hide #md
 
-# That's it, you ran your first simulation using your new equation with Trixi! Now,
-# we can plot the solution at the final time using Plots.jl.
-
+# That's it, you ran your first simulation using your new equation with Trixi! Now, we can plot
+# the solution at the final time using Plots.jl.
 using Plots
 plot(sol)
-#src # TODO: In the static tutorial version the plot (1) is slighly different than the executed one (1b).
-#src # Storing the link for possible changes.
-#src # ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
-#src # ![tutorial_adding_new_equations_plot1b](https://user-images.githubusercontent.com/74359358/126663757-b8fb3ecb-72c8-4246-ab64-2bb4dbdf621a.png)
 
 # You can already see that discontinuities will develop and oscillations start to
 # occur around steep parts of the wave. That's expected from our central discretization.
@@ -107,7 +89,7 @@ plot(sol)
 # Thus, we add a Godunov's flux for our cubic equation. That is easy for this equation
 # since the wave speed `f'(u) = 3u^2` is always non-negative.
 
-@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicConservationLaw.CubicEquation) = flux(u_ll, orientation, equation)
+@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
 
 # Let's run the example again but with a dissipative numerical flux at interfaces.
 # `remake` will recreate the semidiscretization we used before and only change
@@ -120,28 +102,23 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback()
 plot!(sol)
-#src # TODO: In the static tutorial version the plot (2) is slighly different than the executed one (2b).
-#src # Storing the link for possible changes.
-#src # ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
-#src # ![tutorial_adding_new_equations_plot2b](https://user-images.githubusercontent.com/74359358/126664312-e2f2fc93-42b0-4082-a009-b4268b15ff21.png)
 
 # You can see that there are fewer oscillations, in particular around steep edges.
 # Now let's increase the final time (and also the spatial resolution).
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
-ode = semidiscretize(semi, (0.0, 0.5))
+ode = semidiscretize(semi, (0.0, 0.5) #= tspan =#)
 sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
-#src # ![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
 
 # You can observe that nonclassical shocks develop and are stable under grid refinement,
 # e.g. for `initial_refinement_level=12`. In this case, these nonclassical shocks
 # can be avoided by using an entropy-dissipative semidiscretization. Thus, we need
 # to define an entropy-conservative numerical flux
 
-@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicConservationLaw.CubicEquation)
+@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
   return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
 end
 
@@ -154,7 +131,6 @@ ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
-#src # ![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
 
 # Possible next steps could be
 # - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`
@@ -167,8 +143,10 @@ plot(sol)
 
 # ## Summary of the code
 
-# To sum up, here is the complete code that we used (without the [`SummaryCallback`](@ref)
-# since that creates a lot of unnecessary output in the doctests of this tutorial).
+# To sum up, here is the complete code that we used (without the callbacks since these create a
+# lot of unnecessary output in the doctests of this tutorial).
+# In addition, we create the `struct` inside the new module `CubicConservationLaw`. That
+# ensures that we can re-create `struct`s defined therein without having to restart Julia.
 
 ## Define new physics
 module CubicConservationLaw

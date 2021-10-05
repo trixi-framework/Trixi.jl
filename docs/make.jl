@@ -32,6 +32,7 @@ files = [
     "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations_literate", "cubic_conservation_law_literate.jl"),
                                 "Nonconservative equation" => ("adding_new_equations_literate", "nonconservative_advection_literate.jl")],
     "Differentiable programming" => "differentiable_programming_literate.jl",
+    "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_literate.jl",
     ]
 tutorials = create_tutorials(files)
 
