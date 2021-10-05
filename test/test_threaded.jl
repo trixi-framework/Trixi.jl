@@ -81,10 +81,10 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
 
   @testset "P4estMesh" begin
-    @trixi_testset "elixir_euler_source_terms_nonperiodic_unstructured.jl" begin
-      @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_source_terms_nonperiodic_unstructured.jl"),
-        l2   = [0.005238881525717353, 0.00432468991916032, 0.004324689919160557, 0.009861661579421543],
-        linf = [0.05218395248755403, 0.05393708345946013, 0.05393708345946102, 0.09119199890634944])
+    @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+        l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893], 
+        linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
     end
 
     @trixi_testset "elixir_eulergravity_convergence.jl" begin

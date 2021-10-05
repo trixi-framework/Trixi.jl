@@ -1,3 +1,5 @@
+# The same setup as tree_1d_dgsem/elixir_advection_basic.jl
+# to verify the StructuredMesh implementation against TreeMesh
 
 using OrdinaryDiffEq
 using Trixi

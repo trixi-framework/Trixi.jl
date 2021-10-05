@@ -36,13 +36,13 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
   NamedTuple()
 end
 
 
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
@@ -64,7 +64,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
 end
 
 
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
 
   A3dp1_x = Array{uEltype, 3}
@@ -80,7 +80,8 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, 
+                      equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal performance using different types
   MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}
   fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -180,12 +181,11 @@ function calc_volume_integral!(du, u,
 end
 
 
-
 # flux differencing volume integral. For curved meshes averaging of the
 # mapping terms, stored in `cache.elements.contravariant_vectors`, is peeled apart
 # from the evaluation of the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -231,8 +231,8 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
-                                    element, mesh::TreeMesh{2},
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u, element, 
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
@@ -273,7 +273,7 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -305,7 +305,8 @@ function calc_volume_integral!(du, u,
                        volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
-    fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, alpha_element)
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+               dg, cache, element, alpha_element)
   end
 
   return nothing
@@ -321,7 +322,8 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, true)
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+               dg, cache, element, true)
   end
 
   return nothing
@@ -329,6 +331,7 @@ end
 
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4},
+                            mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -339,8 +342,8 @@ end
   fstar2_L = fstar2_L_threaded[Threads.threadid()]
   fstar1_R = fstar1_R_threaded[Threads.threadid()]
   fstar2_R = fstar2_R_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-               nonconservative_terms, equations, volume_flux_fv, dg, element)
+  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh, 
+               nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
 
   # Calculate FV volume integral contribution
   for j in eachnode(dg), i in eachnode(dg)
@@ -368,8 +371,8 @@ end
 # - `fstar2_L::AbstractArray{<:Real, 3}`
 # - `fstar2_R::AbstractArray{<:Real, 3}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              nonconservative_terms::Val{false}, equations,
-                              volume_flux_fv, dg::DGSEM, element)
+                              mesh::TreeMesh{2}, nonconservative_terms::Val{false}, equations,
+                              volume_flux_fv, dg::DGSEM, element, cache)
 
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
@@ -413,8 +416,8 @@ end
 # - `fstar2_R::AbstractArray{<:Real, 3}`:
 # - `u_leftright::AbstractArray{<:Real, 4}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              nonconservative_terms::Val{true}, equations,
-                              volume_flux_fv, dg::DGSEM, element)
+                              mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equations,
+                              volume_flux_fv, dg::DGSEM, element, cache)
   volume_flux, nonconservative_flux = volume_flux_fv
 
   # Fluxes in x

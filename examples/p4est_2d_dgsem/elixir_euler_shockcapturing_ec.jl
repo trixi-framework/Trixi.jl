@@ -8,37 +8,41 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_convergence_test
+initial_condition = initial_condition_weak_blast_wave
 
-source_terms = source_terms_convergence_test
+surface_flux = flux_ranocha
+volume_flux = flux_ranocha
+polydeg = 4
+basis = LobattoLegendreBasis(polydeg)
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max=1.0,
+                                         alpha_min=0.001,
+                                         alpha_smooth=true,
+                                         variable=density_pressure)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
 
-# BCs must be passed as Dict
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(
-  :all => boundary_condition
-)
-
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 ###############################################################################
-# Get the uncurved mesh from a file (downloads the file if not available locally)
 
-# Unstructured mesh with 24 cells of the square domain [-1, 1]^n
-mesh_file = joinpath(@__DIR__, "square_unstructured_2.inp")
-isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-                              mesh_file)
+coordinates_min = (-1.0, -1.0)
+coordinates_max = ( 1.0,  1.0)
 
-mesh = P4estMesh{2}(mesh_file, initial_refinement_level=0)
+trees_per_dimension = (4, 4)
+mesh = P4estMesh(trees_per_dimension,
+                 polydeg=4, initial_refinement_level=2,
+                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                 periodicity=true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms,
-                                    boundary_conditions=boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -48,9 +52,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
@@ -59,8 +60,9 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        analysis_callback, 
+                        alive_callback,
+                        save_solution,
                         stepsize_callback)
 ###############################################################################
 # run the simulation
