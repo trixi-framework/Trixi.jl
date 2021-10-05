@@ -148,8 +148,7 @@ export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
-       boundary_condition_wall,
-       boundary_condition_zero
+       boundary_condition_wall
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
@@ -159,8 +158,6 @@ export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravi
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
-export initial_condition_gauss_wall
-export initial_condition_monopole, boundary_condition_monopole
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
