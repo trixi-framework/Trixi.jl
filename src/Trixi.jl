@@ -144,8 +144,7 @@ export boundary_condition_periodic,
        boundary_condition_wall
 
 export initial_condition_convergence_test, source_terms_convergence_test
-export initial_condition_harmonic_nonperiodic, source_terms_harmonic
-export initial_condition_poisson_periodic, source_terms_poisson_periodic
+export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
