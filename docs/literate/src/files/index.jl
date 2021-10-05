@@ -23,13 +23,13 @@
 # #### [1.2 Nonconservative advection](@ref nonconservative_advection_literate)
 #-
 # In this part, another physics model is implemented, the nonconservative linear advection equation.
-# We run two different simulations with a different level of refinement and compare the resulting errors.
+# We run two different simulations with different levels of refinement and compare the resulting errors.
 
 # ### [2 Differentiable programming](@ref differentiable_programming_literate)
 #-
-# This part deals with some basic differentiable programming topics. For example, a Jacobian, it
+# This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
-# a few semidiscretizations. Moreover, an example for propagating errors with Measurement.jl is given
+# a few semidiscretizations. Moreover, we calculate an example for propagating errors with Measurement.jl
 # at the end.
 
 # ### [3 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_literate)

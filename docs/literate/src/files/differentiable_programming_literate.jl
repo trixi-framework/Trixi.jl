@@ -145,7 +145,7 @@ mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_ma
 solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha));
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex, solver);
-#nb #-
+
 u0_ode = compute_coefficients(0.0, semi); size(u0_ode)
 @test size(u0_ode) == (1024,) #src
 #-

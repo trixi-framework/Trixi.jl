@@ -15,7 +15,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
 
     # TODO: tutorials. Caching notebooks in separate branch in the future.
     branch = "gh-pages"
-    notebook_path = "previews/PR873/notebooks/$notebook_filename"
+    notebook_path = "dev/tutorials/notebooks/$notebook_filename"
     binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/$branch?filepath=$notebook_path"
     nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/$branch/$notebook_path"
     download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/$branch/$notebook_path"
@@ -42,10 +42,9 @@ function create_tutorials(files)
     repo_src        = joinpath(@__DIR__, "src", "files")
 
     pages_dir       = joinpath(@__DIR__, "..", "src", "tutorials")
-    notebooks_dir   = joinpath(@__DIR__, "..", "src", "notebooks")
+    notebooks_dir   = joinpath(pages_dir, "notebooks")
 
     Sys.rm(pages_dir;       recursive=true, force=true)
-    Sys.rm(notebooks_dir;   recursive=true, force=true)
 
     Sys.rm("out"; recursive=true, force=true)
 

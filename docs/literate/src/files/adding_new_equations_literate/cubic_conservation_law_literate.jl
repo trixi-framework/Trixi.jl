@@ -63,19 +63,20 @@ ode = semidiscretize(semi, tspan);
 # Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
-  
+
+redirect_stdout(devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 
 ## Print the timer summary
 summary_callback()
+end #hide #md
 
-#nb #-
-## Now, we can plot the solution at the final time using Plots.jl.
+# That's it, you ran your first simulation using your new equation with Trixi! Now, we can plot
+# the solution at the final time using Plots.jl.
 using Plots
 plot(sol)
-# That's it, you ran your first simulation using your new equation with Trixi! 
 
 # You can already see that discontinuities will develop and oscillations start to
 # occur around steep parts of the wave. That's expected from our central discretization.
@@ -107,7 +108,7 @@ plot!(sol)
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
-ode = semidiscretize(semi, (0.0, 0.5))
+ode = semidiscretize(semi, (0.0, 0.5) #= tspan =#)
 sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
