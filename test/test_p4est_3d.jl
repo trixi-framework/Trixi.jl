@@ -63,6 +63,12 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.011596300191441644, 0.009930481243511924, 0.013095959848100192, 0.02014760183990494, 0.03885749726552046])
   end
 
+  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+      l2   = [0.0015695663270391823, 0.0015490919943862824, 0.0015490919943864445, 0.0015490919943865404, 0.0030142321185958622], 
+      linf = [0.011169568009149922, 0.012122645263175524, 0.012122645263178411, 0.012122645263167309, 0.022766806484090463])
+  end
+
   @trixi_testset "elixir_euler_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
       l2   = [7.853107070208087e-15, 4.3176689497299765e-14, 4.605888682511052e-14, 5.468131071212009e-14, 9.42558567776032e-14],
