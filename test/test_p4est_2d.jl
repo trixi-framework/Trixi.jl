@@ -15,21 +15,21 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "P4estMesh2D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      # Expected errors are exactly the same as with StructuredMesh!
+      # Expected errors are exactly the same as with TreeMesh!
       l2   = [8.311947673061856e-6], 
       linf = [6.627000273229378e-5])
   end
 
-  @trixi_testset "elixir_advection_nonconforming.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
-      l2   = [2.7905480848832338e-5], 
-      linf = [0.00022847020768290704])
+  @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_flag.jl"),
+      l2   = [3.198940059144588e-5], 
+      linf = [0.00030636069494005547])
   end
 
-  @trixi_testset "elixir_advection_nonconforming_unstructured.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_unstructured.jl"),
-      l2   = [0.0026958321660563362], 
-      linf = [0.04122573088346193])
+  @trixi_testset "elixir_advection_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
+      l2   = [0.0005379687442422346], 
+      linf = [0.007438525029884735])
   end
 
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
@@ -47,20 +47,14 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [4.219208035626337e-6], 
-      linf = [3.4384344042126536e-5])
+      l2   = [4.507575525876275e-6], 
+      linf = [6.21489667023134e-5])
   end
 
-  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
-      l2   = [2.2594405120861626e-6, 2.3188881560096627e-6, 2.318888156064081e-6, 6.332786324236605e-6],
-      linf = [1.4987382633613322e-5, 1.9182011925522602e-5, 1.9182011924634423e-5, 6.0526717124531615e-5])
-  end
-
-  @trixi_testset "elixir_euler_source_terms_nonperiodic_unstructured.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_unstructured.jl"),
-      l2   = [0.005238881525717585, 0.0043246899191607775, 0.0043246899191606925, 0.00986166157942196],
-      linf = [0.052183952487556695, 0.05393708345945791, 0.05393708345946191, 0.09119199890635965])
+  @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+    l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893], 
+    linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -69,6 +63,27 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
       atol = 2.0e-12, # required to make CI tests pass on macOS
     )
+  end
+
+  @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
+      l2   = [9.53984675e-02, 1.05633455e-01, 1.05636158e-01, 3.50747237e-01],
+      linf = [2.94357464e-01, 4.07893014e-01, 3.97334516e-01, 1.08142520e+00],
+      tspan = (0.0, 1.0))
+  end
+
+  @trixi_testset "elixir_euler_sedov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+      l2   = [3.76149952e-01, 2.46970327e-01, 2.46970327e-01, 1.28889042e+00],
+      linf = [1.22139001e+00, 1.17742626e+00, 1.17742626e+00, 6.20638482e+00],
+      tspan = (0.0, 0.3))
+  end
+
+  @trixi_testset "elixir_euler_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_amr.jl"),
+      l2   = [6.32183914e-01, 3.86914231e-01, 3.86869171e-01, 1.06575688e+00],
+      linf = [2.76020890e+00, 2.32659890e+00, 2.32580837e+00, 2.15778188e+00],
+      tspan = (0.0, 0.3))
   end
 
   @trixi_testset "elixir_eulergravity_convergence.jl" begin

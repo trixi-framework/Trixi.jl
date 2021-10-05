@@ -20,7 +20,8 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 restart_filename = joinpath("out", restart_file)
 mesh = load_mesh(restart_filename)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions=boundary_conditions)
 
 tspan = (load_time(restart_filename), 2.0)
 ode = semidiscretize(semi, tspan, restart_filename);

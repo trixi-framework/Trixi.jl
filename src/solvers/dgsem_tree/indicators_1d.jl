@@ -24,8 +24,8 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
-                                                   mesh, equations, dg::DGSEM, cache;
+function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                                   equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
@@ -89,14 +89,14 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
   end
 
   if alpha_smooth
-    apply_smoothing_1d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-function apply_smoothing_1d!(alpha, alpha_tmp, dg, cache)
+function apply_smoothing!(mesh::Union{TreeMesh{1}, P4estMesh{1}}, alpha, alpha_tmp, dg, cache)
   # Copy alpha values such that smoothing is indpedenent of the element access order
   alpha_tmp .= alpha
 
@@ -161,7 +161,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
 
   return alpha
 end
-
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -308,7 +307,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
   end
 
   if alpha_smooth
-    apply_smoothing_1d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -397,7 +396,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
   end
 
   if alpha_smooth
-    apply_smoothing_1d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
