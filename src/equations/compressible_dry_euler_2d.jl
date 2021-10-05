@@ -460,10 +460,28 @@ end
   return (rho_v1^2 + rho_v2^2) / (2 * rho)
 end
 
+@inline function velocity(u, equations::CompressibleDryEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  return 0.5 * sqrt(v1^2 + v2^2) 
+end
+
 
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleDryEulerEquations2D)
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+@inline function pottemp_thermodynamic(cons, equations::CompressibleDryEulerEquations2D)
+  @unpack R_d, p_0, gamma, kappa = equations
+  # Pressure
+  p = (gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
+
+  # Potential temperature
+  pot = p_0 * (p / p_0)^(1 - kappa) / (R_d * cons[1])
+
+  return pot
 end
 
 

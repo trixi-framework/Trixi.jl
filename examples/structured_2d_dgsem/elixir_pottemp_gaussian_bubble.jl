@@ -27,9 +27,9 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1500.0, 1500.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
+                initial_refinement_level=3,
                 periodicity=(true, false),
-                n_cells_max=30_000)
+                n_cells_max=40_000)
 
 ###############################################################################
 # create the semi discretization object
@@ -41,7 +41,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 900.0)
+tspan = (0.0, 1080.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -53,10 +53,20 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(interval=10000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=solution_variables)
+
+
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=velocity),
+                                      base_level=3, max_level=7,
+                                      med_threshold=0.2, max_threshold=1)
+
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=5,
+                           adapt_initial_condition=false,
+                           adapt_initial_condition_only_refine=false)
 
 stepsize_callback = StepsizeCallback(cfl=0.25)
 
@@ -64,6 +74,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
+                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################
