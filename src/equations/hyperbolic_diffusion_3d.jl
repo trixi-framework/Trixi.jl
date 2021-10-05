@@ -167,55 +167,6 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
 end
 
 
-"""
-    initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations3D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
-"""
-function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations3D)
-  # for now just use constant initial condition for sedov blast wave (can likely be improved)
-
-  phi = 0.0
-  q1  = 0.0
-  q2  = 0.0
-  q3  = 0.0
-  return SVector(phi, q1, q2, q3)
-end
-
-"""
-    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                          surface_flux_function,
-                                          equations::HyperbolicDiffusionEquations3D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
-"""
-function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::HyperbolicDiffusionEquations3D)
-  u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::HyperbolicDiffusionEquations3D)

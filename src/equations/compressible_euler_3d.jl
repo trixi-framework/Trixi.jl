@@ -149,51 +149,6 @@ end
 
 
 """
-    initial_condition_blob(x, t, equations::CompressibleEulerEquations3D)
-
-The blob test case taken from
-- Agertz et al. (2006)
-  Fundamental differences between SPH and grid methods
-  [arXiv: astro-ph/0610051](https://arxiv.org/abs/astro-ph/0610051)
-"""
-function initial_condition_blob(x, t, equations::CompressibleEulerEquations3D)
-  # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
-  # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
-  # change discontinuity to tanh
-  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-  # resolution 128^3, 256^3
-  # domain size is [-20.0,20.0]^3
-  # gamma = 5/3 for this test case
-  R = 1.0 # radius of the blob
-  # background density
-  rho = 1.0
-  Chi = 10.0 # density contrast
-  # reference time of characteristic growth of KH instability equal to 1.0
-  tau_kh = 1.0
-  tau_cr = tau_kh / 1.6 # crushing time
-  # determine background velocity
-  v1 = 2 * R * sqrt(Chi) / tau_cr
-  v2 = 0.0
-  v3 = 0.0
-  Ma0 = 2.7 # background flow Mach number Ma=v/c
-  c = v1 / Ma0 # sound speed
-  # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
-  p = c * c * rho / equations.gamma
-  # initial center of the blob
-  inicenter = [-15, 0, 0]
-  x_rel = x - inicenter
-  r = sqrt(x_rel[1]^2 + x_rel[2]^2 + x_rel[3]^2)
-  # steepness of the tanh transition zone
-  slope = 2
-  # density blob
-  rho = rho + (Chi - 1) * 0.5 * (1 + (tanh(slope * (r + R)) - (tanh(slope *(r - R)) + 1)))
-  # velocity blob is zero
-  v1 = v1 - v1 * 0.5 * (1 + (tanh(slope *(r + R)) - (tanh(slope *(r - R)) + 1)))
-  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
-end
-
-
-"""
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
 
 The classical inviscid Taylor-Green vortex.
@@ -308,85 +263,6 @@ function source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquati
   du5 = rhox * (3 - 5 * C_grav * rho)
 
   return SVector(du1, du2, du3, du4, du5)
-end
-
-
-"""
-    initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations3D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
-"""
-function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations3D)
-  # Calculate radius as distance from origin
-  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.25 # = 4.0 * smallest dx (for domain length=8 and max-ref=7)
-  E = 1.0
-  p_inner   = (equations.gamma - 1) * E / (4/3 * pi * r0^3)
-  p_ambient = 1e-5 # = true Sedov setup
-
-  # Calculate primitive variables
-  # use a logistic function to tranfer density value smoothly
-  L  = 1.0    # maximum of function
-  x0 = 1.0    # center point of function
-  k  = -50.0 # sharpness of transfer
-  logistic_function_rho = L/(1.0 + exp(-k*(r - x0)))
-  rho_ambient = 1e-5
-  rho = max(logistic_function_rho, rho_ambient) # clip background density to not be so tiny
-
-  # velocities are zero
-  v1 = 0.0
-  v2 = 0.0
-  v3 = 0.0
-
-  # use a logistic function to tranfer pressure value smoothly
-  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
-  p = max(logistic_function_p, p_ambient)
-
-  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
-end
-
-"""
-    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                          surface_flux_function,
-                                          equations::CompressibleEulerEquations2D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
-"""
-function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::CompressibleEulerEquations3D)
-  # velocities are zero, density/pressure are ambient values according to
-  # initial_condition_sedov_self_gravity
-  rho = 1e-5
-  v1 = 0.0
-  v2 = 0.0
-  v3 = 0.0
-  p = 1e-5
-
-  u_boundary = prim2cons(SVector(rho, v1, v2, v3, p), equations)
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
 end
 
 

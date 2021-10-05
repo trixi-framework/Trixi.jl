@@ -95,22 +95,6 @@ end
 
 
 """
-    initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
-
-A Gaussian pulse in the density with constant velocity and pressure; reduces the
-compressible Euler equations to the linear advection equations.
-"""
-function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
-  rho = 1 + exp(-(x[1]^2 ))/2
-  v1 = 1
-  rho_v1 = rho * v1
-  p = 1
-  rho_e = p/(equations.gamma - 1) + 1/2 * rho * v1^2
-  return SVector(rho, rho_v1, rho_e)
-end
-
-
-"""
     initial_condition_density_wave(x, t, equations::CompressibleEulerEquations1D)
 
 A sine wave in the density with constant velocity and pressure; reduces the
