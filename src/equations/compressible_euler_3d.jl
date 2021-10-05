@@ -409,9 +409,6 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
-
-!!! warning "Experimental code"
-    This wall function can change any time.
 """
 function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
                                       surface_flux_function, equations::CompressibleEulerEquations3D)

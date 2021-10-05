@@ -504,9 +504,6 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
 Should be used together with [`UnstructuredMesh2D`](@ref).
-
-!!! warning "Experimental code"
-    This wall function can change any time.
 """
 function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
                                       surface_flux_function, equations::CompressibleEulerEquations2D)
@@ -545,10 +542,8 @@ end
 """
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
                                  surface_flux_function, equations::CompressibleEulerEquations2D)
-Should be used together with [`TreeMesh`](@ref).
 
-!!! warning "Experimental code"
-    This wall function can change any time.
+Should be used together with [`TreeMesh`](@ref).
 """
 function boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
                                       surface_flux_function, equations::CompressibleEulerEquations2D)
@@ -566,10 +561,8 @@ end
 """
     boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
                                  surface_flux_function, equations::CompressibleEulerEquations2D)
-Should be used together with [`StructuredMesh`](@ref).
 
-!!! warning "Experimental code"
-    This wall function can change any time.
+Should be used together with [`StructuredMesh`](@ref).
 """
 function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
                                       surface_flux_function, equations::CompressibleEulerEquations2D)
