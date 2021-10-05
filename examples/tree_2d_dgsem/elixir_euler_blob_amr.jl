@@ -25,8 +25,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-20, -20)
-coordinates_max = ( 20,  20)
+coordinates_min = (-20.0, -20.0)
+coordinates_max = ( 20.0,  20.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,

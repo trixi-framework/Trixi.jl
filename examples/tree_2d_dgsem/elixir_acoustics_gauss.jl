@@ -12,8 +12,8 @@ equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_me
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1, -1) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1,  1) # maximum coordinates (max(x), max(y))
+coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
+coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
