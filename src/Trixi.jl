@@ -148,8 +148,6 @@ export initial_condition_harmonic_nonperiodic, source_terms_harmonic
 export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
-export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
-export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
