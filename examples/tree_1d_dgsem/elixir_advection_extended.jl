@@ -20,8 +20,8 @@ boundary_conditions = boundary_condition_periodic
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = -1 # minimum coordinate
-coordinates_max =  1 # maximum coordinate
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max =  1.0 # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,

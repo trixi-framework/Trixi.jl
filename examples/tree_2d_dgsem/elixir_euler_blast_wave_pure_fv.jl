@@ -40,8 +40,8 @@ basis = LobattoLegendreBasis(3)
 volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2, -2)
-coordinates_max = ( 2,  2)
+coordinates_min = (-2.0, -2.0)
+coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
                 n_cells_max=10_000)

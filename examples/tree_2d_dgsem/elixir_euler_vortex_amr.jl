@@ -70,8 +70,8 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_isentropic_vortex
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-10, -10)
-coordinates_max = ( 10,  10)
+coordinates_min = (-10.0, -10.0)
+coordinates_max = ( 10.0,  10.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=10_000)
