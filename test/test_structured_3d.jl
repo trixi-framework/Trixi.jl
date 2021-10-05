@@ -15,34 +15,36 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "Structured mesh" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.00013446460962856976],
-      linf = [0.0012577781391462928])
+      # Expected errors are exactly the same as with TreeMesh!
+      l2   = [0.00016263963870641478], 
+      linf = [0.0014537194925779984])
   end
 
   @trixi_testset "elixir_advection_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream.jl"),
-      l2   = [1.830875777528287e-14],
-      linf = [7.491784970170556e-13],
+      l2   = [1.2908196366970896e-14], 
+      linf = [1.0262901639634947e-12],
       atol = 8e-13, # required to make tests pass on Windows
       )
   end
 
-  @trixi_testset "elixir_advection_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic.jl"),
-      l2   = [6.522004549411137e-5],
-      linf = [0.005554857853361295])
+  @trixi_testset "elixir_advection_nonperiodic_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic_curved.jl"),
+      l2   = [0.0004483892474201268],
+      linf = [0.009201820593762955])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [0.0281388160824776],
-      linf = [0.08740635193023694])
+      l2   = [0.0025903889347585777], 
+      linf = [0.018407576968841655])
   end
 
   @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [0.010385936842221583, 0.00977604883389343, 0.009776048833893207, 0.009776048833893053, 0.015066870974161749],
-      linf = [0.03285848350791598, 0.03217923164091063, 0.03217923164089953, 0.03217923164090308, 0.06554080233334769])
+      # Expected errors are exactly the same as with TreeMesh!
+      l2   = [0.010385936842224346, 0.009776048833895767, 0.00977604883389591, 0.009776048833895733, 0.01506687097416608],
+      linf = [0.03285848350791731, 0.0321792316408982, 0.032179231640894645, 0.032179231640895534, 0.0655408023333299])
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -58,10 +60,10 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 2.0627943797535409e-13, 2.8954616482224083e-13])
   end
 
-  @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
-      l2   = [0.0015695663270396526, 0.0015490919943869574, 0.0015490919943870625, 0.001549091994386903, 0.0030142321185969594],
-      linf = [0.011169568009158803, 0.012122645263176413, 0.012122645263191512, 0.012122645263152654, 0.022766806484107338])
+  @trixi_testset "elixir_euler_source_terms_nonperiodic_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_curved.jl"),
+    l2   = [0.0032940531178824463, 0.003275679548217804, 0.0030020672748714084, 0.00324007343451744, 0.005721986362580164],
+    linf = [0.03156756290660656, 0.033597629023726316, 0.02095783702361409, 0.03353574465232212, 0.05873635745032857])
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin
