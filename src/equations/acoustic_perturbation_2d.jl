@@ -86,8 +86,8 @@ varnames(::typeof(cons2mean), ::AcousticPerturbationEquations2D) = ("v1_mean", "
 """
     global_mean_vars(equations::AcousticPerturbationEquations2D)
 
-Returns the global mean variables stored in `equations`. This makes it easier to define flexible
-initial conditions for problems with constant mean flow.
+Returns the global mean variables stored in `equations`. This makes it easier
+to define flexible initial conditions for problems with constant mean flow.
 """
 function global_mean_vars(equations::AcousticPerturbationEquations2D)
   return equations.v_mean_global[1], equations.v_mean_global[2], equations.c_mean_global,
