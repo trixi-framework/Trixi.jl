@@ -135,9 +135,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
 export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave,
-       initial_condition_weak_blast_wave,
-       initial_condition_orszag_tang,
-       initial_condition_rotor
+       initial_condition_weak_blast_wave
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,

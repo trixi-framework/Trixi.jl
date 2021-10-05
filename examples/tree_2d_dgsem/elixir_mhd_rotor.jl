@@ -7,6 +7,42 @@ using Trixi
 # semidiscretization of the compressible ideal GLM-MHD equations
 equations = IdealGlmMhdEquations2D(1.4)
 
+"""
+    initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
+
+The classical MHD rotor test case. Here, the setup is taken from
+- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
+  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
+  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+"""
+function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [0, 1] x [0, 1], γ = 1.4
+  dx = x[1] - 0.5
+  dy = x[2] - 0.5
+  r = sqrt(dx^2 + dy^2)
+  f = (0.115 - r)/0.015
+  if r <= 0.1
+    rho = 10.0
+    v1 = -20.0*dy
+    v2 = 20.0*dx
+  elseif r >= 0.115
+    rho = 1.0
+    v1 = 0.0
+    v2 = 0.0
+  else
+    rho = 1.0 + 9.0*f
+    v1 = -20.0*f*dy
+    v2 = 20.0*f*dx
+  end
+  v3 = 0.0
+  p = 1.0
+  B1 = 5.0/sqrt(4.0*pi)
+  B2 = 0.0
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+end
 initial_condition = initial_condition_rotor
 
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)

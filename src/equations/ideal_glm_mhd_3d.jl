@@ -119,30 +119,6 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
 end
 
 
-"""
-    initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations3D)
-
-The classical Orszag-Tang vortex test case. Here, the setup is taken from
-- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
-  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
-"""
-function initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations3D)
-  # setup taken from Table 4 of Bohm et al. JCP article (2018) DOI: 10.1016/j.jcp.2018.06.027
-  # domain must be [0, 1]^3 , γ = 5/3
-  rho = 25.0 / (36.0 * pi)
-  v1 = -sin(2.0*pi*x[3])
-  v2 =  sin(2.0*pi*x[1])
-  v3 =  sin(2.0*pi*x[2])
-  p = 5.0 / (12.0 * pi)
-  B1 = -sin(2.0*pi*x[3]) / (4.0*pi)
-  B2 =  sin(4.0*pi*x[1]) / (4.0*pi)
-  B3 =  sin(4.0*pi*x[2]) / (4.0*pi)
-  psi = 0.0
-  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-end
-
-
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations3D)
 
