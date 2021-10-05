@@ -49,15 +49,17 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2, -2)
-coordinates_max = ( 2,  2)
+# Unstructured mesh with 48 cells of the square domain [-1, 1]^n
+mesh_file = joinpath(@__DIR__, "square_unstructured_1.inp")
+isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp",
+                              mesh_file)
 
-trees_per_dimension = (4, 4)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg=3, initial_refinement_level=2,
-                 coordinates_min=coordinates_min, coordinates_max=coordinates_max)
+mesh = P4estMesh{2}(mesh_file, polydeg=3, initial_refinement_level=1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
+                                    boundary_conditions=Dict(
+                                      :all => BoundaryConditionDirichlet(initial_condition)
+                                    ))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -83,8 +85,8 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_smooth=true,
                                           variable=density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4,
-                                      max_level =6, max_threshold=0.01)
+                                      base_level=1,
+                                      max_level =3, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,
