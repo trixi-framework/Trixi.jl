@@ -70,8 +70,8 @@ equations_euler = CompressibleEulerEquations2D(gamma)
 polydeg = 3
 solver_euler = DGSEM(polydeg, flux_hll)
 
-coordinates_min = (0, 0)
-coordinates_max = (1, 1)
+coordinates_min = (0.0, 0.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)

@@ -13,14 +13,14 @@ volume_flux = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_hllc,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-20, -20, -20)
-coordinates_max = ( 20,  20,  20)
+coordinates_min = (-20.0, -20.0, -20.0)
+coordinates_max = ( 20.0,  20.0,  20.0)
 
 refinement_patches = (
-  (type="box", coordinates_min=(-20, -10, -10), coordinates_max=(-10, 10, 10)),
-  (type="box", coordinates_min=(-20,  -5,  -5), coordinates_max=(-10,  5,  5)),
-  (type="box", coordinates_min=(-17,  -2,  -2), coordinates_max=(-13,  2,  2)),
-  (type="box", coordinates_min=(-17,  -2,  -2), coordinates_max=(-13,  2,  2)),
+  (type="box", coordinates_min=(-20.0, -10.0, -10.0), coordinates_max=(-10.0, 10.0, 10.0)),
+  (type="box", coordinates_min=(-20.0,  -5.0,  -5.0), coordinates_max=(-10.0,  5.0,  5.0)),
+  (type="box", coordinates_min=(-17.0,  -2.0,  -2.0), coordinates_max=(-13.0,  2.0,  2.0)),
+  (type="box", coordinates_min=(-17.0,  -2.0,  -2.0), coordinates_max=(-13.0,  2.0,  2.0)),
 )
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,

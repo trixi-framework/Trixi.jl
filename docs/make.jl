@@ -12,6 +12,8 @@ using Trixi2Vtk
 # Get Trixi root directory
 trixi_root_dir = dirname(@__DIR__)
 
+include(joinpath(trixi_root_dir, "docs", "literate", "make.jl"))
+
 # Copy list of authors to not need to synchronize it manually
 authors_text = read(joinpath(trixi_root_dir, "AUTHORS.md"), String)
 authors_text = replace(authors_text, "in the [LICENSE.md](LICENSE.md) file" => "under [License](@ref)")
@@ -20,6 +22,19 @@ write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 # Define module-wide setups such that the respective modules are available in doctests
 DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
+
+# Create tutorials for the following files:
+# Normal structure: "title" => "filename.jl"
+# If there are several files for one topic and one folder, the structure is:
+#   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
+#               "subtitle 2" => ("folder 2", "filename 2.jl")]
+files = [
+    "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations_literate", "cubic_conservation_law_literate.jl"),
+                                "Nonconservative equation" => ("adding_new_equations_literate", "nonconservative_advection_literate.jl")],
+    "Differentiable programming" => "differentiable_programming_literate.jl",
+    "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_literate.jl",
+    ]
+tutorials = create_tutorials(files)
 
 # Make documentation
 makedocs(
@@ -51,6 +66,7 @@ makedocs(
             "Differentiable programming" => "differentiable_programming.md",
             "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.md",
         ],
+        "Tutorials Literate" => tutorials,
         "Basic building blocks" => [
             "Meshes" => [
                 "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
