@@ -17,14 +17,14 @@ using Trixi
 using Trixi: AbstractEquations, get_node_vars
 import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
               have_nonconservative_terms
-    
+
 ## Since there is no native support for variable coefficients, we use two
 ## variables: one for the basic unknown `u` and another one for the coefficient `a`
 struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1 #= spatial dimension =#,
                                                                    2 #= two variables (u,a) =#}
 end
 
-varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advectionvelocity")
+varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advection_velocity")
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
 
@@ -34,10 +34,10 @@ flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
 
 ## Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
-    _, advectionvelocity_ll = u_ll
-    _, advectionvelocity_rr = u_rr
+    _, advection_velocity_ll = u_ll
+    _, advection_velocity_rr = u_rr
 
-    return max(abs(advectionvelocity_ll), abs(advectionvelocity_rr))
+    return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
 end
 
 
@@ -52,17 +52,18 @@ have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 ## - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
-    _, advectionvelocity = u_mine
-    scalar, _            = u_other
-    
-    return SVector(advectionvelocity * scalar, zero(scalar))
-end;
+    _, advection_velocity = u_mine
+    scalar, _             = u_other
+
+    return SVector(advection_velocity * scalar, zero(scalar))
+end
 
 # The implementation of nonconservative terms uses a single "nonconservative flux"
 # function `flux_nonconservative`. It will basically be applied in a loop of the
 # form
-
-du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)); # orientation 1: x
+# ```julia
+# du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)) # orientation 1: x
+# ```
 # where `D` is the derivative matrix and `u` contains the nodal solution values.
 
 # Now, we can run a simple simulation using a DGSEM discretization.
@@ -78,8 +79,8 @@ equation = NonconservativeLinearAdvectionEquation()
 function initial_condition_sine(x, t, equation::NonconservativeLinearAdvectionEquation)
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
-    advectionvelocity = 2 + cos(x[1])
-    SVector(scalar, advectionvelocity)
+    advection_velocity = 2 + cos(x[1])
+    SVector(scalar, advection_velocity)
 end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
@@ -99,18 +100,18 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 
 ## Create an ODE problem with given time span
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
-    
+ode = semidiscretize(semi, tspan)
+
 ## Set up some standard callbacks summarizing the simulation setup and computing
 ## errors of the numerical solution
 summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval=50)
-callbacks = CallbackSet(summary_callback, analysis_callback);
+callbacks = CallbackSet(summary_callback, analysis_callback)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
 sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks)
 
 ## Print the timer summary
 summary_callback()
@@ -120,7 +121,7 @@ using Plots: plot
 plot(sol)
 
 # You see a plot of the final solution.
-    
+
 # We can check whether everything fits together by refining the grid and comparing
 # the numerical errors. First, we look at the error using the grid resolution
 # above.
@@ -158,7 +159,7 @@ error_1 / error_2
 
 
 # ## Summary of the code
-    
+
 # Here is the complete code that we used (without the callbacks since these
 # create a lot of unnecessary output in the doctests of this tutorial).
 # In addition, we create the `struct` inside the new module `NonconservativeLinearAdvection`.
@@ -180,7 +181,7 @@ struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1 #= spatial 
                                                                    2 #= two variables (u,a) =#}
 end
 
-varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advectionvelocity")
+varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advection_velocity")
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
 
@@ -190,10 +191,10 @@ flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
 
 ## Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
-    _, advectionvelocity_ll = u_ll
-    _, advectionvelocity_rr = u_rr
+    _, advection_velocity_ll = u_ll
+    _, advection_velocity_rr = u_rr
 
-    return max(abs(advectionvelocity_ll), abs(advectionvelocity_rr))
+    return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
 end
 
 
@@ -208,10 +209,10 @@ have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Val(true)
 ## - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
-    _, advectionvelocity = u_mine
+    _, advection_velocity = u_mine
     scalar, _            = u_other
 
-    return SVector(advectionvelocity * scalar, zero(scalar))
+    return SVector(advection_velocity * scalar, zero(scalar))
 end
 
 end # module
@@ -230,8 +231,8 @@ equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation
 function initial_condition_sine(x, t, equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
-    advectionvelocity = 2 + cos(x[1])
-    SVector(scalar, advectionvelocity)
+    advection_velocity = 2 + cos(x[1])
+    SVector(scalar, advection_velocity)
 end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries

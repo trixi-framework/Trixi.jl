@@ -19,113 +19,107 @@ using Test: @test #src
 
 # ### Computing the Jacobian
 # The high-level interface to compute the Jacobian this way is [`jacobian_ad_forward`](@ref).
+# First, we load the required packages and compute the Jacobian of a semidiscretization
+# of the compressible Euler equations, a system of nonlinear conservation laws.
 
 using Trixi, LinearAlgebra, Plots
-#-
-equations = CompressibleEulerEquations2D(1.4);
 
-solver = DGSEM(3, flux_central);
+equations = CompressibleEulerEquations2D(1.4)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5);
+solver = DGSEM(3, flux_central)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
 
 J = jacobian_ad_forward(semi);
-
 size(J)
 @test size(J) == (1024, 1024) #src
-#-
-λ = eigvals(J);
 
-scatter(real.(λ), imag.(λ));
+# Next, we compute the eigenvalues of the Jacobian.
 
-maximum(real, λ) / maximum(abs, λ)
-@test 3.0e-10 < maximum(real, λ) / maximum(abs, λ) < 8.0e-10 #src
-#-
-maximum(real, λ)
-@test 1.0e-7 < maximum(real, λ) < 5.0e-7 #src
+λ = eigvals(J)
+scatter(real.(λ), imag.(λ), label="central flux")
 
-# Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs` at the interfaces,
-# the maximal real part of the eigenvalues increases.
+# As you can see here, the maximal real part is close to zero.
 
-solver = DGSEM(3, flux_lax_friedrichs);
+relative_maximum = maximum(real, λ) / maximum(abs, λ)
+@test 3.0e-10 < relative_maximum < 8.0e-10 #src
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
+# Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs`
+# at the interfaces, the maximal real part of the eigenvalues increases.
 
-J = jacobian_ad_forward(semi);
+solver = DGSEM(3, flux_lax_friedrichs)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
 
-λ = eigvals(J);
+J = jacobian_ad_forward(semi)
+λ = eigvals(J)
 
-scatter!(real.(λ), imag.(λ));
+scatter!(real.(λ), imag.(λ), label="Lax-Friedrichs flux")
 
-λ = eigvals(J); maximum(real, λ) / maximum(abs, λ)
-@test isapprox(maximum(real, λ) / maximum(abs, λ), 2.068177e-5) #src
-#-
-maximum(real, λ)
-@test isapprox(maximum(real, λ), 0.0057172852717) #src
+# Although the maximal real part is still somewhat small, it's larger than for
+# the purely central discretization.
 
-# However, we should be careful when using this analysis, since the eigenvectors are not necessarily
-# well-conditioned.
+relative_maximum = maximum(real, λ) / maximum(abs, λ)
+@test 1.0e-5 < relative_maximum < 5.0e-5 #src
 
-λ, V = eigen(J);
+# However, we should be careful when using this analysis, since the eigenvectors
+# are not necessarily well-conditioned.
 
-cond(V)
-@test isapprox(cond(V), 1.7604474878472006e6, rtol=0.05) #src
+λ, V = eigen(J)
+condition_number = cond(V)
+@test 1.0e6 < condition_number < 5.0e6 #src
 
 # In one space dimension, the situation is a bit different.
 
-equations = CompressibleEulerEquations1D(1.4);
+equations = CompressibleEulerEquations1D(1.4)
 
-solver = DGSEM(3, flux_central);
+solver = DGSEM(3, flux_central)
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level=6, n_cells_max=10^5)
 
-mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level=6, n_cells_max=10^5);
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
+J = jacobian_ad_forward(semi)
 
-J = jacobian_ad_forward(semi);
+λ = eigvals(J)
 
-λ = eigvals(J);
+scatter(real.(λ), imag.(λ), label="central flux")
 
-scatter(real.(λ), imag.(λ));
+# Here, the maximal real part is basically zero to machine accuracy.
 
-maximum(real, λ) / maximum(abs, λ)
-@test 1.0e-17 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15 #src
-#-
-maximum(real, λ)
-@test 1.0e-13 < maximum(real, λ) < 1.0e-11 #src
-#-
-λ, V = eigen(J);
+relative_maximum = maximum(real, λ) / maximum(abs, λ)
+@test 1.0e-17 < relative_maximum < 1.0e-15 #src
 
-cond(V)
-@test 200 < cond(V) < 300 #src
+# Moreover, the eigenvectors are not as ill-conditioned as in 2D.
+
+λ, V = eigen(J)
+condition_number = cond(V)
+@test 200 < condition_number < 300 #src
 
 # If we add dissipation, the maximal real part is still approximately zero.
 
-solver = DGSEM(3, flux_lax_friedrichs);
+solver = DGSEM(3, flux_lax_friedrichs)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
+J = jacobian_ad_forward(semi)
+λ = eigvals(J)
 
-J = jacobian_ad_forward(semi);
+scatter!(real.(λ), imag.(λ), label="Lax-Friedrichs flux")
 
-λ = eigvals(J);
+# As you can see from the plot generated above, the maximal real part is still
+# basically zero to machine precision.
 
-scatter!(real.(λ), imag.(λ));
+relative_maximum = maximum(real, λ) / maximum(abs, λ)
+@test -1.0e-15 < relative_maximum < 1.0e-15 #src
 
-λ = eigvals(J);
+# Let's check the condition number of the eigenvectors.
 
-maximum(real, λ) / maximum(abs, λ)
-@test -1.0e-15 < maximum(real, λ) / maximum(abs, λ) < 1.0e-15 #src
-#-
-maximum(real, λ)
-@test -9.0e-13 < maximum(real, λ) < 9.0e-13 #src
-#-
-λ, V = eigen(J);
+λ, V = eigen(J)
 
-cond(V)
-@test 70_000 < cond(V) < 200_000 #src
+condition_number = cond(V)
+@test 70_000 < condition_number < 200_000 #src
 
-# Note that the condition number of the eigenvector matrix increases but is still smaller than for the
-# example in 2D.
+# Note that the condition number of the eigenvector matrix increases but is
+# still smaller than for the example in 2D.
 
 
 # ### Computing other derivatives
@@ -136,22 +130,27 @@ cond(V)
 # is also available as the elixir
 # [examples/special\_elixirs/elixir\_euler\_ad.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
 
+# First, we create a semidiscretization of the compressible Euler equations.
+
 using Trixi, LinearAlgebra, ForwardDiff
-#-
-equations = CompressibleEulerEquations2D(1.4);
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5);
+equations = CompressibleEulerEquations2D(1.4)
 
-solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha));
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex, solver);
+solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
 
-u0_ode = compute_coefficients(0.0, semi); size(u0_ode)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex, solver)
+
+u0_ode = compute_coefficients(0.0, semi)
+size(u0_ode)
 @test size(u0_ode) == (1024,) #src
-#-
+
+# Next, we compute the Jacobian using `ForwardDiff.jacobian`.
+
 J = ForwardDiff.jacobian((du_ode, γ) -> begin
     equations_inner = CompressibleEulerEquations2D(first(γ))
-    semi_inner = Trixi.remake(semi, equations=equations_inner, uEltype=eltype(γ));
+    semi_inner = Trixi.remake(semi, equations=equations_inner, uEltype=eltype(γ))
     Trixi.rhs!(du_ode, u0_ode, semi_inner, 0.0)
 end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`
 
@@ -187,7 +186,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
-            x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+            x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
             return SVector(sinpi(k * sum(x_trans)))
     end
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -196,10 +195,9 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     sol = solve(ode, BS3(), save_everystep=false)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
-#-
+
 k_values = range(0.9, 1.1, length=101)
-@test k_values == 0.9:0.002:1.1 #src
-#-
+
 plot(k_values, energy_at_final_time.(k_values), label="Energy")
 
 # You see a plot of a curve that resembles a parabola with local maximum around `k = 1.0`.
@@ -225,10 +223,10 @@ plot(k_values, dk_values, label="Derivative")
 # If you remember basic calculus, a sufficient condition for a local maximum is that the first derivative
 # vanishes and the second derivative is negative. We can also check this discretely.
 
-round(ForwardDiff.derivative(
+second_derivative = round(ForwardDiff.derivative(
         k -> Trixi.ForwardDiff.derivative(energy_at_final_time, k), 1.0),
       sigdigits=2)
-@test round(ForwardDiff.derivative(k -> Trixi.ForwardDiff.derivative(energy_at_final_time, k), 1.0), sigdigits=2) == -0.9 #src
+@test second_derivative ≈ -0.9 #src
 
 # Having seen this application, let's break down what happens step by step.
 
@@ -237,7 +235,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
-        x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+        x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
         return SVector(sinpi(k * sum(x_trans)))
     end
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -246,7 +244,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     sol = solve(ode, BS3(), save_everystep=false)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
-#-
+
 k = 1.0
 round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits=2)
 @test round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2) == 1.4e-5 #src
@@ -262,8 +260,8 @@ round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits=2)
 # that all types are generic enough, in particular the ones of internal caches.
 
 # The first step in this example creates some basic ingredients of our simulation.
-equations = LinearScalarAdvectionEquation2D(1.0, -0.3);
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4);
+equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
 solver = DGSEM(3, flux_lax_friedrichs);
 
 # These do not have internal caches storing intermediate values of the numerical
@@ -273,7 +271,7 @@ solver = DGSEM(3, flux_lax_friedrichs);
 
 # Next, we define the initial condition
 initial_condition = (x, t, equation) -> begin
-    x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+    x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
     return SVector(sinpi(k * sum(x_trans)))
 end;
 # as a closure capturing the wave number `k` passed to `energy_at_final_time`.
@@ -314,26 +312,23 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 
 using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
 
-equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1);
+equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
-mesh = TreeMesh((-1.0,), (1.0,), n_cells_max=10^5, initial_refinement_level=5);
+mesh = TreeMesh((-1.0,), (1.0,), n_cells_max=10^5, initial_refinement_level=5)
 
-solver = DGSEM(3);
+solver = DGSEM(3)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver, uEltype=Measurement{Float64});
+                                    solver, uEltype=Measurement{Float64})
 
-ode = semidiscretize(semi, (0.0, 1.5));
+ode = semidiscretize(semi, (0.0, 1.5))
 
-redirect_stdout(devnull) do #hide #md
-## code that prints annoying stuff we don't want to see here #hide #md
 sol = solve(ode, BS3(), save_everystep=false);
-end #hide #md
 
-plot(sol);
+plot(sol)
 
-# You should see a plot like the following, where small error bars are shown around
-# the extrema and larger error bars are shown in the remaining parts.
+# You should see a plot where small error bars are shown around the extrema
+# and larger error bars are shown in the remaining parts.
 # This result is in accordance with expectations. Indeed, the uncertain propagation
 # speed will affect the extrema less since the local variation of the solution is
 # relatively small there. In contrast, the local variation of the solution is large
@@ -343,7 +338,6 @@ plot(sol);
 # All this is possible due to allowing generic types and having good abstractions
 # in Julia that allow packages to work together seamlessly.
 
-# ![tutorial_measurements1](https://user-images.githubusercontent.com/12693098/114027260-78ca8300-9877-11eb-88d4-f93c9bc55d0b.png)
 
 # ## Finite difference approximations
 
@@ -352,20 +346,20 @@ plot(sol);
 
 using Trixi, LinearAlgebra
 
-equations = CompressibleEulerEquations2D(1.4);
+equations = CompressibleEulerEquations2D(1.4)
 
-solver = DGSEM(3, flux_central);
+solver = DGSEM(3, flux_central)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5);
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver);
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
 
-J_fd = jacobian_fd(semi);
+J_fd = jacobian_fd(semi)
 
-J_ad = jacobian_ad_forward(semi);
+J_ad = jacobian_ad_forward(semi)
 
-norm(J_fd - J_ad) / size(J_fd, 1)
-@test norm(J_fd - J_ad) / size(J_fd, 1) < 7.0e-7 #src
+relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
+@test relative_difference < 7.0e-7 #src
 
 # This discrepancy is of the expected order of magnitude for central finite difference approximations.
 
@@ -388,22 +382,27 @@ norm(J_fd - J_ad) / size(J_fd, 1)
 
 using Trixi, LinearAlgebra, Plots
 
-equations = LinearScalarAdvectionEquation2D(1.0, -0.3);
+equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
 
-solver = DGSEM(3, flux_lax_friedrichs);
+solver = DGSEM(3, flux_lax_friedrichs)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5);
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver);
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
-A, b = linear_structure(semi);
+A, b = linear_structure(semi)
 
 size(A), size(b)
 @test (size(A), size(b)) == ((256, 256), (256,)) #src
-#-
-λ = eigvals(Matrix(A));
 
-scatter(real.(λ), imag.(λ));
+# Next, we compute the eigenvalues of the linear operator.
 
-λ = eigvals(Matrix(A)); maximum(real, λ) / maximum(abs, λ)
-@test maximum(real, λ) / maximum(abs, λ) < 1.0e-15 #src
+λ = eigvals(Matrix(A))
+
+scatter(real.(λ), imag.(λ))
+
+# As you can see here, the maximal real part is close to machine precision.
+
+λ = eigvals(Matrix(A))
+relative_maximum = maximum(real, λ) / maximum(abs, λ)
+@test relative_maximum < 1.0e-15 #src
