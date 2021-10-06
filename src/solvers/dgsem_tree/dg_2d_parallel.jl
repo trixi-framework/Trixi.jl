@@ -277,6 +277,10 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(
     cache, u, mesh, equations, dg.surface_integral, dg)
 
+  # Prolong solution to MPI mortars
+  @trixi_timeit timer() "prolong2mpimortars" prolong2mpimortars!(
+    cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+
   # Start to send MPI data
   @trixi_timeit timer() "start MPI send" start_mpi_send!(
     cache.mpi_cache, mesh, equations, dg, cache)
@@ -328,6 +332,12 @@ function rhs!(du, u, t,
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg.surface_integral, dg, cache)
+
+  # Calculate MPI mortar fluxes
+  @trixi_timeit timer() "MPI mortar flux" calc_mpi_mortar_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.mortar, dg.surface_integral, dg, cache)
 
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
@@ -383,6 +393,95 @@ function prolong2mpiinterfaces!(cache, u,
 end
 
 
+function prolong2mpimortars!(cache, u,
+                             mesh::ParallelTreeMesh{2}, equations,
+                             mortar_l2::LobattoLegendreMortarL2, surface_integral, dg::DGSEM)
+  @unpack mpi_mortars = cache
+
+  @threaded for mortar in eachmpimortar(dg, cache)
+    local_elements = mpi_mortars.local_element_ids[mortar]
+    local_element_positions = mpi_mortars.local_element_positions[mortar]
+
+    for (element, pos) in zip(local_elements, local_element_positions)
+      if pos in (1, 2)
+        # Copy solution small to small
+        if mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            for l in eachnode(dg)
+              for v in eachvariable(equations)
+                pos == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, 1, l, element])
+                pos == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, 1, l, element])
+              end
+            end
+          else
+            # L2 mortars in y-direction
+            for l in eachnode(dg)
+              for v in eachvariable(equations)
+                pos == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, l, 1, element])
+                pos == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, l, 1, element])
+              end
+            end
+          end
+        else # large_sides[mortar] == 2 -> small elements on left side
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            for l in eachnode(dg)
+              for v in eachvariable(equations)
+                pos == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, element])
+                pos == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, element])
+              end
+            end
+          else
+            # L2 mortars in y-direction
+            for l in eachnode(dg)
+              for v in eachvariable(equations)
+                pos == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), element])
+                pos == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), element])
+              end
+            end
+          end
+        end
+      else # pos == 3
+        # Interpolate large element face data to small interface locations
+        if mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
+          leftright = 1
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            u_large = view(u, :, nnodes(dg), :, element)
+            element_solutions_to_mpi_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+          else
+            # L2 mortars in y-direction
+            u_large = view(u, :, :, nnodes(dg), element)
+            element_solutions_to_mpi_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+          end
+        else # large_sides[mortar] == 2 -> large element on right side
+          leftright = 2
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            u_large = view(u, :, 1, :, element)
+            element_solutions_to_mpi_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+          else
+            # L2 mortars in y-direction
+            u_large = view(u, :, :, 1, element)
+            element_solutions_to_mpi_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+          end
+        end
+      end
+    end
+  end
+
+  return nothing
+end
+
+@inline function element_solutions_to_mpi_mortars!(cache, mortar_l2::LobattoLegendreMortarL2, leftright, mortar,
+                                                   u_large::AbstractArray{<:Any,2})
+  multiply_dimensionwise!(view(cache.mpi_mortars.u_upper, leftright, :, :, mortar), mortar_l2.forward_upper, u_large)
+  multiply_dimensionwise!(view(cache.mpi_mortars.u_lower, leftright, :, :, mortar), mortar_l2.forward_lower, u_large)
+  return nothing
+end
+
+
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
                                   nonconservative_terms::Val{false}, equations,
@@ -423,6 +522,94 @@ function calc_mpi_interface_flux!(surface_flux_values,
 
   return nothing
 end
+
+
+function calc_mpi_mortar_flux!(surface_flux_values,
+                               mesh::ParallelTreeMesh{2},
+                               nonconservative_terms::Val{false}, equations,
+                               mortar_l2::LobattoLegendreMortarL2,
+                               surface_integral, dg::DG, cache)
+  @unpack surface_flux = surface_integral
+  @unpack u_lower, u_upper, orientations = cache.mpi_mortars
+  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+
+  @threaded for mortar in eachmpimortar(dg, cache)
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
+
+    # Calculate fluxes
+    orientation = orientations[mortar]
+    calc_fstar!(fstar_upper, equations, surface_flux, dg, u_upper, mortar, orientation)
+    calc_fstar!(fstar_lower, equations, surface_flux, dg, u_lower, mortar, orientation)
+
+    mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                   mesh, equations, mortar_l2, dg, cache,
+                                   mortar, fstar_upper, fstar_lower)
+  end
+
+  return nothing
+end
+
+@inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                                mesh::ParallelTreeMesh{2}, equations,
+                                                mortar_l2::LobattoLegendreMortarL2,
+                                                dg::DGSEM, cache,
+                                                mortar, fstar_upper, fstar_lower)
+  local_element_ids = cache.mpi_mortars.local_element_ids[mortar]
+  local_element_positions = cache.mpi_mortars.local_element_positions[mortar]
+
+  for (element, pos) in zip(local_element_ids, local_element_positions)
+    if pos in (1, 2)
+      # Copy flux small to small
+      if cache.mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 1
+        else
+          # L2 mortars in y-direction
+          direction = 3
+        end
+      else # large_sides[mortar] == 2 -> small elements on left side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 2
+        else
+          # L2 mortars in y-direction
+          direction = 4
+        end
+      end
+      pos == 1 && (surface_flux_values[:, :, direction, element] .= fstar_lower)
+      pos == 2 && (surface_flux_values[:, :, direction, element] .= fstar_upper)
+    else # pos == 3
+      # Project small fluxes to large element
+      if cache.mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 2
+        else
+          # L2 mortars in y-direction
+          direction = 4
+        end
+      else # large_sides[mortar] == 2 -> large element on right side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 1
+        else
+          # L2 mortars in y-direction
+          direction = 3
+        end
+      end
+
+      multiply_dimensionwise!(
+        view(surface_flux_values, :, :, direction, element), mortar_l2.reverse_upper, fstar_upper,
+                                                             mortar_l2.reverse_lower, fstar_lower)
+    end
+  end
+
+  return nothing
+end
+
 
 
 end # @muladd
