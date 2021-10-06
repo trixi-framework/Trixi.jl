@@ -22,6 +22,8 @@ for human readability.
 - Removed the experimental `BoundaryConditionWall` and instead directly compute slip wall boundary
   condition flux term using the function `boundary_condition_slip_wall`.
 - Renamed `advectionvelocity` in `LinearScalarAdvectionEquation` to `advection_velocity`.
+- The signature of indicators used for adaptive mesh refinement (AMR) and shock capturing
+  changed to generalize them to curved meshes.
 
 #### Deprecated
 
