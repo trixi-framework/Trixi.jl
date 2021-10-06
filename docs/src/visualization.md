@@ -512,7 +512,7 @@ The plot can be rotated (click and hold), zoomed in and out (scroll up and down)
 of and below the solution.
 
 Both `plot` and `iplot` use `colormap = :inferno` by default.
-[https://docs.juliaplots.org/latest/generated/colorschemes/](A different colormap) can be selected
+[A different colormap](https://docs.juliaplots.org/latest/generated/colorschemes/) can be selected
 by providing an appropriate keyword argument. For example, `plot(sol, colormap=:blues)` and
 `iplot(sol, colormap=:blues)` produce the following figures:
 
