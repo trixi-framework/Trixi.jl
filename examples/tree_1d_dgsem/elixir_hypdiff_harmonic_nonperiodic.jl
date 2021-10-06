@@ -13,8 +13,8 @@ boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = -1
-coordinates_max =  2
+coordinates_min = -1.0
+coordinates_max =  2.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
                 n_cells_max=30_000,

@@ -24,8 +24,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-10, -10)
-coordinates_max = ( 10,  10)
+coordinates_min = (-10.0, -10.0)
+coordinates_max = ( 10.0,  10.0)
 refinement_patches = (
   (type="box", coordinates_min=(0.0, -10.0), coordinates_max=(10.0, 10.0)),
 )
