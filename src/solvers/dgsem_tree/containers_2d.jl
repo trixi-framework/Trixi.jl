@@ -618,6 +618,25 @@ function count_required_mortars(mesh::TreeMesh2D, cell_ids)
         continue
       end
 
+      # Skip if one of the small cells is on different rank -> create mpi mortar instead
+      if direction == 1 # small cells left, mortar in x-direction
+        lower_cell_id = mesh.tree.child_ids[2, neighbor_id]
+        upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
+      elseif direction == 2 # small cells right, mortar in x-direction
+        lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
+        upper_cell_id = mesh.tree.child_ids[3, neighbor_id]
+      elseif direction == 3 # small cells left, mortar in y-direction
+        lower_cell_id = mesh.tree.child_ids[3, neighbor_id]
+        upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
+      else # direction == 4, small cells right, mortar in y-direction
+        lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
+        upper_cell_id = mesh.tree.child_ids[2, neighbor_id]
+      end
+      small_cell_ids = (lower_cell_id, upper_cell_id)
+      if mpi_isparallel() && !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        continue
+      end
+
       count +=1
     end
   end
@@ -653,6 +672,26 @@ function init_mortars!(mortars, elements, mesh::TreeMesh2D)
       if !has_children(mesh.tree, neighbor_cell_id)
         continue
       end
+
+      # Skip if one of the small cells is on different rank -> create mpi mortar instead
+      if direction == 1 # small cells left, mortar in x-direction
+        lower_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
+        upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
+      elseif direction == 2 # small cells right, mortar in x-direction
+        lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
+        upper_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
+      elseif direction == 3 # small cells left, mortar in y-direction
+        lower_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
+        upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
+      else # direction == 4, small cells right, mortar in y-direction
+        lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
+        upper_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
+      end
+      small_cell_ids = (lower_cell_id, upper_cell_id)
+      if mpi_isparallel() && !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        continue
+      end
+
 
       # Create mortar between elements:
       # 1 -> small element in negative coordinate direction
@@ -850,6 +889,320 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
   @assert count == nmpiinterfaces(mpi_interfaces) ("Actual interface count ($count) does not match "
                                                    * "expectations $(nmpiinterfaces(mpi_interfaces))")
 end
+
+
+# Container data structure (structure-of-arrays style) for DG L2 mortars
+# Positions/directions for orientations = 1, large_sides = 2:
+# mortar is orthogonal to x-axis, large side is in positive coordinate direction wrt mortar
+#           |    |
+# upper = 2 |    |
+#           |    |
+#                | 3 = large side
+#           |    |
+# lower = 1 |    |
+#           |    |
+mutable struct MPIL2MortarContainer2D{uEltype<:Real} <: AbstractContainer
+  u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
+  u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
+  local_element_ids::Vector{Vector{Int}}       # [mortars]
+  local_element_positions::Vector{Vector{Int}} # [mortars]
+  # Large sides: left -> 1, right -> 2
+  large_sides::Vector{Int}  # [mortars]
+  orientations::Vector{Int} # [mortars]
+  # internal `resize!`able storage
+  _u_upper::Vector{uEltype}
+  _u_lower::Vector{uEltype}
+end
+
+nvariables(mpi_mortars::MPIL2MortarContainer2D) = size(mpi_mortars.u_upper, 2)
+nnodes(mpi_mortars::MPIL2MortarContainer2D) = size(mpi_mortars.u_upper, 3)
+Base.eltype(mpi_mortars::MPIL2MortarContainer2D) = eltype(mpi_mortars.u_upper)
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
+  n_nodes = nnodes(mpi_mortars)
+  n_variables = nvariables(mpi_mortars)
+  @unpack _u_upper, _u_lower, local_element_ids, local_element_positions,
+          large_sides, orientations = mpi_mortars
+
+  resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
+  mpi_mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
+                                    (2, n_variables, n_nodes, capacity))
+
+  resize!(_u_lower, 2 * n_variables * n_nodes * capacity)
+  mpi_mortars.u_lower = unsafe_wrap(Array, pointer(_u_lower),
+                                    (2, n_variables, n_nodes, capacity))
+
+  resize!(local_element_ids, capacity)
+  resize!(local_element_positions, capacity)
+
+  resize!(large_sides, capacity)
+
+  resize!(orientations, capacity)
+
+  return nothing
+end
+
+
+function MPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes) where {uEltype<:Real}
+  nan = convert(uEltype, NaN)
+
+  # Initialize fields with defaults
+  _u_upper = fill(nan, 2 * n_variables * n_nodes * capacity)
+  u_upper = unsafe_wrap(Array, pointer(_u_upper),
+                        (2, n_variables, n_nodes, capacity))
+
+  _u_lower = fill(nan, 2 * n_variables * n_nodes * capacity)
+  u_lower = unsafe_wrap(Array, pointer(_u_lower),
+                        (2, n_variables, n_nodes, capacity))
+
+  local_element_ids = fill(Vector{Int}(), capacity)
+  local_element_positions = fill(Vector{Int}(), capacity)
+
+  large_sides = fill(typemin(Int), capacity)
+
+  orientations = fill(typemin(Int), capacity)
+
+  return MPIL2MortarContainer2D{uEltype}(
+    u_upper, u_lower, local_element_ids, local_element_positions, large_sides, orientations,
+    _u_upper, _u_lower)
+end
+
+
+# Return number of L2 mortars
+@inline nmpimortars(mpi_l2mortars::MPIL2MortarContainer2D) = length(mpi_l2mortars.orientations)
+
+
+# Create MPI mortar container and initialize MPI mortar data in `elements`.
+function init_mpi_mortars(cell_ids, mesh::TreeMesh2D,
+                          elements::ElementContainer2D,
+                          ::LobattoLegendreMortarL2)
+  # Initialize containers
+  n_mpi_mortars = count_required_mpi_mortars(mesh, cell_ids)
+  mpi_mortars = MPIL2MortarContainer2D{eltype(elements)}(
+    n_mpi_mortars, nvariables(elements), nnodes(elements))
+
+  # Connect elements with mortars
+  init_mpi_mortars!(mpi_mortars, elements, mesh)
+  return mpi_mortars
+end
+
+# Count the number of MPI mortars that need to be created
+function count_required_mpi_mortars(mesh::TreeMesh2D, cell_ids)
+  count = 0
+
+  for cell_id in cell_ids
+    for direction in eachdirection(mesh.tree)
+      # If no neighbor exists, cell is small with large neighbor or at boundary
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        # If no large neighbor exists, cell is at boundary -> do nothing
+        if !has_coarse_neighbor(mesh.tree, cell_id, direction)
+          continue
+        end
+
+        # Skip if the large neighbor is on the same rank to prevent double counting
+        parent_id = mesh.tree.parent_ids[cell_id]
+        large_cell_id = mesh.tree.neighbor_ids[direction, parent_id]
+        if mpi_isparallel() && is_own_cell(mesh.tree, large_cell_id)
+          continue
+        end
+
+        # Current cell is small with large neighbor on a different rank, find the other
+        # small cell
+        if direction == 1 # small cells right, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[1, parent_id]
+          upper_cell_id = mesh.tree.child_ids[3, parent_id]
+        elseif direction == 2 # small cells left, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[2, parent_id]
+          upper_cell_id = mesh.tree.child_ids[4, parent_id]
+        elseif direction == 3 # small cells right, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[1, parent_id]
+          upper_cell_id = mesh.tree.child_ids[2, parent_id]
+        else # direction == 4, small cells left, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[3, parent_id]
+          upper_cell_id = mesh.tree.child_ids[4, parent_id]
+        end
+
+        if cell_id == lower_cell_id
+          sibling_id = upper_cell_id
+        elseif cell_id == upper_cell_id
+          sibling_id = lower_cell_id
+        else
+          error("should not happen")
+        end
+
+        # Skip if the other small cell is on the same rank and its id is smaller than the current
+        # cell id to prevent double counting
+        if mpi_isparallel() && is_own_cell(mesh.tree, sibling_id) && sibling_id < cell_id
+          continue
+        end
+      else # Cell has a neighbor
+        # If neighbor has no children, this is a conforming interface -> do nothing
+        neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
+        if !has_children(mesh.tree, neighbor_id)
+          continue
+        end
+
+        # Skip if both small cells are on this rank -> create regular mortar instead
+        if direction == 1 # small cells left, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[2, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
+        elseif direction == 2 # small cells right, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[3, neighbor_id]
+        elseif direction == 3 # small cells left, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[3, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
+        else # direction == 4, small cells right, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[2, neighbor_id]
+        end
+        small_cell_ids = (lower_cell_id, upper_cell_id)
+        if mpi_isparallel() && all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+          continue
+        end
+      end
+
+      count += 1
+    end
+  end
+
+  return count
+end
+
+# Initialize connectivity between elements and mortars
+function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
+  # Construct cell -> element mapping for easier algorithm implementation
+  tree = mesh.tree
+  c2e = zeros(Int, length(tree))
+  for element in eachelement(elements)
+    c2e[elements.cell_ids[element]] = element
+  end
+
+  # Reset mortar count
+  count = 0
+
+  # Iterate over all elements to find neighbors and to connect via mortars
+  for element in eachelement(elements)
+    cell_id = elements.cell_ids[element]
+
+    for direction in eachdirection(mesh.tree)
+      # If no neighbor exists, cell is small with large neighbor or at boundary
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        # If no large neighbor exists, cell is at boundary -> do nothing
+        if !has_coarse_neighbor(mesh.tree, cell_id, direction)
+          continue
+        end
+
+        # Skip if the large neighbor is on the same rank to prevent double counting
+        parent_cell_id = mesh.tree.parent_ids[cell_id]
+        large_cell_id = mesh.tree.neighbor_ids[direction, parent_cell_id]
+        if mpi_isparallel() && is_own_cell(mesh.tree, large_cell_id)
+          continue
+        end
+
+        # Current cell is small with large neighbor on a different rank, find the other
+        # small cell
+        if direction == 1 # small cells right, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[1, parent_cell_id]
+          upper_cell_id = mesh.tree.child_ids[3, parent_cell_id]
+        elseif direction == 2 # small cells left, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[2, parent_cell_id]
+          upper_cell_id = mesh.tree.child_ids[4, parent_cell_id]
+        elseif direction == 3 # small cells right, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[1, parent_cell_id]
+          upper_cell_id = mesh.tree.child_ids[2, parent_cell_id]
+        else # direction == 4, small cells left, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[3, parent_cell_id]
+          upper_cell_id = mesh.tree.child_ids[4, parent_cell_id]
+        end
+
+        if cell_id == lower_cell_id
+          sibling_id = upper_cell_id
+        elseif cell_id == upper_cell_id
+          sibling_id = lower_cell_id
+        else
+          error("should not happen")
+        end
+
+        # Skip if the other small cell is on the same rank and its id is smaller than the current
+        # cell id to prevent double counting
+        if mpi_isparallel() && is_own_cell(mesh.tree, sibling_id) && sibling_id < cell_id
+          continue
+        end
+      else # Cell has a neighbor
+        large_cell_id = cell_id # save explicitly for later processing
+
+        # If neighbor has no children, this is a conforming interface -> do nothing
+        neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+        if !has_children(mesh.tree, neighbor_cell_id)
+          continue
+        end
+
+        # Skip if both small cells are on this rank -> create regular mortar instead
+        if direction == 1 # small cells left, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
+        elseif direction == 2 # small cells right, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
+        elseif direction == 3 # small cells left, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
+        else # direction == 4, small cells right, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
+        end
+        small_cell_ids = (lower_cell_id, upper_cell_id)
+        if mpi_isparallel() && all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+          continue
+        end
+      end
+
+      # Create mortar between elements:
+      # 1 -> small element in negative coordinate direction
+      # 2 -> small element in positive coordinate direction
+      # 3 -> large element
+      count += 1
+
+      local_element_ids = Vector{Int}()
+      local_element_positions = Vector{Int}()
+      if is_own_cell(mesh.tree, lower_cell_id)
+        push!(local_element_ids, c2e[lower_cell_id])
+        push!(local_element_positions, 1)
+      end
+      if is_own_cell(mesh.tree, upper_cell_id)
+        push!(local_element_ids, c2e[upper_cell_id])
+        push!(local_element_positions, 2)
+      end
+      if is_own_cell(mesh.tree, large_cell_id)
+        push!(local_element_ids, c2e[large_cell_id])
+        push!(local_element_positions, 3)
+      end
+
+      mpi_mortars.local_element_ids[count] = local_element_ids
+      mpi_mortars.local_element_positions[count] = local_element_positions
+
+      # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
+      if direction in (2, 4)
+        mpi_mortars.large_sides[count] = is_own_cell(mesh.tree, large_cell_id) ? 1 : 2
+      else
+        mpi_mortars.large_sides[count] = is_own_cell(mesh.tree, large_cell_id) ? 2 : 1
+      end
+
+      # Set orientation (x -> 1, y -> 2)
+      if direction in (1, 2)
+        mpi_mortars.orientations[count] = 1
+      else
+        mpi_mortars.orientations[count] = 2
+      end
+    end
+  end
+
+  return nothing
+end
+
+
 
 
 end # @muladd

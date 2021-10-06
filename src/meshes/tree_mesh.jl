@@ -132,7 +132,6 @@ function initialize!(mesh::TreeMesh, initial_refinement_level,
 
   # Apply refinement patches
   @trixi_timeit timer() "refinement patches" for patch in refinement_patches
-    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     # TODO: Taal refactor, use multiple dispatch?
     if patch.type == "box"
       refine_box!(mesh.tree, patch.coordinates_min, patch.coordinates_max)
@@ -145,7 +144,6 @@ function initialize!(mesh::TreeMesh, initial_refinement_level,
 
   # Apply coarsening patches
   @trixi_timeit timer() "coarsening patches" for patch in coarsening_patches
-    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     # TODO: Taal refactor, use multiple dispatch
     if patch.type == "box"
       coarsen_box!(mesh.tree, patch.coordinates_min, patch.coordinates_max)
