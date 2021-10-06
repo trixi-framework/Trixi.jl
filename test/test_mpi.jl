@@ -20,7 +20,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as in the serial test!
-      l2   = [8.311947673061856e-6], 
+      l2   = [8.311947673061856e-6],
       linf = [6.627000273229378e-5])
   end
 
@@ -31,17 +31,23 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [6.314906965243505e-5])
   end
 
+  @trixi_testset "elixir_advection_mortar.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
+      l2   = [0.0015188466707237375],
+      linf = [0.008446655719187679])
+  end
+
   # Linear scalar advection with AMR
   # These example files are only for testing purposes and have no practical use
   @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
-      l2   = [0.00020547512522578292], 
+      l2   = [0.00020547512522578292],
       linf = [0.007831753383083506])
   end
 
   @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"),
-      l2   = [0.0014321062757891826], 
+      l2   = [0.0014321062757891826],
       linf = [0.0253454486893413])
   end
 
@@ -113,6 +119,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       l2   = [3.53375983916925e-6, 0.0032123259330577325, 0.00321232443824996, 0.004547280616310348],
       linf = [7.719164482999918e-5, 0.030543222729985442, 0.0304822911023237, 0.042888536761282126],
       rtol = 0.001)
+  end
+
+  @trixi_testset "elixir_euler_vortex_mortar.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+      l2   = [2.110390460364181e-6, 2.7230027429598542e-5, 3.657273339760332e-5, 8.735519818394382e-5],
+      linf = [5.9743882399154735e-5, 0.000731856753784843, 0.0007915976735435315, 0.0022215051634404404])
   end
 
   @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
