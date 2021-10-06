@@ -31,6 +31,7 @@ for human readability.
   moved from `Trixi/src` to the example elixirs `Trixi/examples`. Thus, they
   are no longer available when `using Trixi`, e.g., the initial condition
   for the Kelvin Helmholtz instability.
+- Features deprecated in v0.3 were removed.
 
 
 ## Changes in the v0.3 lifecycle
