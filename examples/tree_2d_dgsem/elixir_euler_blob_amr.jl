@@ -19,7 +19,7 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
   # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
   # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
   # change discontinuity to tanh
-  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
+  # typical domain is rectangular, we change it to a square
   # resolution 128^2, 256^2
   # domain size is [-20.0,20.0]^2
   # gamma = 5/3 for this test case
