@@ -5,9 +5,11 @@ using Trixi, LinearAlgebra, ForwardDiff
 
 equations = CompressibleEulerEquations2D(1.4)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                initial_refinement_level=2, n_cells_max=10^5)
 
-solver = DGSEM(polydeg=3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha))
 
 """
     initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
@@ -34,12 +36,10 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
   rt = p / rho                  # ideal gas equation
   cent = inicenter + vel*t      # advection of center
   cent = x - cent               # distance to centerpoint
-  #cent=cross(iniaxis,cent)     # distance to axis, tangent vector, length r
-  # cross product with iniaxis = [0,0,1]
   cent = SVector(-cent[2], cent[1])
   r2 = cent[1]^2 + cent[2]^2
   du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-  dtemp = -(equations.gamma-1)/(2*equations.gamma*rt)*du^2            # isentrop
+  dtemp = -(equations.gamma-1)/(2*equations.gamma*rt)*du^2 # isentrop
   rho = rho * (1+dtemp)^(1\(equations.gamma-1))
   vel = vel + du*cent
   v1, v2 = vel
@@ -52,7 +52,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropi
 u0_ode = compute_coefficients(0.0, semi)
 
 J = ForwardDiff.jacobian((du_ode, γ) -> begin
-      equations_inner = CompressibleEulerEquations2D(first(γ))
-      semi_inner = Trixi.remake(semi, equations=equations_inner, uEltype=eltype(γ));
-      Trixi.rhs!(du_ode, u0_ode, semi_inner, 0.0)
-    end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`
+    equations_inner = CompressibleEulerEquations2D(first(γ))
+    semi_inner = Trixi.remake(semi, equations=equations_inner, uEltype=eltype(γ))
+    Trixi.rhs!(du_ode, u0_ode, semi_inner, 0.0)
+  end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`
