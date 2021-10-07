@@ -5,9 +5,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0, 1.0)
-# advectionvelocity = (0.2, -0.3, 0.7)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 

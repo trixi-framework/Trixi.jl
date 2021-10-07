@@ -6,21 +6,24 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0, 1.0)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
 coordinates_max = ( 1.0,  1.0,  1.0) # maximum coordinates (max(x), max(y), max(z))
-
 trees_per_dimension = (1, 1, 1)
+
+# Note that it is not necessary to use mesh polydeg lower than the solver polydeg
+# on a Cartesian mesh.
+# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
 mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
                  initial_refinement_level=2)
 
-# Refine bottom left quadrant of each tree to level 4
+# Refine bottom left quadrant of each tree to level 3
 function refine_fn(p8est, which_tree, quadrant)
   if quadrant.x == 0 && quadrant.y == 0 && quadrant.z == 0 && quadrant.level < 3
     # return true (refine)
@@ -31,7 +34,7 @@ function refine_fn(p8est, which_tree, quadrant)
   end
 end
 
-# Refine recursively until each bottom left quadrant of a tree has level 2
+# Refine recursively until each bottom left quadrant of a tree has level 3
 # The mesh will be rebalanced before the simulation starts
 refine_fn_c = @cfunction(refine_fn, Cint, (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p8est_quadrant_t}))
 Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)

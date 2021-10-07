@@ -16,8 +16,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
-      l2 = [0.0013463150267220328, 0.0014235793662296975, 0.0014235793662300024, 0.00472191786388071],
-      linf = [0.0015248303482329195, 0.0020707330926952316, 0.002070733092696342, 0.004913455679613321],
+      l2 = [0.0013536930300254945, 0.0014315603442106193, 0.001431560344211359, 0.0047393341007602625],
+      linf = [0.001514260921466004, 0.0020623991944839215, 0.002062399194485476, 0.004897700392503701],
     )
   end
 
@@ -25,8 +25,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       approximation_type = SBP(),
-      l2 = [0.007465016439747669, 0.005297423547392931, 0.005297423547403158, 0.01470161132498598],
-      linf = [0.021489935389522374, 0.013528869419211276, 0.013528869418737433, 0.03269072432621112],
+      l2 = [0.0074706882014934735, 0.005306220583603261, 0.005306220583613591, 0.014724842607716771],
+      linf = [0.021563604940952885, 0.01359397832530762, 0.013593978324845324, 0.03270995869587523]
     )
   end
 
@@ -34,8 +34,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4,4),
       element_type = Quad(),
-      l2 = [0.000290967383489527, 0.00028113809346926776, 0.0002811380934695505, 0.00102004771420306],
-      linf = [0.0004970344840584673, 0.00040590009306518127, 0.0004059000930629608, 0.0014247732095258314],
+      l2 = [0.00031892254415307093, 0.00033637562986771894, 0.0003363756298680649, 0.0011100259064243145],
+      linf = [0.001073298211445639, 0.0013568139808282087, 0.0013568139808290969, 0.0032249020004324613]
     )
   end
 
@@ -44,8 +44,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (4,4),
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
-      l2 = [0.008110785816182155, 0.0074686552093368745, 0.007468655209336097, 0.015986513837074563],
-      linf = [0.01230954687917274, 0.013884805356942254, 0.013884805356973784, 0.040387377818142056],
+      l2 = [0.007801417730672109, 0.00708583561714128, 0.0070858356171393, 0.015217574294198809],
+      linf = [0.011572828457858897, 0.013965298735070686, 0.01396529873508534, 0.04227683691807904],
     )
   end
 
@@ -55,8 +55,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       approximation_type = SBP(),
-      l2 = [0.01285864081726596, 0.010650165503847099, 0.01065016550381281, 0.026286162111579015],
-      linf = [0.037333313274372504, 0.05308320130762212, 0.05308320130841948, 0.13378665881805185],
+      l2 = [0.01280067571168776, 0.010607599608273302, 0.010607599608239775, 0.026408338014056548],
+      linf = [0.037983023185674814, 0.05321027922533417, 0.05321027922608157, 0.13392025411844033],
     )
   end
 
@@ -67,14 +67,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       approximation_type = SBP(),
-      l2 = [0.0029319624187308896, 0.0030625695968579886, 0.003062569596855081, 0.006843948320775483],
-      linf = [0.013700713240587747, 0.012810144682950497, 0.01281014468295072, 0.022412654330661308],
+      l2 = [0.0029373718090697975, 0.0030629360605489465, 0.003062936060545615, 0.0068486089344859755],
+      linf = [0.01360165305316885, 0.01267402847925303, 0.012674028479251254, 0.02210545278615017],
     )
   end
 
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
-    @test isapprox(mean_convergence[:l2], [4.249875508800025, 4.133727008051228, 4.133727007601049, 4.086238794189699], rtol=0.05)
+    @test isapprox(mean_convergence[:l2], [4.243843382379403, 4.128314378833922, 4.128314378397532, 4.081366752807379], rtol=0.05)
   end
 
   @trixi_testset "elixir_euler_weakform_periodic.jl" begin
@@ -94,18 +94,81 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       cells_per_dimension = (8,8), tspan = (0.0, 0.2),
-      l2 = [0.11140371194266245, 0.06598148257331912, 0.10448950567476646, 0.1602319547232773],
-      linf = [0.2403274017090733, 0.1659961476843728, 0.12354683515032569, 0.2691592411995334],
+      l2 = [0.11140378947116614, 0.06598161188703612, 0.10448953167839563, 0.16023209181809595],
+      linf = [0.24033843177853664, 0.1659992245272325, 0.1235468309508845, 0.26911424973147735],
     )
   end
 
   @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor_instability.jl"),
       cells_per_dimension = (8,8), tspan = (0.0, 0.2),
-      l2 = [0.03548329484658906, 0.002591414374442459, 0.006916327798945652, 0.016235069350238083],
-      linf = [0.4783963902527284, 0.022527207047954502, 0.040307056331029656, 0.08523654262202474],
+      l2 = [0.03548329484912729, 0.002591414376082683, 0.006916327792623457, 0.016235069002818153],
+      linf = [0.4783963902824797, 0.022527207050681054, 0.040307056293369226, 0.0852365428206836],
     )
   end
+
+  @trixi_testset "elixir_euler_brown_minion_vortex.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_brown_minion_vortex.jl"),
+      num_cells_per_dimension = 4, tspan = (0.0, 0.1),
+      l2 = [0.0066800016110776066, 0.021516763475855016, 0.01069652423536524, 0.15052841129693573],
+      linf = [0.01544756362800248, 0.09517304772476806, 0.021957154972646383, 0.33773439650806303],
+    )
+  end
+
+  @trixi_testset "elixir_mhd_weak_blast_wave.jl (Quad)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
+      num_cells_per_dimension = 4,
+      l2 = [0.1562707966203802, 0.19692319035938727, 0.19692319035938863, 0.10641395363893119,
+            0.7221962824695998, 0.07678102773723876, 0.07678102773723913, 0.11142445367787217,
+            0.006627119909705745],
+      linf = [0.16447597822733662, 0.244157345789029, 0.24415734578903472, 0.11982440036793476,
+              0.7450328339751362, 0.06357382685763713, 0.0635738268576378, 0.1058830287485999,
+              0.005740591170062146],
+    )
+  end
+
+  @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Quad)" begin
+    # These setups do not pass CI reliably, see
+    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
+    # https://github.com/trixi-framework/Trixi.jl/issues/881
+    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
+      num_cells_per_dimension = 4,
+      l2 = [0.15825983698241494, 0.19897219694837923, 0.19784182473275247, 0.10482833997417325,
+            0.7310752391255246, 0.07374056714564853, 0.07371172293240634, 0.10782032253431281,
+            0.004921676235111545],
+      linf = [0.1765644464978685, 0.2627803272865769, 0.26358136695848144, 0.12347681727447984,
+              0.7733289736898254, 0.06695360844467957, 0.06650382120802623, 0.10885097000919097,
+              0.007212567638078835],
+    )
+  end
+
+  @trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
+      num_cells_per_dimension = 4, element_type=Tri(),
+      l2 = [0.1348987236501758, 0.1588650593363661, 0.15886505933636905, 0.08571028568614296,
+            0.6031732736338957, 0.06286520146660214, 0.06286520146660948, 0.0894610083051161,
+            0.003693188791960107],
+      linf = [0.16290247390873458, 0.2256891306641319, 0.2256891306641336, 0.09476017042552534,
+              0.6906308908961734, 0.05349939593012487, 0.05349939593013042, 0.08830587480616725,
+              0.0029551359803035027]
+    )
+  end
+
+  @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Tri)" begin
+    # These setups do not pass CI reliably, see
+    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
+    # https://github.com/trixi-framework/Trixi.jl/issues/881
+    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
+      num_cells_per_dimension = 4, element_type=Tri(), tspan = (0.0, 0.2),
+      l2 = [0.13825044764021147, 0.15472815448314997, 0.1549093274293255, 0.053103596213755405,
+            0.7246162776815603, 0.07730777596615901, 0.07733438386480523, 0.109893463921706,
+            0.00617678167062838],
+      linf = [0.22701306227317952, 0.2905255794821543, 0.2912409425436937, 0.08051361477962096,
+              1.0842974228656006, 0.07866000368926784, 0.0786646354518149, 0.1614896380292925,
+              0.010358210347485542],
+    )
+  end
+
 end
 
 # Clean up afterwards: delete Trixi output directory

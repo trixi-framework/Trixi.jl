@@ -6,8 +6,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 4 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
@@ -22,7 +22,7 @@ f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
 # Create P4estMesh with 3 x 2 trees and 6 x 4 elements,
 # approximate the geometry with a smaller polydeg for testing.
 trees_per_dimension = (3, 2)
-mesh = P4estMesh(trees_per_dimension, polydeg=2,
+mesh = P4estMesh(trees_per_dimension, polydeg=3,
                  faces=(f1, f2, f3, f4),
                  initial_refinement_level=1)
 

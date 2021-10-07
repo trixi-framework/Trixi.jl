@@ -90,7 +90,6 @@ function calc_volume_integral!(du, u,
 end
 
 
-
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
@@ -114,7 +113,7 @@ end
 
     # All diagonal entries of `derivative_split` are zero. Thus, we can skip
     # the computation of the diagonal terms. In addition, we use the symmetry
-    # of the `volume_flux` to save half of the possible two-poitn flux
+    # of the `volume_flux` to save half of the possible two-point flux
     # computations.
 
     # x direction
@@ -160,6 +159,86 @@ end
     end
   end
 end
+
+# Computing the normal vector for the FV method on curvilinear subcells. 
+# To fulfill free-stream preservation we use the explicit formula B.53 in Appendix B.4 
+# by Hennemann, Rueda-Ramirez, Hindenlang, Gassner (2020)
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+@inline function calcflux_fv!(fstar1, fstar2, fstar3, u,
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::Val{false},
+                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+  @unpack contravariant_vectors = cache.elements
+  @unpack weights, derivative_matrix = dg.basis
+
+  # Performance improvement if the metric terms of the subcell FV method are only computed 
+  # once at the beginning of the simulation, instead of at every Runge-Kutta stage
+  fstar1[:, 1,            :, :] .= zero(eltype(fstar1))
+  fstar1[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1))
+
+  for k in eachnode(dg), j in eachnode(dg)
+    normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, k, element)
+
+    for i in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
+      u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
+
+      for m in 1:nnodes(dg)
+        normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, k, element)
+      end
+
+      # Compute the contravariant flux
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+
+      set_node_vars!(fstar1, contravariant_flux, equations, dg, i, j, k)
+    end
+  end
+
+  fstar2[:, :, 1           , :] .= zero(eltype(fstar2))
+  fstar2[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2))
+
+  for k in eachnode(dg), i in eachnode(dg)
+    normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, k, element)
+
+    for j in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
+      u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
+
+      for m in 1:nnodes(dg)
+        normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, k, element)
+      end
+
+      # Compute the contravariant flux
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+
+      set_node_vars!(fstar2, contravariant_flux, equations, dg, i, j, k)
+    end
+  end
+
+  fstar3[:, :, :, 1           ] .= zero(eltype(fstar3))
+  fstar3[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3))
+
+  for j in eachnode(dg), i in eachnode(dg)
+    normal_direction = get_contravariant_vector(3, contravariant_vectors, i, j, 1, element)
+
+    for k in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
+      u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
+
+      for m in 1:nnodes(dg)
+        normal_direction += weights[k-1] * derivative_matrix[k-1, m] * get_contravariant_vector(3, contravariant_vectors, i, j, m, element)
+      end
+
+      # Compute the contravariant flux
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+
+      set_node_vars!(fstar3, contravariant_flux, equations, dg, i, j, k)
+    end
+  end
+
+  return nothing 
+end
+
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
                                     element, mesh::StructuredMesh{3},

@@ -81,24 +81,18 @@ Source terms used for convergence tests in combination with
   γ = equations.gamma
 
   x1, x2, x3 = x
-  si, co = sincos(((x1 + x2 + x3) - t) * ω)
-  tmp1 = si * A
-  tmp2 = co * A * ω
-  tmp3 = ((((((4 * tmp1 * γ - 4 * tmp1) + 4 * c * γ) - 4c) - 3γ) + 7) * tmp2) / 2
+  si, co = sincos(ω * (x1 + x2 + x3 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
+  # Note that d/dt rho = -d/dx rho = -d/dy rho = - d/dz rho.
 
-  du1 = 2 * tmp2
-  du2 = tmp3
-  du3 = tmp3
-  du4 = tmp3
-  du5 = ((((((12 * tmp1 * γ - 4 * tmp1) + 12 * c * γ) - 4c) - 9γ) + 9) * tmp2) / 2
+  tmp = (2 * rho - 1.5) * (γ - 1)
 
-  # Original terms (without performance enhancements)
-  # tmp2 = ((((((4 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 4 * c * γ) - 4c) - 3γ) + 7) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
-  # du1 = 2 * cos(((x1 + x2 + x3) - t) * ω) * A * ω
-  # du2 = tmp2
-  # du3 = tmp2
-  # du4 = tmp2
-  # du5 = ((((((12 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 12 * c * γ) - 4c) - 9γ) + 9) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+  du1 = 2 * rho_x
+  du2 = rho_x * (2 + tmp)
+  du3 = du2
+  du4 = du2
+  du5 = rho_x * (4 * rho + 3 * tmp)
 
   return SVector(du1, du2, du3, du4, du5)
 end
@@ -149,37 +143,6 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEqu
   v2  = r > 0.5 ? 0.0 : 0.1882 * sin(phi) * sin(theta)
   v3  = r > 0.5 ? 0.0 : 0.1882 * cos(theta)
   p   = r > 0.5 ? 1.0 : 1.245
-
-  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
-end
-
-
-"""
-    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
-
-The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-"""
-function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
-  # Calculate radius as distance from origin
-  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.25 # = 4.0 * smallest dx (for domain length=8 and max-ref=7)
-  E = 1.0
-  p_inner   = (equations.gamma - 1) * E / (4/3 * pi * r0^3)
-  p_ambient = 1e-5 # = true Sedov setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  v3 = 0.0
-
-  # use a logistic function to tranfer pressure value smoothly
-  k  = -50.0 # sharpness of transfer
-  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
-  p = max(logistic_function_p, p_ambient)
 
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
@@ -428,30 +391,67 @@ end
 
 
 """
-    boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-                             equations::CompressibleEulerEquations3D)
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::CompressibleEulerEquations3D)
 
-Determine the external solution value for a slip wall condition. Sets the normal
-velocity of the the exterior fictitious element to the negative of the internal value.
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
+- J. J. W. van der Vegt and H. van der Ven (2002)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
 
-!!! warning "Experimental code"
-    This wall function can change any time.
+Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of the book
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  3rd edition
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 """
-@inline function boundary_state_slip_wall(u_internal, normal_direction::AbstractVector,
-                                          equations::CompressibleEulerEquations3D)
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+                                      surface_flux_function, equations::CompressibleEulerEquations3D)
 
-  # normalize the outward pointing direction
-  normal = normal_direction / norm(normal_direction)
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
 
-  # compute the normal and tangential components of the velocity
-  u_normal  = normal[1] * u_internal[2] + normal[2] * u_internal[3] + normal[3] * u_internal[4]
-  u_tangent = (u_internal[2] - u_normal * normal[1], u_internal[3] - u_normal * normal[2], u_internal[4] - u_normal * normal[3])
+  # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
+  tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
+  # Orthogonal projection
+  tangent1 -= dot(normal, tangent1) * normal
+  tangent1 = normalize(tangent1)
 
-  return SVector(u_internal[1],
-                 u_tangent[1] - u_normal * normal[1],
-                 u_tangent[2] - u_normal * normal[2],
-                 u_tangent[3] - u_normal * normal[3],
-                 u_internal[5])
+  # Third orthogonal vector
+  tangent2 = normalize(cross(normal_direction, tangent1))
+
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_inner, normal, tangent1, tangent2, equations)
+
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent1, v_tangent2, p_local = cons2prim(u_local, equations)
+
+  # Get the solution of the pressure Riemann problem
+  # See Section 6.3.3 of
+  # Eleuterio F. Toro (2009)
+  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+  if v_normal <= 0.0
+    sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+  else # v_normal > 0.0
+    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+  end
+
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_inner)),
+                 p_star * normal[1],
+                 p_star * normal[2],
+                 p_star * normal[3],
+                 zero(eltype(u_inner))) * norm_
 end
 
 
@@ -813,30 +813,45 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-# TODO: This doesn't really use the `orientation` - should it?
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  # Get the velocity value in the appropriate direction
+  if orientation == 1
+    v_ll = v1_ll
+    v_rr = v1_rr
+  elseif orientation == 2
+    v_ll = v2_ll
+    v_rr = v2_rr
+  else # orientation == 3
+    v_ll = v3_ll
+    v_rr = v3_rr
+  end
+  # Calculate sound speeds
   c_ll = sqrt(equations.gamma * p_ll / rho_ll)
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, normal::AbstractVector, equations::CompressibleEulerEquations3D)
-  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
+
+  # Calculate normal velocities and sound speed
+  # left
+  v_ll = (  v1_ll * normal_direction[1]
+          + v2_ll * normal_direction[2]
+          + v3_ll * normal_direction[3] )
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+  # right
+  v_rr = (  v1_rr * normal_direction[1]
+          + v2_rr * normal_direction[2]
+          + v3_rr * normal_direction[3] )
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
 

@@ -5,16 +5,16 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = 1.0
-equations = LinearScalarAdvectionEquation1D(advectionvelocity)
+advection_velocity = 1.0
+equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 initial_condition = initial_condition_gauss
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (0,)
-coordinates_max = (5,)
+coordinates_min = (0.0,)
+coordinates_max = (5.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000,

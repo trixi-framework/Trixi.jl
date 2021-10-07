@@ -5,17 +5,38 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (0.2, -0.7, 0.5)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
-initial_condition = initial_condition_gauss
+initial_condition = initial_condition_convergence_test
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-5.0, -5.0, -5.0)
-coordinates_max = ( 5.0,  5.0,  5.0)
-mesh = StructuredMesh((16, 16, 16), coordinates_min, coordinates_max, periodicity=false)
+# Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
+function mapping(xi, eta, zeta)
+  # Don't transform input variables between -1 and 1 onto [0,3] to obtain curved boundaries
+  # xi = 1.5 * xi_ + 1.5
+  # eta = 1.5 * eta_ + 1.5
+  # zeta = 1.5 * zeta_ + 1.5
+
+  y = eta + 1/6 * (cos(1.5 * pi * (2 * xi - 3)/3) *
+                   cos(0.5 * pi * (2 * eta - 3)/3) *
+                   cos(0.5 * pi * (2 * zeta - 3)/3))
+
+  x = xi + 1/6 * (cos(0.5 * pi * (2 * xi - 3)/3) *
+                  cos(2 * pi * (2 * y - 3)/3) *
+                  cos(0.5 * pi * (2 * zeta - 3)/3))
+
+  z = zeta + 1/6 * (cos(0.5 * pi * (2 * x - 3)/3) *
+                    cos(pi * (2 * y - 3)/3) *
+                    cos(0.5 * pi * (2 * zeta - 3)/3))
+
+  return SVector(x, y, z)
+end
+
+cells_per_dimension = (8, 8, 8)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions)
@@ -24,7 +45,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.3)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

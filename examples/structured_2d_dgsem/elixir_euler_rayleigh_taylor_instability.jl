@@ -59,26 +59,27 @@ end
   return SVector(0.0, 0.0, g*rho, g*rho_v2)
 end
 
-volume_flux  = flux_ranocha
+# numerical parameters
+volume_flux = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_hll,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # The domain is [0, 0.25] x [0, 1]
-mapping(xi, eta) = SVector(0.25 * 0.5 * (1 + xi), 0.5 * (1 + eta))
+mapping(xi, eta) = SVector(0.25 * 0.5 * (1.0 + xi), 0.5 * (1.0 + eta))
 
 num_elements_per_dimension = 32
 cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 4)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
-boundary_condition_wall = BoundaryConditionWall(boundary_state_slip_wall)
+initial_condition = initial_condition_rayleigh_taylor_instability
 boundary_conditions = (
-                       x_neg=boundary_condition_wall,
-                       x_pos=boundary_condition_wall,
-                       y_neg=boundary_condition_wall,
-                       y_pos=boundary_condition_wall,
+                       x_neg=boundary_condition_slip_wall,
+                       x_pos=boundary_condition_slip_wall,
+                       y_neg=boundary_condition_slip_wall,
+                       y_pos=boundary_condition_slip_wall,
                       )
 
-## Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
+# # Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
 # boundary_conditions = (
 #                        x_neg=boundary_condition_periodic,
 #                        x_pos=boundary_condition_periodic,
@@ -86,7 +87,6 @@ boundary_conditions = (
 #                        y_pos=BoundaryConditionDirichlet(initial_condition),
 #                       )
 
-initial_condition = initial_condition_rayleigh_taylor_instability
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms=source_terms_rayleigh_taylor_instability,
                                     boundary_conditions=boundary_conditions)

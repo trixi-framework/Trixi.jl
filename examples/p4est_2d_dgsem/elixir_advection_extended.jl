@@ -5,18 +5,19 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-# you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
-boundary_conditions = boundary_condition_periodic
+# BCs must be passed as Dict
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = Dict(
+  :x_neg => boundary_condition,
+  :x_pos => boundary_condition,
+  :y_neg => boundary_condition,
+  :y_pos => boundary_condition
+)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
@@ -29,7 +30,8 @@ trees_per_dimension = (19, 37)
 
 # Create curved mesh with 19 x 37 elements
 mesh = P4estMesh(trees_per_dimension, polydeg=3,
-                 coordinates_min=coordinates_min, coordinates_max=coordinates_max)
+                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                 periodicity=false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

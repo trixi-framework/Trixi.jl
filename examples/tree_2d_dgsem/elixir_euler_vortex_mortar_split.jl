@@ -13,8 +13,8 @@ volume_flux = flux_shima_etal
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-10, -10)
-coordinates_max = ( 10,  10)
+coordinates_min = (-10.0, -10.0)
+coordinates_max = ( 10.0,  10.0)
 refinement_patches = (
   (type="box", coordinates_min=(0.0, -10.0), coordinates_max=(10.0, 10.0)),
 )

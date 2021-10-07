@@ -151,63 +151,6 @@ end
   return flux
 end
 
-"""
-    BoundaryConditionWall(boundary_value_function)
-
-Create a generic wall type boundary condition that uses the function `boundary_value_function`
-to specify the external solution values.
-The boundary wall function is called with arguments for an internal solution state from inside an
-element `u_inner`, an outward pointing `normal_direction` and a particular set of `equations`, e.g.,
-```julia
-boundary_value_function(u_inner, normal_direction, equations)
-```
-which will return an external solution state.
-
-# Example
-```julia
-julia> BoundaryConditionWall(boundary_state_slip_wall)
-```
-
-!!! warning "Experimental code"
-    This boundary condition can change any time and is currently only implemented for the
-    [`CompressibleEulerEquations2D`](@ref) and [`AcousticPerturbationEquations2D`](@ref).
-"""
-struct BoundaryConditionWall{B}
-  boundary_value_function::B
-end
-
-# Wall boundary condition for use with TreeMesh or StructuredMesh
-@inline function (boundary_condition::BoundaryConditionWall)(u_inner, orientation_or_normal,
-                                                             direction,
-                                                             x, t,
-                                                             surface_flux_function, equations)
-
-  u_boundary = boundary_condition.boundary_value_function(u_inner, orientation_or_normal, equations)
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
-  end
-
-  return flux
-end
-
-# Wall boundary condition for use with UnstructuredMesh2D
-# Note: For unstructured we lose the concept of an "absolute direction"
-@inline function (boundary_condition::BoundaryConditionWall)(u_inner,
-                                                             normal_direction::AbstractVector,
-                                                             x, t,
-                                                             surface_flux_function, equations)
-  # get the external value of the solution
-  u_boundary = boundary_condition.boundary_value_function(u_inner, normal_direction, equations)
-
-  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-
-  return flux
-end
-
 
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
@@ -270,14 +213,6 @@ performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 
-# FIXME: Deprecations introduced in v0.3
-@deprecate varnames_cons(equations) varnames(cons2cons, equations)
-@deprecate varnames_prim(equations) varnames(cons2prim, equations)
-@deprecate flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) flux_godunov(u_ll, u_rr, orientation_or_normal_direction, equations)
-@deprecate calcflux(u, orientation, equations) flux(u, orientation, equations)
-@deprecate flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction, equations) flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction, equations)
-
-
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
@@ -293,6 +228,10 @@ include("linear_scalar_advection_3d.jl")
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("inviscid_burgers_1d.jl")
+
+# Shallow water equations
+abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("shallow_water_2d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end

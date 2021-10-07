@@ -15,7 +15,7 @@ The linear scalar advection equation
 in three space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation3D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{3, 1}
-  advectionvelocity::SVector{3, RealT}
+  advection_velocity::SVector{3, RealT}
 end
 
 function LinearScalarAdvectionEquation3D(a::NTuple{3,<:Real})
@@ -39,7 +39,7 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x - equation.advection_velocity * t
 
   return SVector(2.0)
 end
@@ -52,7 +52,7 @@ A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x - equation.advection_velocity * t
 
   c = 1.0
   A = 0.5
@@ -71,7 +71,7 @@ A Gaussian pulse.
 """
 function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x - equation.advection_velocity * t
 
   scalar = exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))
   return SVector(scalar)
@@ -85,7 +85,7 @@ A sine wave in the conserved variable.
 """
 function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x - equation.advection_velocity * t
 
   scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2]) * sin(2 * pi * x_trans[3])
   return SVector(scalar)
@@ -100,7 +100,7 @@ A linear function of `x[3]` used together with
 """
 function initial_condition_linear_z(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x - equation.advection_velocity * t
 
   return SVector(x_trans[3])
 end
@@ -135,28 +135,28 @@ end
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation3D)
-  a = equation.advectionvelocity[orientation]
+  a = equation.advection_velocity[orientation]
   return a * u
 end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation3D)
-  λ_max = abs(equation.advectionvelocity[orientation])
+  λ_max = abs(equation.advection_velocity[orientation])
 end
 
 
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation3D)
-  a = dot(equation.advectionvelocity, normal_direction) # velocity in normal direction
+  a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return a * u
 end
 
 
 # Calculate maximum wave speed in the normal direction for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation3D)
-  a = dot(equation.advectionvelocity, normal_direction) # velocity in normal direction
+  a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
   return abs(a)
 end
 
@@ -164,7 +164,7 @@ end
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
-  return abs.(equation.advectionvelocity)
+  return abs.(equation.advection_velocity)
 end
 
 

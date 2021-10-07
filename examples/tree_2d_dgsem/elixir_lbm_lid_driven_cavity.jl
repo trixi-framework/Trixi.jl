@@ -9,16 +9,16 @@ equations = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
 
 initial_condition = initial_condition_lid_driven_cavity
 boundary_conditions = (
-                       x_neg=boundary_condition_wall_noslip,
-                       x_pos=boundary_condition_wall_noslip,
-                       y_neg=boundary_condition_wall_noslip,
+                       x_neg=boundary_condition_noslip_wall,
+                       x_pos=boundary_condition_noslip_wall,
+                       y_neg=boundary_condition_noslip_wall,
                        y_pos=boundary_condition_lid_driven_cavity,
                       )
 
 solver = DGSEM(polydeg=5, surface_flux=flux_godunov)
 
-coordinates_min = (0, 0)
-coordinates_max = (1, 1)
+coordinates_min = (0.0, 0.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 periodicity=false,

@@ -1,8 +1,8 @@
+
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(flux_hll),
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+###############################################################################
+# semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations2D(1.4)
 
@@ -59,6 +59,11 @@ end
   return SVector(0.0, 0.0, g*rho, g*rho_v2)
 end
 
+# numerical parameters
+dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
+             surface_integral = SurfaceIntegralWeakForm(flux_hll),
+             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+
 num_elements = 16
 cells_per_dimension = (num_elements, 4 * num_elements)
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
@@ -70,19 +75,26 @@ vy = map(x-> 0.5 * (1+x), vy) # map [-1, 1] to [0, 1] for single mode RTI
 vertex_coordinates = (vx, vy)
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg; is_periodic=(true,false))
 
-boundary_conditions = (; :entire_boundary => BoundaryConditionWall(boundary_state_slip_wall))
+initial_condition = initial_condition_rayleigh_taylor_instability
+boundary_conditions = (; :entire_boundary => boundary_condition_slip_wall)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_rayleigh_taylor_instability, dg;
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms = source_terms_rayleigh_taylor_instability,
                                     boundary_conditions = boundary_conditions)
+
+###############################################################################
+# ODE solvers, callbacks etc.
 
 tspan = (0.0, 3.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
-alive_callback = AliveCallback(alive_interval=10)
+
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
+
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback)

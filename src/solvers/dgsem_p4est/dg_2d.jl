@@ -68,7 +68,7 @@ function prolong2interfaces!(cache, u,
     # Note that in the current implementation, the interface will be
     # "aligned at the primary element", i.e., the index of the primary side
     # will always run forwards.
-    primary_element = interfaces.element_ids[1, interface]
+    primary_element = interfaces.neighbor_ids[1, interface]
     primary_indices = interfaces.node_indices[1, interface]
 
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
@@ -86,7 +86,7 @@ function prolong2interfaces!(cache, u,
 
     # Copy solution data from the secondary element using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
-    secondary_element = interfaces.element_ids[2, interface]
+    secondary_element = interfaces.neighbor_ids[2, interface]
     secondary_indices = interfaces.node_indices[2, interface]
 
     i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1], index_range)
@@ -112,7 +112,7 @@ function calc_interface_flux!(surface_flux_values,
                               nonconservative_terms::Val{false},
                               equations, surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
-  @unpack u, element_ids, node_indices = cache.interfaces
+  @unpack u, neighbor_ids, node_indices = cache.interfaces
   @unpack contravariant_vectors = cache.elements
   index_range = eachnode(dg)
   index_end = last(index_range)
@@ -120,7 +120,7 @@ function calc_interface_flux!(surface_flux_values,
   @threaded for interface in eachinterface(dg, cache)
     # Get information on the primary element, compute the surface fluxes,
     # and store them for the primary element
-    primary_element  = element_ids[1, interface]
+    primary_element  = neighbor_ids[1, interface]
     primary_indices  = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
@@ -148,7 +148,7 @@ function calc_interface_flux!(surface_flux_values,
 
     # Get information on the secondary element and copy the numerical fluxes
     # from the primary element to the secondary one
-    secondary_element = element_ids[2, interface]
+    secondary_element = neighbor_ids[2, interface]
     secondary_indices = node_indices[2, interface]
     secondary_direction = indices2direction(secondary_indices)
 
@@ -184,7 +184,7 @@ function prolong2boundaries!(cache, u,
   @threaded for boundary in eachboundary(dg, cache)
     # Copy solution data from the element using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
-    element       = boundaries.element_ids[boundary]
+    element       = boundaries.neighbor_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
 
     i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
@@ -219,7 +219,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
 
     # Get information on the adjacent element, compute the surface fluxes,
     # and store them
-    element       = boundaries.element_ids[boundary]
+    element       = boundaries.neighbor_ids[boundary]
     node_indices  = boundaries.node_indices[boundary]
     direction     = indices2direction(node_indices)
 
@@ -256,7 +256,7 @@ function prolong2mortars!(cache, u,
                           mesh::P4estMesh{2}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
-  @unpack element_ids, node_indices = cache.mortars
+  @unpack neighbor_ids, node_indices = cache.mortars
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
@@ -270,7 +270,7 @@ function prolong2mortars!(cache, u,
     for position in 1:2
       i_small = i_small_start
       j_small = j_small_start
-      element = element_ids[position, mortar]
+      element = neighbor_ids[position, mortar]
       for i in eachnode(dg)
         for v in eachvariable(equations)
           cache.mortars.u[1, v, position, i, mortar] = u[v, i_small, j_small, element]
@@ -294,7 +294,7 @@ function prolong2mortars!(cache, u,
 
     i_large = i_large_start
     j_large = j_large_start
-    element = element_ids[3, mortar]
+    element = neighbor_ids[3, mortar]
     for i in eachnode(dg)
       for v in eachvariable(equations)
         u_buffer[v, i] = u[v, i_large, j_large, element]
@@ -321,7 +321,7 @@ function calc_mortar_flux!(surface_flux_values,
                            nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
-  @unpack u, element_ids, node_indices = cache.mortars
+  @unpack u, neighbor_ids, node_indices = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
   @unpack contravariant_vectors = cache.elements
   @unpack surface_flux = surface_integral
@@ -345,7 +345,7 @@ function calc_mortar_flux!(surface_flux_values,
     for position in 1:2
       i_small = i_small_start
       j_small = j_small_start
-      element = element_ids[position, mortar]
+      element = neighbor_ids[position, mortar]
       for i in eachnode(dg)
         u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, mortar)
 
@@ -379,14 +379,14 @@ end
                                             mesh::P4estMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar, u_buffer)
-  @unpack element_ids, node_indices = cache.mortars
+  @unpack neighbor_ids, node_indices = cache.mortars
 
   # Copy solution small to small
   small_indices   = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)
 
   for position in 1:2
-    element = element_ids[position, mortar]
+    element = neighbor_ids[position, mortar]
     for i in eachnode(dg)
       for v in eachvariable(equations)
         surface_flux_values[v, i, small_direction, element] = fstar[position][v, i]
@@ -412,7 +412,7 @@ end
   # correct orientation.
   # Note that the index of the small sides will always run forward but
   # the index of the large side might need to run backwards for flipped sides.
-  large_element  = element_ids[3, mortar]
+  large_element  = neighbor_ids[3, mortar]
   large_indices  = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)
 

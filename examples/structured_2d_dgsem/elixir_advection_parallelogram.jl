@@ -1,3 +1,8 @@
+# This elixir transforms the setup of elixir_advection_basic to a parallelogram.
+# The nodal values of the initial condition and the exact solution are the same as
+# in elixir_advection_basic. 
+# However, on this non-rectangular mesh, the metric terms are non-trivial.
+# The same errors as with elixir_advection_basic are expected.
 
 using OrdinaryDiffEq
 using Trixi
@@ -7,7 +12,7 @@ using Trixi
 function initial_condition_parallelogram(x, t, equation::LinearScalarAdvectionEquation2D)
   # Transform back to unit square
   x_transformed = SVector(x[1] - x[2], x[2])
-  a = equation.advectionvelocity
+  a = equation.advection_velocity
   a_transformed = SVector(a[1] - a[2], a[2])
 
   # Store translated coordinate for easy use of exact solution
@@ -25,8 +30,9 @@ end
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (2.0, 1.0)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+# Transformed advection_velocity = (0.2, -0.7) by transformation mapping
+advection_velocity = (-0.5, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)

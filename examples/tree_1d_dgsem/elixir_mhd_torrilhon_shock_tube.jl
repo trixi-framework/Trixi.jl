@@ -7,6 +7,26 @@ using Trixi
 gamma = 5/3
 equations = IdealGlmMhdEquations1D(gamma)
 
+"""
+    initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+
+Torrilhon's shock tube test case for one dimensional ideal MHD equations.
+- Torrilhon (2003)
+  Uniqueness conditions for Riemann problems of ideal magnetohydrodynamics
+  [DOI: 10.1017/S0022377803002186](https://doi.org/10.1017/S0022377803002186)
+"""
+function initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+  # domain must be set to [-1, 1.5], γ = 5/3, final time = 0.4
+  rho = x[1] <= 0 ? 3.0 : 1.0
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  p = x[1] <= 0 ? 3.0 : 1.0
+  B1 = 1.5
+  B2 = x[1] <= 0 ? 1.0 : cos(1.5)
+  B3 = x[1] <= 0 ? 0.0 : sin(1.5)
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
+end
 initial_condition = initial_condition_torrilhon_shock_tube
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
@@ -57,7 +77,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

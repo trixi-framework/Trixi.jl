@@ -118,6 +118,107 @@ When plotted together with the mesh, this will yield the following visualization
 
 ![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/72009492/130951039-f2f91760-539a-4e96-ac39-4053e934040b.PNG)
 
+## Plotting a user-defined scalar field
+
+To plot a scalar quantity, one can call `plot(ScalarPlotData2D(u, semi))`, where
+`u` is an array of nodal values of the scalar field to plot. The layout of `u` should
+match the layout of the `x` and `y` nodal coordinates of the respective solver. For
+example, after running
+`trixi_include(joinpath("examples", "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))`,
+the following can be used to plot the function `f(x, y) = x * y`:
+```julia
+x = view(semi.cache.elements.node_coordinates, 1, :, :, :)
+y = view(semi.cache.elements.node_coordinates, 2, :, :, :)
+plot(ScalarPlotData2D(x .* y, semi))
+```
+This produces the following plot:
+
+![scalar-plotting-example](https://user-images.githubusercontent.com/1156048/132762371-da141802-34e8-4035-a88d-4d60e66c9f19.png)
+
+This routine can be used to visualize scalar quantities which depend on the solution,
+such as the norm of a velocity vector or two-dimensional vorticity. For example, we
+can visualize vorticity for a compressible version of the
+[Brown-Minion vortex problem](https://doi.org/10.1006/jcph.1995.1205):
+
+```jldoctest brown_minion_vortex
+julia> using Trixi, Plots
+
+julia> redirect_stdout(devnull) do
+         # runs the elixir without any output
+         trixi_include(@__MODULE__,
+           joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_brown_minion_vortex.jl"))
+       end
+
+julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D,
+                                  dg::DGMulti, cache)
+         rd = dg.basis
+         md = mesh.md
+         @unpack Dr, Ds = rd
+         @unpack rxJ, sxJ, ryJ, syJ, J = md
+         v1, v2 = velocity
+         dv1dy = ryJ .* (Dr * v1) + syJ .* (Ds * v1)
+         dv2dx = rxJ .* (Dr * v2) + sxJ .* (Ds * v2)
+         return dv2dx - dv1dy
+       end;
+
+julia> compute_vorticity(velocity, semi) =
+         compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
+
+julia> function get_velocity(sol)
+         rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+         v1 = rhou ./ rho
+         v2 = rhov ./ rho
+         return v1, v2
+       end;
+
+julia> vorticity = compute_vorticity(get_velocity(sol), semi);
+
+julia> plot(ScalarPlotData2D(vorticity, semi;
+            variable_name = "Vorticity at t = $(sol.prob.tspan[end])"))
+Plot{Plots.GRBackend() n=1}
+```
+
+This produces the following plot of vorticity.
+
+![vorticity-example](https://user-images.githubusercontent.com/1156048/132884563-f371dd63-29c5-4856-a9c5-b1867fb1b1f6.png)
+
+Since the mesh is fairly coarse, we observe numerical artifacts due to the low resolution.
+These errors vanish under mesh refinement; for example, doubling the mesh resolution by running
+```julia
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"), num_cells_per_dimension = 32)
+```
+yields the following plot of vorticity:
+
+![vorticity-example-refined](https://user-images.githubusercontent.com/1156048/132885068-c2e37c97-c71a-489d-9a64-4f08db86552a.png)
+
+!!! note
+    When visualizing a scalar field, the plotted solution is reinterpolated using a
+    high order polynomial approximation. Thus, small discrepancies may be observed when
+    the underlying data is highly non-smooth or under-resolved.
+
+`ScalarPlotData2D` objects can also be used with Makie through `iplot`. For example, the
+following code plots two surfaces:
+```jldoctest iplot_with_ScalarPlotData2D
+julia> using Trixi, CairoMakie
+
+julia> redirect_stdout(devnull) do
+         # runs the elixir without any output
+         trixi_include(@__MODULE__,
+           joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
+       end
+
+julia> x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates
+
+julia> y = view(semi.cache.elements.node_coordinates, 2, :, :, :); # extracts the node y coordinates
+
+julia> fig_ax_plt = iplot(ScalarPlotData2D((@. 1 - .25*(x^2 + y^2)), semi), plot_mesh=true, colormap=:viridis);
+
+julia> fig_ax_plt2 = iplot!(fig_ax_plt, ScalarPlotData2D((@. .125*(x+y)), semi), plot_mesh=true, colormap=:blues)
+FigureAxisPlot()
+```
+This creates the following plot:
+
+![ScalarPlotData2D_example](https://user-images.githubusercontent.com/1156048/133856590-a9f0be02-8200-483b-af96-eab4a69bf2c7.png)
 
 ### Plotting a 3D solution as a 2D plot
 It is possible to plot 2D slices from 3D simulation data with the same commands
@@ -411,9 +512,9 @@ The plot can be rotated (click and hold), zoomed in and out (scroll up and down)
 of and below the solution.
 
 Both `plot` and `iplot` use `colormap = :inferno` by default.
-[https://docs.juliaplots.org/latest/generated/colorschemes/](A different colormap) can be selected
+[A different colormap](https://docs.juliaplots.org/latest/generated/colorschemes/) can be selected
 by providing an appropriate keyword argument. For example, `plot(sol, colormap=:blues)` and
 `iplot(sol, colormap=:blues)` produce the following figures:
 
-![makie-plot-example](https://user-images.githubusercontent.com/1156048/131539853-2ab51c33-5fd3-4d3b-a49b-3b1de8f63a98.png)
+![makie-plot-example](https://user-images.githubusercontent.com/1156048/132954265-e7d395a8-f894-4056-841b-87711b7ba012.png)
 ![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)

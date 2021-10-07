@@ -119,7 +119,7 @@ using Trixi
 begin
   Trixi.reset_timer!(Trixi.timer())
 
-  equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+  equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
   mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max=10^5, initial_refinement_level=5)
   solver = DGSEM(3)
   semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)

@@ -194,6 +194,7 @@ function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquat
   return prim2cons(prim, equations)
 end
 
+
 """
     boundary_condition_wall(u_inner, orientation, direction, x, t, surface_flux_function,
                             equations::AcousticPerturbationEquations2D)
@@ -246,6 +247,7 @@ function initial_condition_monopole(x, t, equations::AcousticPerturbationEquatio
   return prim2cons(prim, equations)
 end
 
+
 """
   boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
                               equations::AcousticPerturbationEquations2D)
@@ -282,6 +284,7 @@ function boundary_condition_monopole(u_inner, orientation, direction, x, t, surf
   return flux
 end
 
+
 """
     boundary_condition_zero(u_inner, orientation, direction, x, t, surface_flux_function,
                             equations::AcousticPerturbationEquations2D)
@@ -303,6 +306,38 @@ function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_
 
   return flux
 end
+
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::AcousticPerturbationEquations2D)
+
+Use an orthogonal projection of the perturbed velocities to zero out the normal velocity
+while retaining the possibility of a tangential velocity in the boundary state.
+Further details are available in the paper:
+- Marcus Bauer, Jürgen Dierke and Roland Ewert (2011)
+  Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
+  [DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
+"""
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+                                      surface_flux_function, equations::AcousticPerturbationEquations2D)
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal perturbed velocity
+  u_normal = normal[1] * u_inner[1] + normal[2] * u_inner[2]
+
+  # create the "external" boundary solution state
+  u_boundary = SVector(u_inner[1] - 2.0 * u_normal * normal[1],
+                       u_inner[2] - 2.0 * u_normal * normal[2],
+                       u_inner[3], cons2mean(u_inner, equations)...)
+
+  # calculate the boundary flux
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+  return flux
+end
+
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::AcousticPerturbationEquations2D)
@@ -381,36 +416,19 @@ end
   c_mean_ll = u_ll[6]
   c_mean_rr = u_rr[6]
 
-  λ_max = (max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)) * norm(normal_direction)
+  # The v_normals are already scaled by the norm
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr) * norm(normal_direction)
 end
 
 
-"""
-    boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
-                             equations::AcousticPertubationEquations2D)
-
-Idea behind this boundary condition is to use an orthogonal projection of the perturbed velocities
-to zero out the normal velocity while retaining the possibility of a tangential velocity
-in the boundary state. Further details are available in the paper:
-- Marcus Bauer, Jürgen Dierke and Roland Ewert (2011)
-  Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
-  [DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
-"""
-function boundary_state_slip_wall(u_inner, normal_direction::AbstractVector,
-                                  equations::AcousticPerturbationEquations2D)
-  # normalize the outward pointing direction
-  normal = normal_direction / norm(normal_direction)
-
-  # compute the normal and tangential components of the velocity
-  u_normal  = normal[1] * u_inner[1] + normal[2] * u_inner[2]
-  u_tangent = (u_inner[1] - u_normal * normal[1], u_inner[2] - u_normal * normal[2])
-
-  return SVector(u_tangent[1] - u_normal * normal[1],
-                 u_tangent[2] - u_normal * normal[2],
-                 u_inner[3],
-                 cons2mean(u_inner, equations)...)
+# Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the mean values
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation_or_normal_direction,
+                                                              equations::AcousticPerturbationEquations2D)
+  λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
+  diss = -0.5 * λ * (u_rr - u_ll)
+  z = zero(eltype(u_ll))
+  return SVector(diss[1], diss[2], diss[3], z, z, z, z)
 end
-
 
 
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = Val(false)

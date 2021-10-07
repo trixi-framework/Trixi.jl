@@ -300,7 +300,6 @@ initial_condition = uniform_flow_state
 
 # boundary condition types
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
-boundary_condition_slip_wall = BoundaryConditionWall(boundary_state_slip_wall)
 
 # boundary condition dictionary
 boundary_conditions = Dict( :Bottom     => boundary_condition_uniform_flow,

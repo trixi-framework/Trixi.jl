@@ -6,10 +6,13 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (0.2, -0.7, 0.5)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+# Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
+# The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
+# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
 initial_condition = initial_condition_gauss
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
@@ -49,7 +52,8 @@ mesh_file = joinpath(@__DIR__, "cube_unstructured_2.inp")
 isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/b8df0033798e4926dec515fc045e8c2c/raw/b9254cde1d1fb64b6acc8416bc5ccdd77a240227/cube_unstructured_2.inp",
                               mesh_file)
 
-mesh = P4estMesh{3}(mesh_file, polydeg=3,
+# Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
+mesh = P4estMesh{3}(mesh_file, polydeg=2,
                     mapping=mapping,
                     initial_refinement_level=1)
 

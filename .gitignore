@@ -13,7 +13,9 @@
 **/Manifest.toml
 out*/
 docs/build
+docs/src/notebooks
 docs/src/authors.md
+docs/src/tutorials
 public/
 coverage/
 coverage_report/

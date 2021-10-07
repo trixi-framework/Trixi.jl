@@ -30,8 +30,8 @@ initial_condition = initial_condition_constant
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-3, -3) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 3,  3) # maximum coordinates (max(x), max(y))
+coordinates_min = (-3.0, -3.0) # minimum coordinates (min(x), min(y))
+coordinates_max = ( 3.0,  3.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,

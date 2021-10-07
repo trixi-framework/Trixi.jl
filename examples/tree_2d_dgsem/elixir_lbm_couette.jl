@@ -11,14 +11,14 @@ initial_condition = initial_condition_couette_unsteady
 boundary_conditions = (
                        x_neg=boundary_condition_periodic,
                        x_pos=boundary_condition_periodic,
-                       y_neg=boundary_condition_wall_noslip,
+                       y_neg=boundary_condition_noslip_wall,
                        y_pos=boundary_condition_couette,
                       )
 
 solver = DGSEM(polydeg=3, surface_flux=flux_godunov)
 
-coordinates_min = (0, 0)
-coordinates_max = (1, 1)
+coordinates_min = (0.0, 0.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 periodicity=(true, false),

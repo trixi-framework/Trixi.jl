@@ -8,36 +8,35 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_convergence_test
+initial_condition = initial_condition_weak_blast_wave
 
-source_terms = source_terms_convergence_test
+surface_flux = flux_ranocha
+volume_flux = flux_ranocha
+polydeg = 4
+basis = LobattoLegendreBasis(polydeg)
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max=1.0,
+                                         alpha_min=0.001,
+                                         alpha_smooth=true,
+                                         variable=density_pressure)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
 
-# BCs must be passed as Dict
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(
-  :x_neg => boundary_condition,
-  :x_pos => boundary_condition,
-  :y_neg => boundary_condition,
-  :y_pos => boundary_condition
-)
-
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 ###############################################################################
-# Get the uncurved mesh from a file (downloads the file if not available locally)
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (2.0, 2.0)
+coordinates_min = (-1.0, -1.0)
+coordinates_max = ( 1.0,  1.0)
 
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg=1, initial_refinement_level=2,
+                 polydeg=4, initial_refinement_level=2,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                 periodicity=false)
+                 periodicity=true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms,
-                                    boundary_conditions=boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -61,7 +60,8 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
+                        analysis_callback, 
+                        alive_callback,
                         save_solution,
                         stepsize_callback)
 ###############################################################################

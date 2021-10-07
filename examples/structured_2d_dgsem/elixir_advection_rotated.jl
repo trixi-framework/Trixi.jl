@@ -1,3 +1,8 @@
+# This elixir transforms the setup of elixir_advection_basic to a rotated square.
+# The nodal values of the initial condition and the exact solution are the same as
+# in elixir_advection_basic. 
+# However, on this rotated mesh, the metric terms are non-trivial.
+# The same errors as with elixir_advection_basic are expected (except for rounding errors).
 
 using OrdinaryDiffEq
 using Trixi
@@ -32,7 +37,7 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equat
   # Multiply with [  cos(α)  sin(α);
   #                 -sin(α)  cos(α)]
   x_rot = SVector(cos_ * x[1] + sin_ * x[2], -sin_ * x[1] + cos_ * x[2])
-  a = equation.advectionvelocity
+  a = equation.advection_velocity
   a_rot = SVector(cos_ * a[1] + sin_ * a[2], -sin_ * a[1] + cos_ * a[2])
 
   # Store translated coordinate for easy use of exact solution
@@ -61,15 +66,15 @@ sin_ = initial_condition.sin_alpha
 cos_ = initial_condition.cos_alpha
 T = [cos_ -sin_; sin_ cos_]
 
-advectionvelocity = Tuple(T * [1.0, 1.0])
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = Tuple(T * [0.2, -0.7])
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-mapping(xi, eta) = T * SVector(2 * xi, eta)
+mapping(xi, eta) = T * SVector(xi, eta)
 
-cells_per_dimension = (32, 19)
+cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
 mesh = StructuredMesh(cells_per_dimension, mapping)

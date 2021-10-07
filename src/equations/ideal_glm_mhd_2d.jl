@@ -168,38 +168,6 @@ function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
 end
 
 
-"""
-    initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
-
-An MHD blast wave taken from
-- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
-  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
-"""
-function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
-  # setup taken from Derigs et al. DMV article (2018)
-  # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
-  r = sqrt(x[1]^2 + x[2]^2)
-  f = (0.1 - r)/0.01
-  if r <= 0.09
-    p = 1000.0
-  elseif r >= 0.1
-    p = 0.1
-  else
-    p = 0.1 + 999.9*f
-  end
-  rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  v3 = 0.0
-  B1 = 100.0/sqrt(4.0*pi)
-  B2 = 0.0
-  B3 = 0.0
-  psi = 0.0
-  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-end
-
-
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations2D)
 
@@ -602,48 +570,44 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, _ = u_rr
 
-  # Calculate velocities and fast magnetoacoustic wave speeds
-  # left
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll)
+  # Calculate the left/right velocities and fast magnetoacoustic wave speeds
+  if orientation == 1
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+  else # orientation == 2
+    v_ll = rho_v2_ll / rho_ll
+    v_rr = rho_v2_rr / rho_rr
+  end
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
-  # right
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::IdealGlmMhdEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+  # return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  rho_ll, rho_v1_ll, rho_v2_ll, _ = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, _ = u_rr
 
-  norm_squared = (normal_direction[1] * normal_direction[1] +
-                  normal_direction[2] * normal_direction[2])
-
-  # Calculate velocities and fast magnetoacoustic wave speeds
+  # Calculate normal velocities and fast magnetoacoustic wave speeds
   # left
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt((v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll) * norm_squared)
+  v_ll = (  v1_ll * normal_direction[1]
+          + v2_ll * normal_direction[2] )
   cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt((v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr) * norm_squared)
+  v_rr = (  v1_rr * normal_direction[1]
+          + v2_rr * normal_direction[2] )
   cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
 
-  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  # wave speeds already scaled by norm(normal_direction) in [`calc_fast_wavespeed`](@ref)
+  return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 
@@ -807,7 +771,7 @@ end
 end
 
 
-# Convert conservative variables to entropy
+# Convert conservative variables to entropy variables
 @inline function cons2entropy(u, equations::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
@@ -830,6 +794,32 @@ end
   w9 = rho_p * psi
 
   return SVector(w1, w2, w3, w4, w5, w6, w7, w8, w9)
+end
+
+# Convert entropy variables to conservative variables
+@inline function entropy2cons(w, equations::IdealGlmMhdEquations2D)
+  w1, w2, w3, w4, w5, w6, w7, w8, w9 = w
+
+  v1 = - w2 / w5
+  v2 = - w3 / w5
+  v3 = - w4 / w5
+
+  B1 = - w6 / w5
+  B2 = - w7 / w5
+  B3 = - w8 / w5
+  psi = - w9 / w5
+
+  # This imitates what is done for compressible Euler 3D `entropy2cons`: we convert from
+  # the entropy variables for `-rho * s / (gamma - 1)` to the entropy variables for the entropy
+  # `-rho * s` used by Hughes, Franca, Mallet (1986).
+  @unpack gamma = equations
+  V1, V2, V3, V4, V5 = SVector(w1, w2, w3, w4, w5) * (gamma - 1)
+  s = gamma - V1 + (V2^2 + V3^2 + V4^2)/(2*V5)
+  rho_iota = ((gamma-1) / (-V5)^gamma)^(equations.inv_gamma_minus_one)*exp(-s * equations.inv_gamma_minus_one)
+  rho = -rho_iota * V5
+  p = -rho / w5
+
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
 

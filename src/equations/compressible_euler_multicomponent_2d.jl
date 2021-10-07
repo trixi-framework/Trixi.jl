@@ -397,13 +397,13 @@ See also
 
   # Calculating gamma
   gamma               = totalgamma(0.5*(u_ll+u_rr), equations)
-  inv_gamma_minus_one = 1/(gamma-1) 
+  inv_gamma_minus_one = 1/(gamma-1)
 
   # extract velocities
   v1_ll               = rho_v1_ll / rho_ll
   v1_rr               = rho_v1_rr / rho_rr
   v1_avg              = 0.5 * (v1_ll + v1_rr)
-  v2_ll               = rho_v2_ll / rho_ll 
+  v2_ll               = rho_v2_ll / rho_ll
   v2_rr               = rho_v2_rr / rho_rr
   v2_avg              = 0.5 * (v2_ll + v2_rr)
   velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
@@ -423,11 +423,11 @@ See also
   # temperature and pressure
   T_ll            = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
   T_rr            = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
-  p_ll            = T_ll * enth_ll 
+  p_ll            = T_ll * enth_ll
   p_rr            = T_rr * enth_rr
   p_avg           = 0.5 * (p_ll + p_rr)
   inv_rho_p_mean  = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
- 
+
   f_rho_sum = zero(T_rr)
   if orientation == 1
     f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
@@ -459,25 +459,28 @@ end
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
-  # Calculate primitive variables and speed of sound
+  # Get the density and gas gamma
   rho_ll   = density(u_ll, equations)
   rho_rr   = density(u_rr, equations)
   gamma_ll = totalgamma(u_ll, equations)
   gamma_rr = totalgamma(u_rr, equations)
 
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
-  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+  # Get the velocities based on direction
+  if orientation == 1
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+  else # orientation == 2
+    v_ll = rho_v2_ll / rho_ll
+    v_rr = rho_v2_rr / rho_rr
+  end
 
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
-  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  # Compute the sound speeds on the left and right
+  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 

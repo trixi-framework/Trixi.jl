@@ -20,8 +20,8 @@ inf_timing = @snoopi tmin=0.01 begin
   ###############################################################################
   # semidiscretization of the linear advection equation
 
-  advectionvelocity = (1.0, 1.0)
-  equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+  advection_velocity = (1.0, 1.0)
+  equations = LinearScalarAdvectionEquation2D(advection_velocity)
   show(stdout, equations)
   show(stdout, MIME"text/plain"(), equations)
 

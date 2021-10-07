@@ -58,8 +58,8 @@ different features on different mesh types.
 | Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitrary (affine)   |
 | Weak form ([`VolumeIntegralWeakForm`](@ref))                 |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            |
 | Flux differencing ([`VolumeIntegralFluxDifferencing`](@ref)) |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            |
-| Shock capturing ([`VolumeIntegralShockCapturingHG`](@ref))   |          ✅         |             ❌            |               ❌              |          ❌          |               ❌            |
-| Nonconservative equations (e.g., GLM MHD)                    |          ✅         |         partially        |            partially         |          ❌          |               ❌            |
+| Shock capturing ([`VolumeIntegralShockCapturingHG`](@ref))   |          ✅         |         partially        |            partially         |          ❌          |               ❌            |
+| Nonconservative equations (e.g., GLM MHD)                    |          ✅         |         partially        |            partially         |          ❌          |               ✅            |
 
 ᵃ: quad = quadrilateral, hex = hexahedron
 

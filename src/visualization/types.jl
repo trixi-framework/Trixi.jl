@@ -1,3 +1,13 @@
+# Convenience type to allow dispatch on solution objects that were created by Trixi
+#
+# This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
+# TimeIntegratorSolution.
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
+    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
+     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -57,7 +67,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
+struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{2}
   x::Coordinates
   y::Coordinates
   data::Data
@@ -69,10 +79,10 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotDat
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pd::PlotData2D)
+function Base.show(io::IO, pd::PlotData2DCartesian)
   @nospecialize pd # reduce precompilation time
 
-  print(io, "PlotData2D{",
+  print(io, "PlotData2DCartesian{",
             typeof(pd.x), ",",
             typeof(pd.data), ",",
             typeof(pd.variable_names), ",",
@@ -82,22 +92,22 @@ end
 
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
-struct UnstructuredPlotData2D{DataType, FaceDataType, VariableNames, PlottingTriangulation, RealT} <: AbstractPlotData{2}
-  x::Array{RealT, 2} # physical nodal coordinates, size (num_plotting_nodes x num_elements)
-  y::Array{RealT, 2}
+struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType, VariableNames, PlottingTriangulation} <: AbstractPlotData{2}
+  x::NodeType # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::NodeType
   data::DataType
   t::PlottingTriangulation
-  x_face::Array{RealT, 2}
-  y_face::Array{RealT, 2}
+  x_face::FaceNodeType
+  y_face::FaceNodeType
   face_data::FaceDataType
   variable_names::VariableNames
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pd::UnstructuredPlotData2D)
+function Base.show(io::IO, pd::PlotData2DTriangulated)
   @nospecialize pd # reduce precompilation time
 
-  print(io, "UnstructuredPlotData2D{",
+  print(io, "PlotData2DTriangulated{",
             typeof(pd.x), ", ",
             typeof(pd.data), ", ",
             typeof(pd.x_face), ", ",
@@ -172,17 +182,6 @@ Extract grid lines from `pd` for plotting with `Plots.plot`.
 getmesh(pd::AbstractPlotData) = PlotMesh(pd)
 
 
-# Convenience type to allow dispatch on solution objects that were created by Trixi
-#
-# This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
-# TimeIntegratorSolution.
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
-const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
-    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
-     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
-
-
 """
     PlotData2D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing,
@@ -232,10 +231,22 @@ PlotData2D(u_ode, semi; kwargs...) = PlotData2D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 
-function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
-                    solution_variables=nothing,
-                    grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice=:xy, point=(0.0, 0.0, 0.0))
+# Redirect `PlotDataTriangulated2D` constructor.
+PlotData2DTriangulated(u_ode, semi; kwargs...) = PlotData2DTriangulated(wrap_array_native(u_ode, semi),
+                                                                        mesh_equations_solver_cache(semi)...;
+                                                                        kwargs...)
+
+# Create a PlotData2DCartesian object for TreeMeshes on default.
+PlotData2D(u, mesh::TreeMesh, equations, solver, cache; kwargs...) = PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
+
+# Create a PlotData2DTriangulated object for any type of mesh other than the TreeMesh.
+PlotData2D(u, mesh, equations, solver, cache; kwargs...) = PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
+
+# Create a PlotData2DCartesian for a TreeMesh.
+function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
+                             solution_variables=nothing,
+                             grid_lines=true, max_supported_level=11, nvisnodes=nothing,
+                             slice=:xy, point=(0.0, 0.0, 0.0))
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
   solution_variables_ = digest_solution_variables(equations, solution_variables)
 
@@ -257,8 +268,8 @@ function PlotData2D(u, mesh::TreeMesh, equations, solver, cache;
 
   orientation_x, orientation_y = _get_orientations(mesh, slice)
 
-  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
-                    orientation_x, orientation_y)
+  return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y,
+                             orientation_x, orientation_y)
 end
 
 
@@ -273,6 +284,9 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
     This is an experimental feature and may change in future releases.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+
+# Also redirect when using PlotData2DTriangulate.
+PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
 
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
@@ -289,7 +303,7 @@ function PlotData2D(u::Array{<:SVector, 2}, mesh, equations, dg::DGMulti, cache;
                     solution_variables=solution_variables, nvisnodes=nvisnodes)
 end
 
-# constructor which returns an `UnstructuredPlotData2D` object.
+# constructor which returns an `PlotData2DTriangulated` object.
 function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
                     solution_variables=nothing, nvisnodes=2*nnodes(dg))
 
@@ -322,19 +336,15 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   # construct a triangulation of the reference plotting nodes
   t = reference_plotting_triangulation(rd.rstp) # rd.rstp = reference coordinates of plotting points
 
-  x_face, y_face = mesh_plotting_wireframe(rd, md, num_plotting_points=nvisnodes)
+  x_face, y_face, face_data = mesh_plotting_wireframe(u, mesh, equations, dg, cache;
+                                                      nvisnodes=nvisnodes)
 
-  # Set the plotting values of solution on faces to nothing - they're not used for Plots.jl since
-  # only 2D heatmap plots are supported through TriplotBase/TriplotRecipes.
-  face_data = nothing
-
-  return UnstructuredPlotData2D(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
+  return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
 end
 
-# specializes the PlotData2D constructor to return an UnstructuredPlotData2D if the mesh is
-# a non-TreeMesh type.
-function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equations, dg, cache;
-                    solution_variables=nothing, nvisnodes=2*polydeg(dg))
+# specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
+function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
+                                solution_variables=nothing, nvisnodes=2*polydeg(dg))
   @assert ndims(mesh) == 2
 
   n_nodes_2d = nnodes(dg)^ndims(mesh)
@@ -358,16 +368,14 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equation
   # extract x,y coordinates and solutions on each element
   uEltype = eltype(u)
   nvars = nvariables(equations)
-  x, y = ntuple(_->zeros(real(dg), n_nodes_2d, n_elements), 2)
-  u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x), nvars))
+  x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d, n_elements)
+  y = reshape(view(cache.elements.node_coordinates, 2, :, :, :), n_nodes_2d, n_elements)
+  u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x, (n_nodes_2d, n_elements)), nvars))
   for element in eachelement(dg, cache)
     sk = 1
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
-      xy_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
       u_extracted[sk, element] = u_node
-      x[sk, element] = xy_node[1]
-      y[sk, element] = xy_node[2]
       sk += 1
     end
   end
@@ -377,26 +385,7 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equation
   uplot = StructArray{SVector{nvars, uEltype}}(map(x->plotting_interp_matrix*x,
                                                    StructArrays.components(u_extracted)))
 
-  # extract indices of local face nodes for wireframe plotting
-  tol = 100*eps()
-  face_1 = findall(@. abs(s+1) < tol)
-  face_2 = findall(@. abs(r-1) < tol)
-  face_3 = findall(@. abs(s-1) < tol)
-  face_4 = findall(@. abs(r+1) < tol)
-  Fmask = hcat(face_1, face_2, face_3, face_4)
-  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
-
-  # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
-  # The resulting arrays are then reshaped so that xf, yf, sol_f are Matrix types of size
-  # (Number of face plotting nodes) x (Number of faces).
-  function face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
-      num_reference_faces = 2 * ndims(mesh)
-      xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
-      return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
-  end
-  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
-  xfp, yfp = map(reshape_and_interpolate, (x, y))
-  ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate, StructArrays.components(u_extracted)))
+  xfp, yfp, ufp = mesh_plotting_wireframe(u_extracted, mesh, equations, dg, cache; nvisnodes=nvisnodes)
 
   # convert variables based on solution_variables mapping
   solution_variables_ = digest_solution_variables(equations, solution_variables)
@@ -405,7 +394,82 @@ function PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D}, equation
   transform_to_solution_variables!(uplot, solution_variables_, equations)
   transform_to_solution_variables!(ufp, solution_variables_, equations)
 
-  return UnstructuredPlotData2D(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+  return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+end
+
+# Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
+struct ScalarData{T}
+  data::T
+end
+
+ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...) =
+  ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
+
+# Returns an `PlotData2DTriangulated` which is used to visualize a single scalar field
+function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
+                          variable_name=nothing, nvisnodes=2*nnodes(dg))
+
+  rd = dg.basis
+  md = mesh.md
+
+  # Vp = the interpolation matrix from nodal points to plotting points
+  @unpack Vp = rd
+
+  # interpolate nodal coordinates and solution field to plotting points
+  x_plot, y_plot = map(x->Vp * x, md.xyz) # md.xyz is a tuple of arrays containing nodal coordinates
+  u_plot = Vp * u
+
+  # construct a triangulation of the reference plotting nodes
+  t = reference_plotting_triangulation(rd.rstp) # rd.rstp = reference coordinates of plotting points
+
+  # Ignore face data when plotting `ScalarPlotData2D`, since mesh lines can be plotted using
+  # existing functionality based on `PlotData2D(sol)`.
+  x_face, y_face, face_data = mesh_plotting_wireframe(ScalarData(u), mesh, equations, dg, cache;
+                                                      nvisnodes=2*nnodes(dg))
+
+  # wrap solution in ScalarData struct for recipe dispatch
+  return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
+                                x_face, y_face, face_data, variable_name)
+end
+
+function ScalarPlotData2D(u, mesh, equations, dg::DGSEM, cache; variable_name=nothing, nvisnodes=2*nnodes(dg))
+
+  n_nodes_2d = nnodes(dg)^ndims(mesh)
+  n_elements = nelements(dg, cache)
+
+  # build nodes on reference element (seems to be the right ordering)
+  r, s = reference_node_coordinates_2d(dg)
+
+  # reference plotting nodes
+  if nvisnodes == 0 || nvisnodes === nothing
+    nvisnodes = polydeg(dg) + 1
+  end
+  plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+
+  # create triangulation for plotting nodes
+  r_plot, s_plot = (x->plotting_interp_matrix*x).((r, s)) # interpolate dg nodes to plotting nodes
+
+  # construct a triangulation of the plotting nodes
+  t = reference_plotting_triangulation((r_plot, s_plot))
+
+  # extract x,y coordinates and reshape them into matrices of size (n_nodes_2d, n_elements)
+  x = view(cache.elements.node_coordinates, 1, :, :, :)
+  y = view(cache.elements.node_coordinates, 2, :, :, :)
+  x, y = reshape.((x, y), n_nodes_2d, n_elements)
+
+  # interpolate to volume plotting points by multiplying each column by `plotting_interp_matrix`
+  x_plot, y_plot = plotting_interp_matrix * x, plotting_interp_matrix * y
+  u_plot = plotting_interp_matrix * reshape(u, size(x))
+
+  # Ignore face data when plotting `ScalarPlotData2D`, since mesh lines can be plotted using
+  # existing functionality based on `PlotData2D(sol)`.
+  x_face, y_face, face_data = mesh_plotting_wireframe(ScalarData(u), mesh, equations, dg, cache;
+                                                      nvisnodes=2*nnodes(dg))
+
+
+  # wrap solution in ScalarData struct for recipe dispatch
+  return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
+                                x_face, y_face, face_data, variable_name)
 end
 
 
