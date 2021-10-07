@@ -11,10 +11,7 @@ equations = IdealGlmMhdMulticomponentEquations2D(gammas        = (1.4, 1.4),
 """
     initial_condition_rotor(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
 
-The classical MHD rotor test case adapted to twocomponent. Here, the setup is taken from
-- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
-  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+The classical MHD rotor test case adapted to two density components.
 """
 function initial_condition_rotor(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
   # setup taken from Derigs et al. DMV article (2018)
