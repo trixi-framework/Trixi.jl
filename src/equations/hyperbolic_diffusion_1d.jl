@@ -107,34 +107,11 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
   return flux
 end
 
-"""
-    initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
-
-A non-priodic harmonic function used in combination with
-[`source_terms_poisson_nonperiodic`](@ref) and [`boundary_condition_poisson_nonperiodic`](@ref).
-!!! note
-    The only harmonic functions in 1D have the form phi(x) = A + Bx
-"""
-function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
-  # elliptic equation: -νΔϕ = f
-  if t == 0.0
-    phi = 5.0
-    q1  = 0.0
-  else
-    A = 3
-    B = exp(1)
-    phi = A + B * x[1]
-    q1  = B
-  end
-  return SVector(phi, q1)
-end
 
 """
     source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
 
-Source term that only includes the forcing from the hyperbolic diffusion system
-used with [`initial_condition_harmonic_nonperiodic`](@ref) and
-[`BoundaryConditionDirichlet(initial_condition_harmonic_nonperiodic)`](@ref).
+Source term that only includes the forcing from the hyperbolic diffusion system.
 """
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
   # harmonic solution of the form ϕ = A + B * x, so f = 0

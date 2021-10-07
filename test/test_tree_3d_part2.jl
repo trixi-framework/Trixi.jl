@@ -36,10 +36,6 @@ end
   @trixi_testset "hyperbolic diffusion" begin
     @test_nowarn HyperbolicDiffusionEquations3D(nu=1.0)
     eqn = HyperbolicDiffusionEquations3D(nu=1.0)
-
-    @test isapprox(initial_condition_sedov_self_gravity(collect(1:3), 4.5, eqn), zeros(4))
-    @test isapprox(boundary_condition_sedov_self_gravity(collect(1:4), 1, 1, collect(11:13), 2.3, flux_central, eqn), [-1.0, -19.739208802178712, 0.0, 0.0])
-    @test isapprox(boundary_condition_sedov_self_gravity(collect(1:4), 2, 2, collect(11:13), 4.5, flux_central, eqn), [-1.5, 0.0, -19.739208802178712, 0.0])
   end
 end
 

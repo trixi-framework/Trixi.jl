@@ -269,6 +269,28 @@ sponge_layer_acoustics = VortexPairSetup.SpongeLayer(sponge_layer_min=(-135*r0, 
                                                      sponge_layer_max=(-100*r0, 135*r0, -100*r0, 135*r0),
                                                      reference_values=(0.0,))
 
+"""
+    boundary_condition_zero(u_inner, orientation, direction, x, t, surface_flux_function,
+                            equations::AcousticPerturbationEquations2D)
+
+Boundary condition that uses a boundary state where the state variables are zero and the mean
+variables are the same as in `u_inner`.
+"""
+function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_flux_function,
+                                 equations::AcousticPerturbationEquations2D)
+  value = zero(eltype(u_inner))
+  u_boundary = SVector(value, value, value, cons2mean(u_inner, equations)...)
+
+  # Calculate boundary flux
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
+
 semi_acoustics = SemidiscretizationHyperbolic(mesh, equations_acoustics, initial_condition_constant,
                                               solver, boundary_conditions=boundary_condition_zero,
                                               source_terms=sponge_layer_acoustics)

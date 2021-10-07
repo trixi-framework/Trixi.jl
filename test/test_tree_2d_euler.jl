@@ -243,30 +243,6 @@ end
 
 # Coverage test for all initial conditions
 @testset "Compressible Euler: Tests for initial conditions" begin
-  @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_density_pulse" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
-      l2   = [0.0034896883781420263, 0.0034896883781420245, 0.003489688378142025, 0.0034896883781420345],
-      linf = [0.04763147976015558, 0.04763147976015536, 0.04763147976015558, 0.04763147976015514],
-      maxiters = 1,
-      initial_condition = initial_condition_density_pulse)
-  end
-
-  @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_pressure_pulse" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
-      l2   = [0.00021747926167733352, 0.002201047574822531, 0.0022010475748225305, 0.010855330793503795],
-      linf = [0.005450371783679131, 0.031279706118324424, 0.031279706118324535, 0.14847506763666196],
-      maxiters = 1,
-      initial_condition = Trixi.initial_condition_pressure_pulse)
-  end
-
-  @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_density_pressure_pulse" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
-      l2   = [0.0034736657511653182, 0.005490934309849779, 0.005490934309849781, 0.015625174846479427],
-      linf = [0.04658987593455355, 0.07335595216951218, 0.07335595216951196, 0.21083755091992007],
-      maxiters = 1,
-      initial_condition = Trixi.initial_condition_density_pressure_pulse)
-  end
-
   @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
       l2   = [1.1790213022362371e-16, 8.580657423476384e-17, 1.3082387431804115e-16, 1.6182739965672862e-15],
@@ -280,13 +256,6 @@ end
       l2   = [0.0021196114178949396, 0.010703549234544042, 0.01070354923454404, 0.10719124037195142],
       linf = [0.11987270645890724, 0.7468615461136827, 0.7468615461136827, 3.910689155287799],
       maxiters=1)
-  end
-
-  @trixi_testset "elixir_euler_sedov_blast_wave.jl one step with initial_condition_medium_sedov_blast_wave" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
-      l2   = [0.00211844592093308, 0.01069763196354363, 0.01069763196354363, 0.1071519081170261],
-      linf = [0.11981344588212117, 0.7464822093541509, 0.7464822093541509, 3.9091850198658853],
-      maxiters=1, initial_condition=initial_condition_medium_sedov_blast_wave)
   end
 end
 
