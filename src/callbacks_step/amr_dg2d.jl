@@ -7,10 +7,12 @@
 
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
-                            dg::DGSEM, cache, old_mpi_ranks_per_cell)
+                           dg::DGSEM, cache, old_mpi_ranks_per_cell)
   if cache.elements.cell_ids == local_leaf_cells(mesh.tree)
     # Cell ids of the current elements are the same as the local leaf cells of the
     # newly partitioned mesh, so the solver doesn't need to be rebalanced on this rank.
+    # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+    reinitialize_containers!(mesh, equations, dg, cache)
     return
   end
 
@@ -74,6 +76,10 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
                  equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
   if isempty(elements_to_refine)
+    if mpi_isparallel()
+      # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      reinitialize_containers!(mesh, equations, dg, cache)
+    end
     return
   end
 
@@ -193,6 +199,10 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4est
                   equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
   if isempty(elements_to_remove)
+    if mpi_isparallel()
+      # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      reinitialize_containers!(mesh, equations, dg, cache)
+    end
     return
   end
 

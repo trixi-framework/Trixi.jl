@@ -37,6 +37,18 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.008446655719187679])
   end
 
+  @trixi_testset "elixir_advection_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
+      l2   = [4.913300828257469e-5],
+      linf = [0.00045263895394385967])
+  end
+
+  @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
+      l2   = [3.2207388565869075e-5],
+      linf = [0.0007508059772436404])
+  end
+
   # Linear scalar advection with AMR
   # These example files are only for testing purposes and have no practical use
   @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
@@ -125,6 +137,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
       l2   = [2.110390460364181e-6, 2.7230027429598542e-5, 3.657273339760332e-5, 8.735519818394382e-5],
       linf = [5.9743882399154735e-5, 0.000731856753784843, 0.0007915976735435315, 0.0022215051634404404])
+  end
+
+  @trixi_testset "elixir_euler_vortex_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
+      l2   = [2.120552206480055e-6, 0.003281541473561042, 0.003280625257336616, 0.004645872821313438],
+      linf = [4.500266027052113e-5, 0.031765399304366726, 0.03179340562764421, 0.04563622772500864])
   end
 
   @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
