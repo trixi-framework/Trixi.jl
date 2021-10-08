@@ -21,6 +21,87 @@ function create_cache(mesh::P4estMesh{3}, equations, mortar_l2::LobattoLegendreM
 end
 
 
+function rhs!(du, u, t,
+              mesh::P4estMesh{3}, equations,
+              initial_condition, boundary_conditions, source_terms, steady_state,
+              dg::DG, cache)
+  # Reset du
+  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+
+  # Calculate volume integral
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
+
+  # Prolong solution to interfaces
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, mesh, equations, dg.surface_integral, dg)
+
+  # Calculate interface fluxes
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.surface_integral, dg, cache)
+
+  # Prolong solution to boundaries
+  @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
+    cache, u, mesh, equations, dg.surface_integral, dg)
+
+  # Calculate boundary fluxes
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg.surface_integral, dg)
+
+  # Prolong solution to mortars
+  @trixi_timeit timer() "prolong2mortars" prolong2mortars!(
+    cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+
+  # Calculate mortar fluxes
+  @trixi_timeit timer() "mortar flux" calc_mortar_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.mortar, dg.surface_integral, dg, cache)
+
+  # Calculate surface integrals
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
+    du, u, mesh, equations, dg.surface_integral, dg, cache)
+
+  # Apply Jacobian from mapping to reference element
+  @trixi_timeit timer() "Jacobian" apply_jacobian!(
+    du, mesh, equations, dg, cache)
+
+  # Calculate source terms
+  @trixi_timeit timer() "source terms" calc_sources!(
+    du, u, t, source_terms, equations, dg, cache)
+
+  @trixi_timeit timer() "rhs correction" rhs_correction!(
+    du, steady_state, equations, dg, cache)
+
+  return nothing
+end
+
+
+function rhs_correction!(du, steady_state::Nothing,
+                         equations::AbstractEquations{3}, dg::DG, cache)
+  return nothing
+end
+
+function rhs_correction!(du, steady_state,
+                         equations::AbstractEquations{3}, dg::DG, cache)
+  @unpack rhs_correction = cache.elements
+
+  @threaded for element in eachelement(dg, cache)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+      for v in eachvariable(equations)
+        du[v, i, j, k, element] -= rhs_correction[v, i, j, k, element]
+      end
+    end
+  end
+
+  return du
+end
+
+
 #     index_to_start_step_3d(index::Symbol, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),

@@ -422,6 +422,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     mesh.unsaved_changes = true
 
     reinitialize_boundaries!(semi.boundary_conditions, cache)
+    init_rhs_correction!(semi, semi.steady_state)
   end
 
   # Return true if there were any cells coarsened or refined, otherwise false

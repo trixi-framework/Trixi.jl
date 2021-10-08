@@ -12,7 +12,7 @@ A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
 struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions,
-                                    SourceTerms, Solver, Cache} <: AbstractSemidiscretization
+                                    SourceTerms, SteadyState, Solver, Cache} <: AbstractSemidiscretization
 
   mesh::Mesh
   equations::Equations
@@ -23,20 +23,21 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryC
 
   boundary_conditions::BoundaryConditions
   source_terms::SourceTerms
+  steady_state::SteadyState
   solver::Solver
   cache::Cache
   performance_counter::PerformanceCounter
 
-  function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}(
+  function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, SteadyState, Solver, Cache}(
       mesh::Mesh, equations::Equations,
       initial_condition::InitialCondition, boundary_conditions::BoundaryConditions,
-      source_terms::SourceTerms,
-      solver::Solver, cache::Cache) where {Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}
+      source_terms::SourceTerms, steady_state::SteadyState,
+      solver::Solver, cache::Cache) where {Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, SteadyState, Solver, Cache}
     @assert ndims(mesh) == ndims(equations)
 
     performance_counter = PerformanceCounter()
 
-    new(mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache, performance_counter)
+    new(mesh, equations, initial_condition, boundary_conditions, source_terms, steady_state, solver, cache, performance_counter)
   end
 end
 
@@ -53,6 +54,7 @@ Construct a semidiscretization of a hyperbolic PDE.
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms=nothing,
                                       boundary_conditions=boundary_condition_periodic,
+                                      steady_state=nothing,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT=real(solver), uEltype=RealT,
@@ -61,9 +63,28 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
   cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
   _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
 
-  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
-    mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
+  semi = SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(steady_state), typeof(solver), typeof(cache)}(
+    mesh, equations, initial_condition, _boundary_conditions, source_terms, steady_state, solver, cache)
+
+  init_rhs_correction!(semi, semi.steady_state)
+
+  return semi
 end
+
+
+function init_rhs_correction!(semi, steady_state)
+  @unpack mesh, equations, steady_state, boundary_conditions, source_terms, solver, cache = semi
+  @unpack rhs_correction = cache.elements
+
+  u_ode = compute_coefficients(steady_state, 0.0, semi)
+  u  = wrap_array(u_ode,  mesh, equations, solver, cache)
+
+  rhs!(rhs_correction, u, 0.0, mesh, equations, steady_state, boundary_conditions, 
+       source_terms, nothing, solver, cache)
+end
+
+
+@inline function init_rhs_correction!(semi, steady_state::Nothing) end
 
 
 # Create a new semidiscretization but change some parameters compared to the input.
@@ -287,14 +308,14 @@ end
 
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
-  @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+  @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, steady_state, solver, cache = semi
 
   u  = wrap_array(u_ode,  mesh, equations, solver, cache)
   du = wrap_array(du_ode, mesh, equations, solver, cache)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
+  @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, steady_state, solver, cache)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 

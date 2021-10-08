@@ -17,6 +17,8 @@ mutable struct P4estElementContainer{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1,
   inverse_jacobian      ::Array{RealT, NDIMSP1}   # [node_i, node_j, node_k, element]
   # Buffer for calculated surface flux
   surface_flux_values   ::Array{uEltype, NDIMSP2} # [variable, i, j, direction, element]
+  # Correction terms to well-balance source terms
+  rhs_correction        ::Array{uEltype, NDIMSP2}
 
   # internal `resize!`able storage
   _node_coordinates     ::Vector{RealT}
@@ -24,6 +26,7 @@ mutable struct P4estElementContainer{NDIMS, RealT<:Real, uEltype<:Real, NDIMSP1,
   _contravariant_vectors::Vector{RealT}
   _inverse_jacobian     ::Vector{RealT}
   _surface_flux_values  ::Vector{uEltype}
+  _rhs_correction       ::Vector{uEltype}
 end
 
 @inline nelements(elements::P4estElementContainer) = size(elements.node_coordinates, ndims(elements) + 2)
@@ -37,7 +40,7 @@ end
 # internal storage.
 function Base.resize!(elements::P4estElementContainer, capacity)
   @unpack _node_coordinates, _jacobian_matrix, _contravariant_vectors,
-    _inverse_jacobian, _surface_flux_values = elements
+    _inverse_jacobian, _surface_flux_values, _rhs_correction = elements
 
   n_dims = ndims(elements)
   n_nodes = size(elements.node_coordinates, 2)
@@ -63,6 +66,11 @@ function Base.resize!(elements::P4estElementContainer, capacity)
     n_variables * n_nodes^(n_dims-1) * (n_dims*2) * capacity)
   elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
     (n_variables, ntuple(_ -> n_nodes, n_dims-1)..., n_dims*2, capacity))
+
+  resize!(_rhs_correction,
+    n_variables * n_nodes^n_dims * capacity)
+  elements.rhs_correction = unsafe_wrap(Array, pointer(_rhs_correction),
+    (n_variables, ntuple(_ -> n_nodes, n_dims)..., capacity))
 
   return nothing
 end
@@ -93,12 +101,17 @@ function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
     nvariables(equations) * nnodes(basis)^(NDIMS-1) * (NDIMS*2) * nelements)
   surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
     (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., NDIMS*2, nelements))
+  
+  _rhs_correction = Vector{uEltype}(undef,
+    nvariables(equations) * nnodes(basis)^NDIMS * nelements)
+  rhs_correction = unsafe_wrap(Array, pointer(_rhs_correction),
+    (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
 
   elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMS+1, NDIMS+2, NDIMS+3}(
     node_coordinates, jacobian_matrix, contravariant_vectors,
-    inverse_jacobian, surface_flux_values,
+    inverse_jacobian, surface_flux_values, rhs_correction,
     _node_coordinates, _jacobian_matrix, _contravariant_vectors,
-    _inverse_jacobian, _surface_flux_values)
+    _inverse_jacobian, _surface_flux_values, _rhs_correction)
 
   init_elements!(elements, mesh, basis)
   return elements
