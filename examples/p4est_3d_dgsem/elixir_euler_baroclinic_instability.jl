@@ -183,7 +183,8 @@ mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_baroclinic_instability,
-                                    boundary_conditions=boundary_conditions)
+                                    boundary_conditions=boundary_conditions,
+                                    steady_state=steady_state_baroclinic_instability)
 
 
 ###############################################################################
