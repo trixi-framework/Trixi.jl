@@ -25,8 +25,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     
     # Generate notebook file
     function preprocess_notebook(content)
-        warning = "# !!! warning 'Cached notebooks'\n
-        # For a faster start the notebook files are cached once a week. So, please be aware of some small differences.\n\n"
+        warning = "# **WARNING: The notebook files are cached once a week. Please be aware of possible changes.**\n\n"
         return string("# # $title\n\n", warning, content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
