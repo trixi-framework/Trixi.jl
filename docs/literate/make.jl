@@ -13,8 +13,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     nbviewer_logo = "https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg"
     download_logo = "https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e"
 
-    # TODO: tutorials. Caching notebooks in separate branch in the future.
-    branch = "gh-pages"
+    branch = "tutorial_notebooks"
     notebook_path = "dev/tutorials/notebooks/$notebook_filename"
     binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/$branch?filepath=$notebook_path"
     nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/$branch/$notebook_path"
@@ -26,7 +25,9 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     
     # Generate notebook file
     function preprocess_notebook(content)
-        return string("# # $title\n\n", content)
+        warning = "# !!! warning 'Cached notebooks'\n
+        # For a faster start the notebook files are cached once a week. So, please be aware of some small differences.\n\n"
+        return string("# # $title\n\n", warning, content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
 
