@@ -13,11 +13,10 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     nbviewer_logo = "https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg"
     download_logo = "https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e"
 
-    branch = "tutorial_notebooks"
     notebook_path = "dev/tutorials/notebooks/$notebook_filename"
-    binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/$branch?filepath=$notebook_path"
-    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/$branch/$notebook_path"
-    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/$branch/$notebook_path"
+    binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
+    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/gh-pages/$notebook_path"
+    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/gh-pages/$notebook_path"
 
     binder_badge   = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
@@ -25,7 +24,9 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     
     # Generate notebook file
     function preprocess_notebook(content)
-        warning = "# **WARNING: The notebook files are cached once a week. Please be aware of possible changes.**\n\n"
+        warning = "# **Note:** To improve responsiveness via caching the notebooks on `Binder` are updated only once a week. They are only
+        # available for the latest stable release of Trixi at the time of caching. The notebooks in `nbviewer` and the downloaded versions
+        # are always up-to-date with the latest stable release of Trixi.\n\n"
         return string("# # $title\n\n", warning, content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
