@@ -5,7 +5,7 @@
 
 # Right now, you are using the classic documentation. The corresponding interactive notebooks can
 # be opened in [Binder](https://mybinder.org/) via ![](https://mybinder.org/badge_logo.svg) in the respective tutorial.
-# **Note:** To improve responsiveness via caching the notebooks on `Binder` are updated only once a week. They are only
+# **Note:** To improve responsiveness via caching, the notebooks on `Binder` are updated only once a week. They are only
 # available for the latest stable release of Trixi at the time of caching.
 
 # The notebooks for the latest stable version of Trixi can always be viewed in [nbviewer](https://nbviewer.jupyter.org/)
