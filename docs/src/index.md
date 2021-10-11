@@ -39,6 +39,7 @@ installation and postprocessing procedures. Its features include:
 * Shared-memory parallelization via multithreading
 * Visualization and postprocessing of the results
   * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+  * Interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
   * Postprocessing with ParaView/VisIt via [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
 
 

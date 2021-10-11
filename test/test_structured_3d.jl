@@ -16,13 +16,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
-      l2   = [0.00016263963870641478], 
+      l2   = [0.00016263963870641478],
       linf = [0.0014537194925779984])
   end
 
   @trixi_testset "elixir_advection_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream.jl"),
-      l2   = [1.2908196366970896e-14], 
+      l2   = [1.2908196366970896e-14],
       linf = [1.0262901639634947e-12],
       atol = 8e-13, # required to make tests pass on Windows
       )
@@ -36,7 +36,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [0.0025903889347585777], 
+      l2   = [0.0025903889347585777],
       linf = [0.018407576968841655])
   end
 
@@ -110,6 +110,17 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.021311996934554767, 0.03154849824135775, 0.020996033645485412, 0.03403185137382961,
               0.019488952445771597],
       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell))
+  end
+
+  @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
+      l2   = [0.009352631220872144, 0.008058649103542618, 0.008027041293333663, 0.008071417851552725,
+              0.034909149665869485, 0.00393019428600812, 0.0039219074393817, 0.003906321245184237,
+              4.197255300781248e-5],
+      linf = [0.30749098250807516, 0.2679008863509767, 0.271243087484388, 0.26545396569129537,
+              0.9620950892188596, 0.18163281157498123, 0.15995708312378454, 0.17918221526906408,
+              0.015138346608166353],
+      tspan = (0.0, 0.25))
   end
 end
 
