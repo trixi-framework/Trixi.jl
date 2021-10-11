@@ -110,13 +110,9 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1000,
-                                     save_initial_solution=true,
-                                     save_final_solution=true)
-
 stepsize_callback = StepsizeCallback(cfl=3.0)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
 
 ###############################################################################
