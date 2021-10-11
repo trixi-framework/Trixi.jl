@@ -691,6 +691,18 @@ end
 end
 
 
+@inline function pressure(u, equations::ShallowWaterEquations2D)
+  h = waterheight(u, equations)
+  p = 0.5 * equations.gravity * h^2
+  return p
+end
+
+
+@inline function waterheight_pressure(u, equations::ShallowWaterEquations2D)
+  return waterheight(u, equations) * pressure(u, equations)
+end
+
+
 # Entropy function for the shallow water equations is the total energy
 @inline entropy(cons, equations::ShallowWaterEquations2D) = energy_total(cons, equations)
 
