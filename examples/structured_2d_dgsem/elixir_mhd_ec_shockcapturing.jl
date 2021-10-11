@@ -68,7 +68,6 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-#                        amr_callback,
                         stepsize_callback,
                         glm_speed_callback)
 

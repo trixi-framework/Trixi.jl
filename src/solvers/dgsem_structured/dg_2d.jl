@@ -273,7 +273,7 @@ end
       u_ll = get_node_vars(u, equations, dg, i-1, j, element)
       u_rr = get_node_vars(u, equations, dg, i,   j, element)
 
-      for m in 1:nnodes(dg)
+      for m in eachnode(dg)
         normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, element)
       end
 
@@ -306,7 +306,7 @@ end
       u_ll = get_node_vars(u, equations, dg, i, j-1, element)
       u_rr = get_node_vars(u, equations, dg, i, j,   element)
 
-      for m in 1:nnodes(dg)
+      for m in eachnode(dg)
         normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, element)
       end
 
