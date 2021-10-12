@@ -9,7 +9,7 @@ using Trixi
 
 # initial_condition = initial_condition_rotor
 
-# surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+# surface_flux = (flux_hll, flux_nonconservative_powell)
 # volume_flux  = (flux_hindenlang_gassner, flux_nonconservative_powell)
 # polydeg = 4
 # basis = LobattoLegendreBasis(polydeg)
