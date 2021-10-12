@@ -43,9 +43,13 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservativ
 #   return SVector(x, y)
 # end
 
+<<<<<<< Updated upstream
 # Unstructured mesh with 16 cells of the square domain [0, 1]^2
 
 coordinates_min = (0.0, 0.0)
+=======
+coordinates_min = (0.0      , 0.0      )
+>>>>>>> Stashed changes
 coordinates_max = (sqrt(2.0), sqrt(2.0))
 
 trees_per_dimension = (8, 8)
