@@ -28,8 +28,8 @@ jobs:
             git fetch origin
             git checkout tutorial_notebooks_new
             git checkout origin/main -- docs/Project.toml
-            cp docs/Project.toml Project.toml
-            ls docs
+            mv docs/Project.toml Project.toml
+            rmdir docs/
             sed -i '1 a Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"' Project.toml
             cat Project.toml
             git checkout origin/gh-pages -- dev/tutorials/notebooks/
