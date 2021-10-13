@@ -755,7 +755,13 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 end
 
 # Convert a PlotData2DTriangulate object to a 1d data along given curve.
-function unstructured_2d_to_1d_curve(pd, input_curve)
+function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
+
+  # If no curve is defined, create a axis curve.
+  if input_curve == nothing
+    input_curve = axis_curve(pd, slice, point)
+    println(input_curve)
+  end
 
   @assert size(input_curve, 1) == 2 "Input 'curve' must be 2xn dimensional."
 
@@ -1381,11 +1387,7 @@ function isOnSameSide(point, x, y, z)
     else
         a = (y[2]-x[2])/(y[1]-x[1])
         b = x[2]-a*x[1]
-        if (z[2]-a*z[1]-b)*(point[2]-a*point[1]-b) >= 0
-            return true
-        else
-            return false
-        end
+        return (z[2]-a*z[1]-b)*(point[2]-a*point[1]-b) >= 0
     end
 end
 
@@ -1413,6 +1415,24 @@ function triangle_interpolation(cooridnates_in, values_in, cooridnate_out)
     A = hcat(cooridnates_in, ones(3))
     c = A\values_in
     return c[1]*cooridnate_out[1]+c[2]*cooridnate_out[2]+c[3]
+end
+
+# Create an axis.
+function axis_curve(pd, slice, point; n_points=1000)
+  curve = zeros(2, n_points)
+  if slice == :x
+    min = minimum(pd.x)
+    max = maximum(pd.x)
+    curve[1, :] = collect(range(min, max, length = n_points))
+    curve[2, :] .= point[2]
+  elseif slice == :y
+    min = minimum(pd.y)
+    max = maximum(pd.y)
+    curve[1, :] .= point[1]
+    curve[2, :] = collect(range(min, max, length = n_points))
+  end
+
+  return curve
 end
 
 end # @muladd

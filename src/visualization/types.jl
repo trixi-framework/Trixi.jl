@@ -534,9 +534,8 @@ function PlotData1D(u, mesh, equations, solver, cache;
       end
     end
   else # mesh is not a TreeMesh
-    @assert curve != nothing "When slicing a non-TreeMesh, the attribute 'curve' is needed as an input."
     pd = PlotData2DTriangulated(u, mesh, equations, solver, cache; solution_variables, nvisnodes)
-    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve)
+    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point)
   end
 
   return PlotData1D(x, data, variable_names, mesh_vertices_x,
