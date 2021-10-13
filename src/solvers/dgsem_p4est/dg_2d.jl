@@ -284,8 +284,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-  @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
-  @unpack surface_flux = surface_integral
+  @unpack surface_flux_values = cache.elements
   index_range = eachnode(dg)
 
   @threaded for local_index in eachindex(boundary_indexing)
@@ -303,26 +302,84 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
 
     i_node = i_node_start
     j_node = j_node_start
-    for i in eachnode(dg)
-      # Extract solution data from boundary container
-      u_inner = get_node_vars(boundaries.u, equations, dg, i, boundary)
-
-      # Outward-pointing normal direction (not normalized)
-      normal_direction = get_normal_direction(direction, contravariant_vectors, i_node, j_node, element)
-
-      # Coordinates at boundary node
-      x = get_node_coords(node_coordinates, equations, dg, i_node, j_node, element)
-
-      flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
-
-      # Copy flux to element storage in the correct orientation
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, direction, element] = flux_[v]
-      end
+    for node in eachnode(dg)
+      calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                          mesh, have_nonconservative_terms(equations),
+                          equations, surface_integral, dg, cache,
+                          i_node, j_node,
+                          node, direction, element, boundary)
 
       i_node += i_node_step
       j_node += j_node_step
     end
+  end
+end
+
+
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::P4estMesh{2},
+                                     nonconservative_terms::Val{false}, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index, boundary_index)
+  @unpack boundaries = cache
+  @unpack node_coordinates, contravariant_vectors = cache.elements
+  @unpack surface_flux = surface_integral
+
+  # Extract solution data from boundary container
+  u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+  # Outward-pointing normal direction (not normalized)
+  normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                          i_index, j_index, element_index)
+
+  # Coordinates at boundary node
+  x = get_node_coords(node_coordinates, equations, dg, i_index, j_index, element_index)
+
+  flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+  # Copy flux to element storage in the correct orientation
+  for v in eachvariable(equations)
+    surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+  end
+end
+
+# inlined version of the boundary flux with nonconservative terms calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::P4estMesh{2},
+                                     nonconservative_terms::Val{true}, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index, boundary_index)
+  @unpack boundaries = cache
+  @unpack node_coordinates, contravariant_vectors = cache.elements
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+  # Extract solution data from boundary container
+  u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+  # Outward-pointing normal direction (not normalized)
+  normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                          i_index, j_index, element_index)
+
+  # Coordinates at boundary node
+  x = get_node_coords(node_coordinates, equations, dg, i_index, j_index, element_index)
+
+  # Call pointwise numerical flux function for the conservative part
+  # in the normal direction on the boundary
+  flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+  # Compute pointwise nonconservative numerical flux at the boundary.
+  # Note: This does not set any type of boundary condition for the nonconservative term
+  noncons_ = nonconservative_flux(u_inner, u_inner, normal_direction, normal_direction, equations)
+
+  # Copy flux to element storage in the correct orientation
+  for v in eachvariable(equations)
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    surface_flux_values[v, node_index, direction_index, element_index] = flux_[v] + 0.5 * noncons_[v]
   end
 end
 
@@ -486,16 +543,18 @@ function calc_mortar_flux!(surface_flux_values,
         normal_direction = get_normal_direction(small_direction, contravariant_vectors,
                                                 i_small, j_small, element)
 
+        # Compute conservative flux
         flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
         # Copy flux to buffer
         set_node_vars!(fstar[position], flux_, equations, dg, i)
 
-        if position == 1
-          noncons_ = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
-        else # position == 2
-          noncons_ = nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
-        end
+        # Compute nonconservative flux
+        noncons_ = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+
+        # Add nonconservative flux to buffer scaled by a factor of 0.5 based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
         multiply_add_to_node_vars!(fstar[position], 0.5, noncons_, equations, dg, i)
 
         i_small += i_small_step
