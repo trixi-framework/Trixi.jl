@@ -102,29 +102,19 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      if mesh != "DGMulti" && mesh != "P4estMesh"
+      if mesh != "DGMulti"
         @testset "Create 1D plot as slice" begin
           @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
           pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
           @test_nowarn_debug Plots.plot(pd1D)
-        end
-      elseif mesh == "P4estMesh"
-        @testset "Create 1D plot as slice" begin
-          # Plot along slice axis is broken for unstructured meshes.
-          # See https://github.com/trixi-framework/Trixi.jl/issues/893
-          @test_broken PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
-          @test_broken pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
-          @test_broken Plots.plot(pd1D)
-        end
-      end
 
-      if mesh == "TreeMesh"
-        @testset "Create 1D plot along curve" begin
-          curve = zeros(2,10)
-          curve[1,:] = range(-1,-0.5,length=10)
-          @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
-          pd1D = PlotData1D(sol, curve=curve)
-          @test_nowarn_debug Plots.plot(pd1D)
+          @testset "Create 1D plot along curve" begin
+            curve = zeros(2,10)
+            curve[1,:] = range(-1,-0.5,length=10)
+            @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+            pd1D = PlotData1D(sol, curve=curve)
+            @test_nowarn_debug Plots.plot(pd1D)
+          end
         end
       end
     end
