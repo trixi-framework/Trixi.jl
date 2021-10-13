@@ -760,7 +760,6 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
   # If no curve is defined, create a axis curve.
   if input_curve == nothing
     input_curve = axis_curve(pd, slice, point)
-    println(input_curve)
   end
 
   @assert size(input_curve, 1) == 2 "Input 'curve' must be 2xn dimensional."
