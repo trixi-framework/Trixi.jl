@@ -514,23 +514,29 @@ function PlotData1D(u, mesh, equations, solver, cache;
   original_nodes = cache.elements.node_coordinates
   unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
 
-  if ndims(mesh) == 1
-    x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
-    orientation_x = 1
-  elseif ndims(mesh) == 2
-    if curve != nothing
-      x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
-    else
-      x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+  orientation_x = 0 # Set 'orientation' to zero on default.
+
+  if get_name(mesh) == "TreeMesh"
+    if ndims(mesh) == 1
+      x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
+      orientation_x = 1
+    elseif ndims(mesh) == 2
+      if curve != nothing
+        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+      else
+        x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+      end
+    else # ndims(mesh) == 3
+      if curve != nothing
+        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+      else
+        x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+      end
     end
-    orientation_x = 0
-  else # ndims(mesh) == 3
-    if curve != nothing
-      x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
-    else
-      x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
-    end
-    orientation_x = 0
+  else # mesh is not a TreeMesh
+    @assert curve != nothing "When slicing a non-TreeMesh, the attribute 'curve' is needed as an input."
+    pd = PlotData2DTriangulated(u, mesh, equations, solver, cache; solution_variables, nvisnodes)
+    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve)
   end
 
   return PlotData1D(x, data, variable_names, mesh_vertices_x,
