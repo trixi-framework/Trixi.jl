@@ -161,7 +161,7 @@ end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    element, mesh::StructuredMesh{3},
+                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
