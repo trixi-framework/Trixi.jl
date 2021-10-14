@@ -758,7 +758,7 @@ end
 function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
 
   # If no curve is defined, create a axis curve.
-  if input_curve == nothing
+  if input_curve === nothing
     input_curve = axis_curve(pd, slice, point)
   end
 
