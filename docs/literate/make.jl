@@ -63,9 +63,9 @@ function create_tutorials(files)
     end
 
     # Generate markdown file for introduction page
-    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate")
+    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction")
     # Navigation system for makedocs
-    pages = Any["Introduction" => "tutorials/introduction_literate.md",]
+    pages = Any["Introduction" => "tutorials/introduction.md",]
 
     # Create markdown and notebook files for tutorials
     for (i, (title, filename)) in enumerate(files)
