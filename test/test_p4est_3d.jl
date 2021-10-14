@@ -95,8 +95,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.3))
   end
 
-  @trixi_testset "elixir_mhd_alfven_wave_mortar.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_mortar.jl"),
+  @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_nonconforming.jl"),
       l2   = [0.00019018725889431733, 0.0006523517707148006, 0.0002401595437705759, 0.0007796920661427565,
               0.0007095787460334334, 0.0006558819731628876, 0.0003565026134076906, 0.0007904654548841712,
               9.437300326448332e-7],
@@ -104,6 +104,17 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.004626581522263695, 0.006614624811393632, 0.0030068344747734566, 0.008277825749754025,
               1.3475027166309006e-5],
       tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_mhd_shockcapturing_nonconforming.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_nonconforming.jl"),
+      l2   = [0.006298541670176575, 0.0064368506652601265, 0.007108729762852636, 0.006530420607206385,
+              0.02061185869237284, 0.005562033787605515, 0.007571716276627825, 0.005571862660453231,
+              3.909755063709152e-6],
+      linf = [0.20904054009050665, 0.18622917151105936, 0.2347957890323218, 0.19432508025509926,
+              0.6858860133405615, 0.15172116633332622, 0.22432820727833747, 0.16805989780225183,
+              0.000535219040687628],
+      tspan = (0.0, 0.04))
   end
 end
 
