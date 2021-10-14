@@ -158,7 +158,6 @@ end
 # core components of the quadrilateral mesh that will be generated.
 
 # The first block of information in `RUN_PARAMETERS` is
-## println(match(r"[^\S\n]*\\begin{RUN_PARAMETERS}[\s\S]+\\end{RUN_PARAMETERS}", read("out/ice_cream_straight_sides.control", String)).match)
 # ```
 # \begin{RUN_PARAMETERS}
 #    mesh file name   = ice_cream_straight_sides.mesh
