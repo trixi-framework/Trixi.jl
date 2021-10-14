@@ -106,8 +106,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_mhd_shockcapturing_nonconforming.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_nonconforming.jl"),
+  @trixi_testset "elixir_mhd_shockcapturing_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_amr.jl"),
       l2   = [0.006298541670176575, 0.0064368506652601265, 0.007108729762852636, 0.006530420607206385,
               0.02061185869237284, 0.005562033787605515, 0.007571716276627825, 0.005571862660453231,
               3.909755063709152e-6],
