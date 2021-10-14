@@ -52,7 +52,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 
-# Mapping as described in https://arxiv.org/abs/2012.12040.
+# Mapping as described in https://arxiv.org/abs/2012.12040 but with slightly less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant.
 function mapping(xi_, eta_, zeta_)
