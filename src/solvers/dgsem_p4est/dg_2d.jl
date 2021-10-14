@@ -523,16 +523,13 @@ function calc_mortar_flux!(surface_flux_values,
     fstar = (fstar_lower_threaded[Threads.threadid()],
              fstar_upper_threaded[Threads.threadid()])
 
-    # Get information on the small elements, compute the surface fluxes,
-    # and store them for the small elements
+    # Get side and increment index information on the small elements
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-    # Contravariant vectors at interfaces in negative coordinate direction
-    # are pointing inwards. This is handled by `get_normal_direction`.
     for position in 1:2
       i_small = i_small_start
       j_small = j_small_start
@@ -540,6 +537,8 @@ function calc_mortar_flux!(surface_flux_values,
       for i in eachnode(dg)
         u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, mortar)
 
+        # Contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards. This is handled by `get_normal_direction`.
         normal_direction = get_normal_direction(small_direction, contravariant_vectors,
                                                 i_small, j_small, element)
 
@@ -553,7 +552,7 @@ function calc_mortar_flux!(surface_flux_values,
         noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
         flux_plus_noncons = flux + 0.5 * noncons
 
-        # Copy flux to buffer
+        # Copy to buffer
         set_node_vars!(fstar[position], flux_plus_noncons, equations, dg, i)
 
         i_small += i_small_step
