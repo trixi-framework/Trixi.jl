@@ -32,7 +32,7 @@ jobs:
             rmdir docs/
             sed -i '1 a Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"' Project.toml
             cat Project.toml
-            git checkout origin/gh-pages -- dev/tutorials/notebooks/
+            git checkout origin/gh-pages -- stable/tutorials/notebooks/
             git add -A && git commit -m "Copy files"
       - name: Push changes
         run: |
