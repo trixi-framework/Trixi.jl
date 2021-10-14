@@ -527,7 +527,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
         x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
       end
     else # ndims(mesh) == 3
-      if curve != nothing
+      if curve !== nothing
         x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
       else
         x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
