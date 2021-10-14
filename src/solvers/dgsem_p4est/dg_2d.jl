@@ -174,7 +174,6 @@ function calc_interface_flux!(surface_flux_values,
   return nothing
 end
 
-
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
                               nonconservative_terms::Val{true},
@@ -188,23 +187,32 @@ function calc_interface_flux!(surface_flux_values,
   index_end = last(index_range)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Get information on the primary element, compute the surface fluxes,
-    # and store them for the primary element
+    # Get element and side index information on the primary element
     primary_element  = neighbor_ids[1, interface]
     primary_indices  = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
+    # Create the local i,j indexing on the primary element used to pull normal direction information
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
     j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
-
     i_primary = i_primary_start
     j_primary = j_primary_start
 
-    # Get information on the secondary element and copy the numerical fluxes
-    # from the primary element to the secondary one
+    # Get element and side index information on the secondary element
     secondary_element = neighbor_ids[2, interface]
     secondary_indices = node_indices[2, interface]
     secondary_direction = indices2direction(secondary_indices)
+
+    # Initiate the secondary index to be used in the surface for loop.
+    # This index on the primary side will always run forward but
+    # the secondary index might need to run backwards for flipped sides.
+    if :i_backward in secondary_indices
+      i_secondary = index_end
+      i_secondary_step = -1
+    else
+      i_secondary = 1
+      i_secondary_step = 1
+    end
 
     for i in eachnode(dg)
       u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
@@ -223,26 +231,18 @@ function calc_interface_flux!(surface_flux_values,
       noncons_primary   = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
       noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
 
+      # Store the flux with nonconservative terms on the primary and secondary elements
       for v in eachvariable(equations)
         surface_flux_values[v, i, primary_direction, primary_element] = flux_[v] + 0.5 * noncons_primary[v]
+        surface_flux_values[v, i_secondary, secondary_direction, secondary_element] = -(
+            flux_[v] + 0.5 * noncons_secondary[v])
       end
 
-      # Note that the index of the primary side will always run forward but
-      # the secondary index might need to run backwards for flipped sides.
-      if :i_backward in secondary_indices
-        for v in eachvariable(equations)
-          surface_flux_values[v, index_end + 1 - i, secondary_direction, secondary_element] = -(
-            flux_[v] + 0.5 * noncons_secondary[v])
-        end
-      else
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, secondary_direction, secondary_element] = -(
-            flux_[v] + 0.5 * noncons_secondary[v])
-        end
-      end
-
+      # Increment primary element indices to pull the normal direction
       i_primary += i_primary_step
       j_primary += j_primary_step
+      # Increment the surface index along the secondary element
+      i_secondary += i_secondary_step
     end
   end
 
@@ -544,18 +544,17 @@ function calc_mortar_flux!(surface_flux_values,
                                                 i_small, j_small, element)
 
         # Compute conservative flux
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-        # Copy flux to buffer
-        set_node_vars!(fstar[position], flux_, equations, dg, i)
-
-        # Compute nonconservative flux
-        noncons_ = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
-
-        # Add nonconservative flux to buffer scaled by a factor of 0.5 based on
+        # Compute nonconservative flux and add it to the conservative flux.
+        # The nonconservative flux is scaled by a factor of 0.5 based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        multiply_add_to_node_vars!(fstar[position], 0.5, noncons_, equations, dg, i)
+        noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+        flux_plus_noncons = flux + 0.5 * noncons
+
+        # Copy flux to buffer
+        set_node_vars!(fstar[position], flux_plus_noncons, equations, dg, i)
 
         i_small += i_small_step
         j_small += j_small_step
