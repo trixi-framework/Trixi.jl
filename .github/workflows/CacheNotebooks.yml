@@ -32,7 +32,11 @@ jobs:
             rmdir docs/
             sed -i '1 a Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"' Project.toml
             cat Project.toml
-            git checkout origin/gh-pages -- dev/tutorials/notebooks/
+            # `stable` is a symlink, so we need to retrieve it first to resolve it locally
+            git checkout origin/gh-pages -- stable 
+            git checkout origin/gh-pages -- `readlink stable`/tutorials/notebooks/
+            mv `readlink stable`/tutorials/notebooks/ tutorials/notebooks
+            rm stable
             git add -A && git commit -m "Copy files"
       - name: Push changes
         run: |
