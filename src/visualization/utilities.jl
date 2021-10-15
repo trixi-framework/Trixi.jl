@@ -1375,45 +1375,45 @@ end
 
 # Check if given 'point' is inside the triangle with corners corresponding to the coordinates of x and y.
 function is_in_triangle(point, x, y)
-    a = [x[1], y[1]]; b = [x[2],y[2]]; c = [x[3],y[3]];
-    return is_on_same_side(point, a, b, c)*is_on_same_side(point, b, c, a)*is_on_same_side(point, c, a, b)
+  a = [x[1], y[1]]; b = [x[2],y[2]]; c = [x[3],y[3]];
+  return is_on_same_side(point, a, b, c)*is_on_same_side(point, b, c, a)*is_on_same_side(point, c, a, b)
 end
 
 # Create an axis through x and y to then check if 'point' is on the same side of the axis as z.
 function is_on_same_side(point, x, y, z)
-    if (y[1]-x[1]) == 0
-        return (point[1]-x[1])*(z[1]-x[1]) >= 0
-    else
-        a = (y[2]-x[2])/(y[1]-x[1])
-        b = x[2]-a*x[1]
-        return (z[2]-a*z[1]-b)*(point[2]-a*point[1]-b) >= 0
-    end
+  if (y[1]-x[1]) == 0
+    return (point[1]-x[1])*(z[1]-x[1]) >= 0
+  else
+    a = (y[2]-x[2])/(y[1]-x[1])
+    b = x[2]-a*x[1]
+    return (z[2]-a*z[1]-b)*(point[2]-a*point[1]-b) >= 0
+  end
 end
 
 # For a given 'point', return the id of the element it is contained in in; if not found return 0.
 function find_element(point, pd)
-    n_tri = size(pd.t, 1)
-    n_elements = size(pd.x,2)
+  n_tri = size(pd.t, 1)
+  n_elements = size(pd.x,2)
 
-    # Iterate over all elements.
-    for element in 1:n_elements
-        # Iterate over all triangles in given element.
-        for tri in 1:n_tri
-            if is_in_triangle(point, pd.x[pd.t[tri,:],element], pd.y[pd.t[tri,:],element])
-                return [element, tri]
-            end
-        end
+  # Iterate over all elements.
+  for element in 1:n_elements
+    # Iterate over all triangles in given element.
+    for tri in 1:n_tri
+      if is_in_triangle(point, pd.x[pd.t[tri,:],element], pd.y[pd.t[tri,:],element])
+        return [element, tri]
+      end
     end
+  end
 
-    # If no element was found, return 0 on default.
-    return 0
+  # If no element was found, return 0 on default.
+  return 0
 end
-
-# Interpolate form three corners of a triangle to a single point.
+            
+# Interpolate form three corners of a triangle to a single point.            
 function triangle_interpolation(cooridnates_in, values_in, cooridnate_out)
-    A = hcat(cooridnates_in, ones(3))
-    c = A\values_in
-    return c[1]*cooridnate_out[1]+c[2]*cooridnate_out[2]+c[3]
+  A = hcat(cooridnates_in, ones(3))
+  c = A\values_in
+  return c[1]*cooridnate_out[1]+c[2]*cooridnate_out[2]+c[3]
 end
 
 # Create an axis.
