@@ -60,7 +60,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Affine type mapping to take the [-1,1]^2 domain from the mesh file
-# and put it onto the rotor domai [0,1]^2 and then warp it with a mapping
+# and put it onto the rotor domain [0,1]^2 and then warp it with a mapping
 # as described in https://arxiv.org/abs/2012.12040
 function mapping_twist(xi, eta)
   y = 0.5 * (eta + 1.0) + 0.05 * cos(1.5 * pi * (2.0 * xi - 1.0)) * cos(0.5 * pi * (2.0 * eta - 1.0))
