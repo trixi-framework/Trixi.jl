@@ -185,7 +185,7 @@ This produces the following plot of vorticity.
 Since the mesh is fairly coarse, we observe numerical artifacts due to the low resolution.
 These errors vanish under mesh refinement; for example, doubling the mesh resolution by running
 ```julia
-julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"), num_cells_per_dimension = 32)
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"), cells_per_dimension = 32)
 ```
 yields the following plot of vorticity:
 
