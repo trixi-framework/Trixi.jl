@@ -57,9 +57,12 @@ replacements. Some standard variables names are
 - `volume_flux` for the numerical flux used in flux differencing volume terms
 
 Moreover, [`convergence_test`](@ref) requires that the spatial resolution is
-set via the keywords `initial_refinement_level` (an integer, e.g. for the
-[`TreeMesh`](@ref)) or `cells_per_dimension` (a tuple of integers, one per
-spatial dimension, e.g. for the [`StructuredMesh`](@ref)).
+set via the keywords 
+- `initial_refinement_level` 
+  (an integer, e.g. for the [`TreeMesh`](@ref) and the [`P4estMesh`](@ref)) or
+- `cells_per_dimension` 
+  (a tuple of integers, one per spatial dimension, e.g. for the [`StructuredMesh`](@ref)
+  and the [`VertexMappedMesh`](@ref)).
 
 
 ## Variable names
