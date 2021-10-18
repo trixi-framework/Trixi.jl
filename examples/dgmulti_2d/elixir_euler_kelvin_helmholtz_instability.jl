@@ -30,8 +30,8 @@ function initial_condition_kelvin_helmholtz_instability(x, t, equations::Compres
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-num_cells_per_dimension = 32
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
+cells_per_dimension = (32, 32)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
