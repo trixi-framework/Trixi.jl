@@ -7,6 +7,28 @@ using Trixi
 gamma = 5/3
 equations = IdealGlmMhdEquations2D(gamma)
 
+"""
+    initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations2D)
+
+The classical Orszag-Tang vortex test case. Here, the setup is taken from
+- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
+  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
+  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+"""
+function initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations2D)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [0, 1] x [0, 1], γ = 5/3
+  rho = 1.0
+  v1 = -sin(2.0*pi*x[2])
+  v2 =  sin(2.0*pi*x[1])
+  v3 = 0.0
+  p = 1.0 / equations.gamma
+  B1 = -sin(2.0*pi*x[2]) / equations.gamma
+  B2 =  sin(4.0*pi*x[1]) / equations.gamma
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+end
 initial_condition = initial_condition_orszag_tang
 
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)

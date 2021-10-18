@@ -213,14 +213,6 @@ performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 
-# FIXME: Deprecations introduced in v0.3
-@deprecate varnames_cons(equations) varnames(cons2cons, equations)
-@deprecate varnames_prim(equations) varnames(cons2prim, equations)
-@deprecate flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) flux_godunov(u_ll, u_rr, orientation_or_normal_direction, equations)
-@deprecate calcflux(u, orientation, equations) flux(u, orientation, equations)
-@deprecate flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction, equations) flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction, equations)
-
-
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 

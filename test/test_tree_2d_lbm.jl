@@ -49,7 +49,17 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [1.4432899320127035e-15, 2.1821189867266e-6, 8.881784197001252e-16,
               2.2481261510165496e-6, 1.0692966335143494e-5, 9.606391697600247e-6,
               9.62138334279633e-6, 1.0725969916147021e-5, 3.3861802251067274e-15],
-      initial_condition=initial_condition_couette_steady,
+      initial_condition=function initial_condition_couette_steady(x, t, equations::LatticeBoltzmannEquations2D)
+        # Initial state for a *steady* Couette flow setup. To be used in combination with
+        # [`boundary_condition_couette`](@ref) and [`boundary_condition_noslip_wall`](@ref).
+        @unpack L, u0, rho0 = equations
+
+        rho = rho0
+        v1 = u0 * x[2] / L
+        v2 = 0
+
+        return equilibrium_distribution(rho, v1, v2, equations)
+        end,
       tspan = (0.0, 1.0))
   end
 

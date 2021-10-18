@@ -208,25 +208,6 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
 end
 
 
-"""
-    initial_condition_taylor_green_vortex(x, t, equations::LatticeBoltzmannEquations3D)
-
-Initialize the flow field to the Taylor-Green vortex setup
-"""
-function initial_condition_taylor_green_vortex(x, t, equations::LatticeBoltzmannEquations3D)
-  @unpack u0, rho0, L = equations
-
-  v1 =  u0 * sin(x[1] / L) * cos(x[2] / L) * cos(x[3] / L)
-  v2 = -u0 * cos(x[1] / L) * sin(x[2] / L) * cos(x[3] / L)
-  v3 = 0
-  p0 = (pressure(rho0, equations) +
-        rho0 * u0^2 / 16 * (cos(2 * x[1] / L) + cos(2 * x[2] / L)) * (cos(2 * x[3] / L) + 2))
-  rho = density(p0, equations)
-
-  return equilibrium_distribution(rho, v1, v2, v3, equations)
-end
-
-
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquations3D)
 

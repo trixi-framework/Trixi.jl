@@ -134,37 +134,23 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
 
 export initial_condition_constant,
        initial_condition_gauss,
-       initial_condition_density_wave, initial_condition_density_pulse,
-       initial_condition_isentropic_vortex,
-       initial_condition_weak_blast_wave,
-       initial_condition_medium_sedov_blast_wave,
-       initial_condition_blob,
-       initial_condition_orszag_tang,
-       initial_condition_rotor,
-       initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex
+       initial_condition_density_wave,
+       initial_condition_weak_blast_wave
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
-       boundary_condition_wall,
-       boundary_condition_zero
+       boundary_condition_wall
 
 export initial_condition_convergence_test, source_terms_convergence_test
-export initial_condition_harmonic_nonperiodic, source_terms_harmonic
-export initial_condition_poisson_periodic, source_terms_poisson_periodic
+export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
-export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
-export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
-export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
-export initial_condition_gauss_wall
-export initial_condition_monopole, boundary_condition_monopole
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity
+export density, pressure, density_pressure, velocity, global_mean_vars, equilibrium_distribution, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 export lake_at_rest_error
 export ncomponents, eachcomponent

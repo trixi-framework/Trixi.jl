@@ -7,6 +7,48 @@ using Trixi
 gamma = 5/3
 equations = CompressibleEulerEquations2D(gamma)
 
+"""
+    initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
+
+The blob test case taken from
+- Agertz et al. (2006)
+  Fundamental differences between SPH and grid methods
+  [arXiv: astro-ph/0610051](https://arxiv.org/abs/astro-ph/0610051)
+"""
+function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
+  # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # change discontinuity to tanh
+  # typical domain is rectangular, we change it to a square
+  # resolution 128^2, 256^2
+  # domain size is [-20.0,20.0]^2
+  # gamma = 5/3 for this test case
+  R = 1.0 # radius of the blob
+  # background density
+  dens0 = 1.0
+  Chi = 10.0 # density contrast
+  # reference time of characteristic growth of KH instability equal to 1.0
+  tau_kh = 1.0
+  tau_cr = tau_kh/1.6 # crushing time
+  # determine background velocity
+  velx0 = 2*R*sqrt(Chi)/tau_cr
+  vely0 = 0.0
+  Ma0 = 2.7 # background flow Mach number Ma=v/c
+  c = velx0/Ma0 # sound speed
+  # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
+  p0 = c*c*dens0/equations.gamma
+  # initial center of the blob
+  inicenter = [-15,0]
+  x_rel = x-inicenter
+  r = sqrt(x_rel[1]^2 + x_rel[2]^2)
+  # steepness of the tanh transition zone
+  slope = 2
+  # density blob
+  dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+  # velocity blob is zero
+  velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+  return prim2cons(SVector(dens, velx, vely0, p0), equations)
+end
 initial_condition = initial_condition_blob
 
 surface_flux = flux_lax_friedrichs

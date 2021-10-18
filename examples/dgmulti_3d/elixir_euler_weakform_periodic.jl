@@ -9,7 +9,8 @@ equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, 4)
+cells_per_dimension = (4, 4, 4)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic = (true, true, true))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,

@@ -198,6 +198,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
       end
       ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
     end
+
+    @timed_testset "elixir_euler_ad.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "special_elixirs", "elixir_euler_ad.jl"))
+    end
   end
 end
 

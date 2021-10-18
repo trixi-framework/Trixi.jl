@@ -49,7 +49,25 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
       l2   = [0.004391143689111404, 0.04144737547475548, 0.041501307637678286, 0.04150353006408862, 0.03693135855995625, 0.021125605214031118, 0.03295607553556973, 0.03296235755245784, 7.16035229384135e-6],
       linf = [0.017894703320895378, 0.08486850681397005, 0.0891044523165206, 0.08492024792056754, 0.10448301878352373, 0.05381260695579509, 0.0884774018719996, 0.07784546966765199, 7.71609149516089e-5],
-      initial_condition = initial_condition_orszag_tang,
+      initial_condition = function initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations3D)
+        # The classical Orszag-Tang vortex test case adapted to 3D. Setup is taken from
+        # Table 4 of the paper
+        # - M. Bohm, A. R. Winters, G. J. Gassner, D. Derigs, F. Hindenlang, & J. Saur (2020)
+        #   An entropy stable nodal discontinuous Galerkin method for the resistive MHD
+        #   equations. Part I: Theory and numerical verification
+        #   [doi: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
+        # Domain must be [0, 1]^3 , γ = 5/3
+        rho = 25.0 / (36.0 * pi)
+        v1 = -sin(2.0*pi*x[3])
+        v2 =  sin(2.0*pi*x[1])
+        v3 =  sin(2.0*pi*x[2])
+        p = 5.0 / (12.0 * pi)
+        B1 = -sin(2.0*pi*x[3]) / (4.0*pi)
+        B2 =  sin(4.0*pi*x[1]) / (4.0*pi)
+        B3 =  sin(4.0*pi*x[2]) / (4.0*pi)
+        psi = 0.0
+        return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+      end,
       surface_flux = (flux_hll, flux_nonconservative_powell),
       volume_flux  = (flux_central, flux_nonconservative_powell),
       coordinates_min = (0.0, 0.0, 0.0),
@@ -57,6 +75,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       initial_refinement_level=3,
       cfl = 1.1,
       tspan = (0.0, 0.06))
+  end
+
+  @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
+      l2   = [0.0186712969755079, 0.01620736832264799, 0.01620736832264803, 0.016207474382769683, 0.07306422729650594, 0.007355137041002365, 0.0073551370410023425, 0.00735520932001833, 0.000506140942330923],
+      linf = [0.28040713666979633, 0.27212885844703694, 0.2721288584470349, 0.2837380205051839, 0.7915852408267114, 0.08770240288089526, 0.08770240288089792, 0.08773409387876674, 0.050221095224119834])
   end
 end
 
