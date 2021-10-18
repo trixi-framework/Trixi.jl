@@ -14,7 +14,7 @@ top_boundary(x, tol=50*eps()) = abs(x[2]-1)<tol
 rest_of_boundary(x, tol=50*eps()) = !top_boundary(x, tol)
 is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
 
-cells_per_dimension = (8,8) # detected by `extract_initial_resolution` for convergence tests
+cells_per_dimension = (8, 8) # detected by `extract_initial_resolution` for convergence tests
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_on_boundary = is_on_boundary)
 
