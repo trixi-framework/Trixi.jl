@@ -109,92 +109,22 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
-                              nonconservative_terms::Val{false},
+                              nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-  @unpack surface_flux = surface_integral
-  @unpack u, neighbor_ids, node_indices = cache.interfaces
-  @unpack contravariant_vectors = cache.elements
-  index_range = eachnode(dg)
-  index_end = last(index_range)
-
-  @threaded for interface in eachinterface(dg, cache)
-    # Get information on the primary element, compute the surface fluxes,
-    # and store them for the primary element
-    primary_element  = neighbor_ids[1, interface]
-    primary_indices  = node_indices[1, interface]
-    primary_direction = indices2direction(primary_indices)
-
-    i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
-    j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
-
-    i_primary = i_primary_start
-    j_primary = j_primary_start
-    for i in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-      # Contravariant vectors at interfaces in negative coordinate direction
-      # are pointing inwards. This is handled by `get_normal_direction`.
-      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
-                                              i_primary, j_primary, primary_element)
-      flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-      end
-
-      i_primary += i_primary_step
-      j_primary += j_primary_step
-    end
-
-    # Get information on the secondary element and copy the numerical fluxes
-    # from the primary element to the secondary one
-    secondary_element = neighbor_ids[2, interface]
-    secondary_indices = node_indices[2, interface]
-    secondary_direction = indices2direction(secondary_indices)
-
-    # Note that the index of the primary side will always run forward but
-    # the secondary index might need to run backwards for flipped sides.
-    if :i_backward in secondary_indices
-      for i in eachnode(dg)
-        for v in eachvariable(equations)
-          surface_flux_values[v, index_end + 1 - i, secondary_direction, secondary_element] =
-            -surface_flux_values[v, i, primary_direction, primary_element]
-        end
-      end
-    else
-      for i in eachnode(dg)
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, secondary_direction, secondary_element] =
-            -surface_flux_values[v, i, primary_direction, primary_element]
-        end
-      end
-    end
-  end
-
-  return nothing
-end
-
-function calc_interface_flux!(surface_flux_values,
-                              mesh::P4estMesh{2},
-                              nonconservative_terms::Val{true},
-                              equations, surface_integral, dg::DG, cache)
-  @unpack u, neighbor_ids, node_indices = cache.interfaces
-  @unpack contravariant_vectors = cache.elements
-
-  surface_flux, nonconservative_flux = surface_integral.surface_flux
-
+  @unpack neighbor_ids, node_indices = cache.interfaces
   index_range = eachnode(dg)
   index_end = last(index_range)
 
   @threaded for interface in eachinterface(dg, cache)
     # Get element and side index information on the primary element
-    primary_element  = neighbor_ids[1, interface]
-    primary_indices  = node_indices[1, interface]
+    primary_element = neighbor_ids[1, interface]
+    primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
     # Create the local i,j indexing on the primary element used to pull normal direction information
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
     j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
+
     i_primary = i_primary_start
     j_primary = j_primary_start
 
@@ -207,43 +137,97 @@ function calc_interface_flux!(surface_flux_values,
     # This index on the primary side will always run forward but
     # the secondary index might need to run backwards for flipped sides.
     if :i_backward in secondary_indices
-      i_secondary = index_end
-      i_secondary_step = -1
+      node_secondary = index_end
+      node_secondary_step = -1
     else
-      i_secondary = 1
-      i_secondary_step = 1
+      node_secondary = 1
+      node_secondary_step = 1
     end
 
-    for i in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-      # Contravariant vectors at interfaces in negative coordinate direction
-      # are pointing inwards. This is handled by `get_normal_direction`.
-      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
-                                              i_primary, j_primary, primary_element)
-      flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-      # Compute both nonconservative fluxes
-      # In general, nonconservative fluxes can depend on both the contravariant
-      # vectors (normal direction) at the current node and the averaged ones.
-      # However, both are the same at watertight interfaces, so we pass the
-      # `normal_direction` twice.
-      noncons_primary   = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
-      noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
-
-      # Store the flux with nonconservative terms on the primary and secondary elements
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, primary_direction, primary_element] = flux_[v] + 0.5 * noncons_primary[v]
-        surface_flux_values[v, i_secondary, secondary_direction, secondary_element] = -(
-            flux_[v] + 0.5 * noncons_secondary[v])
-      end
+    for node in eachnode(dg)
+      calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms, equations,
+                           surface_integral, dg, cache,
+                           interface, i_primary, j_primary,
+                           node, primary_direction, primary_element,
+                           node_secondary, secondary_direction, secondary_element)
 
       # Increment primary element indices to pull the normal direction
       i_primary += i_primary_step
       j_primary += j_primary_step
-      # Increment the surface index along the secondary element
-      i_secondary += i_secondary_step
+      # Increment the surface node index along the secondary element
+      node_secondary += node_secondary_step
     end
+  end
+
+  return nothing
+end
+
+
+# Inlined version of the interface flux computation for conservation laws
+@inline function calc_interface_flux!(surface_flux_values,
+                                      mesh::P4estMesh{2},
+                                      nonconservative_terms::Val{false}, equations,
+                                      surface_integral, dg::DG, cache,
+                                      interface_index, i_primary_index, j_primary_index,
+                                      primary_node_index, primary_direction_index, primary_element_index,
+                                      secondary_node_index, secondary_direction_index, secondary_element_index)
+  @unpack surface_flux = surface_integral
+  @unpack u = cache.interfaces
+  @unpack contravariant_vectors = cache.elements
+
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index, interface_index)
+
+  # Contravariant vectors at interfaces in negative coordinate direction
+  # are pointing inwards. This is handled by `get_normal_direction`.
+  normal_direction = get_normal_direction(primary_direction_index, contravariant_vectors,
+                                          i_primary_index, j_primary_index, primary_element_index)
+
+  flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+  for v in eachvariable(equations)
+    surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
+    surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_[v]
+  end
+
+  return nothing
+end
+
+# Inlined version of the interface flux computation for equations with conservative and nonconservative terms
+@inline function calc_interface_flux!(surface_flux_values,
+                                      mesh::P4estMesh{2},
+                                      nonconservative_terms::Val{true}, equations,
+                                      surface_integral, dg::DG, cache,
+                                      interface_index, i_primary_index, j_primary_index,
+                                      primary_node_index, primary_direction_index, primary_element_index,
+                                      secondary_node_index, secondary_direction_index, secondary_element_index)
+  @unpack u = cache.interfaces
+  @unpack contravariant_vectors = cache.elements
+
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index, interface_index)
+
+  # Contravariant vectors at interfaces in negative coordinate direction
+  # are pointing inwards. This is handled by `get_normal_direction`.
+  normal_direction = get_normal_direction(primary_direction_index, contravariant_vectors,
+                                          i_primary_index, j_primary_index, primary_element_index)
+
+  flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+  # Compute both nonconservative fluxes
+  # In general, nonconservative fluxes can depend on both the contravariant
+  # vectors (normal direction) at the current node and the averaged ones.
+  # However, both are the same at watertight interfaces, so we pass the
+  # `normal_direction` twice.
+  noncons_primary   = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+  noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
+
+  # Store the flux with nonconservative terms on the primary and secondary elements
+  for v in eachvariable(equations)
+    surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = (
+      flux_[v] + 0.5 * noncons_primary[v])
+    surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -(
+      flux_[v] + 0.5 * noncons_secondary[v])
   end
 
   return nothing
@@ -450,13 +434,11 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::P4estMesh{2},
-                           nonconservative_terms::Val{false}, equations,
+                           nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
-  @unpack u, neighbor_ids, node_indices = cache.mortars
+  @unpack neighbor_ids, node_indices = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
-  @unpack contravariant_vectors = cache.elements
-  @unpack surface_flux = surface_integral
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
@@ -464,31 +446,23 @@ function calc_mortar_flux!(surface_flux_values,
     fstar = (fstar_lower_threaded[Threads.threadid()],
              fstar_upper_threaded[Threads.threadid()])
 
-    # Get information on the small elements, compute the surface fluxes,
-    # and store them for the small elements
+    # Get index information on the small elements
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-    # Contravariant vectors at interfaces in negative coordinate direction
-    # are pointing inwards. This is handled by `get_normal_direction`.
     for position in 1:2
       i_small = i_small_start
       j_small = j_small_start
       element = neighbor_ids[position, mortar]
-      for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, mortar)
-
-        normal_direction = get_normal_direction(small_direction, contravariant_vectors,
-                                                i_small, j_small, element)
-
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-        # Copy flux to buffer
-        set_node_vars!(fstar[position], flux_, equations, dg, i)
-
+      for node in eachnode(dg)
+        calc_mortar_flux!(fstar, mesh, nonconservative_terms, equations,
+                          surface_integral, dg, cache,
+                          mortar, position,
+                          i_small, j_small,
+                          node, small_direction, element)
         i_small += i_small_step
         j_small += j_small_step
       end
@@ -507,66 +481,66 @@ function calc_mortar_flux!(surface_flux_values,
 end
 
 
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::P4estMesh{2},
-                           nonconservative_terms::Val{true}, equations,
-                           mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache)
-  @unpack u, neighbor_ids, node_indices = cache.mortars
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+# Inlined version of the mortar flux computation on small elements for conservation laws
+@inline function calc_mortar_flux!(fstar,
+                                   mesh::P4estMesh{2},
+                                   nonconservative_terms::Val{false}, equations,
+                                   surface_integral, dg::DG, cache,
+                                   mortar_index, position_index,
+                                   i_small_index, j_small_index,
+                                   node_index, small_direction_index, element_index)
+  @unpack u = cache.mortars
+  @unpack contravariant_vectors = cache.elements
+  @unpack surface_flux = surface_integral
+
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
+
+  # Contravariant vectors at interfaces in negative coordinate direction
+  # are pointing inwards. This is handled by `get_normal_direction`.
+  normal_direction = get_normal_direction(small_direction_index, contravariant_vectors,
+                                          i_small_index, j_small_index, element_index)
+
+  flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+  # Copy flux to buffer
+  set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
+
+  return nothing
+end
+
+# Inlined version of the mortar flux computation on small elements for equations with conservative and
+# nonconservative terms
+@inline function calc_mortar_flux!(fstar,
+                                   mesh::P4estMesh{2},
+                                   nonconservative_terms::Val{true}, equations,
+                                   surface_integral, dg::DG, cache,
+                                   mortar_index, position_index,
+                                   i_small_index, j_small_index,
+                                   node_index, small_direction_index, element_index)
+  @unpack u = cache.mortars
   @unpack contravariant_vectors = cache.elements
   surface_flux, nonconservative_flux = surface_integral.surface_flux
-  index_range = eachnode(dg)
 
-  @threaded for mortar in eachmortar(dg, cache)
-    # Choose thread-specific pre-allocated container
-    fstar = (fstar_lower_threaded[Threads.threadid()],
-             fstar_upper_threaded[Threads.threadid()])
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
 
-    # Get side and increment index information on the small elements
-    small_indices = node_indices[1, mortar]
-    small_direction = indices2direction(small_indices)
+  # Contravariant vectors at interfaces in negative coordinate direction
+  # are pointing inwards. This is handled by `get_normal_direction`.
+  normal_direction = get_normal_direction(small_direction_index, contravariant_vectors,
+                                          i_small_index, j_small_index, element_index)
 
-    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
-    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+  # Compute conservative flux
+  flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-    for position in 1:2
-      i_small = i_small_start
-      j_small = j_small_start
-      element = neighbor_ids[position, mortar]
-      for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, mortar)
+  # Compute nonconservative flux and add it to the conservative flux.
+  # The nonconservative flux is scaled by a factor of 0.5 based on
+  # the interpretation of global SBP operators coupled discontinuously via
+  # central fluxes/SATs
+  noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
 
-        # Contravariant vectors at interfaces in negative coordinate direction
-        # are pointing inwards. This is handled by `get_normal_direction`.
-        normal_direction = get_normal_direction(small_direction, contravariant_vectors,
-                                                i_small, j_small, element)
+  flux_plus_noncons = flux + 0.5 * noncons
 
-        # Compute conservative flux
-        flux = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-        # Compute nonconservative flux and add it to the conservative flux.
-        # The nonconservative flux is scaled by a factor of 0.5 based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
-        noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
-        flux_plus_noncons = flux + 0.5 * noncons
-
-        # Copy to buffer
-        set_node_vars!(fstar[position], flux_plus_noncons, equations, dg, i)
-
-        i_small += i_small_step
-        j_small += j_small_step
-      end
-    end
-    # Buffer to interpolate flux values of the large element to before
-    # copying in the correct orientation
-    u_buffer = cache.u_threaded[Threads.threadid()]
-
-    mortar_fluxes_to_elements!(surface_flux_values,
-                               mesh, equations, mortar_l2, dg, cache,
-                               mortar, fstar, u_buffer)
-  end
+  # Copy to buffer
+  set_node_vars!(fstar[position_index], flux_plus_noncons, equations, dg, node_index)
 
   return nothing
 end
