@@ -15,8 +15,8 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = Polynomial()
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-num_cells_per_dimension = 16
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
+cells_per_dimension = (16, 16)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 vertex_coordinates = map(x -> 2 * x, vertex_coordinates) # map domain to [-2, 2]^2
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
 
