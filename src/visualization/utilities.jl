@@ -1400,7 +1400,7 @@ function find_element(point, pd)
     # Iterate over all triangles in given element.
     for tri in 1:n_tri
       if is_in_triangle(point, pd.x[pd.t[tri,:],element], pd.y[pd.t[tri,:],element])
-        return [element, tri]
+        return SVector(element, tri)
       end
     end
   end
