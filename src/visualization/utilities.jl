@@ -1376,7 +1376,7 @@ end
 # Check if given 'point' is inside the triangle with corners corresponding to the coordinates of x and y.
 function is_in_triangle(point, x, y)
   a = [x[1], y[1]]; b = [x[2],y[2]]; c = [x[3],y[3]];
-  return is_on_same_side(point, a, b, c)*is_on_same_side(point, b, c, a)*is_on_same_side(point, c, a, b)
+  return is_on_same_side(point, a, b, c) && is_on_same_side(point, b, c, a) && is_on_same_side(point, c, a, b)
 end
 
 # Create an axis through x and y to then check if 'point' is on the same side of the axis as z.
