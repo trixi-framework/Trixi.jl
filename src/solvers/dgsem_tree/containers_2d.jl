@@ -620,22 +620,24 @@ function count_required_mortars(mesh::TreeMesh2D, cell_ids)
 
       # Skip if one of the small cells is on different rank -> create mpi mortar instead
       # (the coarse cell is always on the local rank)
-      if direction == 1 # small cells left, mortar in x-direction
-        lower_cell_id = mesh.tree.child_ids[2, neighbor_id]
-        upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
-      elseif direction == 2 # small cells right, mortar in x-direction
-        lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
-        upper_cell_id = mesh.tree.child_ids[3, neighbor_id]
-      elseif direction == 3 # small cells left, mortar in y-direction
-        lower_cell_id = mesh.tree.child_ids[3, neighbor_id]
-        upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
-      else # direction == 4, small cells right, mortar in y-direction
-        lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
-        upper_cell_id = mesh.tree.child_ids[2, neighbor_id]
-      end
-      small_cell_ids = (lower_cell_id, upper_cell_id)
-      if mpi_isparallel() && !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
-        continue
+      if mpi_isparallel()
+        if direction == 1 # small cells left, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[2, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
+        elseif direction == 2 # small cells right, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[3, neighbor_id]
+        elseif direction == 3 # small cells left, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[3, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
+        else # direction == 4, small cells right, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_id]
+          upper_cell_id = mesh.tree.child_ids[2, neighbor_id]
+        end
+        small_cell_ids = (lower_cell_id, upper_cell_id)
+        if !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+          continue
+        end
       end
 
       count +=1
@@ -675,22 +677,25 @@ function init_mortars!(mortars, elements, mesh::TreeMesh2D)
       end
 
       # Skip if one of the small cells is on different rank -> create mpi mortar instead
-      if direction == 1 # small cells left, mortar in x-direction
-        lower_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
-        upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
-      elseif direction == 2 # small cells right, mortar in x-direction
-        lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
-        upper_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
-      elseif direction == 3 # small cells left, mortar in y-direction
-        lower_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
-        upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
-      else # direction == 4, small cells right, mortar in y-direction
-        lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
-        upper_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
-      end
-      small_cell_ids = (lower_cell_id, upper_cell_id)
-      if mpi_isparallel() && !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
-        continue
+      # (the coarse cell is always on the local rank)
+      if mpi_isparallel()
+        if direction == 1 # small cells left, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
+        elseif direction == 2 # small cells right, mortar in x-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
+        elseif direction == 3 # small cells left, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[3, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[4, neighbor_cell_id]
+        else # direction == 4, small cells right, mortar in y-direction
+          lower_cell_id = mesh.tree.child_ids[1, neighbor_cell_id]
+          upper_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
+        end
+        small_cell_ids = (lower_cell_id, upper_cell_id)
+        if !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+          continue
+        end
       end
 
 
