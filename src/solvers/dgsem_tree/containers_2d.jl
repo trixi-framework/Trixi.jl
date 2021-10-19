@@ -1200,6 +1200,10 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
       mpi_mortars.local_element_positions[count] = local_element_positions
 
       # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
+      # To prevent double counting, the mortars are always identified from the point of view of
+      # a large cell, if it is on this rank. In that case, direction points towards the small cells.
+      # If the large cell is not on this rank, the point of view of a small cell is taken instead,
+      # hence direction points towards the large cell in this case.
       if iseven(direction)
         mpi_mortars.large_sides[count] = is_own_cell(mesh.tree, large_cell_id) ? 1 : 2
       else
