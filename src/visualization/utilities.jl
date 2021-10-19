@@ -1425,10 +1425,9 @@ function axis_curve(pd, slice, point; n_points=1000)
     curve[1, :] = collect(range(min, max, length = n_points))
     curve[2, :] .= point[2]
   elseif slice == :y
-    min = minimum(pd.y)
-    max = maximum(pd.y)
+    ymin, ymax = extrema(pd.y)
     curve[1, :] .= point[1]
-    curve[2, :] = collect(range(min, max, length = n_points))
+    curve[2, :] .= range(ymin, ymax, length = n_points)
   end
 
   return curve
