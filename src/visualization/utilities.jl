@@ -1410,10 +1410,10 @@ function find_element(point, pd)
 end
             
 # Interpolate form three corners of a triangle to a single point.            
-function triangle_interpolation(cooridnates_in, values_in, cooridnate_out)
-  A = hcat(cooridnates_in, ones(3))
-  c = A\values_in
-  return c[1]*cooridnate_out[1]+c[2]*cooridnate_out[2]+c[3]
+function triangle_interpolation(coordinates_in, values_in, coordinate_out)
+  A = hcat(coordinates_in, ones(3))
+  c = A \ values_in
+  return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3]
 end
 
 # Create an axis.
