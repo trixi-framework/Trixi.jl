@@ -188,7 +188,7 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
       for position in 1:3
         # Skip if received data for `pos` is NaN as no real data has been sent for the
         # corresponding element
-        if isnan(recv_buffer[first(indices[position])])
+        if isnan(recv_buffer[Base.first(indices[position])])
           continue
         end
 
