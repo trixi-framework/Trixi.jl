@@ -1420,8 +1420,7 @@ end
 function axis_curve(pd, slice, point; n_points=1000)
   curve = zeros(2, n_points)
   if slice == :x
-    min = minimum(pd.x)
-    max = maximum(pd.x)
+    xmin, xmax = extrema(pd.x)
     curve[1, :] = collect(range(min, max, length = n_points))
     curve[2, :] .= point[2]
   elseif slice == :y
