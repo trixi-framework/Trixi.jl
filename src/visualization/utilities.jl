@@ -1381,12 +1381,12 @@ end
 
 # Create an axis through x and y to then check if 'point' is on the same side of the axis as z.
 function is_on_same_side(point, x, y, z)
-  if (y[1]-x[1]) == 0
-    return (point[1]-x[1])*(z[1]-x[1]) >= 0
+  if (y[1] - x[1]) == 0
+    return (point[1] - x[1]) * (z[1] - x[1]) >= 0
   else
-    a = (y[2]-x[2])/(y[1]-x[1])
-    b = x[2]-a*x[1]
-    return (z[2]-a*z[1]-b)*(point[2]-a*point[1]-b) >= 0
+    a = (y[2] - x[2]) / (y[1] - x[1])
+    b = x[2] - a * x[1]
+    return (z[2] - a * z[1] - b) * (point[2] - a * point[1] - b) >= 0
   end
 end
 
