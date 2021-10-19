@@ -152,45 +152,74 @@ end
 
 
 @inline function flux_lmars(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
-  # This only works in x-direction
-  @assert orientation == 1
+  # Estimate of speed of sound
+  c = 360
 
-  cS = 360
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
-  sRho_L = 1 / u_ll[1]
-  sRho_R = 1 / u_rr[1]
-
-  Vel_L_1 = u_ll[2] * sRho_L
-  Vel_L_2 = u_ll[3] * sRho_L
-  Vel_L_3 = u_ll[4] * sRho_L
-  Vel_R_1 = u_rr[2] * sRho_R
-  Vel_R_2 = u_rr[3] * sRho_R
-  Vel_R_3 = u_rr[4] * sRho_R
-
-  p_L = (equations.gamma - 1) * (u_ll[5] - 0.5 * (u_ll[2] * Vel_L_1 + u_ll[3] * Vel_L_2 + u_ll[4] * Vel_L_3))
-  p_R = (equations.gamma - 1) * (u_rr[5] - 0.5 * (u_rr[2] * Vel_R_1 + u_rr[3] * Vel_R_2 + u_rr[4] * Vel_R_3))
-  rhoM = 0.5 * (u_ll[1] + u_rr[1])
-  pM = 0.5*(p_L + p_R) -0.5*cS*rhoM*(Vel_R_1 - Vel_L_1)
-  vM = 0.5*(Vel_R_1 + Vel_L_1) -1.0/(2.0*rhoM*cS)*(p_R - p_L)
-  if vM >= 0
-    f1 = u_ll[1] * vM
-    f2 = u_ll[2] * vM
-    f3 = u_ll[3] * vM
-    f4 = u_ll[4] * vM
-    f5 = u_ll[5] * vM
-
-    f2 += pM
-    f5 += pM*vM
-  else
-    f1 = u_rr[1] * vM
-    f2 = u_rr[2] * vM
-    f3 = u_rr[3] * vM
-    f4 = u_rr[4] * vM
-    f5 = u_rr[5] * vM
-
-    f2 += pM
-    f5 += pM*vM
+  if orientation == 1
+    v_ll = v1_ll
+    v_rr = v1_rr
+  elseif orientation == 2
+    v_ll = v2_ll
+    v_rr = v2_rr
+  else # orientation == 3
+    v_ll = v3_ll
+    v_rr = v3_rr
   end
+
+  rho = 0.5 * (rho_ll + rho_rr)
+  p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
+  v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
+
+  if v >= 0
+    f1, f2, f3, f4, f5 = v * u_ll
+  else
+    f1, f2, f3, f4, f5 = v * u_rr
+  end
+
+  if orientation == 1
+    f2 += p
+  elseif orientation == 2
+    f3 += p
+  else # orientation == 3
+    f4 += p
+  end
+  f5 += p * v
+
+  return SVector(f1, f2, f3, f4, f5)
+end
+
+@inline function flux_lmars(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
+  # Estimate of speed of sound
+  c = 360
+
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal_vector = normal_direction / norm_
+
+  v_ll = v1_ll * normal_vector[1] + v2_ll * normal_vector[2] + v3_ll * normal_vector[3]
+  v_rr = v1_rr * normal_vector[1] + v2_rr * normal_vector[2] + v3_rr * normal_vector[3]
+
+  rho = 0.5 * (rho_ll + rho_rr)
+  p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
+  v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
+  v *= norm_
+
+  if v >= 0
+    f1, f2, f3, f4, f5 = v * u_ll
+  else
+    f1, f2, f3, f4, f5 = v * u_rr
+  end
+
+  f2 += p * normal_direction[1]
+  f3 += p * normal_direction[2]
+  f4 += p * normal_direction[3]
+  f5 += p * v
 
   return SVector(f1, f2, f3, f4, f5)
 end
