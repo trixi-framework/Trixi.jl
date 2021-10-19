@@ -84,18 +84,19 @@ function start_mpi_send!(mpi_cache::MPICache, mesh, equations, dg, cache)
     for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[d])
       # First and last indices in the send buffer for mortar data obtained from local element
       # in a given position
+      index_base = interfaces_data_size + (index - 1) * 4 * data_size
       indices = (
         # first, last for local element in position 1 (lower element)
-        (interfaces_data_size + (index - 1) * 4 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 1 * data_size),
+        (index_base + 1,
+         index_base + 1 * data_size),
         # first, last for local element in position 2 (upper element)
-        (interfaces_data_size + (index - 1) * 4 * data_size + 1 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 2 * data_size),
+        (index_base + 1 * data_size + 1,
+         index_base + 2 * data_size),
         # firsts, lasts for local element in position 3 (large element)
-        (interfaces_data_size + (index - 1) * 4 * data_size + 2 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 3 * data_size,
-         interfaces_data_size + (index - 1) * 4 * data_size + 3 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 4 * data_size),
+        (index_base + 2 * data_size + 1,
+         index_base + 3 * data_size,
+         index_base + 3 * data_size + 1,
+         index_base + 4 * data_size),
       )
 
       for pos in cache.mpi_mortars.local_element_positions[mortar]
@@ -169,18 +170,19 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
     for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[d])
       # First and last indices in the receive buffer for mortar data obtained from remote element
       # in a given position
+      index_base = interfaces_data_size + (index - 1) * 4 * data_size
       indices = (
         # first, last for local element in position 1 (lower element)
-        (interfaces_data_size + (index - 1) * 4 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 1 * data_size),
+        (index_base + 1,
+         index_base + 1 * data_size),
         # first, last for local element in position 2 (upper element)
-        (interfaces_data_size + (index - 1) * 4 * data_size + 1 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 2 * data_size),
+        (index_base + 1 * data_size + 1,
+         index_base + 2 * data_size),
         # firsts, lasts for local element in position 3 (large element)
-        (interfaces_data_size + (index - 1) * 4 * data_size + 2 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 3 * data_size,
-         interfaces_data_size + (index - 1) * 4 * data_size + 3 * data_size + 1,
-         interfaces_data_size + (index - 1) * 4 * data_size + 4 * data_size),
+        (index_base + 2 * data_size + 1,
+         index_base + 3 * data_size,
+         index_base + 3 * data_size + 1,
+         index_base + 4 * data_size),
       )
 
       for pos in 1:3
