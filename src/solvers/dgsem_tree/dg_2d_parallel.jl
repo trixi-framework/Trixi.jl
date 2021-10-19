@@ -186,7 +186,7 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
       for pos in 1:3
         # Skip if received data for `pos` is NaN as no real data has been sent for the
         # corresponding element
-        if isnan(recv_buffer[indices[pos][1]])
+        if isnan(recv_buffer[first(indices[pos])])
           continue
         end
 
@@ -361,7 +361,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, m
       large_element_id = local_element_ids[findfirst(pos -> pos == 3, local_element_positions)]
       large_cell_id = elements.cell_ids[large_element_id]
     else # large element is remote
-      cell_id = elements.cell_ids[local_element_ids[1]]
+      cell_id = elements.cell_ids[first(local_element_ids)]
       large_cell_id = tree.neighbor_ids[direction, tree.parent_ids[cell_id]]
     end
 
@@ -582,7 +582,7 @@ function prolong2mpimortars!(cache, u,
     local_element_positions = mpi_mortars.local_element_positions[mortar]
 
     for (element, pos) in zip(local_elements, local_element_positions)
-      if pos in (1, 2)
+      if pos in (1, 2) # Current element is small
         # Copy solution small to small
         if mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
           if mpi_mortars.orientations[mortar] == 1
@@ -621,7 +621,7 @@ function prolong2mpimortars!(cache, u,
             end
           end
         end
-      else # pos == 3
+      else # position == 3 -> current element is large
         # Interpolate large element face data to small interface locations
         if mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
           leftright = 1
@@ -739,7 +739,7 @@ end
   local_element_positions = cache.mpi_mortars.local_element_positions[mortar]
 
   for (element, pos) in zip(local_element_ids, local_element_positions)
-    if pos in (1, 2)
+    if pos in (1, 2) # Current element is small
       # Copy flux small to small
       if cache.mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
         if cache.mpi_mortars.orientations[mortar] == 1
@@ -760,7 +760,7 @@ end
       end
       pos == 1 && (surface_flux_values[:, :, direction, element] .= fstar_lower)
       pos == 2 && (surface_flux_values[:, :, direction, element] .= fstar_upper)
-    else # pos == 3
+    else # position == 3 -> current element is large
       # Project small fluxes to large element
       if cache.mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
         if cache.mpi_mortars.orientations[mortar] == 1

@@ -619,6 +619,7 @@ function count_required_mortars(mesh::TreeMesh2D, cell_ids)
       end
 
       # Skip if one of the small cells is on different rank -> create mpi mortar instead
+      # (the coarse cell is always on the local rank)
       if direction == 1 # small cells left, mortar in x-direction
         lower_cell_id = mesh.tree.child_ids[2, neighbor_id]
         upper_cell_id = mesh.tree.child_ids[4, neighbor_id]
@@ -1094,7 +1095,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
           continue
         end
 
-        # Skip if the large neighbor is on the same rank to prevent double counting
+        # Skip if the large neighbor is on the same rank -> will be handled in another iteration
         parent_cell_id = mesh.tree.parent_ids[cell_id]
         large_cell_id = mesh.tree.neighbor_ids[direction, parent_cell_id]
         if mpi_isparallel() && is_own_cell(mesh.tree, large_cell_id)
@@ -1184,13 +1185,13 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
       mpi_mortars.local_element_positions[count] = local_element_positions
 
       # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
-      if direction in (2, 4)
+      if iseven(direction)
         mpi_mortars.large_sides[count] = is_own_cell(mesh.tree, large_cell_id) ? 1 : 2
       else
         mpi_mortars.large_sides[count] = is_own_cell(mesh.tree, large_cell_id) ? 2 : 1
       end
 
-      # Set orientation (x -> 1, y -> 2)
+      # Set orientation (1, 2 -> x; 3, 4 -> y)
       if direction in (1, 2)
         mpi_mortars.orientations[count] = 1
       else
