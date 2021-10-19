@@ -166,6 +166,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_shallowwater_sourceterms.jl (Tri, Polynomial)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
       cells_per_dimension = 8, element_type = Tri(), approximation_type = Polynomial(),
+      # Why is the last l2, linf error nonzero?
       l2 = [0.0011751143465344904, 0.021531173265621168, 0.022675025401442856, 1.813056761617626e-5],
       linf = [0.0018888279794841978, 0.05467053638747732, 0.06345606515953328, 3.398993309655651e-5]
     )
