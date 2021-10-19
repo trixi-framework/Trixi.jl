@@ -139,6 +139,36 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Quad)" begin
+    # These setups do not pass CI reliably, see
+    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
+    # https://github.com/trixi-framework/Trixi.jl/issues/881
+    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
+      cells_per_dimension = 4,
+      l2 = [0.15825983698241494, 0.19897219694837923, 0.19784182473275247, 0.10482833997417325,
+            0.7310752391255246, 0.07374056714564853, 0.07371172293240634, 0.10782032253431281,
+            0.004921676235111545],
+      linf = [0.1765644464978685, 0.2627803272865769, 0.26358136695848144, 0.12347681727447984,
+              0.7733289736898254, 0.06695360844467957, 0.06650382120802623, 0.10885097000919097,
+              0.007212567638078835],
+    )
+  end
+
+  @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Tri)" begin
+    # These setups do not pass CI reliably, see
+    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
+    # https://github.com/trixi-framework/Trixi.jl/issues/881
+    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
+      cells_per_dimension = 4, element_type=Tri(), tspan = (0.0, 0.2),
+      l2 = [0.13825044764021147, 0.15472815448314997, 0.1549093274293255, 0.053103596213755405,
+            0.7246162776815603, 0.07730777596615901, 0.07733438386480523, 0.109893463921706,
+            0.00617678167062838],
+      linf = [0.22701306227317952, 0.2905255794821543, 0.2912409425436937, 0.08051361477962096,
+              1.0842974228656006, 0.07866000368926784, 0.0786646354518149, 0.1614896380292925,
+              0.010358210347485542],
+    )
+  end
+
   @trixi_testset "elixir_shallowwater_sourceterms.jl (Quad, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
@@ -170,36 +200,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       # zero for general non-collocated quadrature rules (e.g., for `element_type=Tri()`, `polydeg > 2`).
       l2 = [0.0011751143465344904, 0.021531173265621168, 0.022675025401442856, 1.813056761617626e-5],
       linf = [0.0018888279794841978, 0.05467053638747732, 0.06345606515953328, 3.398993309655651e-5]
-    )
-  end
-
-  @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Quad)" begin
-    # These setups do not pass CI reliably, see
-    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
-    # https://github.com/trixi-framework/Trixi.jl/issues/881
-    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
-      cells_per_dimension = 4,
-      l2 = [0.15825983698241494, 0.19897219694837923, 0.19784182473275247, 0.10482833997417325,
-            0.7310752391255246, 0.07374056714564853, 0.07371172293240634, 0.10782032253431281,
-            0.004921676235111545],
-      linf = [0.1765644464978685, 0.2627803272865769, 0.26358136695848144, 0.12347681727447984,
-              0.7733289736898254, 0.06695360844467957, 0.06650382120802623, 0.10885097000919097,
-              0.007212567638078835],
-    )
-  end
-
-  @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Tri)" begin
-    # These setups do not pass CI reliably, see
-    # https://github.com/trixi-framework/Trixi.jl/pull/880 and
-    # https://github.com/trixi-framework/Trixi.jl/issues/881
-    @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
-      cells_per_dimension = 4, element_type=Tri(), tspan = (0.0, 0.2),
-      l2 = [0.13825044764021147, 0.15472815448314997, 0.1549093274293255, 0.053103596213755405,
-            0.7246162776815603, 0.07730777596615901, 0.07733438386480523, 0.109893463921706,
-            0.00617678167062838],
-      linf = [0.22701306227317952, 0.2905255794821543, 0.2912409425436937, 0.08051361477962096,
-              1.0842974228656006, 0.07866000368926784, 0.0786646354518149, 0.1614896380292925,
-              0.010358210347485542],
     )
   end
 
