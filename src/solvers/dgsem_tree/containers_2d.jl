@@ -817,6 +817,11 @@ end
 
 # Count the number of MPI interfaces that need to be created
 function count_required_mpi_interfaces(mesh::TreeMesh2D, cell_ids)
+  # No MPI interfaces needed if MPI is not used
+  if !mpi_isparallel()
+    return 0
+  end
+
   count = 0
 
   # Iterate over all cells
@@ -834,7 +839,7 @@ function count_required_mpi_interfaces(mesh::TreeMesh2D, cell_ids)
       end
 
       # Skip if neighbor is on this rank -> create regular interface instead
-      if mpi_isparallel() && is_own_cell(mesh.tree, neighbor_cell_id)
+      if is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -995,6 +1000,11 @@ end
 
 # Count the number of MPI mortars that need to be created
 function count_required_mpi_mortars(mesh::TreeMesh2D, cell_ids)
+  # No MPI mortars needed if MPI is not used
+  if !mpi_isparallel()
+    return 0
+  end
+
   count = 0
 
   for cell_id in cell_ids
@@ -1009,7 +1019,7 @@ function count_required_mpi_mortars(mesh::TreeMesh2D, cell_ids)
         # Skip if the large neighbor is on the same rank to prevent double counting
         parent_id = mesh.tree.parent_ids[cell_id]
         large_cell_id = mesh.tree.neighbor_ids[direction, parent_id]
-        if mpi_isparallel() && is_own_cell(mesh.tree, large_cell_id)
+        if is_own_cell(mesh.tree, large_cell_id)
           continue
         end
 
@@ -1039,7 +1049,7 @@ function count_required_mpi_mortars(mesh::TreeMesh2D, cell_ids)
 
         # Skip if the other small cell is on the same rank and its id is smaller than the current
         # cell id to prevent double counting
-        if mpi_isparallel() && is_own_cell(mesh.tree, sibling_id) && sibling_id < cell_id
+        if is_own_cell(mesh.tree, sibling_id) && sibling_id < cell_id
           continue
         end
       else # Cell has a neighbor
@@ -1064,7 +1074,7 @@ function count_required_mpi_mortars(mesh::TreeMesh2D, cell_ids)
           upper_cell_id = mesh.tree.child_ids[2, neighbor_id]
         end
         small_cell_ids = (lower_cell_id, upper_cell_id)
-        if mpi_isparallel() && all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        if all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
           continue
         end
       end
