@@ -591,16 +591,22 @@ function prolong2mpimortars!(cache, u,
             # L2 mortars in x-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                position == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, 1, l, element])
-                position == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, 1, l, element])
+                if position == 1
+                  mpi_mortars.u_lower[2, v, l, mortar] = u[v, 1, l, element]
+                elseif position == 2
+                  mpi_mortars.u_upper[2, v, l, mortar] = u[v, 1, l, element]
+                end
               end
             end
           else
             # L2 mortars in y-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                position == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, l, 1, element])
-                position == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, l, 1, element])
+                if position == 1
+                  mpi_mortars.u_lower[2, v, l, mortar] = u[v, l, 1, element]
+                elseif position == 2
+                  mpi_mortars.u_upper[2, v, l, mortar] = u[v, l, 1, element]
+                end
               end
             end
           end
@@ -609,16 +615,22 @@ function prolong2mpimortars!(cache, u,
             # L2 mortars in x-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                position == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, element])
-                position == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, element])
+                if position == 1
+                  mpi_mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, element]
+                elseif position == 2
+                  mpi_mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, element]
+                end
               end
             end
           else
             # L2 mortars in y-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                position == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), element])
-                position == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), element])
+                if position == 1
+                  mpi_mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), element]
+                elseif position == 2
+                  mpi_mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), element]
+                end
               end
             end
           end
@@ -760,8 +772,12 @@ end
           direction = 4
         end
       end
-      position == 1 && (surface_flux_values[:, :, direction, element] .= fstar_lower)
-      position == 2 && (surface_flux_values[:, :, direction, element] .= fstar_upper)
+
+      if position == 1
+        surface_flux_values[:, :, direction, element] .= fstar_lower
+      elseif position == 2
+        surface_flux_values[:, :, direction, element] .= fstar_upper
+      end
     else # position == 3 -> current element is large
       # Project small fluxes to large element
       if cache.mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
