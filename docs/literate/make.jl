@@ -15,8 +15,8 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
 
     notebook_path = "tutorials/notebooks/$notebook_filename"
     binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
-    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/gh-pages/$notebook_path"
-    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/gh-pages/$notebook_path"
+    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/$notebook_path"
+    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
 
     binder_badge   = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
@@ -24,9 +24,8 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     
     # Generate notebook file
     function preprocess_notebook(content)
-        warning = "# **Note:** To improve responsiveness via caching, the notebooks on `Binder` are updated only once a week. They are only
-        # available for the latest stable release of Trixi at the time of caching. The notebooks in `nbviewer` and the downloaded versions
-        # are always up-to-date with the latest stable release of Trixi.\n\n"
+        warning = "# **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
+        # available for the latest stable release of Trixi at the time of caching.\n\n"
         return string("# # $title\n\n", warning, content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
