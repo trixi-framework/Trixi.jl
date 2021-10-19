@@ -169,24 +169,24 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_shallowwater_sourceterms.jl (Quad, SBP)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+  @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
       l2 = [0.002872979931737679, 0.03347363077805821, 0.048733968813574426, 0.0],
       linf = [0.010378266967904004, 0.08752703731822287, 0.1208392225656496, 0.0]
     )
   end
 
-  @trixi_testset "elixir_shallowwater_sourceterms.jl (Tri, SBP)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+  @trixi_testset "elixir_shallowwater_source_terms.jl (Tri, SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Tri(), approximation_type = SBP(),
       l2 = [0.0059122193825484485, 0.09936915834433074, 0.1670901626543993, 0.0],
       linf = [0.020759854612974138, 0.29170680222821943, 0.5674271204523826, 0.0]
     )
   end
 
-  @trixi_testset "elixir_shallowwater_sourceterms.jl (Tri, Polynomial)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+  @trixi_testset "elixir_shallowwater_source_terms.jl (Tri, Polynomial)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Tri(), approximation_type = Polynomial(),
       # The last l2, linf error are the L2 projection error in approximating `b`, so they are not
       # zero for general non-collocated quadrature rules (e.g., for `element_type=Tri()`, `polydeg > 2`).
@@ -195,8 +195,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_shallowwater_sourceterms.jl (Quad, Polynomial)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+  @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, Polynomial)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = Polynomial(),
       # The last l2, linf error are the L2 projection error in approximating `b`. However, this is zero
       # for `Quad()` elements with `Polynomial()` approximations because the quadrature rule defaults to
