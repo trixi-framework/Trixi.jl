@@ -185,14 +185,6 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_shallowwater_sourceterms.jl (Quad, Polynomial)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
-      cells_per_dimension = 8, element_type = Quad(), approximation_type = Polynomial(),
-      l2 = [0.00010558957434359656, 0.005211849044236698, 0.005529417233501366, 7.170184501539883e-16],
-      linf = [0.0002598137815081891, 0.007204807169194805, 0.010339376301477188, 1.7763568394002505e-15]
-    )
-  end
-
   @trixi_testset "elixir_shallowwater_sourceterms.jl (Tri, Polynomial)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
       cells_per_dimension = 8, element_type = Tri(), approximation_type = Polynomial(),
@@ -202,6 +194,19 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.0018888279794841978, 0.05467053638747732, 0.06345606515953328, 3.398993309655651e-5]
     )
   end
+
+  @trixi_testset "elixir_shallowwater_sourceterms.jl (Quad, Polynomial)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+      cells_per_dimension = 8, element_type = Quad(), approximation_type = Polynomial(),
+      # The last l2, linf error are the L2 projection error in approximating `b`. However, this is zero
+      # for `Quad()` elements with `Polynomial()` approximations because the quadrature rule defaults to
+      # a `(polydeg + 1)`-point Gauss quadrature rule in each coordinate (in general, StartUpDG.jl defaults
+      # to the quadrature rule with the fewest number of points which exactly integrates the mass matrix).
+      l2 = [0.00010558957434359656, 0.005211849044236698, 0.005529417233501366, 7.170184501539883e-16],
+      linf = [0.0002598137815081891, 0.007204807169194805, 0.010339376301477188, 1.7763568394002505e-15]
+    )
+  end
+
 
 end
 
