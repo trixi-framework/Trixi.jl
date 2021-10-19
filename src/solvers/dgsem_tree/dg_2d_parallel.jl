@@ -99,30 +99,30 @@ function start_mpi_send!(mpi_cache::MPICache, mesh, equations, dg, cache)
          index_base + 4 * data_size),
       )
 
-      for pos in cache.mpi_mortars.local_element_positions[mortar]
+      for position in cache.mpi_mortars.local_element_positions[mortar]
         # Determine whether the data belongs to the left or right side
         if cache.mpi_mortars.large_sides[mortar] == 1 # large element on left side
-          if pos in (1, 2) # small element
+          if position in (1, 2) # small element
             leftright = 2
           else # large element
             leftright = 1
           end
         else # large element on right side
-          if pos in (1, 2) # small element
+          if position in (1, 2) # small element
             leftright = 1
           else # large element
             leftright = 2
           end
         end
         # copy data to buffer
-        if pos == 1 # lower element
-          first, last = indices[pos]
+        if position == 1 # lower element
+          first, last = indices[position]
           @views send_buffer[first:last] .= vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar])
-        elseif pos == 2 # upper element
-          first, last = indices[pos]
+        elseif position == 2 # upper element
+          first, last = indices[position]
           @views send_buffer[first:last] .= vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar])
         else # large element
-          first_lower, last_lower, first_upper, last_upper = indices[pos]
+          first_lower, last_lower, first_upper, last_upper = indices[position]
           @views send_buffer[first_lower:last_lower] .= vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar])
           @views send_buffer[first_upper:last_upper] .= vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar])
         end
@@ -185,36 +185,36 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
          index_base + 4 * data_size),
       )
 
-      for pos in 1:3
+      for position in 1:3
         # Skip if received data for `pos` is NaN as no real data has been sent for the
         # corresponding element
-        if isnan(recv_buffer[first(indices[pos])])
+        if isnan(recv_buffer[first(indices[position])])
           continue
         end
 
         # Determine whether the received data belongs to the left or right side
         if cache.mpi_mortars.large_sides[mortar] == 1 # large element on left side
-          if pos in (1, 2) # small element
+          if position in (1, 2) # small element
             leftright = 2
           else # large element
             leftright = 1
           end
         else # large element on right side
-          if pos in (1, 2) # small element
+          if position in (1, 2) # small element
             leftright = 1
           else # large element
             leftright = 2
           end
         end
 
-        if pos == 1 # lower element data has been received
-          first, last = indices[pos]
+        if position == 1 # lower element data has been received
+          first, last = indices[position]
           @views vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar]) .= recv_buffer[first:last]
-        elseif pos == 2 # upper element data has been received
-          first, last = indices[pos]
+        elseif position == 2 # upper element data has been received
+          first, last = indices[position]
           @views vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar]) .= recv_buffer[first:last]
         else # large element data has been received
-          first_lower, last_lower, first_upper, last_upper = indices[pos]
+          first_lower, last_lower, first_upper, last_upper = indices[position]
           @views vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar]) .= recv_buffer[first_lower:last_lower]
           @views vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar]) .= recv_buffer[first_upper:last_upper]
         end
@@ -583,24 +583,24 @@ function prolong2mpimortars!(cache, u,
     local_elements = mpi_mortars.local_element_ids[mortar]
     local_element_positions = mpi_mortars.local_element_positions[mortar]
 
-    for (element, pos) in zip(local_elements, local_element_positions)
-      if pos in (1, 2) # Current element is small
+    for (element, position) in zip(local_elements, local_element_positions)
+      if position in (1, 2) # Current element is small
         # Copy solution small to small
         if mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
           if mpi_mortars.orientations[mortar] == 1
             # L2 mortars in x-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                pos == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, 1, l, element])
-                pos == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, 1, l, element])
+                position == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, 1, l, element])
+                position == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, 1, l, element])
               end
             end
           else
             # L2 mortars in y-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                pos == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, l, 1, element])
-                pos == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, l, 1, element])
+                position == 1 && (mpi_mortars.u_lower[2, v, l, mortar] = u[v, l, 1, element])
+                position == 2 && (mpi_mortars.u_upper[2, v, l, mortar] = u[v, l, 1, element])
               end
             end
           end
@@ -609,16 +609,16 @@ function prolong2mpimortars!(cache, u,
             # L2 mortars in x-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                pos == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, element])
-                pos == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, element])
+                position == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, element])
+                position == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, element])
               end
             end
           else
             # L2 mortars in y-direction
             for l in eachnode(dg)
               for v in eachvariable(equations)
-                pos == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), element])
-                pos == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), element])
+                position == 1 && (mpi_mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), element])
+                position == 2 && (mpi_mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), element])
               end
             end
           end
@@ -740,8 +740,8 @@ end
   local_element_ids = cache.mpi_mortars.local_element_ids[mortar]
   local_element_positions = cache.mpi_mortars.local_element_positions[mortar]
 
-  for (element, pos) in zip(local_element_ids, local_element_positions)
-    if pos in (1, 2) # Current element is small
+  for (element, position) in zip(local_element_ids, local_element_positions)
+    if position in (1, 2) # Current element is small
       # Copy flux small to small
       if cache.mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
         if cache.mpi_mortars.orientations[mortar] == 1
@@ -760,8 +760,8 @@ end
           direction = 4
         end
       end
-      pos == 1 && (surface_flux_values[:, :, direction, element] .= fstar_lower)
-      pos == 2 && (surface_flux_values[:, :, direction, element] .= fstar_upper)
+      position == 1 && (surface_flux_values[:, :, direction, element] .= fstar_lower)
+      position == 2 && (surface_flux_values[:, :, direction, element] .= fstar_upper)
     else # position == 3 -> current element is large
       # Project small fluxes to large element
       if cache.mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
