@@ -127,6 +127,50 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
+      cells_per_dimension = 4, element_type = Tri(),
+      l2 = [0.1348987236501758, 0.1588650593363661, 0.15886505933636905, 0.08571028568614296,
+            0.6031732736338957, 0.06286520146660214, 0.06286520146660948, 0.0894610083051161,
+            0.003693188791960107],
+      linf = [0.16290247390873458, 0.2256891306641319, 0.2256891306641336, 0.09476017042552534,
+              0.6906308908961734, 0.05349939593012487, 0.05349939593013042, 0.08830587480616725,
+              0.0029551359803035027]
+    )
+  end
+
+  @trixi_testset "elixir_shallowwater_sourceterms.jl (Quad, SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+      cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
+      l2 = [0.002872979931737679, 0.03347363077805821, 0.048733968813574426, 0.0],
+      linf = [0.010378266967904004, 0.08752703731822287, 0.1208392225656496, 0.0]
+    )
+  end
+
+  @trixi_testset "elixir_shallowwater_sourceterms.jl (Tri, SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+      cells_per_dimension = 8, element_type = Tri(), approximation_type = SBP(),
+      l2 = [0.0059122193825484485, 0.09936915834433074, 0.1670901626543993, 0.0],
+      linf = [0.020759854612974138, 0.29170680222821943, 0.5674271204523826, 0.0]
+    )
+  end
+
+  @trixi_testset "elixir_shallowwater_sourceterms.jl (Quad, Polynomial)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+      cells_per_dimension = 8, element_type = Quad(), approximation_type = Polynomial(),
+      l2 = [0.00010558957434359656, 0.005211849044236698, 0.005529417233501366, 7.170184501539883e-16],
+      linf = [0.0002598137815081891, 0.007204807169194805, 0.010339376301477188, 1.7763568394002505e-15]
+    )
+  end
+
+  @trixi_testset "elixir_shallowwater_sourceterms.jl (Tri, Polynomial)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_sourceterms.jl"),
+      cells_per_dimension = 8, element_type = Tri(), approximation_type = Polynomial(),
+      l2 = [0.0011751143465344904, 0.021531173265621168, 0.022675025401442856, 1.813056761617626e-5],
+      linf = [0.0018888279794841978, 0.05467053638747732, 0.06345606515953328, 3.398993309655651e-5]
+    )
+  end
+
   @trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Quad)" begin
     # These setups do not pass CI reliably, see
     # https://github.com/trixi-framework/Trixi.jl/pull/880 and
@@ -139,18 +183,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.1765644464978685, 0.2627803272865769, 0.26358136695848144, 0.12347681727447984,
               0.7733289736898254, 0.06695360844467957, 0.06650382120802623, 0.10885097000919097,
               0.007212567638078835],
-    )
-  end
-
-  @trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
-      cells_per_dimension = 4, element_type=Tri(),
-      l2 = [0.1348987236501758, 0.1588650593363661, 0.15886505933636905, 0.08571028568614296,
-            0.6031732736338957, 0.06286520146660214, 0.06286520146660948, 0.0894610083051161,
-            0.003693188791960107],
-      linf = [0.16290247390873458, 0.2256891306641319, 0.2256891306641336, 0.09476017042552534,
-              0.6906308908961734, 0.05349939593012487, 0.05349939593013042, 0.08830587480616725,
-              0.0029551359803035027]
     )
   end
 
