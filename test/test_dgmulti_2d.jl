@@ -172,16 +172,16 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
-      l2 = [0.002872979931737679, 0.03347363077805821, 0.048733968813574426, 0.0],
-      linf = [0.010378266967904004, 0.08752703731822287, 0.1208392225656496, 0.0]
+      l2 = [0.0028731817391463733, 0.033473047741338476, 0.04873655357923285, 2.7341648767587304e-15],
+      linf = [0.010385010095182778, 0.08750628939565086, 0.12088392994348407, 9.325873406851315e-15]
     )
   end
 
   @trixi_testset "elixir_shallowwater_source_terms.jl (Tri, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Tri(), approximation_type = SBP(),
-      l2 = [0.0059122193825484485, 0.09936915834433074, 0.1670901626543993, 0.0],
-      linf = [0.020759854612974138, 0.29170680222821943, 0.5674271204523826, 0.0]
+      l2 = [0.005912374812011487, 0.0993653660027428, 0.1670914777143732, 3.2948191109718012e-15],
+      linf = [0.02076003852980346, 0.29169601664914424, 0.5674183379872275, 1.1546319456101628e-14]
     )
   end
 
@@ -190,8 +190,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = 8, element_type = Tri(), approximation_type = Polynomial(),
       # The last l2, linf error are the L2 projection error in approximating `b`, so they are not
       # zero for general non-collocated quadrature rules (e.g., for `element_type=Tri()`, `polydeg > 2`).
-      l2 = [0.0011751143465344904, 0.021531173265621168, 0.022675025401442856, 1.813056761617626e-5],
-      linf = [0.0018888279794841978, 0.05467053638747732, 0.06345606515953328, 3.398993309655651e-5]
+      l2 = [0.0011751205240013974, 0.021530712606619058, 0.022675456966150455, 1.813056761616414e-5],
+      linf = [0.001888045014140971, 0.05466838692127718, 0.06345885709961152, 3.3989933098554914e-5]
     )
   end
 
@@ -202,8 +202,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       # for `Quad()` elements with `Polynomial()` approximations because the quadrature rule defaults to
       # a `(polydeg + 1)`-point Gauss quadrature rule in each coordinate (in general, StartUpDG.jl defaults
       # to the quadrature rule with the fewest number of points which exactly integrates the mass matrix).
-      l2 = [0.00010558957434359656, 0.005211849044236698, 0.005529417233501366, 7.170184501539883e-16],
-      linf = [0.0002598137815081891, 0.007204807169194805, 0.010339376301477188, 1.7763568394002505e-15]
+      l2 = [0.00010550686466016327, 0.005212211092466598, 0.005529801974869844, 3.062184075681645e-15],
+      linf = [0.000259995400729629, 0.0072236204211630906, 0.010364675200833062, 1.021405182655144e-14]
     )
   end
 

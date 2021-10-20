@@ -33,18 +33,15 @@ summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback,
-                        stepsize_callback)
+                        alive_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-7, reltol=1.0e-7,
             save_everystep=false, callback=callbacks);
 
 summary_callback() # print the timer summary
