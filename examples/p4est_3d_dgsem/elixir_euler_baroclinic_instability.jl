@@ -199,7 +199,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
-# This is about 5x faster for this test case than a CFL-based time step with CarpenterKennedy2N54
 sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
             save_everystep=false, callback=callbacks);
 
