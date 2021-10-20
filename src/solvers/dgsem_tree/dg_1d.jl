@@ -80,7 +80,7 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -248,7 +248,7 @@ function calc_volume_integral!(du, u,
                        volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
-    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                dg, cache, element, alpha_element)
   end
 
@@ -265,7 +265,7 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                dg, cache, element, true)
   end
 
@@ -283,7 +283,7 @@ end
 
   # Calculate FV two-point fluxes
   fstar1 = fstar1_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+  calcflux_fv!(fstar1, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                dg, element, cache)
 
   # Calculate FV volume integral contribution
@@ -298,9 +298,9 @@ end
   return nothing
 end
 
-@inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3}, 
+@inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3},
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                              nonconservative_terms::Val{false}, 
+                              nonconservative_terms::Val{false},
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
 
   fstar1[:, 1,           ] .= zero(eltype(fstar1))
