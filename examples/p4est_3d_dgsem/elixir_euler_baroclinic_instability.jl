@@ -94,7 +94,81 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 
-function cartesian_to_sphere(x)
+
+# https://doi.org/10.1002/qj.2241, Section 3.2 and Appendix A
+function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerEquations3D)
+  # Parameters from Table 1 in the paper
+  # Corresponding names in the paper are commented
+  radius_earth          = 6.371229e6  # a
+  half_width_parameter  = 2           # b
+  g                     = 9.80616     # g
+  k                     = 3           # k
+  p0                    = 1e5         # p₀
+  gas_constant          = 287         # R
+  temperature0e         = 310.0       # T₀ᴱ
+  temperature0p         = 240.0       # T₀ᴾ
+  lapse                 = 0.005       # Γ
+  omega_earth           = 7.29212e-5  # Ω
+
+
+  lon, lat, r = cart_to_sphere(x)
+  # Make sure that the r is not smaller than radius_earth
+  z = max(r - radius_earth, 0.0)
+  r = z + radius_earth
+
+  # In the paper: T₀
+  temperature0 = 0.5 * (temperature0e + temperature0p)
+  # In the paper: A, B, C, H
+  const_a = 1 / lapse
+  const_b = (temperature0 - temperature0p) / (temperature0 * temperature0p)
+  const_c = 0.5 * (k + 2) * (temperature0e - temperature0p) / (temperature0e * temperature0p)
+  const_h = gas_constant * temperature0 / g
+
+  # In the paper: (r - a) / bH
+  scaled_z = z / (half_width_parameter * const_h)
+
+  # Temporary variables
+  temp1 = exp(lapse/temperature0 * z)
+  temp2 = exp(-scaled_z^2)
+
+  # In the paper: ̃τ₁, ̃τ₂
+  tau1 = const_a * lapse / temperature0 * temp1 + const_b * (1 - 2 * scaled_z^2) * temp2
+  tau2 = const_c * (1 - 2 * scaled_z^2) * temp2
+
+  # In the paper: ∫τ₁(r') dr', ∫τ₂(r') dr'
+  inttau1 = const_a * (temp1 - 1) + const_b * z * temp2
+  inttau2 = const_c * z * temp2
+
+  # Temporary variables
+  temp3 = r/radius_earth * cos(lat)
+  temp4 = temp3^k - k/(k + 2) * temp3^(k+2)
+
+  # In the paper: T
+  temperature = 1 / ((r/radius_earth)^2 * (tau1 - tau2 * temp4))
+
+  # In the paper: U, u (zonal wind, first component of spherical velocity)
+  big_u = g/radius_earth * k * temperature * inttau2 * (temp3^(k-1) - temp3^(k+1))
+  temp5 = radius_earth * cos(lat)
+  u = -omega_earth * temp5 + sqrt(omega_earth^2 * temp5^2 + temp5 * big_u)
+
+  # Hydrostatic pressure
+  p = p0 * exp(-g/gas_constant * (inttau1 - inttau2 * temp4))
+
+  # Perturbation
+  # u += evaluate_exponential(lon,lat,z)
+
+  # Convert spherical velocity to Cartesian
+  v1 = -sin(lon) * u
+  v2 =  cos(lon) * u
+  v3 = 0.0
+
+  # Density (via ideal gas law)
+  rho = p / (gas_constant * temperature)
+
+  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
+end
+
+function cart_to_sphere(x)
   r = norm(x)
   lambda = atan(x[2], x[1])
   if lambda < 0
