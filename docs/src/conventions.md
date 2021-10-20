@@ -41,6 +41,30 @@ following naming conventions:
   use these indices.
 
 
+# Keywords in elixirs
+
+Trixi.jl is distributed with several examples in the form of elixirs, small
+Julia scripts containing everything to set up and run a simulation. Working
+interactively from the Julia REPL with these scripts can be quite convenient
+while for exploratory research and development of Trixi.jl. For example, you
+can use the convenience function [`trixi_include`](@ref) to `include` an elixir
+with some modified arguments. To enable this, it is helpful to use a consistent
+naming scheme in elixirs, since [`trixi_include`](@ref) can only perform simple
+replacements. Some standard variables names are
+
+- `polydeg` for the polynomial degree of a solver
+- `surface_flux` for the numerical flux at surfaces
+- `volume_flux` for the numerical flux used in flux differencing volume terms
+
+Moreover, [`convergence_test`](@ref) requires that the spatial resolution is
+set via the keywords 
+- `initial_refinement_level` 
+  (an integer, e.g. for the [`TreeMesh`](@ref) and the [`P4estMesh`](@ref)) or
+- `cells_per_dimension` 
+  (a tuple of integers, one per spatial dimension, e.g. for the [`StructuredMesh`](@ref)
+  and the [`VertexMappedMesh`](@ref)).
+
+
 ## Variable names
 
 - Use descriptive names (using `snake_case` for variables/functions and `CamelCase` for types)

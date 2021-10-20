@@ -20,6 +20,21 @@ mesh_file = default_mesh_file
 
 mesh = UnstructuredMesh2D(mesh_file)
 
+"""
+    initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
+
+A Gaussian pulse, used in the `gauss_wall` example elixir in combination with
+[`boundary_condition_wall`](@ref). Uses the global mean values from `equations`.
+"""
+function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
+  v1_prime = 0.0
+  v2_prime = 0.0
+  p_prime = exp(-log(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
+
+  prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
+
+  return prim2cons(prim, equations)
+end
 initial_condition = initial_condition_gauss_wall
 
 boundary_conditions = Dict( :OuterCircle  => boundary_condition_slip_wall,

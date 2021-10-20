@@ -4,35 +4,35 @@
 # interactive step-by-step explanations via [Binder](https://mybinder.org).
 
 # Right now, you are using the classic documentation. The corresponding interactive notebooks can
-# be viewed in [nbviewer](https://nbviewer.jupyter.org/) and opened in [Binder](https://mybinder.org/)
-# via the icons ![](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)
-# and ![](https://mybinder.org/badge_logo.svg) in the respective tutorial.
-
-# You can also download the notebook files via ![](https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e).
-    
+# be opened in [Binder](https://mybinder.org/) and viewed in [nbviewer](https://nbviewer.jupyter.org/)
+# via the icons ![](https://mybinder.org/badge_logo.svg) and ![](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)
+# in the respective tutorial.
+# You can download the raw notebooks from GitHub via ![](https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e).
+# **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
+# available for the latest stable release of Trixi at the time of caching.
 # There are tutorials for the following topics:
 
 # ### 1 Adding a new equation
-# #### [1.1 Scalar conservation law](@ref cubic_conservation_law_literate)
+# #### [1.1 Scalar conservation law](@ref cubic_conservation_law)
 #-
 # This tutorial explains how to add a new physics model using the example of the cubic conservation
 # law. First, we define the equation using a `struct` `CubicEquation` and the physical flux. Then,
 # the corresponding standard setup in Trixi.jl (`mesh`, `solver`, `semi` and `ode`) is implemented
 # and the ODE problem is solved by OrdinaryDiffEq's `solve` method.
 
-# #### [1.2 Nonconservative advection](@ref nonconservative_advection_literate)
+# #### [1.2 Nonconservative advection](@ref nonconservative_advection)
 #-
 # In this part, another physics model is implemented, the nonconservative linear advection equation.
 # We run two different simulations with different levels of refinement and compare the resulting errors.
 
-# ### [2 Differentiable programming](@ref differentiable_programming_literate)
+# ### [2 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
 # a few semidiscretizations. Moreover, we calculate an example for propagating errors with Measurement.jl
 # at the end.
 
-# ### [3 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_literate)
+# ### [3 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
 #-
 # The purpose of this tutorial is to demonstrate how to use the [`UnstructuredMesh2D`](@ref)
 # functionality of Trixi.jl. This begins by running and visualizing an available unstructured

@@ -7,7 +7,42 @@ using Trixi
 
 equations = HyperbolicDiffusionEquations3D()
 
+function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusionEquations3D)
+  # elliptic equation: -νΔϕ = f
+  # depending on initial constant state, c, for phi this converges to the solution ϕ + c
+  if iszero(t)
+    phi = 0.0
+    q1  = 0.0
+    q2  = 0.0
+    q3  = 0.0
+  else
+    phi =          sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * x[3])
+    q1  = 2 * pi * cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * x[3])
+    q2  = 2 * pi * sin(2 * pi * x[1]) * cos(2 * pi * x[2]) * sin(2 * pi * x[3])
+    q3  = 2 * pi * sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * x[3])
+  end
+  return SVector(phi, q1, q2, q3)
+end
 initial_condition = initial_condition_poisson_periodic
+
+@inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
+  @unpack inv_Tr = equations
+  C = -12 * equations.nu * pi^2
+
+  x1, x2, x3 = x
+  tmp1 = sinpi(2 * x1)
+  tmp2 = sinpi(2 * x2)
+  tmp3 = sinpi(2 * x3)
+  du1 = -C*tmp1*tmp2*tmp3
+  du2 = -inv_Tr * u[2]
+  du3 = -inv_Tr * u[3]
+  du4 = -inv_Tr * u[4]
+
+  return SVector(du1, du2, du3, du4)
+end
+
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (0.0, 0.0, 0.0)

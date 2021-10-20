@@ -13,12 +13,10 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     nbviewer_logo = "https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg"
     download_logo = "https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e"
 
-    # TODO: tutorials. Caching notebooks in separate branch in the future.
-    branch = "gh-pages"
-    notebook_path = "dev/tutorials/notebooks/$notebook_filename"
-    binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/$branch?filepath=$notebook_path"
-    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/$branch/$notebook_path"
-    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/$branch/$notebook_path"
+    notebook_path = "tutorials/notebooks/$notebook_filename"
+    binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
+    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/$notebook_path"
+    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
 
     binder_badge   = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
@@ -26,7 +24,9 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     
     # Generate notebook file
     function preprocess_notebook(content)
-        return string("# # $title\n\n", content)
+        warning = "# **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
+        # available for the latest stable release of Trixi at the time of caching.\n\n"
+        return string("# # $title\n\n", warning, content)
     end
     Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
 
@@ -62,9 +62,9 @@ function create_tutorials(files)
     end
 
     # Generate markdown file for introduction page
-    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction_literate")
+    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction")
     # Navigation system for makedocs
-    pages = Any["Introduction" => "tutorials/introduction_literate.md",]
+    pages = Any["Introduction" => "tutorials/introduction.md",]
 
     # Create markdown and notebook files for tutorials
     for (i, (title, filename)) in enumerate(files)

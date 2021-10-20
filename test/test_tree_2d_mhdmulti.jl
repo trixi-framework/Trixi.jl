@@ -20,6 +20,20 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
               0.0787460541210726, 0.1574921082421452])
   end
 
+  @trixi_testset "elixir_mhdmulti_ec.jl with flux_derigs_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
+      l2   = [0.04301155595653799, 0.04299735787276207, 0.025745530869947714,
+              0.16206102676791553, 0.017454384272339165, 0.01745523378100091,
+              0.026879482381500154, 0.0002038008756963954, 0.012094208262809778,
+              0.024188416525619556],
+      linf = [0.3156206778985397, 0.30941696929809526, 0.21167563519254176,
+              0.9688251298546122, 0.09076254289155083, 0.09160589769498295,
+              0.15698032974768705, 0.006131914796912965, 0.07839287555951036,
+              0.1567857511190207],
+      volume_flux = (flux_derigs_etal, flux_nonconservative_powell),
+      surface_flux = (flux_derigs_etal, flux_nonconservative_powell))
+  end
+
   @trixi_testset "elixir_mhdmulti_es.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_es.jl"),
       l2   = [0.042511527162267, 0.04250603277530184, 0.02385422747993974, 0.11555081362726903,

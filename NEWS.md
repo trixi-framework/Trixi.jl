@@ -14,6 +14,7 @@ for human readability.
 - Experimental support for direct-hybrid aeroacoustics simulations
   ([#712](https://github.com/trixi-framework/Trixi.jl/pull/712))
 - Implementation of shallow water equations in 2D
+- Experimental support for interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
 
 #### Changed
 

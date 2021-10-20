@@ -1,0 +1,49 @@
+name: Cache notebooks
+
+on:
+  schedule:
+    - cron: '00 02 * * 2'
+  workflow_dispatch:
+
+jobs:
+  cache-notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout caching branch
+        uses: actions/checkout@v2
+        with:
+          ref: tutorial_notebooks
+
+      - name: Delete files and history
+        shell: bash
+        run: |
+            git config user.name "Documenter.jl"
+            git config user.email "documenter@juliadocs.github.io"
+            git rm -rf --ignore-unmatch "*"
+            git commit -m "delete files" --allow-empty
+            git branch tutorial_notebooks_new $(echo "delete history" | git commit-tree HEAD^{tree})
+      - name: Copy files
+        run: |
+            git fetch origin
+            git checkout tutorial_notebooks_new
+            git checkout origin/main -- docs/Project.toml
+            mv docs/Project.toml Project.toml
+            rmdir docs/
+            sed -i '1 a Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"' Project.toml
+            cat Project.toml
+            # `stable` is a symlink, so we need to retrieve it first to resolve it locally
+            git checkout origin/gh-pages -- stable
+            git checkout origin/gh-pages -- `readlink stable`/tutorials/notebooks/
+            mv `readlink stable`/tutorials/ tutorials
+            rmdir `readlink stable`
+            rm stable
+            git add -A && git commit -m "Copy files"
+      - name: Push changes
+        run: |
+            git push --force origin tutorial_notebooks_new:tutorial_notebooks
+      - name: Cache binder build on mybinder.org
+        uses: jupyterhub/repo2docker-action@master
+        with:
+          NO_PUSH: true
+          MYBINDERORG_TAG: tutorial_notebooks

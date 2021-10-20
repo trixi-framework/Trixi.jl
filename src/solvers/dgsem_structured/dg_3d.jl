@@ -10,7 +10,7 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -160,88 +160,8 @@ end
   end
 end
 
-# Computing the normal vector for the FV method on curvilinear subcells. 
-# To fulfill free-stream preservation we use the explicit formula B.53 in Appendix B.4 
-# by Hennemann, Rueda-Ramirez, Hindenlang, Gassner (2020)
-# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-@inline function calcflux_fv!(fstar1, fstar2, fstar3, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::Val{false},
-                              equations, volume_flux_fv, dg::DGSEM, element, cache)
-  @unpack contravariant_vectors = cache.elements
-  @unpack weights, derivative_matrix = dg.basis
-
-  # Performance improvement if the metric terms of the subcell FV method are only computed 
-  # once at the beginning of the simulation, instead of at every Runge-Kutta stage
-  fstar1[:, 1,            :, :] .= zero(eltype(fstar1))
-  fstar1[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1))
-
-  for k in eachnode(dg), j in eachnode(dg)
-    normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, k, element)
-
-    for i in 2:nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
-      u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
-
-      for m in 1:nnodes(dg)
-        normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, k, element)
-      end
-
-      # Compute the contravariant flux
-      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
-
-      set_node_vars!(fstar1, contravariant_flux, equations, dg, i, j, k)
-    end
-  end
-
-  fstar2[:, :, 1           , :] .= zero(eltype(fstar2))
-  fstar2[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2))
-
-  for k in eachnode(dg), i in eachnode(dg)
-    normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, k, element)
-
-    for j in 2:nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
-      u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
-
-      for m in 1:nnodes(dg)
-        normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, k, element)
-      end
-
-      # Compute the contravariant flux
-      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
-
-      set_node_vars!(fstar2, contravariant_flux, equations, dg, i, j, k)
-    end
-  end
-
-  fstar3[:, :, :, 1           ] .= zero(eltype(fstar3))
-  fstar3[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3))
-
-  for j in eachnode(dg), i in eachnode(dg)
-    normal_direction = get_contravariant_vector(3, contravariant_vectors, i, j, 1, element)
-
-    for k in 2:nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
-      u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
-
-      for m in 1:nnodes(dg)
-        normal_direction += weights[k-1] * derivative_matrix[k-1, m] * get_contravariant_vector(3, contravariant_vectors, i, j, m, element)
-      end
-
-      # Compute the contravariant flux
-      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
-
-      set_node_vars!(fstar3, contravariant_flux, equations, dg, i, j, k)
-    end
-  end
-
-  return nothing 
-end
-
-
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    element, mesh::StructuredMesh{3},
+                                    element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   @unpack derivative_split = dg.basis
@@ -306,6 +226,202 @@ end
     # The factor 0.5 cancels the factor 2 in the flux differencing form
     multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations, dg, i, j, k, element)
   end
+end
+
+
+# Computing the normal vector for the FV method on curvilinear subcells.
+# To fulfill free-stream preservation we use the explicit formula B.53 in Appendix B.4
+# by Hennemann, Rueda-Ramirez, Hindenlang, Gassner (2020)
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::Val{false},
+                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+  @unpack contravariant_vectors = cache.elements
+  @unpack weights, derivative_matrix = dg.basis
+
+  # Performance improvement if the metric terms of the subcell FV method are only computed
+  # once at the beginning of the simulation, instead of at every Runge-Kutta stage
+  fstar1_L[:, 1,            :, :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :, :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_R))
+
+  for k in eachnode(dg), j in eachnode(dg)
+    normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, k, element)
+
+    for i in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
+      u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
+
+      for m in 1:nnodes(dg)
+        normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, k, element)
+      end
+
+      # Compute the contravariant flux
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+
+      set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j, k)
+      set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
+    end
+  end
+
+  fstar2_L[:, :, 1           , :] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           , :] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_R))
+
+  for k in eachnode(dg), i in eachnode(dg)
+    normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, k, element)
+
+    for j in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
+      u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
+
+      for m in 1:nnodes(dg)
+        normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, k, element)
+      end
+
+      # Compute the contravariant flux
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+
+      set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j, k)
+      set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
+    end
+  end
+
+  fstar3_L[:, :, :, 1           ] .= zero(eltype(fstar3_L))
+  fstar3_L[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_L))
+  fstar3_R[:, :, :, 1           ] .= zero(eltype(fstar3_R))
+  fstar3_R[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_R))
+
+  for j in eachnode(dg), i in eachnode(dg)
+    normal_direction = get_contravariant_vector(3, contravariant_vectors, i, j, 1, element)
+
+    for k in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
+      u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
+
+      for m in 1:nnodes(dg)
+        normal_direction += weights[k-1] * derivative_matrix[k-1, m] * get_contravariant_vector(3, contravariant_vectors, i, j, m, element)
+      end
+
+      # Compute the contravariant flux
+      contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+
+      set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
+      set_node_vars!(fstar3_R, contravariant_flux, equations, dg, i, j, k)
+    end
+  end
+
+  return nothing
+end
+
+# # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
+                              mesh::Union{StructuredMesh{3}, P4estMesh{3}}, nonconservative_terms::Val{true},
+                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+  @unpack contravariant_vectors = cache.elements
+  @unpack weights, derivative_matrix = dg.basis
+
+  volume_flux, nonconservative_flux = volume_flux_fv
+
+  # Performance improvement if the metric terms of the subcell FV method are only computed
+  # once at the beginning of the simulation, instead of at every Runge-Kutta stage
+  fstar1_L[:, 1,            :, :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :, :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_R))
+
+  for k in eachnode(dg), j in eachnode(dg)
+    normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, k, element)
+
+    for i in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
+      u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
+
+      for m in eachnode(dg)
+        normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, k, element)
+      end
+
+      # Compute the contravariant conservative flux
+      ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
+
+      # Compute and add in the nonconservative part
+      # Note the factor 0.5 necessary for the nonconservative fluxes based on
+      # the interpretation of global SBP operators coupled discontinuously via
+      # central fluxes/SATs
+      ftilde_L = ftilde + 0.5 * nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+      ftilde_R = ftilde + 0.5 * nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
+
+      set_node_vars!(fstar1_L, ftilde_L, equations, dg, i, j, k)
+      set_node_vars!(fstar1_R, ftilde_R, equations, dg, i, j, k)
+    end
+  end
+
+  fstar2_L[:, :, 1           , :] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           , :] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_R))
+
+  for k in eachnode(dg), i in eachnode(dg)
+    normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, k, element)
+
+    for j in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
+      u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
+
+      for m in eachnode(dg)
+        normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, k, element)
+      end
+
+      # Compute the contravariant conservative flux
+      ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
+
+      # Compute and add in the nonconservative part
+      # Note the factor 0.5 necessary for the nonconservative fluxes based on
+      # the interpretation of global SBP operators coupled discontinuously via
+      # central fluxes/SATs
+      ftilde_L = ftilde + 0.5 * nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+      ftilde_R = ftilde + 0.5 * nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
+
+      set_node_vars!(fstar2_L, ftilde_L, equations, dg, i, j, k)
+      set_node_vars!(fstar2_R, ftilde_R, equations, dg, i, j, k)
+    end
+  end
+
+  fstar3_L[:, :, :, 1           ] .= zero(eltype(fstar3_L))
+  fstar3_L[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_L))
+  fstar3_R[:, :, :, 1           ] .= zero(eltype(fstar3_R))
+  fstar3_R[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_R))
+
+  for j in eachnode(dg), i in eachnode(dg)
+    normal_direction = get_contravariant_vector(3, contravariant_vectors, i, j, 1, element)
+
+    for k in 2:nnodes(dg)
+      u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
+      u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
+
+      for m in eachnode(dg)
+        normal_direction += weights[k-1] * derivative_matrix[k-1, m] * get_contravariant_vector(3, contravariant_vectors, i, j, m, element)
+      end
+
+      # Compute the contravariant conservative flux
+      ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
+
+      # Compute and add in the nonconservative part
+      # Note the factor 0.5 necessary for the nonconservative fluxes based on
+      # the interpretation of global SBP operators coupled discontinuously via
+      # central fluxes/SATs
+      ftilde_L = ftilde + 0.5 * nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+      ftilde_R = ftilde + 0.5 * nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
+
+      set_node_vars!(fstar3_L, ftilde_L, equations, dg, i, j, k)
+      set_node_vars!(fstar3_R, ftilde_R, equations, dg, i, j, k)
+    end
+  end
+
+  return nothing
 end
 
 

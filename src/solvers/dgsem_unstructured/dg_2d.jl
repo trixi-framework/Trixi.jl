@@ -37,7 +37,7 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -427,12 +427,7 @@ end
   # vectors (normal direction) at the current node and the averaged ones.
   # However, both are the same at watertight interfaces, so we pass the
   # `outward_direction` twice.
-  # Note 1: This does not set any type of boundary condition for the nonconservative term
-  # Note 2: Only tested for [`ShallowWaterEquations2D`](@ref) where the necessary
-  #         nonconservative part only depends on `u_inner`, the bottom topography is
-  #         assumed continuous at physical boundaries such that the `b_jump` term in
-  #         [`flux_nonconservative_fjordholm_etal`](@ref) vanishes.
-  # TODO: nonconservative. Test and debug for [`IdealGlmMhdEquations2D`](@ref) when needed
+  # Note: This does not set any type of boundary condition for the nonconservative term
   noncons_flux = nonconservative_flux(u_inner, u_inner, outward_direction, outward_direction, equations)
 
   for v in eachvariable(equations)

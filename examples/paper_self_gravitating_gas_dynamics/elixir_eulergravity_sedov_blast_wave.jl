@@ -7,7 +7,82 @@ using Trixi
 gamma = 1.4
 equations_euler = CompressibleEulerEquations2D(gamma)
 
+"""
+    initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
+
+Adaptation of the Sedov blast wave with self-gravity taken from
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+based on
+- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
+"""
+function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
+  # Set up polar coordinates
+  r = sqrt(x[1]^2 + x[2]^2)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+  r0 = 0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
+  E = 1.0
+  p_inner   = (equations.gamma - 1) * E / (pi * r0^2)
+  p_ambient = 1e-5 # = true Sedov setup
+
+  # Calculate primitive variables
+  # use a logistic function to tranfer density value smoothly
+  L  = 1.0    # maximum of function
+  x0 = 1.0    # center point of function
+  k  = -150.0 # sharpness of transfer
+  logistic_function_rho = L/(1.0 + exp(-k*(r - x0)))
+  rho_ambient = 1e-5
+  rho = max(logistic_function_rho, rho_ambient) # clip background density to not be so tiny
+
+  # velocities are zero
+  v1 = 0.0
+  v2 = 0.0
+
+  # use a logistic function to tranfer pressure value smoothly
+  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
+  p = max(logistic_function_p, p_ambient)
+
+  return prim2cons(SVector(rho, v1, v2, p), equations)
+end
 initial_condition = initial_condition_sedov_self_gravity
+
+"""
+    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                          surface_flux_function,
+                                          equations::CompressibleEulerEquations2D)
+
+Adaptation of the Sedov blast wave with self-gravity taken from
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+based on
+- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
+"""
+function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                               surface_flux_function,
+                                               equations::CompressibleEulerEquations2D)
+  # velocities are zero, density/pressure are ambient values according to
+  # initial_condition_sedov_self_gravity
+  rho = 1e-5
+  v1 = 0.0
+  v2 = 0.0
+  p = 1e-5
+
+  u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
+
+  # Calculate boundary flux
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
 boundary_conditions = boundary_condition_sedov_self_gravity
 
 surface_flux = flux_hll
@@ -39,7 +114,52 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 # semidiscretization of the hyperbolic diffusion equations
 equations_gravity = HyperbolicDiffusionEquations2D()
 
-# TODO: Taal, define initial/boundary conditions here for gravity?
+"""
+    initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
+
+Adaptation of the Sedov blast wave with self-gravity taken from
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+based on
+- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
+"""
+function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
+  # for now just use constant initial condition for sedov blast wave (can likely be improved)
+  phi = 0.0
+  q1  = 0.0
+  q2  = 0.0
+  return SVector(phi, q1, q2)
+end
+
+"""
+    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                          surface_flux_function,
+                                          equations::HyperbolicDiffusionEquations2D)
+
+Adaptation of the Sedov blast wave with self-gravity taken from
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+based on
+- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
+"""
+function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equations::HyperbolicDiffusionEquations2D)
+  u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
+
+  # Calculate boundary flux
+  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
 
 solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
 
