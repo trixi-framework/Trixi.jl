@@ -515,7 +515,6 @@ function calc_volume_integral!(du, u, volume_integral, mesh,
                                dg::DGMultiFluxDiff{<:Polynomial}, cache)
   @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
   @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
-  rd = dg.basis
 
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
@@ -541,7 +540,6 @@ end
 function calc_sources!(du, u, t, source_terms,
                        mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
 
-  rd = dg.basis
   md = mesh.md
 
   @threaded for e in eachelement(mesh, dg, cache)
