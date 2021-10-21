@@ -395,12 +395,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, m
   end
 
   # Get sorted, unique neighbor ranks
-  if !isempty(neighbor_ranks_mortar) # `reduce` is only allowed for non-empty collections
-    mpi_neighbor_ranks = vcat(
-      neighbor_ranks_interface, reduce(vcat, neighbor_ranks_mortar)) |> sort |> unique
-  else
-    mpi_neighbor_ranks = unique(sort(neighbor_ranks_interface))
-  end
+  mpi_neighbor_ranks = vcat(neighbor_ranks_interface, neighbor_ranks_mortar...) |> sort |> unique
 
   # Sort interfaces by global interface id
   p = sortperm(global_interface_ids)
