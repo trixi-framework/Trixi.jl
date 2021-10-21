@@ -766,7 +766,7 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
 
   # For each coordinate find the corresponding triangle with its ids.
   ids_by_coordinates = get_ids_by_coordinates(input_curve, pd)
-  found_coordinates = ids_by_coordinates[:, 1] .!= 0
+  found_coordinates = ids_by_coordinates[:, 1] .!= nothing
 
   @assert found_coordinates != zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
 
@@ -1368,7 +1368,7 @@ end
 
 # Find the ids of elements and triangles containing given coordinates by using the triangulation in 'pd'.
 function get_ids_by_coordinates(coordinates, pd)
-  ids = Matrix{Int}(undef, size(coordinates, 2), 2)
+  ids = Matrix(undef, size(coordinates, 2), 2)
   get_ids_by_coordinates!(ids, coordinates, pd)
   return ids
 end
@@ -1404,12 +1404,9 @@ function find_element(point, pd)
       end
     end
   end
-
-  # If no element was found, return 0 on default.
-  return 0
 end
-            
-# Interpolate form three corners of a triangle to a single point.            
+
+# Interpolate form three corners of a triangle to a single point.
 function triangle_interpolation(coordinates_in, values_in, coordinate_out)
   A = hcat(coordinates_in, ones(3))
   c = A \ values_in
