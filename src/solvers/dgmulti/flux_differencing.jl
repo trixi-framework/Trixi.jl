@@ -234,7 +234,8 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
             local_values_threaded, fluxdiff_local_threaded)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, RealT, uEltype)
+# most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -461,7 +462,7 @@ end
 
 function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
                                have_nonconservative_terms::Val{false}, equations,
-                               dg::DGMultiFluxDiff{<:Polynomial}, cache)
+                               dg::DGMultiFluxDiff, cache)
 
   rd = dg.basis
   @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
