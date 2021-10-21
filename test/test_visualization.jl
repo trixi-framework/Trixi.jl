@@ -20,10 +20,12 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
-  # Run 2D tests with elixirs for both mesh types
+  # Run 2D tests with elixirs for all mesh types
   test_examples_2d = Dict(
     "TreeMesh" => ("tree_2d_dgsem", "elixir_euler_blast_wave_amr.jl"),
     "StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_waving_flag.jl"),
+    "UnstructuredMesh" => ("unstructured_2d_dgsem", "elixir_euler_basic.jl"),
+    "P4estMesh" => ("p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
     "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
   )
 
@@ -35,11 +37,12 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # Constructor tests
     if mesh == "TreeMesh"
-      @test PlotData2D(sol) isa PlotData2D
-      @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
+      @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
+      @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa Trixi.PlotData2DCartesian
+      @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
     else
-      @test PlotData2D(sol) isa Trixi.UnstructuredPlotData2D
-      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.UnstructuredPlotData2D
+      @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+      @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.PlotData2DTriangulated
     end
     pd = PlotData2D(sol)
 
@@ -86,14 +89,32 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug Plots.plot(pd)
       @test_nowarn_debug Plots.plot(pd["p"])
       @test_nowarn_debug Plots.plot(getmesh(pd))
+
+      semi = sol.prob.p
+      if mesh == "DGMulti"
+        scalar_data = StructArrays.component(sol.u[end], 1)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+      else
+        cache = semi.cache
+        x = view(cache.elements.node_coordinates, 1, :, :, :)
+        @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
+      end
     end
 
     @testset "1D plot from 2D solution" begin
-      if mesh != "DGMulti"
+      if mesh != "DGMulti" && mesh != "P4estMesh"
         @testset "Create 1D plot as slice" begin
-          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(-0.5, 0.0)) isa PlotData1D
-          pd1D = PlotData1D(sol, slice=:y, point=(-0.5, 0.0))
+          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
           @test_nowarn_debug Plots.plot(pd1D)
+        end
+      elseif mesh == "P4estMesh"
+        @testset "Create 1D plot as slice" begin
+          # Plot along slice axis is broken for unstructured meshes.
+          # See https://github.com/trixi-framework/Trixi.jl/issues/893
+          @test_broken PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          @test_broken pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
+          @test_broken Plots.plot(pd1D)
         end
       end
 
@@ -182,14 +203,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       data2d = [rand(11,11) for _ in 1:5]
       mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
       mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
-      fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
+      fake2d = Trixi.PlotData2DCartesian(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
       @test_nowarn_debug Plots.plot(fake2d)
     end
   end
 
   @timed_testset "plot time series" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
-                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
+                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
     @test_nowarn_debug Plots.plot(time_series, 1)
@@ -212,7 +233,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
-    @test PlotData2D(sol) isa PlotData2D
+    @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
 
     @testset "1D plot from 3D solution" begin
       @testset "Create 1D plot as slice" begin
@@ -250,12 +271,12 @@ isdir(outdir) && rm(outdir, recursive=true)
                                visualization = VisualizationCallback(interval=20,
                                                clims=(0,1),
                                                plot_creator=Trixi.save_plot),
-                               tspan=(0.0, 2.0))
+                               tspan=(0.0, 3.0))
 
     @testset "elixir_advection_amr_visualization.jl with save_plot" begin
       @test isfile(joinpath(outdir, "solution_000000.png"))
       @test isfile(joinpath(outdir, "solution_000020.png"))
-      @test isfile(joinpath(outdir, "solution_000024.png"))
+      @test isfile(joinpath(outdir, "solution_000022.png"))
     end
 
     @testset "show" begin
@@ -278,11 +299,26 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
-    @test_nowarn_debug Trixi.iplot(sol) # test interactive surface plot
-    @test_nowarn_debug Makie.plot(sol) # test heatmap plot
 
-    fa = Makie.plot(sol) # test heatmap plot
-    fig, axes = fa # test unpacking/iteration for FigureAndAxes
+    # test interactive surface plot
+    @test_nowarn_debug Trixi.iplot(sol)
+
+    # also test when using PlotData2D object
+    @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+    @test_nowarn_debug Makie.plot(PlotData2D(sol))
+
+    # test interactive ScalarPlotData2D plotting
+    semi = sol.prob.p
+    x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates
+    y = view(semi.cache.elements.node_coordinates, 2, :, :, :); # extracts the node x coordinates
+    @test_nowarn_debug iplot(ScalarPlotData2D(x.+y, semi), plot_mesh=true)
+
+    # test heatmap plot
+    @test_nowarn_debug Makie.plot(sol, plot_mesh=true)
+
+    # test unpacking/iteration for FigureAndAxes
+    fa = Makie.plot(sol)
+    fig, axes = fa
     @test_nowarn_debug Base.show(fa) === nothing
     @test_nowarn_debug typeof(fig) <: Makie.Figure
     @test_nowarn_debug typeof(axes) <: AbstractArray{<:Makie.Axis}

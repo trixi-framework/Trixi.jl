@@ -178,54 +178,6 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMul
 end
 
 
-"""
-    initial_condition_two_interacting_blast_waves(x, t, equations::CompressibleEulerMulticomponentEquations1D)
-
-A multicomponent two interacting blast wave test taken from
-- T. Plewa & E. Müller (1999)
-  The consistent multi-fluid advection method
-  [arXiv: 9807241](https://arxiv.org/pdf/astro-ph/9807241.pdf)
-"""
-function initial_condition_two_interacting_blast_waves(x, t, equations::CompressibleEulerMulticomponentEquations1D)
-
-  rho1        = 0.5 * x[1]^2
-  rho2        = 0.5 * (sin(20 * x[1]))^2
-  rho3        = 1 - rho1 - rho2
-
-  prim_rho    = SVector{3, real(equations)}(rho1, rho2, rho3)
-
-  v1          = 0.0
-
-  if x[1] <= 0.1
-    p = 1000
-  elseif x[1] < 0.9
-    p = 0.01
-  else
-    p = 100
-  end
-
-  prim_other  = SVector{2, real(equations)}(v1, p)
-
-  return prim2cons(vcat(prim_other, prim_rho), equations)
-end
-
-
-function boundary_condition_two_interacting_blast_waves(u_inner, orientation, direction, x, t,
-                                                        surface_flux_function,
-                                                        equations::CompressibleEulerMulticomponentEquations1D)
-
-u_inner_reflect = SVector{nvariables(equations), real(equations)}(-u_inner[1], u_inner[2], u_inner[3], u_inner[4], u_inner[5])
-# Calculate boundary flux
-if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-  flux = surface_flux_function(u_inner, u_inner_reflect, orientation, equations)
-else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-  flux = surface_flux_function(u_inner_reflect, u_inner, orientation, equations)
-end
-
-  return flux
-end
-
-
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerMulticomponentEquations1D)
   rho_v1, rho_e  = u
@@ -338,7 +290,7 @@ See also
 
   # Calculating gamma
   gamma               = totalgamma(0.5*(u_ll+u_rr), equations)
-  inv_gamma_minus_one = 1/(gamma-1) 
+  inv_gamma_minus_one = 1/(gamma-1)
 
   # extract velocities
   v1_ll               = rho_v1_ll / rho_ll
@@ -366,11 +318,11 @@ See also
   # temperature and pressure
   T_ll            = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2)) / help1_ll
   T_rr            = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2)) / help1_rr
-  p_ll            = T_ll * enth_ll 
+  p_ll            = T_ll * enth_ll
   p_rr            = T_rr * enth_rr
   p_avg           = 0.5 * (p_ll + p_rr)
   inv_rho_p_mean  = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
- 
+
   # momentum and energy flux
   f1 = f_rho_sum * v1_avg + p_avg
   f2 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
@@ -391,17 +343,15 @@ end
   gamma_ll = totalgamma(u_ll, equations)
   gamma_rr = totalgamma(u_rr, equations)
 
-  v1_ll = rho_v1_ll / rho_ll
-  v1_rr = rho_v1_rr / rho_rr
-  v_mag_ll = sqrt(v1_ll^2)
-  v_mag_rr = sqrt(v1_rr^2)
+  v_ll = rho_v1_ll / rho_ll
+  v_rr = rho_v1_rr / rho_rr
 
-  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
-  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
+  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
   c_ll = sqrt(gamma_ll * p_ll / rho_ll)
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 
@@ -482,7 +432,7 @@ end
   entrop_rho  = SVector{ncomponents(equations), real(equations)}( gas_constant * ((gamma - s)/(gamma - 1.0) - (0.5 * v_square * rho_p)) for i in eachcomponent(equations))
 
   w1        = gas_constant * v1 * rho_p
-  w2        = gas_constant * (-1.0 * rho_p) 
+  w2        = gas_constant * (-1.0 * rho_p)
 
   entrop_other = SVector{2, real(equations)}(w1, w2)
 

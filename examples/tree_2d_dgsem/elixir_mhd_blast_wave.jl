@@ -7,6 +7,36 @@ using Trixi
 
 equations = IdealGlmMhdEquations2D(1.4)
 
+"""
+    initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
+
+An MHD blast wave taken from
+- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
+  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
+  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+"""
+function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
+  r = sqrt(x[1]^2 + x[2]^2)
+  f = (0.1 - r)/0.01
+  if r <= 0.09
+    p = 1000.0
+  elseif r >= 0.1
+    p = 0.1
+  else
+    p = 0.1 + 999.9*f
+  end
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  B1 = 100.0/sqrt(4.0*pi)
+  B2 = 0.0
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+end
 initial_condition = initial_condition_blast_wave
 
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
@@ -63,7 +93,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-cfl = 0.3
+cfl = 0.8
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)

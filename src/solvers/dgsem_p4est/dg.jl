@@ -21,6 +21,7 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
   cache = (; elements, interfaces, boundaries, mortars)
 
   # Add specialized parts of the cache required to compute the volume integral etc.
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
   return cache

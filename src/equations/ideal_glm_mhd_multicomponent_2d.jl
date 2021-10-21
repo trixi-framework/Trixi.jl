@@ -123,47 +123,6 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMulticomp
 end
 
 
-"""
-    initial_condition_rotor(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
-
-The classical MHD rotor test case adapted to twocomponent. Here, the setup is taken from
-- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
-  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
-"""
-function initial_condition_rotor(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
-  # setup taken from Derigs et al. DMV article (2018)
-  # domain must be [0, 1] x [0, 1], γ = 1.4
-  dx = x[1] - 0.5
-  dy = x[2] - 0.5
-  r = sqrt(dx^2 + dy^2)
-  f = (0.115 - r)/0.015
-  if r <= 0.1
-    rho1 = 10.0
-    rho2 = 5.0
-    v1 = -20.0*dy
-    v2 = 20.0*dx
-  elseif r >= 0.115
-    rho1 = 1.0
-    rho2 = 0.5
-    v1 = 0.0
-    v2 = 0.0
-  else
-    rho1 = 1.0 + 9.0*f
-    rho2 = 0.5 + 4.5*f
-    v1 = -20.0*f*dy
-    v2 = 20.0*f*dx
-  end
-  v3 = 0.0
-  p = 1.0
-  B1 = 5.0/sqrt(4.0*pi)
-  B2 = 0.0
-  B3 = 0.0
-  psi = 0.0
-  return prim2cons(SVector(v1, v2, v3, p, B1, B2, B3, psi, rho1, rho2), equations)
-end
-
-
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
@@ -504,41 +463,34 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
-  rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+  rho_v1_ll, rho_v2_ll, _ = u_ll
+  rho_v1_rr, rho_v2_rr, _ = u_rr
 
   rho_ll   = density(u_ll, equations)
   rho_rr   = density(u_rr, equations)
-  gamma_ll = totalgamma(u_ll, equations)
-  gamma_rr = totalgamma(u_rr, equations)
 
   # Calculate velocities and fast magnetoacoustic wave speeds
-  # left
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  if orientation == 1
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+  else # orientation == 2
+    v_ll = rho_v2_ll / rho_ll
+    v_rr = rho_v2_rr / rho_rr
+  end
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
-  # right
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 
-
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMulticomponentEquations2D)
-  rho_v1, rho_v2, rho_v3, _ = u
+  rho_v1, rho_v2, _ = u
 
   rho = density(u, equations)
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  v3 = rho_v3 / rho
 
   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)

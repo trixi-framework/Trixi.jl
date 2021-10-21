@@ -32,12 +32,14 @@ installation and postprocessing procedures. Its features include:
   * Multi-component compressible Euler and MHD equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
+  * Shallow water equations
   * Scalar advection
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
 * Visualization and postprocessing of the results
   * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+  * Interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
   * Postprocessing with ParaView/VisIt via [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
 
 

@@ -35,38 +35,6 @@ end
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
-  # depending on initial constant state, c, for phi this converges to the solution ϕ + c
-  if iszero(t)
-    phi = 0.0
-    q1  = 0.0
-    q2  = 0.0
-  else
-    phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
-    q1  = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
-    q2  = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
-  end
-  return SVector(phi, q1, q2)
-end
-
-@inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
-  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-  @unpack inv_Tr = equations
-  C = -8 * equations.nu * pi^2
-
-  x1, x2 = x
-  tmp1 = sinpi(2 * x1)
-  tmp2 = sinpi(2 * x2)
-  du1 = -C*tmp1*tmp2
-  du2 = -inv_Tr * u[2]
-  du3 = -inv_Tr * u[3]
-
-  return SVector(du1, du2, du3)
-end
-
-
 @inline function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -ν Δϕ = f in Ω, u = g on ∂Ω
   if iszero(t)
@@ -114,27 +82,11 @@ end
 end
 
 
-@inline function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -ν Δϕ = 0 in Ω, u = g on ∂Ω
-  if t == 0.0
-    phi = 1.0
-    q1  = 1.0
-    q2  = 1.0
-  else
-    C   = inv(sinh(pi))
-    sinpi_x1, cospi_x1 = sincos(pi*x[1])
-    sinpi_x2, cospi_x2 = sincos(pi*x[2])
-    sinh_pix1 = sinh(pi*x[1])
-    cosh_pix1 = cosh(pi*x[1])
-    sinh_pix2 = sinh(pi*x[2])
-    cosh_pix2 = cosh(pi*x[2])
-    phi = C *      (sinh_pix1 * sinpi_x2 + sinh_pix2 * sinpi_x1)
-    q1  = C * pi * (cosh_pix1 * sinpi_x2 + sinh_pix2 * cospi_x1)
-    q2  = C * pi * (sinh_pix1 * cospi_x2 + cosh_pix2 * sinpi_x1)
-  end
-  return SVector(phi, q1, q2)
-end
+"""
+    source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations2D)
 
+Source term that only includes the forcing from the hyperbolic diffusion system.
+"""
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   @unpack inv_Tr = equations
@@ -169,54 +121,6 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   q2  = q1                                     # = gravity acceleration in y-direction
 
   return SVector(phi, q1, q2)
-end
-
-
-"""
-    initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
-"""
-function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
-  # for now just use constant initial condition for sedov blast wave (can likely be improved)
-  phi = 0.0
-  q1  = 0.0
-  q2  = 0.0
-  return SVector(phi, q1, q2)
-end
-
-"""
-    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                          surface_flux_function,
-                                          equations::HyperbolicDiffusionEquations2D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
-"""
-function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::HyperbolicDiffusionEquations2D)
-  u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
 end
 
 

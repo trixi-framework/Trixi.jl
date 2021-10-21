@@ -9,8 +9,12 @@ for human readability.
 
 #### Added
 
-- Experimental support for artifial neural network-based indicators for shock capturing and
+- Experimental support for artificial neural network-based indicators for shock capturing and
   adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
+- Experimental support for direct-hybrid aeroacoustics simulations
+  ([#712](https://github.com/trixi-framework/Trixi.jl/pull/712))
+- Implementation of shallow water equations in 2D
+- Experimental support for interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
 
 #### Changed
 
@@ -18,6 +22,9 @@ for human readability.
   perturbed pressure `p_prime` has been replaced with `p_prime_scaled = p_prime / c_mean^2`.
 - Removed the experimental `BoundaryConditionWall` and instead directly compute slip wall boundary
   condition flux term using the function `boundary_condition_slip_wall`.
+- Renamed `advectionvelocity` in `LinearScalarAdvectionEquation` to `advection_velocity`.
+- The signature of indicators used for adaptive mesh refinement (AMR) and shock capturing
+  changed to generalize them to curved meshes.
 
 #### Deprecated
 
@@ -27,9 +34,7 @@ for human readability.
   moved from `Trixi/src` to the example elixirs `Trixi/examples`. Thus, they
   are no longer available when `using Trixi`, e.g., the initial condition
   for the Kelvin Helmholtz instability.
-- Some initial/boundary conditions and source terms for academic verification
-  setups were removed, e.g., `initial_condition_linear_x` for the 2D linear
-  advection equation.
+- Features deprecated in v0.3 were removed.
 
 
 ## Changes in the v0.3 lifecycle

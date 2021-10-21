@@ -107,21 +107,21 @@ end
 
 mutable struct P4estInterfaceContainer{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
   u             ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
-  element_ids   ::Matrix{Int}                   # [primary/secondary, interface]
+  neighbor_ids  ::Matrix{Int}                   # [primary/secondary, interface]
   node_indices  ::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interface]
 
   # internal `resize!`able storage
   _u            ::Vector{uEltype}
-  _element_ids  ::Vector{Int}
+  _neighbor_ids  ::Vector{Int}
   _node_indices ::Vector{NTuple{NDIMS, Symbol}}
 end
 
-@inline ninterfaces(interfaces::P4estInterfaceContainer) = size(interfaces.element_ids, 2)
+@inline ninterfaces(interfaces::P4estInterfaceContainer) = size(interfaces.neighbor_ids, 2)
 @inline Base.ndims(::P4estInterfaceContainer{NDIMS}) where NDIMS = NDIMS
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
-  @unpack _u, _element_ids, _node_indices = interfaces
+  @unpack _u, _neighbor_ids, _node_indices = interfaces
 
   n_dims = ndims(interfaces)
   n_nodes = size(interfaces.u, 3)
@@ -131,8 +131,8 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
   interfaces.u = unsafe_wrap(Array, pointer(_u),
     (2, n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
-  resize!(_element_ids, 2 * capacity)
-  interfaces.element_ids = unsafe_wrap(Array, pointer(_element_ids), (2, capacity))
+  resize!(_neighbor_ids, 2 * capacity)
+  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, capacity))
 
   resize!(_node_indices, 2 * capacity)
   interfaces.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
@@ -153,14 +153,14 @@ function init_interfaces(mesh::P4estMesh, equations, basis, elements)
   u = unsafe_wrap(Array, pointer(_u),
     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_interfaces))
 
-  _element_ids = Vector{Int}(undef, 2 * n_interfaces)
-  element_ids = unsafe_wrap(Array, pointer(_element_ids), (2, n_interfaces))
+  _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
+  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
 
   _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
   node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
-  interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS+2}(u, element_ids, node_indices,
-                                                                _u, _element_ids, _node_indices)
+  interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS+2}(u, neighbor_ids, node_indices,
+                                                                _u, _neighbor_ids, _node_indices)
 
   init_interfaces!(interfaces, mesh)
 
@@ -177,7 +177,7 @@ end
 
 mutable struct P4estBoundaryContainer{NDIMS, uEltype<:Real, NDIMSP1} <: AbstractContainer
   u           ::Array{uEltype, NDIMSP1}       # [variables, i, j, boundary]
-  element_ids ::Vector{Int}                   # [boundary]
+  neighbor_ids::Vector{Int}                   # [boundary]
   node_indices::Vector{NTuple{NDIMS, Symbol}} # [boundary]
   name        ::Vector{Symbol}                # [boundary]
 
@@ -185,12 +185,12 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype<:Real, NDIMSP1} <: Abstract
   _u          ::Vector{uEltype}
 end
 
-@inline nboundaries(boundaries::P4estBoundaryContainer) = length(boundaries.element_ids)
+@inline nboundaries(boundaries::P4estBoundaryContainer) = length(boundaries.neighbor_ids)
 @inline Base.ndims(::P4estBoundaryContainer{NDIMS}) where NDIMS = NDIMS
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
-  @unpack _u, element_ids, node_indices, name = boundaries
+  @unpack _u, neighbor_ids, node_indices, name = boundaries
 
   n_dims = ndims(boundaries)
   n_nodes = size(boundaries.u, 2)
@@ -200,7 +200,7 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
   boundaries.u = unsafe_wrap(Array, pointer(_u),
     (n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
-  resize!(element_ids, capacity)
+  resize!(neighbor_ids, capacity)
 
   resize!(node_indices, capacity)
 
@@ -222,11 +222,11 @@ function init_boundaries(mesh::P4estMesh, equations, basis, elements)
   u = unsafe_wrap(Array, pointer(_u),
     (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_boundaries))
 
-  element_ids  = Vector{Int}(undef, n_boundaries)
+  neighbor_ids  = Vector{Int}(undef, n_boundaries)
   node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
   names        = Vector{Symbol}(undef, n_boundaries)
 
-  boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS+1}(u, element_ids,
+  boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS+1}(u, neighbor_ids,
                                                                node_indices, names, _u)
 
   if n_boundaries > 0
@@ -262,7 +262,7 @@ function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
 
   # Write data to boundaries container
   # p4est uses zero-based indexing; convert to one-based indexing
-  boundaries.element_ids[boundary_id] = quad_id + 1
+  boundaries.neighbor_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
   face = side.face
@@ -279,13 +279,13 @@ end
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 #
-# The positions used in `element_ids` are 1:3 (in 2D) or 1:5 (in 3D), where 1:2 (in 2D)
+# The positions used in `neighbor_ids` are 1:3 (in 2D) or 1:5 (in 3D), where 1:2 (in 2D)
 # or 1:4 (in 3D) are the small elements numbered in z-order and 3 or 5 is the large element.
 # The solution values on the mortar element are saved in `u`, where `position` is the number
 # of the small element that corresponds to the respective part of the mortar element.
 # The first dimension `small/large side` takes 1 for small side and 2 for large side.
 #
-# Illustration of the positions in `element_ids` in 3D, where ξ and η are the local coordinates
+# Illustration of the positions in `neighbor_ids` in 3D, where ξ and η are the local coordinates
 # of the mortar element, which are precisely the local coordinates that span
 # the surface of the smaller side.
 # Note that the orientation in the physical space is completely irrelevant here.
@@ -304,21 +304,21 @@ end
 # ⋅────> ξ
 mutable struct P4estMortarContainer{NDIMS, uEltype<:Real, NDIMSP1, NDIMSP3} <: AbstractContainer
   u             ::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
-  element_ids   ::Matrix{Int}             # [position, mortar]
+  neighbor_ids  ::Matrix{Int}             # [position, mortar]
   node_indices  ::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
 
   # internal `resize!`able storage
   _u            ::Vector{uEltype}
-  _element_ids  ::Vector{Int}
+  _neighbor_ids ::Vector{Int}
   _node_indices ::Vector{NTuple{NDIMS, Symbol}}
 end
 
-@inline nmortars(mortars::P4estMortarContainer) = size(mortars.element_ids, 2)
+@inline nmortars(mortars::P4estMortarContainer) = size(mortars.neighbor_ids, 2)
 @inline Base.ndims(::P4estMortarContainer{NDIMS}) where NDIMS = NDIMS
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::P4estMortarContainer, capacity)
-  @unpack _u, _element_ids, _node_indices = mortars
+  @unpack _u, _neighbor_ids, _node_indices = mortars
 
   n_dims = ndims(mortars)
   n_nodes = size(mortars.u, 4)
@@ -328,8 +328,8 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
   mortars.u = unsafe_wrap(Array, pointer(_u),
     (2, n_variables, 2^(n_dims-1), ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
-  resize!(_element_ids, (2^(n_dims-1) + 1) * capacity)
-  mortars.element_ids = unsafe_wrap(Array, pointer(_element_ids),
+  resize!(_neighbor_ids, (2^(n_dims-1) + 1) * capacity)
+  mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
     (2^(n_dims-1) + 1, capacity))
 
   resize!(_node_indices, 2 * capacity)
@@ -352,14 +352,14 @@ function init_mortars(mesh::P4estMesh, equations, basis, elements)
   u = unsafe_wrap(Array, pointer(_u),
     (2, nvariables(equations), 2^(NDIMS-1), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mortars))
 
-  _element_ids = Vector{Int}(undef, (2^(NDIMS-1) + 1) * n_mortars)
-  element_ids = unsafe_wrap(Array, pointer(_element_ids), (2^(NDIMS-1) + 1, n_mortars))
+  _neighbor_ids = Vector{Int}(undef, (2^(NDIMS-1) + 1) * n_mortars)
+  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2^(NDIMS-1) + 1, n_mortars))
 
   _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
   node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
 
-  mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, element_ids, node_indices,
-                                                                   _u, _element_ids, _node_indices)
+  mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS+1, NDIMS+3}(u, neighbor_ids, node_indices,
+                                                                   _u, _neighbor_ids, _node_indices)
 
   if n_mortars > 0
     init_mortars!(mortars, mesh)
@@ -493,8 +493,8 @@ function init_interfaces_iter_face_inner(info, sides, user_data)
 
   # Write data to interfaces container
   # p4est uses zero-based indexing; convert to one-based indexing
-  interfaces.element_ids[1, interface_id] = quad_ids[1] + 1
-  interfaces.element_ids[2, interface_id] = quad_ids[2] + 1
+  interfaces.neighbor_ids[1, interface_id] = quad_ids[1] + 1
+  interfaces.neighbor_ids[2, interface_id] = quad_ids[2] + 1
 
   # Face at which the interface lies
   faces = (sides[1].face, sides[2].face)
@@ -527,7 +527,7 @@ function init_boundaries_iter_face_inner(info, user_data)
 
   # Write data to boundaries container
   # p4est uses zero-based indexing; convert to one-based indexing
-  boundaries.element_ids[boundary_id] = quad_id + 1
+  boundaries.neighbor_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
   face = side.face
@@ -581,9 +581,9 @@ function init_mortars_iter_face_inner(info, sides, user_data)
 
   # Write data to mortar container, 1 and 2 are the small elements
   # p4est uses zero-based indexing; convert to one-based indexing
-  mortars.element_ids[1:end-1, mortar_id] .= small_quad_ids[:] .+ 1
+  mortars.neighbor_ids[1:end-1, mortar_id] .= small_quad_ids[:] .+ 1
   # Last entry is the large element
-  mortars.element_ids[end, mortar_id] = large_quad_id + 1
+  mortars.neighbor_ids[end, mortar_id] = large_quad_id + 1
 
   init_mortar_node_indices!(mortars, faces, info.orientation, mortar_id)
 

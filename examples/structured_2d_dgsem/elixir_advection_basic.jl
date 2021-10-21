@@ -1,3 +1,5 @@
+# The same setup as tree_2d_dgsem/elixir_advection_basic.jl
+# to verify the StructuredMesh implementation against TreeMesh
 
 using OrdinaryDiffEq
 using Trixi
@@ -5,8 +7,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)

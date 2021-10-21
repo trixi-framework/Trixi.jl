@@ -473,7 +473,7 @@ Cassette.@context Ctx
     println()
   end
 
-  @timed_testset "APE 2D varnames" begin
+  @timed_testset "Acoustic perturbation 2D varnames" begin
     v_mean_global = (0.0, 0.0)
     c_mean_global = 1.0
     rho_mean_global = 1.0
@@ -520,9 +520,24 @@ Cassette.@context Ctx
     end
   end
 
+  @timed_testset "Shallow water conversion between conservative/entropy variables" begin
+    H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
+
+    let equations = ShallowWaterEquations2D(gravity_constant=9.8)
+      cons_vars = prim2cons(SVector(H,v1,v2,b),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      # test tuple args
+      cons_vars = prim2cons((H, v1, v2, b), equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+  end
+
   @timed_testset "TimeSeriesCallback" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
-                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
+                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
     point_data_1 = time_series.affect!.point_data[1]

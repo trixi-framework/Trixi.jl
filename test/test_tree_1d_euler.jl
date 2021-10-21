@@ -27,13 +27,6 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [0.004090978306814375, 0.00040909783135059663, 2.045489209479001e-5])
   end
 
-  @trixi_testset "elixir_euler_density_wave.jl with initial_condition_density_pulse" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
-      l2   = [0.0037246420494099768, 0.0037246420494097534, 0.0018623210247056341],
-      linf = [0.01853878721991542, 0.018538787219892106, 0.009269393609914633],
-      initial_condition = initial_condition_density_pulse)
-  end
-
   @trixi_testset "elixir_euler_density_wave.jl with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [7.71293052584723e-16, 1.9712947511091717e-14, 7.50672833504266e-15],

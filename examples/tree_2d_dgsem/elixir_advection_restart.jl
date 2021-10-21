@@ -14,7 +14,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"))
 # Note: If you get a restart file from somewhere else, you need to provide
 # appropriate setups in the elixir loading a restart file
 
-restart_filename = joinpath("out", "restart_000040.h5")
+restart_filename = joinpath("out", "restart_000018.h5")
 mesh = load_mesh(restart_filename)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

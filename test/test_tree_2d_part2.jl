@@ -14,13 +14,16 @@ isdir(outdir) && rm(outdir, recursive=true)
 # Run basic tests
 @testset "Examples 2D" begin
   # Acoustic perturbation
-  include("test_tree_2d_ape.jl")
+  include("test_tree_2d_acoustics.jl")
 
   # Compressible Euler
   include("test_tree_2d_euler.jl")
 
   # Compressible Euler Multicomponent
   include("test_tree_2d_eulermulti.jl")
+
+  # Compressible Euler coupled with acoustic perturbation equations
+  include("test_tree_2d_euleracoustics.jl")
 end
 
 # Clean up afterwards: delete Trixi output directory

@@ -85,31 +85,139 @@ function global_plotting_triangulation_triplot(xyz_plot, u_plot, t)
   return vec.(xyz_plot)..., zp, tp
 end
 
-#     mesh_plotting_wireframe(rd::RefElemData{2}, md::MeshData{2})
+function get_face_node_indices(r, s, dg::DGSEM, tol=100*eps())
+  face_1 = findall(@. abs(s+1) < tol)
+  face_2 = findall(@. abs(r-1) < tol)
+  face_3 = findall(@. abs(s-1) < tol)
+  face_4 = findall(@. abs(r+1) < tol)
+  Fmask = hcat(face_1, face_2, face_3, face_4)
+  return Fmask
+end
+
+# dispatch on semi
+mesh_plotting_wireframe(u, semi) = mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
+
+#     mesh_plotting_wireframe(u, mesh, equations, dg::DGMulti, cache; num_plotting_pts=25)
 #
 # Generates data for plotting a mesh wireframe given StartUpDG data types.
-# Returns (plotting_coordinates_x, plotting_coordinates_y) for a 2D mesh wireframe.
-function mesh_plotting_wireframe(rd::RefElemData{2}, md::MeshData{2}; num_plotting_points=25)
+# Returns (plotting_coordinates_x, plotting_coordinates_y, nothing) for a 2D mesh wireframe.
+function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, cache;
+                                 nvisnodes=2*nnodes(dg))
+  @unpack md = mesh
+  rd = dg.basis
+
+  # Construct 1D plotting interpolation matrix `Vp1D` for a single face
+  @unpack N, Fmask = rd
+  num_face_points = length(Fmask) ÷ num_faces(rd.elementType)
+  vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), num_face_points - 1))
+  rplot = LinRange(-1, 1, nvisnodes)
+  Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
+
+  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
+  uf = similar(u, size(xf))
+  apply_to_each_field((out, x)->out .= reshape(view(x, Fmask, :), num_face_points, num_faces_total), uf, u)
+
+  num_face_plotting_points = size(Vp1D, 1)
+  x_mesh, y_mesh = ntuple(_->zeros(num_face_plotting_points, num_faces_total), 2)
+  u_mesh = similar(u, (num_face_plotting_points, num_faces_total))
+  for f in 1:num_faces_total
+    mul!(view(x_mesh, :, f), Vp1D, view(xf, :, f))
+    mul!(view(y_mesh, :, f), Vp1D, view(yf, :, f))
+    apply_to_each_field(mul_by!(Vp1D), view(u_mesh, :, f), view(uf, :, f))
+  end
+
+  return x_mesh, y_mesh, u_mesh
+end
+
+function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cache; nvisnodes=2*nnodes(dg))
+
+  # build nodes on reference element (seems to be the right ordering)
+  r, s = reference_node_coordinates_2d(dg)
+
+  # extract node coordinates
+  uEltype = eltype(first(u))
+  nvars = nvariables(equations)
+  n_nodes_2d = nnodes(dg)^ndims(mesh)
+  n_elements = nelements(dg, cache)
+  x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d, n_elements)
+  y = reshape(view(cache.elements.node_coordinates, 2, :, :, :), n_nodes_2d, n_elements)
+
+  # extract indices of local face nodes for wireframe plotting
+  Fmask = get_face_node_indices(r, s, dg)
+  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+
+  # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
+  # The resulting arrays are then reshaped so that xf, yf, sol_f are Matrix types of size
+  # (Number of face plotting nodes) x (Number of faces).
+  function face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
+      num_reference_faces = 2 * ndims(mesh)
+      xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
+      return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
+  end
+  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+  xfp, yfp = map(reshape_and_interpolate, (x, y))
+  ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate, StructArrays.components(u)))
+
+  return xfp, yfp, ufp
+end
+
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cache; nvisnodes=2*nnodes(dg))
+
+  # build nodes on reference element (seems to be the right ordering)
+  r, s = reference_node_coordinates_2d(dg)
+
+  # extract node coordinates
+  n_nodes_2d = nnodes(dg)^ndims(mesh)
+  n_elements = nelements(dg, cache)
+  x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d, n_elements)
+  y = reshape(view(cache.elements.node_coordinates, 2, :, :, :), n_nodes_2d, n_elements)
+
+  # extract indices of local face nodes for wireframe plotting
+  Fmask = get_face_node_indices(r, s, dg)
+  plotting_interp_matrix1D = face_plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+
+  # These 5 lines extract the face values on each element from the arrays x,y,sol_to_plot.
+  # The resulting arrays are then reshaped so that xf, yf, sol_f are Matrix types of size
+  # (Number of face plotting nodes) x (Number of faces).
+  function face_first_reshape(x, num_nodes_1D, num_nodes, num_elements)
+      num_reference_faces = 2 * ndims(mesh)
+      xf = view(reshape(x, num_nodes, num_elements), vec(Fmask), :)
+      return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
+  end
+  reshape_and_interpolate(x) = plotting_interp_matrix1D * face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+  xfp, yfp, ufp = map(reshape_and_interpolate, (x, y, u.data))
+
+  return xfp, yfp, ufp
+end
+
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, cache; nvisnodes=2*nnodes(dg))
+
+  @unpack md = mesh
+  rd = dg.basis
 
   # Construct 1D plotting interpolation matrix `Vp1D` for a single face
   @unpack N, Fmask = rd
   vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
-  rplot = LinRange(-1, 1, num_plotting_points)
+  rplot = LinRange(-1, 1, nvisnodes)
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
   num_face_points = N+1
   num_faces_total = num_faces(rd.elementType) * md.num_elements
-  xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
+  xf, yf, uf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), (md.xyz..., u.data))
 
   num_face_plotting_points = size(Vp1D, 1)
   x_mesh, y_mesh = ntuple(_->zeros(num_face_plotting_points, num_faces_total), 2)
+  u_mesh = similar(u.data, (num_face_plotting_points, num_faces_total))
   for f in 1:num_faces_total
     mul!(view(x_mesh, :, f), Vp1D, view(xf, :, f))
     mul!(view(y_mesh, :, f), Vp1D, view(yf, :, f))
+    mul!(view(u_mesh, :, f), Vp1D, view(uf, :, f))
   end
 
-  return x_mesh, y_mesh
+  return x_mesh, y_mesh, u_mesh
 end
+
 
 
 # These methods are used internally to set the default value of the solution variables:
@@ -1090,7 +1198,7 @@ end
 
 # Given a reference plotting triangulation, this function generates a plotting triangulation for
 # the entire global mesh. The output can be plotted using `Makie.mesh`.
-function global_plotting_triangulation_makie(pds::PlotDataSeries{<:UnstructuredPlotData2D};
+function global_plotting_triangulation_makie(pds::PlotDataSeries{<:PlotData2DTriangulated};
                                              set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
@@ -1119,8 +1227,8 @@ end
 
 # Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"
 # (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
-function mesh_plotting_wireframe(pds::PlotDataSeries{<:UnstructuredPlotData2D};
-                                 set_z_coordinate_zero = false)
+function convert_PlotData2D_to_mesh_Points(pds::PlotDataSeries{<:PlotData2DTriangulated};
+                                           set_z_coordinate_zero = false)
   @unpack variable_id = pds
   pd = pds.plot_data
   @unpack x_face, y_face, face_data = pd
@@ -1143,5 +1251,54 @@ function mesh_plotting_wireframe(pds::PlotDataSeries{<:UnstructuredPlotData2D};
   return xyz_wireframe
 end
 
+# Creates a GeometryBasics triangulation for the visualization of a ScalarData2D plot object.
+function global_plotting_triangulation_makie(pd::PlotData2DTriangulated{<:ScalarData};
+                                             set_z_coordinate_zero = false)
+  @unpack x, y, data, t = pd
+
+  makie_triangles = Makie.to_triangles(t)
+
+  # trimesh[i] holds GeometryBasics.Mesh containing plotting information on the ith element.
+  # Note: Float32 is required by GeometryBasics
+  num_plotting_nodes, num_elements = size(x)
+  trimesh = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
+  coordinates = zeros(Float32, num_plotting_nodes, 3)
+  for element in Base.OneTo(num_elements)
+    for i in Base.OneTo(num_plotting_nodes)
+      coordinates[i, 1] = x[i, element]
+      coordinates[i, 2] = y[i, element]
+      if set_z_coordinate_zero == false
+        coordinates[i, 3] = data.data[i, element]
+      end
+    end
+    trimesh[element] = GeometryBasics.normal_mesh(Makie.to_vertices(coordinates), makie_triangles)
+  end
+  plotting_mesh = merge([trimesh...]) # merge meshes on each element into one large mesh
+  return plotting_mesh
+end
+
+# Returns a list of `GeometryBasics.Point`s which can be used to plot the mesh, or a solution "wireframe"
+# (e.g., a plot of the mesh lines but with the z-coordinate equal to the value of the solution).
+function convert_PlotData2D_to_mesh_Points(pd::PlotData2DTriangulated{<:ScalarData};
+                                           set_z_coordinate_zero = false)
+  @unpack x_face, y_face, face_data = pd
+
+  if set_z_coordinate_zero
+    # plot 2d surface by setting z coordinate to zero.
+    # Uses `x_face` since `face_data` may be `::Nothing`, as it's not used for 2D plots.
+    sol_f = zeros(eltype(first(x_face)), size(x_face))
+  else
+    sol_f = face_data
+  end
+
+  # This line separates solution lines on each edge by NaNs to ensure that they are rendered
+  # separately. The coordinates `xf`, `yf` and the solution `sol_f`` are assumed to be a matrix
+  # whose columns correspond to different elements. We add NaN separators by appending a row of
+  # NaNs to this matrix. We also flatten (e.g., apply `vec` to) the result, as this speeds up
+  # plotting.
+  xyz_wireframe = GeometryBasics.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face, sol_f))...)
+
+  return xyz_wireframe
+end
 
 end # @muladd

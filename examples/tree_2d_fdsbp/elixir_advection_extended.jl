@@ -8,8 +8,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (0.2, -0.3)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
@@ -52,6 +52,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-8, reltol=1.0e-8,
+sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-9, reltol=1.0e-9,
             save_everystep=false, callback=callbacks, maxiters=1e5)
 summary_callback()

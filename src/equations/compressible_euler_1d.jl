@@ -79,37 +79,18 @@ Source terms used for convergence tests in combination with
 
   x1, = x
 
-  si, co = sincos((t - x1)*ω)
-  tmp = (-((4 * si * A - 4c) + 1) * (γ - 1) * co * A * ω) / 2
+  si, co = sincos(ω * (x1 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
 
+  # Note that d/dt rho = -d/dx rho.
+  # This yields du2 = du3 = d/dx p (derivative of pressure).
+  # Other terms vanish because of v = 1.
   du1 = zero(eltype(u))
-  du2 = tmp
-  du3 = tmp
-
-  # Original terms (without performanc enhancements)
-  # du1 = 0
-  # du2 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
-  # du3 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
+  du2 = rho_x * (2 * rho - 0.5) * (γ - 1)
+  du3 = du2
 
   return SVector(du1, du2, du3)
-end
-
-
-"""
-    initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
-
-A Gaussian pulse in the density with constant velocity and pressure; reduces the
-compressible Euler equations to the linear advection equations.
-"""
-function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
-  rho = 1 + exp(-(x[1]^2 ))/2
-  v1 = 1
-  rho_v1 = rho * v1
-  p = 1
-  rho_e = p/(equations.gamma - 1) + 1/2 * rho * v1^2
-  return SVector(rho, rho_v1, rho_e)
 end
 
 
@@ -161,64 +142,6 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEqu
   rho = r > 0.5 ? 1.0 : 1.1691
   v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   p   = r > 0.5 ? 1.0 : 1.245
-
-  return prim2cons(SVector(rho, v1, p), equations)
-end
-
-
-"""
-    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-
-A medium blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
-function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-  # Set up polar coordinates
-  inicenter = SVector(0.0)
-  x_norm = x[1] - inicenter[1]
-  r = abs(x_norm)
-  # The following code is equivalent to
-  # phi = atan(0.0, x_norm)
-  # cos_phi = cos(phi)
-  # in 1D but faster
-  cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
-
-  # Calculate primitive variables
-  rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  p   = r > 0.5 ? 1.0E-3 : 1.245
-
-  return prim2cons(SVector(rho, v1, p), equations)
-end
-
-
-"""
-    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-
-The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-"""
-function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-  # Set up polar coordinates
-  inicenter = SVector(0.0)
-  x_norm = x[1] - inicenter[1]
-  r = abs(x_norm)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # r0 = 0.5 # = more reasonable setup
-  E = 1.0
-  p0_inner = 6 * (equations.gamma - 1) * E / (3 * pi * r0)
-  p0_outer = 1.0e-5 # = true Sedov setup
-  # p0_outer = 1.0e-3 # = more reasonable setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1  = 0.0
-  p   = r > r0 ? p0_outer : p0_inner
 
   return prim2cons(SVector(rho, v1, p), equations)
 end

@@ -107,46 +107,15 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMulticomp
   if r > 0.5
     rho = 1.0
     prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  else 
+  else
     rho = 1.1691
     prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  end 
+  end
   v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
   prim_other = SVector{7, real(equations)}(v1, 0.0, 0.0, p, 1.0, 1.0, 1.0)
 
-  return prim2cons(vcat(prim_other, prim_rho), equations)
-end
-
-
-"""
-    initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdMulticomponentEquations1D)
-
-Compound shock tube test case for one dimensional ideal MHD equations. It is bascially an
-MHD extension of the Sod shock tube. Taken from Section V of the article
-- Brio and Wu (1988)
-  An Upwind Differencing Scheme for the Equations of Ideal Magnetohydrodynamics
-  [DOI: 10.1016/0021-9991(88)90120-9](https://doi.org/10.1016/0021-9991(88)90120-9)
-"""
-function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdMulticomponentEquations1D)
-  # domain must be set to [0, 1], γ = 2, final time = 0.12
-  if x[1] < 0.5
-    rho       = 1.0
-    prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  else
-    rho       = 0.125
-    prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-  end
-  v1 = 0.0
-  v2 = 0.0
-  v3 = 0.0
-  p = x[1] < 0.5 ? 1.0 : 0.1
-  B1 = 0.75
-  B2 = x[1] < 0.5 ? 1.0 : -1.0
-  B3 = 0.0
-
-  prim_other = SVector{7, real(equations)}(v1, v2, v3, p, B1, B2, B3)
   return prim2cons(vcat(prim_other, prim_rho), equations)
 end
 
@@ -355,29 +324,22 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations1D)
-  rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
-  rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr = u_rr
+  rho_v1_ll, _ = u_ll
+  rho_v1_rr, _ = u_rr
 
   rho_ll   = density(u_ll, equations)
   rho_rr   = density(u_rr, equations)
-  gamma_ll = totalgamma(u_ll, equations)
-  gamma_rr = totalgamma(u_rr, equations)
 
-  # Calculate velocities and fast magnetoacoustic wave speeds
+  # Calculate velocities (ignore orientation since it is always "1" in 1D)
+  # and fast magnetoacoustic wave speeds
   # left
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  v_ll = rho_v1_ll / rho_ll
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
   # right
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
+  v_rr = rho_v1_rr / rho_rr
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 

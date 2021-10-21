@@ -5,8 +5,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0, 1.0)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)

@@ -5,9 +5,26 @@ using Trixi
 ###############################################################################
 # semidiscretization of the Lattice-Boltzmann equations for the D3Q27 scheme
 
-L = 1 # reference length
-equations = LatticeBoltzmannEquations3D(Ma=0.1, Re=1600; L=L)
+L = 1.0 # reference length
+equations = LatticeBoltzmannEquations3D(Ma=0.1, Re=1600.0; L=L)
 
+"""
+    initial_condition_taylor_green_vortex(x, t, equations::LatticeBoltzmannEquations3D)
+
+Initialize the flow field to the Taylor-Green vortex setup
+"""
+function initial_condition_taylor_green_vortex(x, t, equations::LatticeBoltzmannEquations3D)
+  @unpack u0, rho0, L = equations
+
+  v1 =  u0 * sin(x[1] / L) * cos(x[2] / L) * cos(x[3] / L)
+  v2 = -u0 * cos(x[1] / L) * sin(x[2] / L) * cos(x[3] / L)
+  v3 = 0
+  p0 = (pressure(rho0, equations) +
+        rho0 * u0^2 / 16 * (cos(2 * x[1] / L) + cos(2 * x[2] / L)) * (cos(2 * x[3] / L) + 2))
+  rho = density(p0, equations)
+
+  return equilibrium_distribution(rho, v1, v2, v3, equations)
+end
 initial_condition = initial_condition_taylor_green_vortex
 
 solver = DGSEM(polydeg=3, surface_flux=flux_godunov)

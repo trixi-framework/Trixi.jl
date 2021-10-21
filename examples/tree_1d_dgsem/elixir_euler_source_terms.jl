@@ -9,10 +9,12 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
+# Note that the expected EOC of 5 is not reached with this flux.
+# Using flux_hll instead yields the expected EOC.
 solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = 0
-coordinates_max = 2
+coordinates_min = 0.0
+coordinates_max = 2.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)

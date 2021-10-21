@@ -213,7 +213,7 @@ end
 
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations::IdealGlmMhdEquations3D,
+                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
                  dg::DGSEM, cache)
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, k, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
@@ -227,8 +227,30 @@ function analyze(::Val{:l2_divb}, du, u, t,
   end |> sqrt
 end
 
+function analyze(::Val{:l2_divb}, du, u, t,
+                 mesh::Union{StructuredMesh{3}, P4estMesh{3}}, equations::IdealGlmMhdEquations3D,
+                 dg::DGSEM, cache)
+  @unpack contravariant_vectors = cache.elements
+  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, k, element, equations, dg, cache, derivative_matrix
+    divb = zero(eltype(u))
+    # Get the contravariant vectors Ja^1, Ja^2, and Ja^3
+    Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+    # Compute the transformed divergence
+    for l in eachnode(dg)
+      divb += ( derivative_matrix[i, l] * (Ja11 * u[6, l, j, k, element] + Ja12 * u[7, l, j, k, element] + Ja13 * u[8, l, j, k, element]) +
+                derivative_matrix[j, l] * (Ja21 * u[6, i, l, k, element] + Ja22 * u[7, i, l, k, element] + Ja23 * u[8, i, l, k, element]) +
+                derivative_matrix[k, l] * (Ja31 * u[6, i, j, l, element] + Ja32 * u[7, i, j, l, element] + Ja33 * u[8, i, j, l, element]) )
+    end
+    divb *= cache.elements.inverse_jacobian[element]
+    divb^2
+  end |> sqrt
+end
+
+
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations::IdealGlmMhdEquations3D,
+                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
                  dg::DGSEM, cache)
   @unpack derivative_matrix, weights = dg.basis
 
@@ -241,6 +263,35 @@ function analyze(::Val{:linf_divb}, du, u, t,
         divb += ( derivative_matrix[i, l] * u[6, l, j, k, element] +
                   derivative_matrix[j, l] * u[7, i, l, k, element] +
                   derivative_matrix[k, l] * u[7, i, j, l, element] )
+      end
+      divb *= cache.elements.inverse_jacobian[element]
+      linf_divb = max(linf_divb, abs(divb))
+    end
+  end
+
+  return linf_divb
+end
+
+function analyze(::Val{:linf_divb}, du, u, t,
+                 mesh::Union{StructuredMesh{3}, P4estMesh{3}}, equations::IdealGlmMhdEquations3D,
+                 dg::DGSEM, cache)
+  @unpack derivative_matrix, weights = dg.basis
+  @unpack contravariant_vectors = cache.elements
+
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb = zero(eltype(u))
+  for element in eachelement(dg, cache)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+      divb = zero(eltype(u))
+      # Get the contravariant vectors Ja^1, Ja^2, and Ja^3
+      Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+      Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+      Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+      # Compute the transformed divergence
+      for l in eachnode(dg)
+        divb += ( derivative_matrix[i, l] * (Ja11 * u[6, l, j, k, element] + Ja12 * u[7, l, j, k, element] + Ja13 * u[8, l, j, k, element]) +
+                  derivative_matrix[j, l] * (Ja21 * u[6, i, l, k, element] + Ja22 * u[7, i, l, k, element] + Ja23 * u[8, i, l, k, element]) +
+                  derivative_matrix[k, l] * (Ja31 * u[6, i, j, l, element] + Ja32 * u[7, i, j, l, element] + Ja33 * u[8, i, j, l, element]) )
       end
       divb *= cache.elements.inverse_jacobian[element]
       linf_divb = max(linf_divb, abs(divb))

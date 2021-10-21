@@ -119,30 +119,6 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
 end
 
 
-"""
-    initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations3D)
-
-The classical Orszag-Tang vortex test case. Here, the setup is taken from
-- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
-  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
-"""
-function initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations3D)
-  # setup taken from Table 4 of Bohm et al. JCP article (2018) DOI: 10.1016/j.jcp.2018.06.027
-  # domain must be [0, 1]^3 , γ = 5/3
-  rho = 25.0 / (36.0 * pi)
-  v1 = -sin(2.0*pi*x[3])
-  v2 =  sin(2.0*pi*x[1])
-  v3 =  sin(2.0*pi*x[2])
-  p = 5.0 / (12.0 * pi)
-  B1 = -sin(2.0*pi*x[3]) / (4.0*pi)
-  B2 =  sin(4.0*pi*x[1]) / (4.0*pi)
-  B3 =  sin(4.0*pi*x[2]) / (4.0*pi)
-  psi = 0.0
-  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-end
-
-
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations3D)
 
@@ -600,21 +576,21 @@ end
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
 
-  # Calculate velocities and fast magnetoacoustic wave speeds
-  # left
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll)
+  # Calculate the left/right velocities and fast magnetoacoustic wave speeds
+  if orientation == 1
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+  elseif orientation == 2
+    v_ll = rho_v2_ll / rho_ll
+    v_rr = rho_v2_rr / rho_rr
+  else # orientation == 3
+    v_ll = rho_v3_ll / rho_ll
+    v_rr = rho_v3_rr / rho_rr
+  end
   cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
-  # right
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
@@ -622,25 +598,26 @@ end
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
 
-  norm_squared = (normal_direction[1] * normal_direction[1] +
-                  normal_direction[2] * normal_direction[2] +
-                  normal_direction[3] * normal_direction[3])
-
-  # Calculate velocities and fast magnetoacoustic wave speeds
+  # Calculate normal velocities and fast magnetoacoustic wave speeds
   # left
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt((v1_ll * v1_ll + v2_ll * v2_ll + v3_ll * v3_ll) * norm_squared)
+  v_ll = (  v1_ll * normal_direction[1]
+          + v2_ll * normal_direction[2]
+          + v3_ll * normal_direction[3] )
   cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt((v1_rr * v1_rr + v2_rr * v2_rr + v3_rr * v3_rr) * norm_squared)
+  v_rr = (  v1_rr * normal_direction[1]
+          + v2_rr * normal_direction[2]
+          + v3_rr * normal_direction[3] )
   cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
 
-  return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  # wave speeds already scaled by norm(normal_direction) in [`calc_fast_wavespeed`](@ref)
+  return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 

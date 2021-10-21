@@ -91,7 +91,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
   end
 
   if alpha_smooth
-    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -99,7 +99,7 @@ end
 
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-function apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}}, alpha, alpha_tmp, dg, cache)
   # Copy alpha values such that smoothing is indpedenent of the element access order
   alpha_tmp .= alpha
 
@@ -364,7 +364,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
   end
 
   if alpha_smooth
-    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -494,7 +494,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
   end
 
   if alpha_smooth
-    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha
@@ -542,7 +542,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
   end
 
   if alpha_smooth
-    apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
 
   return alpha

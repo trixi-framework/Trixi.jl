@@ -36,13 +36,13 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
   NamedTuple()
 end
 
 
-function create_cache(mesh::TreeMesh{3}, equations,
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
@@ -54,38 +54,51 @@ function create_cache(mesh::TreeMesh{3}, equations,
   A4dp1_x = Array{uEltype, 4}
   A4dp1_y = Array{uEltype, 4}
   A4dp1_z = Array{uEltype, 4}
-  fstar1_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
+  fstar1_L_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-  fstar2_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
+  fstar1_R_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-  fstar3_threaded  = A4dp1_z[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg)+1)
+  fstar2_L_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+  fstar2_R_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+  fstar3_L_threaded  = A4dp1_z[A4dp1_z(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg)+1)
+                             for _ in 1:Threads.nthreads()]
+  fstar3_R_threaded  = A4dp1_z[A4dp1_z(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg)+1)
                              for _ in 1:Threads.nthreads()]
 
-  return (; cache..., element_ids_dg, element_ids_dgfv, fstar1_threaded, fstar2_threaded, fstar3_threaded)
+  return (; cache..., element_ids_dg, element_ids_dgfv, fstar1_L_threaded, fstar1_R_threaded,
+            fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded)
 end
 
 
-function create_cache(mesh::TreeMesh{3}, equations,
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
 
   A4dp1_x = Array{uEltype, 4}
   A4dp1_y = Array{uEltype, 4}
   A4dp1_z = Array{uEltype, 4}
-  fstar1_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
+  fstar1_L_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-  fstar2_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
+  fstar1_R_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
-  fstar3_threaded  = A4dp1_z[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg)+1)
+  fstar2_L_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+  fstar2_R_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+  fstar3_L_threaded  = A4dp1_z[A4dp1_z(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg)+1)
+                             for _ in 1:Threads.nthreads()]
+  fstar3_R_threaded  = A4dp1_z[A4dp1_z(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg)+1)
                              for _ in 1:Threads.nthreads()]
 
-  return (; fstar1_threaded, fstar2_threaded, fstar3_threaded)
+  return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded,
+            fstar3_L_threaded, fstar3_R_threaded)
 end
-
 
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal compare performance of different types
   A3d = Array{uEltype, 3}
   fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
@@ -112,7 +125,7 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -196,7 +209,6 @@ function calc_volume_integral!(du, u,
 end
 
 
-
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                nonconservative_terms, equations,
@@ -252,8 +264,8 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
-                                    element, mesh::TreeMesh{3},
+@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u, element,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
@@ -301,7 +313,7 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{3},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -333,8 +345,8 @@ function calc_volume_integral!(du, u,
                        volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
-    fv_kernel!(du, u, nonconservative_terms, equations,
-               volume_flux_fv, dg, cache, element, alpha_element)
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
+               dg, cache, element, alpha_element)
   end
 
   return nothing
@@ -350,8 +362,8 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, nonconservative_terms, equations,
-               volume_flux_fv, dg, cache, element, true)
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
+               dg, cache, element, true)
   end
 
   return nothing
@@ -359,25 +371,30 @@ end
 
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,5}, u::AbstractArray{<:Any,5},
+                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
-  @unpack fstar1_threaded, fstar2_threaded, fstar3_threaded = cache
+  @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
   @unpack inverse_weights = dg.basis
 
   # Calculate FV two-point fluxes
-  fstar1 = fstar1_threaded[Threads.threadid()]
-  fstar2 = fstar2_threaded[Threads.threadid()]
-  fstar3 = fstar3_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1, fstar2, fstar3, u, nonconservative_terms, equations,
-               volume_flux_fv, dg, element)
+  fstar1_L = fstar1_L_threaded[Threads.threadid()]
+  fstar2_L = fstar2_L_threaded[Threads.threadid()]
+  fstar3_L = fstar3_L_threaded[Threads.threadid()]
+  fstar1_R = fstar1_R_threaded[Threads.threadid()]
+  fstar2_R = fstar2_R_threaded[Threads.threadid()]
+  fstar3_R = fstar3_R_threaded[Threads.threadid()]
+
+  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
+               mesh, nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
 
   # Calculate FV volume integral contribution
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
       du[v, i, j, k, element] += ( alpha *
-                                   (inverse_weights[i] * (fstar1[v, i+1, j, k] - fstar1[v, i, j, k]) +
-                                    inverse_weights[j] * (fstar2[v, i, j+1, k] - fstar2[v, i, j, k]) +
-                                    inverse_weights[k] * (fstar3[v, i, j, k+1] - fstar3[v, i, j, k])) )
+                                   (inverse_weights[i] * (fstar1_L[v, i+1, j, k] - fstar1_R[v, i, j, k]) +
+                                    inverse_weights[j] * (fstar2_L[v, i, j+1, k] - fstar2_R[v, i, j, k]) +
+                                    inverse_weights[k] * (fstar3_L[v, i, j, k+1] - fstar3_R[v, i, j, k])) )
 
     end
   end
@@ -385,38 +402,128 @@ end
   return nothing
 end
 
-@inline function calcflux_fv!(fstar1, fstar2, fstar3, u::AbstractArray{<:Any,5},
-                              nonconservative_terms::Val{false}, equations,
-                              volume_flux_fv, dg::DGSEM, element)
 
-  fstar1[:, 1,            :, :] .= zero(eltype(fstar1))
-  fstar1[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1))
+# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
+                              mesh::TreeMesh{3}, nonconservative_terms::Val{false}, equations,
+                              volume_flux_fv, dg::DGSEM, element, cache)
+
+  fstar1_L[:, 1,            :, :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :, :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_R))
 
   for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
     u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
     u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
     flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
-    set_node_vars!(fstar1, flux, equations, dg, i, j, k)
+    set_node_vars!(fstar1_L, flux, equations, dg, i, j, k)
+    set_node_vars!(fstar1_R, flux, equations, dg, i, j, k)
   end
 
-  fstar2[:, :, 1           , :] .= zero(eltype(fstar2))
-  fstar2[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2))
+  fstar2_L[:, :, 1           , :] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           , :] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_R))
 
   for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
     u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
     u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
     flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
-    set_node_vars!(fstar2, flux, equations, dg, i, j, k)
+    set_node_vars!(fstar2_L, flux, equations, dg, i, j, k)
+    set_node_vars!(fstar2_R, flux, equations, dg, i, j, k)
   end
 
-  fstar3[:, :, :, 1           ] .= zero(eltype(fstar3))
-  fstar3[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3))
+  fstar3_L[:, :, :, 1           ] .= zero(eltype(fstar3_L))
+  fstar3_L[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_L))
+  fstar3_R[:, :, :, 1           ] .= zero(eltype(fstar3_R))
+  fstar3_R[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_R))
 
   for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
     u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
     u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
     flux = volume_flux_fv(u_ll, u_rr, 3, equations) # orientation 3: z direction
-    set_node_vars!(fstar3, flux, equations, dg, i, j, k)
+    set_node_vars!(fstar3_L, flux, equations, dg, i, j, k)
+    set_node_vars!(fstar3_R, flux, equations, dg, i, j, k)
+  end
+
+  return nothing
+end
+
+
+# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
+                              mesh::TreeMesh{3}, nonconservative_terms::Val{true}, equations,
+                              volume_flux_fv, dg::DGSEM, element, cache)
+  volume_flux, nonconservative_flux = volume_flux_fv
+
+  fstar1_L[:, 1,            :, :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :, :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1_R))
+
+  for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+    u_ll = get_node_vars(u, equations, dg, i-1, j, k, element)
+    u_rr = get_node_vars(u, equations, dg, i,   j, k, element)
+
+    # Compute conservative part
+    flux = volume_flux(u_ll, u_rr, 1, equations) # orientation 1: x direction
+
+    # Compute nonconservative part
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    flux_L = flux + 0.5 * nonconservative_flux(u_ll, u_rr, 1, equations)
+    flux_R = flux + 0.5 * nonconservative_flux(u_rr, u_ll, 1, equations)
+
+    set_node_vars!(fstar1_L, flux_L, equations, dg, i, j, k)
+    set_node_vars!(fstar1_R, flux_R, equations, dg, i, j, k)
+  end
+
+  fstar2_L[:, :, 1           , :] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           , :] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2_R))
+
+  for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+    u_ll = get_node_vars(u, equations, dg, i, j-1, k, element)
+    u_rr = get_node_vars(u, equations, dg, i, j,   k, element)
+
+    # Compute conservative part
+    flux = volume_flux(u_ll, u_rr, 2, equations) # orientation 2: y direction
+
+    # Compute nonconservative part
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    flux_L = flux + 0.5 * nonconservative_flux(u_ll, u_rr, 2, equations)
+    flux_R = flux + 0.5 * nonconservative_flux(u_rr, u_ll, 2, equations)
+
+    set_node_vars!(fstar2_L, flux_L, equations, dg, i, j, k)
+    set_node_vars!(fstar2_R, flux_R, equations, dg, i, j, k)
+  end
+
+  fstar3_L[:, :, :, 1           ] .= zero(eltype(fstar3_L))
+  fstar3_L[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_L))
+  fstar3_R[:, :, :, 1           ] .= zero(eltype(fstar3_R))
+  fstar3_R[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3_R))
+
+  for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+    u_ll = get_node_vars(u, equations, dg, i, j, k-1, element)
+    u_rr = get_node_vars(u, equations, dg, i, j, k,   element)
+
+    # Compute conservative part
+    flux = volume_flux(u_ll, u_rr, 3, equations) # orientation 3: z direction
+
+    # Compute nonconservative part
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    flux_L = flux + 0.5 * nonconservative_flux(u_ll, u_rr, 3, equations)
+    flux_R = flux + 0.5 * nonconservative_flux(u_rr, u_ll, 3, equations)
+
+    set_node_vars!(fstar3_L, flux_L, equations, dg, i, j, k)
+    set_node_vars!(fstar3_R, flux_R, equations, dg, i, j, k)
   end
 
   return nothing
