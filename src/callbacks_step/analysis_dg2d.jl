@@ -209,7 +209,7 @@ end
 
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::Union{TreeMesh{2},StructuredMesh{2},UnstructuredMesh2D},
+                 mesh::TreeMesh{2},
                  equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
@@ -236,9 +236,28 @@ function analyze(::Val{:l2_divb}, du, u, t,
   end |> sqrt
 end
 
+function analyze(::Val{:l2_divb}, du, u, t,
+                 mesh::Union{StructuredMesh{2},UnstructuredMesh2D,P4estMesh{2}},
+                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
+  @unpack contravariant_vectors = cache.elements
+  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
+    divb = zero(eltype(u))
+    # Get the contravariant vectors Ja^1 and Ja^2
+    Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    # Compute the transformed divergence
+    for k in eachnode(dg)
+      divb += ( derivative_matrix[i, k] * (Ja11 * u[6, k, j, element] + Ja12 * u[7, k, j, element]) +
+                derivative_matrix[j, k] * (Ja21 * u[6, i, k, element] + Ja22 * u[7, i, k, element]) )
+    end
+    divb *= cache.elements.inverse_jacobian[element]
+    divb^2
+  end |> sqrt
+end
+
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::Union{TreeMesh{2},StructuredMesh{2},UnstructuredMesh2D},
+                 mesh::TreeMesh{2},
                  equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
   @unpack derivative_matrix, weights = dg.basis
 
@@ -259,7 +278,6 @@ function analyze(::Val{:linf_divb}, du, u, t,
   return linf_divb
 end
 
-
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
                  dg::DG, cache)
@@ -273,6 +291,33 @@ function analyze(::Val{:linf_divb}, du, u, t,
       for k in eachnode(dg)
         divb += ( derivative_matrix[i, k] * u[5, k, j, element] +
                   derivative_matrix[j, k] * u[6, i, k, element] )
+      end
+      divb *= cache.elements.inverse_jacobian[element]
+      linf_divb = max(linf_divb, abs(divb))
+    end
+  end
+
+  return linf_divb
+end
+
+function analyze(::Val{:linf_divb}, du, u, t,
+                 mesh::Union{StructuredMesh{2},UnstructuredMesh2D,P4estMesh{2}},
+                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
+  @unpack derivative_matrix, weights = dg.basis
+  @unpack contravariant_vectors = cache.elements
+
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb = zero(eltype(u))
+  for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      divb = zero(eltype(u))
+      # Get the contravariant vectors Ja^1 and Ja^2
+      Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+      Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+      # Compute the transformed divergence
+      for k in eachnode(dg)
+        divb += ( derivative_matrix[i, k] * (Ja11 * u[6, k, j, element] + Ja12 * u[7, k, j, element]) +
+                  derivative_matrix[j, k] * (Ja21 * u[6, i, k, element] + Ja22 * u[7, i, k, element]) )
       end
       divb *= cache.elements.inverse_jacobian[element]
       linf_divb = max(linf_divb, abs(divb))

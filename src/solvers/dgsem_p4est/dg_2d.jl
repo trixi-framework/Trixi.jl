@@ -109,69 +109,121 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2},
-                              nonconservative_terms::Val{false},
+                              nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-  @unpack surface_flux = surface_integral
-  @unpack u, neighbor_ids, node_indices = cache.interfaces
+  @unpack neighbor_ids, node_indices = cache.interfaces
   @unpack contravariant_vectors = cache.elements
   index_range = eachnode(dg)
   index_end = last(index_range)
 
   @threaded for interface in eachinterface(dg, cache)
-    # Get information on the primary element, compute the surface fluxes,
-    # and store them for the primary element
-    primary_element  = neighbor_ids[1, interface]
-    primary_indices  = node_indices[1, interface]
+    # Get element and side index information on the primary element
+    primary_element = neighbor_ids[1, interface]
+    primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
 
+    # Create the local i,j indexing on the primary element used to pull normal direction information
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1], index_range)
     j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2], index_range)
 
     i_primary = i_primary_start
     j_primary = j_primary_start
-    for i in eachnode(dg)
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
 
-      # Contravariant vectors at interfaces in negative coordinate direction
-      # are pointing inwards. This is handled by `get_normal_direction`.
-      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
-                                              i_primary, j_primary, primary_element)
-      flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
-      end
-
-      i_primary += i_primary_step
-      j_primary += j_primary_step
-    end
-
-    # Get information on the secondary element and copy the numerical fluxes
-    # from the primary element to the secondary one
+    # Get element and side index information on the secondary element
     secondary_element = neighbor_ids[2, interface]
     secondary_indices = node_indices[2, interface]
     secondary_direction = indices2direction(secondary_indices)
 
-    # Note that the index of the primary side will always run forward but
+    # Initiate the secondary index to be used in the surface for loop.
+    # This index on the primary side will always run forward but
     # the secondary index might need to run backwards for flipped sides.
     if :i_backward in secondary_indices
-      for i in eachnode(dg)
-        for v in eachvariable(equations)
-          surface_flux_values[v, index_end + 1 - i, secondary_direction, secondary_element] =
-            -surface_flux_values[v, i, primary_direction, primary_element]
-        end
-      end
+      node_secondary = index_end
+      node_secondary_step = -1
     else
-      for i in eachnode(dg)
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, secondary_direction, secondary_element] =
-            -surface_flux_values[v, i, primary_direction, primary_element]
-        end
-      end
+      node_secondary = 1
+      node_secondary_step = 1
+    end
+
+    for node in eachnode(dg)
+      # Get the normal direction on the primary element.
+      # Contravariant vectors at interfaces in negative coordinate direction
+      # are pointing inwards. This is handled by `get_normal_direction`.
+      normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                              i_primary, j_primary, primary_element)
+
+      calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms, equations,
+                           surface_integral, dg, cache,
+                           interface, normal_direction,
+                           node, primary_direction, primary_element,
+                           node_secondary, secondary_direction, secondary_element)
+
+      # Increment primary element indices to pull the normal direction
+      i_primary += i_primary_step
+      j_primary += j_primary_step
+      # Increment the surface node index along the secondary element
+      node_secondary += node_secondary_step
     end
   end
 
   return nothing
+end
+
+
+# Inlined version of the interface flux computation for conservation laws
+@inline function calc_interface_flux!(surface_flux_values,
+                                      mesh::P4estMesh{2},
+                                      nonconservative_terms::Val{false}, equations,
+                                      surface_integral, dg::DG, cache,
+                                      interface_index, normal_direction,
+                                      primary_node_index, primary_direction_index, primary_element_index,
+                                      secondary_node_index, secondary_direction_index, secondary_element_index)
+  @unpack u = cache.interfaces
+  @unpack surface_flux = surface_integral
+
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index, interface_index)
+
+  flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+  for v in eachvariable(equations)
+    surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
+    surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_[v]
+  end
+end
+
+# Inlined version of the interface flux computation for equations with conservative and nonconservative terms
+@inline function calc_interface_flux!(surface_flux_values,
+                                      mesh::P4estMesh{2},
+                                      nonconservative_terms::Val{true}, equations,
+                                      surface_integral, dg::DG, cache,
+                                      interface_index, normal_direction,
+                                      primary_node_index, primary_direction_index, primary_element_index,
+                                      secondary_node_index, secondary_direction_index, secondary_element_index)
+  @unpack u = cache.interfaces
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index, interface_index)
+
+  flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+  # Compute both nonconservative fluxes
+  # In general, nonconservative fluxes can depend on both the contravariant
+  # vectors (normal direction) at the current node and the averaged ones.
+  # However, both are the same at watertight interfaces, so we pass the
+  # `normal_direction` twice.
+  noncons_primary   = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+  noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, normal_direction, equations)
+
+  # Store the flux with nonconservative terms on the primary and secondary elements
+  for v in eachvariable(equations)
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = (
+      flux_[v] + 0.5 * noncons_primary[v])
+    surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -(
+      flux_[v] + 0.5 * noncons_secondary[v])
+  end
 end
 
 
@@ -209,8 +261,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              mesh::P4estMesh{2},
                              equations, surface_integral, dg::DG)
   @unpack boundaries = cache
-  @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
-  @unpack surface_flux = surface_integral
+  @unpack surface_flux_values = cache.elements
   index_range = eachnode(dg)
 
   @threaded for local_index in eachindex(boundary_indexing)
@@ -228,26 +279,84 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
 
     i_node = i_node_start
     j_node = j_node_start
-    for i in eachnode(dg)
-      # Extract solution data from boundary container
-      u_inner = get_node_vars(boundaries.u, equations, dg, i, boundary)
-
-      # Outward-pointing normal direction (not normalized)
-      normal_direction = get_normal_direction(direction, contravariant_vectors, i_node, j_node, element)
-
-      # Coordinates at boundary node
-      x = get_node_coords(node_coordinates, equations, dg, i_node, j_node, element)
-
-      flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
-
-      # Copy flux to element storage in the correct orientation
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, direction, element] = flux_[v]
-      end
+    for node in eachnode(dg)
+      calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                          mesh, have_nonconservative_terms(equations),
+                          equations, surface_integral, dg, cache,
+                          i_node, j_node,
+                          node, direction, element, boundary)
 
       i_node += i_node_step
       j_node += j_node_step
     end
+  end
+end
+
+
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::P4estMesh{2},
+                                     nonconservative_terms::Val{false}, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index, boundary_index)
+  @unpack boundaries = cache
+  @unpack node_coordinates, contravariant_vectors = cache.elements
+  @unpack surface_flux = surface_integral
+
+  # Extract solution data from boundary container
+  u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+  # Outward-pointing normal direction (not normalized)
+  normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                          i_index, j_index, element_index)
+
+  # Coordinates at boundary node
+  x = get_node_coords(node_coordinates, equations, dg, i_index, j_index, element_index)
+
+  flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+  # Copy flux to element storage in the correct orientation
+  for v in eachvariable(equations)
+    surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+  end
+end
+
+# inlined version of the boundary flux with nonconservative terms calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::P4estMesh{2},
+                                     nonconservative_terms::Val{true}, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index, boundary_index)
+  @unpack boundaries = cache
+  @unpack node_coordinates, contravariant_vectors = cache.elements
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+  # Extract solution data from boundary container
+  u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+  # Outward-pointing normal direction (not normalized)
+  normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                          i_index, j_index, element_index)
+
+  # Coordinates at boundary node
+  x = get_node_coords(node_coordinates, equations, dg, i_index, j_index, element_index)
+
+  # Call pointwise numerical flux function for the conservative part
+  # in the normal direction on the boundary
+  flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+  # Compute pointwise nonconservative numerical flux at the boundary.
+  # Note: This does not set any type of boundary condition for the nonconservative term
+  noncons_ = nonconservative_flux(u_inner, u_inner, normal_direction, normal_direction, equations)
+
+  # Copy flux to element storage in the correct orientation
+  for v in eachvariable(equations)
+    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    surface_flux_values[v, node_index, direction_index, element_index] = flux_[v] + 0.5 * noncons_[v]
   end
 end
 
@@ -318,13 +427,12 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::P4estMesh{2},
-                           nonconservative_terms::Val{false}, equations,
+                           nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
-  @unpack u, neighbor_ids, node_indices = cache.mortars
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+  @unpack neighbor_ids, node_indices = cache.mortars
   @unpack contravariant_vectors = cache.elements
-  @unpack surface_flux = surface_integral
+  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmortar(dg, cache)
@@ -332,30 +440,28 @@ function calc_mortar_flux!(surface_flux_values,
     fstar = (fstar_lower_threaded[Threads.threadid()],
              fstar_upper_threaded[Threads.threadid()])
 
-    # Get information on the small elements, compute the surface fluxes,
-    # and store them for the small elements
+    # Get index information on the small elements
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-    # Contravariant vectors at interfaces in negative coordinate direction
-    # are pointing inwards. This is handled by `get_normal_direction`.
     for position in 1:2
       i_small = i_small_start
       j_small = j_small_start
       element = neighbor_ids[position, mortar]
-      for i in eachnode(dg)
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, position, i, mortar)
-
+      for node in eachnode(dg)
+        # Get the normal direction on the small element.
+        # Note, contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards. This is handled by `get_normal_direction`.
         normal_direction = get_normal_direction(small_direction, contravariant_vectors,
                                                 i_small, j_small, element)
 
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-        # Copy flux to buffer
-        set_node_vars!(fstar[position], flux_, equations, dg, i)
+        calc_mortar_flux!(fstar, mesh, nonconservative_terms, equations,
+                          surface_integral, dg, cache,
+                          mortar, position, normal_direction,
+                          node)
 
         i_small += i_small_step
         j_small += j_small_step
@@ -372,6 +478,53 @@ function calc_mortar_flux!(surface_flux_values,
   end
 
   return nothing
+end
+
+
+# Inlined version of the mortar flux computation on small elements for conservation laws
+@inline function calc_mortar_flux!(fstar,
+                                   mesh::P4estMesh{2},
+                                   nonconservative_terms::Val{false}, equations,
+                                   surface_integral, dg::DG, cache,
+                                   mortar_index, position_index, normal_direction,
+                                   node_index)
+  @unpack u = cache.mortars
+  @unpack surface_flux = surface_integral
+
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
+
+  flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+  # Copy flux to buffer
+  set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
+end
+
+# Inlined version of the mortar flux computation on small elements for equations with conservative and
+# nonconservative terms
+@inline function calc_mortar_flux!(fstar,
+                                   mesh::P4estMesh{2},
+                                   nonconservative_terms::Val{true}, equations,
+                                   surface_integral, dg::DG, cache,
+                                   mortar_index, position_index, normal_direction,
+                                   node_index)
+  @unpack u = cache.mortars
+  surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+  u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index, mortar_index)
+
+  # Compute conservative flux
+  flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+  # Compute nonconservative flux and add it to the conservative flux.
+  # The nonconservative flux is scaled by a factor of 0.5 based on
+  # the interpretation of global SBP operators coupled discontinuously via
+  # central fluxes/SATs
+  noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction, equations)
+
+  flux_plus_noncons = flux + 0.5 * noncons
+
+  # Copy to buffer
+  set_node_vars!(fstar[position_index], flux_plus_noncons, equations, dg, node_index)
 end
 
 
