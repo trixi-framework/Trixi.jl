@@ -737,14 +737,14 @@ function init_mortars!(mortars, elements, mesh::TreeMesh2D)
       end
 
       # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
-      if direction in [2, 4]
+      if iseven(direction)
         mortars.large_sides[count] = 1
       else
         mortars.large_sides[count] = 2
       end
 
       # Set orientation (x -> 1, y -> 2)
-      if direction in [1, 2]
+      if direction in (1, 2)
         mortars.orientations[count] = 1
       else
         mortars.orientations[count] = 2
