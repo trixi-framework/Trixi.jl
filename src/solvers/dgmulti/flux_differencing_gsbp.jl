@@ -50,164 +50,89 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:G
   rd = dg.basis
   @unpack md = mesh
 
-  Qrst_skew, VhP, Ph = compute_flux_differencing_SBP_matrices(dg)
-  sparsity_pattern = compute_sparsity_pattern(Qrst_skew, dg)
-
+  cache = invoke(create_cache, Tuple{VertexMappedMesh, Any, DGMultiFluxDiff, Any, Any},
+                 mesh, equations, dg, RealT, uEltype)
   # for change of basis prior to the volume integral and entropy projection
-  r1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-  rq, sq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
-  interpolation_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rq, sq) / rd.VDM
-  interpolation_matrix_gauss_to_lobatto = inv(interpolation_matrix_lobatto_to_gauss)
-  interpolation_matrix_gauss_to_face = rd.Vf * interpolation_matrix_gauss_to_lobatto
+  @unpack rq, sq = rd
+  interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rq, sq) / rd.VDM
+  interp_matrix_gauss_to_lobatto = inv(interp_matrix_lobatto_to_gauss)
+  interp_matrix_gauss_to_face = rd.Vf * interp_matrix_gauss_to_lobatto
 
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
-  Pf = diagm(1 ./ rd.wq) * interpolation_matrix_gauss_to_face'
+  Pf = diagm(1 ./ rd.wq) * interp_matrix_gauss_to_face'
 
   nvars = nvariables(equations)
+  rhs_gauss = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements), dg)
 
-  # temp storage for entropy variables at volume quad points
-  entropy_var_values = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements), dg)
-
-  # storage for all quadrature points (concatenated volume / face quadrature points)
-  num_quad_points_total = rd.Nq + rd.Nfq
-  entropy_projected_u_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
-  projected_entropy_var_values = allocate_nested_array(uEltype, nvars, (num_quad_points_total, md.num_elements), dg)
-
-  # For this specific solver, `prolong2interfaces` will not be used anymore.
-  # Instead, this step is also performed in `entropy_projection!`. Thus, we set
-  # `u_values` and `u_face_values` as a `view` into `entropy_projected_u_values`.
-  u_values = view(entropy_projected_u_values, 1:rd.Nq, :)
-  u_face_values = view(entropy_projected_u_values, (rd.Nq+1):num_quad_points_total, :)
-  flux_face_values = similar(u_face_values)
-
-  # local storage for interface fluxes, rhs, and source
-  local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
-
-  # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
-  # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
-  # projecting it and storing it into `du`.
-  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total) for _ in 1:Threads.nthreads()]
-  rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (num_quad_points_total,), dg)  for _ in 1:Threads.nthreads()]
-  #rhs_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
-  rhs_face_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nfq,), dg)  for _ in 1:Threads.nthreads()]
-
-  return (; md, Qrst_skew, sparsity_pattern, VhP, Ph, Pf, invJ = inv.(md.J),
-            entropy_var_values, projected_entropy_var_values, entropy_projected_u_values,
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded,
-            rhs_local_threaded, rhs_face_local_threaded,
-            interpolation_matrix_lobatto_to_gauss,
-            interpolation_matrix_gauss_to_lobatto,
-            interpolation_matrix_gauss_to_face)
+  return (; cache..., Pf, rhs_gauss,
+         interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto, interp_matrix_gauss_to_face)
 end
 
-# This function interpolates to Gauss nodes, then performs the entropy projection step
-function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP})
-
-  rd = dg.basis
-  @unpack VhP, entropy_var_values, u_values, u_face_values = cache
-  @unpack projected_entropy_var_values, entropy_projected_u_values = cache
-
-  # Interpolates nodal values at Lobatto points and stores the values in u_values.
-  # Note that `u_values` is a view into `entropy_projected_u_values`.
-  # We will change the basis back to Lobatto nodes in `calc_volume_integral!`
-  @unpack interpolation_matrix_lobatto_to_gauss = cache
-  apply_to_each_field(mul_by!(interpolation_matrix_lobatto_to_gauss), u_values, u)
-
-  # Transform `u_values` to entropy variables.
-  @threaded for i in Base.OneTo(length(u_values))
-    entropy_var_values[i] = cons2entropy(u_values[i], equations)
-  end
-
-  # Interpolate entropy variables to face nodes, store in `u_face_values`.
-  # Note that `u_face_values` is a view into `entropy_projected_u_values`.
-  @unpack interpolation_matrix_gauss_to_face = cache
-  apply_to_each_field(mul_by!(interpolation_matrix_gauss_to_face),
-                      u_face_values, entropy_var_values)
-
-  # This is an in-place conversion of `u_face_values` from entropy variables back to
-  # conservative variables.
-  @threaded for i in Base.OneTo(length(u_face_values))
-    u_face_values[i] = entropy2cons(u_face_values[i], equations)
-  end
-end
-
-function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP}, cache)
-  rd = dg.basis
-  @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
-  @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
-  @unpack volume_flux = volume_integral
-
-  # skips subblock of Qi_skew which we know is zero by construction
-  skip_index(i,j) = i > rd.Nq && j > rd.Nq
-
-  # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
-  @threaded for e in eachelement(mesh, dg, cache)
-    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
-    u_local = view(entropy_projected_u_values, :, e)
-    for i in eachdim(mesh)
-      Qi_skew = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-      hadamard_sum!(fluxdiff_local, Qi_skew, volume_flux, i,
-                    u_local, equations, sparsity_pattern, skip_index)
-    end
-
-    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
-    # apply_to_each_field performance.
-    rhs_local = rhs_local_threaded[Threads.threadid()]
-    for i in Base.OneTo(length(fluxdiff_local))
-      rhs_local[i] = fluxdiff_local[i]
-    end
-    apply_to_each_field(mul_by_accum!(Ph), view(du, :, e), rhs_local)
-  end
-end
-
-# function calc_volume_integral!(du, u, volume_integral,
-#                                mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP}, cache)
+# # This function interpolates to Gauss nodes, then performs the entropy projection step
+# function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP})
 
 #   rd = dg.basis
-#   @unpack entropy_projected_u_values, Pf, sparsity_pattern = cache
-#   @unpack fluxdiff_local_threaded, rhs_local_threaded, rhs_face_local_threaded = cache
+#   @unpack VhP, entropy_var_values, u_values, u_face_values = cache
+#   @unpack projected_entropy_var_values, entropy_projected_u_values = cache
+
+#   # Interpolates nodal values at Lobatto points and stores the values in u_values.
+#   # Note that `u_values` is a view into `entropy_projected_u_values`.
+#   # We will change the basis back to Lobatto nodes in `calc_volume_integral!`
+#   @unpack interpolation_matrix_lobatto_to_gauss = cache
+#   apply_to_each_field(mul_by!(interpolation_matrix_lobatto_to_gauss), u_values, u)
+
+#   # Transform `u_values` to entropy variables.
+#   @threaded for i in Base.OneTo(length(u_values))
+#     entropy_var_values[i] = cons2entropy(u_values[i], equations)
+#   end
+
+#   # Interpolate entropy variables to face nodes, store in `u_face_values`.
+#   # Note that `u_face_values` is a view into `entropy_projected_u_values`.
+#   @unpack interpolation_matrix_gauss_to_face = cache
+#   apply_to_each_field(mul_by!(interpolation_matrix_gauss_to_face),
+#                       u_face_values, entropy_var_values)
+
+#   # This is an in-place conversion of `u_face_values` from entropy variables back to
+#   # conservative variables.
+#   @threaded for i in Base.OneTo(length(u_face_values))
+#     u_face_values[i] = entropy2cons(u_face_values[i], equations)
+#   end
+# end
+
+# function calc_volume_integral!(du, u, volume_integral,
+#                                mesh::VertexMappedMesh,
+#                                have_nonconservative_terms::Val{false}, equations,
+#                                dg::DGMultiFluxDiff{<:GSBP}, cache)
+
+#   rd = dg.basis
+#   @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
+#   @unpack fluxdiff_local_threaded, rhs_local_threaded, rhs_face_local_threaded, rhs_gauss = cache
 #   @unpack volume_flux = volume_integral
 
-#   # After computing the volume integral, we transform back to Lobatto nodes.
+#    # After computing the volume integral, we transform back to Lobatto nodes.
 #   # This allows us to reuse the other DGMulti routines as-is.
 #   @unpack interpolation_matrix_gauss_to_lobatto = cache
 
-#   # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 #   @threaded for e in eachelement(mesh, dg, cache)
 #     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
 #     fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
 #     u_local = view(entropy_projected_u_values, :, e)
-#     for i in eachdim(mesh)
-#       Qi_skew = build_lazy_physical_derivative(e, i, mesh, dg, cache)
-#       hadamard_sum!(fluxdiff_local, Qi_skew, volume_flux, i,
-#                     u_local, equations, sparsity_pattern)
-#     end
 
-#     # Specializes du = Ph * rhs_local in two steps:
-#     # 1. rhs_local += fluxdiff_local[1:Nq, :]
-#     # 2. rhs_local += invM * Vf^T * fluxdiff_local[Nq+1:end, :] = Pf * fluxdiff_local[Nq+1:end]
-#     # 3. Changes basis for `rhs_local` from Gauss back to Lobatto nodes and accumulate into `du`.
-
-#     # accumulate contributions from volume nodes
-#     rhs_local = rhs_local_threaded[Threads.threadid()]
-#     for i in Base.OneTo(rd.Nq)
-#       rhs_local[i, e] = fluxdiff_local[i]
-#     end
+#     local_flux_differencing!(fluxdiff_local, u_local, e,
+#                              have_nonconservative_terms, volume_integral,
+#                              has_sparse_operators(dg),
+#                              mesh, equations, dg, cache)
 
 #     # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
 #     # apply_to_each_field performance.
-#     rhs_face_local = rhs_face_local_threaded[Threads.threadid()]
-#     for i in Base.OneTo(rd.Nfq)
-#       rhs_face_local[i] = fluxdiff_local[i + rd.Nq]
+#     rhs_local = rhs_local_threaded[Threads.threadid()]
+#     for i in Base.OneTo(length(fluxdiff_local))
+#       rhs_local[i] = fluxdiff_local[i]
 #     end
-#     apply_to_each_field(mul_by_accum!(Pf), rhs_local, rhs_face_local)
-
-#     # change of basis from Gauss back to Lobatto nodes.
-#     apply_to_each_field(mul_by!(interpolation_matrix_gauss_to_lobatto), view(du, :, e), rhs_local)
+#     apply_to_each_field(mul_by_accum!(Ph), view(du, :, e), rhs_local)
 #   end
+
+#   apply_to_each_field(mul_by!(interpolation_matrix_gauss_to_lobatto), du, rhs_gauss)
 
 # end

@@ -324,9 +324,10 @@ end
 # operators are sparse) for all `<:Polynomial` approximation types.
 @inline has_sparse_operators(element_type, approx_type::Polynomial) = Val{true}()
 
-# SBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
+# SBP/GSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
+@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GSBP) = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
