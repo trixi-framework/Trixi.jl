@@ -242,6 +242,11 @@ end
 
 # Initialize connectivity between elements and interfaces
 function init_interfaces!(interfaces, elements, mesh::TreeMesh2D)
+  # Exit early if there are no interfaces to initialize
+  if ninterfaces(interfaces) == 0
+    return nothing
+  end
+
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -410,6 +415,11 @@ end
 
 # Initialize connectivity between elements and boundaries
 function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
+  # Exit early if there are no boundaries to initialize
+  if nboundaries(boundaries) == 0
+    return nothing
+  end
+
   # Reset boundaries count
   count = 0
 
@@ -649,6 +659,11 @@ end
 
 # Initialize connectivity between elements and mortars
 function init_mortars!(mortars, elements, mesh::TreeMesh2D)
+  # Exit early if there are no mortars to initialize
+  if nmortars(mortars) == 0
+    return nothing
+  end
+
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -852,6 +867,11 @@ end
 
 # Initialize connectivity between elements and interfaces
 function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
+  # Exit early if there are no MPI interfaces to initialize
+  if nmpiinterfaces(mpi_interfaces) == 0
+    return nothing
+  end
+
   # Reset interface count
   count = 0
 
@@ -1088,6 +1108,11 @@ end
 
 # Initialize connectivity between elements and mortars
 function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
+  # Exit early if there are no MPI mortars to initialize
+  if nmpimortars(mpi_mortars) == 0
+    return nothing
+  end
+
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
