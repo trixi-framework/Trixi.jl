@@ -894,7 +894,7 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
       end
 
       # Skip if neighbor is on this MPI rank -> create regular interface instead
-      if mpi_isparallel() && is_own_cell(mesh.tree, neighbor_cell_id)
+      if is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -1138,7 +1138,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
         # Skip if the large neighbor is on the same rank -> will be handled in another iteration
         parent_cell_id = mesh.tree.parent_ids[cell_id]
         large_cell_id = mesh.tree.neighbor_ids[direction, parent_cell_id]
-        if mpi_isparallel() && is_own_cell(mesh.tree, large_cell_id)
+        if is_own_cell(mesh.tree, large_cell_id)
           continue
         end
 
@@ -1168,7 +1168,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
 
         # Skip if the other small cell is on the same rank and its id is smaller than the current
         # cell id to prevent double counting
-        if mpi_isparallel() && is_own_cell(mesh.tree, sibling_id) && sibling_id < cell_id
+        if is_own_cell(mesh.tree, sibling_id) && sibling_id < cell_id
           continue
         end
       else # Cell has a neighbor
@@ -1195,7 +1195,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
           upper_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
         end
         small_cell_ids = (lower_cell_id, upper_cell_id)
-        if mpi_isparallel() && all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        if all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
           continue
         end
       end
