@@ -32,9 +32,9 @@ function DGMulti(element_type::Quad,
                    quad_rule_face=gauss_rule_face,
                    kwargs...)
 
-  # WARNING: somewhat hacky. Since there is no dedicated GSBP approximation type implemented
-  # in StartUpDG, we simply initialize `rd = RefElemData(...)` with the appropriate quadrature
-  # rules and modify the rd.approximationType manually so we can dispatch on the `GSBP` type.
+  # Since there is no dedicated GSBP approximation type implemented in StartUpDG, we simply
+  # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
+  # rd.approximationType manually so we can dispatch on the `GSBP` type.
   # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
   rd_gauss = @set rd.approximationType = GSBP()
 
@@ -52,6 +52,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:G
 
   cache = invoke(create_cache, Tuple{VertexMappedMesh, Any, DGMultiFluxDiff, Any, Any},
                  mesh, equations, dg, RealT, uEltype)
+
   # for change of basis prior to the volume integral and entropy projection
   @unpack rq, sq = rd
   interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rq, sq) / rd.VDM
