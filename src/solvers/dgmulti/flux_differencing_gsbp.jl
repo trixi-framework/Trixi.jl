@@ -62,44 +62,53 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:G
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
   Pf = diagm(1 ./ rd.wq) * interp_matrix_gauss_to_face'
+  Pf = droptol!(sparse(Pf), 100 * eps())
 
   nvars = nvariables(equations)
   rhs_gauss = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements), dg)
 
   return (; cache..., Pf, rhs_gauss,
-         interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto, interp_matrix_gauss_to_face)
+         interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
+         interp_matrix_gauss_to_face)
 end
 
-# # This function interpolates to Gauss nodes, then performs the entropy projection step
-# function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP})
+# TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
+function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP})
 
-#   rd = dg.basis
-#   @unpack VhP, entropy_var_values, u_values, u_face_values = cache
-#   @unpack projected_entropy_var_values, entropy_projected_u_values = cache
+  rd = dg.basis
+  @unpack Vq = rd
+  @unpack VhP, entropy_var_values, u_values = cache
+  @unpack projected_entropy_var_values, entropy_projected_u_values = cache
+  @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
 
-#   # Interpolates nodal values at Lobatto points and stores the values in u_values.
-#   # Note that `u_values` is a view into `entropy_projected_u_values`.
-#   # We will change the basis back to Lobatto nodes in `calc_volume_integral!`
-#   @unpack interpolation_matrix_lobatto_to_gauss = cache
-#   apply_to_each_field(mul_by!(interpolation_matrix_lobatto_to_gauss), u_values, u)
+  # TODO: speed up using tensor product
+  apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss), u_values, u)
 
-#   # Transform `u_values` to entropy variables.
-#   @threaded for i in Base.OneTo(length(u_values))
-#     entropy_var_values[i] = cons2entropy(u_values[i], equations)
-#   end
+  # transform quadrature values to entropy variables
+  @threaded for i in eachindex(u_values)
+    entropy_var_values[i] = cons2entropy(u_values[i], equations)
+  end
 
-#   # Interpolate entropy variables to face nodes, store in `u_face_values`.
-#   # Note that `u_face_values` is a view into `entropy_projected_u_values`.
-#   @unpack interpolation_matrix_gauss_to_face = cache
-#   apply_to_each_field(mul_by!(interpolation_matrix_gauss_to_face),
-#                       u_face_values, entropy_var_values)
+  # interpolate volume Gauss nodes to face nodes
+  # (note the layout of projected_entropy_var_values = [vol pts; face pts]).
+  face_indices = (rd.Nq + 1):(rd.Nq + rd.Nfq)
+  entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
+  # TODO: speed up using sparsity?
+  apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
 
-#   # This is an in-place conversion of `u_face_values` from entropy variables back to
-#   # conservative variables.
-#   @threaded for i in Base.OneTo(length(u_face_values))
-#     u_face_values[i] = entropy2cons(u_face_values[i], equations)
-#   end
-# end
+  # directly copy over volume values (no entropy projection required)
+  volume_indices = Base.OneTo(rd.Nq)
+  entropy_projected_volume_values = view(entropy_projected_u_values, volume_indices, :)
+  @threaded for i in eachindex(u_values)
+    entropy_projected_volume_values[i] = u_values[i]
+  end
+
+  # transform entropy to conservative variables on face values
+  entropy_projected_face_values = view(entropy_projected_u_values, face_indices, :)
+  @threaded for i in eachindex(entropy_var_face_values)
+    entropy_projected_face_values[i] = entropy2cons(entropy_var_face_values[i], equations)
+  end
+end
 
 # function calc_volume_integral!(du, u, volume_integral,
 #                                mesh::VertexMappedMesh,
