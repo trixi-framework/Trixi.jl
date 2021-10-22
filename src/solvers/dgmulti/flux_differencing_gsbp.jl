@@ -4,12 +4,29 @@
 # GSBP ApproximationType: e.g., Gauss nodes on quads/hexes
 struct GSBP end
 
+function tensor_product_quadrature(element_type::Line, r1D, w1D)
+  return r1D, w1D
+end
+function tensor_product_quadrature(element_type::Quad, r1D, w1D)
+  rq, sq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
+  wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(w1D))
+  wq = wr .* ws
+  return rq, sq, wq
+end
+
+function tensor_product_quadrature(element_type::Hex, r1D, w1D)
+  rq, sq, tq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D, r1D, r1D))
+  wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(w1D, w1D, w1D))
+  wq = wr .* ws .* wt
+  return rq, sq, tq, wq
+end
+
 # Todo: DGMulti. Decide if we should add GSBP on triangles.
 
 # Specialized constructor for GSBP approximation type on quad elements. Restricting to
 # VolumeKernelFluxDifferencing for now since there isn't a way to exploit this structure for
 # VolumeIntegralWeakForm yet.
-function DGMulti(element_type::Quad,
+function DGMulti(element_type::Union{Quad, Hex},
                  approximation_type::GSBP,
                  volume_integral::VolumeIntegralFluxDifferencing,
                  surface_integral=SurfaceIntegralWeakForm(surface_flux);
@@ -19,13 +36,8 @@ function DGMulti(element_type::Quad,
 
   # create tensor product Gauss quadrature rule with polydeg+1 points
   r1D, w1D = StartUpDG.gauss_quad(0, 0, polydeg)
-  rq, sq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
-  wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(w1D))
-  wq = wr .* ws
-  gauss_rule_vol = (rq, sq, wq)
-
-  # Gauss quadrature rule on reference face [-1, 1]
-  gauss_rule_face = (r1D, w1D)
+  gauss_rule_vol = tensor_product_quadrature(element_type, r1D, w1D)
+  gauss_rule_face = tensor_product_quadrature(StartUpDG.face_type(element_type), r1D, w1D)
 
   rd = RefElemData(element_type, Polynomial(), polydeg,
                    quad_rule_vol=gauss_rule_vol,
@@ -45,7 +57,8 @@ end
 
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
 # In the future, we may modify it so that we can specialize additional parts of GSBP() solvers.
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP}, RealT, uEltype)
+function create_cache(mesh::VertexMappedMesh, equations,
+                      dg::DGMultiFluxDiff{<:GSBP, <:Union{Quad, Hex}}, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -54,8 +67,8 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:G
                  mesh, equations, dg, RealT, uEltype)
 
   # for change of basis prior to the volume integral and entropy projection
-  @unpack rq, sq = rd
-  interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rq, sq) / rd.VDM
+  @unpack rstq = rd
+  interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rstq...) / rd.VDM
   interp_matrix_gauss_to_lobatto = inv(interp_matrix_lobatto_to_gauss)
   interp_matrix_gauss_to_face = rd.Vf * interp_matrix_gauss_to_lobatto
 
