@@ -70,7 +70,19 @@ function create_cache(mesh::VertexMappedMesh, equations,
   @unpack rstq = rd
   interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rstq...) / rd.VDM
   interp_matrix_gauss_to_lobatto = inv(interp_matrix_lobatto_to_gauss)
-  interp_matrix_gauss_to_face = rd.Vf * interp_matrix_gauss_to_lobatto
+  interp_matrix_gauss_to_face = droptol!(sparse(rd.Vf * interp_matrix_gauss_to_lobatto), 100* eps(uEltype))
+
+  # r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
+  # rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+  # VDM_lobatto_1D = StartUpDG.vandermonde(Line(), polydeg(dg), r1D)
+  # VDM_gauss_1D = StartUpDG.vandermonde(Line(), polydeg(dg), rq1D)
+  # interp_matrix_lobatto_to_gauss_1D = VDM_gauss_1D / VDM_lobatto_1D
+  # interp_matrix_gauss_to_lobatto_1D = VDM_lobatto_1D / VDM_gauss_1D
+  # interp_matrix_gauss_to_face_1D = StartUpDG.vandermonde(Line(), polydeg(dg), [-1; 1]) / VDM_gauss_1D
+
+  # NDIMS = rd.elementType == Quad() ? 2 : 3
+  # interp_matrix_lobatto_to_gauss = kron(ntuple(_->interp_matrix_lobatto_to_gauss_1D, NDIMS)...)
+  # interp_matrix_gauss_to_lobatto = kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
 
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
