@@ -6,7 +6,7 @@
 
 
 # out <- A*x
-mul_by!(A) = @inline (out, x)->mul!(out, A, x)
+mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 
 # out <- out + A * x
 mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, One(), One())
