@@ -108,6 +108,27 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
           tspan=(0.0, 0.0), initial_refinement_level=1)
         jacobian_ad_forward(semi)
       end
+
+      @timed_testset "DGMulti" begin
+        gamma = 1.4
+        equations = CompressibleEulerEquations2D(gamma)
+        initial_condition = initial_condition_density_wave
+
+        solver = DGMulti(polydeg = 5, element_type = Quad(), approximation_type = SBP(),
+                        surface_integral = SurfaceIntegralWeakForm(flux_central),
+                        volume_integral = VolumeIntegralWeakForm())
+
+        # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
+        cells_per_dimension = (2, 2)
+        vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
+        mesh = VertexMappedMesh(vertex_coordinates, EToV, solver, is_periodic=(true,true))
+
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 7.0e-7
+      end
     end
 
     @timed_testset "MHD" begin
