@@ -6,7 +6,7 @@
 
 
 # out <- A*x
-mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
+mul_by!(A) = @inline (out, x)->mul!(out, A, x)
 
 # out <- out + A * x
 mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, One(), One())
@@ -31,6 +31,16 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
     out[i] = out[i] + x_i
   end
 end
+
+# struct MulByKronecker{TA, Ttmp}
+#   A::TA
+#   tmp_storage::Ttmp # temporary array for Kronecker multiplication
+# end
+
+# @inline function apply_to_each_field(f::MulByKronecker, out, x, args...)
+#   @unpack A, tmp_storage = f
+# end
+
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
