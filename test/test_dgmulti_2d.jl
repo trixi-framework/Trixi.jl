@@ -102,8 +102,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       cells_per_dimension = (32, 32), element_type = Quad(), approximation_type=GSBP(), tspan = (0.0, 0.2),
-      l2 = [0.1114127065634713, 0.06598888014584127, 0.10449022037499323, 0.1602303736477496],
-      linf = [0.24147600621264464, 0.16621118460656545, 0.12344140473946819, 0.26978428189565395]
+      l2 = [0.11141270656347158, 0.0659888801458412, 0.1044902203749932, 0.16023037364774986],
+      linf = [0.24147600621264775, 0.166211184606565, 0.12344140473946875, 0.26978428189564774]
     )
   end
 
