@@ -39,7 +39,7 @@ using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 using MPI: MPI
 using GeometryBasics: GeometryBasics
-using Octavian: matmul!
+using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
@@ -47,6 +47,7 @@ using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
 using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
+using Static: One
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
