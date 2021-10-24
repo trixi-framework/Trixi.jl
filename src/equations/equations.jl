@@ -169,6 +169,11 @@ have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)
 
 default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
+"""
+    default_analysis_integrals(equations)
+
+Default analysis integrals used by the [`AnalysisCallback`](@ref).
+"""
 default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 
 
