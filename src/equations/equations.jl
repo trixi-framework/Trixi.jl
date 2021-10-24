@@ -165,6 +165,15 @@ end
 
 
 # set sensible default values that may be overwritten by specific equations
+"""
+    have_nonconservative_terms(equations)
+
+Trait function determining whether `equations` represent a conservation law
+with or without nonconservative terms. Classical conservation laws such as the
+[`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
+[`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
+example of equations with nonconservative terms.
+"""
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)
 
