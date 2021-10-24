@@ -71,7 +71,6 @@ function create_cache(mesh::VertexMappedMesh, equations,
     @unpack rstq = rd
     interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rstq...) / rd.VDM
     interp_matrix_gauss_to_lobatto = inv(interp_matrix_lobatto_to_gauss)
-    interp_matrix_gauss_to_face = droptol!(sparse(rd.Vf * interp_matrix_gauss_to_lobatto), 100 * eps(uEltype))
   else # if Hex(), use Kronecker product structure to reduce precomputation time
     r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
     rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
@@ -83,10 +82,12 @@ function create_cache(mesh::VertexMappedMesh, equations,
     NDIMS = 3
     interp_matrix_lobatto_to_gauss = kron(ntuple(_->interp_matrix_lobatto_to_gauss_1D, NDIMS)...)
     interp_matrix_gauss_to_lobatto = kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
-    interp_matrix_gauss_to_face = droptol!(sparse(rd.Vf * interp_matrix_gauss_to_lobatto), 100 * eps(uEltype))
-    # TODO: speed up using Kronecker structure
-    # interp_matrix_gauss_to_face_1D = StartUpDG.vandermonde(Line(), polydeg(dg), [-1; 1]) / VDM_gauss_1D
   end
+
+  interp_matrix_gauss_to_face = rd.Vf * interp_matrix_gauss_to_lobatto
+  interp_matrix_gauss_to_face = droptol!(sparse(interp_matrix_gauss_to_face), 100 * eps(uEltype))
+  # TODO: speed up using Kronecker structure
+  # interp_matrix_gauss_to_face_1D = StartUpDG.vandermonde(Line(), polydeg(dg), [-1; 1]) / VDM_gauss_1D
 
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
