@@ -7,12 +7,15 @@
 
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
+mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
 
 # out <- out + A * x
 mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, One(), One())
+mul_by_accum!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x, One(), One())
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
+mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x)->mul!(out, A, x, α, One())
 
 # specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
 struct MulByUniformScaling end
@@ -31,16 +34,6 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
     out[i] = out[i] + x_i
   end
 end
-
-# struct MulByKronecker{TA, Ttmp}
-#   A::TA
-#   tmp_storage::Ttmp # temporary array for Kronecker multiplication
-# end
-
-# @inline function apply_to_each_field(f::MulByKronecker, out, x, args...)
-#   @unpack A, tmp_storage = f
-# end
-
 
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
