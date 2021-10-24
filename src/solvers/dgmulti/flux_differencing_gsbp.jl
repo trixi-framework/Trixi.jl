@@ -67,7 +67,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
                  mesh, equations, dg, RealT, uEltype)
 
   # for change of basis prior to the volume integral and entropy projection
-  if rd.elementType == Quad()
+  if rd.elementType === Quad()
     @unpack rstq = rd
     interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rstq...) / rd.VDM
     interp_matrix_gauss_to_lobatto = inv(interp_matrix_lobatto_to_gauss)
