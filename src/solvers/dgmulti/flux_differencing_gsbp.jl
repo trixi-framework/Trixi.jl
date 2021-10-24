@@ -63,7 +63,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
   rd = dg.basis
   @unpack md = mesh
 
-  cache = invoke(create_cache, Tuple{VertexMappedMesh, Any, DGMultiFluxDiff, Any, Any},
+  cache = invoke(create_cache, Tuple{typeof(mesh), typeof(equations), DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
                  mesh, equations, dg, RealT, uEltype)
 
   # for change of basis prior to the volume integral and entropy projection
