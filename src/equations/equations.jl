@@ -24,6 +24,18 @@ julia> Trixi.get_name(CompressibleEulerEquations1D(1.4))
 """
 get_name(equations::AbstractEquations) = equations |> typeof |> nameof |> string
 
+"""
+    varnames(conversion_function, equations)
+
+Returns the list of variable names when applying `conversion_function` to the
+conserved variables associated to `equations`. This function is mainly used
+internally to determine output to screen and for IO, e.g., for the
+[`AnalysisCallback`](@ref) and the [`SaveSolutionCallback`](@ref).
+Common choices of the `conversion_function` are [`cons2cons`](@ref) and
+[`cons2prim`](@ref).
+"""
+function varnames end
+
 
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)
