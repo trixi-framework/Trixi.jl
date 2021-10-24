@@ -92,7 +92,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
   Pf = diagm(1 ./ rd.wq) * interp_matrix_gauss_to_face'
-  Pf = droptol!(sparse(Pf), 100 * eps())
+  Pf = droptol!(sparse(Pf), 100 * eps(eltype(Pf)))
 
   inv_gauss_weights = inv.(rd.wq)
 
