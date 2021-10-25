@@ -231,8 +231,8 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u, element,
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                    element, mesh::TreeMesh{2},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
