@@ -27,7 +27,7 @@ get_name(equations::AbstractEquations) = equations |> typeof |> nameof |> string
 """
     varnames(conversion_function, equations)
 
-Returns the list of variable names when applying `conversion_function` to the
+Return the list of variable names when applying `conversion_function` to the
 conserved variables associated to `equations`. This function is mainly used
 internally to determine output to screen and for IO, e.g., for the
 [`AnalysisCallback`](@ref) and the [`SaveSolutionCallback`](@ref).
@@ -173,6 +173,7 @@ with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
 [`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
 example of equations with nonconservative terms.
+The return value will be `Val(true)` or `Val(false)` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)
