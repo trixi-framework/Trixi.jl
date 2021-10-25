@@ -242,7 +242,7 @@ function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
   return J
 end
 
-# This version is specialized to `StructArray`s used by `DGMulti` solvers.
+# This version is specialized to `StructArray`s used by some `DGMulti` solvers.
 # We need to convert the numerical solution vectors since ForwardDiff cannot
 # handle arrays of `SVector`s.
 function jacobian_ad_forward(semi::AbstractSemidiscretization, t0, _u0_ode::StructArray)
@@ -264,6 +264,31 @@ function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain,
   J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain, config) do du_ode_plain, u_ode_plain
     u_ode  = StructArray{SVector{nvariables(semi), eltype(config)}}(ntuple(v -> view(u_ode_plain,  :, :, v), nvariables(semi)))
     du_ode = StructArray{SVector{nvariables(semi), eltype(config)}}(ntuple(v -> view(du_ode_plain, :, :, v), nvariables(semi)))
+    Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+  end
+
+  return J
+end
+
+# This version is specialized to arrays of `StaticArray`s used by some `DGMulti` solvers.
+# We need to convert the numerical solution vectors since ForwardDiff cannot
+# handle arrays of `SVector`s.
+function jacobian_ad_forward(semi::AbstractSemidiscretization, t0, _u0_ode::AbstractArray{<:SVector})
+  u0_ode_plain = reinterpret(eltype(eltype(_u0_ode)), _u0_ode)
+  du_ode_plain = similar(u0_ode_plain)
+  config = ForwardDiff.JacobianConfig(nothing, du_ode_plain, u0_ode_plain)
+
+  # Use a function barrier since the generation of the `config` we use above
+  # is not type-stable
+  _jacobian_ad_forward_staticarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
+end
+
+function _jacobian_ad_forward_staticarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
+
+  new_semi = remake(semi, uEltype=eltype(config))
+  J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain, config) do du_ode_plain, u_ode_plain
+    u_ode  = reinterpret(SVector{nvariables(semi), eltype(config)}, u_ode_plain)
+    du_ode = reinterpret(SVector{nvariables(semi), eltype(config)}, du_ode_plain)
     Trixi.rhs!(du_ode, u_ode, new_semi, t0)
   end
 
