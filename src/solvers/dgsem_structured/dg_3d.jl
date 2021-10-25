@@ -93,7 +93,7 @@ end
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
-@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{false}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
@@ -160,7 +160,7 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
