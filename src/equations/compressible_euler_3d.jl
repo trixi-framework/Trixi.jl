@@ -636,7 +636,7 @@ end
   velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr + v3_ll*v3_rr)
 
   # Calculate fluxes depending on normal_direction
-  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2] + v3_avg * normal_direction[3])
+  f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
   f2 = f1 * v1_avg + p_avg * normal_direction[1]
   f3 = f1 * v2_avg + p_avg * normal_direction[2]
   f4 = f1 * v3_avg + p_avg * normal_direction[3]
