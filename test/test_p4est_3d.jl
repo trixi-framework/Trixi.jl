@@ -99,6 +99,26 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.3))
   end
 
+  @trixi_testset "elixir_euler_source_terms_nonconforming_earth.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_earth.jl"),
+      l2   = [6.168615464471822e-6, 5.655902924674511e-6, 5.898341701461499e-6, 6.017956960343041e-6, 1.4117423097490759e-5],
+      linf = [0.00014000141533143662, 0.0001368380900919064, 0.0001368380898698618, 0.00013683808989117807, 0.00023672987507650234])
+  end
+
+  @trixi_testset "elixir_euler_circular_wind_nonconforming.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_circular_wind_nonconforming.jl"),
+      l2   = [1.573832094977477e-7, 3.863090659429634e-5, 3.867293305754584e-5, 3.686550296950078e-5, 0.05508968493733932],
+      linf = [2.2695202613887133e-6, 0.0005314968179916946, 0.0005314969614147458, 0.0005130280733059617, 0.7944959432352334],
+      tspan = (0.0, 2e2))
+  end
+
+  @trixi_testset "elixir_euler_baroclinic_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_baroclinic_instability.jl"),
+      l2   = [1.981428023117874e-6, 0.0008742401458631694, 0.002292155598132885, 0.00013153434280047967, 0.4474496178984877],
+      linf = [0.00018843335028084773, 0.1415148948334406, 0.41597556847916617, 0.01152459663724224, 54.277768649568316],
+      tspan = (0.0, 1e2))
+  end
+
   @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_nonconforming.jl"),
       l2   = [0.00019018725889431733, 0.0006523517707148006, 0.0002401595437705759, 0.0007796920661427565,

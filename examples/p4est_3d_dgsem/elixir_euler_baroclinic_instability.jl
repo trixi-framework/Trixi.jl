@@ -1,3 +1,11 @@
+# An idealized baroclinic instability test case
+# Note that this elixir can take several hours to run. For optimal results consider increasing the
+# resolution to 16x16x8 trees per cube face.
+#
+# References:
+# - Paul A. Ullrich, Thomas Melvin, Christiane Jablonowski, Andrew Staniforth (2013)
+#   A proposed baroclinic wave test case for deep- and shallow-atmosphere dynamical cores
+#   https://doi.org/10.1002/qj.2241
 
 using OrdinaryDiffEq
 using Trixi
@@ -173,7 +181,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Be aware, this takes a while!
 tspan = (0.0, 10 * 24 * 60 * 60.0)
 ode = semidiscretize(semi, tspan)
 
@@ -199,7 +206,8 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
+# Enable threading of the RK method for better performance on multiple threads
+sol = solve(ode, RDPK3SpFSAL49(thread=OrdinaryDiffEq.True()), abstol=1.0e-6, reltol=1.0e-6,
             save_everystep=false, callback=callbacks);
 
 summary_callback() # print the timer summary

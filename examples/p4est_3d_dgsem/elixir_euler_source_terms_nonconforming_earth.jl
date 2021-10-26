@@ -121,7 +121,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-                        amr_callback,)
+                        amr_callback)
 
 
 ###############################################################################
