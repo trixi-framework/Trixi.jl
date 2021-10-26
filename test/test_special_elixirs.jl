@@ -130,7 +130,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
         @test maximum(real, λ) < 7.0e-7
       end
 
-      @timed_testset "DGMulti (flux differencing)" begin
+      @timed_testset "DGMulti (SBP, flux differencing)" begin
         gamma = 1.4
         equations = CompressibleEulerEquations2D(gamma)
         initial_condition = initial_condition_density_wave
