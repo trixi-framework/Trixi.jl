@@ -149,18 +149,16 @@ callbacks = CallbackSet(summary_callback,
 # but before possible RHS evaluations of the new value occur. Hence, it's possible
 # to modify the new solution value there without impacting the performance of FSAL
 # methods.
-# The `stage_limiter!` is called additionally after computing a Runge-Kutta stage
-# value but before evaluating the corresponding stage derivatives.
+# The `stage_limiter!` is called after computing a Runge-Kutta stage value but
+# before evaluating the corresponding stage derivatives.
 # Hence, if a limiter should be called before each RHS evaluation, it needs to be
-# set both as `stage_limiter!` and as `step_limiter!`.
+# set as `stage_limiter!`.
 example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
-stage_limiter! = example_stage_callback!
-step_limiter!  = example_stage_callback!
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(example_stage_callback!, williamson_condition=false),
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
