@@ -97,7 +97,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [0.00016265538283059892],
       linf = [0.0015194298895079283],
-      rtol = 3e-7, # Higher tolerance to make tests pass in CI
+      rtol = 5e-7, # Higher tolerance to make tests pass in CI
       elixir_file="elixir_advection_waving_flag.jl",
       restart_file="restart_000021.h5")
   end

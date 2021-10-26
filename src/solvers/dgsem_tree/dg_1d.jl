@@ -155,11 +155,10 @@ function calc_volume_integral!(du, u,
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,3}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                     nonconservative_terms::Val{false}, equations,
-                                    volume_flux, dg::DGSEM, cache,
-                                    alpha=true)
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -183,7 +182,7 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,3}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
@@ -274,7 +273,7 @@ end
 
 
 
-@inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3},
+@inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
