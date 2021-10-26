@@ -65,7 +65,7 @@ makedocs(
                 "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                 "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
                 "P4est-based mesh" => joinpath("meshes", "p4est_mesh.md"),
-                "Simplicial mesh" => joinpath("meshes", "mesh_data_meshes.md"),
+                "Simplicial mesh" => joinpath("meshes", "dgmulti_mesh.md"),
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
