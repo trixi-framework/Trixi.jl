@@ -111,7 +111,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
           @testset "Create 1D plot along curve" begin
             curve = zeros(2,10)
-            curve[1,:] = range(-1, 1,length=10)
+            curve[1, :] = range(-1, 1,length=10)
             @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
             pd1D = PlotData1D(sol, curve=curve)
             @test_nowarn_debug Plots.plot(pd1D)
