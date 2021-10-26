@@ -29,6 +29,7 @@ DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
+    "Introduction to DG methods for scalar linear advection equation in 1D" => "scalar_linear_advection_1d.jl",
     "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations", "cubic_conservation_law.jl"),
                                 "Nonconservative equation" => ("adding_new_equations", "nonconservative_advection.jl")],
     "Differentiable programming" => "differentiable_programming.jl",
