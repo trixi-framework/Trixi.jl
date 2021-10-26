@@ -282,7 +282,7 @@ function rhs!(du, u, t,
     cache.mpi_cache, mesh, equations, dg, cache)
 
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(

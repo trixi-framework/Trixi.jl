@@ -10,7 +10,7 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -81,7 +81,7 @@ function calc_volume_integral!(du, u,
 end
 
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                     nonconservative_terms::Val{false}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
@@ -129,7 +129,7 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)

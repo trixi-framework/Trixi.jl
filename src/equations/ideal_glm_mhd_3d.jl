@@ -537,7 +537,7 @@ end
   magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
 
   # Calculate fluxes depending on normal_direction
-  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2] + v3_avg * normal_direction[3])
+  f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
   f2 = ( f1 * v1_avg + (p_avg + magnetic_square_avg) * normal_direction[1]
         - 0.5 * (B_dot_n_ll * B1_rr + B_dot_n_rr * B1_ll) )
   f3 = ( f1 * v2_avg + (p_avg + magnetic_square_avg) * normal_direction[2]
