@@ -1393,7 +1393,7 @@ end
 # For a given 'point', return the id of the element it is contained in in; if not found return 0.
 function find_element(point, pd)
   n_tri = size(pd.t, 1)
-  n_elements = size(pd.x,2)
+  n_elements = size(pd.x, 2)
 
   # Iterate over all elements.
   for element in 1:n_elements
