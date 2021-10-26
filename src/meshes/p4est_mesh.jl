@@ -300,6 +300,85 @@ function P4estMesh{NDIMS}(meshfile::String;
 end
 
 
+# TODO: FIX ME, there is probably a better way to dispatch correctly on this mesh constructor routine
+"""
+    P4estMesh{NDIMS}(meshfile::String, fromHOHQMesh::Bool; RealT=Float64,
+                     initial_refinement_level=0, unsaved_changes=true)
+
+Import an unstructured conforming mesh from an Abaqus-style mesh file (`.inp`). High-order, curved
+boundary information as well as boundary names are provided by [`HOHQMesh`](@ref). This creates
+an unstructured, curved `P4estMesh` from the curved mesh.
+
+The polynomial degree of the mesh boundaries is provided from the `meshfile`. The computation of
+the mapped element coordinates is done with transfinite interpolation with linear blending similar
+to [`UnstructuredMesh2D`](@ref).
+
+# Arguments
+- `meshfile::String`: an uncurved Abaqus mesh file that was generated using [`HOHQMesh`](@ref)
+                      to be imported by p4est. Additional curved boundary information and boundary
+                      names are provided in the second part of the meshfile.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
+"""
+function P4estMesh{NDIMS}(meshfile::String, fromHOHQMesh::Bool;
+                          RealT=Float64,
+                          initial_refinement_level=0,
+                          unsaved_changes=true) where NDIMS
+  # Prevent p4est from crashing Julia if the file doesn't exist
+  @assert isfile(meshfile)
+
+  # Have p4est create the mesh connectivity from the Abaqus portion of the meshfile
+  conn = read_inp_p4est(meshfile, Val(NDIMS))
+
+  # These need to be of the type Int for unsafe_wrap below to work
+  n_trees::Int = conn.num_trees
+  n_vertices::Int = conn.num_vertices
+
+  # Extract a copy of the element corners to compute the tree node coordinates
+  vertices = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
+
+  # readin all the information from the mesh file into a string array
+  file_lines = readlines(open(meshfile))
+
+  # Set the starting file index to read in the additional information provided by HOHQMesh.
+  # The six is to account for the other headers in the meshfile.
+  file_idx = 6 + n_trees + n_vertices
+
+  # Get the polynomial order of the mesh boundary information
+  current_line = split(file_lines[file_idx])
+  mesh_polydeg = parse(Int, current_line[5])
+  mesh_nnodes = mesh_polydeg + 1
+
+  # Create the Chebyshev-Gauss-Lobatto nodes used by HOHQMesh to represent the boundaries
+  cheby_nodes_, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
+  nodes = SVector{mesh_nnodes}(cheby_nodes_)
+
+  # Allocate the memory for the tree node coordinates
+  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
+                                                ntuple(_ -> length(nodes), NDIMS)...,
+                                                n_trees)
+
+  # Compute the tree node coordinates and return the updated file index
+  file_idx = calc_tree_node_coordinates!(tree_node_coordinates, file_lines, nodes, vertices, RealT)
+
+  # Allocate the memory for the boundary labels
+  boundary_names = Array{Symbol}(undef, (4, n_trees))
+
+  # Read in the boundary names from the last portion of the meshfile
+  # Note here the boundary names where "---" means an internal connection
+  for tree in 1:n_trees
+    boundary_names[:, tree] = map(Symbol, split(file_lines[file_idx]))
+    file_idx  += 1
+  end
+
+  p4est = new_p4est(conn, initial_refinement_level)
+
+  return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
+                          boundary_names, "", unsaved_changes)
+end
+
+
 """
     P4estMesh(trees_per_face_dimension, layers, inner_radius, thickness;
               polydeg, RealT=Float64,
@@ -1018,6 +1097,110 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
 
   # Projection onto the sphere
   return R / r * cube_coordinates[direction]
+end
+
+
+# Calculate physical coordinates of each element of an unstructured mesh read
+# in from a HOHQMesh file. This calculation is done with the transfinite interpolation
+# routines found in `mappings_geometry_curved_2d.jl` or `mappings_geometry_straight_2d.jl`
+function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
+                                     file_lines::Vector{String}, nodes, vertices, RealT)
+  # Get the number of trees and the number of interpolation nodes
+  n_trees = last(size(node_coordinates))
+  nnodes = length(nodes)
+
+  # Move the file index forward to start reading in the element information
+  # Set the starting file index to start reading in the element information
+  # The seven account for the other headers in the mesh file.
+  file_idx = 7 + n_trees + last(size(vertices))
+
+  # Create a work set of Gamma curves to create the node coordinates
+  CurvedSurfaceT    = CurvedSurface{RealT}
+  surface_curves    = Array{CurvedSurfaceT}(undef, 4)
+
+  # Create other work arrays to perform the mesh construction
+  element_node_ids  = Array{Int}(undef, 4)
+  curved_check      = Vector{Int}(undef, 4)
+  cornerNodeVals    = Array{RealT}(undef, (4, 2))
+  tempNodes         = Array{RealT}(undef, (4, 2))
+  curve_vals        = Array{RealT}(undef, (nnodes, 2))
+
+  # Create the barycentric weights used for the surface interpolations
+  bary_weights_ = barycentric_weights(nodes)
+  bary_weights = SVector{nnodes}(bary_weights_)
+
+  # Loop through all the trees, i.e., the elements generated by HOHQMesh and create the node coordinates
+  for tree in 1:n_trees
+    # pull the corner node IDs
+    current_line        = split(file_lines[file_idx])
+    element_node_ids[1] = parse(Int, current_line[1])
+    element_node_ids[2] = parse(Int, current_line[2])
+    element_node_ids[3] = parse(Int, current_line[3])
+    element_node_ids[4] = parse(Int, current_line[4])
+
+    # pull the (x,y) values of the four corners of the current tree out of the vertices array
+    for i in 1:4
+      cornerNodeVals[i, :] .= vertices[1:2, element_node_ids[i]]
+    end
+    # pull the information to check if boundary is curved in order to read in additional data
+    file_idx += 1
+    current_line    = split(file_lines[file_idx])
+    curved_check[1] = parse(Int, current_line[1])
+    curved_check[2] = parse(Int, current_line[2])
+    curved_check[3] = parse(Int, current_line[3])
+    curved_check[4] = parse(Int, current_line[4])
+    if sum(curved_check) == 0
+      # Create the node coordinates on this particular element
+      calc_node_coordinates!(node_coordinates, tree, nodes, cornerNodeVals)
+      # quadrilateral element is straight sided so we are ready to increment the file index
+      file_idx  += 1
+    else
+      # quadrilateral element has at least one curved side
+      # flip node ordering to make sure the element is right-handed for the interpolations
+      m1 = 1
+      m2 = 2
+      @views tempNodes[1, :] .= cornerNodeVals[4, :]
+      @views tempNodes[2, :] .= cornerNodeVals[2, :]
+      @views tempNodes[3, :] .= cornerNodeVals[3, :]
+      @views tempNodes[4, :] .= cornerNodeVals[1, :]
+      for i in 1:4
+        if curved_check[i] == 0
+          # when curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
+          # straight line. So we must construct the interpolant for this line
+          for k in 1:nnodes
+            curve_vals[k, 1] = tempNodes[m1, 1] + 0.5 * (nodes[k] + 1.0) * ( tempNodes[m2, 1]
+                                                                            - tempNodes[m1, 1] )
+            curve_vals[k, 2] = tempNodes[m1, 2] + 0.5 * (nodes[k] + 1.0) * ( tempNodes[m2, 2]
+                                                                            - tempNodes[m1, 2] )
+          end
+        else
+          # when curved_check[i] is 1 this curved boundary information is supplied by the mesh
+          # generator. So we just read it into a work array
+          for k in 1:nnodes
+            file_idx += 1
+            current_line = split(file_lines[file_idx])
+            curve_vals[k, 1] = parse(RealT,current_line[1])
+            curve_vals[k, 2] = parse(RealT,current_line[2])
+          end
+        end
+        # construct the curve interpolant for the current side
+        surface_curves[i] = CurvedSurfaceT(nodes, bary_weights, copy(curve_vals))
+        # indexing update that contains a "flip" to ensure correct element orientation
+        # if we need to construct the straight line "curves" when curved_check[i] == 0
+        m1 += 1
+        if i == 3
+          m2 = 1
+        else
+          m2 += 1
+        end
+      end
+      # Create the node coordinates on this particular element
+      calc_node_coordinates!(node_coordinates, tree, nodes, surface_curves)
+      file_idx += 1
+    end
+  end
+
+  return file_idx
 end
 
 
