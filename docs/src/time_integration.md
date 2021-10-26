@@ -11,15 +11,25 @@ Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciM
 are the following. Further documentation can be found in the
 [SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
 - If you use a fixed time step method like `CarpenterKennedy2N54`, you need to pass
-  a time step as `dt=...`. If you use a `StepsizeCallback`, the value passed as `dt=...`
-  is irrelevant since it will be overwritten by the `StepsizeCallback`.
+  a time step as `dt=...`. If you use a [`StepsizeCallback`](@ref), the value passed 
+  as `dt=...` is irrelevant since it will be overwritten by the [`StepsizeCallback`](@ref).
+  If you want to use an adaptive time step method such as `SSPRK43` or `RDPK3SpFSAL49`
+  and still want to use CFL-based step size control via the [`StepsizeCallback`](@ref),
+  you need to pass the keyword argument `adaptive=false` to `solve`.
 - You should usually set `save_everystep=false`. Otherwise, OrdinaryDiffEq.jl will
   (try to) save the numerical solution after every time step in RAM (until you run
   out of memory or start to swap).
 - You can set the maximal number of time steps via `maxiters=...`.
-- SSP methods and 2N low-storage methods from OrdinaryDiffEq.jl support
-  `stage_limiter!`s and `step_limiter!`s, e.g. `PositivityPreservingLimiterZhangShu`
+- SSP methods and many low-storage methods from OrdinaryDiffEq.jl support
+  `stage_limiter!`s and `step_limiter!`s, e.g., [`PositivityPreservingLimiterZhangShu`](@ref)
   from Trixi.
+- If you start Julia with multiple threads and want to use them also in the time 
+  integration method from OrdinaryDiffEq.jl, you need to pass the keyword argument
+  `thread=OrdinaryDiffEq.True()` to the algorithm, e.g., 
+  `RDPK3SpFSAL49(thread=OrdinaryDiffEq.True())` or 
+  `CarpenterKennedy2N54(thread=OrdinaryDiffEq.True(), williamson_condition=false)`.
+  For more information on using thread-based parallelism in Trixi, please refer to 
+  [Shared-memory parallelization with threads](@ref).
 
 !!! note "Number of `rhs!` calls"
     If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
