@@ -1353,7 +1353,7 @@ end
 
 # Find element and triangle ids containing coordinates given as a matrix [ndims, npoints]
 function get_ids_by_coordinates!(ids, coordinates, pd)
-  if length(ids) != 2*size(coordinates, 2)
+  if length(ids) != 2 * size(coordinates, 2)
     throw(DimensionMismatch("storage length for element ids does not match the number of coordinates"))
   end
 
