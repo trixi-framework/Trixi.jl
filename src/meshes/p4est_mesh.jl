@@ -306,16 +306,17 @@ end
                      initial_refinement_level=0, unsaved_changes=true)
 
 Import an unstructured conforming mesh from an Abaqus-style mesh file (`.inp`). High-order, curved
-boundary information as well as boundary names are provided by [`HOHQMesh`](@ref). This creates
-an unstructured, curved `P4estMesh` from the curved mesh.
+boundary information as well as boundary names are provided by [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl). 
+This creates an unstructured, curved `P4estMesh` from the curved mesh.
 
 The polynomial degree of the mesh boundaries is provided from the `meshfile`. The computation of
 the mapped element coordinates is done with transfinite interpolation with linear blending similar
 to [`UnstructuredMesh2D`](@ref).
 
 # Arguments
-- `meshfile::String`: an uncurved Abaqus mesh file that was generated using [`HOHQMesh`](@ref)
-                      to be imported by p4est. Additional curved boundary information and boundary
+- `meshfile::String`: an uncurved Abaqus mesh file that was generated using 
+                      [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl)
+                      to be imported by `p4est`. Additional curved boundary information and boundary
                       names are provided in the second part of the meshfile.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.

@@ -9,7 +9,6 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 @inline function uniform_flow_state(x, t, equations::CompressibleEulerEquations2D)
-
   # set the freestream flow parameters
   rho_freestream = 1.0
   u_freestream = 0.3
@@ -63,9 +62,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
