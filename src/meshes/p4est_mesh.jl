@@ -349,12 +349,11 @@ function P4estMesh{NDIMS}(meshfile::String, fromHOHQMesh::Bool;
   # Extract a copy of the element corners to compute the tree node coordinates
   vertices = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
 
-  # readin all the information from the mesh file into a string array
+  # Readin all the information from the mesh file into a string array
   file_lines = readlines(open(meshfile))
 
-  # Set the starting file index to read in the additional information provided by HOHQMesh.
-  # The six is to account for the other headers in the meshfile.
-  file_idx = 6 + n_trees + n_vertices
+  # Get the file index where the mesh polynomial degree is given in the meshfile
+  file_idx = findfirst(t -> occursin("mesh polynomial degree", t), file_lines)
 
   # Get the polynomial order of the mesh boundary information
   current_line = split(file_lines[file_idx])
@@ -1120,10 +1119,9 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
   n_trees = last(size(node_coordinates))
   nnodes = length(nodes)
 
-  # Move the file index forward to start reading in the element information
-  # Set the starting file index to start reading in the element information
-  # The seven account for the other headers in the mesh file.
-  file_idx = 7 + n_trees + last(size(vertices))
+  # Setup the starting file index to read in element indices and the additional
+  # curved boundary information provided by HOHQMesh.
+  file_idx = findfirst(t -> occursin("mesh polynomial degree", t), file_lines) + 1
 
   # Create a work set of Gamma curves to create the node coordinates
   CurvedSurfaceT    = CurvedSurface{RealT}
