@@ -165,8 +165,8 @@ function mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in, α)
     x[i, j] = tmp
   end
 
-  @turbo for j in 1:n, i in 1:n
-    b[i, j] = α * x[i, j]
+  @turbo for i in eachindex(b)
+    b[i] = α * x[i]
   end
 
   return b
