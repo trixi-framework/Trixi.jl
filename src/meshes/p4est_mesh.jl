@@ -247,12 +247,15 @@ end
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true)
 
-Import an uncurved, unstructured, conforming mesh from an Abaqus mesh file (`.inp`),
-map the mesh with the specified mapping, and create a `P4estMesh` from the curved mesh.
+Main mesh constructor for the `P4estMesh` that imports an uncurved, unstructured, conforming
+mesh from an Abaqus mesh file (`.inp`).
 
-Cells in the mesh file will be imported as trees in the `P4estMesh`.
-The mesh will only have one boundary `:all`, as distinguishing different boundaries
-is non-trivial.
+To create a curved unstructured mesh `P4estMesh` two strategies are available:
+- High-order, curved boundary information is available in the `meshfile`.
+- The specified `mapping` is applied to transform the uncurved mesh from the `meshfile`.
+The particular strategy is selected according the heading present in the `meshfile` where
+the constructor checks whether or not the `meshfile` was created with
+[`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
 
 # Arguments
 - `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.
@@ -268,10 +271,60 @@ is non-trivial.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
 function P4estMesh{NDIMS}(meshfile::String;
-                   mapping=nothing, polydeg=1, RealT=Float64,
-                   initial_refinement_level=0, unsaved_changes=true) where NDIMS
+                          mapping=nothing, polydeg=1, RealT=Float64,
+                          initial_refinement_level=0, unsaved_changes=true) where NDIMS
   # Prevent p4est from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
+
+  # Read in the Header of the meshfile to determine which constructor is approproate
+  file_io = open(meshfile)
+  readline(file_io)           # *Heading of the Abaqus file; disgarded
+  heading = readline(file_io) # Readin the actual header information
+  close(file_io)
+
+  # Check if the meshfile was generated using HOHQMesh
+  if heading == " File created by HOHQMesh"
+    # Mesh curvature and boundary naming is handled with additional information available in meshfile
+    p4est, tree_node_coordinates, nodes, boundary_names = P4estMesh{NDIMS}(meshfile, RealT,
+                                                                           initial_refinement_level)
+  else
+    # Mesh curvature is handled directly by applying the mapping keyword argument
+    p4est, tree_node_coordinates, nodes, boundary_names = P4estMesh{NDIMS}(meshfile,
+                                                                           mapping, polydeg, RealT,
+                                                                           initial_refinement_level)
+  end
+
+  return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
+                          boundary_names, "", unsaved_changes)
+end
+
+
+"""
+    P4estMesh{NDIMS}(meshfile, mapping, polydeg, RealT,
+                     initial_refinement_level)
+
+Import an uncurved, unstructured, conforming mesh from an Abaqus mesh file (`.inp`),
+map the mesh with the specified mapping, and create a `P4estMesh` from the curved mesh.
+
+Cells in the mesh file will be imported as trees in the `P4estMesh`.
+The mesh made with this constructor will only have one boundary `:all`, as distinguishing
+different boundaries is non-trivial.
+
+# Arguments
+- `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.
+- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+"""
+function P4estMesh{NDIMS}(meshfile,
+                          mapping, polydeg, RealT,
+                          initial_refinement_level) where NDIMS
 
   conn = read_inp_p4est(meshfile, Val(NDIMS))
 
@@ -279,8 +332,8 @@ function P4estMesh{NDIMS}(meshfile::String;
   n_trees::Int = conn.num_trees
   n_vertices::Int = conn.num_vertices
 
-  vertices        = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
-  tree_to_vertex  = unsafe_wrap(Array, conn.tree_to_vertex, (2^NDIMS, n_trees))
+  vertices       = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
+  tree_to_vertex = unsafe_wrap(Array, conn.tree_to_vertex, (2^NDIMS, n_trees))
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
@@ -295,15 +348,12 @@ function P4estMesh{NDIMS}(meshfile::String;
   # There's no simple and generic way to distinguish boundaries. Name all of them :all.
   boundary_names = fill(:all, 2 * NDIMS, n_trees)
 
-  return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
-                          boundary_names, "", unsaved_changes)
+  return p4est, tree_node_coordinates, nodes, boundary_names
 end
 
 
-# TODO: FIX ME, there is probably a better way to dispatch correctly on this mesh constructor routine
 """
-    P4estMesh{NDIMS}(meshfile::String, fromHOHQMesh::Bool; RealT=Float64,
-                     initial_refinement_level=0, unsaved_changes=true)
+    P4estMesh{NDIMS}(meshfile, RealT, initial_refinement_level)
 
 Import an unstructured conforming mesh from an Abaqus-style mesh file (`.inp`). High-order, curved
 boundary information as well as boundary names are provided by [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
@@ -330,15 +380,8 @@ to [`UnstructuredMesh2D`](@ref).
                       names are provided in the second part of the meshfile.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 """
-function P4estMesh{NDIMS}(meshfile::String, fromHOHQMesh::Bool;
-                          RealT=Float64,
-                          initial_refinement_level=0,
-                          unsaved_changes=true) where NDIMS
-  # Prevent p4est from crashing Julia if the file doesn't exist
-  @assert isfile(meshfile)
-
+function P4estMesh{NDIMS}(meshfile, RealT, initial_refinement_level) where NDIMS
   # Have p4est create the mesh connectivity from the Abaqus portion of the meshfile
   conn = read_inp_p4est(meshfile, Val(NDIMS))
 
@@ -384,8 +427,7 @@ function P4estMesh{NDIMS}(meshfile::String, fromHOHQMesh::Bool;
 
   p4est = new_p4est(conn, initial_refinement_level)
 
-  return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
-                          boundary_names, "", unsaved_changes)
+  return p4est, tree_node_coordinates, nodes, boundary_names
 end
 
 

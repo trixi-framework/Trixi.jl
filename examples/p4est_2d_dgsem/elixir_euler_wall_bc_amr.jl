@@ -40,11 +40,11 @@ solver = DGSEM(polydeg=5, surface_flux=flux_lax_friedrichs,
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 default_mesh_file = joinpath(@__DIR__, "abaqus_gingerbread_man.inp")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/0e9e990a04b5105d1d2e3096a6e41272/raw/67c2f7f889e637292f551284777c368590d2f12b/abaqus_gingerbread_man.inp",
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/0e9e990a04b5105d1d2e3096a6e41272/raw/a042cd28b9c612f47b28a0d3eb3536004628d8a4/abaqus_gingerbread_man.inp",
                                       default_mesh_file)
 mesh_file = default_mesh_file
 
-mesh = P4estMesh{2}(mesh_file, true)
+mesh = P4estMesh{2}(mesh_file)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions)
