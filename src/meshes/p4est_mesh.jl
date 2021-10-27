@@ -306,15 +306,25 @@ end
                      initial_refinement_level=0, unsaved_changes=true)
 
 Import an unstructured conforming mesh from an Abaqus-style mesh file (`.inp`). High-order, curved
-boundary information as well as boundary names are provided by [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl). 
+boundary information as well as boundary names are provided by [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
 This creates an unstructured, curved `P4estMesh` from the curved mesh.
+
+Each element of the conforming mesh parsed from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
+forest datatype, which we refer to here as a tree.
+
+The default keyword argument `initial_refinement_level=0` corresponds to a forest
+where the number of trees is the same as the number of elements in the original `meshfile`.
+Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
+in the `meshfile` to create a forest with more trees before the simulation begins.
+For example, if a two-dimensional base mesh contains 25 elements then setting
+`initial_refinement_level=1` creates an initial forest of 4*25 = 100 trees.
 
 The polynomial degree of the mesh boundaries is provided from the `meshfile`. The computation of
 the mapped element coordinates is done with transfinite interpolation with linear blending similar
 to [`UnstructuredMesh2D`](@ref).
 
 # Arguments
-- `meshfile::String`: an uncurved Abaqus mesh file that was generated using 
+- `meshfile::String`: an uncurved Abaqus mesh file that was generated using
                       [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl)
                       to be imported by `p4est`. Additional curved boundary information and boundary
                       names are provided in the second part of the meshfile.
@@ -352,8 +362,8 @@ function P4estMesh{NDIMS}(meshfile::String, fromHOHQMesh::Bool;
   mesh_nnodes = mesh_polydeg + 1
 
   # Create the Chebyshev-Gauss-Lobatto nodes used by HOHQMesh to represent the boundaries
-  cheby_nodes_, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
-  nodes = SVector{mesh_nnodes}(cheby_nodes_)
+  cheby_nodes, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
+  nodes = SVector{mesh_nnodes}(cheby_nodes)
 
   # Allocate the memory for the tree node coordinates
   tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
