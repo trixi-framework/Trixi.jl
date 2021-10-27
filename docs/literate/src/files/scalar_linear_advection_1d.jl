@@ -228,7 +228,7 @@ D = basis.derivative_matrix
 # ```
 # or equivalent
 # ```math
-# \underline{\dot{u}}^{Q_l}(t) = \frac{2}{dx} \Big[ - M^{-1} B \underline{u}^*(t) + M^{-1} D^T M \underline{u}^{Q_l}(t)\Big].
+# \underline{\dot{u}}^{Q_l}(t) = \frac{2}{dx} \Big[ - M^{-1} B \underline{u}^{{Q_l}^*}(t) + M^{-1} D^T M \underline{u}^{Q_l}(t)\Big].
 # ```
 # This is called the weak form of the DGSEM.
 
