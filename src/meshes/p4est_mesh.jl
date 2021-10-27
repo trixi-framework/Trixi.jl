@@ -1173,12 +1173,10 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
       for i in 1:4
         if curved_check[i] == 0
           # when curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
-          # straight line. So we must construct the interpolant for this line
+          # straight line. So we construct a linear interpolant between the two points.
           for k in 1:nnodes
-            curve_vals[k, 1] = tempNodes[m1, 1] + 0.5 * (nodes[k] + 1.0) * ( tempNodes[m2, 1]
-                                                                            - tempNodes[m1, 1] )
-            curve_vals[k, 2] = tempNodes[m1, 2] + 0.5 * (nodes[k] + 1.0) * ( tempNodes[m2, 2]
-                                                                            - tempNodes[m1, 2] )
+            curve_vals[k, 1] = linear_interpolate(nodes[k], tempNodes[m1, 1], tempNodes[m2, 1])
+            curve_vals[k, 2] = linear_interpolate(nodes[k], tempNodes[m1, 2], tempNodes[m2, 2])
           end
         else
           # when curved_check[i] is 1 this curved boundary information is supplied by the mesh
