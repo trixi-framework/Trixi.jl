@@ -101,9 +101,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_nonconforming_earth.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_earth.jl"),
-      l2   = [6.040164546223885e-6, 5.425412339600712e-6, 5.677695987835199e-6, 5.801708577395663e-6, 1.3637867753346643e-5],
-      linf = [0.00014000143297066003, 0.0001368381076702896, 0.00013683810743714275, 0.00013683810745712677, 0.00016836497950034612],
-      abstol=1.0e-8, reltol=1.0e-8) # Decrease tolerance of adaptive time stepping to get similar results across different systems
+      l2   = [6.040164272125245e-6, 5.425411870258188e-6, 5.6776955362939515e-6, 5.801708118338313e-6, 1.363786669859148e-5],
+      linf = [0.00014000143800663167, 0.00013683811273379476, 0.00013683811250331246, 0.0001368381125304019, 0.0001683650820440974],
+      abstol=1.0e-9, reltol=1.0e-9) # Decrease tolerance of adaptive time stepping to get similar results across different systems
   end
 
   @trixi_testset "elixir_euler_circular_wind_nonconforming.jl" begin
