@@ -243,15 +243,11 @@ function cons2entropy end
     entropy2cons(w, equations)
 
 Convert the entropy variables `w` based on a standard [`entropy`](@ref) to the
-conserved variables for a given set of `equations` . `u` is a vector type of the correct length `nvariables(equations)`. 
+conserved variables for a given set of `equations`. 
+`u` is a vector type of the correct length `nvariables(equations)`. 
 Notice the function doesn't include any error checks for the purpose of efficiency, 
-so please make sure your input is correct. To apply the function to e.g. `sol.u[end]`, you may use
-```
-data = reinterpret(SVector{nvariables(equations), Float64}, sol.u[end])
-entropy2cons.(data, equations)
-```  
-The inverse conversion is
-performed by [`cons2entropy`](@ref).
+so please make sure your input is correct.
+The inverse conversion is performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
 
