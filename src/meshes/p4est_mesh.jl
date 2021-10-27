@@ -1163,8 +1163,6 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     if sum(curved_check) == 0
       # Create the node coordinates on this particular element
       calc_node_coordinates!(node_coordinates, tree, nodes, cornerNodeVals)
-      # quadrilateral element is straight sided so we are ready to increment the file index
-      file_idx  += 1
     else
       # quadrilateral element has at least one curved side
       # flip node ordering to make sure the element is right-handed for the interpolations
@@ -1207,9 +1205,10 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
       end
       # Create the node coordinates on this particular element
       calc_node_coordinates!(node_coordinates, tree, nodes, surface_curves)
-      file_idx += 1
     end
-  end
+    # move file index to the next tree
+    file_idx += 1
+   end
 
   return file_idx
 end
