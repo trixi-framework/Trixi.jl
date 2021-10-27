@@ -110,15 +110,13 @@ callbacks = CallbackSet(summary_callback,
                         amr_callback, stepsize_callback)
 
 
-limiter! = PositivityPreservingLimiterZhangShu(thresholds=(1.0e-4, 1.0e-4),
-                                               variables=(Trixi.density, pressure))
-stage_limiter! = limiter!
-step_limiter!  = limiter!
+stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(1.0e-4, 1.0e-4),
+                                                     variables=(Trixi.density, pressure))
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

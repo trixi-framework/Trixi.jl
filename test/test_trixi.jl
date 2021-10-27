@@ -128,6 +128,8 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
         # passed as arguments can also be regular expressions, so we just use the
         # type `Any` for `ignore_content`.
         ignore_content = Any[
+          # We need to ignore steady state information reported by our callbacks
+          r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
           # TODO: Upstream (PlotUtils). This should be removed again once the
           #       deprecated stuff is fixed upstream.
           "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
