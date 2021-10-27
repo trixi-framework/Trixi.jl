@@ -7,9 +7,10 @@ struct GSBP end
 function tensor_product_quadrature(element_type::Line, r1D, w1D)
   return r1D, w1D
 end
+
 function tensor_product_quadrature(element_type::Quad, r1D, w1D)
-  rq, sq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
-  wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(w1D))
+  sq, rq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
+  ws, wr = vec.(StartUpDG.NodesAndModes.meshgrid(w1D))
   wq = wr .* ws
   return rq, sq, wq
 end
@@ -71,6 +72,20 @@ function create_cache(mesh::VertexMappedMesh, equations,
     @unpack rstq = rd
     interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rstq...) / rd.VDM
     interp_matrix_gauss_to_lobatto = inv(interp_matrix_lobatto_to_gauss)
+    interp_matrix_gauss_to_face = rd.Vf * interp_matrix_gauss_to_lobatto
+
+    r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
+    rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+    VDM_lobatto_1D = StartUpDG.vandermonde(Line(), polydeg(dg), r1D)
+    VDM_gauss_1D = StartUpDG.vandermonde(Line(), polydeg(dg), rq1D)
+    interp_matrix_lobatto_to_gauss_1D = VDM_gauss_1D / VDM_lobatto_1D
+    interp_matrix_gauss_to_lobatto_1D = VDM_lobatto_1D / VDM_gauss_1D
+
+    NDIMS = 2
+    # interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D)
+    # interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D)
+    interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
+
   else # if Hex(), use Kronecker product structure to reduce precomputation time
     r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
     rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
@@ -80,19 +95,26 @@ function create_cache(mesh::VertexMappedMesh, equations,
     interp_matrix_gauss_to_lobatto_1D = VDM_lobatto_1D / VDM_gauss_1D
 
     NDIMS = 3
-    interp_matrix_lobatto_to_gauss = kron(ntuple(_->interp_matrix_lobatto_to_gauss_1D, NDIMS)...)
-    interp_matrix_gauss_to_lobatto = kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
+    interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D)
+    interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D)
+    interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
   end
 
-  interp_matrix_gauss_to_face = rd.Vf * interp_matrix_gauss_to_lobatto
-  interp_matrix_gauss_to_face = droptol!(sparse(interp_matrix_gauss_to_face), 100 * eps(uEltype))
+
   # TODO: speed up using Kronecker structure
   # interp_matrix_gauss_to_face_1D = StartUpDG.vandermonde(Line(), polydeg(dg), [-1; 1]) / VDM_gauss_1D
 
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
   Pf = diagm(inv.(rd.wq)) * interp_matrix_gauss_to_face'
-  Pf = droptol!(sparse(Pf), 100 * eps(eltype(Pf)))
+
+  # # sparsify if the matrix is large enough.
+  # # TODO: try different sparse matrix multiplication backends to see if there is a more efficient
+  # if polydeg(dg) > 5
+  #   interp_matrix_gauss_to_face = droptol!(sparse(interp_matrix_gauss_to_face), 100 * eps(uEltype))
+  #   Pf = droptol!(sparse(Pf), 100 * eps(eltype(Pf)))
+  #   # interp_matrix_gauss_to_face, Pf = GBMatrix.((interp_matrix_gauss_to_face, Pf))
+  # end
 
   inv_gauss_weights = inv.(rd.wq)
 
@@ -114,7 +136,9 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
 
   # TODO: speed up using tensor product
-  apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss), u_values, u)
+  @threaded for e in eachelement(mesh, dg, cache)
+    apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss), view(u_values, :, e), view(u, :, e))
+  end
 
   # transform quadrature values to entropy variables
   @threaded for i in eachindex(u_values)
