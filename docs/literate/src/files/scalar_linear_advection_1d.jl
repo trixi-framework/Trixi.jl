@@ -14,7 +14,7 @@ coordinates_min = -1.0; # minimum coordinate
 coordinates_max = 1.0; # maximum coordinate
 
 # We assume periodic boundaries and the following initial condition.
-initial_condition_sinus(x) = 1.0 + 0.5 * sin(pi * x)
+initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
 
 # ## The discontinuous Galerkin collocation spectral element method (DGSEM)
 # ### i. Discretization of the physical domain
@@ -100,7 +100,6 @@ nodes = basis.nodes
 # After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0$
 # for every node.
 x = Matrix{Float64}(undef, length(nodes), n_elements)
-u0 = similar(x)
 for element in 1:n_elements
     x_l = coordinates_min + (element - 1) * dx + dx/2
     for i in 1:length(nodes)
@@ -109,11 +108,7 @@ for element in 1:n_elements
     end
 end
 
-for element in 1:n_elements
-    for i in 1:length(nodes)
-        u0[i, element] = initial_condition_sinus(x[i, element])
-    end
-end
+u0 = initial_condition_sine_wave.(x)
 
 # To have a look at the initial sinus curve, we plot it.
 using Plots
@@ -291,13 +286,13 @@ function rhs!(du, u, x, t)
 
     ## Calculate surface integrals, $- M^{-1} * B * u^*$
     for element in 1:n_elements
-        du[:, element] -= inv(M) * B * flux_numerical[:, element]
+        du[:, element] -= (M \ B) * flux_numerical[:, element]
     end
 
     ## Calculate volume integral, $+ M^{-1} * D^T * M * u$
     for element in 1:n_elements
         flux = u[:, element]
-        du[:, element] += inv(M) * transpose(D) * M * flux
+        du[:, element] += (M \ transpose(D)) * M * flux
     end
 
     ## Apply Jacobian from mapping to reference element
@@ -344,14 +339,11 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4, # number of elements = 2^4
                 n_cells_max=30_000) # set maximum capacity of tree data structure (only needed for AMR)
 
-# A semidiscretization collects data structures and functions for the spatial discretization
-# The initial condition `initial_condition_convergence_test` is equivalent to `initial_condition`
-# for this example.
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+# A semidiscretization collects data structures and functions for the spatial discretization.
+# In Trixi, an initial condition has the following parameter structure and is of the type `SVector`.
+initial_condition_sine_wave(x, t, equations) = SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 
-# Again, we create an ODE problem with time span from 0.0 to 2.0 and solve it using OrdinaryDiffEq's
-# `solve` function.
-ode2 = semidiscretize(semi, tspan)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
 
 # Again, combining all definitions and the function that calculates the right-hand side, we define the ODE and
 # solve it until `t=2` with OrdinaryDiffEq's `solve` function and the Runge-Kutta method `RDPK3SpFSAL49()`.
@@ -396,12 +388,8 @@ for element in 1:n_elements
 end
 
 ## initial condition
-initial_condition_sinus(x) = 1.0 + 0.5 * sin(pi * x)
-for element in 1:n_elements
-    for i in 1:length(nodes)
-        u0[i, element] = initial_condition_sinus(x[i, element])
-    end
-end
+initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
+u0 = initial_condition_sine_wave.(x)
 
 plot(vec(x), vec(u0), label="initial condition", legend=:topleft)
 
@@ -430,13 +418,13 @@ function rhs!(du, u, x, t)
 
     ## calculate surface integrals
     for element in 1:n_elements
-        du[:, element] -= inv(M) * B * flux_numerical[:, element]
+        du[:, element] -= (M \ B) * flux_numerical[:, element]
     end
 
     ## calculate volume integral
     for element in 1:n_elements
         flux = u[:, element]
-        du[:, element] += inv(M) * transpose(D) * M * flux
+        du[:, element] += (M \ transpose(D)) * M * flux
     end
 
     ## apply Jacobian from mapping to reference element
@@ -473,8 +461,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4, # number of elements = 2^4
                 n_cells_max=30_000)
 
-## create semidiscretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+## create initial condition and semidiscretization
+initial_condition_sine_wave(x, t, equations) = SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
 
 ## solve
 ode_trixi  = semidiscretize(semi, tspan)
