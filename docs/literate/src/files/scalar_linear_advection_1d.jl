@@ -1,4 +1,4 @@
-#src Introduction to DG methods for scalar linear advection equation in 1D
+#src Introduction to DG methods
 using Test: @test #src
 
 # This tutorial is about how to set up a simple way to approximate the solution of a hyperbolic partial
@@ -7,7 +7,7 @@ using Test: @test #src
 
 # We will implement the scalar linear advection equation in 1D with the advection velocity $1$.
 # ```math
-# u_t + 1 * u_x = 0,\; \text{for} \;t\in \mathbb{R}^+, x\in\Omega=[-1,1]
+# u_t + u_x = 0,\; \text{for} \;t\in \mathbb{R}^+, x\in\Omega=[-1,1]
 # ```
 # We define the domain $\Omega$ by setting the boundaries.
 coordinates_min = -1.0; # minimum coordinate
@@ -102,7 +102,7 @@ nodes = basis.nodes
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 u0 = similar(x)
 for element in 1:n_elements
-    x_l = -1 + (element - 1) * dx + dx/2
+    x_l = coordinates_min + (element - 1) * dx + dx/2
     for i in 1:length(nodes)
         ξ = nodes[i] # nodes in [-1, 1]
         x[i, element] = x_l + dx/2 * ξ
@@ -255,7 +255,7 @@ D = basis.derivative_matrix
 # These values are interpreted as start values of a so-called Riemann problem. There are many
 # different (approximate) Riemann solvers available and useful for different problems. We will
 # use the local Lax-Friedrichs flux
-surface_flux = FluxLaxFriedrichs()
+surface_flux = flux_lax_friedrichs
 # where in our case the local maximal absolute speed $\lambda$ is just $1$ since our advection velocity is $1$.
 
 # The only missing topic is the flux calculation at the boundaries $-1$ and $+1$.
@@ -267,21 +267,26 @@ surface_flux = FluxLaxFriedrichs()
 
 # Now, we implement a function, that calculates $\underline{\dot{u}}^{Q_l}$ for the given matrices,
 # $\underline{u}$ and $\underline{u}^*$.
-function rhs(u, x, t)
-    ## Create du and flux matrices
-    du = zero(u)
+function rhs!(du, u, x, t)
+    ## Reset du and flux matrix
+    du .= zero(eltype(du))
     flux_numerical = copy(du)
 
     ## Calculate interface and boundary fluxes, $u^* = (u^*|_{-1}, 0, ..., 0, u^*|^1)^T$
+    ## Since we use the flux Lax-Friedrichs from Trixi.jl, we have to pass some extra arguments. 
+    ## Trixi needs the equation we are dealing with and an additional `1`, that indicates the
+    ## first coordinate direction.
+    equations = LinearScalarAdvectionEquation1D(1.0)
     for element in 2:n_elements-1
         ## left interface
-        flux_numerical[1, element] = surface_flux(u[end, element-1], u[1, element], 1, LinearScalarAdvectionEquation1D(1))
+        flux_numerical[1, element] = surface_flux(u[end, element-1], u[1, element], 1, equations)
         flux_numerical[end, element-1] = flux_numerical[1, element]
         ## right interface
-        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element+1], 1, LinearScalarAdvectionEquation1D(1))
+        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element+1], 1, equations)
         flux_numerical[1, element+1] = flux_numerical[end, element]
     end
-    flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, LinearScalarAdvectionEquation1D(1))
+    ## boundary flux
+    flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, equations)
     flux_numerical[end, end] = flux_numerical[1, 1]
 
     ## Calculate surface integrals, $- M^{-1} * B * u^*$
@@ -300,17 +305,20 @@ function rhs(u, x, t)
         du[:, element] *= 2 / dx
     end
 
-    return du
+    return nothing
 end
 
 # Combining all definitions and the function that calculates the right-hand side, we define the ODE and
-# solve it until `t=2s` with OrdinaryDiffEq's `solve` function and Tsitouras' 5/4 Runge-Kutta method `Tsit5()`.
+# solve it until `t=2` with OrdinaryDiffEq's `solve` function and the Runge-Kutta method `RDPK3SpFSAL49()`,
+# which is optimized for discontinuous Galerkin methods and hyperbolic PDEs. We set some common
+# error tolerances `abstol=1.0e-6, reltol=1.0e-6` and pass `save_everystep=false` to avoid saving intermediate
+# solution vectors in memory.
 using OrdinaryDiffEq
 tspan = (0.0, 2.0)
-ode = ODEProblem(rhs, u0, tspan, x)
+ode = ODEProblem(rhs!, u0, tspan, x)
 
-sol = solve(ode, Tsit5())
-@test maximum(abs.(u0 - sol.u[end])) < 0.5 * 10e-4 #src
+sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false)
+@test maximum(abs.(u0 - sol.u[end])) < 5e-5 #src
 
 plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
 
@@ -345,11 +353,15 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # `solve` function.
 ode2 = semidiscretize(semi, tspan)
 
-sol2 = solve(ode2, Tsit5());
+# Again, combining all definitions and the function that calculates the right-hand side, we define the ODE and
+# solve it until `t=2` with OrdinaryDiffEq's `solve` function and the Runge-Kutta method `RDPK3SpFSAL49()`.
+ode_trixi  = semidiscretize(semi, tspan)
+
+sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
 
 # We add a plot of the new approximated solution to the one calculated before.
-plot!(vec(x), vec(sol2.u[end]), label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
-@test maximum(abs.(vec(u0) - sol2.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
+plot!(vec(x), vec(sol_trixi.u[end]), label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
+@test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
 
 
@@ -375,7 +387,6 @@ n_elements      = 16 # number of elements
 dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 
 x = Matrix{Float64}(undef, length(nodes), n_elements)
-u0 = similar(x)
 for element in 1:n_elements
     x_l = -1 + (element - 1) * dx + dx/2
     for i in 1:length(nodes) # basis points in [-1, 1]
@@ -395,24 +406,26 @@ end
 plot(vec(x), vec(u0), label="initial condition", legend=:topleft)
 
 ## flux Lax-Friedrichs
-surface_flux = FluxLaxFriedrichs()
+surface_flux = flux_lax_friedrichs
 
-## rhs method
-function rhs(u, x, t)
+## rhs! method
+function rhs!(du, u, x, t)
     ## reset du
-    du = zero(u)
+    du .= zero(eltype(du))
     flux_numerical = copy(du)
 
     ## calculate interface and boundary fluxes
+    equations = LinearScalarAdvectionEquation1D(1.0)
     for element in 2:n_elements-1
         ## left interface
-        flux_numerical[1, element] = surface_flux(u[end, element-1], u[1, element], 1, LinearScalarAdvectionEquation1D(1))
+        flux_numerical[1, element] = surface_flux(u[end, element-1], u[1, element], 1, equations)
         flux_numerical[end, element-1] = flux_numerical[1, element]
         ## right interface
-        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element+1], 1, LinearScalarAdvectionEquation1D(1))
+        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element+1], 1, equations)
         flux_numerical[1, element+1] = flux_numerical[end, element]
     end
-    flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, LinearScalarAdvectionEquation1D(1))
+    ## boundary flux
+    flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, equations)
     flux_numerical[end, end] = flux_numerical[1, 1]
 
     ## calculate surface integrals
@@ -431,16 +444,16 @@ function rhs(u, x, t)
         du[:, element] *= 2 / dx
     end
 
-    return du
+    return nothing
 end
 
 ## create ODE problem
 tspan = (0.0, 2.0)
-ode = ODEProblem(rhs, u0, tspan, x)
+ode = ODEProblem(rhs!, u0, tspan, x)
 
 ## solve
-sol = solve(ode, Tsit5())
-@test maximum(abs.(vec(u0) - sol2.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
+sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false)
+@test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
 plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3);
 
@@ -464,8 +477,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
 ## solve
-ode2 = semidiscretize(semi, tspan)
-sol2 = solve(ode2, Tsit5());
+ode_trixi  = semidiscretize(semi, tspan)
+sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
 
-plot!(vec(x), vec(sol2.u[end]), label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2);
-@test maximum(abs.(vec(u0) - sol2.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
+plot!(vec(x), vec(sol_trixi.u[end]), label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2);
+@test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src

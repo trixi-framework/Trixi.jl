@@ -14,9 +14,10 @@
 
 # ### [1 Introduction to DG methods](@ref scalar_linear_advection_1d)
 #-
-# This tutorial gives an introduction to DG methods with the example of the scalar linear advection
-# equation in 1D. Combined with theoretical explanations, we first implement a raw version of a DGSEM.
-# Then, we will approximate the solution of this example again, using some predefined features of Trixi.jl.
+# This tutorial gives an introduction to discontinuous Galerkin (DG) methods with the example of the 
+# scalar linear advection equation in 1D. Starting with some theoretical explanations, we first implement 
+# a raw version of a discontinuous Galerkin spectral element method (DGSEM). Then, we will show how
+# to use features of Trixi.jl to achieve the same result.
 
 # ### 2 Adding a new equation
 # #### [2.1 Scalar conservation law](@ref cubic_conservation_law)
