@@ -203,11 +203,7 @@ function cons2prim#=(u, ::AbstractEquations)=# end
 Convert the conserved variables `u` to the primitive variables for a given set of
 `equations`. `u` is a vector type of the correct length `nvariables(equations)`. 
 Notice the function doesn't include any error checks for the purpose of efficiency, 
-so please make sure your input is correct. To apply the function to e.g. `sol.u[end]`, you may use
-```
-data = reinterpret(SVector{nvariables(equations), Float64}, sol.u[end])
-cons2prim.(data, equations)
-``` 
+so please make sure your input is correct.
 The inverse conversion is performed by [`prim2cons`](@ref).
 """
 function cons2prim end
