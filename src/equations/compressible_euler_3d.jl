@@ -651,7 +651,10 @@ end
     FluxLMARS(c)(u_ll, u_rr, orientation_or_normal_direction,
                  equations::CompressibleEulerEquations3D)
 
-Low Mach number approximate Riemann solver (LMARS) for atmospheric flows by
+Low Mach number approximate Riemann solver (LMARS) for atmospheric flows using
+an estimate `c` of the speed of sound.
+
+References:
 - Xi Chen et al. (2013)
   A Control-Volume Model of the Compressible Euler Equations with a Vertical
   Lagrangian Coordinate
@@ -709,17 +712,16 @@ end
   rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
-  norm_ = norm(normal_direction)
-  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-  normal_vector = normal_direction / norm_
+  v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
+  v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
 
-  v_ll = v1_ll * normal_vector[1] + v2_ll * normal_vector[2] + v3_ll * normal_vector[3]
-  v_rr = v1_rr * normal_vector[1] + v2_rr * normal_vector[2] + v3_rr * normal_vector[3]
+  # Note that this is the same as computing v_ll and v_rr with a normalized normal vector
+  # and then multiplying v by `norm_` again, but this version is slightly faster.
+  norm_ = norm(normal_direction)
 
   rho = 0.5 * (rho_ll + rho_rr)
-  p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
-  v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
-  v *= norm_
+  p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll) / norm_
+  v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll) * norm_
 
   if v >= 0
     f1, f2, f3, f4, f5 = v * u_ll

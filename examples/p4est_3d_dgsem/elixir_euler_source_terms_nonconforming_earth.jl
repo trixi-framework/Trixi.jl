@@ -113,7 +113,7 @@ amr_controller = ControllerThreeLevel(semi, indicator_test,
                                       base_level=0,
                                       max_level=1, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=typemax(Int),
+                           interval=0, # Only initial refinement
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 

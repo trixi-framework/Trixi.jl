@@ -78,6 +78,7 @@ boundary_conditions = Dict(
   :outside => boundary_condition_slip_wall
 )
 
+# The speed of sound in this example is 374 m/s.
 surface_flux = FluxLMARS(374)
 # Note that a free stream is not preserved if N < 2 * N_geo, where N is the
 # polydeg of the solver and N_geo is the polydeg of the mesh.
@@ -134,7 +135,7 @@ amr_controller = ControllerThreeLevel(semi, indicator_test,
                                       base_level=0,
                                       max_level=1, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=typemax(Int),
+                           interval=0, # Only initial refinement
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 

@@ -33,7 +33,7 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   omega_earth           = 7.29212e-5  # Ω
 
 
-  lon, lat, r = cart_to_sphere(x)
+  lon, lat, r = cartesian_to_sphere(x)
   # Make sure that the r is not smaller than radius_earth
   z = max(r - radius_earth, 0.0)
   r = z + radius_earth
@@ -90,7 +90,7 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 
-function cart_to_sphere(x)
+function cartesian_to_sphere(x)
   r = norm(x)
   lambda = atan(x[2], x[1])
   if lambda < 0
@@ -166,7 +166,9 @@ boundary_conditions = Dict(
   :outside => boundary_condition_slip_wall,
 )
 
-surface_flux = FluxLMARS(360)
+# This is a good estimate for the speed of sound in this example.
+# Other values between 300 and 400 should work as well.
+surface_flux = FluxLMARS(340)
 volume_flux  = flux_kennedy_gruber
 solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
