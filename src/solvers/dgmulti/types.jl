@@ -115,7 +115,105 @@ Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
   return val
 end
 
+# `SimpleKronecker` lazily stores a Kronecker product `kron(ntuple(A, NDIMS)...)`.
+# This object also allocates some temporary storage to enable the fast computation
+# of matrix-vector products.
+struct SimpleKronecker{NDIMS, TA, Ttmp}
+  A::TA
+  tmp_storage::Ttmp # temporary array used for Kronecker multiplication
+end
 
+# constructor for SimpleKronecker which requires specifying only `NDIMS` and
+# the 1D matrix `A`
+function SimpleKronecker(NDIMS, A)
+  @assert size(A, 1) == size(A, 2) # check if square
+  n = size(A, 2)
+  tmp_storage = zeros(eltype(A), ntuple(_ -> n, NDIMS)...)
+  return SimpleKronecker{NDIMS, typeof(A), typeof(tmp_storage)}(A, tmp_storage)
+end
+
+import LinearAlgebra: mul!
+
+# specialized 3-argument version of `mul!`
+mul!(b_in, A_kronecker::T, x_in) where {T<:SimpleKronecker} = mul!(b_in, A_kronecker, x_in, One())
+
+# Computes `α * kron(A, A) * x` in an optimized fashion
+function mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in, α)
+
+  @unpack A, tmp_storage = A_kronecker
+  n = size(A, 2)
+
+  for i in eachindex(tmp_storage)
+    tmp_storage[i] = x_in[i]
+  end
+  x = reshape(tmp_storage, n, n)
+  b = reshape(b_in, n, n)
+
+  @turbo for j in 1:n, i in 1:n
+    tmp = zero(eltype(x))
+    for ii in 1:n
+      tmp = tmp + A[i, ii] * x[ii, j]
+    end
+    b[i, j] = tmp
+  end
+
+  @turbo for j in 1:n, i in 1:n
+    tmp = zero(eltype(x))
+    for jj in 1:n
+      tmp = tmp + A[j, jj] * b[i, jj]
+    end
+    x[i, j] = tmp
+  end
+
+  @turbo for j in 1:n, i in 1:n
+    b[i, j] = α * x[i, j]
+  end
+
+  return b
+end
+
+# Computes `kron(A, A, A) * x` in an optimized fashion
+function mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in, α)
+
+  @unpack A, tmp_storage = A_kronecker
+  n = size(A, 2)
+
+  for i in eachindex(tmp_storage)
+    tmp_storage[i] = x_in[i]
+  end
+  x = reshape(tmp_storage, n, n, n)
+  b = reshape(b_in, n, n, n)
+
+  @turbo for k in 1:n, j in 1:n, i in 1:n
+    tmp = zero(eltype(x))
+    for ii in 1:n
+      tmp = tmp + A[i, ii] * x[ii, j, k]
+    end
+    b[i, j, k] = tmp
+  end
+
+  @turbo for k in 1:n, j in 1:n, i in 1:n
+    tmp = zero(eltype(x))
+    for jj in 1:n
+      tmp = tmp + A[j, jj] * b[i, jj, k]
+    end
+    x[i, j, k] = tmp
+  end
+
+  @turbo for k in 1:n, j in 1:n, i in 1:n
+    tmp = zero(eltype(x))
+    for kk in 1:n
+      tmp = tmp + A[k, kk] * x[i, j, kk]
+    end
+    b[i, j, k] = tmp
+  end
+
+  @turbo for i in eachindex(b)
+    b[i] = b[i] * α
+  end
+
+  return b_in
+end
 
 
 

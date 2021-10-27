@@ -7,15 +7,16 @@
 
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
+mul_by!(A::T) where {T<:SimpleKronecker} = @inline (out, x)->mul!(out, A, x)
 mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
-
-# out <- out + A * x
-mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, One(), One())
-mul_by_accum!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x, One(), One())
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
-mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x)->mul!(out, A, x, α, One())
+mul_by_accum!(A::T, α) where {T<:SimpleKronecker} = @inline (out, x)->mul!(out, A, x, α)
+mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x)->mul!(out, A, x, α)
+
+# out <- out + A * x
+mul_by_accum!(A) = mul_by_accum!(A, One())
 
 # specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
 struct MulByUniformScaling end
