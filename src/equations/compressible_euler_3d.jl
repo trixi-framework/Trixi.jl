@@ -12,22 +12,22 @@ The compressible Euler equations
 ```math
 \partial t
 \begin{pmatrix}
-\rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\ E
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\  \rho e
 \end{pmatrix}
 +
 \partial x
 \begin{pmatrix}
- \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ \rho v_1 v_3 \\ (E+p) v_1
+ \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ \rho v_1 v_3 \\ ( \rho e +p) v_1
 \end{pmatrix}
 +
 \partial y
 \begin{pmatrix}
-\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_1 v_3 \\ (E+p) v_2
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_1 v_3 \\ ( \rho e +p) v_2
 \end{pmatrix}
 +
 \partial z
 \begin{pmatrix}
-\rho v_3 \\ \rho v_1 v_3 \\ \rho v_2 v_3 \\ \rho v_3^2 + p \\ (E+p) v_3
+\rho v_3 \\ \rho v_1 v_3 \\ \rho v_2 v_3 \\ \rho v_3^2 + p \\ ( \rho e +p) v_3
 \end{pmatrix}
 =
 \begin{pmatrix}
