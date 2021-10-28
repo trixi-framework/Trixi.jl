@@ -23,7 +23,7 @@ end
   x_scaled = x / 6.371229e6
   t_scaled = t / 6.371229e6
 
-  return source_terms_convergence_test(u, x_scaled, t_scaled, equations) / 6371220
+  return source_terms_convergence_test(u, x_scaled, t_scaled, equations) / 6.371229e6
 end
 
 

@@ -23,7 +23,7 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   # Corresponding names in the paper are commented
   radius_earth          = 6.371229e6  # a
   half_width_parameter  = 2           # b
-  g                     = 9.80616     # g
+  gravity_constant      = 9.80616     # g
   k                     = 3           # k
   p0                    = 1e5         # p₀
   gas_constant          = 287         # R
@@ -44,7 +44,7 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   const_a = 1 / lapse
   const_b = (temperature0 - temperature0p) / (temperature0 * temperature0p)
   const_c = 0.5 * (k + 2) * (temperature0e - temperature0p) / (temperature0e * temperature0p)
-  const_h = gas_constant * temperature0 / g
+  const_h = gas_constant * temperature0 / gravity_constant
 
   # In the paper: (r - a) / bH
   scaled_z = z / (half_width_parameter * const_h)
@@ -69,12 +69,12 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   temperature = 1 / ((r/radius_earth)^2 * (tau1 - tau2 * temp4))
 
   # In the paper: U, u (zonal wind, first component of spherical velocity)
-  big_u = g/radius_earth * k * temperature * inttau2 * (temp3^(k-1) - temp3^(k+1))
+  big_u = gravity_constant/radius_earth * k * temperature * inttau2 * (temp3^(k-1) - temp3^(k+1))
   temp5 = radius_earth * cos(lat)
   u = -omega_earth * temp5 + sqrt(omega_earth^2 * temp5^2 + temp5 * big_u)
 
   # Hydrostatic pressure
-  p = p0 * exp(-g/gas_constant * (inttau1 - inttau2 * temp4))
+  p = p0 * exp(-gravity_constant/gas_constant * (inttau1 - inttau2 * temp4))
 
   # Perturbation
   u += evaluate_exponential(lon,lat,z)
@@ -134,7 +134,7 @@ end
 
 @inline function source_terms_baroclinic_instability(u, x, t, equations::CompressibleEulerEquations3D)
   radius_earth          = 6.371229e6  # a
-  g                     = 9.80616     # g
+  gravity_constant      = 9.80616     # g
   omega_earth           = 7.29212e-5  # Ω
 
   r = norm(x)
@@ -145,7 +145,7 @@ end
   du1 = zero(eltype(u))
 
   # Gravity term
-  temp = -g * radius_earth^2 / r^3
+  temp = -gravity_constant * radius_earth^2 / r^3
   du2 = temp * u[1] * x[1]
   du3 = temp * u[1] * x[2]
   du4 = temp * u[1] * x[3]
@@ -183,7 +183,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 10 * 24 * 60 * 60.0) # time in seconds
+tspan = (0.0, 10 * 24 * 60 * 60.0) # time in seconds for 10 days
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
