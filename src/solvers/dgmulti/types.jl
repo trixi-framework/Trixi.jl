@@ -134,15 +134,14 @@ end
 
 import LinearAlgebra: mul!
 
-# specialized 3-argument version of `mul!`
-mul!(b_in, A_kronecker::T, x_in) where {T<:SimpleKronecker} = mul!(b_in, A_kronecker, x_in, One())
-
-# Computes `α * kron(A, A) * x` in an optimized fashion
-function mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in, α)
+# Computes `b = kron(A, A) * x` in an optimized fashion
+function mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
 
   @unpack A, tmp_storage = A_kronecker
   n = size(A, 2)
 
+  # copy `x_in` to `tmp_storage` to avoid mutating the input
+  @assert length(tmp_storage) == length(x_in)
   for i in eachindex(tmp_storage)
     tmp_storage[i] = x_in[i]
   end
@@ -165,19 +164,20 @@ function mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in, α)
     x[i, j] = tmp
   end
 
-  @turbo for i in eachindex(b)
-    b[i] = α * x[i]
+  @turbo for i in eachindex(b_in)
+    b_in[i] = x[i]
   end
 
-  return b
+  return b_in
 end
 
-# Computes `kron(A, A, A) * x` in an optimized fashion
-function mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in, α)
+# Computes `b = kron(A, A, A) * x` in an optimized fashion
+function mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
 
   @unpack A, tmp_storage = A_kronecker
   n = size(A, 2)
 
+  # copy `x_in` to `tmp_storage` to avoid mutating the input
   for i in eachindex(tmp_storage)
     tmp_storage[i] = x_in[i]
   end
@@ -206,10 +206,6 @@ function mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in, α)
       tmp = tmp + A[k, kk] * x[i, j, kk]
     end
     b[i, j, k] = tmp
-  end
-
-  @turbo for i in eachindex(b)
-    b[i] = b[i] * α
   end
 
   return b_in

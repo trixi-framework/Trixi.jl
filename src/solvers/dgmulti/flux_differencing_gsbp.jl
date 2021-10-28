@@ -217,7 +217,7 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
 
     # transform rhs back to Lobatto nodes
     # TODO: speed up using Kronecker product
-    apply_to_each_field(mul_by_accum!(interp_matrix_gauss_to_lobatto),
+    apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto),
                         view(du, :, e), rhs_volume_local)
   end
 

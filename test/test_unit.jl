@@ -639,13 +639,6 @@ Cassette.@context Ctx
     x = r + s
     b = similar(x)
     b_kron = similar(x)
-    mul!(b, V, x, 2.0, One())
-    mul!(b_kron, V_kron, x, 2.0)
-    @test b ≈ b_kron
-
-    x = r + s
-    b = similar(x)
-    b_kron = similar(x)
     mul!(b, V, x)
     mul!(b_kron, V_kron, x)
     @test b ≈ b_kron
