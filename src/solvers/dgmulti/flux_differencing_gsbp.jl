@@ -100,8 +100,6 @@ function create_cache(mesh::VertexMappedMesh, equations,
     interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
   end
 
-
-  # TODO: speed up using Kronecker structure
   # interp_matrix_gauss_to_face_1D = StartUpDG.vandermonde(Line(), polydeg(dg), [-1; 1]) / VDM_gauss_1D
 
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
