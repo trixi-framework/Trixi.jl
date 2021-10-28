@@ -8,7 +8,7 @@
 """
     P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
 
-An unstructured curved mesh based on trees that uses the C library p4est
+An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
 """
 mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
@@ -32,7 +32,7 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh
     mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(p4est), NDIMS+2, length(nodes)}(
       p4est, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes)
 
-    # Destroy p4est structs when the mesh is garbage collected
+    # Destroy `p4est` structs when the mesh is garbage collected
     finalizer(destroy_mesh, mesh)
 
     return mesh
@@ -287,7 +287,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 `initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
 
 # Arguments
-- `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.
+- `meshfile::String`: an uncurved Abaqus mesh file that can be imported by `p4est`.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
@@ -302,7 +302,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping=nothing, polydeg=1, RealT=Float64,
                           initial_refinement_level=0, unsaved_changes=true) where NDIMS
-  # Prevent p4est from crashing Julia if the file doesn't exist
+  # Prevent `p4est` from crashing Julia if the file doesn't exist
   @assert isfile(meshfile)
 
   # Read in the Header of the meshfile to determine which constructor is approproate
@@ -333,7 +333,7 @@ end
 # the boundary names on each tree are provided by the `meshfile` created by
 # [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
 function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions, RealT)
-  # Create the mesh connectivity using p4est
+  # Create the mesh connectivity using `p4est`
   conn = read_inp_p4est(meshfile, Val(n_dimensions))
 
   # These need to be of the type Int for unsafe_wrap below to work
@@ -388,7 +388,7 @@ end
 # the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
 # names are given the name `:all`.
 function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_refinement_level, n_dimensions, RealT)
-  # Create the mesh connectivity using p4est
+  # Create the mesh connectivity using `p4est`
   conn = read_inp_p4est(meshfile, Val(n_dimensions))
 
   # These need to be of the type Int for unsafe_wrap below to work
@@ -474,9 +474,9 @@ end
 function connectivity_structured(n_cells_x, n_cells_y, periodicity)
   linear_indices = LinearIndices((n_cells_x, n_cells_y))
 
-  # Vertices represent the coordinates of the forest. This is used by p4est
+  # Vertices represent the coordinates of the forest. This is used by `p4est`
   # to write VTK files.
-  # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
+  # Trixi doesn't use the coordinates from `p4est`, so the vertices can be empty.
   n_vertices = 0
   n_trees = n_cells_x * n_cells_y
   # No corner connectivity is needed
@@ -490,7 +490,7 @@ function connectivity_structured(n_cells_x, n_cells_y, periodicity)
   for cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
     tree = linear_indices[cell_x, cell_y]
 
-    # Subtract 1 because p4est uses zero-based indexing
+    # Subtract 1 because `p4est` uses zero-based indexing
     # Negative x-direction
     if cell_x > 1
       tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y] - 1
@@ -541,7 +541,7 @@ function connectivity_structured(n_cells_x, n_cells_y, periodicity)
   end
 
   tree_to_corner = C_NULL
-  # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
+  # `p4est` docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need corner connectivity, so this is a trivial case.
   ctt_offset = zeros(p4est_topidx_t, 1)
 
@@ -563,9 +563,9 @@ end
 function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
   linear_indices = LinearIndices((n_cells_x, n_cells_y, n_cells_z))
 
-  # Vertices represent the coordinates of the forest. This is used by p4est
+  # Vertices represent the coordinates of the forest. This is used by `p4est`
   # to write VTK files.
-  # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
+  # Trixi doesn't use the coordinates from `p4est`, so the vertices can be empty.
   n_vertices = 0
   n_trees = n_cells_x * n_cells_y * n_cells_z
   # No edge connectivity is needed
@@ -581,7 +581,7 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
   for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
     tree = linear_indices[cell_x, cell_y, cell_z]
 
-    # Subtract 1 because p4est uses zero-based indexing
+    # Subtract 1 because `p4est` uses zero-based indexing
     # Negative x-direction
     if cell_x > 1
       tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y, cell_z] - 1
@@ -656,14 +656,14 @@ function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
   end
 
   tree_to_edge = C_NULL
-  # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
+  # `p4est` docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need edge connectivity, so this is a trivial case.
   ett_offset = zeros(p4est_topidx_t, 1)
   edge_to_tree = C_NULL
   edge_to_edge = C_NULL
 
   tree_to_corner = C_NULL
-  # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
+  # `p4est` docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need corner connectivity, so this is a trivial case.
   ctt_offset = zeros(p4est_topidx_t, 1)
 
@@ -690,9 +690,9 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
 
   linear_indices = LinearIndices((trees_per_face_dimension, trees_per_face_dimension, layers, 6))
 
-  # Vertices represent the coordinates of the forest. This is used by p4est
+  # Vertices represent the coordinates of the forest. This is used by `p4est`
   # to write VTK files.
-  # Trixi doesn't use p4est's coordinates, so the vertices can be empty.
+  # Trixi doesn't use the coordinates from `p4est`, so the vertices can be empty.
   n_vertices = 0
   n_trees = 6 * n_cells_x * n_cells_y * n_cells_z
   # No edge connectivity is needed
@@ -750,7 +750,7 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
     for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
       tree = linear_indices[cell_x, cell_y, cell_z, direction]
 
-      # Subtract 1 because p4est uses zero-based indexing
+      # Subtract 1 because `p4est` uses zero-based indexing
       # Negative x-direction
       if cell_x > 1 # Connect to tree at the same face
         tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y, cell_z, direction] - 1
@@ -892,14 +892,14 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
   end
 
   tree_to_edge = C_NULL
-  # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
+  # `p4est` docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need edge connectivity, so this is a trivial case.
   ett_offset = zeros(p4est_topidx_t, 1)
   edge_to_tree = C_NULL
   edge_to_edge = C_NULL
 
   tree_to_corner = C_NULL
-  # p4est docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
+  # `p4est` docs: "in trivial cases it is just a pointer to a p4est_topix value of 0."
   # We don't need corner connectivity, so this is a trivial case.
   ctt_offset = zeros(p4est_topidx_t, 1)
 
@@ -1240,7 +1240,7 @@ end
 
 function balance!(mesh::P4estMesh{2}, init_fn=C_NULL)
   p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
-  # Due to a bug in p4est, the forest needs to be rebalanced twice sometimes
+  # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
   # See https://github.com/cburstedde/p4est/issues/112
   p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
 end
@@ -1312,7 +1312,7 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
   # Load controller value from quadrant's user data ([global quad ID, controller_value]).
   controller_value(i) = unsafe_load(Ptr{Int}(quadrants[i].p.user_data), 2)
 
-  # p4est calls this function for each 2^ndims quads that could be coarsened to a single one.
+  # `p4est` calls this function for each 2^ndims quads that could be coarsened to a single one.
   # Only coarsen if all these 2^ndims quads have been marked for coarsening.
   if all(i -> controller_value(i) < 0, eachindex(quadrants))
     # return true (coarsen)

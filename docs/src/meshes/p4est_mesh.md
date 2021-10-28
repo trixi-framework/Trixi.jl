@@ -3,7 +3,7 @@
 The [`P4estMesh`](@ref) is an unstructured, curvilinear, nonconforming
 mesh type for quadrilateral (2D) and hexahedral (3D) cells.
 It supports quadtree/octree-based adaptive mesh refinement (AMR) via
-the C library [p4est](https://github.com/cburstedde/p4est). See
+the C library [`p4est`](https://github.com/cburstedde/p4est). See
 [`AMRCallback`](@ref) for further information.
 
 Due to its curvilinear nature, (numerical) fluxes need to implement methods
@@ -41,7 +41,7 @@ file created by `HOHQMesh`.
 
 ### Mesh file header
 
-A `.inp` mesh file typically begins with a `*Heading`.
+An Abaqus `.inp` mesh file typically begins with a `*Heading`.
 Though *optional*, the `*Heading` is helpful to give users some information about the mesh described by the mesh file.
 In particular, a `.inp` mesh file created with `HOHQMesh` will contain the header
 ```
@@ -99,7 +99,7 @@ eight corner nodes that define a hexahedron. Also, the header of the element sec
 ### Element neighbor connectivity
 
 The construction of the element neighbor ids and identifying physical boundary surfaces is done using functionality
-directly from the [p4est](https://github.com/cburstedde/p4est) library.
+directly from the [`p4est`](https://github.com/cburstedde/p4est) library.
 For example, the neighbor connectivity is created in the mesh constructor using the wrapper `read_inp_p4est` function.
 
 ### HOHQMesh boundary information
@@ -171,7 +171,7 @@ The labels can be short descriptive words.
 The label `---` indicates an internal surface where no boundary condition is required.
 
 It is important to note that these labels are given in the following order according to the
-local surface index `-x` `+x` `-y` `+y` as required by the [p4est](https://github.com/cburstedde/p4est) library.
+local surface index `-x` `+x` `-y` `+y` as required by the [`p4est`](https://github.com/cburstedde/p4est) library.
 ```
 **  Bezier --- Slant ---
 **  --- Right --- Top
