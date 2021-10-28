@@ -8,8 +8,7 @@
 @doc raw"""
     CompressibleEulerEquations2D(gamma)
 
-The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
-in two space dimensions.
+The compressible Euler equations 
 ```math
 \partial t
 \begin{pmatrix}
@@ -30,7 +29,8 @@ in two space dimensions.
 0 \\ 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-for calorically perfect gas in two space dimensions. 
+for an ideal gas with ratio of specific heats `gamma`
+in two space dimensions.
 Here, ``\rho`` is the density, ``v_1``,`v_2` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
