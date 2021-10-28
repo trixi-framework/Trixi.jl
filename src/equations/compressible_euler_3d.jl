@@ -661,7 +661,7 @@ References:
   [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
 """
 struct FluxLMARS{SpeedOfSound}
-  # Estimate of speed of sound
+  # Estimate for the speed of sound
   speed_of_sound::SpeedOfSound
 end
 
