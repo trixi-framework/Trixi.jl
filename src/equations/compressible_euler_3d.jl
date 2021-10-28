@@ -27,7 +27,7 @@ The compressible Euler equations
 +
 \partial z
 \begin{pmatrix}
-\rho v_3 \\ \rho v_1 v_3 \\ \rho v_2 v^3 \\ \rho v_3^2 + p \\ (E+p) v_3
+\rho v_3 \\ \rho v_1 v_3 \\ \rho v_2 v_3 \\ \rho v_3^2 + p \\ (E+p) v_3
 \end{pmatrix}
 =
 \begin{pmatrix}
