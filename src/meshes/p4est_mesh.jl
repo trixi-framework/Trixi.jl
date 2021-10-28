@@ -248,16 +248,39 @@ end
                      initial_refinement_level=0, unsaved_changes=true)
 
 Main mesh constructor for the `P4estMesh` that imports an uncurved, unstructured, conforming
-mesh from an Abaqus mesh file (`.inp`).
+mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
+from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
+forest datatype, which we refer to here as a tree.
 
 To create a curved unstructured mesh `P4estMesh` two strategies are available:
 
-- High-order, curved boundary information from `HOHQMesh` is available in the `meshfile`.
-- The specified `mapping` is applied to transform the uncurved mesh from the `meshfile`.
+- [`p4est_mesh_from_hohqmesh_abaqus`](@ref): High-order, curved boundary information created by
+                                             [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl) is
+                                             available in the `meshfile`. The mesh polynomial degree `polydeg`
+                                             of the boundaries is provided from the `meshfile`. The computation of
+                                             the mapped tree coordinates is done with transfinite interpolation
+                                             with linear blending similar to [`UnstructuredMesh2D`](@ref). Boundary name
+                                             information is also parsed from the `meshfile` such that different boundary
+                                             conditions can be set at each named boundary on a given tree.
+- [`p4est_mesh_from_standard_abaqus`](@ref): By default, with `mapping=nothing` and `polydeg=1`, this creates a
+                                             straight-sided from the information parsed from the `meshfile`. If a mapping
+                                             function is specified then it computes the mapped tree coordinates via polynomial
+                                             interpolants with degree `polydeg`. The mesh created by this function will only
+                                             have one boundary `:all`, as distinguishing different physical boundaries is
+                                             non-trivial.
 
-The particular strategy is selected according the heading present in the `meshfile` where
+The particular strategy is selected according the header present in the `meshfile` where
 the constructor checks whether or not the `meshfile` was created with
 [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
+If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
+with the function [`p4est_mesh_from_standard_abaqus`](@ref).
+
+The default keyword argument `initial_refinement_level=0` corresponds to a forest
+where the number of trees is the same as the number of elements in the original `meshfile`.
+Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
+in the `meshfile` to create a forest with more trees before the simulation begins.
+For example, if a two-dimensional base mesh contains 25 elements then setting
+`initial_refinement_level=1` creates an initial forest of 4*25 = 100 trees.
 
 # Arguments
 - `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.
@@ -287,13 +310,13 @@ function P4estMesh{NDIMS}(meshfile::String;
   # Check if the meshfile was generated using HOHQMesh
   if header == " File created by HOHQMesh"
     # Mesh curvature and boundary naming is handled with additional information available in meshfile
-    p4est, tree_node_coordinates, nodes, boundary_names = P4estMesh{NDIMS}(meshfile, RealT,
-                                                                           initial_refinement_level)
+    p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
+                                                                                          NDIMS, RealT)
   else
     # Mesh curvature is handled directly by applying the mapping keyword argument
-    p4est, tree_node_coordinates, nodes, boundary_names = P4estMesh{NDIMS}(meshfile,
-                                                                           mapping, polydeg, RealT,
-                                                                           initial_refinement_level)
+    p4est, tree_node_coordinates, nodes, boundary_names = p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
+                                                                                          initial_refinement_level,
+                                                                                          NDIMS, RealT)
   end
 
   return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
@@ -301,91 +324,13 @@ function P4estMesh{NDIMS}(meshfile::String;
 end
 
 
-"""
-    P4estMesh{NDIMS}(meshfile, mapping, polydeg, RealT,
-                     initial_refinement_level)
-
-Import an uncurved, unstructured, conforming mesh from an Abaqus mesh file (`.inp`),
-map the mesh with the specified mapping, and create a `P4estMesh` from the curved mesh.
-
-Cells in the mesh file will be imported as trees in the `P4estMesh`.
-The mesh made with this constructor will only have one boundary `:all`, as distinguishing
-different boundaries is non-trivial.
-
-# Arguments
-- `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.
-- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
-             the imported mesh to the physical domain. Use `nothing` for the identity map.
-- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
-                      The mapping will be approximated by an interpolation polynomial
-                      of the specified degree for each tree.
-                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
-                      will curve the imported uncurved mesh.
-- `RealT::Type`: the type that should be used for coordinates.
-- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-"""
-function P4estMesh{NDIMS}(meshfile,
-                          mapping, polydeg, RealT,
-                          initial_refinement_level) where NDIMS
-
-  conn = read_inp_p4est(meshfile, Val(NDIMS))
-
-  # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn.num_trees
-  n_vertices::Int = conn.num_vertices
-
-  vertices       = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
-  tree_to_vertex = unsafe_wrap(Array, conn.tree_to_vertex, (2^NDIMS, n_trees))
-
-  basis = LobattoLegendreBasis(RealT, polydeg)
-  nodes = basis.nodes
-
-  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
-                                                ntuple(_ -> length(nodes), NDIMS)...,
-                                                n_trees)
-  calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
-
-  p4est = new_p4est(conn, initial_refinement_level)
-
-  # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-  boundary_names = fill(:all, 2 * NDIMS, n_trees)
-
-  return p4est, tree_node_coordinates, nodes, boundary_names
-end
-
-
-"""
-    P4estMesh{NDIMS}(meshfile, RealT, initial_refinement_level)
-
-Import an unstructured conforming mesh from an Abaqus-style mesh file (`.inp`). High-order, curved
-boundary information as well as boundary names are provided by [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
-This creates an unstructured, curved `P4estMesh` from the curved mesh.
-
-Each element of the conforming mesh parsed from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
-forest datatype, which we refer to here as a tree.
-
-The default keyword argument `initial_refinement_level=0` corresponds to a forest
-where the number of trees is the same as the number of elements in the original `meshfile`.
-Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
-in the `meshfile` to create a forest with more trees before the simulation begins.
-For example, if a two-dimensional base mesh contains 25 elements then setting
-`initial_refinement_level=1` creates an initial forest of 4*25 = 100 trees.
-
-The polynomial degree of the mesh boundaries is provided from the `meshfile`. The computation of
-the mapped element coordinates is done with transfinite interpolation with linear blending similar
-to [`UnstructuredMesh2D`](@ref).
-
-# Arguments
-- `meshfile::String`: an uncurved Abaqus mesh file that was generated using
-                      [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl)
-                      to be imported by `p4est`. Additional curved boundary information and boundary
-                      names are provided in the second part of the meshfile.
-- `RealT::Type`: the type that should be used for coordinates.
-- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
-"""
-function P4estMesh{NDIMS}(meshfile, RealT, initial_refinement_level) where NDIMS
-  # Have p4est create the mesh connectivity from the Abaqus portion of the meshfile
-  conn = read_inp_p4est(meshfile, Val(NDIMS))
+# Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
+# and a list of boundary names for the `P4estMesh`. High-order boundary curve information as well as
+# the boundary names on each tree are provided by the `meshfile` created by
+# [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
+function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions, RealT)
+  # Create the mesh connectivity using p4est
+  conn = read_inp_p4est(meshfile, Val(n_dimensions))
 
   # These need to be of the type Int for unsafe_wrap below to work
   n_trees::Int = conn.num_trees
@@ -410,9 +355,9 @@ function P4estMesh{NDIMS}(meshfile, RealT, initial_refinement_level) where NDIMS
   nodes = SVector{mesh_nnodes}(cheby_nodes)
 
   # Allocate the memory for the tree node coordinates
-  tree_node_coordinates = Array{RealT, NDIMS+2}(undef, NDIMS,
-                                                ntuple(_ -> length(nodes), NDIMS)...,
-                                                n_trees)
+  tree_node_coordinates = Array{RealT, n_dimensions+2}(undef, n_dimensions,
+                                                       ntuple(_ -> length(nodes), n_dimensions)...,
+                                                       n_trees)
 
   # Compute the tree node coordinates and return the updated file index
   file_idx = calc_tree_node_coordinates!(tree_node_coordinates, file_lines, nodes, vertices, RealT)
@@ -429,6 +374,38 @@ function P4estMesh{NDIMS}(meshfile, RealT, initial_refinement_level) where NDIMS
   end
 
   p4est = new_p4est(conn, initial_refinement_level)
+
+  return p4est, tree_node_coordinates, nodes, boundary_names
+end
+
+
+# Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
+# and a list of boundary names for the `P4estMesh`. The tree node coordinates are computed according to
+# the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
+# names are given the name `:all`.
+function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_refinement_level, n_dimensions, RealT)
+  # Create the mesh connectivity using p4est
+  conn = read_inp_p4est(meshfile, Val(n_dimensions))
+
+  # These need to be of the type Int for unsafe_wrap below to work
+  n_trees::Int = conn.num_trees
+  n_vertices::Int = conn.num_vertices
+
+  vertices       = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
+  tree_to_vertex = unsafe_wrap(Array, conn.tree_to_vertex, (2^n_dimensions, n_trees))
+
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  nodes = basis.nodes
+
+  tree_node_coordinates = Array{RealT, n_dimensions+2}(undef, n_dimensions,
+                                                       ntuple(_ -> length(nodes), n_dimensions)...,
+                                                       n_trees)
+  calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices, tree_to_vertex)
+
+  p4est = new_p4est(conn, initial_refinement_level)
+
+  # There's no simple and generic way to distinguish boundaries. Name all of them :all.
+  boundary_names = fill(:all, 2 * n_dimensions, n_trees)
 
   return p4est, tree_node_coordinates, nodes, boundary_names
 end
@@ -1184,7 +1161,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
   bary_weights = SVector{nnodes}(bary_weights_)
 
   # Loop through all the trees, i.e., the elements generated by HOHQMesh and create the node coordinates.
-  # When we extract information from the current_line we start at index 2 in order to
+  # When we extract information from the `current_line` we start at index 2 in order to
   # avoid the Abaqus comment character "** "
   for tree in 1:n_trees
     # pull the corner node IDs
@@ -1220,7 +1197,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
       for i in 1:4
         if curved_check[i] == 0
           # when curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
-          # straight line. So we construct a linear interpolant between the two points.
+          # straight line. So we evaluate a linear interpolant between the two points at each of the nodes.
           for k in 1:nnodes
             curve_vals[k, 1] = linear_interpolate(nodes[k], tempNodes[m1, 1], tempNodes[m2, 1])
             curve_vals[k, 2] = linear_interpolate(nodes[k], tempNodes[m1, 2], tempNodes[m2, 2])
