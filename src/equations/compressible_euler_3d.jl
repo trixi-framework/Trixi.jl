@@ -10,6 +10,35 @@
 
 The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
 in three space dimensions.
+```math
+\partial t
+\begin{pmatrix}
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\ E
+\end{pmatrix}
++
+\partial x
+\begin{pmatrix}
+ \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ \rho v_1 v_3 \\ (E+p) v_1
+\end{pmatrix}
++
+\partial y
+\begin{pmatrix}
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_1 v_3 \\ (E+p) v_2
+\end{pmatrix}
++
+\partial z
+\begin{pmatrix}
+\rho v_3 \\ \rho v_1 v_3 \\ \rho v_2 v^3 \\ \rho v_3^2 + p \\ (E+p) v_3
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ 0 \\ 0 \\ 0 \\ 0
+\end{pmatrix}
+```
+for calorically perfect gas in two space dimensions. Here 
+```math
+E=\frac{p}{\gamma-1}+\frac{1}{2}\rho (v_1^2 +v_2^2+v_3^2)
+```
 """
 struct CompressibleEulerEquations3D{RealT<:Real} <: AbstractCompressibleEulerEquations{3, 5}
   gamma::RealT               # ratio of specific heats
