@@ -645,7 +645,7 @@ function count_required_mortars(mesh::TreeMesh2D, cell_ids)
           upper_cell_id = mesh.tree.child_ids[2, neighbor_id]
         end
         small_cell_ids = (lower_cell_id, upper_cell_id)
-        if !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        if any(cell -> !is_own_cell(mesh.tree, cell), small_cell_ids)
           continue
         end
       end
@@ -708,7 +708,7 @@ function init_mortars!(mortars, elements, mesh::TreeMesh2D)
           upper_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
         end
         small_cell_ids = (lower_cell_id, upper_cell_id)
-        if !all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        if any(cell -> !is_own_cell(mesh.tree, cell), small_cell_ids)
           continue
         end
       end
@@ -1094,7 +1094,7 @@ function count_required_mpi_mortars(mesh::TreeMesh2D, cell_ids)
           upper_cell_id = mesh.tree.child_ids[2, neighbor_id]
         end
         small_cell_ids = (lower_cell_id, upper_cell_id)
-        if all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        if all(cell -> is_own_cell(mesh.tree, cell), small_cell_ids)
           continue
         end
       end
@@ -1195,7 +1195,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
           upper_cell_id = mesh.tree.child_ids[2, neighbor_cell_id]
         end
         small_cell_ids = (lower_cell_id, upper_cell_id)
-        if all(map(cell -> is_own_cell(mesh.tree, cell), small_cell_ids))
+        if all(cell -> is_own_cell(mesh.tree, cell), small_cell_ids)
           continue
         end
       end
