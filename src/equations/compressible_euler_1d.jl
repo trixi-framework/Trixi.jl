@@ -22,7 +22,7 @@ in one space dimension.
 \end{pmatrix}
 =
 \begin{pmatrix}
-0 \\ 0 \\ 0 \\ 0 \\ \vdots \\ 0
+0 \\ 0 \\ 0
 \end{pmatrix}
 ```
 for calorically perfect gas in one space dimension.
