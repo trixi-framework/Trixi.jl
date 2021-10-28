@@ -74,6 +74,8 @@ surface_flux = flux_hll
 # However, the FSP error is negligible in this example.
 solver = DGSEM(polydeg=4, surface_flux=surface_flux)
 
+# For performance reasons, only one face of the cubed sphere can be used:
+
 # One face of the cubed sphere
 # mapping(xi, eta, zeta) = Trixi.cubed_sphere_mapping(xi, eta, zeta, 6.371229e6, 30000.0, 1)
 

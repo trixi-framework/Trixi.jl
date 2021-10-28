@@ -85,6 +85,10 @@ surface_flux = FluxLMARS(374)
 # However, the FSP error is negligible in this example.
 solver = DGSEM(polydeg=4, surface_flux=surface_flux)
 
+# Other mesh configurations to run this simulation on.
+# The cylinder allows to use a structured mesh, the face of the cubed sphere
+# can be used for performance reasons.
+
 # # Cylinder
 # function mapping(xi, eta, zeta)
 #   radius_earth = 6.371229e6
@@ -116,7 +120,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 10 * 24 * 60 * 60.0)
+tspan = (0.0, 10 * 24 * 60 * 60.0) # time in seconds
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
