@@ -23,11 +23,11 @@ in two space dimensions.
 +
 \partial y
 \begin{pmatrix}
-\rho_1 v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (E+p) v_2
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (E+p) v_2
 \end{pmatrix}
 =
 \begin{pmatrix}
-0 \\ 0 \\ 0 \\ 0 \\ 0 \\ \vdots \\ 0
+0 \\ 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
 for calorically perfect gas in two space dimensions. Here 
