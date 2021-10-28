@@ -124,19 +124,33 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               nonconservative_terms::Val{false}, equations,
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-  @unpack derivative_dhat = dg.basis
 
   @threaded for element in eachelement(dg, cache)
-    for i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, element)
+    weak_form_kernel!(du, u, element, mesh,
+                      nonconservative_terms, equations,
+                      dg, cache)
+  end
 
-      flux1 = flux(u_node, 1, equations)
-      for ii in eachnode(dg)
-        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, element)
-      end
+  return nothing
+end
+
+@inline function weak_form_kernel!(du, u,
+                                   element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                   nonconservative_terms::Val{false}, equations,
+                                   dg::DGSEM, cache, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can (hopefully) be optimized away due to constant propagation.
+  @unpack derivative_dhat = dg.basis
+
+  for i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, element)
+
+    flux1 = flux(u_node, 1, equations)
+    for ii in eachnode(dg)
+      multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1, equations, dg, ii, element)
     end
   end
 
