@@ -68,8 +68,8 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # ```math
 # l_j(\xi_i) = \delta_{i,j} =
 # \begin{cases}
-# 1 & \text{, if } i=j \\
-# 0 & \text{, else}
+# 1, & \text{if } i=j \\
+# 0, & \text{else.}
 # \end{cases}
 # ```
 # Because of this property, the polynomial coefficients are exact the values of $u^{Q_l}$ at the nodes
@@ -88,6 +88,23 @@ polydeg = 3 #= polynomial degree = N =#
 basis = LobattoLegendreBasis(polydeg)
 # The Gauss-Lobatto nodes are
 nodes = basis.nodes
+# with the corresponding weights
+weights = basis.weights
+
+# To illustrate how you can integrate using numerical quadrature with this Legendre-Gauss-Lobatto nodes,
+# we give an example for $f(x)=x^3$. Since $f$ is of degree $3$, a polynomial interpolation with $N=3$ is exact.
+# Therefore, the integral on $[-1, 1]$ can be calculated by
+# ```math
+# \begin{align*}
+# \int_{-1}^1 f(x) dx &= \int_{-1}^1 \Big( \sum_{j=0}^3 f(\xi_j)l_j(x) \Big) dx
+# = \sum_{j=0}^3 f(\xi_j) \int_{-1}^1 l_j(x)dx \\
+# &=: \sum_{j=0}^3 f(\xi_j) w_j
+# = \sum_{j=0}^3 \xi_j^3 w_j
+# \end{align*}
+# ```
+# Let's use our nodes and weights for $N=3$ and plug in
+integral = sum(nodes.^3 .* weights)
+
 
 # Using this polynomial approach leads to the equation
 # ```math
@@ -152,7 +169,7 @@ plot(vec(x), vec(u0), label="initial condition", legend=:topleft)
 # M_{ij} = \langle l_j, l_i\rangle_N = \delta_{ij} w_j,\; i,j=0,...,N.
 # ```
 using LinearAlgebra
-M = diagm(basis.weights)
+M = diagm(weights)
 # Now, we can write the integral with this new matrix.
 # ```math
 # \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{u}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),
@@ -173,7 +190,7 @@ M = diagm(basis.weights)
 # ```math
 # \int_{-1}^1 u'(\xi, t) l_i(\xi) d\xi = [u l_i]_{-1}^1 - \int_{-1}^1 u l_i'd\xi
 # ```
-# The resulting integral can be solved exactly with LGL quadrature since the polynomial is is now
+# The resulting integral can be solved exactly with LGL quadrature since the polynomial is now
 # of degree $2N-1$.
 
 # Again, we split the calculation in two steps.
@@ -197,13 +214,13 @@ M = diagm(basis.weights)
 # with the boundary matrix
 # ```math
 # B = \begin{pmatrix}
-#    -1 & 0 & \cdots & 0\\
-#     0 & 0 & \cdots & 0\\
-#    \vdots & \vdots & 0 & 0\\
-#     0 & \cdots & 0 & 1
-#   \end{pmatrix}
-# \text{ and }
-# \underline{u}^*(t) = \left(\begin{array}{c} u^*\big|_{-1} \\ 0 \\ \vdots \\ 0 \\ u^*\big|^1\end{array}\right)
+# -1 & 0 & \cdots & 0\\
+# 0 & 0 & \cdots & 0\\
+# \vdots & \vdots & 0 & 0\\
+# 0 & \cdots & 0 & 1
+# \end{pmatrix}
+# \qquad\text{and}\qquad
+# \underline{u}^*(t) = \left(\begin{array}{c} u^*\big|_{-1} \\ 0 \\ \vdots \\ 0 \\ u^*\big|^1\end{array}\right).
 # ```
 B = diagm([-1; zeros(polydeg - 1); 1])
 
@@ -216,6 +233,17 @@ B = diagm([-1; zeros(polydeg - 1); 1])
 # ```
 # where $D$ is the derivative matrix defined by $D_{ki} = l_i'(\xi_k)$ for $i,k=0,...,N$.
 D = basis.derivative_matrix
+
+# To show why this matrix is called the derivative matrix, we go back to our example $f(x)=x^3$.
+# We calculate the derivation of $f$ at the Gauss-Lobatto nodes $\{\xi_k\}_{k=0}^N$ with $N=8$.
+# ```math
+# f'|_{x=\xi_k} = \Big( \sum_{j=0}^8 f(\xi_j) l_j(x) \Big)'|_{x=\xi_k} = \sum_{j=0}^8 f(\xi_j) l_j'(\xi_k)
+# = \sum_{j=0}^8 f(\xi_j) D_{kj}
+# ```
+# for $k=0,...,N$ and therefore, $\underline{f}' = D \underline{f}$.
+basis_N8 = LobattoLegendreBasis(8)
+plot(vec(x), x -> 3 * x^2, label="f'", lw=2)
+scatter!(basis_N8.nodes, basis_N8.derivative_matrix * basis_N8.nodes.^3, label="Df", lw=3)
 
 # Combining the volume term for every $i=0,...,N$ results in
 # ```math
@@ -243,19 +271,20 @@ D = basis.derivative_matrix
 # There are two values at the same spatial coordinate. Let's say we are looking at the interface between
 # the elements $Q_l$ and $Q_{l+1}$, while both elements got $N+1$ nodes as defined before. We call
 # the first value of the right element $u_R=u_0^{Q_{l+1}}$ and the last one of the left element
-# $u_L=u_N^{Q_l}$. So, for the value of the numerical flux on that interface holds
+# $u_L=u_N^{Q_l}$. So, for the value of the numerical flux on that interface the following holds
 # ```math
 # u^* = u^*(u_L, u_R).
 # ```
 # These values are interpreted as start values of a so-called Riemann problem. There are many
 # different (approximate) Riemann solvers available and useful for different problems. We will
-# use the local Lax-Friedrichs flux
+# use the local Lax-Friedrichs flux.
 surface_flux = flux_lax_friedrichs
-# where in our case the local maximal absolute speed $\lambda$ is just $1$ since our advection velocity is $1$.
 
-# The only missing topic is the flux calculation at the boundaries $-1$ and $+1$.
+# The only missing ingredient is the flux calculation at the boundaries $-1$ and $+1$.
 # ```math
-# u^{{Q_{first}}^*}\big|_{-1} = u^{{Q_{first}}^*}\big|_{-1}(u^{bound}(-1), u_R) \text{ and } u^{{Q_{last}}^*}\big|^1 = u^{{Q_{last}}^*}\big|^1(u_L, u^{bound}(1))
+# u^{{Q_{first}}^*}\big|_{-1} = u^{{Q_{first}}^*}\big|_{-1}(u^{bound}(-1), u_R)
+# \quad\text{and}\quad
+# u^{{Q_{last}}^*}\big|^1 = u^{{Q_{last}}^*}\big|^1(u_L, u^{bound}(1))
 # ```
 # The boundaries are periodic, which means that the last value of the last element $u^{Q_{last}}_N$
 # is used as $u_L$ at the first interface and accordingly for the other boundary.
@@ -320,8 +349,9 @@ plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft
 
 
 
-# ## Implementation with Trixi.jl
-# Now, we implement the same example and use Trixi.jl's predefined features.
+# ## Alternative Implementation based on Trixi.jl
+# Now, we implement the same example. But this time, we directly use the functionality that Trixi.jl
+# provides.
 
 # First, define the equation with a advection_velocity of `1`.
 advection_velocity = 1.0
