@@ -625,6 +625,31 @@ Cassette.@context Ctx
       end
     end
   end
+
+  @testset "SimpleKronecker" begin
+    N = 3
+
+    NDIMS = 2
+    r, s = StartUpDG.nodes(Quad(), N)
+    V = StartUpDG.vandermonde(Quad(), N, r, s)
+    r1D = StartUpDG.nodes(Line(), N)
+    V1D = StartUpDG.vandermonde(Line(), N, r1D)
+    V_kron = SimpleKronecker(NDIMS, V1D)
+
+    x = r + s
+    b = similar(x)
+    b_kron = similar(x)
+    mul!(b, V, x, 2.0, One())
+    mul!(b_kron, V_kron, x, 2.0)
+    @test b ≈ b_kron
+
+    x = r + s
+    b = similar(x)
+    b_kron = similar(x)
+    mul!(b, V, x)
+    mul!(b_kron, V_kron, x)
+    @test b ≈ b_kron
+  end
 end
 
 
