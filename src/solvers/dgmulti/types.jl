@@ -127,8 +127,7 @@ end
 # the 1D matrix `A`
 function SimpleKronecker(NDIMS, A)
   @assert size(A, 1) == size(A, 2) # check if square
-  n = size(A, 2)
-  tmp_storage = zeros(eltype(A), ntuple(_ -> n, NDIMS)...)
+  tmp_storage=[zeros(eltype(A), ntuple(_ -> size(A, 2), NDIMS)...) for _ in 1:Threads.nthreads()]
   return SimpleKronecker{NDIMS, typeof(A), typeof(tmp_storage)}(A, tmp_storage)
 end
 
@@ -137,7 +136,8 @@ import LinearAlgebra: mul!
 # Computes `b = kron(A, A) * x` in an optimized fashion
 function mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
 
-  @unpack A, tmp_storage = A_kronecker
+  @unpack A = A_kronecker
+  tmp_storage = A_kronecker.tmp_storage[Threads.threadid()]
   n = size(A, 2)
 
   # copy `x_in` to `tmp_storage` to avoid mutating the input
@@ -168,13 +168,14 @@ function mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     b_in[i] = x[i]
   end
 
-  return b_in
+  return nothing
 end
 
 # Computes `b = kron(A, A, A) * x` in an optimized fashion
 function mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
 
-  @unpack A, tmp_storage = A_kronecker
+  @unpack A = A_kronecker
+  tmp_storage = A_kronecker.tmp_storage[Threads.threadid()]
   n = size(A, 2)
 
   # copy `x_in` to `tmp_storage` to avoid mutating the input
@@ -208,7 +209,7 @@ function mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     b[i, j, k] = tmp
   end
 
-  return b_in
+  return nothing
 end
 
 
