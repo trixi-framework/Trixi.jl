@@ -12,7 +12,6 @@ mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
-mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x)->mul!(out, A, x, α)
 
 # out <- out + A * x
 mul_by_accum!(A) = mul_by_accum!(A, One())
