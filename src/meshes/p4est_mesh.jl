@@ -269,11 +269,11 @@ To create a curved unstructured mesh `P4estMesh` two strategies are available:
                                      have one boundary `:all`, as distinguishing different physical boundaries is
                                      non-trivial.
 
-Note that the `mapping` and `polydeg` keyword arguements are only used by the `p4est_mesh_from_standard_abaqus`
+Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
 function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
 and constructs the transfinite mapping internally.
 
-The particular strategy is selected according the header present in the `meshfile` where
+The particular strategy is selected according to the header present in the `meshfile` where
 the constructor checks whether or not the `meshfile` was created with
 [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
 If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
@@ -284,7 +284,7 @@ where the number of trees is the same as the number of elements in the original 
 Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
 in the `meshfile` to create a forest with more trees before the simulation begins.
 For example, if a two-dimensional base mesh contains 25 elements then setting
-`initial_refinement_level=1` creates an initial forest of 4*25 = 100 trees.
+`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
 
 # Arguments
 - `meshfile::String`: an uncurved Abaqus mesh file that can be imported by p4est.

@@ -37,13 +37,13 @@ From this linear mesh there are two strategies available to make the mesh curvil
 
 We divide our discussion into two parts. The first part discusses the standard node and element information
 contained in the `.inp` mesh file. The second part specifically deals with the mesh file parsing of an Abaqus
-file created by HOHQMesh.
+file created by `HOHQMesh`.
 
 ### Mesh file header
 
 A `.inp` mesh file typically begins with a `*Heading`.
 Though *optional*, the `*Heading` is helpful to give users some information about the mesh described by the mesh file.
-In particular, a `.inp` mesh file created with HOHQMesh will contain the header
+In particular, a `.inp` mesh file created with `HOHQMesh` will contain the header
 ```
 *Heading
  File created by HOHQMesh
@@ -79,7 +79,7 @@ Each quadrilateral element in the unstructured mesh is dictated by four corner p
 taken from the numbering given by the corner list above.
 The elements connect a set of four corner points (starting from the bottom left) in an anti-clockwise fashion;
 making the element *right-handed*.
-This is element handedness is indicated using the circular arrow in the figure above.
+This element handedness is indicated using the circular arrow in the figure above.
 Just as with the corner list, the first integer in the element connectivity list indicates the element id number.
 Thus, the element connectivity list for the three element example mesh is
 ```
@@ -98,14 +98,14 @@ eight corner nodes that define a hexahedron. Also, the header of the element sec
 
 ### Element neighbor connectivity
 
-The construction of the element nieghbor ids and identifying physical boundary surfaces is done using functionality
+The construction of the element neighbor ids and identifying physical boundary surfaces is done using functionality
 directly from the [p4est](https://github.com/cburstedde/p4est) library.
 For example, the neighbor connectivity is created in the mesh constructor using the wrapper `read_inp_p4est` function.
 
 ### HOHQMesh boundary information
 
 If present, any additional information in the mesh file that was created by `HOHQMesh` is prefaced with
-"`** `" to make it an Abaqus comment.
+`** ` to make it an Abaqus comment.
 This ensures that the read in of the file by a standard Abaqus file parser,
 as done in the `read_inp_p4est` function, is done correctly.
 
