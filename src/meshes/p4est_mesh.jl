@@ -251,8 +251,10 @@ Main mesh constructor for the `P4estMesh` that imports an uncurved, unstructured
 mesh from an Abaqus mesh file (`.inp`).
 
 To create a curved unstructured mesh `P4estMesh` two strategies are available:
-- High-order, curved boundary information is available in the `meshfile`.
+
+- High-order, curved boundary information from `HOHQMesh` is available in the `meshfile`.
 - The specified `mapping` is applied to transform the uncurved mesh from the `meshfile`.
+
 The particular strategy is selected according the heading present in the `meshfile` where
 the constructor checks whether or not the `meshfile` was created with
 [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
@@ -277,10 +279,10 @@ function P4estMesh{NDIMS}(meshfile::String;
   @assert isfile(meshfile)
 
   # Read in the Header of the meshfile to determine which constructor is approproate
-  file_io = open(meshfile)
-  readline(file_io)           # *Heading of the Abaqus file; disgarded
-  heading = readline(file_io) # Readin the actual header information
-  close(file_io)
+  header = open(meshfile, "r") do io
+    readline(io) # *Header of the Abaqus file; discarded
+    readline(io) # Readin the actual header information
+  end
 
   # Check if the meshfile was generated using HOHQMesh
   if heading == " File created by HOHQMesh"
@@ -1163,7 +1165,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 
   # Setup the starting file index to read in element indices and the additional
   # curved boundary information provided by HOHQMesh.
-  file_idx = findfirst(t -> occursin("mesh polynomial degree", t), file_lines) + 1
+  file_idx = findfirst(occursin("mesh polynomial degree"), file_lines) + 1
 
   # Create a work set of Gamma curves to create the node coordinates
   CurvedSurfaceT    = CurvedSurface{RealT}
