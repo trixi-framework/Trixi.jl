@@ -74,7 +74,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, step
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
 
 # Print the timer summary
 summary_callback()
