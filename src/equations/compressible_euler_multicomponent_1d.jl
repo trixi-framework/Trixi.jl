@@ -17,7 +17,7 @@ Multicomponent version of the compressible Euler equations
 +
 \partial x
 \begin{pmatrix}
-\rho v_1 \\ \rho v_1^2 + p \\ (E+p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
+\rho v_1^2 + p \\ (E+p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
 \end{pmatrix}
 
 =
@@ -25,7 +25,15 @@ Multicomponent version of the compressible Euler equations
 0 \\ 0 \\ 0 \\ 0 \\ \vdots \\ 0
 \end{pmatrix}
 ```
-for calorically perfect gas in one space dimension.
+for calorically perfect gas in one space dimension. Here 
+```math
+\begin{aligned}
+&\rho=\sum_{i=1}^n\rho_i \\
+&E=\frac{p}{\gamma-1}+\frac{1}{2}\rho v_1^2 \\ 
+&\gamma=\frac{\sum_{i=1}^n\rho_i C_{v,i}\gamma_i}{\sum_{i=1}^n\rho_i C_{v,i}} \\ 
+&C_{v,i}=\frac{R}{\gamma_i-1}
+\end{aligned}
+```
 
 In case of more than one component, the specific heat ratios `gammas` and the gas constants
 `gas_constants` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
@@ -54,8 +62,8 @@ end
 
 function CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
 
-  _gammas                 = promote(gammas...)
-  _gas_constants          = promote(gas_constants...)
+  _gammas                 = promote((.0 .+ gammas)...)
+  _gas_constants          = promote((.0 .+ gas_constants)...)
   RealT                   = promote_type(eltype(_gammas), eltype(_gas_constants))
 
   NVARS = length(_gammas) + 2
