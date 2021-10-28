@@ -254,26 +254,26 @@ forest datatype, which we refer to here as a tree.
 
 To create a curved unstructured mesh `P4estMesh` two strategies are available:
 
-- [`p4est_mesh_from_hohqmesh_abaqus`](@ref): High-order, curved boundary information created by
-                                             [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl) is
-                                             available in the `meshfile`. The mesh polynomial degree `polydeg`
-                                             of the boundaries is provided from the `meshfile`. The computation of
-                                             the mapped tree coordinates is done with transfinite interpolation
-                                             with linear blending similar to [`UnstructuredMesh2D`](@ref). Boundary name
-                                             information is also parsed from the `meshfile` such that different boundary
-                                             conditions can be set at each named boundary on a given tree.
-- [`p4est_mesh_from_standard_abaqus`](@ref): By default, with `mapping=nothing` and `polydeg=1`, this creates a
-                                             straight-sided from the information parsed from the `meshfile`. If a mapping
-                                             function is specified then it computes the mapped tree coordinates via polynomial
-                                             interpolants with degree `polydeg`. The mesh created by this function will only
-                                             have one boundary `:all`, as distinguishing different physical boundaries is
-                                             non-trivial.
+- `p4est_mesh_from_hohqmesh_abaqus`: High-order, curved boundary information created by
+                                     [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl) is
+                                     available in the `meshfile`. The mesh polynomial degree `polydeg`
+                                     of the boundaries is provided from the `meshfile`. The computation of
+                                     the mapped tree coordinates is done with transfinite interpolation
+                                     with linear blending similar to [`UnstructuredMesh2D`](@ref). Boundary name
+                                     information is also parsed from the `meshfile` such that different boundary
+                                     conditions can be set at each named boundary on a given tree.
+- `p4est_mesh_from_standard_abaqus`: By default, with `mapping=nothing` and `polydeg=1`, this creates a
+                                     straight-sided from the information parsed from the `meshfile`. If a mapping
+                                     function is specified then it computes the mapped tree coordinates via polynomial
+                                     interpolants with degree `polydeg`. The mesh created by this function will only
+                                     have one boundary `:all`, as distinguishing different physical boundaries is
+                                     non-trivial.
 
 The particular strategy is selected according the header present in the `meshfile` where
 the constructor checks whether or not the `meshfile` was created with
 [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
 If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
-with the function [`p4est_mesh_from_standard_abaqus`](@ref).
+with the function `p4est_mesh_from_standard_abaqus`.
 
 The default keyword argument `initial_refinement_level=0` corresponds to a forest
 where the number of trees is the same as the number of elements in the original `meshfile`.
