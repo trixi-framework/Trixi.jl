@@ -25,7 +25,6 @@ in one space dimension.
 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-for calorically perfect gas in one space dimension.
 for calorically perfect gas in one space dimension. Here 
 ```math
 E=\frac{p}{\gamma-1}+\frac{1}{2}\rho v_1^2
