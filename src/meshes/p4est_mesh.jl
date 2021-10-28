@@ -247,10 +247,10 @@ end
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true)
 
-Main mesh constructor for the `P4estMesh` that imports an uncurved, unstructured, conforming
+Main mesh constructor for the `P4estMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
 from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
-forest datatype, which we refer to here as a tree.
+tree datatype.
 
 To create a curved unstructured mesh `P4estMesh` two strategies are available:
 
@@ -268,6 +268,10 @@ To create a curved unstructured mesh `P4estMesh` two strategies are available:
                                      interpolants with degree `polydeg`. The mesh created by this function will only
                                      have one boundary `:all`, as distinguishing different physical boundaries is
                                      non-trivial.
+
+Note that the `mapping` and `polydeg` keyword arguements are only used by the `p4est_mesh_from_standard_abaqus`
+function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
+and constructs the transfinite mapping internally.
 
 The particular strategy is selected according the header present in the `meshfile` where
 the constructor checks whether or not the `meshfile` was created with
