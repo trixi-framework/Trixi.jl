@@ -25,7 +25,7 @@ The compressible Euler equations
 \end{pmatrix}
 ```
 for an ideal gas with ratio of specific heats `gamma` in one space dimension.
-Here, ``\rho`` is the density, ``v`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, and
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v_1^2 \right)
 ```
