@@ -68,7 +68,7 @@ end
 
 function CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
 
-  _gammas                 = promote(gammas...) 
+  _gammas                 = promote(gammas...)
   _gas_constants          = promote(gas_constants...)
   RealT = promote_type(eltype(_gammas), eltype(_gas_constants), typeof(gas_constants[1] / (gammas[1] - 1)))
 
