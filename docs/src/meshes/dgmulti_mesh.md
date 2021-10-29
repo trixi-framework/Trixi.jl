@@ -56,7 +56,7 @@ Additional options can also be specified through `RefElemData_kwargs`:
 
 ### The `GSBP()` approximation type on `Quad()` and `Hex()` meshes
 
-When using `VolumeKernelFluxDifferencing` on `Quad()` and `Hex()` meshes, one can also specify
+When using `VolumeIntegralFluxDifferencing` on `Quad()` and `Hex()` meshes, one can also specify
 `approximation_type = GSBP()` to use an [entropy stable Gauss collocation scheme](https://doi.org/10.1137/18M1209234).
 Here, `GSBP()` refers to "generalized" summation-by-parts operators (see for example
 [Ranocha 2018](https://doi.org/10.1016/j.jcp.2018.02.021) or

@@ -25,8 +25,8 @@ end
 # Todo: DGMulti. Decide if we should add GSBP on triangles.
 
 # Specialized constructor for GSBP approximation type on quad elements. Restricting to
-# VolumeKernelFluxDifferencing for now since there isn't a way to exploit this structure for
-# VolumeIntegralWeakForm yet.
+# VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
+# for VolumeIntegralWeakForm yet.
 function DGMulti(element_type::Union{Quad, Hex},
                  approximation_type::GSBP,
                  volume_integral::VolumeIntegralFluxDifferencing,

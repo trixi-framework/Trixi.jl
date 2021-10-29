@@ -368,7 +368,7 @@ function calc_sources!(du, u, t, source_terms,
 
     source_values = local_values_threaded[Threads.threadid()]
 
-    u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
+    u_e = view(u_values, :, e) # u_values should already be computed from volume integral
 
     for i in each_quad_node(mesh, dg, cache)
       source_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations)
