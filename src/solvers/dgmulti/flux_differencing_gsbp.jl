@@ -70,12 +70,6 @@ function create_cache(mesh::VertexMappedMesh, equations,
   # for change of basis prior to the volume integral and entropy projection
   if rd.elementType === Quad()
 
-    @unpack rstq = rd
-    interp_matrix_lobatto_to_gauss = StartUpDG.vandermonde(rd.elementType, polydeg(dg), rstq...) / rd.VDM
-    interp_matrix_gauss_to_lobatto = inv(interp_matrix_lobatto_to_gauss)
-    interp_matrix_gauss_to_face = rd.Vf * interp_matrix_gauss_to_lobatto
-
-    # TODO: fix this. Currently errors when Threads.nthreads() > 1
     r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
     rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
     VDM_lobatto_1D = StartUpDG.vandermonde(Line(), polydeg(dg), r1D)
@@ -98,28 +92,14 @@ function create_cache(mesh::VertexMappedMesh, equations,
     interp_matrix_gauss_to_lobatto_1D = VDM_lobatto_1D / VDM_gauss_1D
 
     NDIMS = 3
-    # interp_matrix_gauss_to_lobatto = kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
-    # interp_matrix_lobatto_to_gauss = kron(ntuple(_->interp_matrix_lobatto_to_gauss_1D, NDIMS)...)
-
-    # TODO: fix this. Currently errors when Threads.nthreads() > 1
     interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D)
     interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D)
     interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
   end
 
-  # interp_matrix_gauss_to_face_1D = StartUpDG.vandermonde(Line(), polydeg(dg), [-1; 1]) / VDM_gauss_1D
-
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
   Pf = diagm(inv.(rd.wq)) * interp_matrix_gauss_to_face'
-
-  # # sparsify if the matrix is large enough.
-  # # TODO: try different sparse matrix multiplication backends to see if there is a more efficient
-  # if polydeg(dg) > 5
-  #   interp_matrix_gauss_to_face = droptol!(sparse(interp_matrix_gauss_to_face), 100 * eps(uEltype))
-  #   Pf = droptol!(sparse(Pf), 100 * eps(eltype(Pf)))
-  #   # interp_matrix_gauss_to_face, Pf = GBMatrix.((interp_matrix_gauss_to_face, Pf))
-  # end
 
   inv_gauss_weights = inv.(rd.wq)
 
