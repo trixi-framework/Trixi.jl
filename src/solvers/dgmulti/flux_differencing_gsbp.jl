@@ -68,32 +68,14 @@ function create_cache(mesh::VertexMappedMesh, equations,
                  mesh, equations, dg, RealT, uEltype)
 
   # for change of basis prior to the volume integral and entropy projection
-  if rd.elementType === Quad()
-
-    r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
-    rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-    interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
-    interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
-
-    NDIMS = 2
-    interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
-    interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
-    interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
-
-  else # if Hex(), use Kronecker product structure to reduce precomputation time
-
-    r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
-    rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-    VDM_lobatto_1D = StartUpDG.vandermonde(Line(), polydeg(dg), r1D)
-    VDM_gauss_1D = StartUpDG.vandermonde(Line(), polydeg(dg), rq1D)
-    interp_matrix_lobatto_to_gauss_1D = VDM_gauss_1D / VDM_lobatto_1D
-    interp_matrix_gauss_to_lobatto_1D = VDM_lobatto_1D / VDM_gauss_1D
-
-    NDIMS = 3
-    interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
-    interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
-    interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
-  end
+  r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
+  rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+  interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
+  interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
+  NDIMS = ndims(rd.elementType)
+  interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
+  interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
+  interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
 
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
