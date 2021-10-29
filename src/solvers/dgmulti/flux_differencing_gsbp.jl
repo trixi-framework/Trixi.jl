@@ -72,10 +72,8 @@ function create_cache(mesh::VertexMappedMesh, equations,
 
     r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
     rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-    VDM_lobatto_1D = StartUpDG.vandermonde(Line(), polydeg(dg), r1D)
-    VDM_gauss_1D = StartUpDG.vandermonde(Line(), polydeg(dg), rq1D)
-    interp_matrix_lobatto_to_gauss_1D = VDM_gauss_1D / VDM_lobatto_1D
-    interp_matrix_gauss_to_lobatto_1D = VDM_lobatto_1D / VDM_gauss_1D
+    interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
+    interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
 
     NDIMS = 2
     interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D)
@@ -99,9 +97,8 @@ function create_cache(mesh::VertexMappedMesh, equations,
 
   # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
   # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
-  Pf = diagm(inv.(rd.wq)) * interp_matrix_gauss_to_face'
-
   inv_gauss_weights = inv.(rd.wq)
+  Pf = diagm(inv_gauss_weights) * interp_matrix_gauss_to_face'
 
   nvars = nvariables(equations)
   rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
