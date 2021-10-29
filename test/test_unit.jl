@@ -634,9 +634,10 @@ Cassette.@context Ctx
     V = StartUpDG.vandermonde(Quad(), N, r, s)
     r1D = StartUpDG.nodes(Line(), N)
     V1D = StartUpDG.vandermonde(Line(), N, r1D)
-    V_kron = Trixi.SimpleKronecker(NDIMS, V1D)
 
     x = r + s
+    V_kron = Trixi.SimpleKronecker(NDIMS, V1D, eltype(x))
+
     b = similar(x)
     b_kron = similar(x)
     Trixi.mul!(b, V, x)

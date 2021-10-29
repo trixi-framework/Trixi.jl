@@ -124,10 +124,10 @@ struct SimpleKronecker{NDIMS, TA, Ttmp}
 end
 
 # constructor for SimpleKronecker which requires specifying only `NDIMS` and
-# the 1D matrix `A`
-function SimpleKronecker(NDIMS, A)
+# the 1D matrix `A`.
+function SimpleKronecker(NDIMS, A, eltype_A=eltype(A))
   @assert size(A, 1) == size(A, 2) # check if square
-  tmp_storage=[zeros(eltype(A), ntuple(_ -> size(A, 2), NDIMS)...) for _ in 1:Threads.nthreads()]
+  tmp_storage=[zeros(eltype_A, ntuple(_ -> size(A, 2), NDIMS)...) for _ in 1:Threads.nthreads()]
   return SimpleKronecker{NDIMS, typeof(A), typeof(tmp_storage)}(A, tmp_storage)
 end
 
