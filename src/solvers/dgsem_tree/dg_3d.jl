@@ -178,30 +178,44 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{3},
-                               nonconservative_terms::Val{false}, equations,
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-  @unpack derivative_dhat = dg.basis
 
   @threaded for element in eachelement(dg, cache)
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    weak_form_kernel!(du, u, element, mesh,
+                      nonconservative_terms, equations,
+                      dg, cache)
+  end
 
-      flux1 = flux(u_node, 1, equations)
-      for ii in eachnode(dg)
-        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, j, k, element)
-      end
+  return nothing
+end
 
-      flux2 = flux(u_node, 2, equations)
-      for jj in eachnode(dg)
-        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2, equations, dg, i, jj, k, element)
-      end
+@inline function weak_form_kernel!(du, u,
+                                   element, mesh::TreeMesh{3},
+                                   nonconservative_terms::Val{false}, equations,
+                                   dg::DGSEM, cache, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can (hopefully) be optimized away due to constant propagation.
+  @unpack derivative_dhat = dg.basis
 
-      flux3 = flux(u_node, 3, equations)
-      for kk in eachnode(dg)
-        multiply_add_to_node_vars!(du, derivative_dhat[kk, k], flux3, equations, dg, i, j, kk, element)
-      end
+  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+
+    flux1 = flux(u_node, 1, equations)
+    for ii in eachnode(dg)
+      multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1, equations, dg, ii, j, k, element)
+    end
+
+    flux2 = flux(u_node, 2, equations)
+    for jj in eachnode(dg)
+      multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2, equations, dg, i, jj, k, element)
+    end
+
+    flux3 = flux(u_node, 3, equations)
+    for kk in eachnode(dg)
+      multiply_add_to_node_vars!(du, alpha * derivative_dhat[kk, k], flux3, equations, dg, i, j, kk, element)
     end
   end
 
@@ -851,30 +865,30 @@ function prolong2mortars!(cache, u,
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
         u_large = view(u, :, nnodes(dg), :, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       elseif cache.mortars.orientations[mortar] == 2
         # L2 mortars in y-direction
         u_large = view(u, :, :, nnodes(dg), :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       else # cache.mortars.orientations[mortar] == 3
         # L2 mortars in z-direction
         u_large = view(u, :, :, :, nnodes(dg), large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       end
     else # large_sides[mortar] == 2 -> large element on right side
       leftright = 2
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
         u_large = view(u, :, 1, :, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       elseif cache.mortars.orientations[mortar] == 2
         # L2 mortars in y-direction
         u_large = view(u, :, :, 1, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       else # cache.mortars.orientations[mortar] == 3
         # L2 mortars in z-direction
         u_large = view(u, :, :, :, 1, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       end
     end
   end
@@ -882,12 +896,12 @@ function prolong2mortars!(cache, u,
   return nothing
 end
 
-@inline function element_solutions_to_mortars!(cache, mortar_l2::LobattoLegendreMortarL2, leftright, mortar,
+@inline function element_solutions_to_mortars!(mortars, mortar_l2::LobattoLegendreMortarL2, leftright, mortar,
                                                u_large::AbstractArray{<:Any,3}, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_upper_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_upper, u_large, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_upper_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_upper, u_large, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_lower_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_lower, u_large, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_lower_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_lower, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_upper_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_upper, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_upper_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_upper, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_lower_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_lower, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_lower_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_lower, u_large, fstar_tmp1)
   return nothing
 end
 
