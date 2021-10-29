@@ -771,11 +771,11 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
   @assert found_coordinates != zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
 
   # These hold the ids of the elements and triangles the points of the curve sit in.
-  element_ids = ids_by_coordinates[found_coordinates, 1]
-  triangle_ids =  ids_by_coordinates[found_coordinates, 2]
+  element_ids = @view ids_by_coordinates[found_coordinates, 1]
+  triangle_ids =  @view ids_by_coordinates[found_coordinates, 2]
 
   # Shorten the curve, so that it contains only point that were found.
-  curve = input_curve[:, found_coordinates]
+  curve = @view input_curve[:, found_coordinates]
 
   n_variables = length(pd.data[1, 1])
   n_points_curve = size(curve, 2)
@@ -788,15 +788,18 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
 
   # Iterate over all points on the curve.
   for point in 1:n_points_curve
-    element = element_ids[point]
-    triangle = pd.t[triangle_ids[point],:]
+    element = @view element_ids[point]
+    triangle = @view pd.t[triangle_ids[point], :]
     for v in 1:n_variables
-      # Get the three coordinates and values of given triangle in given element.
-      coordinates_triangle = hcat(pd.x[triangle, element], pd.y[triangle, element])
-      values_triangle = map(x -> x[v], pd.data[:, element])[triangle]
+      # Get the x and y coordinates of the corners of given triangle.
+      x_coordinates_triangle = SVector{3}(pd.x[triangle, element])
+      y_coordinates_triangle = SVector{3}(pd.y[triangle, element])
+
+      # Extract solutions values in corners of the triangle.
+      values_triangle = SVector{3}(getindex.(view(pd.data, triangle, element), v))
 
       # Linear interpolation in each triangle to the points on the curve.
-      data_on_curve[point, v] = triangle_interpolation(coordinates_triangle, values_triangle, curve[:, point])
+      data_on_curve[point, v] = triangle_interpolation(x_coordinates_triangle, y_coordinates_triangle, values_triangle, curve[:, point])
     end
   end
 
@@ -1407,8 +1410,8 @@ function find_element(point, pd)
 end
 
 # Interpolate form three corners of a triangle to a single point.
-function triangle_interpolation(coordinates_in, values_in, coordinate_out)
-  A = hcat(coordinates_in, ones(3))
+function triangle_interpolation(x_coordinates_in, y_coordinates_in, values_in, coordinate_out)
+  A = hcat(x_coordinates_in, y_coordinates_in, SVector(1, 1, 1))
   c = A \ values_in
   return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3]
 end
