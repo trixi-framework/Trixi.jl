@@ -170,7 +170,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
 end
 
 # Computes `b = kron(A, A, A) * x` in an optimized fashion
-function mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
+function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
 
   @unpack A = A_kronecker
   tmp_storage = A_kronecker.tmp_storage[Threads.threadid()]
