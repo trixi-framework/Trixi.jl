@@ -68,19 +68,9 @@ end
 
 function CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
 
-  _gammas                 = promote(gammas...)
-        
-    if isa(_gammas[1], Integer) 
-      _gammas = _gammas .+ .0 
-    end
-        
+  _gammas                 = promote(gammas...) 
   _gas_constants          = promote(gas_constants...)
-        
-    if isa( _gas_constants[1], Integer) 
-       _gas_constants =  _gas_constants .+ .0 
-    end
-        
-  RealT                   = promote_type(eltype(_gammas), eltype(_gas_constants))
+  RealT = promote_type(eltype(_gammas), eltype(_gas_constants), typeof(gas_constants[1] / (gammas[1] - 1)))
 
   NVARS = length(_gammas) + 2
   NCOMP = length(_gammas)
