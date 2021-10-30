@@ -25,9 +25,9 @@ function cons2entropy!(entropy_var_values::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(u_values)
   w1_values, w2_values, w3_values, w4_values = StructArrays.components(entropy_var_values)
 
-  @turbo thread=true for i in indices(
-      (rho_values, rho_v1_values, rho_v2_values, rho_e_values,
-       w1_values, w2_values, w3_values, w4_values))
+  @turbo thread=true for i in eachindex(
+      rho_values, rho_v1_values, rho_v2_values, rho_e_values,
+      w1_values, w2_values, w3_values, w4_values)
     rho    = rho_values[i]
     rho_v1 = rho_v1_values[i]
     rho_v2 = rho_v2_values[i]
@@ -62,9 +62,9 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
   w1_values, w2_values, w3_values, w4_values = StructArrays.components(projected_entropy_var_values)
 
-  @turbo thread=true for i in indices(
-      (rho_values, rho_v1_values, rho_v2_values, rho_e_values,
-       w1_values, w2_values, w3_values, w4_values))
+  @turbo thread=true for i in eachindex(
+      rho_values, rho_v1_values, rho_v2_values, rho_e_values,
+      w1_values, w2_values, w3_values, w4_values)
 
     # The following is basically the same code as in `entropy2cons`
     # Convert to entropy `-rho * s` used by
@@ -106,9 +106,9 @@ function cons2entropy!(entropy_var_values::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(u_values)
   w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(entropy_var_values)
 
-  @turbo thread=true for i in indices(
-      (rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values,
-       w1_values, w2_values, w3_values, w4_values, w5_values))
+  @turbo thread=true for i in eachindex(
+      rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values,
+      w1_values, w2_values, w3_values, w4_values, w5_values)
     rho    = rho_values[i]
     rho_v1 = rho_v1_values[i]
     rho_v2 = rho_v2_values[i]
@@ -146,9 +146,9 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
   w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(projected_entropy_var_values)
 
-  @turbo thread=true for i in indices(
-      (rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values,
-       w1_values, w2_values, w3_values, w4_values, w5_values))
+  @turbo thread=true for i in eachindex(
+      rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values,
+      w1_values, w2_values, w3_values, w4_values, w5_values)
 
     # The following is basically the same code as in `entropy2cons`
     # Convert to entropy `-rho * s` used by
