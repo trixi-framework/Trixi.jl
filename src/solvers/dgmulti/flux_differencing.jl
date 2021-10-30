@@ -234,7 +234,8 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
             local_values_threaded, fluxdiff_local_threaded)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:Polynomial}, RealT, uEltype)
+# most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -323,9 +324,10 @@ end
 # operators are sparse) for all `<:Polynomial` approximation types.
 @inline has_sparse_operators(element_type, approx_type::Polynomial) = Val{true}()
 
-# SBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
+# SBP/GSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
+@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GSBP) = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
@@ -461,7 +463,7 @@ end
 
 function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
                                have_nonconservative_terms::Val{false}, equations,
-                               dg::DGMultiFluxDiff{<:Polynomial}, cache)
+                               dg::DGMultiFluxDiff, cache)
 
   rd = dg.basis
   @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
@@ -551,11 +553,11 @@ function calc_sources!(du, u, t, source_terms,
   end
 end
 
-# Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume kernel, e.g.,
+# Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff{Polynomial}, cache) where {Source, BC}
+              source_terms::Source, dg::DGMultiFluxDiff{<:Union{Polynomial, GSBP}}, cache) where {Source, BC}
 
   @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
 
