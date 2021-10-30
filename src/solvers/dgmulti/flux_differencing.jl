@@ -291,17 +291,26 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   apply_to_each_field(mul_by!(Vq), u_values, u)
 
-  # TODO: DGMulti. `@threaded` crashes when using `eachindex(u_values)`.
-  # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
-  @threaded for i in Base.OneTo(length(u_values))
-    entropy_var_values[i] = cons2entropy(u_values[i], equations)
-  end
+  cons2entropy!(entropy_var_values, u_values, equations)
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
   apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
 
-  # TODO: DGMulti. `@threaded` crashes when using `eachindex(projected_entropy_var_values)`.
-  # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
+  entropy2cons!(entropy_projected_u_values, projected_entropy_var_values, equations)
+  return nothing
+end
+
+@inline function cons2entropy!(entropy_var_values::StructArray,
+                               u_values          ::StructArray,
+                               equations)
+  @threaded for i in eachindex(u_values)
+    entropy_var_values[i] = cons2entropy(u_values[i], equations)
+  end
+end
+
+@inline function entropy2cons!(entropy_projected_u_values  ::StructArray,
+                               projected_entropy_var_values::StructArray,
+                               equations)
   @threaded for i in Base.OneTo(length(projected_entropy_var_values))
     entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
   end
