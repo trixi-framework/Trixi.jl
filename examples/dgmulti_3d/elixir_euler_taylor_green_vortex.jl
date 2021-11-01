@@ -33,8 +33,8 @@ solver = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynom
                 surface_integral= SurfaceIntegralWeakForm(surface_flux),
                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-num_cells_per_dimension = 8
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, num_cells_per_dimension)
+cells_per_dimension = (8, 8, 8)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
 vertex_coordinates = map(x -> pi * x, vertex_coordinates) # remap the domain to [-pi, pi]^3
 mesh = VertexMappedMesh(vertex_coordinates, EToV, solver; is_periodic=(true, true, true))
 
