@@ -865,30 +865,30 @@ function prolong2mortars!(cache, u,
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
         u_large = view(u, :, nnodes(dg), :, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       elseif cache.mortars.orientations[mortar] == 2
         # L2 mortars in y-direction
         u_large = view(u, :, :, nnodes(dg), :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       else # cache.mortars.orientations[mortar] == 3
         # L2 mortars in z-direction
         u_large = view(u, :, :, :, nnodes(dg), large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       end
     else # large_sides[mortar] == 2 -> large element on right side
       leftright = 2
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
         u_large = view(u, :, 1, :, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       elseif cache.mortars.orientations[mortar] == 2
         # L2 mortars in y-direction
         u_large = view(u, :, :, 1, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       else # cache.mortars.orientations[mortar] == 3
         # L2 mortars in z-direction
         u_large = view(u, :, :, :, 1, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large, fstar_tmp1)
       end
     end
   end
@@ -896,12 +896,12 @@ function prolong2mortars!(cache, u,
   return nothing
 end
 
-@inline function element_solutions_to_mortars!(cache, mortar_l2::LobattoLegendreMortarL2, leftright, mortar,
+@inline function element_solutions_to_mortars!(mortars, mortar_l2::LobattoLegendreMortarL2, leftright, mortar,
                                                u_large::AbstractArray{<:Any,3}, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_upper_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_upper, u_large, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_upper_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_upper, u_large, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_lower_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_lower, u_large, fstar_tmp1)
-  multiply_dimensionwise!(view(cache.mortars.u_lower_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_lower, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_upper_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_upper, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_upper_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_upper, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_lower_left,  leftright, :, :, :, mortar), mortar_l2.forward_lower, mortar_l2.forward_lower, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(mortars.u_lower_right, leftright, :, :, :, mortar), mortar_l2.forward_upper, mortar_l2.forward_lower, u_large, fstar_tmp1)
   return nothing
 end
 
