@@ -104,9 +104,7 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   end
 
   # transform quadrature values to entropy variables
-  @threaded for i in eachindex(u_values)
-    entropy_var_values[i] = cons2entropy(u_values[i], equations)
-  end
+  cons2entropy!(entropy_var_values, u_values, equations)
 
   volume_indices = Base.OneTo(rd.Nq)
   face_indices = (rd.Nq + 1):(rd.Nq + rd.Nfq)
@@ -125,9 +123,9 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   # transform entropy to conservative variables on face values
   entropy_projected_face_values = view(entropy_projected_u_values, face_indices, :)
-  @threaded for i in eachindex(entropy_var_face_values)
-    entropy_projected_face_values[i] = entropy2cons(entropy_var_face_values[i], equations)
-  end
+  entropy2cons!(entropy_projected_face_values, entropy_var_face_values, equations)
+
+  return nothing
 end
 
 function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
