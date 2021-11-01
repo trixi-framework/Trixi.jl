@@ -311,7 +311,7 @@ end
 @inline function entropy2cons!(entropy_projected_u_values  ::StructArray,
                                projected_entropy_var_values::StructArray,
                                equations)
-  @threaded for i in Base.OneTo(length(projected_entropy_var_values))
+  @threaded for i in eachindex(projected_entropy_var_values)
     entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
   end
 end
