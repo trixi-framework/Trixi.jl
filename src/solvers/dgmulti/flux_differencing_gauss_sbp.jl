@@ -1,8 +1,8 @@
 
-# ========= GSBP approximation types ============
+# ========= GaussSBP approximation types ============
 
-# GSBP ApproximationType: e.g., Gauss nodes on quads/hexes
-struct GSBP end
+# GaussSBP ApproximationType: e.g., Gauss nodes on quads/hexes
+struct GaussSBP end
 
 function tensor_product_quadrature(element_type::Line, r1D, w1D)
   return r1D, w1D
@@ -22,13 +22,13 @@ function tensor_product_quadrature(element_type::Hex, r1D, w1D)
   return rq, sq, tq, wq
 end
 
-# Todo: DGMulti. Decide if we should add GSBP on triangles.
+# Todo: DGMulti. Decide if we should add GaussSBP on triangles.
 
-# Specialized constructor for GSBP approximation type on quad elements. Restricting to
+# Specialized constructor for GaussSBP approximation type on quad elements. Restricting to
 # VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
 # for VolumeIntegralWeakForm yet.
 function DGMulti(element_type::Union{Quad, Hex},
-                 approximation_type::GSBP,
+                 approximation_type::GaussSBP,
                  volume_integral::VolumeIntegralFluxDifferencing,
                  surface_integral=SurfaceIntegralWeakForm(surface_flux);
                  polydeg::Integer,
@@ -45,11 +45,11 @@ function DGMulti(element_type::Union{Quad, Hex},
                    quad_rule_face=gauss_rule_face,
                    kwargs...)
 
-  # Since there is no dedicated GSBP approximation type implemented in StartUpDG, we simply
+  # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
   # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
-  # rd.approximationType manually so we can dispatch on the `GSBP` type.
+  # rd.approximationType manually so we can dispatch on the `GaussSBP` type.
   # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
-  rd_gauss = @set rd.approximationType = GSBP()
+  rd_gauss = @set rd.approximationType = GaussSBP()
 
   # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
   # the mesh is initialized, since the face interpolation operator is used for that.
@@ -57,9 +57,9 @@ function DGMulti(element_type::Union{Quad, Hex},
 end
 
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
-# In the future, we may modify it so that we can specialize additional parts of GSBP() solvers.
+# In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache(mesh::VertexMappedMesh, equations,
-                      dg::DGMultiFluxDiff{<:GSBP, <:Union{Quad, Hex}}, RealT, uEltype)
+                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -91,7 +91,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
-function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GSBP})
+function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
 
   rd = dg.basis
   @unpack Vq = rd
@@ -130,7 +130,7 @@ end
 
 function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
                                have_nonconservative_terms::Val{false}, equations,
-                               dg::DGMultiFluxDiff{<:GSBP}, cache)
+                               dg::DGMultiFluxDiff{<:GaussSBP}, cache)
 
   @unpack entropy_projected_u_values, sparsity_pattern = cache
   @unpack fluxdiff_local_threaded, rhs_local_threaded, rhs_volume_local_threaded = cache
