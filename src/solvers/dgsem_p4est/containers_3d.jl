@@ -10,7 +10,7 @@ function init_elements!(elements, mesh::P4estMesh{3}, basis::LobattoLegendreBasi
   @unpack node_coordinates, jacobian_matrix,
           contravariant_vectors, inverse_jacobian = elements
 
-  calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+  calc_node_coordinates!(node_coordinates, mesh, basis)
 
   for element in 1:ncells(mesh)
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
