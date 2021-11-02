@@ -54,11 +54,11 @@ Additional options can also be specified through `RefElemData_kwargs`:
 * `quad_rule_face = quad_nodes(Line(), Nq))` will use a face quadrature rule of degree `Nq` rather
   than the default. This rule is also exact for at least degree `2*Nq` integrands.
 
-### The `GSBP()` approximation type on `Quad()` and `Hex()` meshes
+### The `GaussSBP()` approximation type on `Quad()` and `Hex()` meshes
 
 When using `VolumeIntegralFluxDifferencing` on `Quad()` and `Hex()` meshes, one can also specify
-`approximation_type = GSBP()` to use an [entropy stable Gauss collocation scheme](https://doi.org/10.1137/18M1209234).
-Here, `GSBP()` refers to "generalized" summation-by-parts operators (see for example
+`approximation_type = GaussSBP()` to use an [entropy stable Gauss collocation scheme](https://doi.org/10.1137/18M1209234).
+Here, `GaussSBP()` refers to "generalized" summation-by-parts operators (see for example
 [Ranocha 2018](https://doi.org/10.1016/j.jcp.2018.02.021) or
 [Fernandez and Zingg 2015](https://doi.org/10.1137/140992205)).
 
