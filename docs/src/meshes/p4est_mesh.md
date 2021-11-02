@@ -32,12 +32,13 @@ From this linear mesh there are two strategies available to make the mesh curvil
    specified polynomial degree. The default value of this polynomial degree is `1` that
    corresponds to an uncurved geometry.
 2. High-order boundary information is available in the `.inp` mesh file because it was created
-   with the [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl) generator.
+   with the [HOHQMesh](https://github.com/trixi-framework/HOHQMesh) mesh generator, which
+   is available via the Julia package [HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
    This information is used to create appropriate transfinite mappings during the mesh construction.
 
 We divide our discussion into two parts. The first part discusses the standard node and element information
 contained in the `.inp` mesh file. The second part specifically deals with the mesh file parsing of an Abaqus
-file created by `HOHQMesh`.
+file created by HOHQMesh.jl.
 
 ### Mesh file header
 
