@@ -260,14 +260,14 @@ When the hexahedron is a straight sided (linear) element we compute the transfin
 element corner points according to
 ```math
 \begin{aligned}
-\mathbf{X}_{linear}(\boldsymbol{\xi}) &=  \frac{1}{8}[\;\;\; \mathbf{x}_1(1-\xi)(1-\eta)(1-\zeta)
-                                                         + \mathbf{x}_2(1+\xi)(1-\eta)(1-\zeta)\\[-0.15cm]
-                                    & \qquad             + \mathbf{x}_3(1+\xi)(1+\eta)(1-\zeta)
+\mathbf{X}_{linear}(\boldsymbol{\xi}) &=  \frac{1}{8}\bigg[\quad\, \mathbf{x}_1(1-\xi)(1-\eta)(1-\zeta)
+                                                         + \mathbf{x}_2(1+\xi)(1-\eta)(1-\zeta)\\[-0.225cm]
+                                    & \qquad\;\;             + \mathbf{x}_3(1+\xi)(1+\eta)(1-\zeta)
                                                          + \mathbf{x}_4(1-\xi)(1+\eta)(1-\zeta) \\
-                                    & \qquad             + \mathbf{x}_5(1-\xi)(1-\eta)(1+\zeta)
-                                                         + \mathbf{x}_6(1+\xi)(1-\eta)(1+\zeta) \\
-                                    & \qquad             + \mathbf{x}_7(1+\xi)(1+\eta)(1+\zeta)
-                                                         + \mathbf{x}_8(1-\xi)(1+\eta)(1+\zeta)]
+                                    & \qquad\;\;             + \mathbf{x}_5(1-\xi)(1-\eta)(1+\zeta)
+                                                         + \mathbf{x}_6(1+\xi)(1-\eta)(1+\zeta) \\[-0.225cm]
+                                    & \qquad\;\;             + \mathbf{x}_7(1+\xi)(1+\eta)(1+\zeta)
+                                                         + \mathbf{x}_8(1-\xi)(1+\eta)(1+\zeta)\quad\bigg]
 \end{aligned}
 ```
 
