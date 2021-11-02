@@ -1296,7 +1296,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     curved_check[6] = parse(Int, current_line[7])
     if sum(curved_check) == 0
       # Create the node coordinates on this element
-      calc_hex_node_coordinates!(node_coordinates, tree, nodes, cornerNodeVals)
+      calc_node_coordinates!(node_coordinates, tree, nodes, cornerNodeVals)
     else
       # Hexahedral element has at least one curved side
       for face in 1:6
@@ -1320,7 +1320,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
         face_curves[face] = CurvedFaceT(nodes, bary_weights, copy(curve_vals))
       end
       # Create the node coordinates on this particular element
-      calc_hex_node_coordinates!(node_coordinates, tree, nodes, face_curves)
+      calc_node_coordinates!(node_coordinates, tree, nodes, face_curves)
     end
     # Move file index to the next tree
     file_idx += 1

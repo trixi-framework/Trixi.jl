@@ -68,7 +68,7 @@ end
 
 
 # Construct the (x, y, z) node coordinates in the volume of a straight sided hexahedral element
-function calc_hex_node_coordinates!(node_coordinates, element, nodes, corners)
+function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5}, element, nodes, corners)
 
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
     node_coordinates[:, i, j, k, element] .= straight_side_hex_map(nodes[i], nodes[j], nodes[k], corners)
@@ -158,7 +158,7 @@ end
 
 
 # Construct the (x, y, z) node coordinates in the volume of a curved sided hexahedral element
-function calc_hex_node_coordinates!(node_coordinates, element, nodes,
+function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5}, element, nodes,
                                 face_curves::AbstractVector{<:CurvedFace})
 
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
