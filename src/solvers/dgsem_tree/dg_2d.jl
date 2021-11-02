@@ -204,7 +204,6 @@ end
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
 
-  # Calculate volume integral in one element
   for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
 
@@ -212,7 +211,7 @@ end
     # the computation of the diagonal terms. In addition, we use the symmetry
     # of the `volume_flux` to save half of the possible two-poitn flux
     # computations.
-
+    
     # x direction
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
@@ -286,12 +285,20 @@ function calc_volume_integral!(du, u,
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 
+  cache.elements.alpha .= alpha
+
   # Loop over pure DG elements
   @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
     element = element_ids_dg[idx_element]
     split_form_kernel!(du, u, element, mesh,
                        nonconservative_terms, equations,
                        volume_flux_dg, dg, cache)
+
+    cache.elements.FFV_m_FDG[:,:,:,element] .= (-1.0) .* du[:,:,:,element]
+
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+               dg, cache, element, 0)
+
   end
 
   # Loop over blended DG-FV elements
@@ -304,9 +311,12 @@ function calc_volume_integral!(du, u,
                        nonconservative_terms, equations,
                        volume_flux_dg, dg, cache, 1 - alpha_element)
 
+    cache.elements.FFV_m_FDG[:,:,:,element] .= (-1.0) .* du[:,:,:,element]./(1-alpha_element)
+
     # Calculate FV volume integral contribution
     fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
-               dg, cache, element, alpha_element)
+               dg, cache, element, alpha_element)        
+
   end
 
   return nothing
@@ -351,6 +361,10 @@ end
       du[v, i, j, element] += ( alpha *
                                 (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
                                  inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])) )
+                              
+      cache.elements.FFV_m_FDG[v, i, j, element] = cache.elements.FFV_m_FDG[v, i, j, element] + (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
+                                                   inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j]))                                             
+                                                     
     end
   end
 

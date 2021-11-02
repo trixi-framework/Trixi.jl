@@ -43,6 +43,7 @@ using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
+using KROME
 using RecipesBase: RecipesBase
 using Requires: @require
 using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
@@ -113,6 +114,7 @@ include("visualization/visualization.jl")
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
+       CompressibleEulerMultichemistryEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
@@ -142,19 +144,27 @@ export initial_condition_constant,
        initial_condition_orszag_tang,
        initial_condition_rotor,
        initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex
+       initial_condition_taylor_green_vortex,
+       initial_condition_double_mach_reflection
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_noslip_wall,
+       boundary_state_slip_wall,
+       boundary_condition_supersonic_outflow,
        boundary_condition_slip_wall,
        boundary_condition_wall,
+       boundary_condition_dmr,
+       boundary_condition_knallgas_5,
+       boundary_condition_dmr_top,
        boundary_condition_zero
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic
 export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
+export initial_condition_knallgas_5_detonation, boundary_condition_knallgas_5_detonation, chemistry_knallgas_5_detonation
+export initial_condition_naive_chemistry, chemistry_knallgas_2_naive
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
@@ -164,7 +174,7 @@ export initial_condition_monopole, boundary_condition_monopole
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity
+export density, pressure, density_pressure, velocity, dpdu 
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 export lake_at_rest_error
 export ncomponents, eachcomponent
@@ -193,7 +203,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
-       AMRCallback, StepsizeCallback,
+       AMRCallback, StepsizeCallback, KROMEChemistryCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback
 

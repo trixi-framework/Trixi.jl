@@ -31,6 +31,11 @@ end
 function (limiter!::PositivityPreservingLimiterZhangShu)(
     u_ode, integrator, semi::AbstractSemidiscretization, t)
   u = wrap_array(u_ode, semi)
+
+  # Positivity Preserving
+  semi.equations.delta_t  = t - semi.equations.t_old
+  semi.equations.t_old    = t
+
   @trixi_timeit timer() "positivity-preserving limiter" limiter_zhang_shu!(
     u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
 end
@@ -52,7 +57,7 @@ function limiter_zhang_shu!(u, thresholds::NTuple{N,<:Real}, variables::NTuple{N
   remaining_variables = Base.tail(variables)
 
   limiter_zhang_shu!(u, threshold, variable, mesh, equations, solver, cache)
-  limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations, solver, cache)
+  #limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations, solver, cache)
   return nothing
 end
 

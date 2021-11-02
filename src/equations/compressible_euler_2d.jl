@@ -11,13 +11,19 @@
 The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
 in two space dimensions.
 """
-struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
+mutable struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+  t_old::RealT
+  delta_t::RealT
+  lambda::RealT
 
   function CompressibleEulerEquations2D(gamma)
     γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-    new{typeof(γ)}(γ, inv_gamma_minus_one)
+    t_old = 0.0
+    delta_t = 0.0
+    lambda = 0.0
+    new{typeof(γ)}(γ, inv_gamma_minus_one, t_old, delta_t, lambda)
   end
 end
 
@@ -478,6 +484,195 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
+
+  return flux
+end
+
+
+# function boundary_condition_supersonic_outflow(u_inner, orientation_or_normal,
+#                                                                   direction,
+#                                                                   x, t,
+#                                                                   surface_flux_function, equations)
+#   u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+#   # Calculate boundary flux
+#   if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+#     flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
+#   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+#     flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal, equations)
+#   end
+
+#   return flux
+# end
+
+function boundary_condition_supersonic_outflow(u_inner, orientation, direction, x, t,
+                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+  # get the appropriate normal vector from the orientation
+  if orientation == 1
+    normal = SVector(1, 0)
+  else # orientation == 2
+    normal = SVector(0, 1)
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  return boundary_condition_supersonic_outflow(u_inner, normal, x, t, surface_flux_function, equations)
+end
+
+function boundary_condition_supersonic_outflow(u_inner, normal_direction::AbstractVector, direction, x, t,
+                                              surface_flux_function, equations::CompressibleEulerEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_supersonic_outflow(u_inner, -normal_direction,
+                                                  x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_supersonic_outflow(u_inner, normal_direction,
+                                                 x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
+end
+
+function boundary_condition_supersonic_outflow(u_inner, direction, x, t,
+                                               surface_flux_function,
+                                               equations::CompressibleEulerEquations2D)
+
+  #u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
+
+  # Calculate boundary flux
+  #if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  flux = surface_flux_function(u_inner, u_inner, direction, equations)
+  #else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+  #  flux = surface_flux_function(u_inner, u_inner, orientation, equations)
+  #end
+
+  return flux
+end
+
+
+function boundary_condition_dmr(u_inner, orientation, direction, x, t,
+                                surface_flux_function, equations::CompressibleEulerEquations2D)
+  # get the appropriate normal vector from the orientation
+  if orientation == 1
+    normal = SVector(1, 0)
+  else # orientation == 2
+    normal = SVector(0, 1)
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  return boundary_condition_dmr(u_inner, normal, x, t, surface_flux_function, equations)
+end
+
+
+function boundary_condition_dmr(u_inner, normal_direction::AbstractVector, direction, x, t,
+                                surface_flux_function, equations::CompressibleEulerEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_dmr(u_inner, -normal_direction,
+                                            x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_dmr(u_inner, normal_direction,
+                                           x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
+end
+
+
+function boundary_condition_dmr(u_inner, direction, x, t,
+                                surface_flux_function,
+                                equations::CompressibleEulerEquations2D)
+
+  #u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
+
+
+  # Calculate boundary flux
+  if x[1] < 1/6
+
+    rho = 8.0
+    v1  = 8.25  * cosd(30)
+    v2  = -8.25 * sind(30) 
+    p   = 116.5
+    u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, direction, equations)
+
+  else 
+
+    u_boundary = SVector(u_inner[1], u_inner[2], -u_inner[3], u_inner[4])
+  #if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, direction, equations)
+
+  end 
+  #else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+  #  flux = surface_flux_function(u_inner, u_inner, orientation, equations)
+  #end
+
+  return flux
+end
+
+
+function boundary_condition_dmr_top(u_inner, direction, x, t,
+                                    surface_flux_function,
+                                    equations::CompressibleEulerEquations2D)
+
+  #u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
+  x0  = 1/6
+
+  # lambda_min, lambda_max = min_max_speed_naive(u_inner, u_inner, direction,
+  #                                              equations::CompressibleEulerEquations2D)
+
+  # lambda_max = max_abs_speed_naive(u_inner, u_inner, direction,
+  #                                  equations::CompressibleEulerEquations2D)                                             
+
+  #println("u_inner: ",u_inner)
+
+  # rho = 8.0
+  # v1  = 8.25  * cosd(30)
+  # v2  = -8.25 * sind(30)
+  # p   = 116.5 
+  # u_ = prim2cons(SVector(rho, v1, v2, p), equations)
+
+  #lambda_1, lambda_2 = max_abs_speeds(u_, equations::CompressibleEulerEquations2D)        
+
+  #lambda_1 = max_abs_speed_naive(u_, u_, direction,
+                                 #equations::CompressibleEulerEquations2D)       
+  #println("lambda_max; ",lambda_1)                                 
+  # Calculate boundary flux
+  #println("bevor: ",(x0 + sqrt(1/3)))
+  #println("danach: ",((x0 + sqrt(1/3)) + (lambda_1 * t)))
+
+  # println("x: ",x[1])
+  # println("y: ",x[2])
+  #println("u_inner[1]: ",u_inner[1])
+
+  if x[1] < (1/6 + (x[2]+20*t)*sqrt(1/3))  #+20*t
+
+    rho = 8.0
+    v1  = 8.25  * cosd(30)
+    v2  = -8.25 * sind(30)
+    p   = 116.5 
+    u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, direction, equations)
+
+  else
+
+    rho = 1.4
+    v1  = 0.0
+    v2  = 0.0
+    p   = 1.0
+    u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, direction, equations)
+
+  end 
+  #else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+  #  flux = surface_flux_function(u_inner, u_inner, orientation, equations)
+  #end
 
   return flux
 end
@@ -1190,6 +1385,18 @@ end
  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
  return p
 end
+
+
+@inline function dpdu(u, equations::CompressibleEulerEquations2D)
+
+  dpdu2 = (equations.gamma-1) * (-u[2])/u[1]
+  dpdu3 = (equations.gamma-1) * (-u[3])/u[1] 
+  dpdu4 = (equations.gamma-1)
+  dpdu1 = (equations.gamma-1) * 0.5 * ((u[2]/u[1])^2 + (u[3]/u[1])^2)
+
+
+  return SVector(dpdu1, dpdu2, dpdu3, dpdu4)
+ end
 
 
 @inline function density_pressure(u, equations::CompressibleEulerEquations2D)

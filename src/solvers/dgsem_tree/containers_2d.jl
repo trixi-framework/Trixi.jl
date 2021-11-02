@@ -10,10 +10,17 @@ mutable struct ElementContainer2D{RealT<:Real, uEltype<:Real} <: AbstractContain
   inverse_jacobian::Vector{RealT}        # [elements]
   node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
   surface_flux_values::Array{uEltype, 4} # [variables, i, direction, elements]
+  #FFV::Array{uEltype, 4}                 # [variables, i, j, elements]
+  #FDG::Array{uEltype, 4}                 # [variables, i, j, elements]
+  FFV_m_FDG::Array{uEltype, 4}
+  u_safe::Array{uEltype, 4}
+  alpha::Vector{RealT}
   cell_ids::Vector{Int}                  # [elements]
   # internal `resize!`able storage
   _node_coordinates::Vector{RealT}
   _surface_flux_values::Vector{uEltype}
+  _FFV_m_FDG::Vector{uEltype}
+  _u_safe::Vector{uEltype}
 end
 
 nvariables(elements::ElementContainer2D) = size(elements.surface_flux_values, 1)
@@ -29,7 +36,7 @@ function Base.resize!(elements::ElementContainer2D, capacity)
   n_nodes = nnodes(elements)
   n_variables = nvariables(elements)
   @unpack _node_coordinates, _surface_flux_values,
-          inverse_jacobian, cell_ids = elements
+          inverse_jacobian, _FFV_m_FDG, _u_safe, alpha, lambda, cell_ids = elements
 
   resize!(inverse_jacobian, capacity)
 
@@ -40,6 +47,16 @@ function Base.resize!(elements::ElementContainer2D, capacity)
   resize!(_surface_flux_values, n_variables * n_nodes * 2 * 2 * capacity)
   elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
                                              (n_variables, n_nodes, 2 * 2, capacity))
+
+  resize!(_FFV_m_FDG, n_variables * n_nodes * n_nodes * capacity)
+  elements.FFV_m_FDG = unsafe_wrap(Array, pointer(_FFV_m_FDG),
+                                             (n_variables, n_nodes, n_nodes, capacity))                                           
+
+  resize!(_u_safe, n_variables * n_nodes * n_nodes * capacity)
+  elements.u_safe = unsafe_wrap(Array, pointer(_u_safe),
+                                             (n_variables, n_nodes, n_nodes, capacity))                                              
+
+  resize!(alpha, capacity)   
 
   resize!(cell_ids, capacity)
 
@@ -62,12 +79,29 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables, n_no
   surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
                                     (n_variables, n_nodes, 2 * 2, capacity))
 
+  #_FFV = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+  #FFV = unsafe_wrap(Array, pointer(_FFV),
+  #                (n_variables, n_nodes, n_nodes, capacity))                                
+
+  #_FDG = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+  #FDG = unsafe_wrap(Array, pointer(_FDG),
+  #                (n_variables, n_nodes, n_nodes, capacity))                    
+
+  _FFV_m_FDG = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+  FFV_m_FDG = unsafe_wrap(Array, pointer(_FFV_m_FDG),
+                  (n_variables, n_nodes, n_nodes, capacity))                    
+  
+  _u_safe = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+  u_safe = unsafe_wrap(Array, pointer(_u_safe),
+                  (n_variables, n_nodes, n_nodes, capacity))   
+
+  alpha = fill(nan_RealT, capacity)
+
   cell_ids = fill(typemin(Int), capacity)
 
-
   return ElementContainer2D{RealT, uEltype}(
-    inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
-    _node_coordinates, _surface_flux_values)
+    inverse_jacobian, node_coordinates, surface_flux_values, FFV_m_FDG, u_safe, alpha, lambda, cell_ids,
+    _node_coordinates, _surface_flux_values, _FFV_m_FDG, _u_safe)
 end
 
 
@@ -116,11 +150,15 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh2D, basis)
     jacobian = dx / reference_length
     elements.inverse_jacobian[element] = inv(jacobian)
 
+    elements.alpha[element] = 0.0
+
     # Calculate node coordinates
     # Note that the `tree_coordinates` are the midpoints of the cells.
     # Hence, we need to add an offset for `nodes` with a midpoint
     # different from zero.
     for j in eachnode(basis), i in eachnode(basis)
+      elements.u_safe[:, i, j, element] .= 0.0
+      elements.FFV_m_FDG[:, i, j, element] .= 0.0
       elements.node_coordinates[1, i, j, element] = (
           mesh.tree.coordinates[1, cell_id] + jacobian * (nodes[i] - reference_offset))
       elements.node_coordinates[2, i, j, element] = (

@@ -16,6 +16,8 @@ function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendr
   for cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y]
 
+    alpha[element] = 0.0
+
     calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, mesh.mapping, mesh, basis)
 
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)

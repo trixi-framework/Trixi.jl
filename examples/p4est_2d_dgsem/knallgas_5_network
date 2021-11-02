@@ -1,0 +1,11 @@
+#reactions for Knallgas 5 detonation example H2+O2->2OH & 2OH+H2->2H2O
+
+@var: T = Tgas
+
+@format:idx,R,R,P,P,Tmin,rate
+
+1,H2,O2,OH,OH,>20.0,100000
+
+@format:idx,R,R,R,P,P,Tmin,rate
+
+2,OH,OH,H2,H2O,H2O,>100.0,20000

@@ -37,11 +37,13 @@ In case of more than one component, the specific heat ratios `gammas` and the ga
 The remaining variables like the specific heats at constant volume 'cv' or the specific heats at
 constant pressure 'cp' are then calculated considering a calorically perfect gas.
 """
-struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT<:Real} <: AbstractCompressibleEulerMulticomponentEquations{2, NVARS, NCOMP}
+mutable struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT<:Real} <: AbstractCompressibleEulerMulticomponentEquations{2, NVARS, NCOMP}
   gammas            ::SVector{NCOMP, RealT}
   gas_constants     ::SVector{NCOMP, RealT}
   cv                ::SVector{NCOMP, RealT}
   cp                ::SVector{NCOMP, RealT}
+  t_old             ::RealT
+  delta_t           ::RealT 
 
   function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas       ::SVector{NCOMP, RealT},
                                                                            gas_constants::SVector{NCOMP, RealT}) where {NVARS, NCOMP, RealT<:Real}
@@ -50,8 +52,10 @@ struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT<:Real} <: 
 
     cv = gas_constants ./ (gammas .- 1)
     cp = gas_constants + gas_constants ./ (gammas .- 1)
+    t_old = 0.0
+    delta_t = 0.0
 
-    new(gammas, gas_constants,cv, cp)
+    new(gammas, gas_constants, cv, cp, t_old, delta_t)
   end
 end
 
@@ -476,8 +480,16 @@ end
 
   # Compute the sound speeds on the left and right
   p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+  if p_ll < 0.0 || rho_ll < 0.0
+    println("rho_ll: ",rho_ll)
+    println("p_ll: ",p_ll)
+  end 
   c_ll = sqrt(gamma_ll * p_ll / rho_ll)
   p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+  if p_rr < 0.0 || rho_rr < 0.0
+    println("rho_rr: ",rho_rr)
+    println("p_rr: ",p_rr)
+  end 
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
   λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
@@ -603,6 +615,17 @@ end
 end
 
 
+@inline function pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
+  rho_v1, rho_v2, rho_e = u
+
+  rho          = density(u, equations)
+  gamma        = totalgamma(u, equations)
+  rho_times_p  = (gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2)) / rho
+
+  return rho_times_p
+end
+
+
 @inline function density(u, equations::CompressibleEulerMulticomponentEquations2D)
   rho = zero(u[1])
 
@@ -611,6 +634,24 @@ end
   end
 
   return rho
+ end
+
+ @inline function dpdu(u, equations::CompressibleEulerMulticomponentEquations2D)
+  rho = zero(u[1])
+
+  for i in eachcomponent(equations)
+    rho += u[i+3]
+  end
+
+  gamma = totalgamma(u, equations)
+
+  dpdu1 = (gamma-1) * (-u[1])/rho 
+  dpdu2 = (gamma-1) * (-u[2])/rho 
+  dpdu3 = (gamma-1)
+  dpdu4 = (gamma-1) * 0.5 * ((u[1]/rho)^2 + (u[2]/rho)^2)
+  dpdu5 = (gamma-1) * 0.5 * ((u[1]/rho)^2 + (u[2]/rho)^2)
+
+  return SVector(dpdu1, dpdu2, dpdu3, dpdu4, dpdu5)
  end
 
  @inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations2D)

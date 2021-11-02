@@ -256,6 +256,15 @@ include("compressible_euler_multicomponent_2d.jl")
 @inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
 @inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
+#MultiChemistryEquations
+abstract type AbstractCompressibleEulerMultichemistryEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
+include("compressible_euler_multichemistry_1d.jl")
+include("compressible_euler_multichemistry_2d.jl")
+
+# Retrieve number of components from equation instance for the multicomponent case
+@inline ncomponents(::AbstractCompressibleEulerMultichemistryEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline eachcomponent(equations::AbstractCompressibleEulerMultichemistryEquations) = Base.OneTo(ncomponents(equations))
+
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("ideal_glm_mhd_1d.jl")

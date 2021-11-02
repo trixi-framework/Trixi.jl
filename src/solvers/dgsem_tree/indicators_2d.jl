@@ -93,7 +93,6 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
   if alpha_smooth
     apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
-
   return alpha
 end
 

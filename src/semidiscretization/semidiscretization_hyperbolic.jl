@@ -12,7 +12,7 @@ A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
 struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions,
-                                    SourceTerms, Solver, Cache} <: AbstractSemidiscretization
+                                    SourceTerms, ChemistryTerms, Solver, Cache} <: AbstractSemidiscretization
 
   mesh::Mesh
   equations::Equations
@@ -23,20 +23,22 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryC
 
   boundary_conditions::BoundaryConditions
   source_terms::SourceTerms
+  chemistry_terms::ChemistryTerms
   solver::Solver
   cache::Cache
   performance_counter::PerformanceCounter
 
-  function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}(
+  function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, 
+                                        SourceTerms, ChemistryTerms, Solver, Cache}(
       mesh::Mesh, equations::Equations,
       initial_condition::InitialCondition, boundary_conditions::BoundaryConditions,
-      source_terms::SourceTerms,
-      solver::Solver, cache::Cache) where {Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}
+      source_terms::SourceTerms, chemistry_terms::ChemistryTerms,
+      solver::Solver, cache::Cache) where {Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, ChemistryTerms, Solver, Cache}
     @assert ndims(mesh) == ndims(equations)
 
     performance_counter = PerformanceCounter()
 
-    new(mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache, performance_counter)
+    new(mesh, equations, initial_condition, boundary_conditions, source_terms, chemistry_terms, solver, cache, performance_counter)
   end
 end
 
@@ -51,7 +53,7 @@ end
 Construct a semidiscretization of a hyperbolic PDE.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                      source_terms=nothing,
+                                      source_terms=nothing, chemistry_terms=nothing,
                                       boundary_conditions=boundary_condition_periodic,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
@@ -61,8 +63,9 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
   cache = (; create_cache(mesh, equations, solver, RealT, uEltype)..., initial_cache...)
   _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
 
-  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
-    mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
+  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), 
+                               typeof(source_terms), typeof(chemistry_terms), typeof(solver), typeof(cache)}(
+    mesh, equations, initial_condition, _boundary_conditions, source_terms, chemistry_terms, solver, cache)
 end
 
 
