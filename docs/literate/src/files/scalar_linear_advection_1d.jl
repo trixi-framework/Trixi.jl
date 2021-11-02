@@ -353,6 +353,8 @@ plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft
 # Now, we implement the same example. But this time, we directly use the functionality that Trixi.jl
 # provides.
 
+using Trixi, OrdinaryDiffEq, Plots
+
 # First, define the equation with a advection_velocity of `1`.
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
@@ -365,6 +367,8 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 # We use Trixi.jl's standard mesh [`TreeMesh`](@ref). Since it's limited to hypercube domains, we
 # choose `2^4=16` elements. The mesh type supports AMR, that' why `n_cells_max` has to be set, even
 # if we don't need AMR here.
+coordinates_min = -1.0; # minimum coordinate
+coordinates_max = 1.0; # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4, # number of elements = 2^4
                 n_cells_max=30_000) # set maximum capacity of tree data structure (only needed for AMR)
@@ -377,12 +381,13 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave
 
 # Again, combining all definitions and the function that calculates the right-hand side, we define the ODE and
 # solve it until `t=2` with OrdinaryDiffEq's `solve` function and the Runge-Kutta method `RDPK3SpFSAL49()`.
+tspan = (0.0, 2.0)
 ode_trixi  = semidiscretize(semi, tspan)
 
 sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
 
 # We add a plot of the new approximated solution to the one calculated before.
-plot!(vec(x), vec(sol_trixi.u[end]), label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
+plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
 
@@ -476,7 +481,7 @@ sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=f
 plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3);
 
 
-# ### Implementation with Trixi.jl
+# ### Alternative Implementation based on Trixi.jl
 using Trixi, OrdinaryDiffEq, Plots
 
 ## equation with a advection_velocity of `1`.
@@ -487,6 +492,8 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 ## distretize domain with `TreeMesh`
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0 # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4, # number of elements = 2^4
                 n_cells_max=30_000)
@@ -497,8 +504,9 @@ initial_condition_sine_wave(x, t, equations) = SVector(1.0 + 0.5 * sin(pi * sum(
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
 
 ## solve
+tspan = (0.0, 2.0)
 ode_trixi  = semidiscretize(semi, tspan)
 sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
 
-plot!(vec(x), vec(sol_trixi.u[end]), label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2);
+plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2);
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
