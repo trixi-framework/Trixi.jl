@@ -274,7 +274,7 @@ element corner points according to
 Next, we create a transfinite mapping function, $\mathbf{X}(\boldsymbol{\xi})$, for a hexahedron that
 has one or more curved faces. For this we assume that have a set of six interpolating polynomials
 $\{\Gamma_i\}_{i=1}^6$ that approximate the faces. The interpolating polynomial for any curved faces is provided
-by the information in a `HOHQMesh` Abaqus mesh file or is constructured on the fly via a
+by the information in a `HOHQMesh` Abaqus mesh file or is constructed on the fly via a
 bi-linear interpolation routine for any linear faces. Explicitly, these six face interpolation polynomials depend
 on the computational coordinates $\boldsymbol{\xi}$ as follows
 ```math
@@ -293,7 +293,7 @@ To determine the form of the mapping we first create linear interpolations betwe
 \end{aligned}
 ```
 
-Unfortunately, the linear interpolations $\boldsymbol\Sigma(\boldsymbol{\xi})$ no longer match at the faces, e.g, evaluating at $\eta = -1$ we have
+Unfortunately, the linear interpolations $\boldsymbol\Sigma(\boldsymbol{\xi})$ no longer match at the faces, e.g., evaluating at $\eta = -1$ we have
 ```math
 \begin{aligned}
    \boldsymbol\Sigma(\xi,-1,\zeta) &= \Gamma_1(\xi,\zeta) + \frac{1}{2}\bigg[\quad\,(1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)\\[-0.3cm]
