@@ -10,8 +10,8 @@ using Test: @test #src
 # u_t + u_x = 0,\; \text{for} \;t\in \mathbb{R}^+, x\in\Omega=[-1,1]
 # ```
 # We define the domain $\Omega$ by setting the boundaries.
-coordinates_min = -1.0; # minimum coordinate
-coordinates_max = 1.0; # maximum coordinate
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0  # maximum coordinate
 
 # We assume periodic boundaries and the following initial condition.
 initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
@@ -82,7 +82,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # [Gaussian-Lobatto quadrature](https://mathworld.wolfram.com/LobattoQuadrature.html).
 # These always contain the boundary points at $-1$ and $+1$ and are well suited as interpolation nodes.
 # The corresponding weights will be referred to as $\{w_j\}_{j=0}^N$.
-# In Trixi.jl the basis with Lagrange polynomials on Gauss-Lobatto nodes is already defined. 
+# In Trixi.jl the basis with Lagrange polynomials on Gauss-Lobatto nodes is already defined.
 using Trixi
 polydeg = 3 #= polynomial degree = N =#
 basis = LobattoLegendreBasis(polydeg)
@@ -154,7 +154,7 @@ plot(vec(x), vec(u0), label="initial condition", legend=:topleft)
 
 # #### Term I:
 # In the following calculation we approximate the integral numerically with quadrature on the Gauss-Lobatto
-# nodes $\{\xi_i\}_{i=0}^N$ and then use the Kronecker property of the Lagrange polynomials. This approach 
+# nodes $\{\xi_i\}_{i=0}^N$ and then use the Kronecker property of the Lagrange polynomials. This approach
 # of using the same nodes for the interpolation and quadrature is called collocation.
 # ```math
 # \begin{align*}
@@ -297,7 +297,7 @@ function rhs!(du, u, x, t)
     flux_numerical = copy(du)
 
     ## Calculate interface and boundary fluxes, $u^* = (u^*|_{-1}, 0, ..., 0, u^*|^1)^T$
-    ## Since we use the flux Lax-Friedrichs from Trixi.jl, we have to pass some extra arguments. 
+    ## Since we use the flux Lax-Friedrichs from Trixi.jl, we have to pass some extra arguments.
     ## Trixi needs the equation we are dealing with and an additional `1`, that indicates the
     ## first coordinate direction.
     equations = LinearScalarAdvectionEquation1D(1.0)
@@ -367,8 +367,8 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 # We use Trixi.jl's standard mesh [`TreeMesh`](@ref). Since it's limited to hypercube domains, we
 # choose `2^4=16` elements. The mesh type supports AMR, that' why `n_cells_max` has to be set, even
 # if we don't need AMR here.
-coordinates_min = -1.0; # minimum coordinate
-coordinates_max = 1.0; # maximum coordinate
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0  # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4, # number of elements = 2^4
                 n_cells_max=30_000) # set maximum capacity of tree data structure (only needed for AMR)
@@ -408,8 +408,8 @@ B = diagm([-1; zeros(polydeg - 1); 1])
 
 ## mesh
 coordinates_min = -1.0 # minimum coordinate
-coordinates_max = 1.0 # maximum coordinate
-n_elements      = 16 # number of elements
+coordinates_max = 1.0  # maximum coordinate
+n_elements      = 16   # number of elements
 
 dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 
@@ -478,7 +478,7 @@ ode = ODEProblem(rhs!, u0, tspan, x)
 sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
-plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3);
+plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
 
 
 # ### Alternative Implementation based on Trixi.jl
@@ -508,5 +508,5 @@ tspan = (0.0, 2.0)
 ode_trixi  = semidiscretize(semi, tspan)
 sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6, save_everystep=false);
 
-plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2);
+plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
