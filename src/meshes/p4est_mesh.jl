@@ -367,13 +367,13 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
   file_idx = calc_tree_node_coordinates!(tree_node_coordinates, file_lines, nodes, vertices, RealT)
 
   # Allocate the memory for the boundary labels
-  boundary_names = Array{Symbol}(undef, (4, n_trees))
+  boundary_names = Array{Symbol}(undef, (2 * n_dimensions, n_trees))
 
   # Read in the boundary names from the last portion of the meshfile
   # Note here the boundary names where "---" means an internal connection
   for tree in 1:n_trees
     current_line = split(file_lines[file_idx])
-    boundary_names[:, tree] = map(Symbol, current_line[2:5])
+    boundary_names[:, tree] = map(Symbol, current_line[2:end])
     file_idx  += 1
   end
 
@@ -1168,18 +1168,18 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
   # When we extract information from the `current_line` we start at index 2 in order to
   # avoid the Abaqus comment character "** "
   for tree in 1:n_trees
-    # pull the corner node IDs
+    # Pull the corner node IDs
     current_line        = split(file_lines[file_idx])
     element_node_ids[1] = parse(Int, current_line[2])
     element_node_ids[2] = parse(Int, current_line[3])
     element_node_ids[3] = parse(Int, current_line[4])
     element_node_ids[4] = parse(Int, current_line[5])
 
-    # pull the (x,y) values of the four corners of the current tree out of the vertices array
+    # Pull the (x,y) values of the four corners of the current tree out of the vertices array
     for i in 1:4
       cornerNodeVals[i, :] .= vertices[1:2, element_node_ids[i]]
     end
-    # pull the information to check if boundary is curved in order to read in additional data
+    # Pull the information to check if boundary is curved in order to read in additional data
     file_idx += 1
     current_line    = split(file_lines[file_idx])
     curved_check[1] = parse(Int, current_line[2])
@@ -1190,8 +1190,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
       # Create the node coordinates on this particular element
       calc_node_coordinates!(node_coordinates, tree, nodes, cornerNodeVals)
     else
-      # quadrilateral element has at least one curved side
-      # flip node ordering to make sure the element is right-handed for the interpolations
+      # Quadrilateral element has at least one curved side
+      # Flip node ordering to make sure the element is right-handed for the interpolations
       m1 = 1
       m2 = 2
       @views tempNodes[1, :] .= cornerNodeVals[4, :]
@@ -1200,14 +1200,14 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
       @views tempNodes[4, :] .= cornerNodeVals[1, :]
       for i in 1:4
         if curved_check[i] == 0
-          # when curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
+          # When curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
           # straight line. So we evaluate a linear interpolant between the two points at each of the nodes.
           for k in 1:nnodes
             curve_vals[k, 1] = linear_interpolate(nodes[k], tempNodes[m1, 1], tempNodes[m2, 1])
             curve_vals[k, 2] = linear_interpolate(nodes[k], tempNodes[m1, 2], tempNodes[m2, 2])
           end
         else
-          # when curved_check[i] is 1 this curved boundary information is supplied by the mesh
+          # When curved_check[i] is 1 this curved boundary information is supplied by the mesh
           # generator. So we just read it into a work array
           for k in 1:nnodes
             file_idx += 1
@@ -1216,10 +1216,10 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
             curve_vals[k, 2] = parse(RealT,current_line[3])
           end
         end
-        # construct the curve interpolant for the current side
+        # Construct the curve interpolant for the current side
         surface_curves[i] = CurvedSurfaceT(nodes, bary_weights, copy(curve_vals))
-        # indexing update that contains a "flip" to ensure correct element orientation
-        # if we need to construct the straight line "curves" when curved_check[i] == 0
+        # Indexing update that contains a "flip" to ensure correct element orientation.
+        # If we need to construct the straight line "curves" when curved_check[i] == 0
         m1 += 1
         if i == 3
           m2 = 1
@@ -1235,6 +1235,163 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
    end
 
   return file_idx
+end
+
+
+# Calculate physical coordinates of each element of an unstructured mesh read
+# in from a HOHQMesh file. This calculation is done with the transfinite interpolation
+# routines found in `transfinite_mappings_3d.jl`
+function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
+                                     file_lines::Vector{String}, nodes, vertices, RealT)
+  # Get the number of trees and the number of interpolation nodes
+  n_trees = last(size(node_coordinates))
+  nnodes = length(nodes)
+
+  # Setup the starting file index to read in element indices and the additional
+  # curved boundary information provided by HOHQMesh.
+  file_idx = findfirst(occursin.("mesh polynomial degree", file_lines)) + 1
+
+  # Create a work set of Gamma curves to create the node coordinates
+  CurvedFaceT = CurvedFace{RealT}
+  face_curves = Array{CurvedFaceT}(undef, 6)
+
+  # Create other work arrays to perform the mesh construction
+  element_node_ids = Array{Int}(undef, 8)
+  curved_check     = Vector{Int}(undef, 6)
+  cornerNodeVals   = Array{RealT}(undef, (3, 8))
+  tempNodes        = Array{RealT}(undef, (3, 4))
+  curve_vals       = Array{RealT}(undef, (3, nnodes, nnodes))
+
+  # Create the barycentric weights used for the surface interpolations
+  bary_weights_ = barycentric_weights(nodes)
+  bary_weights = SVector{nnodes}(bary_weights_)
+
+  # Loop through all the trees, i.e., the elements generated by HOHQMesh and create the node coordinates.
+  # When we extract information from the `current_line` we start at index 2 in order to
+  # avoid the Abaqus comment character "** "
+  for tree in 1:n_trees
+    # pull the corner node IDs
+    current_line        = split(file_lines[file_idx])
+    element_node_ids[1] = parse(Int, current_line[2])
+    element_node_ids[2] = parse(Int, current_line[3])
+    element_node_ids[3] = parse(Int, current_line[4])
+    element_node_ids[4] = parse(Int, current_line[5])
+    element_node_ids[5] = parse(Int, current_line[6])
+    element_node_ids[6] = parse(Int, current_line[7])
+    element_node_ids[7] = parse(Int, current_line[8])
+    element_node_ids[8] = parse(Int, current_line[9])
+
+    # Pull the (x, y, z) values of the eight corners of the current tree out of the vertices array
+    for i in 1:8
+      cornerNodeVals[:, i] .= vertices[:, element_node_ids[i]]
+    end
+    # Pull the information to check if boundary is curved in order to read in additional data
+    file_idx += 1
+    current_line    = split(file_lines[file_idx])
+    curved_check[1] = parse(Int, current_line[2])
+    curved_check[2] = parse(Int, current_line[3])
+    curved_check[3] = parse(Int, current_line[4])
+    curved_check[4] = parse(Int, current_line[5])
+    curved_check[5] = parse(Int, current_line[6])
+    curved_check[6] = parse(Int, current_line[7])
+    if sum(curved_check) == 0
+      # Create the node coordinates on this element
+      calc_hex_node_coordinates!(node_coordinates, tree, nodes, cornerNodeVals)
+    else
+      # Hexahedral element has at least one curved side
+      for face in 1:6
+        if curved_check[face] == 0
+          # Face is a flat plane. Evaluate a bilinear interpolant between the corners of the face at each of the nodes.
+          get_corners_for_bilinear_interpolant!(cornerNodeVals, face, tempNodes)
+          for q in 1:nnodes, p in 1:nnodes
+            curve_vals[:, p, q] .= bilinear_interpolation(tempNodes, nodes[p], nodes[q])
+          end
+        else # curved_check[face] == 1
+          # Curved face boundary information is supplied by the mesh file. Just read it into a work array
+          for q in 1:nnodes, p in 1:nnodes
+            file_idx += 1
+            current_line = split(file_lines[file_idx])
+            curve_vals[1, p, q] = parse(RealT,current_line[2])
+            curve_vals[2, p, q] = parse(RealT,current_line[3])
+            curve_vals[3, p, q] = parse(RealT,current_line[4])
+          end
+        end
+        # Construct the curve interpolant for the current side
+        face_curves[face] = CurvedFaceT(nodes, bary_weights, copy(curve_vals))
+      end
+      # Create the node coordinates on this particular element
+      calc_hex_node_coordinates!(node_coordinates, tree, nodes, face_curves)
+    end
+    # Move file index to the next tree
+    file_idx += 1
+   end
+
+  return file_idx
+end
+
+
+# Given the eight `hex_corners` for a hexahedral element extract
+# the four `face_corners` for a particular `face_index`.
+function get_corners_for_bilinear_interpolant!(hex_corners, face_index, face_corners)
+
+  # TODO: should this use @views?
+  if face_index == 1
+    face_corners[:, 1] .= hex_corners[:, 1]
+    face_corners[:, 2] .= hex_corners[:, 2]
+    face_corners[:, 3] .= hex_corners[:, 6]
+    face_corners[:, 4] .= hex_corners[:, 5]
+  elseif face_index == 2
+    face_corners[:, 1] .= hex_corners[:, 4]
+    face_corners[:, 2] .= hex_corners[:, 3]
+    face_corners[:, 3] .= hex_corners[:, 7]
+    face_corners[:, 4] .= hex_corners[:, 8]
+  elseif face_index == 3
+    face_corners[:, 1] .= hex_corners[:, 1]
+    face_corners[:, 2] .= hex_corners[:, 2]
+    face_corners[:, 3] .= hex_corners[:, 3]
+    face_corners[:, 4] .= hex_corners[:, 4]
+  elseif face_index == 4
+    face_corners[:, 1] .= hex_corners[:, 2]
+    face_corners[:, 2] .= hex_corners[:, 3]
+    face_corners[:, 3] .= hex_corners[:, 6]
+    face_corners[:, 4] .= hex_corners[:, 7]
+  elseif face_index == 5
+    face_corners[:, 1] .= hex_corners[:, 5]
+    face_corners[:, 2] .= hex_corners[:, 6]
+    face_corners[:, 3] .= hex_corners[:, 7]
+    face_corners[:, 4] .= hex_corners[:, 8]
+  else # face_index == 6
+    face_corners[:, 1] .= hex_corners[:, 1]
+    face_corners[:, 2] .= hex_corners[:, 4]
+    face_corners[:, 3] .= hex_corners[:, 8]
+    face_corners[:, 4] .= hex_corners[:, 5]
+  end
+end
+
+
+# Evaluate a bilinear interpolant at a point (u,v) given the four corners where the face is right-handed
+#      4                3
+#      o----------------o
+#      |                |
+#      |                |
+#      |                |
+#      |                |
+#      |                |
+#      |                |
+#      o----------------o
+#      1                2
+# and return the 3D coordinate point (x, y, z)
+function bilinear_interpolation(face_corners, u, v)
+
+  coordinate = zeros(eltype(face_corners), 3)
+  for j in 1:3
+    coordinate[j] = 0.25 * (  face_corners[j,1] * (1.0 - u) * (1.0 - v)
+                            + face_corners[j,2] * (1.0 + u) * (1.0 - v)
+                            + face_corners[j,3] * (1.0 + u) * (1.0 + v)
+                            + face_corners[j,4] * (1.0 - u) * (1.0 + v) )
+  end
+
+  return coordinate
 end
 
 

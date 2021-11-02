@@ -120,6 +120,12 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.000535219040687628],
       tspan = (0.0, 0.04))
   end
+
+  @trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_hohqmesh.jl"),
+      l2   = [0.004206309690620563, 0.004126097809243564, 0.004249654337625898, 0.0036399062057524295, 0.007401447142652835],
+      linf = [0.04530413742813599, 0.027657282796417437, 0.056698206703512, 0.04839054846610935, 0.11544778343499651])
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
