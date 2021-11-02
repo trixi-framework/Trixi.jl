@@ -21,9 +21,9 @@ is parsed to create an initial unstructured, curvilinear, and conforming mesh.
 
 For this discussion we use the following two-dimensional unstructured curved mesh with three elements:
 
-![abaqus-mesh-docs](https://user-images.githubusercontent.com/25242486/139241997-88e70a01-286f-4cee-80b1-2fd83c60bcca.png)
+![abaqus-2dmesh-docs](https://user-images.githubusercontent.com/25242486/139241997-88e70a01-286f-4cee-80b1-2fd83c60bcca.png)
 
-We note that the node and element connectivity information parsed from the Abaqus file creates
+We note that the corner and element connectivity information parsed from the Abaqus file creates
 a straight sided (linear) mesh.
 From this linear mesh there are two strategies available to make the mesh curvilinear:
 
@@ -36,7 +36,7 @@ From this linear mesh there are two strategies available to make the mesh curvil
    is available via the Julia package [HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
    This information is used to create appropriate transfinite mappings during the mesh construction.
 
-We divide our discussion into two parts. The first part discusses the standard node and element information
+We divide our discussion into two parts. The first part discusses the standard corner and element information
 contained in the `.inp` mesh file. The second part specifically deals with the mesh file parsing of an Abaqus
 file created by HOHQMesh.jl.
 
@@ -56,8 +56,8 @@ If the Abaqus file header is **not** present then the `P4estMesh` is created wit
 ### List of corner nodes
 
 Next, prefaced with `*NODE`, comes a list of the physical `(x,y,z)` coordinates of all the corners.
-The first integer in the list of the corner nodes provides the node id number.
-Thus, for the two-dimensional example mesh this block of corner node information is
+The first integer in the list of the corners provides its id number.
+Thus, for the two-dimensional example mesh this block of corner information is
 ```
 *NODE
 1, 1.0, -1.0, 0.0
@@ -71,7 +71,7 @@ Thus, for the two-dimensional example mesh this block of corner node information
 
 ### List of elements
 
-The element connectivity is given after the list of corner nodes. The header for this information block is
+The element connectivity is given after the list of corners. The header for this information block is
 ```
 *ELEMENT, type=CPS4, ELSET=Surface1
 ```
@@ -89,13 +89,6 @@ Thus, the element connectivity list for the three element example mesh is
 2, 4, 2, 6, 3
 3, 7, 2, 4, 1
 ```
-
-*As a short note, in a three-dimensional Abaqus file the element connectivity would be given in terms of the
-eight corner nodes that define a hexahedron. Also, the header of the element section changes to be*
-```
-*ELEMENT, type=C3D8, ELSET=Volume1
-```
-*The Abaqus element type `C3D8` corresponds to a hexahedral element.*
 
 ### Element neighbor connectivity
 
@@ -168,7 +161,7 @@ Given below is the element curvature information for the example mesh:
 
 The last piece of information provided by `HOHQMesh` are labels for the different surfaces of an element.
 These labels are useful to set boundary conditions along physical surfaces.
-The labels can be short descriptive words.
+The labels can be short descriptive words up to 32 characters in length.
 The label `---` indicates an internal surface where no boundary condition is required.
 
 It is important to note that these labels are given in the following order according to the
@@ -233,4 +226,123 @@ For completeness, we provide the entire Abaqus mesh file for the example mesh in
 **  Bezier --- Slant ---
 **  --- Right --- Top
 **  Bottom --- Right ---
+```
+
+## Short discussion on 3D
+
+The Abaqus file format with high-order boundary information from `HOHQMesh` is very similar to the
+2D version discussed above. There are only three changes:
+
+1. The element connectivity would be given in terms of the eight corners that define a hexahedron.
+   The corners are numbered as shown in the figure below. The header of the element list changes to be
+   ```
+   *ELEMENT, type=C3D8, ELSET=Volume1
+   ```
+   where `C3D8` corresponds to a Abaqus hexahedral element.
+2. There are six check digits included directly below the eight corner indexes to indicate whether
+   the local face within the element is straight sided, `0`, or is curved, `1`. For curved faces
+   `(x,y,z)` coordinate values are available in order to construct an face interpolant with the mesh
+   polynomial order at the Chebyshev-Gauss-Lobatto nodes.
+3. The boundary labels are given in the following order according to the local surface index
+   `-x` `+x` `-y` `+y` `-z` `+z` as required by the [`p4est`](https://github.com/cburstedde/p4est) library.
+
+For completeness, we also give a short description and derivation of the three-dimensional transfinite mapping
+formulas used to compute the physical coordinates $\mathbf{x}=(x,y,z)$ of a (possibly curved) hexahedral element
+give the reference coordinates $\boldsymbol{\xi} = (\xi, \eta, \zeta)$ which lie in $[-1,1]^3$. That is, we will
+create an expression $\mathbf{x}= \mathbf{X}(\boldsymbol{\xi})$.
+
+Below we provide a sketch of a single hexahedral element with curved faces. This is done to introduce the numbering
+conventions for corners, edges, and faces of the element.
+
+![abaqus-3dmesh-docs](https://user-images.githubusercontent.com/25242486/139839161-8c5f5979-2724-4cfb-9eac-6af58105ef12.png)
+
+When the hexahedron is a straight sided (linear) element we compute the transfinite mapping directly from the
+element corner points according to
+```math
+\begin{aligned}
+\mathbf{X}_{linear}(\boldsymbol{\xi}) &=  \frac{1}{8}[\;\;\; \mathbf{x}_1(1-\xi)(1-\eta)(1-\zeta)
+                                                         + \mathbf{x}_2(1+\xi)(1-\eta)(1-\zeta)\\[-0.15cm]
+                                    & \qquad             + \mathbf{x}_3(1+\xi)(1+\eta)(1-\zeta)
+                                                         + \mathbf{x}_4(1-\xi)(1+\eta)(1-\zeta) \\
+                                    & \qquad             + \mathbf{x}_5(1-\xi)(1-\eta)(1+\zeta)
+                                                         + \mathbf{x}_6(1+\xi)(1-\eta)(1+\zeta) \\
+                                    & \qquad             + \mathbf{x}_7(1+\xi)(1+\eta)(1+\zeta)
+                                                         + \mathbf{x}_8(1-\xi)(1+\eta)(1+\zeta)]
+\end{aligned}
+```
+
+Next, we create a transfinite mapping function, $\mathbf{X}(\boldsymbol{\xi})$, for a hexahedron that
+has one or more curved faces. For this we assume that have a set of six interpolating polynomials
+$\{\Gamma_i\}_{i=1}^6$ that approximate the faces. The interpolating polynomial for any curved faces is provided
+by the information in a `HOHQMesh` Abaqus mesh file or is constructured on the fly via a
+bi-linear interpolation routine for any linear faces. Explicitly, these six face interpolation polynomials depend
+on the computational coordinates $\boldsymbol{\xi}$ as follows
+```math
+  \begin{aligned}
+    \Gamma_1(\xi, \zeta), \quad && \quad \Gamma_3(\xi, \eta), \quad && \quad \Gamma_4(\eta, \zeta),\\[0.1cm]
+    \Gamma_2(\xi, \zeta), \quad && \quad \Gamma_5(\xi, \eta), \quad && \quad \Gamma_6(\eta, \zeta).
+  \end{aligned}
+```
+
+To determine the form of the mapping we first create linear interpolations between two opposing faces, e.g., $\Gamma_3$ and $\Gamma_5$ and sum them together to have
+```math
+\begin{aligned}
+  \boldsymbol\Sigma(\boldsymbol{\xi}) &= \frac{1}{2}\bigg[\quad\,(1-\xi)\Gamma_6(\eta,\zeta) + (1+\xi)\Gamma_4(\eta,\zeta) \\[-0.15cm]
+  &\qquad\;\;+ (1-\eta)\Gamma_1(\xi,\zeta) + (1+\eta)\Gamma_2(\xi,\zeta) \\[-0.15cm]
+                                  &\qquad\;\; +(1-\zeta)\Gamma_3(\xi,\eta) + (1+\zeta)\Gamma_5(\xi,\eta)\quad\bigg]
+\end{aligned}
+```
+
+Unfortunately, the linear interpolations $\boldsymbol\Sigma(\boldsymbol{\xi})$ no longer match at the faces, e.g, evaluating at $\eta = -1$ we have
+```math
+\begin{aligned}
+   \boldsymbol\Sigma(\xi,-1,\zeta) &= \Gamma_1(\xi,\zeta) + \frac{1}{2}\bigg[\quad\,(1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)\\[-0.3cm]
+                                  &\qquad\qquad\qquad\quad+(1-\zeta)\Gamma_3(\xi,-1) + (1+\zeta)\Gamma_5(\xi,-1)\quad\bigg]
+\end{aligned}
+```
+which is the desired face $\Gamma_1(\xi,\zeta)$ plus four edge error terms.
+Analogous edge error terms occur at the other faces evaluating $\boldsymbol\Sigma(\boldsymbol{\xi})$
+at $\eta=1$, $\xi=\pm 1$, and $\zeta=\pm 1$.
+In order to match the faces, we subtract a linear interpolant in the $\xi$, $\eta$, and $\zeta$ directions of the
+edge error terms, e.g., the terms in braces in the above equation. So, continuing the example above, the correction term to be subtracted for face $\Gamma_1$ to match would be
+```math
+\left(\frac{1-\eta}{2}\right) \bigg[\frac{1}{2} \bigg[(1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)+(1-\zeta)\Gamma_3(\xi,-1) + (1+\zeta)\Gamma_5(\xi,-1)\bigg]\bigg].
+```
+For clarity, and to allow an easier comparison to the implementation, we introduce auxiliary notation for the 12 edge
+values present in the complete correction term. That is, for given values of $\xi$, $\eta$, and $\zeta$ we have
+```math
+  \begin{aligned}
+    \texttt{edge}_{1} &= \Gamma_1(\xi, -1), \quad && \quad \texttt{edge}_{5} = \Gamma_2(\xi, -1), \quad & \quad  \texttt{edge}_{9} &= \Gamma_6(\eta, -1),\\[0.1cm]
+    \texttt{edge}_{2} &= \Gamma_1(1, \zeta), \quad && \quad\texttt{edge}_{6} = \Gamma_2(1, \zeta), \quad & \quad  \texttt{edge}_{10} &= \Gamma_4(\eta, -1),\\[0.1cm]
+    \texttt{edge}_{3} &= \Gamma_1(\xi, 1), \quad && \quad \texttt{edge}_{7} = \Gamma_2(\xi,  1), \quad & \quad  \texttt{edge}_{11} &= \Gamma_4(\eta, 1),\\[0.1cm]
+    \texttt{edge}_{4} &= \Gamma_1(-1, \zeta), \quad && \quad \texttt{edge}_{8} = \Gamma_2(-1, \zeta), \quad & \quad  \texttt{edge}_{12} &= \Gamma_6(\eta, 1).
+  \end{aligned}
+```
+With this notation for the edge terms (and after some algebraic manipulation) we write the complete edge correction term,
+$\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi})$, as
+```math
+\begin{aligned}
+\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi}) &=  \frac{1}{4}\bigg[\quad\, (1-\eta)(1-\zeta)\texttt{edge}_{1}\\[-0.225cm]
+                                    & \qquad\;\;              + (1+\xi)(1-\eta)\texttt{edge}_{2} \\
+                                    & \qquad\;\;              + (1-\eta)(1+\zeta)\texttt{edge}_{3} \\
+                                    & \qquad\;\;              + (1-\xi)(1-\eta)\texttt{edge}_{4} \\
+                                    & \qquad\;\;              + (1+\eta)(1-\zeta)\texttt{edge}_{5} \\
+                                    & \qquad\;\;              + (1+\xi)(1+\eta)\texttt{edge}_{6} \\
+                                    & \qquad\;\;              + (1+\eta)(1+\zeta)\texttt{edge}_{7} \\
+                                    & \qquad\;\;              + (1-\xi)(1+\eta)\texttt{edge}_{8} \\
+                                    & \qquad\;\;              + (1-\xi)(1-\zeta)\texttt{edge}_{9} \\
+                                    & \qquad\;\;              + (1+\xi)(1-\zeta)\texttt{edge}_{10} \\
+                                    & \qquad\;\;              + (1+\xi)(1+\zeta)\texttt{edge}_{11} \\[-0.225cm]
+                                    & \qquad\;\;              + (1-\xi)(1+\zeta)\texttt{edge}_{12}\quad\bigg].
+\end{aligned}
+```
+
+However, subtracting the edge correction terms $\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi})$
+from $\boldsymbol\Sigma(\boldsymbol{\xi})$ removes the interior element contributions twice.
+Thus, to complete the construction of the transfinite mapping $\mathbf{X}(\boldsymbol{\xi})$ we add the
+transfinite map of the straight sided hexahedral element to find
+```math
+\mathbf{X}(\boldsymbol{\xi}) = \boldsymbol\Sigma(\boldsymbol{\xi})
+                             - \mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi})
+                             + \mathbf{X}_{linear}(\boldsymbol{\xi}).
 ```
