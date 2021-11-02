@@ -291,18 +291,27 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
 
   apply_to_each_field(mul_by!(Vq), u_values, u)
 
-  # TODO: DGMulti. `@threaded` crashes when using `eachindex(u_values)`.
-  # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
-  @threaded for i in Base.OneTo(length(u_values))
-    entropy_var_values[i] = cons2entropy(u_values[i], equations)
-  end
+  cons2entropy!(entropy_var_values, u_values, equations)
 
   # "VhP" fuses the projection "P" with interpolation to volume and face quadrature "Vh"
   apply_to_each_field(mul_by!(VhP), projected_entropy_var_values, entropy_var_values)
 
-  # TODO: DGMulti. `@threaded` crashes when using `eachindex(projected_entropy_var_values)`.
-  # See https://github.com/JuliaSIMD/Polyester.jl/issues/37 for more details.
-  @threaded for i in Base.OneTo(length(projected_entropy_var_values))
+  entropy2cons!(entropy_projected_u_values, projected_entropy_var_values, equations)
+  return nothing
+end
+
+@inline function cons2entropy!(entropy_var_values::StructArray,
+                               u_values          ::StructArray,
+                               equations)
+  @threaded for i in eachindex(u_values)
+    entropy_var_values[i] = cons2entropy(u_values[i], equations)
+  end
+end
+
+@inline function entropy2cons!(entropy_projected_u_values  ::StructArray,
+                               projected_entropy_var_values::StructArray,
+                               equations)
+  @threaded for i in eachindex(projected_entropy_var_values)
     entropy_projected_u_values[i] = entropy2cons(projected_entropy_var_values[i], equations)
   end
 end
@@ -324,10 +333,10 @@ end
 # operators are sparse) for all `<:Polynomial` approximation types.
 @inline has_sparse_operators(element_type, approx_type::Polynomial) = Val{true}()
 
-# SBP/GSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
+# SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
-@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GSBP) = Val{true}()
+@inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
@@ -557,7 +566,7 @@ end
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff{<:Union{Polynomial, GSBP}}, cache) where {Source, BC}
+              source_terms::Source, dg::DGMultiFluxDiff{<:Union{Polynomial, GaussSBP}}, cache) where {Source, BC}
 
   @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
 
