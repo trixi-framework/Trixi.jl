@@ -197,12 +197,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       fake2d = Trixi.PlotData2DCartesian(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
       @test_nowarn_debug Plots.plot(fake2d)
     end
-
-    @testset "1D plot from non TreeMesh" begin
-      @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "structured_1d_dgsem", "elixir_advection_basic.jl"),
-                                       tspan=(0,0.1))
-      @test PlotData1D(sol) isa PlotData1D
-    end
   end
 
   @timed_testset "plot time series" begin
