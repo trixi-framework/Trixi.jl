@@ -260,14 +260,14 @@ When the hexahedron is a straight sided (linear) element we compute the transfin
 element corner points according to
 ```math
 \begin{aligned}
-\mathbf{X}_{linear}(\boldsymbol{\xi}) &=  \frac{1}{8}\bigg[\quad\, \mathbf{x}_1(1-\xi)(1-\eta)(1-\zeta)
-                                                         + \mathbf{x}_2(1+\xi)(1-\eta)(1-\zeta)\\[-0.225cm]
-                                    & \qquad\;\;             + \mathbf{x}_3(1+\xi)(1+\eta)(1-\zeta)
+\mathbf{X}_{linear}(\boldsymbol{\xi}) &=  \frac{1}{8}[\quad\, \mathbf{x}_1(1-\xi)(1-\eta)(1-\zeta)
+                                                         + \mathbf{x}_2(1+\xi)(1-\eta)(1-\zeta)\\[-0.15cm]
+                                    & \qquad\;             + \mathbf{x}_3(1+\xi)(1+\eta)(1-\zeta)
                                                          + \mathbf{x}_4(1-\xi)(1+\eta)(1-\zeta) \\
-                                    & \qquad\;\;             + \mathbf{x}_5(1-\xi)(1-\eta)(1+\zeta)
-                                                         + \mathbf{x}_6(1+\xi)(1-\eta)(1+\zeta) \\[-0.225cm]
-                                    & \qquad\;\;             + \mathbf{x}_7(1+\xi)(1+\eta)(1+\zeta)
-                                                         + \mathbf{x}_8(1-\xi)(1+\eta)(1+\zeta)\quad\bigg]
+                                    & \qquad\;             + \mathbf{x}_5(1-\xi)(1-\eta)(1+\zeta)
+                                                         + \mathbf{x}_6(1+\xi)(1-\eta)(1+\zeta) \\
+                                    & \qquad\;             + \mathbf{x}_7(1+\xi)(1+\eta)(1+\zeta)
+                                                         + \mathbf{x}_8(1-\xi)(1+\eta)(1+\zeta)\quad].
 \end{aligned}
 ```
 
@@ -287,18 +287,16 @@ on the computational coordinates $\boldsymbol{\xi}$ as follows
 To determine the form of the mapping we first create linear interpolations between two opposing faces, e.g., $\Gamma_3$ and $\Gamma_5$ and sum them together to have
 ```math
 \begin{aligned}
-  \boldsymbol\Sigma(\boldsymbol{\xi}) &= \frac{1}{2}\bigg[\quad\,(1-\xi)\Gamma_6(\eta,\zeta) + (1+\xi)\Gamma_4(\eta,\zeta) \\[-0.15cm]
-  &\qquad\;\;+ (1-\eta)\Gamma_1(\xi,\zeta) + (1+\eta)\Gamma_2(\xi,\zeta) \\[-0.15cm]
-                                  &\qquad\;\; +(1-\zeta)\Gamma_3(\xi,\eta) + (1+\zeta)\Gamma_5(\xi,\eta)\quad\bigg]
+  \boldsymbol\Sigma(\boldsymbol{\xi}) &= \frac{1}{2}[\quad\,(1-\xi)\Gamma_6(\eta,\zeta) + (1+\xi)\Gamma_4(\eta,\zeta) \\[-0.15cm]
+  &\qquad\;+ (1-\eta)\Gamma_1(\xi,\zeta) + (1+\eta)\Gamma_2(\xi,\zeta) \\%[-0.15cm]
+                                  &\qquad\; +(1-\zeta)\Gamma_3(\xi,\eta) + (1+\zeta)\Gamma_5(\xi,\eta)\quad].
 \end{aligned}
 ```
 
 Unfortunately, the linear interpolations $\boldsymbol\Sigma(\boldsymbol{\xi})$ no longer match at the faces, e.g., evaluating at $\eta = -1$ we have
 ```math
-\begin{aligned}
-   \boldsymbol\Sigma(\xi,-1,\zeta) &= \Gamma_1(\xi,\zeta) + \frac{1}{2}\bigg[\quad\,(1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)\\[-0.3cm]
-                                  &\qquad\qquad\qquad\quad+(1-\zeta)\Gamma_3(\xi,-1) + (1+\zeta)\Gamma_5(\xi,-1)\quad\bigg]
-\end{aligned}
+\boldsymbol\Sigma(\xi,-1,\zeta) = \Gamma_1(\xi,\zeta) + \frac{1}{2}[\;(1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)
+                                 +(1-\zeta)\Gamma_3(\xi,-1) + (1+\zeta)\Gamma_5(\xi,-1)\;],
 ```
 which is the desired face $\Gamma_1(\xi,\zeta)$ plus four edge error terms.
 Analogous edge error terms occur at the other faces evaluating $\boldsymbol\Sigma(\boldsymbol{\xi})$
@@ -306,7 +304,8 @@ at $\eta=1$, $\xi=\pm 1$, and $\zeta=\pm 1$.
 In order to match the faces, we subtract a linear interpolant in the $\xi$, $\eta$, and $\zeta$ directions of the
 edge error terms, e.g., the terms in braces in the above equation. So, continuing the example above, the correction term to be subtracted for face $\Gamma_1$ to match would be
 ```math
-\left(\frac{1-\eta}{2}\right) \bigg[\frac{1}{2} \bigg[(1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)+(1-\zeta)\Gamma_3(\xi,-1) + (1+\zeta)\Gamma_5(\xi,-1)\bigg]\bigg].
+\left(\frac{1-\eta}{2}\right) \bigg[ \frac{1}{2} [ \; (1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)+(1-\zeta)\Gamma_3(\xi,-1)
+ + (1+\zeta)\Gamma_5(\xi,-1)\;] \bigg].
 ```
 For clarity, and to allow an easier comparison to the implementation, we introduce auxiliary notation for the 12 edge
 values present in the complete correction term. That is, for given values of $\xi$, $\eta$, and $\zeta$ we have
@@ -322,18 +321,18 @@ With this notation for the edge terms (and after some algebraic manipulation) we
 $\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi})$, as
 ```math
 \begin{aligned}
-\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi}) &=  \frac{1}{4}\bigg[\quad\, (1-\eta)(1-\zeta)\texttt{edge}_{1}\\[-0.225cm]
-                                    & \qquad\;\;              + (1+\xi)(1-\eta)\texttt{edge}_{2} \\
-                                    & \qquad\;\;              + (1-\eta)(1+\zeta)\texttt{edge}_{3} \\
-                                    & \qquad\;\;              + (1-\xi)(1-\eta)\texttt{edge}_{4} \\
-                                    & \qquad\;\;              + (1+\eta)(1-\zeta)\texttt{edge}_{5} \\
-                                    & \qquad\;\;              + (1+\xi)(1+\eta)\texttt{edge}_{6} \\
-                                    & \qquad\;\;              + (1+\eta)(1+\zeta)\texttt{edge}_{7} \\
-                                    & \qquad\;\;              + (1-\xi)(1+\eta)\texttt{edge}_{8} \\
-                                    & \qquad\;\;              + (1-\xi)(1-\zeta)\texttt{edge}_{9} \\
-                                    & \qquad\;\;              + (1+\xi)(1-\zeta)\texttt{edge}_{10} \\
-                                    & \qquad\;\;              + (1+\xi)(1+\zeta)\texttt{edge}_{11} \\[-0.225cm]
-                                    & \qquad\;\;              + (1-\xi)(1+\zeta)\texttt{edge}_{12}\quad\bigg].
+\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi}) &=  \frac{1}{4}[\quad\, (1-\eta)(1-\zeta)\texttt{edge}_{1}\\[-0.15cm]
+                                    & \qquad\;              + (1+\xi)(1-\eta)\texttt{edge}_{2} \\
+                                    & \qquad\;              + (1-\eta)(1+\zeta)\texttt{edge}_{3} \\
+                                    & \qquad\;              + (1-\xi)(1-\eta)\texttt{edge}_{4} \\
+                                    & \qquad\;              + (1+\eta)(1-\zeta)\texttt{edge}_{5} \\
+                                    & \qquad\;              + (1+\xi)(1+\eta)\texttt{edge}_{6} \\
+                                    & \qquad\;              + (1+\eta)(1+\zeta)\texttt{edge}_{7} \\
+                                    & \qquad\;              + (1-\xi)(1+\eta)\texttt{edge}_{8} \\
+                                    & \qquad\;              + (1-\xi)(1-\zeta)\texttt{edge}_{9} \\
+                                    & \qquad\;              + (1+\xi)(1-\zeta)\texttt{edge}_{10} \\
+                                    & \qquad\;              + (1+\xi)(1+\zeta)\texttt{edge}_{11} \\
+                                    & \qquad\;              + (1-\xi)(1+\zeta)\texttt{edge}_{12}\quad].
 \end{aligned}
 ```
 
