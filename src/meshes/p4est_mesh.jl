@@ -255,7 +255,7 @@ tree datatype.
 To create a curved unstructured mesh `P4estMesh` two strategies are available:
 
 - `p4est_mesh_from_hohqmesh_abaqus`: High-order, curved boundary information created by
-                                     [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl) is
+                                     [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl) is
                                      available in the `meshfile`. The mesh polynomial degree `polydeg`
                                      of the boundaries is provided from the `meshfile`. The computation of
                                      the mapped tree coordinates is done with transfinite interpolation
@@ -275,7 +275,7 @@ and constructs the transfinite mapping internally.
 
 The particular strategy is selected according to the header present in the `meshfile` where
 the constructor checks whether or not the `meshfile` was created with
-[`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
+[`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
 If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
 with the function `p4est_mesh_from_standard_abaqus`.
 
@@ -331,7 +331,7 @@ end
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. High-order boundary curve information as well as
 # the boundary names on each tree are provided by the `meshfile` created by
-# [`HOHQMesh`](https://github.com/trixi-framework/HOHQMesh.jl).
+# [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
 function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
   conn = read_inp_p4est(meshfile, Val(n_dimensions))
