@@ -20,7 +20,7 @@ solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
 # Unstructured 3D half circle mesh from HOHQMesh
 default_mesh_file = joinpath(@__DIR__, "abaqus_half_circle_3d.inp")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/11461efbfb02c42e06aca338b3d0b645/raw/4643ecb2fa452fe431268b85d8ab1a65426c5719/abaqus_half_circle_3d.inp",
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/11461efbfb02c42e06aca338b3d0b645/raw/81deeb1ebc4945952c30af5bb75fe222a18d975c/abaqus_half_circle_3d.inp",
                                       default_mesh_file)
 mesh_file = default_mesh_file
 
