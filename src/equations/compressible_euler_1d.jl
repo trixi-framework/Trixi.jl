@@ -8,8 +8,28 @@
 @doc raw"""
     CompressibleEulerEquations1D(gamma)
 
-The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
-in one space dimension.
+The compressible Euler equations
+```math
+\partial t
+\begin{pmatrix}
+\rho \\ \rho v_1 \\ \rho e
+\end{pmatrix}
++
+\partial x
+\begin{pmatrix}
+\rho v_1 \\ \rho v_1^2 + p \\ (\rho e +p) v_1
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ 0 \\ 0
+\end{pmatrix}
+```
+for an ideal gas with ratio of specific heats `gamma` in one space dimension.
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v_1^2 \right)
+```
+the pressure.
 """
 struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEquations{1, 3}
   gamma::RealT               # ratio of specific heats

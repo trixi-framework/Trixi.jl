@@ -625,6 +625,25 @@ Cassette.@context Ctx
       end
     end
   end
+
+  @testset "SimpleKronecker" begin
+    N = 3
+
+    NDIMS = 2
+    r, s = StartUpDG.nodes(Quad(), N)
+    V = StartUpDG.vandermonde(Quad(), N, r, s)
+    r1D = StartUpDG.nodes(Line(), N)
+    V1D = StartUpDG.vandermonde(Line(), N, r1D)
+
+    x = r + s
+    V_kron = Trixi.SimpleKronecker(NDIMS, V1D, eltype(x))
+
+    b = similar(x)
+    b_kron = similar(x)
+    Trixi.mul!(b, V, x)
+    Trixi.mul!(b_kron, V_kron, x)
+    @test b ≈ b_kron
+  end
 end
 
 

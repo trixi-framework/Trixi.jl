@@ -38,9 +38,15 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
     init_mpi_interfaces!(mpi_interfaces, elements, mesh)
 
+    # re-initialize mpi_mortars container
+    @unpack mpi_mortars = cache
+    resize!(mpi_mortars, count_required_mpi_mortars(mesh, leaf_cell_ids))
+    init_mpi_mortars!(mpi_mortars, elements, mesh)
+
     # re-initialize mpi cache
     @unpack mpi_cache = cache
-    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
+    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
+                    nvariables(equations), nnodes(dg))
   end
 end
 
