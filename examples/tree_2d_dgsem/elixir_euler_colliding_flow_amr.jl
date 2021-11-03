@@ -14,20 +14,20 @@ function initial_condition_colliding_flow_astro(x, t, equations::CompressibleEul
   # change discontinuity to tanh
   # resolution 128^2 elements (refined close to the interface) and polydeg=3 (total of 512^2 DOF)
   # domain size is [-64,+64]^2
-  @unpack gamma = equations 
+  @unpack gamma = equations
   # the quantities are chosen such, that they are as close as possible to the astro examples
   # keep in mind, that in the astro example, the physical units are weird (parsec, mega years, ...)
   rho = 0.0247
   c = 0.2
   p = c^2 / gamma * rho
-  vel = 13.907432274789372 
+  vel = 13.907432274789372
   slope = 1.0
   v1 = -vel*tanh(slope * x[1])
   # add small initial disturbance to the field, but only close to the interface
   if abs(x[1]) < 10
     v1 = v1 * (1 + 0.01 * sin(pi*x[2]))
   end
-  v2 = 0.0 
+  v2 = 0.0
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 initial_condition = initial_condition_colliding_flow_astro
@@ -49,7 +49,7 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example, however alpha_max = 0.5 is fine
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.5, 
+                                         alpha_max=0.5,
                                          alpha_min=0.0001,
                                          alpha_smooth=true,
                                          variable=density_pressure)
@@ -95,7 +95,7 @@ amr_indicator = IndicatorHennemannGassner(semi,
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               base_level=2,
                                               med_level =0, med_threshold=0.0003, # med_level = current level
-                                              max_level =8, max_threshold=0.003, 
+                                              max_level =8, max_threshold=0.003,
                                               max_threshold_secondary=indicator_sc.alpha_max)
 
 amr_callback = AMRCallback(semi, amr_controller,
@@ -104,7 +104,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine=true)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         amr_callback, save_solution)
 
 # positivity limiter necessary for this tough example
@@ -115,5 +115,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
 sol = solve(ode, SSPRK43(stage_limiter!),
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
 summary_callback() # print the timer summary

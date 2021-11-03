@@ -7,13 +7,13 @@ using Trixi
 gamma = 5/3
 equations = CompressibleEulerEquations2D(gamma)
 
-# Initial condition adopted from 
+# Initial condition adopted from
 # - Yong Liu, Jianfang Lu, and Chi-Wang Shu
 #   An oscillation free discontinuous Galerkin method for hyperbolic systems
 #   https://tinyurl.com/c76fjtx4
 # Mach = 2000 jet
 function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations2D)
-  @unpack gamma = equations 
+  @unpack gamma = equations
   rho = 0.5
   v1 = 0
   v2 = 0
@@ -44,7 +44,7 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.3, 
+                                         alpha_max=0.3,
                                          alpha_min=0.0001,
                                          alpha_smooth=true,
                                          variable=density_pressure)
@@ -81,25 +81,25 @@ save_solution = SaveSolutionCallback(interval=5000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_indicator = IndicatorHennemannGassner(semi,                                                     
-                                          alpha_max=1.0,                                            
-                                          alpha_min=0.0001,                                         
-                                          alpha_smooth=false,                                       
-                                          variable=Trixi.density)                                   
-                                                                                                    
-amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,                    
-                                              base_level=2,                                         
+amr_indicator = IndicatorHennemannGassner(semi,
+                                          alpha_max=1.0,
+                                          alpha_min=0.0001,
+                                          alpha_smooth=false,
+                                          variable=Trixi.density)
+
+amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
+                                              base_level=2,
                                               med_level =0, med_threshold=0.0003, # med_level = current level
-                                              max_level =8, max_threshold=0.003,                    
-                                              max_threshold_secondary=indicator_sc.alpha_max)       
-                                                                                                    
-amr_callback = AMRCallback(semi, amr_controller,                                                    
-                           interval=1,                                                              
-                           adapt_initial_condition=true,                                            
-                           adapt_initial_condition_only_refine=true) 
+                                              max_level =8, max_threshold=0.003,
+                                              max_threshold_secondary=indicator_sc.alpha_max)
+
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=1,
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         amr_callback, save_solution)
 
 # positivity limiter necessary for this tough example
@@ -110,5 +110,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
 sol = solve(ode, SSPRK43(stage_limiter!),
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
 summary_callback() # print the timer summary

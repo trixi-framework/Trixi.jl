@@ -52,5 +52,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(), save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(), save_everystep=false, callback=callbacks, maxiters=typemax(Int));
 summary_callback() # print the timer summary

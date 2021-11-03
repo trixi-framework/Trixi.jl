@@ -50,6 +50,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt= estimate_dt(mesh, dg), save_everystep=false, callback=callbacks);
+            dt= estimate_dt(mesh, dg), save_everystep=false,
+            callback=callbacks, maxiters=typemax(Int));
 
 summary_callback() # print the timer summary
