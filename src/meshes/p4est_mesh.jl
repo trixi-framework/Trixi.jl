@@ -1302,7 +1302,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
       for face in 1:6
         if curved_check[face] == 0
           # Face is a flat plane. Evaluate a bilinear interpolant between the corners of the face at each of the nodes.
-          get_corners_for_bilinear_interpolant!(cornerNodeVals, face, tempNodes)
+          get_corners_for_bilinear_interpolant!(tempNodes, face, cornerNodeVals)
           for q in 1:nnodes, p in 1:nnodes
             curve_vals[:, p, q] .= bilinear_interpolation(tempNodes, nodes[p], nodes[q])
           end
@@ -1332,39 +1332,38 @@ end
 
 # Given the eight `hex_corners` for a hexahedral element extract
 # the four `face_corners` for a particular `face_index`.
-function get_corners_for_bilinear_interpolant!(hex_corners, face_index, face_corners)
+function get_corners_for_bilinear_interpolant!(face_corners, face_index, hex_corners)
 
-  # TODO: should this use @views?
   if face_index == 1
-    face_corners[:, 1] .= hex_corners[:, 1]
-    face_corners[:, 2] .= hex_corners[:, 2]
-    face_corners[:, 3] .= hex_corners[:, 6]
-    face_corners[:, 4] .= hex_corners[:, 5]
+    @views face_corners[:, 1] .= hex_corners[:, 1]
+    @views face_corners[:, 2] .= hex_corners[:, 2]
+    @views face_corners[:, 3] .= hex_corners[:, 6]
+    @views face_corners[:, 4] .= hex_corners[:, 5]
   elseif face_index == 2
-    face_corners[:, 1] .= hex_corners[:, 4]
-    face_corners[:, 2] .= hex_corners[:, 3]
-    face_corners[:, 3] .= hex_corners[:, 7]
-    face_corners[:, 4] .= hex_corners[:, 8]
+    @views face_corners[:, 1] .= hex_corners[:, 4]
+    @views face_corners[:, 2] .= hex_corners[:, 3]
+    @views face_corners[:, 3] .= hex_corners[:, 7]
+    @views face_corners[:, 4] .= hex_corners[:, 8]
   elseif face_index == 3
-    face_corners[:, 1] .= hex_corners[:, 1]
-    face_corners[:, 2] .= hex_corners[:, 2]
-    face_corners[:, 3] .= hex_corners[:, 3]
-    face_corners[:, 4] .= hex_corners[:, 4]
+    @views face_corners[:, 1] .= hex_corners[:, 1]
+    @views face_corners[:, 2] .= hex_corners[:, 2]
+    @views face_corners[:, 3] .= hex_corners[:, 3]
+    @views face_corners[:, 4] .= hex_corners[:, 4]
   elseif face_index == 4
-    face_corners[:, 1] .= hex_corners[:, 2]
-    face_corners[:, 2] .= hex_corners[:, 3]
-    face_corners[:, 3] .= hex_corners[:, 6]
-    face_corners[:, 4] .= hex_corners[:, 7]
+    @views face_corners[:, 1] .= hex_corners[:, 2]
+    @views face_corners[:, 2] .= hex_corners[:, 3]
+    @views face_corners[:, 3] .= hex_corners[:, 6]
+    @views face_corners[:, 4] .= hex_corners[:, 7]
   elseif face_index == 5
-    face_corners[:, 1] .= hex_corners[:, 5]
-    face_corners[:, 2] .= hex_corners[:, 6]
-    face_corners[:, 3] .= hex_corners[:, 7]
-    face_corners[:, 4] .= hex_corners[:, 8]
+    @views face_corners[:, 1] .= hex_corners[:, 5]
+    @views face_corners[:, 2] .= hex_corners[:, 6]
+    @views face_corners[:, 3] .= hex_corners[:, 7]
+    @views face_corners[:, 4] .= hex_corners[:, 8]
   else # face_index == 6
-    face_corners[:, 1] .= hex_corners[:, 1]
-    face_corners[:, 2] .= hex_corners[:, 4]
-    face_corners[:, 3] .= hex_corners[:, 8]
-    face_corners[:, 4] .= hex_corners[:, 5]
+    @views face_corners[:, 1] .= hex_corners[:, 1]
+    @views face_corners[:, 2] .= hex_corners[:, 4]
+    @views face_corners[:, 3] .= hex_corners[:, 8]
+    @views face_corners[:, 4] .= hex_corners[:, 5]
   end
 end
 
