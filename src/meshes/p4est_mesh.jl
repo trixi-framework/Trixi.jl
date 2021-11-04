@@ -340,7 +340,7 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
   n_trees::Int = conn.num_trees
   n_vertices::Int = conn.num_vertices
 
-  # Extract a copy of the element corners to compute the tree node coordinates
+  # Extract a copy of the element vertices to compute the tree node coordinates
   vertices = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
 
   # Readin all the information from the mesh file into a string array
@@ -1147,7 +1147,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 
   # Setup the starting file index to read in element indices and the additional
   # curved boundary information provided by HOHQMesh.
-  file_idx = findfirst(contains("mesh polynomial degree"), file_lines) + 1
+  file_idx = findfirst(contains("** mesh polynomial degree"), file_lines) + 1
 
   # Create a work set of Gamma curves to create the node coordinates
   CurvedSurfaceT = CurvedSurface{RealT}
@@ -1168,14 +1168,14 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
   # When we extract information from the `current_line` we start at index 2 in order to
   # avoid the Abaqus comment character "** "
   for tree in 1:n_trees
-    # Pull the corner node IDs
+    # Pull the vertex node IDs
     current_line        = split(file_lines[file_idx])
     element_node_ids[1] = parse(Int, current_line[2])
     element_node_ids[2] = parse(Int, current_line[3])
     element_node_ids[3] = parse(Int, current_line[4])
     element_node_ids[4] = parse(Int, current_line[5])
 
-    # Pull the (x,y) values of the four corners of the current tree out of the vertices array
+    # Pull the (x,y) values of the four vertices of the current tree out of the global vertices array
     for i in 1:4
       quad_vertices[i, :] .= vertices[1:2, element_node_ids[i]]
     end
@@ -1200,8 +1200,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
       @views quad_vertices_flipped[4, :] .= quad_vertices[1, :]
       for i in 1:4
         if curved_check[i] == 0
-          # When curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
-          # straight line. So we evaluate a linear interpolant between the two points at each of the nodes.
+          # When curved_check[i] is 0 then the "curve" from vertex `i` to vertex `i+1` is a straight line.
+          # Evaluate a linear interpolant between the two points at each of the nodes.
           for k in 1:nnodes
             curve_values[k, 1] = linear_interpolate(nodes[k], quad_vertices_flipped[m1, 1], quad_vertices_flipped[m2, 1])
             curve_values[k, 2] = linear_interpolate(nodes[k], quad_vertices_flipped[m1, 2], quad_vertices_flipped[m2, 2])
@@ -1249,7 +1249,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
 
   # Setup the starting file index to read in element indices and the additional
   # curved boundary information provided by HOHQMesh.
-  file_idx = findfirst(contains("mesh polynomial degree"), file_lines) + 1
+  file_idx = findfirst(contains("** mesh polynomial degree"), file_lines) + 1
 
   # Create a work set of Gamma curves to create the node coordinates
   CurvedFaceT = CurvedFace{RealT}
@@ -1270,7 +1270,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
   # When we extract information from the `current_line` we start at index 2 in order to
   # avoid the Abaqus comment character "** "
   for tree in 1:n_trees
-    # pull the corner node IDs
+    # pull the vertex node IDs
     current_line        = split(file_lines[file_idx])
     element_node_ids[1] = parse(Int, current_line[2])
     element_node_ids[2] = parse(Int, current_line[3])
@@ -1281,7 +1281,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     element_node_ids[7] = parse(Int, current_line[8])
     element_node_ids[8] = parse(Int, current_line[9])
 
-    # Pull the (x, y, z) values of the eight corners of the current tree out of the vertices array
+    # Pull the (x, y, z) values of the eight vertices of the current tree out of the global vertices array
     for i in 1:8
       hex_vertices[:, i] .= vertices[:, element_node_ids[i]]
     end
@@ -1301,8 +1301,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
       # Hexahedral element has at least one curved side
       for face in 1:6
         if curved_check[face] == 0
-          # Face is a flat plane. Evaluate a bilinear interpolant between the corners of the face at each of the nodes.
-          get_corners_for_bilinear_interpolant!(face_vertices, face, hex_vertices)
+          # Face is a flat plane. Evaluate a bilinear interpolant between the four vertices of the face at each of the nodes.
+          get_vertices_for_bilinear_interpolant!(face_vertices, face, hex_vertices)
           for q in 1:nnodes, p in 1:nnodes
             @views bilinear_interpolation!(curve_values[:, p, q], face_vertices, nodes[p], nodes[q])
           end
@@ -1332,7 +1332,7 @@ end
 
 # Given the eight `hex_vertices` for a hexahedral element extract
 # the four `face_vertices` for a particular `face_index`.
-function get_corners_for_bilinear_interpolant!(face_vertices, face_index, hex_vertices)
+function get_vertices_for_bilinear_interpolant!(face_vertices, face_index, hex_vertices)
   if face_index == 1
     @views face_vertices[:, 1] .= hex_vertices[:, 1]
     @views face_vertices[:, 2] .= hex_vertices[:, 2]
