@@ -98,16 +98,11 @@ function create_cache(mesh::VertexMappedMesh, equations,
   # TODO: Check whether SuiteSparseGraphBLAS.jl can be used to get even better performance
   #       and also multiple threads.
   if (ndims(mesh) >= 3) && !((polydeg(dg) <= 2 && Threads.nthreads() <= 1))
-    # Julia uses `SparseMatrixCSC` by default, which is bad for matrix vector
-    # multiplications and does not scale with multiple threads. Here, we use
-    # our own `SimpleSparseMatrixCSR`, which should be at least as fast as
-    # multiplying by the transpose of a `SparseMatrixCSC`. Additionally, it
-    # uses threads internally.
-    interp_matrix_gauss_to_face = SimpleSparseMatrixCSR(
-      droptol!(sparse(interp_matrix_gauss_to_face),
-      100 * eps(eltype(interp_matrix_gauss_to_face))))
-
-    Pf = SimpleSparseMatrixCSR(droptol!(sparse(Pf), 100 * eps(eltype(Pf))))
+    # Since Julia uses `SparseMatrixCSC` by default, we use the adjoint to get
+    # basically a `SparseMatrixCSR`, which is faster for matrix vector multiplication.
+    interp_matrix_gauss_to_face = droptol!(sparse(interp_matrix_gauss_to_face'),
+                                           100 * eps(eltype(interp_matrix_gauss_to_face)))'
+    Pf = droptol!(sparse(Pf'), 100 * eps(eltype(Pf)))'
   end
 
   nvars = nvariables(equations)

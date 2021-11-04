@@ -115,7 +115,6 @@ Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
   return val
 end
 
-
 # `SimpleKronecker` lazily stores a Kronecker product `kron(ntuple(A, NDIMS)...)`.
 # This object also allocates some temporary storage to enable the fast computation
 # of matrix-vector products.
@@ -211,53 +210,6 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
   return nothing
 end
 
-
-# `SimpleSparseMatrixCSR` is a very naive attempt to speed-up multiplications
-# of a sparse matrix by a dense vector from the right.
-struct SimpleSparseMatrixCSR{Tv<:Number, Ti<:Integer} <: AbstractSparseMatrix{Tv, Ti}
-  parent::SparseMatrixCSC{Tv, Ti}
-
-  function SimpleSparseMatrixCSR(A::SparseMatrixCSC{Tv, Ti}) where {Tv<:Number, Ti<:Integer}
-    new{Tv, Ti}(sparse(transpose(A)))
-  end
-end
-
-Base.parent(A::SimpleSparseMatrixCSR) = transpose(A.parent)
-Base.size(A::SimpleSparseMatrixCSR) = size(parent(A))
-Base.@propagate_inbounds Base.getindex(A::SimpleSparseMatrixCSR, idx...) = getindex(parent(A), idx...)
-
-function LinearAlgebra.mul!(C::AbstractVector, _A::SimpleSparseMatrixCSR, B::AbstractVector, α::Number, β::Number)
-  A = _A.parent
-  @boundscheck begin
-    size(A, 2) == size(C, 1) || throw(DimensionMismatch())
-    size(A, 1) == size(B, 1) || throw(DimensionMismatch())
-    size(B, 2) == size(C, 2) || throw(DimensionMismatch())
-  end
-  nzv = SparseArrays.nonzeros(A)
-  rv = rowvals(A)
-
-  for k in 1:size(C, 2)
-    @threaded for col in 1:size(A, 2)
-      @inbounds @muladd begin
-        tmp = zero(eltype(C))
-        for j in nzrange(A, col)
-          tmp = tmp + nzv[j] * B[rv[j], k]
-        end
-        C[col, k] = α * tmp + β * C[col, k]
-      end
-    end
-  end
-
-  C
-end
-
-function LinearAlgebra.mul!(C::AbstractVecOrMat, A::SimpleSparseMatrixCSR, B::AbstractVecOrMat, α::Number)
-  mul!(C, A, B, α, Zero())
-end
-
-function LinearAlgebra.mul!(C::AbstractVecOrMat, A::SimpleSparseMatrixCSR, B::AbstractVecOrMat)
-  mul!(C, A, B, One())
-end
 
 
 end # @muladd
