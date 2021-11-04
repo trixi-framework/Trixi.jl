@@ -187,10 +187,8 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
           # when curved_check[i] is 0 then the "curve" from corner `i` to corner `i+1` is a
           # straight line. So we must construct the interpolant for this line
           for k in 1:mesh_nnodes
-            curve_values[k, 1] = quad_corners_flipped[m1, 1] + 0.5 * (cheby_nodes[k] + 1.0) * ( quad_corners_flipped[m2, 1]
-                                                                                 - quad_corners_flipped[m1, 1])
-            curve_values[k, 2] = quad_corners_flipped[m1, 2] + 0.5 * (cheby_nodes[k] + 1.0) * ( quad_corners_flipped[m2, 2]
-                                                                                 - quad_corners_flipped[m1, 2])
+            curve_values[k, 1] = linear_interpolate(cheby_nodes[k], quad_corners_flipped[m1, 1], quad_corners_flipped[m2, 1])
+            curve_values[k, 2] = linear_interpolate(cheby_nodes[k], quad_corners_flipped[m1, 2], quad_corners_flipped[m2, 2])
           end
         else
           # when curved_check[i] is 1 this curved boundary information is supplied by the mesh
