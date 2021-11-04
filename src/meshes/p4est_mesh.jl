@@ -347,7 +347,7 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
   file_lines = readlines(open(meshfile))
 
   # Get the file index where the mesh polynomial degree is given in the meshfile
-  file_idx = findfirst(occursin.("** mesh polynomial degree", file_lines))
+  file_idx = findfirst(contains("** mesh polynomial degree"), file_lines)
 
   # Get the polynomial order of the mesh boundary information
   current_line = split(file_lines[file_idx])
@@ -1147,7 +1147,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 
   # Setup the starting file index to read in element indices and the additional
   # curved boundary information provided by HOHQMesh.
-  file_idx = findfirst(occursin.("mesh polynomial degree", file_lines)) + 1
+  file_idx = findfirst(contains("mesh polynomial degree"), file_lines) + 1
 
   # Create a work set of Gamma curves to create the node coordinates
   CurvedSurfaceT    = CurvedSurface{RealT}
@@ -1249,7 +1249,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
 
   # Setup the starting file index to read in element indices and the additional
   # curved boundary information provided by HOHQMesh.
-  file_idx = findfirst(occursin.("mesh polynomial degree", file_lines)) + 1
+  file_idx = findfirst(contains("mesh polynomial degree"), file_lines) + 1
 
   # Create a work set of Gamma curves to create the node coordinates
   CurvedFaceT = CurvedFace{RealT}
@@ -1304,7 +1304,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
           # Face is a flat plane. Evaluate a bilinear interpolant between the corners of the face at each of the nodes.
           get_corners_for_bilinear_interpolant!(tempNodes, face, cornerNodeVals)
           for q in 1:nnodes, p in 1:nnodes
-            curve_vals[:, p, q] .= bilinear_interpolation(tempNodes, nodes[p], nodes[q])
+            @views bilinear_interpolation!(curve_vals[:, p, q], tempNodes, nodes[p], nodes[q])
           end
         else # curved_check[face] == 1
           # Curved face boundary information is supplied by the mesh file. Just read it into a work array
@@ -1333,7 +1333,6 @@ end
 # Given the eight `hex_corners` for a hexahedral element extract
 # the four `face_corners` for a particular `face_index`.
 function get_corners_for_bilinear_interpolant!(face_corners, face_index, hex_corners)
-
   if face_index == 1
     @views face_corners[:, 1] .= hex_corners[:, 1]
     @views face_corners[:, 2] .= hex_corners[:, 2]
@@ -1380,17 +1379,13 @@ end
 #      o----------------o
 #      1                2
 # and return the 3D coordinate point (x, y, z)
-function bilinear_interpolation(face_corners, u, v)
-
-  coordinate = zeros(eltype(face_corners), 3)
+function bilinear_interpolation!(coordinate, face_corners, u, v)
   for j in 1:3
-    coordinate[j] = 0.25 * (  face_corners[j,1] * (1.0 - u) * (1.0 - v)
-                            + face_corners[j,2] * (1.0 + u) * (1.0 - v)
-                            + face_corners[j,3] * (1.0 + u) * (1.0 + v)
-                            + face_corners[j,4] * (1.0 - u) * (1.0 + v) )
+    coordinate[j] = 0.25 * (  face_corners[j,1] * (1 - u) * (1 - v)
+                            + face_corners[j,2] * (1 + u) * (1 - v)
+                            + face_corners[j,3] * (1 + u) * (1 + v)
+                            + face_corners[j,4] * (1 - u) * (1 + v) )
   end
-
-  return coordinate
 end
 
 
