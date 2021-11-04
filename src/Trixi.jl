@@ -46,8 +46,8 @@ using P4est
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
-using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
-using Static: One
+using SparseArrays: SparseArrays, AbstractSparseMatrix, SparseMatrixCSC, sparse, droptol!, rowvals, nzrange
+using Static: One, Zero
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
