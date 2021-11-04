@@ -38,11 +38,12 @@ end
 # of a function f(x,y) at a given coordinate (x,y) for a given node distribution.
 function lagrange_interpolation_2d(x, nodes, function_values, barycentric_weights)
 
-  f_intermediate = zeros(eltype(fvals), length(nodes))
+  f_intermediate = zeros(eltype(function_values), length(nodes))
   for j in eachindex(nodes)
-    f_intermediate[j] = lagrange_interpolation(x[2], nodes, view(fvals, j, :), wbary)
+    f_intermediate[j] = lagrange_interpolation(x[2], nodes, view(function_values, j, :),
+                                               barycentric_weights)
   end
-  point_value = lagrange_interpolation(x[1], nodes, f_intermediate, wbary)
+  point_value = lagrange_interpolation(x[1], nodes, f_intermediate, barycentric_weights)
 
   return point_value
 end
