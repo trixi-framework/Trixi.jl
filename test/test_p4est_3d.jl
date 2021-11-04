@@ -35,14 +35,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [9.773852895157622e-6],
-      linf = [0.0005853874124926162])
+      linf = [0.0005853874124926162],
+      coverage_override = (maxiters=5,))
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_curved.jl"),
       l2   = [1.6236411810065552e-5],
       linf = [0.0010554006923731395],
-      tspan = (0.0, 1.0))
+      tspan = (0.0, 1.0),
+      coverage_override = (maxiters=5,))
   end
 
   @trixi_testset "elixir_advection_cubed_sphere.jl" begin
@@ -118,7 +120,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.20904054009050665, 0.18622917151105936, 0.2347957890323218, 0.19432508025509926,
               0.6858860133405615, 0.15172116633332622, 0.22432820727833747, 0.16805989780225183,
               0.000535219040687628],
-      tspan = (0.0, 0.04))
+      tspan = (0.0, 0.04),
+      coverage_override = (maxiters=5,))
   end
 end
 
