@@ -59,7 +59,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [0.4345551123140612, 1.0874941615375844, 0.0, 1.0493729052116585,
               3.219646771412954e-15, 1.5160434573973656, 0.0, 0.18616213071936066,
               0.3723242614387213],
-      coverage_override = (maxiters=5,))
+      coverage_override = (maxiters=6,))
     end
 
 end

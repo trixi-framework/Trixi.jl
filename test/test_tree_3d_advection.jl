@@ -53,7 +53,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       l2   = [9.773852895157622e-6],
       linf = [0.0005853874124926162],
-      coverage_override = (maxiters=5,))
+      coverage_override = (maxiters=6,))
   end
 end
 

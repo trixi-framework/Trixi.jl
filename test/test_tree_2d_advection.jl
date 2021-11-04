@@ -42,7 +42,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # Expected errors are exactly the same as in the parallel test!
       l2   = [4.913300828257469e-5],
       linf = [0.00045263895394385967],
-      coverage_override = (maxiters=5,))
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
@@ -50,14 +50,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # Expected errors are exactly the same as in the parallel test!
       l2   = [3.2207388565869075e-5],
       linf = [0.0007508059772436404],
-      coverage_override = (maxiters=5,))
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
       l2   = [4.949660644033807e-5],
       linf = [0.0004867846262313763],
-      coverage_override = (maxiters=5,))
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_amr_visualization.jl" begin
@@ -72,7 +72,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_visualization.jl"),
       l2   = [0.0007225529919720868],
       linf = [0.005954447875428925],
-      coverage_override = (maxiters=5,))
+      coverage_override = (maxiters=6,))
 
     # Restore GKSwstype to previous value (if it was set)
     if !isinteractive()
