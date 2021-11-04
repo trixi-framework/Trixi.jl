@@ -345,7 +345,8 @@ end
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
 function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
                                 solution_variables=nothing, nvisnodes=2*polydeg(dg))
-  @assert ndims(mesh) == 2
+
+  @assert ndims(mesh) == 2 "Input must be two-dimensional."
 
   n_nodes_2d = nnodes(dg)^ndims(mesh)
   n_elements = nelements(dg, cache)
@@ -504,6 +505,39 @@ PlotData1D(u_ode, semi; kwargs...) = PlotData1D(wrap_array_native(u_ode, semi),
                                                 mesh_equations_solver_cache(semi)...;
                                                 kwargs...)
 
+function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
+                    solution_variables=nothing, nvisnodes=nothing,
+                    slice=:x, point=(0.0, 0.0, 0.0), curve=nothing)
+
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
+  variable_names = SVector(varnames(solution_variables_, equations))
+
+  original_nodes = cache.elements.node_coordinates
+  unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
+
+  orientation_x = 0 # Set 'orientation' to zero on default.
+
+  if ndims(mesh) == 1
+    x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
+    orientation_x = 1
+  elseif ndims(mesh) == 2
+    if curve !== nothing
+      x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
+  else # ndims(mesh) == 3
+    if curve !== nothing
+      x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
+    else
+      x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
+    end
+  end
+
+  return PlotData1D(x, data, variable_names, mesh_vertices_x,
+                    orientation_x)
+end
+
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables=nothing, nvisnodes=nothing,
                     slice=:x, point=(0.0, 0.0, 0.0), curve=nothing)
@@ -514,23 +548,14 @@ function PlotData1D(u, mesh, equations, solver, cache;
   original_nodes = cache.elements.node_coordinates
   unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
 
+  orientation_x = 0 # Set 'orientation' to zero on default.
+
   if ndims(mesh) == 1
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
-  elseif ndims(mesh) == 2
-    if curve != nothing
-      x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
-    else
-      x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
-    end
-    orientation_x = 0
-  else # ndims(mesh) == 3
-    if curve != nothing
-      x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
-    else
-      x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice, point)
-    end
-    orientation_x = 0
+  else # ndims(mesh) == 2
+    pd = PlotData2DTriangulated(u, mesh, equations, solver, cache; solution_variables, nvisnodes)
+    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point)
   end
 
   return PlotData1D(x, data, variable_names, mesh_vertices_x,

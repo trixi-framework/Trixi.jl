@@ -165,7 +165,11 @@ end
 #       constructor.
 RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
                                solution_variables=nothing)
-  return PlotData2D(u, semi; solution_variables=solution_variables)
+  if ndims(semi) == 1
+    return PlotData1D(u, semi; solution_variables=solution_variables)
+  else
+    return PlotData2D(u, semi; solution_variables=solution_variables)
+  end
 end
 
 # Recipe specifically for TreeMesh-type solutions
