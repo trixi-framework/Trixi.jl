@@ -20,7 +20,7 @@ macro test_trixi_include(elixir, args...)
   local linf              = get_kwarg(args, :linf, nothing)
   local atol              = get_kwarg(args, :atol, 500*eps())
   local rtol              = get_kwarg(args, :rtol, sqrt(eps()))
-  local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, (; maxiters=1)))
+  local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, :()))
   if !(:maxiters in keys(coverage_override))
     # maxiters in coverage_override defaults to 1
     coverage_override = (; coverage_override..., maxiters=1)
