@@ -92,6 +92,14 @@ function create_cache(mesh::VertexMappedMesh, equations,
   inv_gauss_weights = inv.(rd.wq)
   Pf = diagm(inv_gauss_weights) * interp_matrix_gauss_to_face'
 
+  # Conditionally use sparse operators if they can be estimated to be faster than dense operators
+  # (based on some benchmarks on an AMD Ryzen Threadripper 3990X 64-Core Processor).
+  if !((polydeg(dg) <= 2 && Threads.nthreads() <= 1))
+    # Since Julia uses `SparseMatrixCSC` by default, we use the adjoint to get
+    # basically a `SparseMatrixCSR`, which is faster for matrix vector multiplication.
+    Pf = droptol!(sparse(Pf'), 100 * eps(eltype(Pf)))'
+  end
+
   nvars = nvariables(equations)
   rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
 
