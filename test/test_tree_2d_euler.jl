@@ -157,7 +157,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.2086261501910662, 1.2118352377894666, 0.10255333189606497, 5.296238138639236],
       linf = [14.829071984498198, 74.12967742435727, 6.863554388300223, 303.58813147491134],
       tspan = (0.0, 0.12),
-      coverage_override = (maxiters=1,) # AMR interval is 1)
+      coverage_override = (maxiters=1,)) # AMR interval is 1)
   end
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
@@ -172,7 +172,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.05569452733654995, 0.033107109983417926, 0.05223609622852158, 0.08007777597488817],
       linf = [0.2535807803900303, 0.17397028249895308, 0.12321616095649354, 0.269046666668995],
       tspan = (0.0, 0.2),
-      coverage_override = (maxiters=1,) # AMR interval is 1)
+      coverage_override = (maxiters=1,)) # AMR interval is 1)
   end
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl" begin
@@ -180,7 +180,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.0009823702998067061, 0.004943231496200673, 0.0048604522073091815, 0.00496983530893294],
       linf = [0.00855717053383187, 0.02087422420794427, 0.017121993783086185, 0.02720703869972585],
       maxiters = 30,
-      coverage_override = (maxiters=1,) # AMR interval is 1)
+      coverage_override = (maxiters=1,)) # AMR interval is 1)
   end
 
   @trixi_testset "elixir_euler_colliding_flow.jl" begin
@@ -195,7 +195,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.006768801432802192, 0.032184992228603666, 6.923887797276484e-7, 0.6784222932398366],
       linf = [0.2508663007713608, 0.4097017076529792, 0.0003528986458217968, 22.435474993016918],
       tspan = (0.0, 0.1),
-      coverage_override = (maxiters=1,) # AMR interval is 1)
+      coverage_override = (maxiters=1,)) # AMR interval is 1)
   end
 
   @trixi_testset "elixir_euler_astro_jet_amr.jl" begin

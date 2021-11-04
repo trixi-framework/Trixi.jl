@@ -69,7 +69,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.02217299067704248, 0.012771561294571411, 0.01277156129457143, 0.012770635779336643, 0.08091898488262424],
       linf = [0.4047819603427084, 0.27493532130155474, 0.2749353213015551, 0.2749304638368023, 1.4053942765487641],
       maxiters=10,
-      coverage_override = (maxiters=1,) # AMR interval is 1)
+      coverage_override = (maxiters=1,)) # AMR interval is 1)
   end
 
   @trixi_testset "elixir_euler_density_pulse.jl" begin
@@ -125,7 +125,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.0007127163978031706, 0.0023166296394624025, 0.002316629639462401, 0.0023166296394624038, 0.010200581509653256],
       linf = [0.06344190883105805, 0.6292607955969378, 0.6292607955969377, 0.6292607955969377, 2.397746252817731],
       maxiters=5, max_level=6,
-      coverage_override = (maxiters=1,) # AMR interval is 1)
+      coverage_override = (maxiters=1,)) # AMR interval is 1)
   end
 end
 

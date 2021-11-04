@@ -55,7 +55,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
     else
       # Without coverage, just run one simple convergence test to cover
       # the convergence test logic
-      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 1, initial_refinement_level=1)
+      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=1)
     end
   end
 
