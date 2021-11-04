@@ -19,8 +19,8 @@ REPL. Additionally, this is used in tests to reduce the computational burden for
 providing examples with sensible default values for users.
 
 Before replacing assignments in `elixir`, the keyword argument `maxiters` is inserted
-into calls to `solve` with it's default value used in the SciML ecosystem for ODEs, see
-https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous.
+into calls to `solve` and `Trixi.solve` with it's default value used in the SciML ecosystem
+for ODEs, see https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous.
 
 # Examples
 
@@ -149,14 +149,21 @@ convergence_test(elixir::AbstractString, iterations; kwargs...) = convergence_te
 walkexpr(f, expr::Expr) = f(Expr(expr.head, (walkexpr(f, arg) for arg in expr.args)...))
 walkexpr(f, x) = f(x)
 
-# Insert the keyword argument `maxiters` into calls to `solve`
+# Insert the keyword argument `maxiters` into calls to `solve` and `Trixi.solve`
 # with default value `10^5` if it is not already present.
 function insert_maxiters(expr)
   maxiters_default = 10^5
 
   expr = walkexpr(expr) do x
     if x isa Expr
-      if x.head === Symbol("call") && x.args[1] === Symbol("solve")
+      is_plain_solve = x.head === Symbol("call") && x.args[1] === Symbol("solve")
+      is_trixi_solve = (x.head === Symbol("call") && x.args[1] isa Expr &&
+                        x.args[1].head === Symbol(".") &&
+                        x.args[1].args[1] === Symbol("Trixi") &&
+                        x.args[1].args[2] isa QuoteNode &&
+                        x.args[1].args[2].value === Symbol("solve"))
+
+      if is_plain_solve || is_trixi_solve
         # Do nothing if `maxiters` is already set as keyword argument...
         for arg in x.args
           if arg isa Expr && arg.head === Symbol("kw") && arg.args[1] === Symbol("maxiters")
