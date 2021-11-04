@@ -16,24 +16,30 @@ as absolute/relative tolerance.
 """
 macro test_trixi_include(elixir, args...)
 
-  local l2       = get_kwarg(args, :l2, nothing)
-  local linf     = get_kwarg(args, :linf, nothing)
-  local atol     = get_kwarg(args, :atol, 500*eps())
-  local rtol     = get_kwarg(args, :rtol, sqrt(eps()))
-  local maxiters = get_kwarg(args, :maxiters, typemax(Int))
+  local l2                = get_kwarg(args, :l2, nothing)
+  local linf              = get_kwarg(args, :linf, nothing)
+  local atol              = get_kwarg(args, :atol, 500*eps())
+  local rtol              = get_kwarg(args, :rtol, sqrt(eps()))
+  local coverage_override = eval(get_kwarg(args, :coverage_override, (;)))
+  if !(:maxiters in keys(coverage_override))
+    # maxiters in coverage_override defaults to 1
+    coverage_override = (coverage_override..., maxiters=1)
+  end
 
   local cmd = string(Base.julia_cmd())
   local coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
-  if coverage
-    # Instead of the kwarg `maxiters`, use `maxiters_coverage` (defaults to 1)
-    # if Julia is run with code coverage
-    maxiters = get_kwarg(args, :maxiters_coverage, 1)
-  end
 
   local kwargs = Pair{Symbol, Any}[]
   for arg in args
-    if arg.head == :(=) && !(arg.args[1] in (:l2, :linf, :atol, :rtol, :maxiters, :maxiters_coverage))
+    if (arg.head == :(=) && !(arg.args[1] in (:l2, :linf, :atol, :rtol, :coverage_override))
+        && !(coverage && arg.args[1] in keys(coverage_override)))
       push!(kwargs, Pair(arg.args...))
+    end
+  end
+
+  if coverage
+    for key in keys(coverage_override)
+      push!(kwargs, Pair(key, coverage_override[key]))
     end
   end
 
@@ -43,7 +49,7 @@ macro test_trixi_include(elixir, args...)
 
     # if `maxiters` is set in tests, it is usually set to a small numer to
     # run only a few steps - ignore possible warnings coming from that
-    if $maxiters < typemax(Int)
+    if any(==(:maxiters) ∘ first, $kwargs)
       additional_ignore_content = [
         r"┌ Warning: Interrupted\. Larger maxiters is needed\.\n└ @ SciMLBase .+\n",
         r"┌ Warning: Interrupted\. Larger maxiters is needed\.\n└ @ Trixi .+\n"]
@@ -52,7 +58,7 @@ macro test_trixi_include(elixir, args...)
     end
 
     # evaluate examples in the scope of the module they're called from
-    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; maxiters=$maxiters, $kwargs...) additional_ignore_content
+    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...) additional_ignore_content
 
     # if present, compare l2 and linf errors against reference values
     if !$coverage && (!isnothing($l2) || !isnothing($linf))
