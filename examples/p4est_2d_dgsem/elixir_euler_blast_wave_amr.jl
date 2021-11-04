@@ -56,7 +56,7 @@ isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/a07
 
 mesh = P4estMesh{2}(mesh_file, polydeg=3, initial_refinement_level=1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
                                     boundary_conditions=Dict(
                                       :all => BoundaryConditionDirichlet(initial_condition)
                                     ))
@@ -105,5 +105,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

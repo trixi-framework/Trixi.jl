@@ -59,12 +59,12 @@ function mapping(xi, eta)
   y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta))
 
   x = xi + 0.125 * (cos(0.5 * pi * xi) * cos(2 * pi * y))
-
+      
   return SVector(x, y)
 end
-
+      
 cells_per_dimension = (16, 16)
-
+      
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=true)
 
 # create the semidiscretization
@@ -100,5 +100,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

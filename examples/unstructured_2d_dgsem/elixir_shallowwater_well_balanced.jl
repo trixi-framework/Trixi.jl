@@ -61,7 +61,7 @@ ode = semidiscretize(semi, tspan)
 # The errors from the analysis callback are not important but the error for this lake at rest test case
 # `∑|H0-(h+b)|` should be around machine roundoff
 # In contrast to the usual signature of initial conditions, this one get passed the
-# `element_id` explicitly. In particular, this initial conditions works as intended
+# `element_id` explicitly. In particular, this initial conditions works as intended 
 # only for the specific mesh loaded above!
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set the background values
@@ -114,5 +114,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

@@ -48,6 +48,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 tol = 1.0e-8
 sol = solve(ode, RDPK3SpFSAL49(), abstol=tol, reltol=tol,
-            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
+            save_everystep=false, callback=callbacks);
 
 summary_callback() # print the timer summary

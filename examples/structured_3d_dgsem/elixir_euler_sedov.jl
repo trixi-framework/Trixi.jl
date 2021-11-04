@@ -26,7 +26,7 @@ function initial_condition_medium_sedov_blast_wave(x, t, equations::Compressible
   r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
   E = 1.0
   p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
-  p0_outer = 1.0e-3
+  p0_outer = 1.0e-3 
 
   # Calculate primitive variables
   rho = 1.0
@@ -52,8 +52,8 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
-
-solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
+                                               
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)  
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
 function mapping(xi, eta, zeta)
@@ -103,5 +103,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=typemax(Int));
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
