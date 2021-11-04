@@ -13,7 +13,7 @@ wrap numerical fluxes implemented only for Cartesian meshes. This simplifies
 the re-use of existing functionality for the [`TreeMesh`](@ref) but is usually
 less efficient, cf. [PR #550](https://github.com/trixi-framework/Trixi.jl/pull/550).
 
-## Construction of P4estMesh from an Abaqus file
+## Construction of 2D P4estMesh from an Abaqus file
 
 One available option to construct a [`P4estMesh`](@ref) is to read in an Abaqus (`.inp`) mesh file.
 We briefly describe the structure of this file, the conventions it uses, and how the mesh file
