@@ -1,5 +1,8 @@
 
 # ========= GaussSBP approximation types ============
+# Note: we define type aliases outside of the @muladd block to avoid Revise breaking when code
+# inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
+# for more details.
 
 # GaussSBP ApproximationType: e.g., Gauss nodes on quads/hexes
 struct GaussSBP end
@@ -23,6 +26,13 @@ function tensor_product_quadrature(element_type::Hex, r1D, w1D)
 end
 
 # Todo: DGMulti. Decide if we should add GaussSBP on triangles.
+
+
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
 # Specialized constructor for GaussSBP approximation type on quad elements. Restricting to
 # VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
@@ -196,3 +206,6 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
   end
 
 end
+
+
+end # @muladd
