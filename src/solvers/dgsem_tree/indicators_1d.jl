@@ -204,13 +204,15 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 # empty cache is default
 function create_cache(::Type{<:IndicatorNeuralNetwork},
-                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis, 
+                      input_size)
   return NamedTuple()
 end
 
 # cache for NeuralNetworkPerssonPeraire-type indicator
 function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}},
-                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis,
+                      input_size)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -220,35 +222,47 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}
   indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
   modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
 
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
+  # There are two versions of the network:
+  # The first one only takes the hightest energy modes as input, the second one also the numbernetwork_input[3] = length(basis.nodes)of
+  # nodes. Automatically use the correct input by checking the size of the first layer
+  network_input = Vector{Float64}(undef, input_size)
+
+  network_output = Vector{Float64}(undef, 2)
+
+  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, network_input, network_output)
 end
 
 # cache for NeuralNetworkRayHesthaven-type indicator
 function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
-                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis,
+                      input_size)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
   A = Array{real(basis), ndims(equations)}
+  c2e = similar(alpha)
 
   prototype = A(undef, nnodes(basis))
   indicator_threaded  = [similar(prototype) for _ in 1:Threads.nthreads()]
   neighbor_ids = Vector{Int}(undef, 2)
 
-  return (; alpha, alpha_tmp, indicator_threaded, neighbor_ids)
+  network_input = Vector{Float64}(undef, input_size)  
+  network_output = Vector{Float64}(undef, 2)
+
+  return (; alpha, alpha_tmp, indicator_threaded, neighbor_ids, c2e, network_input, network_output)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function create_cache(typ::Type{<:IndicatorNeuralNetwork},
                       mesh, equations::AbstractEquations{1}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
+  create_cache(typ, equations, dg.basis, input_size)
 end
 
 function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_ann.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, network_input, network_output = indicator_ann.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -285,31 +299,29 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     end
 
     # Calculate energy in highest modes
-    X1 = (total_energy - total_energy_clip1)/total_energy
-    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
-
-    # There are two versions of the network:
-    # The first one only takes the hightest energy modes as input, the second one also the number of
-    # nodes. Automatically use the correct input by checking the number of inputs of the network.
-    if size(params(network)[1],2) == 2
-      network_input = SVector(X1, X2)
-    elseif size(params(network)[1],2) == 3
-      network_input = SVector(X1, X2, nnodes(dg))
+    network_input[1] = (total_energy - total_energy_clip1)/total_energy
+    network_input[2] = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+    
+    if size(params(network)[1],2) == 3
+      network_input[3] = nnodes(dg)
     end
 
     # Scale input data
     network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
-    probability_troubled_cell = network(network_input)[1]
+    
+
+    network_output = network(network_input)
+    #probability_troubled_cell = network(network_input)[1]
 
     # Compute indicator value
-    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
+    probability_to_indicator!(network_output[1], alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)
+    alpha[element] =  network_output[1]                                   
   end
 
   if alpha_smooth
     apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
   end
-
   return alpha
 end
 
@@ -317,7 +329,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, neighbor_ids = indicator_ann.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, neighbor_ids, c2e, network_input, network_output = indicator_ann.cache
+
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -326,7 +339,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     resize!(alpha_tmp, nelements(dg, cache))
   end
 
-  c2e = zeros(Int, length(mesh.tree))
+  resize!(c2e, length(mesh.tree))
+  
   for element in eachelement(dg, cache)
     c2e[cache.elements.cell_ids[element]] = element
   end
@@ -362,37 +376,39 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     # Calculate indicator variables at Gauss-Lobatto nodes
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, element)
-      indicator[i] = indicator_ann.variable(u_local, equations)
+      indicator[i] = variable(u_local, equations)
     end
 
 
     # Cell average and interface values of the cell
-    X2 = sum(indicator)/nnodes(dg)
-    X4 = indicator[1]
-    X5 = indicator[end]
+    network_input[2] = sum(indicator)/nnodes(dg)
+    network_input[4] = indicator[1]
+    network_input[5] = indicator[end]
 
     # Calculate indicator variables from left neighboring cell at Gauss-Lobatto nodes
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, neighbor_ids[1])
-      indicator[i] = indicator_ann.variable(u_local, equations)
+      indicator[i] = variable(u_local, equations)
     end
-    X1 = sum(indicator)/nnodes(dg)
+    network_input[1] = sum(indicator)/nnodes(dg)
 
     # Calculate indicator variables from right neighboring cell at Gauss-Lobatto nodes
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, neighbor_ids[2])
-      indicator[i] = indicator_ann.variable(u_local, equations)
+      indicator[i] = variable(u_local, equations)
     end
-    X3 = sum(indicator)/nnodes(dg)
-    network_input = SVector(X1, X2, X3, X4, X5)
+    network_input[3] = sum(indicator)/nnodes(dg)
 
     # Scale input data
     network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
-    probability_troubled_cell = network(network_input)[1]
+    network_output = network(network_input)
+
 
     # Compute indicator value
-    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
+    probability_to_indicator!(network_output[1], alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)
+    
+    alpha[element] = network_output[1]
   end
 
   if alpha_smooth

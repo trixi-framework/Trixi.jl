@@ -7,6 +7,10 @@
 
 abstract type AbstractIndicator end
 
+function create_cache(typ::Type{IndicatorType}, semi, input_size) where {IndicatorType<:AbstractIndicator}
+  create_cache(typ, mesh_equations_solver_cache(semi)..., input_size)
+end
+
 function create_cache(typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
   create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
@@ -249,7 +253,7 @@ function IndicatorNeuralNetwork(equations::AbstractEquations, basis;
                                 network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis)
+  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, equations, basis, size(params(network)[1],2))
   IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
       indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
       network, cache)
@@ -267,7 +271,7 @@ function IndicatorNeuralNetwork(semi::AbstractSemidiscretization;
                                 network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   IndicatorType = typeof(indicator_type)
-  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi)
+  cache = create_cache(IndicatorNeuralNetwork{IndicatorType}, semi, size(params(network)[1],2))
   IndicatorNeuralNetwork{IndicatorType, typeof(alpha_max), typeof(variable), typeof(network), typeof(cache)}(
       indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable,
       network, cache)
@@ -307,42 +311,41 @@ end
 
 
 # Convert probability for troubled cell to indicator value for shockcapturing/AMR
-@inline function probability_to_indicator(probability_troubled_cell, alpha_continuous, alpha_amr,
+@inline function probability_to_indicator!(probability_troubled_cell, alpha_continuous, alpha_amr,
                                           alpha_min, alpha_max)
   # Initialize indicator to zero
   alpha_element = zero(probability_troubled_cell)
 
   if alpha_continuous && !alpha_amr
+
     # Set good cells to 0 and troubled cells to continuous value of the network prediction
-    if probability_troubled_cell > 0.5
-      alpha_element = probability_troubled_cell
-    else
-      alpha_element = zero(probability_troubled_cell)
+    if probability_troubled_cell < 0.5
+      probability_troubled_cell = 0
     end
 
     # Take care of the case close to pure FV
-    if alpha_element > 1 - alpha_min
-      alpha_element = one(alpha_element)
+    if probability_troubled_cell > 1 - alpha_min
+      probability_troubled_cell = 1
     end
 
     # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-    alpha_element *= alpha_max
+    probability_troubled_cell *= alpha_max
+
   elseif !alpha_continuous && !alpha_amr
+
     # Set good cells to 0 and troubled cells to 1
     if probability_troubled_cell > 0.5
-      alpha_element = alpha_max
+      probability_troubled_cell = alpha_max
     else
-      alpha_element = zero(alpha_max)
+      probability_troubled_cell = zero(alpha_max)
     end
+    
   elseif alpha_amr
+
     # The entire continuous output of the neural network is used for AMR
-    alpha_element  = probability_troubled_cell
-
     # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-    alpha_element *= alpha_max
+    probability_troubled_cell *= alpha_max
   end
-
-  return alpha_element
 end
 
 
