@@ -53,14 +53,14 @@ function straight_side_hex_map(xi, eta, zeta, corner_points)
 
   coordinate = zeros(eltype(xi), 3)
   for j in 1:3
-    coordinate[j] += (0.125 * ( corner_points[j, 1] * (1.0 - xi) * (1.0 - eta) * (1.0 - zeta)
-                              + corner_points[j, 2] * (1.0 + xi) * (1.0 - eta) * (1.0 - zeta)
-                              + corner_points[j, 3] * (1.0 + xi) * (1.0 + eta) * (1.0 - zeta)
-                              + corner_points[j, 4] * (1.0 - xi) * (1.0 + eta) * (1.0 - zeta)
-                              + corner_points[j, 5] * (1.0 - xi) * (1.0 - eta) * (1.0 + zeta)
-                              + corner_points[j, 6] * (1.0 + xi) * (1.0 - eta) * (1.0 + zeta)
-                              + corner_points[j, 7] * (1.0 + xi) * (1.0 + eta) * (1.0 + zeta)
-                              + corner_points[j, 8] * (1.0 - xi) * (1.0 + eta) * (1.0 + zeta) ) )
+    coordinate[j] += (0.125 * ( corner_points[j, 1] * (1 - xi) * (1 - eta) * (1 - zeta)
+                              + corner_points[j, 2] * (1 + xi) * (1 - eta) * (1 - zeta)
+                              + corner_points[j, 3] * (1 + xi) * (1 + eta) * (1 - zeta)
+                              + corner_points[j, 4] * (1 - xi) * (1 + eta) * (1 - zeta)
+                              + corner_points[j, 5] * (1 - xi) * (1 - eta) * (1 + zeta)
+                              + corner_points[j, 6] * (1 + xi) * (1 - eta) * (1 + zeta)
+                              + corner_points[j, 7] * (1 + xi) * (1 + eta) * (1 + zeta)
+                              + corner_points[j, 8] * (1 - xi) * (1 + eta) * (1 + zeta) ) )
   end
 
   return coordinate
@@ -93,14 +93,14 @@ function transfinite_hex_map(xi, eta, zeta, face_curves::AbstractVector{<:Curved
   corners = zeros(eltype(xi), (3, 8))
 
   # Compute values along the face edges
-  edge_values[:, 1] .= evaluate_at(SVector(xi  , -1), face_curves[1])
-  edge_values[:, 2] .= evaluate_at(SVector(1 , zeta), face_curves[1])
-  edge_values[:, 3] .= evaluate_at(SVector(xi  ,  1), face_curves[1])
+  edge_values[:, 1] .= evaluate_at(SVector(xi,   -1), face_curves[1])
+  edge_values[:, 2] .= evaluate_at(SVector( 1, zeta), face_curves[1])
+  edge_values[:, 3] .= evaluate_at(SVector(xi,    1), face_curves[1])
   edge_values[:, 4] .= evaluate_at(SVector(-1, zeta), face_curves[1])
 
-  edge_values[:, 5] .= evaluate_at(SVector(xi  , -1), face_curves[2])
-  edge_values[:, 6] .= evaluate_at(SVector(1 , zeta), face_curves[2])
-  edge_values[:, 7] .= evaluate_at(SVector(xi  ,  1), face_curves[2])
+  edge_values[:, 5] .= evaluate_at(SVector(xi,   -1), face_curves[2])
+  edge_values[:, 6] .= evaluate_at(SVector( 1, zeta), face_curves[2])
+  edge_values[:, 7] .= evaluate_at(SVector(xi,    1), face_curves[2])
   edge_values[:, 8] .= evaluate_at(SVector(-1, zeta), face_curves[2])
 
   edge_values[:, 9]  .= evaluate_at(SVector(eta, -1), face_curves[6])
@@ -142,7 +142,7 @@ function transfinite_hex_map(xi, eta, zeta, face_curves::AbstractVector{<:Curved
                               + edge_values[j, 4 ] * (1 - xi ) * (1 - eta )
                               + edge_values[j, 5 ] * (1 + eta) * (1 - zeta)
                               + edge_values[j, 6 ] * (1 + xi ) * (1 + eta )
-                              + edge_values[j, 7 ] * (1 + eta) * (1.+ zeta)
+                              + edge_values[j, 7 ] * (1 + eta) * (1 + zeta)
                               + edge_values[j, 8 ] * (1 - xi ) * (1 + eta )
                               + edge_values[j, 9 ] * (1 - xi ) * (1 - zeta)
                               + edge_values[j, 10] * (1 + xi ) * (1 - zeta)
