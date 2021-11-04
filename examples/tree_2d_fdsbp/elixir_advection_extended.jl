@@ -53,5 +53,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-9, reltol=1.0e-9,
-            save_everystep=false, callback=callbacks, maxiters=1e5)
+            save_everystep=false, callback=callbacks)
 summary_callback()
