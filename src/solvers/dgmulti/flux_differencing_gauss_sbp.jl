@@ -84,9 +84,12 @@ function create_cache(mesh::VertexMappedMesh, equations,
 
   # Conditionally use sparse operators if they can be estimated to be faster than dense operators
   # (based on some benchmarks on an AMD Ryzen Threadripper 3990X 64-Core Processor).
+  # TODO: Only in 3D?
   if !((polydeg(dg) <= 2 && Threads.nthreads() <= 1))
     # Since Julia uses `SparseMatrixCSC` by default, we use the adjoint to get
     # basically a `SparseMatrixCSR`, which is faster for matrix vector multiplication.
+    interp_matrix_gauss_to_face = droptol!(sparse(interp_matrix_gauss_to_face'),
+                                           100 * eps(eltype(interp_matrix_gauss_to_face)))'
     Pf = droptol!(sparse(Pf'), 100 * eps(eltype(Pf)))'
   end
 
@@ -120,7 +123,7 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   # interpolate volume Gauss nodes to face nodes
   # (note the layout of projected_entropy_var_values = [vol pts; face pts]).
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
-  # TODO: speed up using sparsity?
+  # TODO: speed up using tensor product structure?
   apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
 
   # directly copy over volume values (no entropy projection required)
@@ -178,7 +181,6 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
     local_face_flux = view(rhs_local, face_indices)
 
     # initialize rhs_volume_local = Pf * local_face_flux
-    # TODO: speed up using sparsity?
     apply_to_each_field(mul_by!(Pf), rhs_volume_local, local_face_flux)
 
     # accumulate volume contributions
