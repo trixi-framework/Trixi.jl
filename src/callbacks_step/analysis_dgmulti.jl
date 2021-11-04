@@ -18,7 +18,7 @@ function calc_error_norms(func, u, t, analyzer,
   component_l2_errors = zero(eltype(u_values))
   component_linf_errors = zero(eltype(u_values))
   for i in each_quad_node_global(mesh, dg, cache)
-    u_exact = initial_condition(getindex.(md.xyzq, i), t, equations)
+    u_exact = initial_condition(SVector(getindex.(md.xyzq, i)), t, equations)
     error_at_node = func(u_values[i], equations) - func(u_exact, equations)
     component_l2_errors += md.wJq[i] * error_at_node.^2
     component_linf_errors = max.(component_linf_errors, abs.(error_at_node))
@@ -61,7 +61,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
   # property of the L2 projection.
   dS_dt = zero(eltype(first(du)))
   for i in Base.OneTo(length(md.wJq))
-    dS_dt += dot(cons2entropy(u_values[i],equations), du_values[i]) * md.wJq[i]
+    dS_dt += dot(cons2entropy(u_values[i], equations), du_values[i]) * md.wJq[i]
   end
   return dS_dt
 end
