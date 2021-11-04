@@ -24,6 +24,10 @@ function init_p4est()
 end
 
 
+# Check if p4est library supports MPI
+@inline p4est_has_mpi() = isdefined(P4est, :P4EST_ENABLE_MPI)
+
+
 # Convert sc_array of type T to Julia array
 function unsafe_wrap_sc(::Type{T}, sc_array) where T
   element_count = sc_array.elem_count
@@ -45,7 +49,8 @@ end
 # Create new p4est from a p4est_connectivity
 # 2D
 function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
-  p4est_new_ext(0, # No MPI communicator
+  comm = p4est_has_mpi() ? mpi_comm() : 0 # Use Trixi's MPI communicator if p4est supports MPI
+  p4est_new_ext(comm,
                 conn,
                 0, # No minimum initial qudrants per processor
                 initial_refinement_level,
@@ -57,7 +62,8 @@ end
 
 # 3D
 function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
-  p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
+  comm = p4est_has_mpi() ? mpi_comm() : 0 # Use Trixi's MPI communicator if p4est supports MPI
+  p8est_new_ext(comm, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 end
 
 
@@ -79,13 +85,15 @@ end
 # 2D
 function load_p4est(file, ::Val{2})
   conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
-  p4est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+  comm = p4est_has_mpi() ? mpi_comm() : C_NULL # Use Trixi's MPI communicator if p4est supports MPI
+  p4est_load(file, comm, 0, false, C_NULL, pointer(conn_vec))
 end
 
 # 3D
 function load_p4est(file, ::Val{3})
   conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
-  p8est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+  comm = p4est_has_mpi() ? mpi_comm() : C_NULL # Use Trixi's MPI communicator if p4est supports MPI
+  p8est_load(file, comm, 0, false, C_NULL, pointer(conn_vec))
 end
 
 
