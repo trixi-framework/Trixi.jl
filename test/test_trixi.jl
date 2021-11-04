@@ -20,7 +20,7 @@ macro test_trixi_include(elixir, args...)
   local linf              = get_kwarg(args, :linf, nothing)
   local atol              = get_kwarg(args, :atol, 500*eps())
   local rtol              = get_kwarg(args, :rtol, sqrt(eps()))
-  local coverage_override = eval(get_kwarg(args, :coverage_override, (;)))
+  local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, (;)))
   if !(:maxiters in keys(coverage_override))
     # maxiters in coverage_override defaults to 1
     coverage_override = (coverage_override..., maxiters=1)
@@ -98,6 +98,17 @@ function get_kwarg(args, keyword, default_value)
   return val
 end
 
+function expr_to_named_tuple(expr)
+  result = (;)
+
+  for arg in expr.args
+    if arg.head != :(=)
+      error("Invalid expression")
+    end
+    result = (; result..., arg.args[1] => arg.args[2])
+  end
+  return result
+end
 
 
 # Modified version of `@test_nowarn` that prints the content of `stderr` when
