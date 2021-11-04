@@ -67,7 +67,7 @@ callbacks = CallbackSet(summary_callback)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 
 # That's it, you ran your first simulation using your new equation with Trixi! Now, we can plot
 # the solution at the final time using Plots.jl.
