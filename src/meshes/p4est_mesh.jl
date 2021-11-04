@@ -275,7 +275,7 @@ and constructs the transfinite mapping internally.
 
 The particular strategy is selected according to the header present in the `meshfile` where
 the constructor checks whether or not the `meshfile` was created with
-[`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
+[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
 If the Abaqus file header is not present in the `meshfile` then the `P4estMesh` is created
 with the function `p4est_mesh_from_standard_abaqus`.
 

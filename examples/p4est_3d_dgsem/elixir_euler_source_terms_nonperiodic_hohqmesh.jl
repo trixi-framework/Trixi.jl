@@ -4,7 +4,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations3D(1.4)
 

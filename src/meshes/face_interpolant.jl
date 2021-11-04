@@ -36,7 +36,7 @@ end
 
 # Calculate a 2D Lagrange interpolating polynomial in barycentric 2 form
 # of a function f(x,y) at a given coordinate (x,y) for a given node distribution.
-function lagrange_interpolation_2d(x, nodes, fvals, wbary)
+function lagrange_interpolation_2d(x, nodes, function_values, barycentric_weights)
 
   f_intermediate = zeros(eltype(fvals), length(nodes))
   for j in eachindex(nodes)

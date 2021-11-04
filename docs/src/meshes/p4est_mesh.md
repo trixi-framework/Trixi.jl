@@ -230,7 +230,7 @@ For completeness, we provide the entire Abaqus mesh file for the example mesh in
 
 ## Short discussion on 3D
 
-The Abaqus file format with high-order boundary information from `HOHQMesh` is very similar to the
+The 3D Abaqus file format with high-order boundary information from `HOHQMesh` is very similar to the
 2D version discussed above. There are only three changes:
 
 1. The element connectivity would be given in terms of the eight corners that define a hexahedron.
