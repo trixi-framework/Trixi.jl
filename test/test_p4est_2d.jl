@@ -85,6 +85,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.3))
   end
 
+  @trixi_testset "elixir_euler_wall_bc_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
+      l2   = [0.020291447969983396, 0.017479614254319948, 0.011387644425613437, 0.0514420126021293],
+      linf = [0.3582779022370579, 0.32073537890751663, 0.221818049107692, 0.9209559420400415],
+      tspan = (0.0, 0.15))
+  end
+
   @trixi_testset "elixir_eulergravity_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
