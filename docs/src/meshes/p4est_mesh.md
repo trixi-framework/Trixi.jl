@@ -42,7 +42,7 @@ We divide our discussion into two parts. The first part discusses the standard c
 contained in the `.inp` mesh file. The second part specifically deals with the mesh file parsing of an Abaqus
 file created by HOHQMesh.jl.
 
-### Mesh file header
+#### Mesh file header
 
 An Abaqus `.inp` mesh file typically begins with a `*Heading`.
 Though *optional*, the `*Heading` is helpful to give users some information about the mesh described by the mesh file.
@@ -55,7 +55,7 @@ This heading is used to indicate to the mesh constructor which of the above mapp
 create a curvilinear mesh.
 If the Abaqus file header is **not** present then the `P4estMesh` is created with the first strategy above.
 
-### List of corner nodes
+#### List of corner nodes
 
 Next, prefaced with `*NODE`, comes a list of the physical `(x,y,z)` coordinates of all the corners.
 The first integer in the list of the corners provides its id number.
@@ -71,7 +71,7 @@ Thus, for the two-dimensional example mesh this block of corner information is
 7, 3.0, -1.0, 0.0
 ```
 
-### List of elements
+#### List of elements
 
 The element connectivity is given after the list of corners. The header for this information block is
 ```
@@ -92,13 +92,13 @@ Thus, the element connectivity list for the three element example mesh is
 3, 7, 2, 4, 1
 ```
 
-### Element neighbor connectivity
+#### Element neighbor connectivity
 
 The construction of the element neighbor ids and identifying physical boundary surfaces is done using functionality
 directly from the [`p4est`](https://github.com/cburstedde/p4est) library.
 For example, the neighbor connectivity is created in the mesh constructor using the wrapper `read_inp_p4est` function.
 
-### HOHQMesh boundary information
+#### HOHQMesh boundary information
 
 If present, any additional information in the mesh file that was created by `HOHQMesh` is prefaced with
 `** ` to make it an Abaqus comment.
