@@ -89,7 +89,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [2.4976030518356626e-5],
       linf = [0.0005531580316338533],
-      coverage_override = (tspan=(0.0, 0.1)))
+      coverage_override = (tspan=(0.0, 0.1),))
   end
 
   @trixi_testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
