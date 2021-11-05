@@ -49,7 +49,7 @@ function calc_node_coordinates!(node_coordinates,
   matrix2 = similar(matrix1)
   baryweights_in = barycentric_weights(mesh.nodes)
 
-  # Macros from p4est
+  # Macros from `p4est`
   p4est_root_len = 1 << P4EST_MAXLEVEL
   p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
