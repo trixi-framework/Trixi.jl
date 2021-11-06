@@ -158,7 +158,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.2086261501910662, 1.2118352377894666, 0.10255333189606497, 5.296238138639236],
       linf = [14.829071984498198, 74.12967742435727, 6.863554388300223, 303.58813147491134],
       tspan = (0.0, 0.12),
-      coverage_override = (maxiters=2,))
+      coverage_override = (maxiters=10^5,))
   end
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
