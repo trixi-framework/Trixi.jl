@@ -117,6 +117,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.04867856452253151, 0.2640486962336911, 0.0354927658652858, 0.03549276586528571, 1.0777274757408568],
       linf = [9.558543313792217, 49.4518309553356, 10.319859082570309, 10.319859082570487, 195.1066220797401],
       tspan = (0.0, 0.2),
+      # Let this test run longer to cover some lines in the positivity preserving limiter
+      # and some AMR lines
       coverage_override = (maxiters=10^5,))
   end
 

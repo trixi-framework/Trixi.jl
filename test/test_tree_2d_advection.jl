@@ -14,6 +14,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # Expected errors are exactly the same as in the parallel test!
       l2   = [8.311947673061856e-6],
       linf = [6.627000273229378e-5],
+      # Let the small basic test run to the end
       coverage_override = (maxiters=10^5,))
   end
 
@@ -43,6 +44,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # Expected errors are exactly the same as in the parallel test!
       l2   = [4.913300828257469e-5],
       linf = [0.00045263895394385967],
+      # Let this test run to the end to cover some AMR code
       coverage_override = (maxiters=10^5,))
   end
 
@@ -89,6 +91,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [2.4976030518356626e-5],
       linf = [0.0005531580316338533],
+      # Let this test terminate by time instead of maxiters to cover some lines
+      # in time_integration/methods_2N.jl
       coverage_override = (maxiters=10^5, tspan=(0.0, 0.1)))
   end
 

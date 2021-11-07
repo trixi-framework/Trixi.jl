@@ -99,6 +99,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_pure_fv.jl"),
       l2   = [1.075075094036344, 0.06766902169711514, 0.9221426570128292],
       linf = [3.3941512671408542, 0.16862631133303882, 2.6572394126490315],
+      # Let this test run longer to cover some lines in flux_hllc
       coverage_override = (maxiters=10^5, tspan=(0.0, 0.1)))
   end
 

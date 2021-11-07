@@ -111,6 +111,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.39957047631960346, 0.21006912294983154, 0.21006903549932, 0.6280328163981136],
       linf = [2.20417889887697, 1.5487238480003327, 1.5486788679247812, 2.4656795949035857],
       tspan = (0.0, 0.5),
+      # Let this test run longer to cover some lines in flux_hllc
       coverage_override = (maxiters=10^5, tspan=(0.0, 0.1)))
   end
 
@@ -158,6 +159,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.2086261501910662, 1.2118352377894666, 0.10255333189606497, 5.296238138639236],
       linf = [14.829071984498198, 74.12967742435727, 6.863554388300223, 303.58813147491134],
       tspan = (0.0, 0.12),
+      # Let this test run longer to cover the ControllerThreeLevelCombined lines
       coverage_override = (maxiters=10^5,))
   end
 
@@ -243,6 +245,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       # Expected errors are exactly the same as in the parallel test!
       l2   = [2.120552206480055e-6, 0.003281541473561042, 0.003280625257336616, 0.004645872821313438],
       linf = [4.500266027052113e-5, 0.031765399304366726, 0.03179340562764421, 0.04563622772500864],
+      # Let this test run longer to cover some lines in the AMR indicator
       coverage_override = (maxiters=10^5, tspan=(0.0, 10.5)))
   end
 
