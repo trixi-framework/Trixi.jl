@@ -180,9 +180,10 @@ jobs:
       # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
       - name: Merge lcov files using Coverage.jl
-        shell: julia --color=yes --project=. {0}
+        shell: julia --color=yes {0}
         run: |
           using Pkg
+          Pkg.activate(temp=true)
           Pkg.add("Coverage")
           using Coverage
           coverage = LCOV.readfolder(".")
