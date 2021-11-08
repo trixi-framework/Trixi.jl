@@ -11,33 +11,33 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
 @testset "Linear scalar advection" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.00016263963870641478], 
+      l2   = [0.00016263963870641478],
       linf = [0.0014537194925779984])
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [0.00016017848135651983], 
+      l2   = [0.00016017848135651983],
       linf = [0.0014175368788298393])
   end
 
   @trixi_testset "elixir_advection_extended.jl with initial_condition_sin" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-      l2   = [0.002647730309275237], 
+      l2   = [0.002647730309275237],
       linf = [0.02114324070353557],
       initial_condition=Trixi.initial_condition_sin)
   end
 
   @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-      l2   = [7.728011630010656e-16], 
+      l2   = [7.728011630010656e-16],
       linf = [3.9968028886505635e-15],
       initial_condition=initial_condition_constant)
   end
 
   @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_z and periodicity=false" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-      l2   = [3.007995700405795e-16], 
+      l2   = [3.007995700405795e-16],
       linf = [2.886579864025407e-15],
       initial_condition=Trixi.initial_condition_linear_z,
       boundary_conditions=Trixi.boundary_condition_linear_z, periodicity=false)
@@ -45,14 +45,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
 
   @trixi_testset "elixir_advection_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
-      l2   = [0.001810141301577316], 
+      l2   = [0.001810141301577316],
       linf = [0.017848192256602058])
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       l2   = [9.773852895157622e-6],
-      linf = [0.0005853874124926162])
+      linf = [0.0005853874124926162],
+      coverage_override = (maxiters=6,))
   end
 end
 

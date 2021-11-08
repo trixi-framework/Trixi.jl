@@ -35,13 +35,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
       # Expected errors are exactly the same as with StructuredMesh!
       l2   = [4.949660644033807e-5],
-      linf = [0.0004867846262313763])
+      linf = [0.0004867846262313763],
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_flag.jl"),
       l2   = [0.0012766060609964525],
-      linf = [0.01750280631586159])
+      linf = [0.01750280631586159],
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
@@ -82,7 +84,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_amr.jl"),
       l2   = [6.32183914e-01, 3.86914231e-01, 3.86869171e-01, 1.06575688e+00],
       linf = [2.76020890e+00, 2.32659890e+00, 2.32580837e+00, 2.15778188e+00],
-      tspan = (0.0, 0.3))
+      tspan = (0.0, 0.3),
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_euler_wall_bc_amr.jl" begin

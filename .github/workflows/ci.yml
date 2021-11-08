@@ -111,7 +111,17 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
-      - uses: julia-actions/julia-runtest@v1
+      - name: Run tests without coverage
+        uses: julia-actions/julia-runtest@v1
+        with:
+          coverage: false
+        env:
+          PYTHON: ""
+          TRIXI_TEST: ${{ matrix.trixi_test }}
+      - name: Run tests with coverage
+        uses: julia-actions/julia-runtest@v1
+        with:
+          coverage: true
         env:
           PYTHON: ""
           TRIXI_TEST: ${{ matrix.trixi_test }}

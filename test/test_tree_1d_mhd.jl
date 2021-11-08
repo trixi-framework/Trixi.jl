@@ -40,7 +40,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
   @trixi_testset "elixir_mhd_briowu_shock_tube.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_briowu_shock_tube.jl"),
       l2   = [0.17764301067932906, 0.19693621875378622, 0.3635136528288642, 0.0, 0.3757321708837591, 8.593007507325741e-16, 0.36473438378159656, 0.0],
-      linf = [0.5601530250396535, 0.43867368105486537, 1.0960903616351099, 0.0, 1.0551794137886303, 4.107825191113079e-15, 1.5374410890043144, 0.0])
+      linf = [0.5601530250396535, 0.43867368105486537, 1.0960903616351099, 0.0, 1.0551794137886303, 4.107825191113079e-15, 1.5374410890043144, 0.0],
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_mhd_torrilhon_shock_tube.jl" begin
@@ -60,7 +61,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher_shock_tube.jl"),
       l2   = [1.01126210e+00, 8.27157902e+00, 1.30882545e+00, 0.00000000e+00, 5.21930435e+01, 6.56538824e-16, 1.01022340e+00, 0.00000000e+00],
       linf = [2.87172004e+00, 2.26438057e+01, 4.16672442e+00, 0.00000000e+00, 1.35152372e+02, 3.44169138e-15, 2.83556069e+00, 0.00000000e+00],
-      tspan = (0.0, 0.2))
+      tspan = (0.0, 0.2),
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_mhd_shu_osher_shock_tube.jl with flipped shock direction" begin
@@ -71,7 +73,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [2.92876280e+00, 2.28341581e+01, 4.11643561e+00, 0.00000000e+00, 1.36966213e+02, 1.55431223e-15, 2.80548864e+00, 0.00000000e+00],
       initial_condition = initial_condition_shu_osher_shock_tube_flipped,
       boundary_conditions=BoundaryConditionDirichlet(initial_condition_shu_osher_shock_tube_flipped),
-      tspan = (0.0, 0.2))
+      tspan = (0.0, 0.2),
+      coverage_override = (maxiters=6,))
   end
 end
 
