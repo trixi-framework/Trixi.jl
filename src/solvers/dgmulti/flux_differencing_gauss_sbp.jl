@@ -142,7 +142,7 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
                                have_nonconservative_terms::Val{false}, equations,
                                dg::DGMultiFluxDiff{<:GaussSBP}, cache)
 
-  @unpack entropy_projected_u_values, sparsity_pattern = cache
+  @unpack entropy_projected_u_values = cache
   @unpack fluxdiff_local_threaded, rhs_local_threaded, rhs_volume_local_threaded = cache
 
   # After computing the volume integral, we transform back to Lobatto nodes.
