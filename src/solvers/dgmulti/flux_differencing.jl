@@ -436,9 +436,10 @@ end
 end
 
 
-function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
                                have_nonconservative_terms, equations,
-                               dg::DGMultiFluxDiff{<:Polynomial}, cache)
+                               volume_integral, dg::DGMultiFluxDiff{<:Polynomial},
+                               cache)
 
   @unpack entropy_projected_u_values, Ph = cache
   @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
@@ -463,10 +464,10 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
   end
 end
 
-function calc_volume_integral!(du, u, volume_integral,
-                               mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
                                have_nonconservative_terms, equations,
-                               dg::DGMultiFluxDiff{<:SBP}, cache)
+                               volume_integral, dg::DGMultiFluxDiff{<:SBP},
+                               cache)
 
   @unpack fluxdiff_local_threaded, inv_wq = cache
 
@@ -512,10 +513,9 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
   # done in `prolong2interfaces` and `calc_volume_integral`)
   @trixi_timeit timer() "entropy_projection!" entropy_projection!(cache, u, mesh, equations, dg)
 
-  @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u,
-                                                                dg.volume_integral, mesh,
-                                                                have_nonconservative_terms(equations),
-                                                                equations, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
   # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
   @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral, mesh,

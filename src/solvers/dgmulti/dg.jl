@@ -156,10 +156,10 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
   apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
-function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
-                               mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
                                have_nonconservative_terms::Val{false}, equations,
-                               dg::DGMulti, cache)
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache)
 
   rd = dg.basis
   md = mesh.md
@@ -386,8 +386,8 @@ function rhs!(du, u, t, mesh, equations,
   @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
 
   @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(
-    du, u, dg.volume_integral,
-    mesh, have_nonconservative_terms(equations), equations, dg, cache)
+    du, u, mesh, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
   @trixi_timeit timer() "prolong2interfaces!" prolong2interfaces!(
     cache, u, mesh, equations, dg.surface_integral, dg)
