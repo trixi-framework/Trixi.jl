@@ -75,7 +75,39 @@ end
       # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
       # is symmetric).
       if j > i
-        AF_ij = A[i,j] * volume_flux(u_i, u[j], orientation, equations)
+        u_j = u[j]
+        A_ij = A[i,j]
+        AF_ij = A_ij * volume_flux(u_i, u_j, orientation, equations)
+        du_i = du_i + AF_ij
+        du[j] = du[j] - AF_ij
+      end
+    end
+    du[i] = du_i
+  end
+end
+
+# TODO: new sparse stuff
+@inline function hadamard_sum!(du, sparsity_pattern::AbstractSparseMatrix{Bool},
+                               A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrix},
+                               flux_is_symmetric::Val{true}, volume_flux,
+                               orientation, u, equations)
+  A_base = parent(A)
+  n = size(A, 2)
+  rows = rowvals(A_base)
+  vals = nonzeros(A_base)
+  for i in Base.OneTo(n)
+    u_i = u[i]
+    du_i = du[i]
+    for id in nzrange(A_base, i)
+      j = rows[id]
+      # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+      # We avoid computing the lower-triangular part, and instead accumulate those contributions
+      # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+      # is symmetric).
+      if j > i
+        u_j = u[j]
+        A_ij = vals[id]
+        AF_ij = A_ij * volume_flux(u_i, u_j, orientation, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -245,6 +277,8 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff, Re
   # the individual `sparsity_patterns` of each spatial derivative
   sparsity_pattern = compute_sparsity_pattern(Qrst_skew, dg)
   sparsity_patterns = map(Qi -> compute_sparsity_pattern((Qi,), dg), Qrst_skew)
+
+  Qrst_skew = map(Qi -> droptol!(sparse(Qi'), 100 * eps(eltype(Qi)))', Qrst_skew) # TODO: new sparse stuff
 
   nvars = nvariables(equations)
 
@@ -451,7 +485,7 @@ function calc_volume_integral!(du, u, volume_integral,
                                have_nonconservative_terms::Val{false}, equations,
                                dg::DGMultiFluxDiff{<:SBP}, cache)
 
-  @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq, Qrst_skew = cache
+  @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq = cache
   @unpack volume_flux = volume_integral
 
   @threaded for e in eachelement(mesh, dg, cache)
@@ -475,7 +509,7 @@ function calc_volume_integral!(du, u, volume_integral, mesh::VertexMappedMesh,
                                dg::DGMultiFluxDiff, cache)
 
   rd = dg.basis
-  @unpack entropy_projected_u_values, Ph, sparsity_pattern = cache
+  @unpack entropy_projected_u_values, Ph = cache
   @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
@@ -503,7 +537,7 @@ function calc_volume_integral!(du, u, volume_integral,
                                have_nonconservative_terms::Val{true}, equations,
                                dg::DGMultiFluxDiff{<:SBP}, cache)
 
-  @unpack fluxdiff_local_threaded, sparsity_patterns, inv_wq, Qrst_skew = cache
+  @unpack fluxdiff_local_threaded, inv_wq = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
