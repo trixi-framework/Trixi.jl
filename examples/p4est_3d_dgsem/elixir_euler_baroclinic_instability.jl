@@ -172,7 +172,9 @@ surface_flux = FluxLMARS(340)
 volume_flux  = flux_kennedy_gruber
 solver = DGSEM(polydeg=5, surface_flux=surface_flux, volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = Trixi.P4estMeshCubedSphere(8, 4, 6.371229e6, 30000.0,
+# For optimal results, use (16, 8) here
+trees_per_cube_face = (8, 4)
+mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
                                   polydeg=5, initial_refinement_level=0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
