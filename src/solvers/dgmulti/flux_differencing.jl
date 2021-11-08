@@ -23,7 +23,7 @@
 # Version for dense operators and symmetric fluxes
 @inline function hadamard_sum!(du, A,
                                flux_is_symmetric::Val{true}, volume_flux,
-                               orientation, u, equations)
+                               orientation_or_normal_direction, u, equations)
   row_ids, col_ids = axes(A)
 
   for i in row_ids
@@ -36,7 +36,7 @@
       # is symmetric).
       if j > i
         u_j = u[j]
-        AF_ij = A[i,j] * volume_flux(u_i, u_j, orientation, equations)
+        AF_ij = A[i,j] * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -48,7 +48,7 @@ end
 # Version for dense operators and non-symmetric fluxes
 @inline function hadamard_sum!(du, A,
                                flux_is_symmetric::Val{false}, volume_flux,
-                               orientation, u, equations)
+                               orientation::Integer, u, equations)
   row_ids, col_ids = axes(A)
 
   for i in row_ids
@@ -63,10 +63,31 @@ end
   end
 end
 
+# TODO: DGMulti. Fix for curved meshes.
+@inline function hadamard_sum!(du, A,
+                               flux_is_symmetric::Val{false}, volume_flux,
+                               normal_direction::AbstractVector, u, equations)
+  row_ids, col_ids = axes(A)
+
+  for i in row_ids
+    u_i = u[i]
+    du_i = du[i]
+    for j in col_ids
+      u_j = u[j]
+      # The `normal_direction::AbstractVector` has to be passed in twice.
+      # This is because on curved meshes, nonconservative fluxes are
+      # evaluated using both the normal and its average at interfaces.
+      f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
+      du_i = du_i + A[i,j] * f_ij
+    end
+    du[i] = du_i
+  end
+end
+
 # Version for sparse operators and symmetric fluxes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:SparseMatrixCSC},
                                flux_is_symmetric::Val{true}, volume_flux,
-                               orientation, u, equations)
+                               orientation_or_normal_direction, u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSC
   row_ids = axes(A, 2)
   rows = rowvals(A_base)
@@ -84,7 +105,7 @@ end
       if j > i
         u_j = u[j]
         A_ij = vals[id]
-        AF_ij = A_ij * volume_flux(u_i, u_j, orientation, equations)
+        AF_ij = A_ij * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -97,7 +118,7 @@ end
 # Version for sparse operators and non-symmetric fluxes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:SparseMatrixCSC},
                                flux_is_symmetric::Val{false}, volume_flux,
-                               orientation::AbstractVector, u, equations)
+                               normal_direction::AbstractVector, u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSC
   row_ids = axes(A, 2)
   rows = rowvals(A_base)
@@ -108,11 +129,11 @@ end
     du_i = du[i]
     for id in nzrange(A_base, i)
       j = rows[id]
-      # When `orientation::AbstractVector` it has to be passed in twice.
+      # The `normal_direction::AbstractVector` has to be passed in twice.
       # This is because on curved meshes, nonconservative fluxes are
       # evaluated using both the normal and its average at interfaces.
       u_j = u[j]
-      f_ij = volume_flux(u_i, u_j, orientation, orientation, equations)
+      f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
       du_i = du_i + A[i,j] * f_ij
     end
     du[i] = du_i
