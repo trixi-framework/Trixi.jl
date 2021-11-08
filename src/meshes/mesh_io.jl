@@ -157,7 +157,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
 
   p4est_file = joinpath(output_directory, p4est_filename)
 
-  # Save the complete connectivity/p4est data to disk.
+  # Save the complete connectivity and `p4est` data to disk.
   save_p4est!(p4est_file, mesh.p4est)
 
   # Open file (clobber existing content)
@@ -264,7 +264,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     boundary_names = boundary_names_ .|> Symbol
 
     p4est_file = joinpath(dirname(mesh_file), p4est_filename)
-    # Prevent Julia crashes when p4est can't find the file
+    # Prevent Julia crashes when `p4est` can't find the file
     @assert isfile(p4est_file)
 
     p4est = load_p4est(p4est_file, Val(ndims))

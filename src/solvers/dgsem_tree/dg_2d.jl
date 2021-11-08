@@ -752,22 +752,22 @@ function prolong2mortars!(cache, u,
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
         u_large = view(u, :, nnodes(dg), :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large)
       else
         # L2 mortars in y-direction
         u_large = view(u, :, :, nnodes(dg), large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large)
       end
     else # large_sides[mortar] == 2 -> large element on right side
       leftright = 2
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
         u_large = view(u, :, 1, :, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large)
       else
         # L2 mortars in y-direction
         u_large = view(u, :, :, 1, large_element)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
+        element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright, mortar, u_large)
       end
     end
   end
@@ -775,10 +775,10 @@ function prolong2mortars!(cache, u,
   return nothing
 end
 
-@inline function element_solutions_to_mortars!(cache, mortar_l2::LobattoLegendreMortarL2, leftright, mortar,
+@inline function element_solutions_to_mortars!(mortars, mortar_l2::LobattoLegendreMortarL2, leftright, mortar,
                                                u_large::AbstractArray{<:Any,2})
-  multiply_dimensionwise!(view(cache.mortars.u_upper, leftright, :, :, mortar), mortar_l2.forward_upper, u_large)
-  multiply_dimensionwise!(view(cache.mortars.u_lower, leftright, :, :, mortar), mortar_l2.forward_lower, u_large)
+  multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar), mortar_l2.forward_upper, u_large)
+  multiply_dimensionwise!(view(mortars.u_lower, leftright, :, :, mortar), mortar_l2.forward_lower, u_large)
   return nothing
 end
 

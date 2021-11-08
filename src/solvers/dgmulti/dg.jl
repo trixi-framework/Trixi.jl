@@ -7,12 +7,14 @@
 
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
-
-# out <- out + A * x
-mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, One(), One())
+mul_by!(A::T) where {T<:SimpleKronecker} = @inline (out, x)->mul!(out, A, x)
+mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
+
+# out <- out + A * x
+mul_by_accum!(A) = mul_by_accum!(A, One())
 
 # specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
 struct MulByUniformScaling end
@@ -27,6 +29,7 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 # solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
 @inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
+  # TODO: DGMulti speed up using threads
   for (i, x_i) in enumerate(x)
     out[i] = out[i] + x_i
   end
@@ -105,7 +108,8 @@ function compute_coefficients!(u, initial_condition, t,
 
   # evaluate the initial condition at quadrature points
   @threaded for i in each_quad_node_global(mesh, dg, cache)
-    u_values[i] = initial_condition(getindex.(md.xyzq, i), t, equations)
+    u_values[i] = initial_condition(SVector(getindex.(md.xyzq, i)),
+                                    t, equations)
   end
 
   # multiplying by Pq computes the L2 projection
@@ -365,10 +369,11 @@ function calc_sources!(du, u, t, source_terms,
 
     source_values = local_values_threaded[Threads.threadid()]
 
-    u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
+    u_e = view(u_values, :, e) # u_values should already be computed from volume integral
 
     for i in each_quad_node(mesh, dg, cache)
-      source_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations)
+      source_values[i] = source_terms(u_e[i], SVector(getindex.(md.xyzq, i, e)),
+                                      t, equations)
     end
     apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
   end

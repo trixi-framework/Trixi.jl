@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
+using LinearAlgebra: LinearAlgebra, diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -43,6 +43,7 @@ using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
+using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
 using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
@@ -198,6 +199,7 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
+export GaussSBP
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level

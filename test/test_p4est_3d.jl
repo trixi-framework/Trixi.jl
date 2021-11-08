@@ -35,14 +35,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [9.773852895157622e-6],
-      linf = [0.0005853874124926162])
+      linf = [0.0005853874124926162],
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_curved.jl"),
       l2   = [1.6236411810065552e-5],
       linf = [0.0010554006923731395],
-      tspan = (0.0, 1.0))
+      tspan = (0.0, 1.0),
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_cubed_sphere.jl" begin
@@ -89,14 +91,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.010380390326164493, 0.006192950051354618, 0.005970674274073704, 0.005965831290564327, 0.02628875593094754],
       linf = [0.3326911600075694, 0.2824952141320467, 0.41401037398065543, 0.45574161423218573, 0.8099577682187109],
-      tspan = (0.0, 0.2))
+      tspan = (0.0, 0.2),
+      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
       l2   = [7.82070951e-02, 4.33260474e-02, 4.33260474e-02, 4.33260474e-02, 3.75260911e-01],
       linf = [7.45329845e-01, 3.21754792e-01, 3.21754792e-01, 3.21754792e-01, 4.76151527e+00],
-      tspan = (0.0, 0.3))
+      tspan = (0.0, 0.3),
+      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_source_terms_nonconforming_earth.jl" begin
@@ -140,7 +144,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.20904054009050665, 0.18622917151105936, 0.2347957890323218, 0.19432508025509926,
               0.6858860133405615, 0.15172116633332622, 0.22432820727833747, 0.16805989780225183,
               0.000535219040687628],
-      tspan = (0.0, 0.04))
+      tspan = (0.0, 0.04),
+      coverage_override = (maxiters=6,))
+  end
+
+  @trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_hohqmesh.jl"),
+      l2   = [0.0042023406458005464, 0.004122532789279737, 0.0042448149597303616, 0.0036361316700401765, 0.007389845952982495],
+      linf = [0.04530610539892499, 0.02765695110527666, 0.05670295599308606, 0.048396544302230504, 0.1154589758186293])
   end
 end
 

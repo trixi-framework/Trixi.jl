@@ -45,9 +45,9 @@ function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_
 
   # readin the number of nodes, number of interfaces, number of elements and local polynomial degree
   current_line = split(file_lines[2])
-  n_corners    = parse(Int, current_line[1])
-  n_surfaces   = parse(Int, current_line[2])
-  n_elements   = parse(Int, current_line[3])
+  n_corners = parse(Int, current_line[1])
+  n_surfaces = parse(Int, current_line[2])
+  n_elements = parse(Int, current_line[3])
   mesh_polydeg = parse(Int, current_line[4])
 
   mesh_nnodes = mesh_polydeg + 1
@@ -56,17 +56,17 @@ function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_
   # the mesh file. Thus, this cannot be type stable at all. Hence, we allocate
   # the memory now and introduce a function barrier before continuing to read
   # data from the file.
-  corner_nodes      = Array{RealT}(undef, (2, n_corners))
-  interface_info    = Array{Int}(undef, (6, n_surfaces))
-  element_node_ids  = Array{Int}(undef, (4, n_elements))
-  curved_check      = Vector{Int}(undef, 4)
-  cornerNodeVals    = Array{RealT}(undef, (4, 2))
-  tempNodes         = Array{RealT}(undef, (4, 2))
-  curve_vals        = Array{RealT}(undef, (mesh_nnodes, 2))
+  corner_nodes = Array{RealT}(undef, (2, n_corners))
+  interface_info = Array{Int}(undef, (6, n_surfaces))
+  element_node_ids = Array{Int}(undef, (4, n_elements))
+  curved_check = Vector{Int}(undef, 4)
+  quad_corners = Array{RealT}(undef, (4, 2))
+  quad_corners_flipped = Array{RealT}(undef, (4, 2))
+  curve_values = Array{RealT}(undef, (mesh_nnodes, 2))
   element_is_curved = Array{Bool}(undef, n_elements)
-  CurvedSurfaceT    = CurvedSurface{RealT}
-  surface_curves    = Array{CurvedSurfaceT}(undef, (4, n_elements))
-  boundary_names    = Array{Symbol}(undef, (4, n_elements))
+  CurvedSurfaceT = CurvedSurface{RealT}
+  surface_curves = Array{CurvedSurfaceT}(undef, (4, n_elements))
+  boundary_names = Array{Symbol}(undef, (4, n_elements))
 
   # create the Chebyshev-Gauss-Lobatto nodes used to represent any curved boundaries that are
   # required to construct the sides
@@ -76,7 +76,7 @@ function UnstructuredMesh2D(filename; RealT=Float64, periodicity=false, unsaved_
   bary_weights = SVector{mesh_nnodes}(bary_weights_)
 
   arrays = (; corner_nodes, interface_info, element_node_ids, curved_check,
-              cornerNodeVals, tempNodes, curve_vals,
+              quad_corners, quad_corners_flipped, curve_values,
               element_is_curved, surface_curves, boundary_names)
   counters = (; n_corners, n_surfaces, n_elements)
 
@@ -99,7 +99,7 @@ end
 
 function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, cheby_nodes, bary_weights)
   @unpack ( corner_nodes, interface_info, element_node_ids, curved_check,
-            cornerNodeVals, tempNodes, curve_vals,
+            quad_corners, quad_corners_flipped, curve_values,
             element_is_curved, surface_curves, boundary_names ) = arrays
   @unpack n_corners, n_surfaces, n_elements = counters
   mesh_nnodes = length(cheby_nodes)
@@ -110,7 +110,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
   # readin an store the nodes that dictate the corners of the elements needed to construct the
   # element geometry terms
   for j in 1:n_corners
-    current_line       = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     corner_nodes[1, j] = parse(RealT, current_line[1])
     corner_nodes[2, j] = parse(RealT, current_line[2])
     file_idx += 1
@@ -127,7 +127,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
   # container to for the interface neighbour information and connectivity
   n_boundaries = 0
   for j in 1:n_surfaces
-    current_line   = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     interface_info[1, j] = parse(Int, current_line[1])
     interface_info[2, j] = parse(Int, current_line[2])
     interface_info[3, j] = parse(Int, current_line[3])
@@ -149,18 +149,18 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
 
   for j in 1:n_elements
     # pull the corner node IDs
-    current_line           = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     element_node_ids[1, j] = parse(Int, current_line[1])
     element_node_ids[2, j] = parse(Int, current_line[2])
     element_node_ids[3, j] = parse(Int, current_line[3])
     element_node_ids[4, j] = parse(Int, current_line[4])
     for i in 1:4
       # pull the (x,y) values of these corners out of the nodes array
-      cornerNodeVals[i, :] .= corner_nodes[:, element_node_ids[i, j]]
+      quad_corners[i, :] .= corner_nodes[:, element_node_ids[i, j]]
     end
     # pull the information to check if boundary is curved in order to read in additional data
     file_idx += 1
-    current_line    = split(file_lines[file_idx])
+    current_line = split(file_lines[file_idx])
     curved_check[1] = parse(Int, current_line[1])
     curved_check[2] = parse(Int, current_line[2])
     curved_check[3] = parse(Int, current_line[3])
@@ -178,32 +178,30 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters, c
       # flip node ordering to make sure the element is right-handed for the interpolations
       m1 = 1
       m2 = 2
-      @views tempNodes[1, :] .= cornerNodeVals[4, :]
-      @views tempNodes[2, :] .= cornerNodeVals[2, :]
-      @views tempNodes[3, :] .= cornerNodeVals[3, :]
-      @views tempNodes[4, :] .= cornerNodeVals[1, :]
+      @views quad_corners_flipped[1, :] .= quad_corners[4, :]
+      @views quad_corners_flipped[2, :] .= quad_corners[2, :]
+      @views quad_corners_flipped[3, :] .= quad_corners[3, :]
+      @views quad_corners_flipped[4, :] .= quad_corners[1, :]
       for i in 1:4
         if curved_check[i] == 0
-          # when curved_check[i] is 0 then the "curve" from cornerNode(i) to cornerNode(i+1) is a
+          # when curved_check[i] is 0 then the "curve" from corner `i` to corner `i+1` is a
           # straight line. So we must construct the interpolant for this line
           for k in 1:mesh_nnodes
-            curve_vals[k, 1] = tempNodes[m1, 1] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 1]
-                                                                                 - tempNodes[m1, 1])
-            curve_vals[k, 2] = tempNodes[m1, 2] + 0.5 * (cheby_nodes[k] + 1.0) * ( tempNodes[m2, 2]
-                                                                                 - tempNodes[m1, 2])
+            curve_values[k, 1] = linear_interpolate(cheby_nodes[k], quad_corners_flipped[m1, 1], quad_corners_flipped[m2, 1])
+            curve_values[k, 2] = linear_interpolate(cheby_nodes[k], quad_corners_flipped[m1, 2], quad_corners_flipped[m2, 2])
           end
         else
           # when curved_check[i] is 1 this curved boundary information is supplied by the mesh
           # generator. So we just read it into a work array
           for k in 1:mesh_nnodes
-            file_idx      += 1
-            current_line   = split(file_lines[file_idx])
-            curve_vals[k, 1] = parse(RealT,current_line[1])
-            curve_vals[k, 2] = parse(RealT,current_line[2])
+            file_idx += 1
+            current_line = split(file_lines[file_idx])
+            curve_values[k, 1] = parse(RealT,current_line[1])
+            curve_values[k, 2] = parse(RealT,current_line[2])
           end
         end
         # construct the curve interpolant for the current side
-        surface_curves[i, j] = CurvedSurfaceT(cheby_nodes, bary_weights, copy(curve_vals))
+        surface_curves[i, j] = CurvedSurfaceT(cheby_nodes, bary_weights, copy(curve_values))
         # indexing update that contains a "flip" to ensure correct element orientation
         # if we need to construct the straight line "curves" when curved_check[i] == 0
         m1 += 1

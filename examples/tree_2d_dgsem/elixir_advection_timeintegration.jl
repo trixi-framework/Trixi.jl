@@ -64,5 +64,5 @@ callbacks = CallbackSet(summary_callback,
 ode_algorithm = Trixi.CarpenterKennedy2N54()
 sol = Trixi.solve(ode, ode_algorithm,
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep=false, callback=callbacks, maxiters=10_000);
+                  save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

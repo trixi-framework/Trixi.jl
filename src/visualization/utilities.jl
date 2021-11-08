@@ -754,6 +754,58 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
   return arc_length, data_on_curve, nothing
 end
 
+# Convert a PlotData2DTriangulate object to a 1d data along given curve.
+function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
+
+  # If no curve is defined, create a axis curve.
+  if input_curve === nothing
+    input_curve = axis_curve(pd, slice, point)
+  end
+
+  @assert size(input_curve, 1) == 2 "Input 'curve' must be 2xn dimensional."
+
+  # For each coordinate find the corresponding triangle with its ids.
+  ids_by_coordinates = get_ids_by_coordinates(input_curve, pd)
+  found_coordinates = ids_by_coordinates[:, 1] .!= nothing
+
+  @assert found_coordinates != zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
+
+  # These hold the ids of the elements and triangles the points of the curve sit in.
+  element_ids = @view ids_by_coordinates[found_coordinates, 1]
+  triangle_ids =  @view ids_by_coordinates[found_coordinates, 2]
+
+  # Shorten the curve, so that it contains only point that were found.
+  curve = @view input_curve[:, found_coordinates]
+
+  n_variables = length(pd.data[1, 1])
+  n_points_curve = size(curve, 2)
+
+  # Set nodes acording to the length of the curve.
+  arc_length = calc_arc_length(curve)
+
+  # Setup data structures.
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+
+  # Iterate over all points on the curve.
+  for point in 1:n_points_curve
+    element = @view element_ids[point]
+    triangle = @view pd.t[triangle_ids[point], :]
+    for v in 1:n_variables
+      # Get the x and y coordinates of the corners of given triangle.
+      x_coordinates_triangle = SVector{3}(pd.x[triangle, element])
+      y_coordinates_triangle = SVector{3}(pd.y[triangle, element])
+
+      # Extract solutions values in corners of the triangle.
+      values_triangle = SVector{3}(getindex.(view(pd.data, triangle, element), v))
+
+      # Linear interpolation in each triangle to the points on the curve.
+      data_on_curve[point, v] = triangle_interpolation(x_coordinates_triangle, y_coordinates_triangle, values_triangle, curve[:, point])
+    end
+  end
+
+  return arc_length, data_on_curve, nothing
+end
+
 # Convert 3d unstructured data to 1d data at given curve.
 function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes, curve, mesh, solver, cache)
 
@@ -1299,6 +1351,85 @@ function convert_PlotData2D_to_mesh_Points(pd::PlotData2DTriangulated{<:ScalarDa
   xyz_wireframe = GeometryBasics.Point.(map(x->vec(vcat(x, fill(NaN, 1, size(x, 2)))), (x_face, y_face, sol_f))...)
 
   return xyz_wireframe
+end
+
+
+# Find element and triangle ids containing coordinates given as a matrix [ndims, npoints]
+function get_ids_by_coordinates!(ids, coordinates, pd)
+  if length(ids) != 2 * size(coordinates, 2)
+    throw(DimensionMismatch("storage length for element ids does not match the number of coordinates"))
+  end
+
+  n_coordinates = size(coordinates, 2)
+
+  for index in 1:n_coordinates
+    ids[index, :] .= find_element(coordinates[:, index], pd)
+  end
+
+  return ids
+end
+
+# Find the ids of elements and triangles containing given coordinates by using the triangulation in 'pd'.
+function get_ids_by_coordinates(coordinates, pd)
+  ids = Matrix(undef, size(coordinates, 2), 2)
+  get_ids_by_coordinates!(ids, coordinates, pd)
+  return ids
+end
+
+# Check if given 'point' is inside the triangle with corners corresponding to the coordinates of x and y.
+function is_in_triangle(point, x, y)
+  a = SVector(x[1], y[1]); b = SVector(x[2], y[2]); c = SVector(x[3], y[3])
+  return is_on_same_side(point, a, b, c) && is_on_same_side(point, b, c, a) && is_on_same_side(point, c, a, b)
+end
+
+# Create an axis through x and y to then check if 'point' is on the same side of the axis as z.
+function is_on_same_side(point, x, y, z)
+  if (y[1] - x[1]) == 0
+    return (point[1] - x[1]) * (z[1] - x[1]) >= 0
+  else
+    a = (y[2] - x[2]) / (y[1] - x[1])
+    b = x[2] - a * x[1]
+    return (z[2] - a * z[1] - b) * (point[2] - a * point[1] - b) >= 0
+  end
+end
+
+# For a given 'point', return the id of the element it is contained in in; if not found return 0.
+function find_element(point, pd)
+  n_tri = size(pd.t, 1)
+  n_elements = size(pd.x, 2)
+
+  # Iterate over all elements.
+  for element in 1:n_elements
+    # Iterate over all triangles in given element.
+    for tri in 1:n_tri
+      if is_in_triangle(point, pd.x[pd.t[tri, :], element], pd.y[pd.t[tri, :], element])
+        return SVector(element, tri)
+      end
+    end
+  end
+end
+
+# Interpolate form three corners of a triangle to a single point.
+function triangle_interpolation(x_coordinates_in, y_coordinates_in, values_in, coordinate_out)
+  A = hcat(x_coordinates_in, y_coordinates_in, SVector(1, 1, 1))
+  c = A \ values_in
+  return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3]
+end
+
+# Create an axis.
+function axis_curve(pd, slice, point; n_points=1000)
+  curve = zeros(2, n_points)
+  if slice == :x
+    xmin, xmax = extrema(pd.x)
+    curve[1, :] .= range(xmin, xmax, length = n_points)
+    curve[2, :] .= point[2]
+  elseif slice == :y
+    ymin, ymax = extrema(pd.y)
+    curve[1, :] .= point[1]
+    curve[2, :] .= range(ymin, ymax, length = n_points)
+  end
+
+  return curve
 end
 
 end # @muladd
