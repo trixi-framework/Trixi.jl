@@ -507,7 +507,7 @@ end
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff{<:Union{Polynomial, GaussSBP}}, cache) where {Source, BC}
 
-  @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
+  @trixi_timeit timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
 
   # this function evaluates the solution at volume and face quadrature points (which was previously
   # done in `prolong2interfaces` and `calc_volume_integral`)
@@ -528,9 +528,9 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
   @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
                                                                   mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "invert jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "calc sources" calc_sources!(du, u, t, source_terms,
+  @trixi_timeit timer() "sources terms" calc_sources!(du, u, t, source_terms,
                                                      mesh, equations, dg, cache)
 
   return nothing
