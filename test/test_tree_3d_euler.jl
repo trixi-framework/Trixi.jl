@@ -45,7 +45,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.0038281920613404716, 0.003828192061340465, 0.0038281920613404694, 0.0038281920613404672, 0.005742288092010652],
       linf = [0.07390396464027349, 0.07390396464027305, 0.07390396464027305, 0.07390396464027305, 0.11085594696041134],
       tspan=(0.0, 0.1),
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6, initial_refinement_level=0, base_level=0, med_level=0, max_level=1))
   end
 
   @trixi_testset "elixir_euler_taylor_green_vortex.jl" begin
@@ -127,7 +127,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.0007127163978031706, 0.0023166296394624025, 0.002316629639462401, 0.0023166296394624038, 0.010200581509653256],
       linf = [0.06344190883105805, 0.6292607955969378, 0.6292607955969377, 0.6292607955969377, 2.397746252817731],
       maxiters=5, max_level=6,
-      coverage_override = (maxiters=2,))
+      coverage_override = (maxiters=2, initial_refinement_level=1, base_level=1, max_level=3))
   end
 end
 
