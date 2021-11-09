@@ -2,6 +2,8 @@
 # on a planetary-sized non-conforming mesh
 #
 # Note that this elixir can take several hours to run.
+# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further)
+# and `check-bounds=no`, this elixirs takes about 20 minutes to run.
 
 using OrdinaryDiffEq
 using Trixi

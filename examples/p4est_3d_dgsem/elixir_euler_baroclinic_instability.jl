@@ -1,6 +1,10 @@
 # An idealized baroclinic instability test case
-# Note that this elixir can take several hours to run. For optimal results consider increasing the
-# resolution to 16x16x8 trees per cube face.
+# For optimal results consider increasing the resolution to 16x16x8 trees per cube face.
+#
+# Note that this elixir can take several hours to run.
+# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further)
+# and `check-bounds=no`, this elixirs takes about one hour to run.
+# With 16x16x8 trees per cube face on the same machine, it takes about 28 hours.
 #
 # References:
 # - Paul A. Ullrich, Thomas Melvin, Christiane Jablonowski, Andrew Staniforth (2013)
