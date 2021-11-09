@@ -20,7 +20,7 @@ module Trixi
 
 using LinearAlgebra: LinearAlgebra, diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
-using SparseArrays: AbstractSparseMatrix, SparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
+using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport

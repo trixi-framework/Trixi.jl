@@ -85,10 +85,10 @@ end
 end
 
 # Version for sparse operators and symmetric fluxes
-@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:SparseMatrixCSC},
+@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::Val{true}, volume_flux,
                                orientation_or_normal_direction, u, equations)
-  A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSC
+  A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
   row_ids = axes(A, 2)
   rows = rowvals(A_base)
   vals = nonzeros(A_base)
@@ -116,10 +116,10 @@ end
 
 # TODO: DGMulti. Fix for curved meshes.
 # Version for sparse operators and non-symmetric fluxes
-@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:SparseMatrixCSC},
+@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::Val{false}, volume_flux,
                                normal_direction::AbstractVector, u, equations)
-  A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSC
+  A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
   row_ids = axes(A, 2)
   rows = rowvals(A_base)
   vals = nonzeros(A_base)
