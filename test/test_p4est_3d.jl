@@ -109,7 +109,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.00013996924184311865, 0.00013681539559939893, 0.00013681539539733834, 0.00013681539541021692, 0.00016833038543762058],
       # Decrease tolerance of adaptive time stepping to get similar results across different systems
       abstol=1.0e-11, reltol=1.0e-11,
-      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3))  # Prevent long compile time in CI
+      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_circular_wind_nonconforming.jl" begin
@@ -117,7 +117,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [1.573832094977477e-7, 3.863090659429634e-5, 3.867293305754584e-5, 3.686550296950078e-5, 0.05508968493733932],
       linf = [2.2695202613887133e-6, 0.0005314968179916946, 0.0005314969614147458, 0.0005130280733059617, 0.7944959432352334],
       tspan = (0.0, 2e2),
-      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3))
+      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_baroclinic_instability.jl" begin
@@ -127,7 +127,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 1e2),
       # Decrease tolerance of adaptive time stepping to get similar results across different systems
       abstol=1.0e-9, reltol=1.0e-9,
-      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3))
+      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3)) # Prevent long compile time in CI
     end
 
   @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
