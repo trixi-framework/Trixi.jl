@@ -678,6 +678,97 @@ end
 end
 
 
+"""
+    FluxLMARS(c)(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerEquations3D)
+
+Low Mach number approximate Riemann solver (LMARS) for atmospheric flows using
+an estimate `c` of the speed of sound.
+
+References:
+- Xi Chen et al. (2013)
+  A Control-Volume Model of the Compressible Euler Equations with a Vertical
+  Lagrangian Coordinate
+  [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
+"""
+struct FluxLMARS{SpeedOfSound}
+  # Estimate for the speed of sound
+  speed_of_sound::SpeedOfSound
+end
+
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
+  c = flux_lmars.speed_of_sound
+
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
+
+  if orientation == 1
+    v_ll = v1_ll
+    v_rr = v1_rr
+  elseif orientation == 2
+    v_ll = v2_ll
+    v_rr = v2_rr
+  else # orientation == 3
+    v_ll = v3_ll
+    v_rr = v3_rr
+  end
+
+  rho = 0.5 * (rho_ll + rho_rr)
+  p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll)
+  v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
+
+  if v >= 0
+    f1, f2, f3, f4, f5 = v * u_ll
+  else
+    f1, f2, f3, f4, f5 = v * u_rr
+  end
+
+  if orientation == 1
+    f2 += p
+  elseif orientation == 2
+    f3 += p
+  else # orientation == 3
+    f4 += p
+  end
+  f5 += p * v
+
+  return SVector(f1, f2, f3, f4, f5)
+end
+
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations3D)
+  c = flux_lmars.speed_of_sound
+
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
+
+  v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] + v3_ll * normal_direction[3]
+  v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] + v3_rr * normal_direction[3]
+
+  # Note that this is the same as computing v_ll and v_rr with a normalized normal vector
+  # and then multiplying v by `norm_` again, but this version is slightly faster.
+  norm_ = norm(normal_direction)
+
+  rho = 0.5 * (rho_ll + rho_rr)
+  p = 0.5 * (p_ll + p_rr) - 0.5 * c * rho * (v_rr - v_ll) / norm_
+  v = 0.5 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll) * norm_
+
+  if v >= 0
+    f1, f2, f3, f4, f5 = v * u_ll
+  else
+    f1, f2, f3, f4, f5 = v * u_rr
+  end
+
+  f2 += p * normal_direction[1]
+  f3 += p * normal_direction[2]
+  f4 += p * normal_direction[3]
+  f5 += p * v
+
+  return SVector(f1, f2, f3, f4, f5)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations3D)
