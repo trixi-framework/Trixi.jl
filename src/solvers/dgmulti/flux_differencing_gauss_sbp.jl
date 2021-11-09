@@ -95,7 +95,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
   # Conditionally use sparse operators if they can be estimated to be faster than dense operators
   # (based on some benchmarks on an AMD Ryzen Threadripper 3990X 64-Core Processor).
   # 2D operators are mostly not sparse enough and too small to benefit from sparse representations.
-  # TODO: Check whether SuiteSparseGraphBLAS.jl can be used to get even better performance
+  # TODO: DGMulti. Check whether SuiteSparseGraphBLAS.jl can be used to get even better performance
   #       and also multiple threads.
   if (ndims(mesh) >= 3) && !((polydeg(dg) <= 2 && Threads.nthreads() <= 1))
     # Since Julia uses `SparseMatrixCSC` by default, we use the adjoint to get
