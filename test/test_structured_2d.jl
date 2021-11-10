@@ -210,14 +210,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
       linf = [1.0771947577311836, 1.9143913544309838, 2.149549109115789],
-      tspan = (0.0, 0.1))
+      tspan = (0.0, 0.1),
+      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_harmonic_nonperiodic.jl"),
       l2   = [0.19357947606509474, 0.47041398037626814, 0.4704139803762686],
       linf = [0.35026352556630114, 0.8344372248051408, 0.8344372248051408],
-      tspan = (0.0, 0.1))
+      tspan = (0.0, 0.1),
+      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_mhd_ec.jl" begin

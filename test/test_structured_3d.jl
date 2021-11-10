@@ -70,7 +70,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.011367083018614027, 0.007022020327490176, 0.006759580335962235, 0.006820337637760632, 0.02912659127566544],
       linf = [0.2761764220925329, 0.20286331858055706, 0.18763944865434593, 0.19313636558790004, 0.707563913727584],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
