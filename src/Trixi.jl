@@ -20,6 +20,7 @@ module Trixi
 
 using LinearAlgebra: LinearAlgebra, diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
+using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -46,7 +47,6 @@ using P4est
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
-using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
 using Static: One
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
@@ -132,6 +132,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
+       FluxLMARS,
        FluxRotated
 
 export initial_condition_constant,

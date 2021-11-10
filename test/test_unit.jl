@@ -578,7 +578,7 @@ Cassette.@context Ctx
                           SVector(-1.2, 0.3, 1.4)]
       u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0),]
-      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber]
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340)]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)

@@ -9,6 +9,7 @@
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
 mul_by!(A::T) where {T<:SimpleKronecker} = @inline (out, x)->mul!(out, A, x)
 mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
+mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S<:AbstractSparseMatrix} = @inline (out, x)->mul!(out, A, x)
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
@@ -156,10 +157,10 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
   apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
-function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
-                               mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
                                have_nonconservative_terms::Val{false}, equations,
-                               dg::DGMulti, cache)
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache)
 
   rd = dg.basis
   md = mesh.md
@@ -383,29 +384,29 @@ function rhs!(du, u, t, mesh, equations,
               initial_condition, boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
 
-  @trixi_timeit timer() "Reset du/dt" fill!(du, zero(eltype(du)))
+  @trixi_timeit timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
 
-  @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(
-    du, u, dg.volume_integral,
-    mesh, have_nonconservative_terms(equations), equations, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
-  @trixi_timeit timer() "prolong2interfaces!" prolong2interfaces!(
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
     cache, u, mesh, equations, dg.surface_integral, dg)
 
-  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
     cache, dg.surface_integral, mesh,
     have_nonconservative_terms(equations), equations, dg)
 
-  @trixi_timeit timer() "calc_boundary_flux!" calc_boundary_flux!(
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
     cache, t, boundary_conditions, mesh, equations, dg)
 
-  @trixi_timeit timer() "calc_surface_integral!" calc_surface_integral!(
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
     du, u, dg.surface_integral, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "invert_jacobian" invert_jacobian!(
+  @trixi_timeit timer() "Jacobian" invert_jacobian!(
     du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "calc_sources!" calc_sources!(
+  @trixi_timeit timer() "source terms" calc_sources!(
     du, u, t, source_terms, mesh, equations, dg, cache)
 
   return nothing
