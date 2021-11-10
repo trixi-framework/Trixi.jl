@@ -145,7 +145,7 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.004626581522263695, 0.006614624811393632, 0.0030068344747734566, 0.008277825749754025,
               1.3475027166309006e-5],
       tspan = (0.0, 0.25),
-      coverage_override = trees_per_dimension=(1, 1, 1))
+      coverage_override = (trees_per_dimension=(1, 1, 1),))
   end
 
   @trixi_testset "elixir_mhd_shockcapturing_amr.jl" begin
