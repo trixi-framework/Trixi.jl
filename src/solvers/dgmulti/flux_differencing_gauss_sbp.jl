@@ -60,6 +60,24 @@ function TensorProductFaceInterpolationGauss(dg::DGMulti{2, Quad, GaussSBP})
                                                       nnodes_1d, rd.Nfaces)
 end
 
+@inline function mul_by!(A::TensorProductFaceInterpolationGauss)
+  return (out, x) -> tensor_product_face_interpolation_gauss!(out, A, x)
+end
+
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
+@inline function tensor_product_face_interpolation_gauss!(out::AbstractMatrix,
+                                                          A::TensorProductFaceInterpolationGauss{2},
+                                                          x::AbstractMatrix)
+  @threaded for col in Base.OneTo(size(out, 2))
+    tensor_product_face_interpolation_gauss!(view(out, :, col), A, view(x, :, col))
+  end
+end
+
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_face_interpolation_gauss!(out::AbstractVector,
                                                           A::TensorProductFaceInterpolationGauss{2},
@@ -72,7 +90,7 @@ end
   x = reshape(x, nnodes_1d, nnodes_1d)
 
   # interpolation in the x-direction
-  @tturbo for i in Base.OneTo(nnodes_1d)
+  @turbo for i in Base.OneTo(nnodes_1d)
     index_left = face_indices_tensor_product[1, i, 1]
     index_right = face_indices_tensor_product[2, i, 1]
     for j in Base.OneTo(nnodes_1d)
@@ -82,7 +100,7 @@ end
   end
 
   # interpolation in the y-direction
-  @tturbo for i in Base.OneTo(nnodes_1d)
+  @turbo for i in Base.OneTo(nnodes_1d)
     index_left = face_indices_tensor_product[1, i, 2]
     index_right = face_indices_tensor_product[2, i, 2]
     for j in Base.OneTo(nnodes_1d)
@@ -90,18 +108,7 @@ end
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, j] * x[i, j]
     end
   end
-
 end
-
-@inline function mul_by!(A::TensorProductFaceInterpolationGauss)
-  return (out, x) -> tensor_product_gauss_face_interpolation!(out, A, x)
-end
-
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
 
 # Specialized constructor for GaussSBP approximation type on quad elements. Restricting to
 # VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
@@ -174,6 +181,8 @@ function create_cache(mesh::VertexMappedMesh, equations,
                                            100 * eps(eltype(interp_matrix_gauss_to_face)))'
     Pf = droptol!(sparse(Pf'), 100 * eps(eltype(Pf)))'
   end
+
+  interp_matrix_gauss_to_face = TensorProductFaceInterpolationGauss(dg)
 
   nvars = nvariables(equations)
   rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
