@@ -1,18 +1,21 @@
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Line(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+surface_flux = FluxLaxFriedrichs()
+volume_flux = flux_ranocha
+dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
+             surface_integral = SurfaceIntegralWeakForm(surface_flux),
+             volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
+source_terms = source_terms_convergence_test
 
 cells_per_dimension = (8, )
 vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true,))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
-                                    source_terms=source_terms_convergence_test)
+                                    source_terms=source_terms)
 
 tspan = (0.0, 1.1)
 ode = semidiscretize(semi, tspan)
