@@ -375,6 +375,17 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
+"""
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::AbstractEquations{1})
+
+Enables calling `flux_ranocha` with non-integer arguments `orientation_or_normal_direction` for
+one-dimensional equations.
+
+Returns `orientation_or_normal_direction * flux_ranocha(u_ll, u_rr, 1, equations)`.
+"""
+@inline function flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::AbstractEquations{1})
+  return orientation_or_normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
+end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)

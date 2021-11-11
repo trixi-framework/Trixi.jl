@@ -261,7 +261,7 @@ one-dimensional equations. Returns the value of `flux(u, 1, equations)` scaled b
 @inline function flux(u, orientation_or_normal_direction, equations::AbstractEquations{1})
   # Call `flux` with `orientation::Int = 1` for dispatch. Note that the actual
   # `orientation` argument is ignored.
-  return orientation_or_normal_direction * flux(u, 1, equations)
+  return orientation_or_normal_direction[1] * flux(u, 1, equations)
 end
 
 ####################################################################################################
