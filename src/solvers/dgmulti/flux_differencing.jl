@@ -180,6 +180,11 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
+@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{1})
+  @unpack rxJ = mesh.md
+  return 2 * rxJ[1, element] #SVector(rxJ[1, element])
+end
+
 @inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{2})
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   if orientation == 1
