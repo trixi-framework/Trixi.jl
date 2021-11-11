@@ -49,8 +49,8 @@ mutable struct P4estMesh{NDIMS, IsParallel, RealT<:Real, P, NDIMSP2, NNODES} <: 
   end
 end
 
-const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Val(false)}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Val(true)}
+const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Val{false}}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Val{true}}
 
 
 function destroy_mesh(mesh::P4estMesh{2})
@@ -67,10 +67,12 @@ end
 
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where NDIMS = NDIMS
-@inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.real(::P4estMesh{NDIMS, IsParallel, RealT}) where {NDIMS, IsParallel, RealT} = RealT
 
 @inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count
-@inline ncells(mesh::P4estMesh) = mesh.p4est.global_num_quadrants
+@inline ncells(mesh::SerialP4estMesh) = mesh.p4est.global_num_quadrants
+# returns Int32 by default which causes a weird method error when creating the cache
+@inline ncells(mesh::ParallelP4estMesh) = Int(mesh.p4est.local_num_quadrants)
 
 
 function Base.show(io::IO, mesh::P4estMesh)
