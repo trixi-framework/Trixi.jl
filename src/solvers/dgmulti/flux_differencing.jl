@@ -182,7 +182,7 @@ end
 # combination of reference derivatives.
 @inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{1})
   @unpack rxJ = mesh.md
-  return 2 * rxJ[1, element] # the 1D contravariant vector reduces to a scaling.
+  return 2 * SVector(rxJ[1, element]) # the 1D contravariant vector reduces to a scaling.
 end
 
 @inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{2})
