@@ -252,16 +252,15 @@ The inverse conversion is performed by [`cons2entropy`](@ref).
 function entropy2cons end
 
 """
-    flux(u, orientation_or_normal_direction, equations::AbstractEquations{1})
+    flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
 
-Enables calling `flux` with a non-integer argument `orientation_or_normal_direction` for
-one-dimensional equations. Returns the value of `flux(u, 1, equations)` scaled by
-`orientation_or_normal_direction`.
+Enables calling `flux` with a non-integer argument `normal_direction` for one-dimensional
+equations. Returns the value of `flux(u, 1, equations)` scaled by `normal_direction[1]`.
 """
 @inline function flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
   # Call `flux` with `orientation::Int = 1` for dispatch. Note that the actual
   # `orientation` argument is ignored.
-  return orientation_or_normal_direction[1] * flux(u, 1, equations)
+  return normal_direction[1] * flux(u, 1, equations)
 end
 
 ####################################################################################################
