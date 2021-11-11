@@ -164,7 +164,7 @@ For non-integer arguments `orientation_or_normal_direction`, `max_abs_speed_naiv
 function max_abs_speed_naive end
 
 # for non-integer `orientation_or_normal` arguments.
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations::AbstractEquations{1})
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::AbstractEquations{1})
   return abs(orientation_or_normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)
 end
 
