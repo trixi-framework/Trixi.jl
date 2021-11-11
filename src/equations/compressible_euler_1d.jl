@@ -383,7 +383,7 @@ one-dimensional equations.
 
 Returns `orientation_or_normal_direction * flux_ranocha(u_ll, u_rr, 1, equations)`.
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::AbstractEquations{1})
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::AbstractEquations{1})
   return orientation_or_normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
 end
 
