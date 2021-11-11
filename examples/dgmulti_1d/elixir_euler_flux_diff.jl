@@ -2,7 +2,7 @@ using Trixi, OrdinaryDiffEq
 
 surface_flux = FluxLaxFriedrichs()
 volume_flux = flux_ranocha
-dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = 3, element_type = Line(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
