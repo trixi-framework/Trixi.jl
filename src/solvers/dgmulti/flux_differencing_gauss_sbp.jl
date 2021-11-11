@@ -25,8 +25,77 @@ function tensor_product_quadrature(element_type::Hex, r1D, w1D)
   return rq, sq, tq, wq
 end
 
-# Todo: DGMulti. Decide if we should add GaussSBP on triangles.
+"""
+  struct TensorProductGaussFaceInterpolation{Tmat, Ti}
 
+Creates a tensor product ordering of
+"""
+struct TensorProductFaceInterpolationGauss{NDIMS, Tmat}
+  interp_matrix_gauss_to_face_1d::Tmat
+  face_indices_tensor_product::Array{Int, 3}
+  nnodes_1d::Int
+  nfaces::Int
+end
+
+function TensorProductFaceInterpolationGauss(dg::DGMulti{2, Quad, GaussSBP})
+  rd = dg.basis
+
+  rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+  interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
+
+  nnodes_1d = length(rq1D)
+  num_pts_per_face = nnodes_1d
+
+  # Permutation of indices in a tensor product form
+  indices = reshape(1:length(rd.rf), num_pts_per_face, rd.Nfaces)
+  face_indices_tensor_product = zeros(Int, 2, num_pts_per_face, ndims(rd.elementType))
+  for i in 1:num_pts_per_face
+    face_indices_tensor_product[:, i, 1] .= indices[i, 1:2]
+    face_indices_tensor_product[:, i, 2] .= indices[i, 3:4]
+  end
+
+  Tmat = typeof(interp_matrix_gauss_to_face_1d)
+  return TensorProductFaceInterpolationGauss{2, Tmat}(interp_matrix_gauss_to_face_1d,
+                                                      face_indices_tensor_product,
+                                                      nnodes_1d, rd.Nfaces)
+end
+
+# Interpolates values from volume Gauss nodes to face nodes on one element.
+@inline function tensor_product_face_interpolation_gauss!(out::AbstractVector,
+                                                          A::TensorProductFaceInterpolationGauss{2},
+                                                          x::AbstractVector)
+
+  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
+  @unpack nnodes_1d, nfaces = A
+
+  fill!(out, zero(eltype(out)))
+  x = reshape(x, nnodes_1d, nnodes_1d)
+
+  # interpolation in the x-direction
+  @tturbo for i in Base.OneTo(nnodes_1d)
+    index_left = face_indices_tensor_product[1, i, 1]
+    index_right = face_indices_tensor_product[2, i, 1]
+    for j in Base.OneTo(nnodes_1d)
+      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, j] * x[j, i]
+      out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, j] * x[j, i]
+    end
+  end
+
+  # interpolation in the y-direction
+  @tturbo for i in Base.OneTo(nnodes_1d)
+    index_left = face_indices_tensor_product[1, i, 2]
+    index_right = face_indices_tensor_product[2, i, 2]
+    for j in Base.OneTo(nnodes_1d)
+      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, j] * x[i, j]
+      out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, j] * x[i, j]
+    end
+  end
+
+end
+
+@inline function mul_by!(A::TensorProductFaceInterpolationGauss)
+  return (out, x) -> tensor_product_gauss_face_interpolation!(out, A, x)
+end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -45,7 +114,7 @@ function DGMulti(element_type::Union{Quad, Hex},
                  surface_flux=flux_central,
                  kwargs...)
 
-  # create tensor product Gauss quadrature rule with polydeg+1 points
+  # explicitly create tensor product Gauss quadrature rule with polydeg+1 points
   r1D, w1D = StartUpDG.gauss_quad(0, 0, polydeg)
   gauss_rule_vol = tensor_product_quadrature(element_type, r1D, w1D)
   gauss_rule_face = tensor_product_quadrature(StartUpDG.face_type(element_type), r1D, w1D)
@@ -97,6 +166,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
   # 2D operators are mostly not sparse enough and too small to benefit from sparse representations.
   # TODO: DGMulti. Check whether SuiteSparseGraphBLAS.jl can be used to get even better performance
   #       and also multiple threads.
+  # interp_matrix_gauss_to_face = TensorProductGaussFaceInterpolation()
   if (ndims(mesh) >= 3) && !((polydeg(dg) <= 2 && Threads.nthreads() <= 1))
     # Since Julia uses `SparseMatrixCSC` by default, we use the adjoint to get
     # basically a `SparseMatrixCSR`, which is faster for matrix vector multiplication.
@@ -112,6 +182,8 @@ function create_cache(mesh::VertexMappedMesh, equations,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
          interp_matrix_gauss_to_face)
 end
+
+
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
@@ -132,8 +204,8 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   volume_indices = Base.OneTo(rd.Nq)
   face_indices = (rd.Nq + 1):(rd.Nq + rd.Nfq)
 
-  # interpolate volume Gauss nodes to face nodes
-  # (note the layout of projected_entropy_var_values = [vol pts; face pts]).
+  # Interpolate volume Gauss nodes to Gauss face nodes (note the layout of
+  # `projected_entropy_var_values = [vol pts; face pts]`).
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
   # TODO: speed up using tensor product structure?
   apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
