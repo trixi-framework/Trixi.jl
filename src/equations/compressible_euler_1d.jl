@@ -384,7 +384,7 @@ one-dimensional equations.
 Returns `normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)`.
 """
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
-  return orientation_or_normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
+  return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
