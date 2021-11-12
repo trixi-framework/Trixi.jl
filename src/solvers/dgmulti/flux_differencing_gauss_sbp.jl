@@ -61,11 +61,12 @@ function TensorProductGaussFaceOperator(operator::AbstractOperatorType,
     face_indices_tensor_product[:, i, 2] .= indices[i, 3:4]
   end
 
-  Tmat = typeof(interp_matrix_gauss_to_face_1d)
-  Toperator = typeof(operator)
-  return TensorProductGaussFaceOperator{2, Toperator, Tmat}(interp_matrix_gauss_to_face_1d,
-                                                            rd.wq, face_indices_tensor_product,
-                                                            nnodes_1d, rd.Nfaces)
+  T_op = typeof(operator)
+  Tm = typeof(interp_matrix_gauss_to_face_1d)
+  Tw = typeof(rd.wq)
+  return TensorProductGaussFaceOperator{2, T_op, Tm, Tw}(interp_matrix_gauss_to_face_1d,
+                                                         rd.wq, face_indices_tensor_product,
+                                                         nnodes_1d, rd.Nfaces)
 end
 
 @inline function mul_by!(A::TensorProductGaussFaceOperator)
