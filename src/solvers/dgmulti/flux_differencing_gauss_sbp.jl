@@ -65,7 +65,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   Tm = typeof(interp_matrix_gauss_to_face_1d)
   Tw = typeof(rd.wq)
   return TensorProductGaussFaceOperator{2, T_op, Tm, Tw}(interp_matrix_gauss_to_face_1d,
-                                                         rd.wq, face_indices_tensor_product,
+                                                         inv.(wq1D), face_indices_tensor_product,
                                                          nnodes_1d, rd.Nfaces)
 end
 
@@ -98,10 +98,13 @@ end
   fill!(out, zero(eltype(out)))
   x = reshape(x, nnodes_1d, nnodes_1d)
 
+  num_nodes_per_face = nnodes_1d
+
   # interpolation in the x-direction
-  @turbo for i in Base.OneTo(nnodes_1d)
+  @turbo for i in Base.OneTo(num_nodes_per_face)
     index_left = face_indices_tensor_product[1, i, 1]
     index_right = face_indices_tensor_product[2, i, 1]
+    # loop over "line" ov volume nodes
     for j in Base.OneTo(nnodes_1d)
       out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, j] * x[j, i]
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, j] * x[j, i]
@@ -109,7 +112,7 @@ end
   end
 
   # interpolation in the y-direction
-  @turbo for i in Base.OneTo(nnodes_1d)
+  @turbo for i in Base.OneTo(num_nodes_per_face)
     index_left = face_indices_tensor_product[1, i, 2]
     index_right = face_indices_tensor_product[2, i, 2]
     for j in Base.OneTo(nnodes_1d)
@@ -237,6 +240,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
   # TODO: this is temporary, remove this once things are stable.
   if ndims(mesh)==2
     interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
+    Pf = TensorProductGaussFaceOperator(Projection(), dg)
   end
 
   nvars = nvariables(equations)
