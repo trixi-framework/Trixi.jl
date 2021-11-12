@@ -317,7 +317,7 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations1D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Hendrik Ranocha (2018)
@@ -355,6 +355,10 @@ See also
   return SVector(f1, f2, f3)
 end
 
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
+  return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
+end
+
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
@@ -375,17 +379,6 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-"""
-    flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
-
-Enables calling `flux_ranocha` with non-integer arguments `normal_direction` for
-one-dimensional equations.
-
-Returns `normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)`.
-"""
-@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
-  return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
-end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)

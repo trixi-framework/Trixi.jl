@@ -85,6 +85,18 @@ for the corresponding set of governing `equations`.
 """
 function flux end
 
+"""
+    flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
+
+Enables calling `flux` with a non-integer argument `normal_direction` for one-dimensional
+equations. Returns the value of `flux(u, 1, equations)` scaled by `normal_direction[1]`.
+"""
+@inline function flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
+  # Call `flux` with `orientation::Int = 1` for dispatch. Note that the actual
+  # `orientation` argument is ignored.
+  return normal_direction[1] * flux(u, 1, equations)
+end
+
 
 """
     rotate_to_x(u, normal, equations)
@@ -250,18 +262,6 @@ so please make sure your input is correct.
 The inverse conversion is performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
-
-"""
-    flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
-
-Enables calling `flux` with a non-integer argument `normal_direction` for one-dimensional
-equations. Returns the value of `flux(u, 1, equations)` scaled by `normal_direction[1]`.
-"""
-@inline function flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
-  # Call `flux` with `orientation::Int = 1` for dispatch. Note that the actual
-  # `orientation` argument is ignored.
-  return normal_direction[1] * flux(u, 1, equations)
-end
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
