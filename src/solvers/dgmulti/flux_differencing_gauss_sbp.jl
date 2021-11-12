@@ -236,7 +236,7 @@ end
                                                      x::AbstractVector)
 
   @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-  @unpack nnodes_1d, nfaces = A
+  @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
 
   fill!(out_vec, zero(eltype(out_vec)))
 
@@ -353,10 +353,8 @@ function create_cache(mesh::VertexMappedMesh, equations,
   end
 
   # TODO: this is temporary, remove this once things are stable.
-  if ndims(mesh)==2
-    interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-    Pf = TensorProductGaussFaceOperator(Projection(), dg)
-  end
+  interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
+  Pf = TensorProductGaussFaceOperator(Projection(), dg)
 
   nvars = nvariables(equations)
   rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
