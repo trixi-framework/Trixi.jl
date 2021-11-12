@@ -94,14 +94,12 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 
-
-# https://doi.org/10.1002/qj.2241, Section 3.2 and Appendix A
 function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerEquations3D)
   # Parameters from Table 1 in the paper
   # Corresponding names in the paper are commented
   radius_earth          = 6.371229e6  # a
   half_width_parameter  = 2           # b
-  g                     = 9.80616     # g
+  gravity_constant      = 9.80616     # g
   k                     = 3           # k
   p0                    = 1e5         # p₀
   gas_constant          = 287         # R
@@ -111,7 +109,7 @@ function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerE
   omega_earth           = 7.29212e-5  # Ω
 
 
-  lon, lat, r = cart_to_sphere(x)
+  lon, lat, r = cartesian_to_sphere(x)
   # Make sure that the r is not smaller than radius_earth
   z = max(r - radius_earth, 0.0)
   r = z + radius_earth
@@ -122,7 +120,7 @@ function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerE
   const_a = 1 / lapse
   const_b = (temperature0 - temperature0p) / (temperature0 * temperature0p)
   const_c = 0.5 * (k + 2) * (temperature0e - temperature0p) / (temperature0e * temperature0p)
-  const_h = gas_constant * temperature0 / g
+  const_h = gas_constant * temperature0 / gravity_constant
 
   # In the paper: (r - a) / bH
   scaled_z = z / (half_width_parameter * const_h)
@@ -147,12 +145,12 @@ function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerE
   temperature = 1 / ((r/radius_earth)^2 * (tau1 - tau2 * temp4))
 
   # In the paper: U, u (zonal wind, first component of spherical velocity)
-  big_u = g/radius_earth * k * temperature * inttau2 * (temp3^(k-1) - temp3^(k+1))
+  big_u = gravity_constant/radius_earth * k * temperature * inttau2 * (temp3^(k-1) - temp3^(k+1))
   temp5 = radius_earth * cos(lat)
   u = -omega_earth * temp5 + sqrt(omega_earth^2 * temp5^2 + temp5 * big_u)
 
   # Hydrostatic pressure
-  p = p0 * exp(-g/gas_constant * (inttau1 - inttau2 * temp4))
+  p = p0 * exp(-gravity_constant/gas_constant * (inttau1 - inttau2 * temp4))
 
   # Perturbation
   # u += evaluate_exponential(lon,lat,z)
@@ -168,7 +166,7 @@ function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerE
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 
-function cart_to_sphere(x)
+function cartesian_to_sphere(x)
   r = norm(x)
   lambda = atan(x[2], x[1])
   if lambda < 0
