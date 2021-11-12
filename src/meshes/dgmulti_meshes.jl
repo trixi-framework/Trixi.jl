@@ -64,6 +64,17 @@ function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::A
   return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
+# specialization for NDIMS = 1
+function VertexMappedMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
+                          is_on_boundary = nothing,
+                          is_periodic = (false, )) where {Tv, Ti}
+
+  md = MeshData(vertex_coordinates, EToV, rd)
+  md = StartUpDG.make_periodic(md, is_periodic...)
+  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
+  return VertexMappedMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+end
+
 """
     VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
 

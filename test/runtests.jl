@@ -75,6 +75,7 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "unstructured_dgmulti"
     include("test_unstructured_2d.jl")
+    include("test_dgmulti_1d.jl")
     include("test_dgmulti_2d.jl")
     include("test_dgmulti_3d.jl")
   end
