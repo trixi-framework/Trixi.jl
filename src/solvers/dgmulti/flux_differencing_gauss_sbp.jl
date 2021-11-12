@@ -26,28 +26,28 @@ function tensor_product_quadrature(element_type::Hex, r1D, w1D)
 end
 
 # type parameters for TensorProductFaceOperator
-abstract type AbstractOperatorType end
-struct Interpolation <: AbstractOperatorType end
-struct Projection  <: AbstractOperatorType end
+abstract type AbstractGaussOperator end
+struct Interpolation <: AbstractGaussOperator end
+struct Projection  <: AbstractGaussOperator end
 
 """
   struct TensorProductGaussFaceOperator{Tmat, Ti}
 
 Data for performing tensor product interpolation from volume nodes to face nodes.
 """
-struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractOperatorType, Tmat, Tweights}
+struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator, Tmat, Tweights}
   interp_matrix_gauss_to_face_1d::Tmat
-  volume_weights::Tweights
+  inv_volume_weights_1d::Tweights
   face_indices_tensor_product::Array{Int, 3}
   nnodes_1d::Int
   nfaces::Int
 end
 
-function TensorProductGaussFaceOperator(operator::AbstractOperatorType,
+function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
                                         dg::DGMulti{2, Quad, GaussSBP})
   rd = dg.basis
 
-  rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+  rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
   interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
 
   nnodes_1d = length(rq1D)
@@ -115,6 +115,50 @@ end
     for j in Base.OneTo(nnodes_1d)
       out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, j] * x[i, j]
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, j] * x[i, j]
+    end
+  end
+end
+
+# Projects face node values to volume Gauss nodes on one element.
+@inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
+                                                     A::TensorProductGaussFaceOperator{2, Projection},
+                                                     x::AbstractVector)
+
+  @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
+  @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
+
+  fill!(out_vec, zero(eltype(out_vec)))
+  out = reshape(out_vec, nnodes_1d, nnodes_1d) # @turbo appears to break for reshaped arrays
+
+  num_nodes_per_face = nnodes_1d
+
+  # interpolation in the x-direction
+  for i in Base.OneTo(num_nodes_per_face)
+    index_left = face_indices_tensor_product[1, i, 1]
+    index_right = face_indices_tensor_product[2, i, 1]
+    # loop over a line of volume nodes
+    for j in Base.OneTo(nnodes_1d)
+      out[j, i] = out[j, i] + interp_matrix_gauss_to_face_1d[1, j] * x[index_left]
+      out[j, i] = out[j, i] + interp_matrix_gauss_to_face_1d[2, j] * x[index_right]
+    end
+  end
+
+  # interpolation in the y-direction
+  for i in Base.OneTo(nnodes_1d)
+    index_left = face_indices_tensor_product[1, i, 2]
+    index_right = face_indices_tensor_product[2, i, 2]
+    # loop over a line of volume nodes
+    for j in Base.OneTo(nnodes_1d)
+      out[i, j] = out[i, j] + interp_matrix_gauss_to_face_1d[1, j] * x[index_left]
+      out[i, j] = out[i, j] + interp_matrix_gauss_to_face_1d[2, j] * x[index_right]
+    end
+  end
+
+  # apply inv(M)
+  for i in Base.OneTo(nnodes_1d)
+    inv_wi = inv_volume_weights_1d[i]
+    for j in Base.OneTo(nnodes_1d)
+      out[i, j] = out[i, j] * inv_wi * inv_volume_weights_1d[j]
     end
   end
 end
