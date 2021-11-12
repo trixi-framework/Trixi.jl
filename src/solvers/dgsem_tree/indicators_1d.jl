@@ -223,13 +223,11 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}
   modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   # There are two versions of the network:
-  # The first one only takes the hightest energy modes as input, the second one also the numbernetwork_input[3] = length(basis.nodes)of
-  # nodes. Automatically use the correct input by checking the size of the first layer
+  # The first one only takes the hightest energy modes as input, the second one also the number
+  # of nodes. Automatically use the correct input by checking the size of the first layer
   network_input = Vector{Float64}(undef, input_size)
 
-  network_output = Vector{Float64}(undef, 2)
-
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, network_input, network_output)
+  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, network_input)
 end
 
 # cache for NeuralNetworkRayHesthaven-type indicator
@@ -247,9 +245,8 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
   neighbor_ids = Vector{Int}(undef, 2)
 
   network_input = Vector{Float64}(undef, input_size)  
-  network_output = Vector{Float64}(undef, 2)
 
-  return (; alpha, alpha_tmp, indicator_threaded, neighbor_ids, c2e, network_input, network_output)
+  return (; alpha, alpha_tmp, indicator_threaded, neighbor_ids, c2e, network_input)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -262,7 +259,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, network_input, network_output = indicator_ann.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, network_input = indicator_ann.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -307,16 +304,21 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     end
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    # for ind in eachindex(network_input)
+    #   network_input[ind] = network_input[ind] / max(maximum(abs, network_input), one(eltype(network_input)))
+    # end
     
-
-    network_output = network(network_input)
-    #probability_troubled_cell = network(network_input)[1]
+    # Evaluation of the network allocates huge amounts of memory.
+    # Currently there is no good solution known to fix this.
+    # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
+    network_output = 0.8 #network(network_input)[1]
 
     # Compute indicator value
-    probability_to_indicator!(network_output[1], alpha_continuous,
-                                              alpha_amr, alpha_min, alpha_max)
-    alpha[element] =  network_output[1]                                   
+    # probability_to_indicator!(network_output, alpha_continuous,
+    #                                           alpha_amr, alpha_min, alpha_max)
+    # both Float64                                              
+    alpha[element] =  0.5
+                                       
   end
 
   if alpha_smooth
@@ -329,7 +331,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     u::AbstractArray{<:Any,3}, mesh, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, neighbor_ids, c2e, network_input, network_output = indicator_ann.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, neighbor_ids, c2e, network_input = indicator_ann.cache
 
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
@@ -400,7 +402,9 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     network_input[3] = sum(indicator)/nnodes(dg)
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    for ind in eachindex(network_input)
+      network_input[ind] = network_input[ind] / max(maximum(abs, network_input), one(eltype(network_input)))
+    end
     network_output = network(network_input)
 
 
