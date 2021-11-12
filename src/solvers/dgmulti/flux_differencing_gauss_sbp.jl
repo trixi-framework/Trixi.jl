@@ -28,7 +28,7 @@ end
 """
   struct TensorProductGaussFaceInterpolation{Tmat, Ti}
 
-Creates a tensor product ordering of
+Data for performing tensor product interpolation from volume nodes to face nodes.
 """
 struct TensorProductFaceInterpolationGauss{NDIMS, Tmat}
   interp_matrix_gauss_to_face_1d::Tmat
