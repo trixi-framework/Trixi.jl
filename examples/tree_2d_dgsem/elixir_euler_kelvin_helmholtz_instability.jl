@@ -32,11 +32,11 @@ end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_ranocha
+volume_flux  = flux_central
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.002,
+                                         alpha_max=1.0,
                                          alpha_min=0.0001,
                                          alpha_smooth=true,
                                          variable=density_pressure)
@@ -55,7 +55,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.0)
+tspan = (0.0, 25.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -65,12 +65,12 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=20,
+save_solution = SaveSolutionCallback(interval=20000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.3)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -80,8 +80,13 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
+limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
+                                               variables=(Trixi.density, pressure))
+stage_limiter! = limiter!
+step_limiter!  = limiter!
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
+#sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

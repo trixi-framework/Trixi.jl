@@ -97,7 +97,7 @@ coordinates_max = ( 6.0, 2.0)   # eigentlich (6, 2)
 trees_per_dimension = (6, 2)
 
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg=3, initial_refinement_level=7, #8
+                 polydeg=3, initial_refinement_level=4, #8
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
                  periodicity=false)
 
@@ -143,8 +143,8 @@ limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
                                                variables=(Trixi.density, pressure))
 stage_limiter! = limiter!
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false), # ohne step_limiter!
-#sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),   #stage_limiter!, step_limiter!, 
+#sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false), # ohne step_limiter!
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),   #stage_limiter!, step_limiter!, 
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary

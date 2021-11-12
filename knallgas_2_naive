@@ -1,0 +1,7 @@
+#reactions for Knallgas 2 naive detonation example R -> P
+
+@var: T = Tgas
+
+@format:idx,R,P,Tmin,rate
+
+1,H2,O2,>8.085e8,5.825e9

@@ -65,8 +65,8 @@ boundary_conditions = Dict(
 chemistry_term = chemistry_knallgas_2_naive                    
 
 # Get the DG approximation space
-surface_flux = flux_lax_friedrichs #FluxRotated(flux_hllc)#
-volume_flux = flux_central
+surface_flux = flux_lax_friedrichs#FluxRotated(flux_hllc)#
+volume_flux = flux_ranocha#flux_central #FluxRotated(flux_ranocha)#flux_central
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -87,7 +87,7 @@ coordinates_max = (0.015, 0.005)
 
 trees_per_dimension = (3, 1)
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg=3, initial_refinement_level=5,
+                 polydeg=3, initial_refinement_level=6,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max, 
                  periodicity=false)
 
@@ -97,7 +97,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 6.0e-8)
+tspan = (0.0, 2.0e-8)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -130,7 +130,7 @@ limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
                                                variables=(Trixi.density, pressure))
 stage_limiter! = limiter!
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

@@ -38,6 +38,13 @@ end
 
 initial_condition = initial_condition_sedov_blast_wave
 
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = Dict(
+                        :x_neg => boundary_condition,#_slip_wall,
+                        :x_pos => boundary_condition,#_slip_wall,
+                        :y_neg => boundary_condition,#_slip_wall,
+                        :y_pos => boundary_condition)#_slip_wall)       
+
 # Get the DG approximation space
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
@@ -65,7 +72,7 @@ mesh = P4estMesh(trees_per_dimension,
                  coordinates_min=coordinates_min, coordinates_max=coordinates_max,
                  periodicity=true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)#, boundary_conditions=nothing)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
