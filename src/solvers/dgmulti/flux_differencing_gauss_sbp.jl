@@ -25,19 +25,26 @@ function tensor_product_quadrature(element_type::Hex, r1D, w1D)
   return rq, sq, tq, wq
 end
 
+# type parameters for TensorProductFaceOperator
+abstract type AbstractOperatorType end
+struct Interpolation <: AbstractOperatorType end
+struct Projection  <: AbstractOperatorType end
+
 """
-  struct TensorProductGaussFaceInterpolation{Tmat, Ti}
+  struct TensorProductGaussFaceOperator{Tmat, Ti}
 
 Data for performing tensor product interpolation from volume nodes to face nodes.
 """
-struct TensorProductFaceInterpolationGauss{NDIMS, Tmat}
+struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractOperatorType, Tmat, Tweights}
   interp_matrix_gauss_to_face_1d::Tmat
+  volume_weights::Tweights
   face_indices_tensor_product::Array{Int, 3}
   nnodes_1d::Int
   nfaces::Int
 end
 
-function TensorProductFaceInterpolationGauss(dg::DGMulti{2, Quad, GaussSBP})
+function TensorProductGaussFaceOperator(operator::AbstractOperatorType,
+                                        dg::DGMulti{2, Quad, GaussSBP})
   rd = dg.basis
 
   rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
@@ -55,13 +62,22 @@ function TensorProductFaceInterpolationGauss(dg::DGMulti{2, Quad, GaussSBP})
   end
 
   Tmat = typeof(interp_matrix_gauss_to_face_1d)
-  return TensorProductFaceInterpolationGauss{2, Tmat}(interp_matrix_gauss_to_face_1d,
-                                                      face_indices_tensor_product,
-                                                      nnodes_1d, rd.Nfaces)
+  Toperator = typeof(operator)
+  return TensorProductGaussFaceOperator{2, Toperator, Tmat}(interp_matrix_gauss_to_face_1d,
+                                                            rd.wq, face_indices_tensor_product,
+                                                            nnodes_1d, rd.Nfaces)
 end
 
-@inline function mul_by!(A::TensorProductFaceInterpolationGauss)
-  return (out, x) -> tensor_product_face_interpolation_gauss!(out, A, x)
+@inline function mul_by!(A::TensorProductGaussFaceOperator)
+  return (out, x) -> tensor_product_gauss_face_operator!(out, A, x)
+end
+
+@inline function tensor_product_gauss_face_operator!(out::AbstractMatrix,
+                                                     A::TensorProductGaussFaceOperator,
+                                                     x::AbstractMatrix)
+  @threaded for col in Base.OneTo(size(out, 2))
+    tensor_product_gauss_face_operator!(view(out, :, col), A, view(x, :, col))
+  end
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -70,18 +86,10 @@ end
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-@inline function tensor_product_face_interpolation_gauss!(out::AbstractMatrix,
-                                                          A::TensorProductFaceInterpolationGauss{2},
-                                                          x::AbstractMatrix)
-  @threaded for col in Base.OneTo(size(out, 2))
-    tensor_product_face_interpolation_gauss!(view(out, :, col), A, view(x, :, col))
-  end
-end
-
 # Interpolates values from volume Gauss nodes to face nodes on one element.
-@inline function tensor_product_face_interpolation_gauss!(out::AbstractVector,
-                                                          A::TensorProductFaceInterpolationGauss{2},
-                                                          x::AbstractVector)
+@inline function tensor_product_gauss_face_operator!(out::AbstractVector,
+                                                     A::TensorProductGaussFaceOperator{2, Interpolation},
+                                                     x::AbstractVector)
 
   @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
   @unpack nnodes_1d, nfaces = A
@@ -173,7 +181,6 @@ function create_cache(mesh::VertexMappedMesh, equations,
   # 2D operators are mostly not sparse enough and too small to benefit from sparse representations.
   # TODO: DGMulti. Check whether SuiteSparseGraphBLAS.jl can be used to get even better performance
   #       and also multiple threads.
-  # interp_matrix_gauss_to_face = TensorProductGaussFaceInterpolation()
   if (ndims(mesh) >= 3) && !((polydeg(dg) <= 2 && Threads.nthreads() <= 1))
     # Since Julia uses `SparseMatrixCSC` by default, we use the adjoint to get
     # basically a `SparseMatrixCSR`, which is faster for matrix vector multiplication.
@@ -182,7 +189,10 @@ function create_cache(mesh::VertexMappedMesh, equations,
     Pf = droptol!(sparse(Pf'), 100 * eps(eltype(Pf)))'
   end
 
-  interp_matrix_gauss_to_face = TensorProductFaceInterpolationGauss(dg)
+  # TODO: this is temporary, remove this once things are stable.
+  if ndims(mesh)==2
+    interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
+  end
 
   nvars = nvariables(equations)
   rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
