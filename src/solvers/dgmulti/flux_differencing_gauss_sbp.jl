@@ -136,7 +136,7 @@ end
   num_nodes_per_face = nnodes_1d
 
   # interpolation in the x-direction
-  for i in Base.OneTo(num_nodes_per_face)
+  @turbo for i in Base.OneTo(num_nodes_per_face)
     index_left = face_indices_tensor_product[1, i, 1]
     index_right = face_indices_tensor_product[2, i, 1]
     # loop over a line of volume nodes
@@ -147,7 +147,7 @@ end
   end
 
   # interpolation in the y-direction
-  for i in Base.OneTo(nnodes_1d)
+  @turbo for i in Base.OneTo(nnodes_1d)
     index_left = face_indices_tensor_product[1, i, 2]
     index_right = face_indices_tensor_product[2, i, 2]
     # loop over a line of volume nodes
@@ -158,11 +158,8 @@ end
   end
 
   # apply inv(M)
-  for i in Base.OneTo(nnodes_1d)
-    inv_wi = inv_volume_weights_1d[i]
-    for j in Base.OneTo(nnodes_1d)
-      out[i, j] = out[i, j] * inv_wi * inv_volume_weights_1d[j]
-    end
+  @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d)
+    out[i, j] = out[i, j] * inv_volume_weights_1d[i] * inv_volume_weights_1d[j]
   end
 end
 
