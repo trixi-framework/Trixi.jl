@@ -81,7 +81,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
   # Permutation of indices in a tensor product form
   indices = reshape(1:length(rd.rf), nnodes_1d, nnodes_1d, rd.Nfaces)
   face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.elementType))
-  for i in 1:nnodes_1d, j in 1:nnodes_1d # loop over nodes in one face
+  for j in 1:nnodes_1d, i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, j, 1] .= indices[i, j, 1:2]
     face_indices_tensor_product[:, i, j, 2] .= indices[i, j, 3:4]
     face_indices_tensor_product[:, i, j, 3] .= indices[i, j, 5:6]
@@ -123,24 +123,26 @@ end
   @unpack nnodes_1d, nfaces = A
 
   fill!(out, zero(eltype(out)))
+
+  # for 2D GaussSBP nodes, the indexing is first in x, then in y
   x = reshape(x, nnodes_1d, nnodes_1d)
 
   # interpolation in the x-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, 1]
+    index_left  = face_indices_tensor_product[1, i, 1]
     index_right = face_indices_tensor_product[2, i, 1]
     for jj in Base.OneTo(nnodes_1d)      # loop over "line" of volume nodes
-      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i]
+      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i]
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i]
     end
   end
 
   # interpolation in the y-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, 2]
+    index_left  = face_indices_tensor_product[1, i, 2]
     index_right = face_indices_tensor_product[2, i, 2]
     for jj in Base.OneTo(nnodes_1d)               # loop over "line" of volume nodes
-      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj]
+      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj]
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj]
     end
   end
@@ -160,33 +162,33 @@ end
   x = reshape(x, nnodes_1d, nnodes_1d, nnodes_1d)
 
   # interpolation in the y-direction
-  @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, j, 2]
+  @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
+    index_left  = face_indices_tensor_product[1, i, j, 2]
     index_right = face_indices_tensor_product[2, i, j, 2]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i, j]
+      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i, j]
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i, j]
     end
   end
 
   # interpolation in the x-direction
-  @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, j, 1]
+  @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
+    index_left  = face_indices_tensor_product[1, i, j, 1]
     index_right = face_indices_tensor_product[2, i, j, 1]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj, j]
+      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj, j]
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj, j]
     end
   end
 
   # interpolation in the z-direction
   @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, j, 3]
+    index_left  = face_indices_tensor_product[1, i, j, 3]
     index_right = face_indices_tensor_product[2, i, j, 3]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
       # the ordering (i,j) -> (j,i) needs to be reversed for this last face.
-      # this is probably due to way we define face nodes for Hex() types in StartUpDG.jl.
-      out[index_left] = out[index_left] + interp_matrix_gauss_to_face_1d[1, jj] * x[j, i, jj]
+      # this is due to way we define face nodes for Hex() types in StartUpDG.jl.
+      out[index_left]  = out[index_left]  + interp_matrix_gauss_to_face_1d[1, jj] * x[j, i, jj]
       out[index_right] = out[index_right] + interp_matrix_gauss_to_face_1d[2, jj] * x[j, i, jj]
     end
   end
@@ -201,11 +203,13 @@ end
   @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
 
   fill!(out_vec, zero(eltype(out_vec)))
-  out = reshape(out_vec, nnodes_1d, nnodes_1d) # @turbo appears to break for reshaped arrays
+
+  # for 2D GaussSBP nodes, the indexing is first in x, then y
+  out = reshape(out_vec, nnodes_1d, nnodes_1d)
 
   # interpolation in the x-direction
   @turbo for i in Base.OneTo(nnodes_1d) # loop over face nodes
-    index_left = face_indices_tensor_product[1, i, 1]
+    index_left  = face_indices_tensor_product[1, i, 1]
     index_right = face_indices_tensor_product[2, i, 1]
     for jj in Base.OneTo(nnodes_1d) # loop over a line of volume nodes
       out[jj, i] = out[jj, i] + interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
@@ -215,7 +219,7 @@ end
 
   # interpolation in the y-direction
   @turbo for i in Base.OneTo(nnodes_1d)
-    index_left = face_indices_tensor_product[1, i, 2]
+    index_left  = face_indices_tensor_product[1, i, 2]
     index_right = face_indices_tensor_product[2, i, 2]
     # loop over a line of volume nodes
     for jj in Base.OneTo(nnodes_1d)
@@ -225,7 +229,7 @@ end
   end
 
   # apply inv(M)
-  @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d)
+  @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d)
     out[i, j] = out[i, j] * inv_volume_weights_1d[i] * inv_volume_weights_1d[j]
   end
 end
@@ -244,8 +248,8 @@ end
   out = reshape(out_vec, nnodes_1d, nnodes_1d, nnodes_1d)
 
   # interpolation in the y-direction
-  @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, j, 2]
+  @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
+    index_left  = face_indices_tensor_product[1, i, j, 2]
     index_right = face_indices_tensor_product[2, i, j, 2]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
       out[jj, i, j] = out[jj, i, j] + interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
@@ -254,8 +258,8 @@ end
   end
 
   # interpolation in the x-direction
-  @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, j, 1]
+  @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
+    index_left  = face_indices_tensor_product[1, i, j, 1]
     index_right = face_indices_tensor_product[2, i, j, 1]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
       out[i, jj, j] = out[i, jj, j] + interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
@@ -265,7 +269,7 @@ end
 
   # interpolation in the z-direction
   @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-    index_left = face_indices_tensor_product[1, i, j, 3]
+    index_left  = face_indices_tensor_product[1, i, j, 3]
     index_right = face_indices_tensor_product[2, i, j, 3]
     for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
       # the ordering (i,j) -> (j,i) needs to be reversed for this last face.
@@ -276,7 +280,7 @@ end
   end
 
   # apply inv(M)
-  @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d), k in Base.OneTo(nnodes_1d)
+  @turbo for k in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d)
     out[i, j, k] = out[i, j, k] * inv_volume_weights_1d[i] * inv_volume_weights_1d[j] * inv_volume_weights_1d[k]
   end
 end
@@ -352,7 +356,7 @@ function create_cache(mesh::VertexMappedMesh, equations,
     Pf = droptol!(sparse(Pf'), 100 * eps(eltype(Pf)))'
   end
 
-  # TODO: this is temporary, remove this once things are stable.
+  # TODO: DGMulti; this is temporary, remove this once things are stable.
   interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
   Pf = TensorProductGaussFaceOperator(Projection(), dg)
 
