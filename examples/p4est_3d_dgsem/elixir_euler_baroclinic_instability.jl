@@ -80,15 +80,40 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   # Hydrostatic pressure
   p = p0 * exp(-gravity_constant/gas_constant * (inttau1 - inttau2 * temp4))
 
-  # Perturbation
-  dxepsilon  = 1e-5 # Small value for numerical derivatives
-  u -= 1 / (2 * dxepsilon) *
-          ( evaluate_streamfunction(lon, lat + dxepsilon, z)
-          - evaluate_streamfunction(lon, lat - dxepsilon, z))
+  # Perturbation as in Equations 25 and 26 of the paper (analytical derivative)
+  pertu0     = 0.5      # SF Perturbation wind velocity (m/s)
+  pertr      = 1/6      # SF Perturbation radius (Earth radii)
+  pertlon    = pi/9     # Perturbation longitude
+  pertlat    = 2 * pi/9 # Perturbation latitude
+  pertz      = 15000    # Perturbation height cap
 
-  v = 1 / (2 * dxepsilon * cos(lat)) *
-          ( evaluate_streamfunction(lon + dxepsilon, lat, z)
-          - evaluate_streamfunction(lon - dxepsilon, lat, z))
+  # Great circle distance (d in the paper) divided by a (radius of the Earth)
+  # because we never actually need d without dividing by a
+  great_circle_distance_by_a = acos(sin(pertlat) * sin(lat) +
+                                    cos(pertlat) * cos(lat) * cos(lon - pertlon))
+
+  # Vertical tapering of stream function
+  if z < pertz
+    perttaper = 1.0 - 3 * z^2 / pertz^2 + 2 * z^3 / pertz^3
+  else
+    perttaper = 0.0
+  end
+
+  if great_circle_distance_by_a <= pertr
+    # pi * d / (2 * d_0) in the paper
+    temp6 = 0.5 * pi * great_circle_distance_by_a / pertr
+
+    # Common factor for both u and v
+    temp7 = 16 / (3 * sqrt(3)) * pertu0 * perttaper * cos(temp6)^3 * sin(temp6)
+  else
+    temp7 = 0.0
+  end
+
+  u -= temp7 * (-sin(pertlat) * cos(lat) +
+                cos(pertlat) * sin(lat) * cos(lon - pertlon)
+               ) / sin(great_circle_distance_by_a)
+
+  v = temp7 * cos(pertlat) * sin(lon - pertlon) / sin(great_circle_distance_by_a)
 
   # Convert spherical velocity to Cartesian
   v1 = -sin(lon) * u - sin(lat) * cos(lon) * v
