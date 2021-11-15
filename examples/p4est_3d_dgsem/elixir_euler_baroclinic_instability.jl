@@ -46,6 +46,24 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 
+# Steady state for RHS correction below
+function steady_state_baroclinic_instability(x, t, equations::CompressibleEulerEquations3D)
+  lon, lat, r = cartesian_to_sphere(x)
+  radius_earth = 6.371229e6
+  # Make sure that the r is not smaller than radius_earth
+  z = max(r - radius_earth, 0.0)
+
+  # Unperturbated basic state
+  rho, u, p = basic_state_baroclinic_instability_longitudinal_velocity(lon, lat, z)
+
+  # Convert spherical velocity to Cartesian
+  v1 = -sin(lon) * u
+  v2 =  cos(lon) * u
+  v3 = 0.0
+
+  return prim2cons(SVector(rho, v1, v2, v3, p), equations)
+end
+
 function cartesian_to_sphere(x)
   r = norm(x)
   lambda = atan(x[2], x[1])
@@ -221,7 +239,35 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 10 * 24 * 60 * 60.0) # time in seconds for 10 days
-ode = semidiscretize(semi, tspan)
+
+# Save RHS of the steady state and subtract it in every RHS evaluation.
+# This trick preserves the steady state exactly (to machine rounding errors, of course).
+# Otherwise, this elixir produces entirely unusable results for a resolution of 8x8x4 cells
+# per cube face with a polydeg of 3.
+# With this trick, even the polydeg 3 simulation produces usable (although badly resolved) results,
+# and most of the grid imprinting in higher polydeg simulation is eliminated.
+#
+# See https://github.com/trixi-framework/Trixi.jl/issues/980 for more information.
+u_steady_state = compute_coefficients(steady_state_baroclinic_instability, 0.0, semi)
+# Use a `let` block for performance (otherwise du_steady_state will be a global variable)
+let du_steady_state = similar(u_steady_state)
+  # Save RHS of the steady state
+  Trixi.rhs!(du_steady_state, u_steady_state, semi, 0.0)
+
+  global function corrected_rhs!(du, u, semi, t)
+    # Normal RHS evaluation
+    Trixi.rhs!(du, u, semi, t)
+    # Correct by subtracting the steady-state RHS
+    Trixi.@trixi_timeit Trixi.timer() "rhs correction" begin
+      # Use Polyester.@batch (that's what we use in Trixi.@threaded) for threaded performance
+      @batch for i in eachindex(du)
+        du[i] -= du_steady_state[i]
+      end
+    end
+  end
+end
+u0 = compute_coefficients(0.0, semi)
+ode = ODEProblem(corrected_rhs!, u0, tspan, semi)
 
 summary_callback = SummaryCallback()
 
