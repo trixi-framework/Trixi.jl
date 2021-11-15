@@ -14,9 +14,10 @@
 using OrdinaryDiffEq
 using Trixi
 using LinearAlgebra
+using Polyester: @batch
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# Setup for the baroclinic instability test
 gamma = 1.4
 equations = CompressibleEulerEquations3D(gamma)
 
@@ -28,8 +29,10 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   # Make sure that the r is not smaller than radius_earth
   z = max(r - radius_earth, 0.0)
 
+  # Unperturbated basic state
   rho, u, p = basic_state_baroclinic_instability_longitudinal_velocity(lon, lat, z)
 
+  # Stream function type perturbation
   u_perturbation, v_perturbation = perturbation_stream_function(lon, lat, z)
 
   u += u_perturbation
@@ -188,6 +191,8 @@ end
   return SVector(du1, du2, du3, du4, du5)
 end
 
+###############################################################################
+# Start of the actual elixir, semidiscretization of the problem
 
 initial_condition = initial_condition_baroclinic_instability
 
