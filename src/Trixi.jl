@@ -110,7 +110,7 @@ include("visualization/visualization.jl")
 
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
-       CompressibleDryEulerEquations2D
+       CompressibleDryEulerEquations2D, CompressibleMoistEulerEquations2D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
@@ -126,7 +126,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxRotated, flux_LMARS
+       FluxRotated, flux_LMARS, flux_rusanov
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -140,7 +140,8 @@ export initial_condition_constant,
        initial_condition_rotor,
        initial_condition_shock_bubble,
        initial_condition_taylor_green_vortex,
-       initial_condition_gaussian_bubble, source_terms_warm_bubble
+       initial_condition_gaussian_bubble, source_terms_warm_bubble,
+       initial_condition_warm_bubble, source_terms_moist_air
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,

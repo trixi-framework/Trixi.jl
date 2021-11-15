@@ -5,26 +5,26 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleDryEulerEquations2D()
+equations = CompressibleMoistEulerEquations2D()
 
-initial_condition = initial_condition_gaussian_bubble
+initial_condition = initial_condition_warm_bubble
 
 boundary_condition = (x_neg=boundary_condition_periodic,
                       x_pos=boundary_condition_periodic,
                       y_neg=boundary_condition_slip_wall,
                       y_pos=boundary_condition_slip_wall)
 
-source_term = source_terms_warm_bubble
+source_term = source_terms_moist_air
 
 ###############################################################################
 # Get the DG approximation space
 
 
-solver = DGSEM(polydeg=4, surface_flux=flux_LMARS)
+solver = DGSEM(polydeg=4, surface_flux=flux_rusanov)
 
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (1500.0, 1500.0)
+coordinates_min = (-1000.0, 0.0)
+coordinates_max = (1000.0, 2000.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
@@ -41,7 +41,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.0)
+tspan = (0.0, 000.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -60,7 +60,7 @@ save_solution = SaveSolutionCallback(interval=10000,
 
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=velocity),
-                                      base_level=3, max_level=7,
+                                      base_level=3, max_level=5,
                                       med_threshold=0.2, max_threshold=1)
 
 amr_callback = AMRCallback(semi, amr_controller,
@@ -68,13 +68,13 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=false,
                            adapt_initial_condition_only_refine=false)
 
-stepsize_callback = StepsizeCallback(cfl=0.25)
+stepsize_callback = StepsizeCallback(cfl=0.125)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-                        amr_callback,
+                        #amr_callback,
                         stepsize_callback)
 
 ###############################################################################
