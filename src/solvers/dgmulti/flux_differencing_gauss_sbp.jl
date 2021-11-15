@@ -334,27 +334,9 @@ function create_cache(mesh::VertexMappedMesh, equations,
   NDIMS = ndims(rd.elementType)
   interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
   interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
-  interp_matrix_gauss_to_face = rd.Vf * kron(ntuple(_->interp_matrix_gauss_to_lobatto_1D, NDIMS)...)
-
-  # Projection matrix Pf = inv(M) * Vf' in the Gauss nodal basis.
-  # Uses that M is a diagonal matrix with the weights on the diagonal under a Gauss nodal basis.
   inv_gauss_weights = inv.(rd.wq)
-  Pf = diagm(inv_gauss_weights) * interp_matrix_gauss_to_face'
 
-  # Conditionally use sparse operators if they can be estimated to be faster than dense operators
-  # (based on some benchmarks on an AMD Ryzen Threadripper 3990X 64-Core Processor).
-  # 2D operators are mostly not sparse enough and too small to benefit from sparse representations.
-  # TODO: DGMulti. Check whether SuiteSparseGraphBLAS.jl can be used to get even better performance
-  #       and also multiple threads.
-  if (ndims(mesh) >= 3) && !((polydeg(dg) <= 2 && Threads.nthreads() <= 1))
-    # Since Julia uses `SparseMatrixCSC` by default, we use the adjoint to get
-    # basically a `SparseMatrixCSR`, which is faster for matrix vector multiplication.
-    interp_matrix_gauss_to_face = droptol!(sparse(interp_matrix_gauss_to_face'),
-                                           100 * eps(eltype(interp_matrix_gauss_to_face)))'
-    Pf = droptol!(sparse(Pf'), 100 * eps(eltype(Pf)))'
-  end
-
-  # TODO: DGMulti; this is temporary, remove this once things are stable.
+  # specialized operators to perform tensor product interpolation to faces for Gauss nodes
   interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
   Pf = TensorProductGaussFaceOperator(Projection(), dg)
 
@@ -390,7 +372,6 @@ function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DG
   # Interpolate volume Gauss nodes to Gauss face nodes (note the layout of
   # `projected_entropy_var_values = [vol pts; face pts]`).
   entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
-  # TODO: speed up using tensor product structure?
   apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values, entropy_var_values)
 
   # directly copy over volume values (no entropy projection required)
