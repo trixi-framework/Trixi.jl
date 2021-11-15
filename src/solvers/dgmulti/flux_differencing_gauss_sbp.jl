@@ -30,11 +30,9 @@ abstract type AbstractGaussOperator end
 struct Interpolation <: AbstractGaussOperator end
 struct Projection  <: AbstractGaussOperator end
 
-"""
-  struct TensorProductGaussFaceOperator{Tmat, Ti}
-
-Data for performing tensor product interpolation from volume nodes to face nodes.
-"""
+#     TensorProductGaussFaceOperator{Tmat, Ti}
+# 
+# Data for performing tensor product interpolation from volume nodes to face nodes.
 struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator, Tmat, Tweights, Tindices}
   interp_matrix_gauss_to_face_1d::Tmat
   inv_volume_weights_1d::Tweights
