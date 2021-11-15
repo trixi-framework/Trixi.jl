@@ -81,12 +81,19 @@ function initial_condition_baroclinic_instability(x, t, equations::CompressibleE
   p = p0 * exp(-gravity_constant/gas_constant * (inttau1 - inttau2 * temp4))
 
   # Perturbation
-  u += evaluate_exponential(lon,lat,z)
+  dxepsilon  = 1e-5 # Small value for numerical derivatives
+  u -= 1 / (2 * dxepsilon) *
+          ( evaluate_streamfunction(lon, lat + dxepsilon, z)
+          - evaluate_streamfunction(lon, lat - dxepsilon, z))
+
+  v = 1 / (2 * dxepsilon * cos(lat)) *
+          ( evaluate_streamfunction(lon + dxepsilon, lat, z)
+          - evaluate_streamfunction(lon - dxepsilon, lat, z))
 
   # Convert spherical velocity to Cartesian
-  v1 = -sin(lon) * u
-  v2 =  cos(lon) * u
-  v3 = 0.0
+  v1 = -sin(lon) * u - sin(lat) * cos(lon) * v
+  v2 =  cos(lon) * u - sin(lat) * sin(lon) * v
+  v3 =  cos(lat) * v
 
   # Density (via ideal gas law)
   rho = p / (gas_constant * temperature)
@@ -133,6 +140,35 @@ function evaluate_exponential(lon, lat, z)
   end
 
   return result
+end
+
+
+function evaluate_streamfunction(lon, lat, z)
+  pertu0     = 0.5      # SF Perturbation wind velocity (m/s)
+  pertr      = 1/6      # SF Perturbation radius (Earth radii)
+  pertlon    = pi/9     # Perturbation longitude
+  pertlat    = 2 * pi/9 # Perturbation latitude
+  pertz      = 15000    # Perturbation height cap
+
+  # Great circle distance
+  greatcircler = 1 / pertr *
+    acos(sin(pertlat) * sin(lat) + cos(pertlat) * cos(lat) * cos(lon - pertlon))
+
+  # Vertical tapering of stream function
+  if z < pertz
+    perttaper = 1.0 - 3 * z^2 / pertz^2 + 2 * z^3 / pertz^3
+  else
+    perttaper = 0.0
+  end
+
+  # Horizontal tapering of stream function
+  if greatcircler < 1
+    cospert = cos(0.5 * pi * greatcircler)
+  else
+    cospert = 0.0
+  end
+
+  return -pertu0 * pertr * perttaper * cospert^4
 end
 
 
