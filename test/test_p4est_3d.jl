@@ -122,8 +122,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_baroclinic_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_baroclinic_instability.jl"),
-      l2   = [3.3066284743590657e-6, 0.0003016466967819028, 0.00044096219745100947, 0.0002635810280820144, 0.7683376867625836],
-      linf = [0.00018944858500380413, 0.028171281122322114, 0.052401729962557986, 0.024220953012516408, 54.568586053850595],
+      l2   = [6.725065410642336e-7, 0.00021710117340245454, 0.000438679759422352, 0.00020836356588024185, 0.07602006689579247],
+      linf = [1.9101671995258585e-5, 0.029803626911022396, 0.04847630924006063, 0.022001371349740104, 4.847761006938526],
       tspan = (0.0, 1e2),
       # Decrease tolerance of adaptive time stepping to get similar results across different systems
       abstol=1.0e-9, reltol=1.0e-9,
