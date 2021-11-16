@@ -14,7 +14,6 @@
 using OrdinaryDiffEq
 using Trixi
 using LinearAlgebra
-using Polyester: @batch
 
 ###############################################################################
 # Setup for the baroclinic instability test
@@ -259,8 +258,8 @@ let du_steady_state = similar(u_steady_state)
     Trixi.rhs!(du, u, semi, t)
     # Correct by subtracting the steady-state RHS
     Trixi.@trixi_timeit Trixi.timer() "rhs correction" begin
-      # Use Polyester.@batch (that's what we use in Trixi.@threaded) for threaded performance
-      @batch for i in eachindex(du)
+      # Use Trixi.@threaded for threaded performance
+      Trixi.@threaded for i in eachindex(du)
         du[i] -= du_steady_state[i]
       end
     end
