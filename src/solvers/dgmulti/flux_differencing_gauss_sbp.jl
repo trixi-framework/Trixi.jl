@@ -28,11 +28,11 @@ end
 # type parameters for `TensorProductFaceOperator`.
 abstract type AbstractGaussOperator end
 struct Interpolation <: AbstractGaussOperator end
-# - `Projection{ScaleByFaceWeights=Static.False}` corresponds to the operator `Pf = M \ Vf'`,
+# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `Pf = M \ Vf'`,
 #   which is used in `VolumeIntegralFluxDifferencing`.
-# - `Projection{ScaleByFaceWeights=Static.True}` corresponds to the quadrature-based lifting
+# - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
-struct Projection{ScaleByFaceWeights <: Static.StaticBool}  <: AbstractGaussOperator end
+struct Projection{ScaleByFaceWeights}  <: AbstractGaussOperator end
 
 #   TensorProductGaussFaceOperator{Tmat, Ti}
 #
@@ -218,7 +218,7 @@ end
   # for 2D GaussSBP nodes, the indexing is first in x, then y
   out = reshape(out_vec, nnodes_1d, nnodes_1d)
 
-  if ApplyFaceWeights == Static.True
+  if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
       x[i] = x[i] * A.face_weights[i]
     end
@@ -264,7 +264,7 @@ end
   # for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
   out = reshape(out_vec, nnodes_1d, nnodes_1d, nnodes_1d)
 
-  if ApplyFaceWeights == Static.True
+  if ApplyFaceWeights == true
     @turbo for i in eachindex(x)
       x[i] = x[i] * A.face_weights[i]
     end
@@ -363,17 +363,17 @@ function create_cache(mesh::VertexMappedMesh, equations,
 
   # specialized operators to perform tensor product interpolation to faces for Gauss nodes
   interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-  Pf = TensorProductGaussFaceOperator(Projection{Static.False}(), dg)
+  Pf = TensorProductGaussFaceOperator(Projection{Static.False()}(), dg)
 
   # `LIFT` matrix for Gauss nodes - this is equivalent to `Pf` scaled by `diagm(rd.wf)`,
   # where `rd.wf` are Gauss node face quadrature weights.
-  gauss_node_LIFT = TensorProductGaussFaceOperator(Projection{Static.True}(), dg)
+  gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
 
   nvars = nvariables(equations)
   rhs_volume_local_threaded   = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
   gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
 
-  return (; cache..., Pf, gauss_node_LIFT, inv_gauss_weights,
+  return (; cache..., Pf, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
          interp_matrix_gauss_to_face)
@@ -423,13 +423,13 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
                                 mesh::VertexMappedMesh, equations,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
   @unpack gauss_volume_local_threaded, rhs_volume_local_threaded = cache
-  @unpack interp_matrix_gauss_to_lobatto, gauss_node_LIFT = cache
+  @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
 
   @threaded for e in eachelement(mesh, dg, cache)
 
     # applies LIFT matrix, output is stored at Gauss nodes
     gauss_volume_local = gauss_volume_local_threaded[Threads.threadid()]
-    apply_to_each_field(mul_by!(gauss_node_LIFT), gauss_volume_local, view(cache.flux_face_values, :, e))
+    apply_to_each_field(mul_by!(gauss_LIFT), gauss_volume_local, view(cache.flux_face_values, :, e))
 
     # interpolate result back to Lobatto nodes for ease of analysis, visualization
     rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
