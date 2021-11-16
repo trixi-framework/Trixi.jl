@@ -171,7 +171,7 @@ function perturbation_stream_function(lon, lat, z)
   # Common factor for both u and v
   factor = 16 / (3 * sqrt(3)) * perturbed_wind_amplitude * perttaper * cos_^3 * sin_
 
-  u_perturbation = factor * (-sin(perturbation_lat) * cos(lat) +
+  u_perturbation = -factor * (-sin(perturbation_lat) * cos(lat) +
                              cos(perturbation_lat) * sin(lat) * cos(lon - perturbation_lon)
                             ) / sin(great_circle_distance_by_a)
 
