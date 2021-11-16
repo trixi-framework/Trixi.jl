@@ -247,11 +247,11 @@ tspan = (0.0, 10 * 24 * 60 * 60.0) # time in seconds for 10 days
 # and most of the grid imprinting in higher polydeg simulation is eliminated.
 #
 # See https://github.com/trixi-framework/Trixi.jl/issues/980 for more information.
-u_steady_state = compute_coefficients(steady_state_baroclinic_instability, 0.0, semi)
+u_steady_state = compute_coefficients(steady_state_baroclinic_instability, tspan[1], semi)
 # Use a `let` block for performance (otherwise du_steady_state will be a global variable)
 let du_steady_state = similar(u_steady_state)
   # Save RHS of the steady state
-  Trixi.rhs!(du_steady_state, u_steady_state, semi, 0.0)
+  Trixi.rhs!(du_steady_state, u_steady_state, semi, tspan[1])
 
   global function corrected_rhs!(du, u, semi, t)
     # Normal RHS evaluation
@@ -265,7 +265,7 @@ let du_steady_state = similar(u_steady_state)
     end
   end
 end
-u0 = compute_coefficients(0.0, semi)
+u0 = compute_coefficients(tspan[1], semi)
 ode = ODEProblem(corrected_rhs!, u0, tspan, semi)
 
 summary_callback = SummaryCallback()
