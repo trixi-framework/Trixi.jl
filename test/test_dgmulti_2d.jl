@@ -5,8 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmulti_2d")
+EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
