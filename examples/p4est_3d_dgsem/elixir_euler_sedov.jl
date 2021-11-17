@@ -1,5 +1,4 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -27,7 +26,7 @@ function initial_condition_medium_sedov_blast_wave(x, t, equations::Compressible
   r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
   E = 1.0
   p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
-  p0_outer = 1.0e-3 
+  p0_outer = 1.0e-3
 
   # Calculate primitive variables
   rho = 1.0
@@ -42,7 +41,7 @@ end
 initial_condition = initial_condition_medium_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha 
+volume_flux = flux_ranocha
 polydeg = 5
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -53,8 +52,8 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
-                                               
-solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)  
+
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 coordinates_min = (-1.0, -1.0, -1.0)
 coordinates_max = ( 1.0,  1.0,  1.0)
