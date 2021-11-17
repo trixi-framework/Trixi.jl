@@ -100,6 +100,35 @@ return flux
 end
 
 
+function initial_condition_warm_bubble(x, t, equations::CompressibleDryEulerEquations2D)
+  @unpack p_0, g, c_p, c_v, R_d, kappa = equations
+  xc = 0
+  zc = 2000
+  r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
+  rc = 2000
+  θ_ref = 300
+  Δθ = 0
+
+  if r <= rc
+     Δθ = 2 * cospi(0.5*r/rc)^2
+  end
+
+  #Perturbed state:
+  θ = θ_ref + Δθ # potential temperature
+  π_exner = 1 - g / (c_p * θ) * x[2] # exner pressure
+  ρ = p_0 / (R_d * θ) * (π_exner)^(c_v / R_d) # density
+  p = p_0 * (1-kappa * g * x[2] / (R_d * θ_ref))^(c_p / R_d)
+  T = p / (R_d * ρ)
+
+  v1 = 0
+  v2 = 0
+  ρ_v1 = ρ * v1
+  ρ_v2 = ρ * v2
+  ρ_E = ρ * c_v * T + 1/2 * ρ * (v1^2 + v2^2)  
+  return SVector(ρ, ρ_v1, ρ_v2, ρ_E)
+end
+
+
 function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEulerEquations2D)
 @unpack p_0, R_d, c_p, c_v, g, gamma, kappa = equations 
   # Gaussian bubble at the center (x0, z0) with a potential Temperature 
@@ -389,7 +418,7 @@ end
   return SVector(rho, rho_v1, rho_v2, rho_E)
 end
 
-@inline function cons2pot(u, equation::CompressibleDryEulerEquations2D)
+@inline function cons2pot(u, equations::CompressibleDryEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E = u
 
   v1 = rho_v1 / rho
@@ -398,8 +427,7 @@ end
   pot1 = rho
   pot2 = v1
   pot3 = v2
-  pot4 = equation.p_0 * (((equation.gamma - 1) * (rho_E - 1/2 * (rho_v1 * v1 + rho_v2 * v2)))
-                        / equation.p_0)^(1-equation.kappa) / (equation.R_d * rho)
+  pot4 = pottemp_thermodynamic(u, equations)
 
   return SVector(pot1, pot2, pot3, pot4)
 end

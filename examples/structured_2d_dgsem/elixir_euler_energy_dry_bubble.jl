@@ -23,8 +23,8 @@ source_term = source_terms_moist_air
 solver = DGSEM(polydeg=4, surface_flux=flux_rusanov)
 
 
-coordinates_min = (-1000.0, 0.0)
-coordinates_max = (1000.0, 2000.0)
+coordinates_min = (-10000.0, 0.0)
+coordinates_max = (10000.0, 20000.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
@@ -41,7 +41,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 000.0)
+tspan = (0.0, 1000.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -74,7 +74,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-                        #amr_callback,
+                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################

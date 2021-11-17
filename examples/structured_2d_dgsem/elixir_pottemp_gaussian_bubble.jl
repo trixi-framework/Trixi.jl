@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleDryEulerEquations2D()
 
-initial_condition = initial_condition_gaussian_bubble
+initial_condition = initial_condition_warm_bubble
 
 boundary_condition = (x_neg=boundary_condition_periodic,
                       x_pos=boundary_condition_periodic,
@@ -23,8 +23,8 @@ source_term = source_terms_warm_bubble
 solver = DGSEM(polydeg=4, surface_flux=flux_LMARS)
 
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (1500.0, 1500.0)
+coordinates_min = (-10000.0, 0.0)
+coordinates_max = (10000.0, 20000.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,

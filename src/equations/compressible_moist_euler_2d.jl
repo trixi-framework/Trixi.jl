@@ -146,12 +146,12 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleMoistEulerEq
   p = p_0 * (1-kappa * g * x[2] / (R_d * θ_ref))^(c_pd / R_d)
   T = p / (R_d * ρ)
 
-  v1 = 20
+  v1 = 0
   v2 = 0
   ρ_v1 = ρ * v1
   ρ_v2 = ρ * v2
-  ρ_e = ρ * c_vd * T + 1/2 * ρ * (v1^2 + v2^2)  
-  return SVector(ρ, ρ_v1, ρ_v2, ρ_e, 0 ,0)
+  ρ_E = ρ * c_vd * T + 1/2 * ρ * (v1^2 + v2^2)  
+  return SVector(ρ, ρ_v1, ρ_v2, ρ_E, 0 ,0)
 end
 
 
@@ -172,11 +172,13 @@ function source_terms_moist_air(du, u, equations::CompressibleMoistEulerEquation
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       u_local = u[:, i, j ,element]
-      _, _, _, _, _, E_v = get_moist_profile(u, equations)
+      #x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
+      #z = x_local[2]
+      _, W_f , _, _, _, E_v = get_moist_profile(u, equations)
       Q_v = ground_vapor_source_term(u, equations)
       Q_ph = phase_change_term(u, equations)
       du[3, i, j, element] += -equations.g * u_local[1]
-      du[4, i, j, element] += -equations.g * u_local[3] + E_v * Q_v
+      du[4, i, j, element] += -equations.g * (u_local[3] - u_local[1] * u_local[6] * W_f) + E_v * Q_v 
       du[5, i, j, element] += Q_v + Q_ph
       du[6, i, j, element] += -Q_ph
     end
@@ -200,12 +202,13 @@ function get_moist_profile(u, equations::CompressibleMoistEulerEquations2D)
   v2 = rho_v2 / rho
   qv = rho_qv / rho
   ql = rho_ql / rho
-  E = rho_E / rho
+
 
   # inner energy
-  e = E - rho * (g * v2 + 0.5 * (v1^2 + v2^2))
+  rho_e = (rho_E - 0.5 * (rho_v1*v1 + rho_v2*v2))
+  e = rho_e / rho
   # Absolute Temperature
-  T = inv(rho_qd * c_vd + rho_qv * c_vv + rho_ql * c_pl) * (e - L_00 * rho_qv)
+  T = inv(rho_qd * c_vd + rho_qv * c_vv + rho_ql * c_pl) * (rho_e - L_00 * rho_qv)
       
 
   # Pressure
@@ -214,12 +217,12 @@ function get_moist_profile(u, equations::CompressibleMoistEulerEquations2D)
   # Parametrisation by Frisius and Wacker
   W_f = - c_r * gm * inv(6) * (rho_ql * inv(pi * rho_w * N_0r))^(1/8)
 
-  # Energy factors for cource terms
+  # Energy factors for source terms
   e_l = equations.c_pl * T
-  E_l = E - e + e_l
+  E_l = (rho_E - rho_e) / rho + e_l
 
   h_v = c_pv * T + L_00
-  E_v = E - e + h_v
+  E_v = (rho_E - rho_e) / rho + h_v
 
   return SVector(p, W_f, T, e, E_l, E_v)
 end
