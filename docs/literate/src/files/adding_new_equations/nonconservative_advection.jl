@@ -6,10 +6,11 @@ using Test: @test #src
 # we will implement the nonconservative linear advection equation in a periodic domain
 # ```math
 # \left\{
-# \begin{aligned}&\partial_t u(t,x) + a(x) \partial_x u(t,x) = 0 \\
+# \begin{aligned}
+# &\partial_t u(t,x) + a(x) \partial_x u(t,x) = 0 \\
 # &u(0,x)=\sin(x) \\
 # &u(t,-\pi)=u(t,\pi)
-# \end{}
+# \end{aligned}
 # \right.
 # ```
 # where $a(x) = 2 + \cos(x)$. The analytic solution is
@@ -24,11 +25,12 @@ using Test: @test #src
 # Since there is no native support for variable coefficients, we need to transform the PDE to the following system:
 #```math
 # \left\{
-# \begin{aligned}&\partial_t \begin{pmatrix}u(t,x)\\a(t,x) \end{pmatrix} +\begin{pmatrix} a(t,x) \partial_x u(t,x) \\ 0 \end{pmatrix} = 0 \\
+# \begin{aligned}
+# &\partial_t \begin{pmatrix}u(t,x)\\a(t,x) \end{pmatrix} +\begin{pmatrix} a(t,x) \partial_x u(t,x) \\ 0 \end{pmatrix} = 0 \\
 # &u(0,x)=\sin(x) \\
 # &a(0,x)=2+\cos(x) \\
 # &u(t,-\pi)=u(t,\pi)
-# \end{}
+# \end{aligned}
 # \right.
 #```
 
