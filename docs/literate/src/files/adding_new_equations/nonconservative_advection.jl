@@ -9,7 +9,7 @@ using Test: @test #src
 # \begin{aligned}&\partial_t u(t,x) + a(x) \partial_x u(t,x) = 0 \\
 # &u(0,x)=\sin(x) \\
 # &u(t,-\pi)=u(t,\pi)
-# \end{}
+# \end{aligned}
 # \right.
 # ```
 # where $a(x) = 2 + \cos(x)$. The analytic solution is
@@ -28,7 +28,7 @@ using Test: @test #src
 # &u(0,x)=\sin(x) \\
 # &a(0,x)=2+\cos(x) \\
 # &u(t,-\pi)=u(t,\pi)
-# \end{}
+# \end{aligned}
 # \right.
 #```
 
