@@ -5,8 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "dgmulti_2d")
+EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
@@ -96,6 +95,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (32, 32), tspan = (0.0, 0.2),
       l2 = [0.11140378947116614, 0.06598161188703612, 0.10448953167839563, 0.16023209181809595],
       linf = [0.24033843177853664, 0.1659992245272325, 0.1235468309508845, 0.26911424973147735],
+    )
+  end
+
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (Quadrilateral elements, GaussSBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
+      cells_per_dimension = (32, 32), element_type = Quad(), approximation_type=GaussSBP(), tspan = (0.0, 0.2),
+      l2 = [0.11141270656347146, 0.06598888014584121, 0.1044902203749932, 0.16023037364774995],
+      linf = [0.2414760062126462, 0.1662111846065654, 0.12344140473946856, 0.26978428189564774]
     )
   end
 

@@ -70,7 +70,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.011367083018614027, 0.007022020327490176, 0.006759580335962235, 0.006820337637760632, 0.02912659127566544],
       linf = [0.2761764220925329, 0.20286331858055706, 0.18763944865434593, 0.19313636558790004, 0.707563913727584],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
@@ -98,7 +99,9 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.0013647609788548722],
       linf = [0.027510637768610846, 0.02797062834945721, 0.01274249949295704, 0.038940694415543736,
               0.02200825678588325, 0.03167600959583505, 0.021420957993862344, 0.03386589835999665,
-              0.01888303191983353])
+              0.01888303191983353],
+      # Use same polydeg as everything else to prevent long compile times in CI
+      coverage_override = (polydeg=3,))
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl with flux_lax_friedrichs" begin
@@ -109,7 +112,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.027719103797310463, 0.027570111789910784, 0.012561901006903103, 0.03903568568480584,
               0.021311996934554767, 0.03154849824135775, 0.020996033645485412, 0.03403185137382961,
               0.019488952445771597],
-      surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell))
+      surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+      # Use same polydeg as everything else to prevent long compile times in CI
+      coverage_override = (polydeg=3,))
   end
 
   @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
@@ -120,7 +125,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.30749098250807516, 0.2679008863509767, 0.271243087484388, 0.26545396569129537,
               0.9620950892188596, 0.18163281157498123, 0.15995708312378454, 0.17918221526906408,
               0.015138346608166353],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      # Use same polydeg as everything else to prevent long compile times in CI
+      coverage_override = (polydeg=3,))
   end
 end
 

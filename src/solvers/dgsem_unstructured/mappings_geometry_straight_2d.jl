@@ -45,7 +45,7 @@ end
 
 
 # construct the (x,y) node coordinates in the volume of a straight sided element
-function calc_node_coordinates!(node_coordinates, element, nodes, corners)
+function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, element, nodes, corners)
 
   for j in eachindex(nodes), i in eachindex(nodes)
     node_coordinates[:, i ,j ,element] .= straight_side_quad_map(nodes[i], nodes[j], corners)

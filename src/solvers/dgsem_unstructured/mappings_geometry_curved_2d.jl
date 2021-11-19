@@ -76,7 +76,7 @@ end
 
 
 # construct the (x,y) node coordinates in the volume of a curved sided element
-function calc_node_coordinates!(node_coordinates, element, nodes,
+function calc_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, element, nodes,
                                 surface_curves::AbstractVector{<:CurvedSurface})
 
   for j in eachindex(nodes), i in eachindex(nodes)

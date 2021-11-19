@@ -111,7 +111,17 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
-      - uses: julia-actions/julia-runtest@v1
+      - name: Run tests without coverage
+        uses: julia-actions/julia-runtest@v1
+        with:
+          coverage: false
+        env:
+          PYTHON: ""
+          TRIXI_TEST: ${{ matrix.trixi_test }}
+      - name: Run tests with coverage
+        uses: julia-actions/julia-runtest@v1
+        with:
+          coverage: true
         env:
           PYTHON: ""
           TRIXI_TEST: ${{ matrix.trixi_test }}
@@ -170,9 +180,10 @@ jobs:
       # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
       - name: Merge lcov files using Coverage.jl
-        shell: julia --color=yes --project=. {0}
+        shell: julia --color=yes {0}
         run: |
           using Pkg
+          Pkg.activate(temp=true)
           Pkg.add("Coverage")
           using Coverage
           coverage = LCOV.readfolder(".")

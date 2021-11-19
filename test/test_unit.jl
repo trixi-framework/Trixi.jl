@@ -578,7 +578,7 @@ Cassette.@context Ctx
                           SVector(-1.2, 0.3, 1.4)]
       u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0),]
-      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber]
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340)]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)
@@ -624,6 +624,25 @@ Cassette.@context Ctx
         end
       end
     end
+  end
+
+  @testset "SimpleKronecker" begin
+    N = 3
+
+    NDIMS = 2
+    r, s = StartUpDG.nodes(Quad(), N)
+    V = StartUpDG.vandermonde(Quad(), N, r, s)
+    r1D = StartUpDG.nodes(Line(), N)
+    V1D = StartUpDG.vandermonde(Line(), N, r1D)
+
+    x = r + s
+    V_kron = Trixi.SimpleKronecker(NDIMS, V1D, eltype(x))
+
+    b = similar(x)
+    b_kron = similar(x)
+    Trixi.mul!(b, V, x)
+    Trixi.mul!(b_kron, V_kron, x)
+    @test b ≈ b_kron
   end
 end
 
