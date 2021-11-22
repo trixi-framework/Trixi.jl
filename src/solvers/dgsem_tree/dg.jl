@@ -65,7 +65,9 @@ include("dg_2d_parallel.jl")
 include("dg_3d.jl")
 
 # Auxiliary functions that are specialized on this solver
+# as well as specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")
+include("dg_3d_compressible_euler.jl")
 
 
 end # @muladd
