@@ -22,9 +22,8 @@ source_term = source_terms_moist_air
 
 solver = DGSEM(polydeg=4, surface_flux=flux_rusanov)
 
-
-coordinates_min = (-10000.0, 0.0)
-coordinates_max = (10000.0, 20000.0)
+coordinates_min = (-5000.0, 0.0)
+coordinates_max = (5000.0, 10000.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
@@ -53,11 +52,15 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10000,
+save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=solution_variables)
 
+
+#amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=velocity),
+#                                      base_level=3, max_level=6,
+#                                      med_threshold=1, max_threshold=5)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=velocity),
                                       base_level=3, max_level=5,
