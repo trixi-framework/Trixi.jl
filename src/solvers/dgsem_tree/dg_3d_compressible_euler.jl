@@ -325,7 +325,7 @@ end
     (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),
      StaticInt(nvariables(equations) + 2)))
 
-  @turbo for v in eachvariable(equations),
+  @turbo for v in indices(u_prim, 4), # v in eachvariable(equations) misses +2 logs
              k in eachnode(dg),
              j in eachnode(dg),
              i in eachnode(dg)
