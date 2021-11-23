@@ -22,7 +22,7 @@ using Test: @test #src
 # ## Basic setup
 
 # Since there is no native support for variable coefficients, we need to transform the PDE to the following system:
-#```math
+# ```math
 # \left\{
 # \begin{aligned}&\partial_t \begin{pmatrix}u(t,x)\\a(t,x) \end{pmatrix} +\begin{pmatrix} a(t,x) \partial_x u(t,x) \\ 0 \end{pmatrix} = 0 \\
 # &u(0,x)=\sin(x) \\
@@ -30,7 +30,7 @@ using Test: @test #src
 # &u(t,-\pi)=u(t,\pi)
 # \end{aligned}
 # \right.
-#```
+# ```
 
 ## Define new physics
 using Trixi
