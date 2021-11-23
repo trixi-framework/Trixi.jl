@@ -366,7 +366,7 @@ end
       x1_plus_y1 = x1 + y1
       y1_minus_x1 = y1 - x1
       z1 = y1_minus_x1^2 / x1_plus_y1^2
-      special_path1 = x1_plus_y1 / (2 + z1*(0.666666666666667 + z1*(0.4 + 0.285714285714286*z1)))
+      special_path1 = x1_plus_y1 / (2 + z1*(2/3 + z1*(2/5 + 2/7*z1)))
       regular_path1 = y1_minus_x1 / (log_y1 - log_x1)
       rho_mean = ifelse(z1 < 1.0e-4, special_path1, regular_path1)
 
@@ -382,7 +382,7 @@ end
       x2_plus_y2 = x2 + y2
       y2_minus_x2 = y2 - x2
       z2 = y2_minus_x2^2 / x2_plus_y2^2
-      special_path2 = (2 + z1*(0.666666666666667 + z1*(0.4 + 0.285714285714286*z1))) / x2_plus_y2
+      special_path2 = (2 + z1*(2/3 + z1*(2/5 + 2/7*z1))) / x2_plus_y2
       regular_path2 = (log_y2 - log_x2) / y2_minus_x2
       inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < 1.0e-4, special_path2, regular_path2)
 
@@ -458,7 +458,7 @@ end
       x1_plus_y1 = x1 + y1
       y1_minus_x1 = y1 - x1
       z1 = y1_minus_x1^2 / x1_plus_y1^2
-      special_path1 = x1_plus_y1 / (2 + z1*(0.666666666666667 + z1*(0.4 + 0.285714285714286*z1)))
+      special_path1 = x1_plus_y1 / (2 + z1*(2/3 + z1*(2/5 + 2/7*z1)))
       regular_path1 = y1_minus_x1 / (log_y1 - log_x1)
       rho_mean = ifelse(z1 < 1.0e-4, special_path1, regular_path1)
 
@@ -474,7 +474,7 @@ end
       x2_plus_y2 = x2 + y2
       y2_minus_x2 = y2 - x2
       z2 = y2_minus_x2^2 / x2_plus_y2^2
-      special_path2 = (2 + z1*(0.666666666666667 + z1*(0.4 + 0.285714285714286*z1))) / x2_plus_y2
+      special_path2 = (2 + z1*(2/3 + z1*(2/5 + 2/7*z1))) / x2_plus_y2
       regular_path2 = (log_y2 - log_x2) / y2_minus_x2
       inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < 1.0e-4, special_path2, regular_path2)
 
@@ -550,7 +550,7 @@ end
         x1_plus_y1 = x1 + y1
         y1_minus_x1 = y1 - x1
         z1 = y1_minus_x1^2 / x1_plus_y1^2
-        special_path1 = x1_plus_y1 / (2 + z1*(0.666666666666667 + z1*(0.4 + 0.285714285714286*z1)))
+        special_path1 = x1_plus_y1 / (2 + z1*(2/3 + z1*(2/5 + 2/7*z1)))
         regular_path1 = y1_minus_x1 / (log_y1 - log_x1)
         rho_mean = ifelse(z1 < 1.0e-4, special_path1, regular_path1)
 
@@ -566,7 +566,7 @@ end
         x2_plus_y2 = x2 + y2
         y2_minus_x2 = y2 - x2
         z2 = y2_minus_x2^2 / x2_plus_y2^2
-        special_path2 = (2 + z1*(0.666666666666667 + z1*(0.4 + 0.285714285714286*z1))) / x2_plus_y2
+        special_path2 = (2 + z1*(2/3 + z1*(2/5 + 2/7*z1))) / x2_plus_y2
         regular_path2 = (log_y2 - log_x2) / y2_minus_x2
         inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < 1.0e-4, special_path2, regular_path2)
 
