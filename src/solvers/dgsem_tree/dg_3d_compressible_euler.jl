@@ -339,19 +339,19 @@ end
   # loop over the triangular part in an outer loop and use a plain inner loop.
   for i in eachnode(dg), ii in (i+1):nnodes(dg)
     @turbo for jk in Base.OneTo(nnodes(dg)^2)
-      rho_ll = u_prim_permuted[jk, i, 1]
-      v1_ll  = u_prim_permuted[jk, i, 2]
-      v2_ll  = u_prim_permuted[jk, i, 3]
-      v3_ll  = u_prim_permuted[jk, i, 4]
-      p_ll   = u_prim_permuted[jk, i, 5]
+      rho_ll     = u_prim_permuted[jk, i, 1]
+      v1_ll      = u_prim_permuted[jk, i, 2]
+      v2_ll      = u_prim_permuted[jk, i, 3]
+      v3_ll      = u_prim_permuted[jk, i, 4]
+      p_ll       = u_prim_permuted[jk, i, 5]
       log_rho_ll = u_prim_permuted[jk, i, 6]
       log_p_ll   = u_prim_permuted[jk, i, 7]
 
-      rho_rr = u_prim_permuted[jk, ii, 1]
-      v1_rr  = u_prim_permuted[jk, ii, 2]
-      v2_rr  = u_prim_permuted[jk, ii, 3]
-      v3_rr  = u_prim_permuted[jk, ii, 4]
-      p_rr   = u_prim_permuted[jk, ii, 5]
+      rho_rr     = u_prim_permuted[jk, ii, 1]
+      v1_rr      = u_prim_permuted[jk, ii, 2]
+      v2_rr      = u_prim_permuted[jk, ii, 3]
+      v3_rr      = u_prim_permuted[jk, ii, 4]
+      p_rr       = u_prim_permuted[jk, ii, 5]
       log_rho_rr = u_prim_permuted[jk, ii, 6]
       log_p_rr   = u_prim_permuted[jk, ii, 7]
 
@@ -431,19 +431,19 @@ end
   # in preliminary numerical experiments on an AVX2 system.
   for j in eachnode(dg), jj in (j+1):nnodes(dg)
     @turbo for k in eachnode(dg), i in eachnode(dg)
-      rho_ll = u_prim[i, j, k, 1]
-      v1_ll  = u_prim[i, j, k, 2]
-      v2_ll  = u_prim[i, j, k, 3]
-      v3_ll  = u_prim[i, j, k, 4]
-      p_ll   = u_prim[i, j, k, 5]
+      rho_ll     = u_prim[i, j, k, 1]
+      v1_ll      = u_prim[i, j, k, 2]
+      v2_ll      = u_prim[i, j, k, 3]
+      v3_ll      = u_prim[i, j, k, 4]
+      p_ll       = u_prim[i, j, k, 5]
       log_rho_ll = u_prim[i, j, k, 6]
       log_p_ll   = u_prim[i, j, k, 7]
 
-      rho_rr = u_prim[i, jj, k, 1]
-      v1_rr  = u_prim[i, jj, k, 2]
-      v2_rr  = u_prim[i, jj, k, 3]
-      v3_rr  = u_prim[i, jj, k, 4]
-      p_rr   = u_prim[i, jj, k, 5]
+      rho_rr     = u_prim[i, jj, k, 1]
+      v1_rr      = u_prim[i, jj, k, 2]
+      v2_rr      = u_prim[i, jj, k, 3]
+      v3_rr      = u_prim[i, jj, k, 4]
+      p_rr       = u_prim[i, jj, k, 5]
       log_rho_rr = u_prim[i, jj, k, 6]
       log_p_rr   = u_prim[i, jj, k, 7]
 
@@ -523,19 +523,19 @@ end
 
     for k in eachnode(dg), kk in (k+1):nnodes(dg)
       @turbo for ij in Base.OneTo(nnodes(dg)^2)
-        rho_ll = u_prim_reshaped[ij, k, 1]
-        v1_ll  = u_prim_reshaped[ij, k, 2]
-        v2_ll  = u_prim_reshaped[ij, k, 3]
-        v3_ll  = u_prim_reshaped[ij, k, 4]
-        p_ll   = u_prim_reshaped[ij, k, 5]
+        rho_ll     = u_prim_reshaped[ij, k, 1]
+        v1_ll      = u_prim_reshaped[ij, k, 2]
+        v2_ll      = u_prim_reshaped[ij, k, 3]
+        v3_ll      = u_prim_reshaped[ij, k, 4]
+        p_ll       = u_prim_reshaped[ij, k, 5]
         log_rho_ll = u_prim_reshaped[ij, k, 6]
         log_p_ll   = u_prim_reshaped[ij, k, 7]
 
-        rho_rr = u_prim_reshaped[ij, kk, 1]
-        v1_rr  = u_prim_reshaped[ij, kk, 2]
-        v2_rr  = u_prim_reshaped[ij, kk, 3]
-        v3_rr  = u_prim_reshaped[ij, kk, 4]
-        p_rr   = u_prim_reshaped[ij, kk, 5]
+        rho_rr     = u_prim_reshaped[ij, kk, 1]
+        v1_rr      = u_prim_reshaped[ij, kk, 2]
+        v2_rr      = u_prim_reshaped[ij, kk, 3]
+        v3_rr      = u_prim_reshaped[ij, kk, 4]
+        p_rr       = u_prim_reshaped[ij, kk, 5]
         log_rho_rr = u_prim_reshaped[ij, kk, 6]
         log_p_rr   = u_prim_reshaped[ij, kk, 7]
 
