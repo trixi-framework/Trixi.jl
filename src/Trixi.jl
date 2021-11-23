@@ -35,6 +35,7 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
+using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
