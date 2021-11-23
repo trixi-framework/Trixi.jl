@@ -514,8 +514,8 @@ end
   # We just squeeze the first two dimensions to make the code slightly faster.
   GC.@preserve u_prim begin
     u_prim_reshaped = PtrArray(pointer(u_prim),
-      (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),
-       StaticInt(nvariables(equations))))
+       (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),
+        StaticInt(nvariables(equations) + 2)))
 
     du_reshaped = PtrArray(pointer(du),
       (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),
