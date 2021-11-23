@@ -19,6 +19,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
 
+    # Preserve original memory since it will be `unsafe_wrap`ped and might thus otherwise be garbage collected
     GC.@preserve u_ode du_ode begin
       u = Trixi.wrap_array(u_ode, semi)
       du = Trixi.wrap_array(du_ode, semi)
