@@ -382,7 +382,7 @@ end
       x2_plus_y2 = x2 + y2
       y2_minus_x2 = y2 - x2
       z2 = y2_minus_x2^2 / x2_plus_y2^2
-      special_path2 = (2 + z1*(2/3 + z1*(2/5 + 2/7*z1))) / x2_plus_y2
+      special_path2 = (2 + z2*(2/3 + z2*(2/5 + 2/7*z2))) / x2_plus_y2
       regular_path2 = (log_y2 - log_x2) / y2_minus_x2
       inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < 1.0e-4, special_path2, regular_path2)
 
@@ -474,7 +474,7 @@ end
       x2_plus_y2 = x2 + y2
       y2_minus_x2 = y2 - x2
       z2 = y2_minus_x2^2 / x2_plus_y2^2
-      special_path2 = (2 + z1*(2/3 + z1*(2/5 + 2/7*z1))) / x2_plus_y2
+      special_path2 = (2 + z2*(2/3 + z2*(2/5 + 2/7*z2))) / x2_plus_y2
       regular_path2 = (log_y2 - log_x2) / y2_minus_x2
       inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < 1.0e-4, special_path2, regular_path2)
 
@@ -566,7 +566,7 @@ end
         x2_plus_y2 = x2 + y2
         y2_minus_x2 = y2 - x2
         z2 = y2_minus_x2^2 / x2_plus_y2^2
-        special_path2 = (2 + z1*(2/3 + z1*(2/5 + 2/7*z1))) / x2_plus_y2
+        special_path2 = (2 + z2*(2/3 + z2*(2/5 + 2/7*z2))) / x2_plus_y2
         regular_path2 = (log_y2 - log_x2) / y2_minus_x2
         inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < 1.0e-4, special_path2, regular_path2)
 
