@@ -251,9 +251,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-      l2   = [0.06176845600430613, 0.05020624043492084, 0.05021389111189423, 0.22592682624517807],
-      linf = [0.29347582879609024, 0.3108124923286465, 0.3107380389949771, 1.054035804988522],
-      periodicity = false, boundary_conditions = boundary_condition_slip_wall)
+      l2   = [0.03341239373099515, 0.026673245711492915, 0.026678871434568822, 0.12397486476145089],
+      linf = [0.3290981764688339, 0.3812055782309788, 0.3812041851225023, 1.168251216556933],
+      periodicity = false, boundary_conditions = boundary_condition_slip_wall,
+      cfl = 0.3, tspan = (0.0, 0.1)) # this test is sensitive to the CFL factor
   end
 end
 
