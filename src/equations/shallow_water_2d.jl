@@ -177,8 +177,10 @@ For details see Section 9.2.5 of the book:
   1st edition
   ISBN 0471987662
 """
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-                                      surface_flux_function, equations::ShallowWaterEquations2D)
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::ShallowWaterEquations2D)
   # normalize the outward pointing direction
   normal = normal_direction / norm(normal_direction)
 
