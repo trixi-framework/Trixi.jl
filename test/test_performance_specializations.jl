@@ -92,12 +92,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "StructuredMesh3D, flux_shima_etal" begin
     trixi_include(@__MODULE__,
       joinpath(examples_dir(), "structured_3d_dgsem", "elixir_euler_ec.jl"),
-      initial_refinement_level=0, tspan=(0.0, 0.0),
+      cells_per_dimension=(1, 1, 1), tspan=(0.0, 0.0),
       volume_flux=flux_shima_etal, surface_flux=flux_shima_etal)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
 
-    # Preserve original memory since it will be `unsafe_wrap`ped and might thus otherwise be garbage collected
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
     GC.@preserve u_ode du_ode begin
       u = Trixi.wrap_array(u_ode, semi)
       du = Trixi.wrap_array(du_ode, semi)
@@ -130,12 +131,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "StructuredMesh3D, flux_ranocha" begin
     trixi_include(@__MODULE__,
       joinpath(examples_dir(), "structured_3d_dgsem", "elixir_euler_ec.jl"),
-      initial_refinement_level=0, tspan=(0.0, 0.0),
+      cells_per_dimension=(1, 1, 1), tspan=(0.0, 0.0),
       volume_flux=flux_ranocha, surface_flux=flux_ranocha)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
 
-    # Preserve original memory since it will be `unsafe_wrap`ped and might thus otherwise be garbage collected
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
     GC.@preserve u_ode du_ode begin
       u = Trixi.wrap_array(u_ode, semi)
       du = Trixi.wrap_array(du_ode, semi)

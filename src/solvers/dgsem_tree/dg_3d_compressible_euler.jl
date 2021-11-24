@@ -22,10 +22,7 @@
                                     nonconservative_terms::Val{false},
                                     equations::CompressibleEulerEquations3D,
                                     volume_flux::typeof(flux_shima_etal),
-                                    dg::DGSEM, cache,
-                                    alpha=true)
-  # true * [some floating point value] == [exactly the same floating point value]
-  # This can (hopefully) be optimized away due to constant propagation.
+                                    dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
 
   # Create a temporary array that will be used to store the RHS with permuted
@@ -270,10 +267,7 @@ end
                                     nonconservative_terms::Val{false},
                                     equations::CompressibleEulerEquations3D,
                                     volume_flux::typeof(flux_ranocha),
-                                    dg::DGSEM, cache,
-                                    alpha=true)
-  # true * [some floating point value] == [exactly the same floating point value]
-  # This can (hopefully) be optimized away due to constant propagation.
+                                    dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
 
   # Create a temporary array that will be used to store the RHS with permuted
