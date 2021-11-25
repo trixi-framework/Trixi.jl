@@ -8,7 +8,7 @@
 @doc raw"""
     CompressibleEulerEquations2D(gamma)
 
-The compressible Euler equations 
+The compressible Euler equations
 ```math
 \partial t
 \begin{pmatrix}
@@ -287,8 +287,10 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
 
 Should be used together with [`UnstructuredMesh2D`](@ref).
 """
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations2D)
 
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
@@ -327,8 +329,10 @@ end
 
 Should be used together with [`TreeMesh`](@ref).
 """
-function boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations2D)
   # get the appropriate normal vector from the orientation
   if orientation == 1
     normal = SVector(1, 0)
@@ -346,8 +350,10 @@ end
 
 Should be used together with [`StructuredMesh`](@ref).
 """
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations2D)
   # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
   # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
   if isodd(direction)

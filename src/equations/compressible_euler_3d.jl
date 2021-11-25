@@ -277,8 +277,10 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 """
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations3D)
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations3D)
 
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
