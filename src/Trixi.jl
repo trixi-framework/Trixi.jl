@@ -158,6 +158,8 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, 
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
+export ln_mean, inv_ln_mean
+
 export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
 export DG,
