@@ -5,6 +5,15 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes in the v0.4 lifecycle
+
+#### Added
+
+- Numerical fluxes `flux_shima_etal_turbo` and `flux_ranocha_turbo` that are
+  equivalent to their non-`_turbo` counterparts but may enable specialized
+  methods making use of SIMD instructions to increase runtime efficiency.
+
+
 ## Changes when updating to v0.4 from v0.3.x
 
 #### Added

@@ -22,7 +22,7 @@
                                     element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{false},
                                     equations::CompressibleEulerEquations3D,
-                                    volume_flux::typeof(flux_shima_etal),
+                                    volume_flux::typeof(flux_shima_etal_turbo),
                                     dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
@@ -336,7 +336,7 @@ end
                                     element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{false},
                                     equations::CompressibleEulerEquations3D,
-                                    volume_flux::typeof(flux_ranocha),
+                                    volume_flux::typeof(flux_ranocha_turbo),
                                     dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
