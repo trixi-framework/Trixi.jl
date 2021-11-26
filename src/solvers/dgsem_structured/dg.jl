@@ -75,6 +75,7 @@ include("indicators_2d.jl")
 include("indicators_3d.jl")
 
 # Specialized implementations used to improve performance
+include("dg_2d_compressible_euler.jl")
 include("dg_3d_compressible_euler.jl")
 
 
