@@ -42,6 +42,7 @@ using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
+using NLsolve
 using RecipesBase: RecipesBase
 using Requires: @require
 using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
@@ -141,7 +142,8 @@ export initial_condition_constant,
        initial_condition_shock_bubble,
        initial_condition_taylor_green_vortex,
        initial_condition_gaussian_bubble, source_terms_warm_bubble,
-       initial_condition_warm_bubble, source_terms_moist_air
+       initial_condition_warm_bubble, source_terms_moist_air,
+       initial_condition_moist_bubble , AtmossphereLayers
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
@@ -166,7 +168,7 @@ export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons, cons2pot
+       cons2entropy, entropy2cons, cons2pot, cons2aeqpot
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity,
        pottemp_thermodynamic, velocity
