@@ -249,8 +249,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
-                                     maxiters=1, analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
+                        maxiters=1, analysis_callback=Trixi.TrivialCallback(),
+                        initial_refinement_level=1)
     @test_nowarn_debug Plots.plot(sol)
   end
 
