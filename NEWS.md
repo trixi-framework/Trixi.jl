@@ -5,6 +5,13 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes in the v0.4 lifecycle
+
+#### Changed
+
+- The required Julia version is updated to v1.7.
+
+
 ## Changes when updating to v0.4 from v0.3.x
 
 #### Added
