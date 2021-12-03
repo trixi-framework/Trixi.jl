@@ -76,7 +76,6 @@ end
   cell_indices = get_boundary_indices(element, orientation, mesh)
 
   u_inner = get_node_vars(u, equations, dg, node_indices..., element)
-  x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
   # If the mapping is orientation-reversing, the contravariant vectors' orientation
   # is reversed as well. The normal vector must be oriented in the direction
