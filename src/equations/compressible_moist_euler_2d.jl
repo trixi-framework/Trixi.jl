@@ -48,7 +48,7 @@ function CompressibleMoistEulerEquations2D(;RealT=Float64)
 varnames(::typeof(cons2cons), ::CompressibleMoistEulerEquations2D) = ("rho", "rho_v1", "rho_v2", "rho_E", "rho_qv", "rho_ql")
 varnames(::typeof(cons2prim), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "p", "qv", "ql")
 varnames(::typeof(cons2pot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "pottemp", "qv", "ql")
-varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "aeqpottemp", "rv", "rl")
+varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "aeqpottemp", "rv", "rt")
 
 struct AtmossphereLayers{RealT<:Real}
   equations::CompressibleMoistEulerEquations2D
@@ -93,7 +93,7 @@ function AtmossphereLayers(equations ; total_hight=10000.0, preciseness=10, grou
     sol = nlsolve(F, y0)
     p, rho, T, r_t, r_v, rho_qv, theta_e = sol.zero
     
-    if(i==500)
+    if(i==500 || i == 1000)
       @info(sol.zero)
     end
     rho_d = rho / (1 + r_t)
@@ -215,7 +215,7 @@ function initial_condition_moist_bubble(x, t, equations::CompressibleMoistEulerE
   (rho_l, rho_theta_l, rho_qv_l, rho_ql_l) = LayerData[n, :]
   z_r = n * dz
   if (z_l == total_hight)
-    z_r = z_l
+    z_r = z_l + dz 
     n = n-1
   end
   (rho_r, rho_theta_r, rho_qv_r, rho_ql_r) = LayerData[n+1, :]
@@ -250,7 +250,6 @@ function PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::Compr
   T_loc = p_loc / (R_d * rho_d + R_v * rho_qv)
   rho_e = (c_vd * rho_d + c_vv * rho_qv + c_pl * rho_ql) * T_loc + L_00 * rho_qv
 
-if (x[1] == 0.0 && x[2] == 5000.0)
   p_v = rho_qv * R_v * T_loc
   p_d = p_loc - p_v
   T_C = T_loc - 273.15
@@ -266,11 +265,8 @@ if (x[1] == 0.0 && x[2] == 5000.0)
   L_v = L_00 + (c_pv - c_pl) * T_loc
   c=exp(L_v * r_v / ((c_pd + r_t * c_pl) * T_loc))
   aeq_pot = (a * b *c)
-  @info((p_loc, rho, T_loc, r_t, r_v, rho_qv, aeq_pot))
-end
 
-  b=false
-  if ( b==true && r < rc && Δθ > 0) 
+  if (r < rc && Δθ > 0) 
     θ_dens = rho_theta / rho * (p_loc / p_0)^(kappa_M - kappa)
     θ_dens_new = θ_dens * (1 + Δθ * cospi(0.5*r/rc)^2 / 300)
     rt =(rho_qv + rho_ql) / rho_d 
@@ -679,8 +675,9 @@ end
 
 @inline function max_abs_speeds(u, equations::CompressibleMoistEulerEquations2D)
   rho, v1, v2, p, qv, ql = cons2prim(u, equations)
-  c = sqrt(equations.gamma * p / rho)
+  @info(cons2prim(u, equations))
 
+  c = sqrt(equations.gamma * p / rho)
   return abs(v1) + c, abs(v2) + c
 end
 
@@ -856,7 +853,7 @@ end
   @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, kappa, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = cons
   rho_d = rho - rho_qv - rho_ql
-  p, T = get_moist_profile(cons, equations)
+  p, T, _, _, _, _ = get_moist_profile(cons, equations)
   p_v = rho_qv * R_v * T
   p_d = p - p_v
   T_C = T - 273.15
@@ -887,7 +884,7 @@ end
   L_v = L_00 + (c_pv - c_pl) * T
   c_d = c_pd + r_t * c_pl
   #Aequivalentpotential temperature
-  aeq_pot = (T * (p_0 / p_d)^kappa * H^(- r_v * R_v /c_d) *
+  aeq_pot = (T * (p_0 / p_d)^(R_d / c_d) * H^(- r_v * R_v /c_d) *
              exp(L_v * r_v / (c_d * T)))
 
   v1 = rho_v1 / rho
@@ -898,8 +895,7 @@ end
   pot3 = v2
   pot4 = aeq_pot
   pot5 = r_v
-  pot6 = r_l
-
+  pot6 = r_t
   return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
 end
 

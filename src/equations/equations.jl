@@ -221,6 +221,7 @@ performed by [`pot2cons`](@ref).
 """
 function cons2pot end
 
+function cons2aeqpot end
 
 # FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
