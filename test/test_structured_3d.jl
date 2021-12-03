@@ -16,13 +16,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
-      l2   = [0.00016263963870641478], 
+      l2   = [0.00016263963870641478],
       linf = [0.0014537194925779984])
   end
 
   @trixi_testset "elixir_advection_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream.jl"),
-      l2   = [1.2908196366970896e-14], 
+      l2   = [1.2908196366970896e-14],
       linf = [1.0262901639634947e-12],
       atol = 8e-13, # required to make tests pass on Windows
       )
@@ -36,7 +36,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [0.0025903889347585777], 
+      l2   = [0.0025903889347585777],
       linf = [0.018407576968841655])
   end
 
@@ -70,7 +70,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.011367083018614027, 0.007022020327490176, 0.006759580335962235, 0.006820337637760632, 0.02912659127566544],
       linf = [0.2761764220925329, 0.20286331858055706, 0.18763944865434593, 0.19313636558790004, 0.707563913727584],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_source_terms_cubed_sphere_coupled.jl" begin
@@ -104,7 +105,9 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.0013647609788548722],
       linf = [0.027510637768610846, 0.02797062834945721, 0.01274249949295704, 0.038940694415543736,
               0.02200825678588325, 0.03167600959583505, 0.021420957993862344, 0.03386589835999665,
-              0.01888303191983353])
+              0.01888303191983353],
+      # Use same polydeg as everything else to prevent long compile times in CI
+      coverage_override = (polydeg=3,))
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl with flux_lax_friedrichs" begin
@@ -115,7 +118,22 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.027719103797310463, 0.027570111789910784, 0.012561901006903103, 0.03903568568480584,
               0.021311996934554767, 0.03154849824135775, 0.020996033645485412, 0.03403185137382961,
               0.019488952445771597],
-      surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell))
+      surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+      # Use same polydeg as everything else to prevent long compile times in CI
+      coverage_override = (polydeg=3,))
+  end
+
+  @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
+      l2   = [0.009352631220872144, 0.008058649103542618, 0.008027041293333663, 0.008071417851552725,
+              0.034909149665869485, 0.00393019428600812, 0.0039219074393817, 0.003906321245184237,
+              4.197255300781248e-5],
+      linf = [0.30749098250807516, 0.2679008863509767, 0.271243087484388, 0.26545396569129537,
+              0.9620950892188596, 0.18163281157498123, 0.15995708312378454, 0.17918221526906408,
+              0.015138346608166353],
+      tspan = (0.0, 0.25),
+      # Use same polydeg as everything else to prevent long compile times in CI
+      coverage_override = (polydeg=3,))
   end
 end
 

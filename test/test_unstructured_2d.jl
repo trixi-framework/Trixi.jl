@@ -21,8 +21,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
-      l2   = [3.357431396258123e-14, 2.439943089578555e-13, 1.4655386790023588e-13, 4.670410488845425e-13],
-      linf = [1.0169198816356584e-11, 6.838458965763294e-11, 4.456759961080081e-11, 1.4207657272891083e-10],
+      l2   = [3.3937971107485363e-14, 2.447586447887882e-13, 1.4585205789296455e-13, 4.716993468962946e-13],
+      linf = [8.804734719092266e-12, 6.261270668606045e-11, 2.93670088247211e-11, 1.205400224080222e-10],
       tspan = (0.0, 0.1),
       atol = 3.0e-13)
   end
@@ -56,7 +56,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.00018729339078205488], 
+      l2   = [0.00018729339078205488],
       linf = [0.0018997287705734278])
   end
 
@@ -107,8 +107,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-      l2   = [1.2164292510839083, 2.8049631232564753e-12, 1.5664980749498454e-12, 1.216429251083908],
-      linf = [1.5138512282315868, 5.0263880749562876e-11, 3.5805418805003075e-11, 1.513851228231574],
+      l2   = [1.2164292510839076, 2.6118925543469468e-12, 1.1636046671473883e-12, 1.2164292510839079],
+      linf = [1.5138512282315846, 4.998482888288039e-11, 2.0246214978154587e-11, 1.513851228231574],
       tspan = (0.0, 0.25))
   end
 
@@ -121,8 +121,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
-      l2   = [1.1577518608963063e-5, 4.371173779970303e-13, 4.2152984234036224e-13, 1.1577518608935235e-5],
-      linf = [8.394063878491842e-5, 9.632644747754261e-11, 9.54898901893391e-11, 8.394063879602065e-5],
+      l2   = [1.1577518608940115e-5, 4.867189932537344e-13, 4.647273240470541e-13, 1.1577518608933468e-5],
+      linf = [8.394063878602864e-5, 1.1469760027632646e-10, 1.1146619484429974e-10, 8.394063879602065e-5],
       tspan = (0.0, 2.0))
   end
 
@@ -131,6 +131,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.04443210036005491, 0.14454582374113853, 0.15239799057671485, 6.225080477024867e-8],
       linf = [0.7727399447958347, 2.127376144492187, 3.361677723990531, 3.982097160903919e-7],
       tspan = (0.0, 0.05))
+  end
+
+  @trixi_testset "elixir_shallowwater_ec_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec_shockcapturing.jl"),
+      l2   = [0.6124656312639043, 0.504371951785709, 0.49180896200746366, 0.29467422718511727],
+      linf = [2.7639232436274392, 3.3985508653311767, 3.3330308209196224, 2.052861364219655],
+      tspan = (0.0, 0.25))
   end
 end
 

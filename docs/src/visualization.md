@@ -185,7 +185,7 @@ This produces the following plot of vorticity.
 Since the mesh is fairly coarse, we observe numerical artifacts due to the low resolution.
 These errors vanish under mesh refinement; for example, doubling the mesh resolution by running
 ```julia
-julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"), num_cells_per_dimension = 32)
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_BM_vortex.jl"), cells_per_dimension = 32)
 ```
 yields the following plot of vorticity:
 
@@ -512,7 +512,7 @@ The plot can be rotated (click and hold), zoomed in and out (scroll up and down)
 of and below the solution.
 
 Both `plot` and `iplot` use `colormap = :inferno` by default.
-[https://docs.juliaplots.org/latest/generated/colorschemes/](A different colormap) can be selected
+[A different colormap](https://docs.juliaplots.org/latest/generated/colorschemes/) can be selected
 by providing an appropriate keyword argument. For example, `plot(sol, colormap=:blues)` and
 `iplot(sol, colormap=:blues)` produce the following figures:
 

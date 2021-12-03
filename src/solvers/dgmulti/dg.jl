@@ -7,12 +7,15 @@
 
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
-
-# out <- out + A * x
-mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out)))
+mul_by!(A::T) where {T<:SimpleKronecker} = @inline (out, x)->mul!(out, A, x)
+mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
+mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S<:AbstractSparseMatrix} = @inline (out, x)->mul!(out, A, x)
 
 #  out <- out + α * A * x
-mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out)))
+mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
+
+# out <- out + A * x
+mul_by_accum!(A) = mul_by_accum!(A, One())
 
 # specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
 struct MulByUniformScaling end
@@ -27,6 +30,7 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 # solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
 @inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
+  # TODO: DGMulti speed up using threads
   for (i, x_i) in enumerate(x)
     out[i] = out[i] + x_i
   end
@@ -105,7 +109,8 @@ function compute_coefficients!(u, initial_condition, t,
 
   # evaluate the initial condition at quadrature points
   @threaded for i in each_quad_node_global(mesh, dg, cache)
-    u_values[i] = initial_condition(getindex.(md.xyzq, i), t, equations)
+    u_values[i] = initial_condition(SVector(getindex.(md.xyzq, i)),
+                                    t, equations)
   end
 
   # multiplying by Pq computes the L2 projection
@@ -152,10 +157,10 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
   apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
-function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
-                               mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
                                have_nonconservative_terms::Val{false}, equations,
-                               dg::DGMulti, cache)
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache)
 
   rd = dg.basis
   md = mesh.md
@@ -365,10 +370,11 @@ function calc_sources!(du, u, t, source_terms,
 
     source_values = local_values_threaded[Threads.threadid()]
 
-    u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
+    u_e = view(u_values, :, e) # u_values should already be computed from volume integral
 
     for i in each_quad_node(mesh, dg, cache)
-      source_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations)
+      source_values[i] = source_terms(u_e[i], SVector(getindex.(md.xyzq, i, e)),
+                                      t, equations)
     end
     apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
   end
@@ -378,24 +384,30 @@ function rhs!(du, u, t, mesh, equations,
               initial_condition, boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
 
-  @trixi_timeit timer() "Reset du/dt" fill!(du,zero(eltype(du)))
+  @trixi_timeit timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
 
-  @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(du, u, dg.volume_integral,
-                                    mesh, have_nonconservative_terms(equations), equations, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
-  @trixi_timeit timer() "prolong2interfaces!" prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
-  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral, mesh,
-                                                                    have_nonconservative_terms(equations),
-                                                                    equations, dg)
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
+    cache, dg.surface_integral, mesh,
+    have_nonconservative_terms(equations), equations, dg)
 
-  @trixi_timeit timer() "calc_boundary_flux!" calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg)
 
-  @trixi_timeit timer() "calc_surface_integral!" calc_surface_integral!(du, u, dg.surface_integral, mesh, equations, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
+    du, u, dg.surface_integral, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "invert_jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "Jacobian" invert_jacobian!(
+    du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "calc_sources!" calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+  @trixi_timeit timer() "source terms" calc_sources!(
+    du, u, t, source_terms, mesh, equations, dg, cache)
 
   return nothing
 end

@@ -20,8 +20,8 @@ boundary_conditions = boundary_condition_periodic
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = -1 # minimum coordinate
-coordinates_max =  1 # maximum coordinate
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max =  1.0 # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -79,7 +79,7 @@ callbacks = CallbackSet(summary_callback,
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 
 # Print the timer summary
 summary_callback()

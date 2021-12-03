@@ -7,8 +7,8 @@ dg = DGMulti(polydeg=4, element_type = Quad(), approximation_type = Polynomial()
 equations = CompressibleEulerEquations2D(1.4)
 
 """
-A compressible version of the double shear layer initial condition. Adapted from 
-Brown and Minion (1995). See Section 3, equations (27)-(28) for the original 
+A compressible version of the double shear layer initial condition. Adapted from
+Brown and Minion (1995). See Section 3, equations (27)-(28) for the original
 incompressible version.
 
 - David L. Brown and Michael L. Minion (1995)
@@ -28,8 +28,8 @@ function initial_condition_BM_vortex(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_BM_vortex
 
-num_cells_per_dimension = 16
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
+cells_per_dimension = (16, 16)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 vertex_coordinates = map(x -> 0.5 .* x, vertex_coordinates) # map domain to [-0.5, 0.5]^2
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)

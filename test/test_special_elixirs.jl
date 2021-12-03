@@ -15,39 +15,50 @@ isdir(outdir) && rm(outdir, recursive=true)
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
+cmd = string(Base.julia_cmd())
+coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
 
 @testset "Special elixirs" begin
   @testset "Convergence test" begin
-    @timed_testset "tree_2d_dgsem" begin
-      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 3, initial_refinement_level=2)
-      @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
-    end
+    if !coverage
+      @timed_testset "tree_2d_dgsem" begin
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 3, initial_refinement_level=2)
+        @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
+      end
 
-    @timed_testset "structured_2d_dgsem" begin
-      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 3, cells_per_dimension=(5, 9))
-      @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
-    end
+      @timed_testset "structured_2d_dgsem" begin
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 3, cells_per_dimension=(5, 9))
+        @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
+      end
 
-    @timed_testset "p4est_2d_dgsem" begin
-      # Run convergence test on unrefined mesh
-      no_refine = @cfunction((p4est, which_tree, quadrant) -> Cint(0), Cint, (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p4est_quadrant_t}))
-      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"), 2, refine_fn_c=no_refine)
-      @test isapprox(mean_convergence[:linf], [3.2, 3.2, 4.0, 3.7], rtol=0.05)
-    end
+      @timed_testset "p4est_2d_dgsem" begin
+        # Run convergence test on unrefined mesh
+        no_refine = @cfunction((p4est, which_tree, quadrant) -> Cint(0), Cint, (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t}, Ptr{Trixi.p4est_quadrant_t}))
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"), 2, refine_fn_c=no_refine)
+        @test isapprox(mean_convergence[:linf], [3.2, 3.2, 4.0, 3.7], rtol=0.05)
+      end
 
-    @timed_testset "structured_3d_dgsem" begin
-      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_advection_basic.jl"), 2, cells_per_dimension=(7, 4, 5))
-      @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
-    end
+      @timed_testset "structured_3d_dgsem" begin
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_advection_basic.jl"), 2, cells_per_dimension=(7, 4, 5))
+        @test isapprox(mean_convergence[:l2], [4.0], rtol=0.05)
+      end
 
-    @timed_testset "p4est_3d_dgsem" begin
-      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_3d_dgsem", "elixir_advection_unstructured_curved.jl"), 2, initial_refinement_level=0)
-      @test isapprox(mean_convergence[:l2], [2.7], rtol=0.05)
-    end
+      @timed_testset "p4est_3d_dgsem" begin
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "p4est_3d_dgsem", "elixir_advection_unstructured_curved.jl"), 2, initial_refinement_level=0)
+        @test isapprox(mean_convergence[:l2], [2.7], rtol=0.05)
+      end
 
-    @timed_testset "paper_self_gravitating_gas_dynamics" begin
-      mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper_self_gravitating_gas_dynamics", "elixir_eulergravity_convergence.jl"), 2, tspan=(0.0, 0.25), initial_refinement_level=1)
-      @test isapprox(mean_convergence[:l2], 4 * ones(4), atol=0.4)
+      @timed_testset "paper_self_gravitating_gas_dynamics" begin
+        mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper_self_gravitating_gas_dynamics", "elixir_eulergravity_convergence.jl"), 2, tspan=(0.0, 0.25), initial_refinement_level=1)
+        @test isapprox(mean_convergence[:l2], 4 * ones(4), atol=0.4)
+      end
+    else
+      # Without coverage, just run simple convergence tests to cover
+      # the convergence test logic
+      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_extended.jl"), 2, initial_refinement_level=0, tspan=(0.0, 0.1))
+      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_basic.jl"), 2, tspan=(0.0, 0.01))
+      @test_nowarn convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_advection_extended.jl"), 2, cells_per_dimension=(1, 1), tspan=(0.0, 0.1))
     end
   end
 
@@ -107,6 +118,48 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
         trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_shockcapturing.jl"),
           tspan=(0.0, 0.0), initial_refinement_level=1)
         jacobian_ad_forward(semi)
+      end
+
+      @timed_testset "DGMulti (weak form)" begin
+        gamma = 1.4
+        equations = CompressibleEulerEquations2D(gamma)
+        initial_condition = initial_condition_density_wave
+
+        solver = DGMulti(polydeg = 5, element_type = Quad(), approximation_type = SBP(),
+                        surface_integral = SurfaceIntegralWeakForm(flux_central),
+                        volume_integral = VolumeIntegralWeakForm())
+
+        # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
+        cells_per_dimension = (2, 2)
+        vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
+        mesh = VertexMappedMesh(vertex_coordinates, EToV, solver, is_periodic=(true,true))
+
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 7.0e-7
+      end
+
+      @timed_testset "DGMulti (SBP, flux differencing)" begin
+        gamma = 1.4
+        equations = CompressibleEulerEquations2D(gamma)
+        initial_condition = initial_condition_density_wave
+
+        solver = DGMulti(polydeg = 5, element_type = Quad(), approximation_type = SBP(),
+                        surface_integral = SurfaceIntegralWeakForm(flux_central),
+                        volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+        # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
+        cells_per_dimension = (2, 2)
+        vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
+        mesh = VertexMappedMesh(vertex_coordinates, EToV, solver, is_periodic=(true,true))
+
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 7.0e-7
       end
     end
 
@@ -197,6 +250,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
         Trixi.integrate(energy_total, sol.u[end], semi)
       end
       ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
+    end
+
+    @timed_testset "elixir_euler_ad.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "special_elixirs", "elixir_euler_ad.jl"))
     end
   end
 end

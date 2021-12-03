@@ -12,6 +12,8 @@ using Trixi2Vtk
 # Get Trixi root directory
 trixi_root_dir = dirname(@__DIR__)
 
+include(joinpath(trixi_root_dir, "docs", "literate", "make.jl"))
+
 # Copy list of authors to not need to synchronize it manually
 authors_text = read(joinpath(trixi_root_dir, "AUTHORS.md"), String)
 authors_text = replace(authors_text, "in the [LICENSE.md](LICENSE.md) file" => "under [License](@ref)")
@@ -20,6 +22,20 @@ write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 # Define module-wide setups such that the respective modules are available in doctests
 DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
+
+# Create tutorials for the following files:
+# Normal structure: "title" => "filename.jl"
+# If there are several files for one topic and one folder, the structure is:
+#   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
+#               "subtitle 2" => ("folder 2", "filename 2.jl")]
+files = [
+    "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
+    "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations", "cubic_conservation_law.jl"),
+                                "Nonconservative equation" => ("adding_new_equations", "nonconservative_advection.jl")],
+    "Differentiable programming" => "differentiable_programming.jl",
+    "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
+    ]
+tutorials = create_tutorials(files)
 
 # Make documentation
 makedocs(
@@ -43,21 +59,14 @@ makedocs(
             "Overview" => "overview.md",
             "Visualization" => "visualization.md",
         ],
-        "Tutorials" => [
-            "Adding a new equation" => [
-                "Scalar conservation law" => joinpath("adding_new_equations", "cubic_conservation_law.md"),
-                "Nonconservative equation" => joinpath("adding_new_equations", "nonconservative_advection.md")
-            ],
-            "Differentiable programming" => "differentiable_programming.md",
-            "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.md",
-        ],
+        "Tutorials" => tutorials,
         "Basic building blocks" => [
             "Meshes" => [
                 "Tree mesh" => joinpath("meshes", "tree_mesh.md"),
                 "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                 "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
                 "P4est-based mesh" => joinpath("meshes", "p4est_mesh.md"),
-                "Simplicial mesh" => joinpath("meshes", "mesh_data_meshes.md"),
+                "Simplicial mesh" => joinpath("meshes", "dgmulti_mesh.md"),
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",

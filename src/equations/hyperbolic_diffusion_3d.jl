@@ -41,42 +41,6 @@ end
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusionEquations3D)
-  # elliptic equation: -νΔϕ = f
-  # depending on initial constant state, c, for phi this converges to the solution ϕ + c
-  if iszero(t)
-    phi = 0.0
-    q1  = 0.0
-    q2  = 0.0
-    q3  = 0.0
-  else
-    phi =          sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * x[3])
-    q1  = 2 * pi * cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * x[3])
-    q2  = 2 * pi * sin(2 * pi * x[1]) * cos(2 * pi * x[2]) * sin(2 * pi * x[3])
-    q3  = 2 * pi * sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * x[3])
-  end
-  return SVector(phi, q1, q2, q3)
-end
-
-@inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
-  # elliptic equation: -νΔϕ = f
-  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-  @unpack inv_Tr = equations
-  C = -12 * equations.nu * pi^2
-
-  x1, x2, x3 = x
-  tmp1 = sinpi(2 * x1)
-  tmp2 = sinpi(2 * x2)
-  tmp3 = sinpi(2 * x3)
-  du1 = -C*tmp1*tmp2*tmp3
-  du2 = -inv_Tr * u[2]
-  du3 = -inv_Tr * u[3]
-  du4 = -inv_Tr * u[4]
-
-  return SVector(du1, du2, du3, du4)
-end
-
-
 function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
@@ -128,6 +92,11 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
 end
 
 
+"""
+    source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations3D)
+
+Source term that only includes the forcing from the hyperbolic diffusion system.
+"""
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations3D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   @unpack inv_Tr = equations
@@ -166,55 +135,6 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   return SVector(phi, q1, q2, q3)
 end
 
-
-"""
-    initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations3D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
-"""
-function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations3D)
-  # for now just use constant initial condition for sedov blast wave (can likely be improved)
-
-  phi = 0.0
-  q1  = 0.0
-  q2  = 0.0
-  q3  = 0.0
-  return SVector(phi, q1, q2, q3)
-end
-
-"""
-    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                          surface_flux_function,
-                                          equations::HyperbolicDiffusionEquations3D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
-"""
-function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::HyperbolicDiffusionEquations3D)
-  u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
 
 
 # Calculate 1D flux in for a single point

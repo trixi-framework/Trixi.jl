@@ -39,6 +39,7 @@ installation and postprocessing procedures. Its features include:
 * Shared-memory parallelization via multithreading
 * Visualization and postprocessing of the results
   * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+  * Interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
   * Postprocessing with ParaView/VisIt via [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
 
 
@@ -308,9 +309,10 @@ In addition, you can also refer to Trixi directly as
 
 ## [Authors](@id authors-index-md)
 Trixi was initiated by [Michael
-Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
-[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner) (both
-University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
+Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
+(University of Stuttgart, Germany) and
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
+(University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.

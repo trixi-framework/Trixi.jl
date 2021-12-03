@@ -69,7 +69,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave.jl"),
       l2   = [0.17646728395490927, 3.866230215339417, 2.4867304651291255, 0.0, 355.4562971958441, 2.359493623565687, 1.4030741420730297, 0.0, 0.029613599942667133],
       linf = [1.581630420824181, 44.15725488910748, 13.056964982196554, 0.0, 2244.875490238186, 13.07679044647926, 9.14612176426092, 0.0, 0.5154756722488522],
-      tspan = (0.0, 0.003))
+      tspan = (0.0, 0.003),
+      # Calling the AnalysisCallback before iteration 9 causes the interpolation
+      # of this IC to have negative density/pressure values, crashing the simulation.
+      coverage_override = (maxiters=9,))
   end
 end
 

@@ -123,47 +123,6 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMulticomp
 end
 
 
-"""
-    initial_condition_rotor(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
-
-The classical MHD rotor test case adapted to twocomponent. Here, the setup is taken from
-- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
-  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
-"""
-function initial_condition_rotor(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
-  # setup taken from Derigs et al. DMV article (2018)
-  # domain must be [0, 1] x [0, 1], γ = 1.4
-  dx = x[1] - 0.5
-  dy = x[2] - 0.5
-  r = sqrt(dx^2 + dy^2)
-  f = (0.115 - r)/0.015
-  if r <= 0.1
-    rho1 = 10.0
-    rho2 = 5.0
-    v1 = -20.0*dy
-    v2 = 20.0*dx
-  elseif r >= 0.115
-    rho1 = 1.0
-    rho2 = 0.5
-    v1 = 0.0
-    v2 = 0.0
-  else
-    rho1 = 1.0 + 9.0*f
-    rho2 = 0.5 + 4.5*f
-    v1 = -20.0*f*dy
-    v2 = 20.0*f*dx
-  end
-  v3 = 0.0
-  p = 1.0
-  B1 = 5.0/sqrt(4.0*pi)
-  B2 = 0.0
-  B3 = 0.0
-  psi = 0.0
-  return prim2cons(SVector(v1, v2, v3, p, B1, B2, B3, psi, rho1, rho2), equations)
-end
-
-
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u

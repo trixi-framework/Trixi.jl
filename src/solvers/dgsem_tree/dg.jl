@@ -5,6 +5,17 @@
 @muladd begin
 
 
+# du .= zero(eltype(du)) doesn't scale when using multiple threads.
+# See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
+function reset_du!(du, dg, cache)
+  @threaded for element in eachelement(dg, cache)
+      du[.., element] .= zero(eltype(du))
+  end
+
+  return du
+end
+
+
 #     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 #
 # Given blending factors `alpha` and the solver `dg`, fill
@@ -54,7 +65,9 @@ include("dg_2d_parallel.jl")
 include("dg_3d.jl")
 
 # Auxiliary functions that are specialized on this solver
+# as well as specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")
+include("dg_3d_compressible_euler.jl")
 
 
 end # @muladd

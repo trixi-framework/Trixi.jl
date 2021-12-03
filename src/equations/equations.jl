@@ -24,6 +24,18 @@ julia> Trixi.get_name(CompressibleEulerEquations1D(1.4))
 """
 get_name(equations::AbstractEquations) = equations |> typeof |> nameof |> string
 
+"""
+    varnames(conversion_function, equations)
+
+Return the list of variable names when applying `conversion_function` to the
+conserved variables associated to `equations`. This function is mainly used
+internally to determine output to screen and for IO, e.g., for the
+[`AnalysisCallback`](@ref) and the [`SaveSolutionCallback`](@ref).
+Common choices of the `conversion_function` are [`cons2cons`](@ref) and
+[`cons2prim`](@ref).
+"""
+function varnames end
+
 
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)
@@ -72,6 +84,18 @@ for the corresponding set of governing `equations`.
 `orientation` is `1`, `2`, and `3` for the x-, y-, and z-directions, respectively.
 """
 function flux end
+
+"""
+    flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
+
+Enables calling `flux` with a non-integer argument `normal_direction` for one-dimensional
+equations. Returns the value of `flux(u, 1, equations)` scaled by `normal_direction[1]`.
+"""
+@inline function flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
+  # Call `flux` with `orientation::Int = 1` for dispatch. Note that the actual
+  # `orientation` argument is ignored.
+  return normal_direction[1] * flux(u, 1, equations)
+end
 
 
 """
@@ -153,10 +177,25 @@ end
 
 
 # set sensible default values that may be overwritten by specific equations
+"""
+    have_nonconservative_terms(equations)
+
+Trait function determining whether `equations` represent a conservation law
+with or without nonconservative terms. Classical conservation laws such as the
+[`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
+[`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
+example of equations with nonconservative terms.
+The return value will be `Val(true)` or `Val(false)` to allow dispatching on the return type.
+"""
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)
 
 default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
+"""
+    default_analysis_integrals(equations)
+
+Default analysis integrals used by the [`AnalysisCallback`](@ref).
+"""
 default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 
 
@@ -174,15 +213,21 @@ function cons2prim#=(u, ::AbstractEquations)=# end
     cons2prim(u, equations)
 
 Convert the conserved variables `u` to the primitive variables for a given set of
-`equations`. The inverse conversion is performed by [`prim2cons`](@ref).
+`equations`. `u` is a vector type of the correct length `nvariables(equations)`.
+Notice the function doesn't include any error checks for the purpose of efficiency,
+so please make sure your input is correct.
+The inverse conversion is performed by [`prim2cons`](@ref).
 """
 function cons2prim end
 
 """
     prim2cons(u, equations)
 
-Convert the conserved variables `u` to the primitive variables for a given set of
-`equations`. The inverse conversion is performed by [`cons2prim`](@ref).
+Convert the primitive variables `u` to the conserved variables for a given set of
+`equations`. `u` is a vector type of the correct length `nvariables(equations)`.
+Notice the function doesn't include any error checks for the purpose of efficiency,
+so please make sure your input is correct.
+The inverse conversion is performed by [`cons2prim`](@ref).
 """
 function prim2cons end
 
@@ -198,8 +243,11 @@ function entropy end
     cons2entropy(u, equations)
 
 Convert the conserved variables `u` to the entropy variables for a given set of
-`equations` with chosen standard [`entropy`](@ref). The inverse conversion is
-performed by [`entropy2cons`](@ref).
+`equations` with chosen standard [`entropy`](@ref).
+`u` is a vector type of the correct length `nvariables(equations)`.
+Notice the function doesn't include any error checks for the purpose of efficiency,
+so please make sure your input is correct.
+The inverse conversion is performed by [`entropy2cons`](@ref).
 """
 function cons2entropy end
 
@@ -207,8 +255,11 @@ function cons2entropy end
     entropy2cons(w, equations)
 
 Convert the entropy variables `w` based on a standard [`entropy`](@ref) to the
-conserved variables for a given set of `equations` . The inverse conversion is
-performed by [`cons2entropy`](@ref).
+conserved variables for a given set of `equations`.
+`u` is a vector type of the correct length `nvariables(equations)`.
+Notice the function doesn't include any error checks for the purpose of efficiency,
+so please make sure your input is correct.
+The inverse conversion is performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
 
@@ -289,14 +340,6 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
 
   return flux
 end
-
-
-# FIXME: Deprecations introduced in v0.3
-@deprecate varnames_cons(equations) varnames(cons2cons, equations)
-@deprecate varnames_prim(equations) varnames(cons2prim, equations)
-@deprecate flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) flux_godunov(u_ll, u_rr, orientation_or_normal_direction, equations)
-@deprecate calcflux(u, orientation, equations) flux(u, orientation, equations)
-@deprecate flux_hindenlang(u_ll, u_rr, orientation_or_normal_direction, equations) flux_hindenlang_gassner(u_ll, u_rr, orientation_or_normal_direction, equations)
 
 
 ####################################################################################################

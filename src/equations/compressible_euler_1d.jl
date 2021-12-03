@@ -8,8 +8,28 @@
 @doc raw"""
     CompressibleEulerEquations1D(gamma)
 
-The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
-in one space dimension.
+The compressible Euler equations
+```math
+\partial t
+\begin{pmatrix}
+\rho \\ \rho v_1 \\ \rho e
+\end{pmatrix}
++
+\partial x
+\begin{pmatrix}
+\rho v_1 \\ \rho v_1^2 + p \\ (\rho e +p) v_1
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ 0 \\ 0
+\end{pmatrix}
+```
+for an ideal gas with ratio of specific heats `gamma` in one space dimension.
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v_1^2 \right)
+```
+the pressure.
 """
 struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEquations{1, 3}
   gamma::RealT               # ratio of specific heats
@@ -91,22 +111,6 @@ Source terms used for convergence tests in combination with
   du3 = du2
 
   return SVector(du1, du2, du3)
-end
-
-
-"""
-    initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
-
-A Gaussian pulse in the density with constant velocity and pressure; reduces the
-compressible Euler equations to the linear advection equations.
-"""
-function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
-  rho = 1 + exp(-(x[1]^2 ))/2
-  v1 = 1
-  rho_v1 = rho * v1
-  p = 1
-  rho_e = p/(equations.gamma - 1) + 1/2 * rho * v1^2
-  return SVector(rho, rho_v1, rho_e)
 end
 
 
@@ -237,8 +241,8 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   # Ignore orientation since it is always "1" in 1D
   pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
   f1 = rho_avg * v1_avg
-  f2 = rho_avg * v1_avg * v1_avg + p_avg
-  f3 = p_avg*v1_avg * equations.inv_gamma_minus_one + rho_avg*v1_avg*kin_avg + pv1_avg
+  f2 = f1 * v1_avg + p_avg
+  f3 = p_avg*v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
 
   return SVector(f1, f2, f3)
 end
@@ -313,7 +317,7 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations1D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Hendrik Ranocha (2018)
@@ -349,6 +353,10 @@ See also
   f3 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
 
   return SVector(f1, f2, f3)
+end
+
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
+  return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
 end
 
 

@@ -7,8 +7,8 @@ using Trixi
 
 # For approximation_type = SBP(), Github CI results differ from those attained locally.
 # See https://github.com/trixi-framework/Trixi.jl/issues/881.
-num_cells_per_dimension = 16
-c_h = num_cells_per_dimension
+cells_per_dimension = (16, 16)
+c_h = maximum(cells_per_dimension)
 equations = IdealGlmMhdEquations2D(1.4, c_h)
 
 initial_condition = initial_condition_weak_blast_wave
@@ -19,7 +19,7 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = SBP(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, num_cells_per_dimension)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 vertex_coordinates = map(x -> 2 * x, vertex_coordinates) # map domain to [-2, 2]^2
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
 
@@ -58,6 +58,6 @@ callbacks = CallbackSet(summary_callback,
 #             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
 #             save_everystep=false, callback=callbacks);
 sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-8, reltol=1.0e-8,
-            save_everystep=false, callback=callbacks, maxiters=1e5)
+            save_everystep=false, callback=callbacks)
 
 summary_callback() # print the timer summary

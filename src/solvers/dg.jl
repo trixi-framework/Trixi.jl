@@ -284,6 +284,7 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 @inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
 @inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
 @inline eachmpiinterface(dg::DG, cache) = Base.OneTo(nmpiinterfaces(dg, cache))
+@inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
 
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
 @inline nelementsglobal(dg::DG, cache) = mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
@@ -291,6 +292,7 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMes
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
 @inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
 @inline nmpiinterfaces(dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
+@inline nmpimortars(dg::DG, cache) = nmpimortars(cache.mpi_mortars)
 
 
 # The following functions assume an array-of-structs memory layout

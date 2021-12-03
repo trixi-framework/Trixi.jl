@@ -14,8 +14,8 @@ volume_flux = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-2,)
-coordinates_max = ( 2,)
+coordinates_min = (-2.0,)
+coordinates_max = ( 2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=5,
                 n_cells_max=10_000)

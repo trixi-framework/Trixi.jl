@@ -80,7 +80,7 @@ function rhs!(du, u, t,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -124,19 +124,33 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               nonconservative_terms::Val{false}, equations,
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-  @unpack derivative_dhat = dg.basis
 
   @threaded for element in eachelement(dg, cache)
-    for i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, element)
+    weak_form_kernel!(du, u, element, mesh,
+                      nonconservative_terms, equations,
+                      dg, cache)
+  end
 
-      flux1 = flux(u_node, 1, equations)
-      for ii in eachnode(dg)
-        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1, equations, dg, ii, element)
-      end
+  return nothing
+end
+
+@inline function weak_form_kernel!(du, u,
+                                   element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                   nonconservative_terms::Val{false}, equations,
+                                   dg::DGSEM, cache, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can (hopefully) be optimized away due to constant propagation.
+  @unpack derivative_dhat = dg.basis
+
+  for i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, element)
+
+    flux1 = flux(u_node, 1, equations)
+    for ii in eachnode(dg)
+      multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1, equations, dg, ii, element)
     end
   end
 
@@ -155,11 +169,10 @@ function calc_volume_integral!(du, u,
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,3}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                     nonconservative_terms::Val{false}, equations,
-                                    volume_flux, dg::DGSEM, cache,
-                                    alpha=true)
+                                    volume_flux, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack derivative_split = dg.basis
@@ -183,7 +196,7 @@ end
   end
 end
 
-@inline function split_form_kernel!(du::AbstractArray{<:Any,3}, u,
+@inline function split_form_kernel!(du, u,
                                     element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache, alpha=true)
@@ -248,7 +261,7 @@ function calc_volume_integral!(du, u,
                        volume_flux_dg, dg, cache, 1 - alpha_element)
 
     # Calculate FV volume integral contribution
-    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                dg, cache, element, alpha_element)
   end
 
@@ -265,7 +278,7 @@ function calc_volume_integral!(du, u,
 
   # Calculate LGL FV volume integral
   @threaded for element in eachelement(dg, cache)
-    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+    fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                dg, cache, element, true)
   end
 
@@ -274,7 +287,7 @@ end
 
 
 
-@inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3},
+@inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
@@ -283,7 +296,7 @@ end
 
   # Calculate FV two-point fluxes
   fstar1 = fstar1_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1, u, mesh, nonconservative_terms, equations, volume_flux_fv, 
+  calcflux_fv!(fstar1, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                dg, element, cache)
 
   # Calculate FV volume integral contribution
@@ -298,9 +311,9 @@ end
   return nothing
 end
 
-@inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3}, 
+@inline function calcflux_fv!(fstar1, u::AbstractArray{<:Any,3},
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                              nonconservative_terms::Val{false}, 
+                              nonconservative_terms::Val{false},
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
 
   fstar1[:, 1,           ] .= zero(eltype(fstar1))
@@ -490,12 +503,21 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
+  # Note that all fluxes have been computed with outward-pointing normal vectors.
+  # Access the factors only once before beginning the loop to increase performance.
+  # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+  # into FMAs (see comment at the top of the file).
+  factor_1 = boundary_interpolation[1,          1]
+  factor_2 = boundary_interpolation[nnodes(dg), 2]
   @threaded for element in eachelement(dg, cache)
     for v in eachvariable(equations)
       # surface at -x
-      du[v, 1,          element] -= surface_flux_values[v, 1, element] * boundary_interpolation[1,          1]
+      du[v, 1,          element] = (
+        du[v, 1,          element] - surface_flux_values[v, 1, element] * factor_1)
+
       # surface at +x
-      du[v, nnodes(dg), element] += surface_flux_values[v, 2, element] * boundary_interpolation[nnodes(dg), 2]
+      du[v, nnodes(dg), element] = (
+        du[v, nnodes(dg), element] + surface_flux_values[v, 2, element] * factor_2)
     end
   end
 

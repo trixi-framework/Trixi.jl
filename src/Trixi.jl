@@ -18,8 +18,9 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
+using LinearAlgebra: LinearAlgebra, diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
+using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -34,18 +35,20 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
+using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 using MPI: MPI
 using GeometryBasics: GeometryBasics
-using Octavian: matmul!
+using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
+using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
-using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
+using Static: Static, One
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -131,42 +134,30 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxRotated
+       FluxLMARS,
+       FluxRotated,
+       flux_shima_etal_turbo, flux_ranocha_turbo
 
 export initial_condition_constant,
        initial_condition_gauss,
-       initial_condition_density_wave, initial_condition_density_pulse,
-       initial_condition_isentropic_vortex,
-       initial_condition_weak_blast_wave,
-       initial_condition_medium_sedov_blast_wave,
-       initial_condition_blob,
-       initial_condition_orszag_tang,
-       initial_condition_rotor,
-       initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex
+       initial_condition_density_wave,
+       initial_condition_weak_blast_wave
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
        boundary_condition_wall,
-       boundary_condition_zero,
        BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test
-export initial_condition_harmonic_nonperiodic, source_terms_harmonic
-export initial_condition_poisson_periodic, source_terms_poisson_periodic
+export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
-export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
-export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
-export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
-export initial_condition_gauss_wall
-export initial_condition_monopole, boundary_condition_monopole
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity
+export density, pressure, density_pressure, velocity, global_mean_vars, equilibrium_distribution, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 export lake_at_rest_error
 export ncomponents, eachcomponent
@@ -214,6 +205,7 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
+export GaussSBP
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
