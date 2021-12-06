@@ -221,7 +221,7 @@ function compute_flux_differencing_SBP_matrices(dg::DGMulti, sparse_operators)
 end
 
 # use traditional multidimensional SBP operators for SBP approximation types.
-function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP}, sparse_operators)
+function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiffSBP, sparse_operators)
   rd = dg.basis
   @unpack M, Drst, Pq = rd
   Qrst = map(D -> M * D, Drst)
@@ -235,11 +235,11 @@ end
 
 # For flux differencing SBP-type approximations, store solutions in Matrix{SVector{nvars}}.
 # This results in a slight speedup for `calc_volume_integral!`.
-function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiff{<:SBP})
+function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiffSBP)
   return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, RealT, uEltype)
+function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiffSBP, RealT, uEltype)
 
   rd = dg.basis
   md = mesh.md
@@ -364,6 +364,9 @@ end
 # more efficient and we use the sparsity structure.
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = Val{true}()
+
+# FD SBP methods have sparse operators
+@inline has_sparse_operators(::Union{Line, Quad, Hex}, approx_type::AbstractDerivativeOperator) = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
@@ -492,7 +495,7 @@ end
 
 function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMultiFluxDiff{<:SBP},
+                               volume_integral, dg::DGMultiFluxDiffSBP,
                                cache)
 
   @unpack fluxdiff_local_threaded, inv_wq = cache
@@ -514,9 +517,9 @@ function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
 end
 
 
-# Specialize since `u_values` isn't computed for DGMultiFluxDiff{<:SBP} solvers.
+# Specialize since `u_values` isn't computed for DGMultiFluxDiffSBP solvers.
 function calc_sources!(du, u, t, source_terms,
-                       mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+                       mesh, equations, dg::DGMultiFluxDiffSBP, cache)
   md = mesh.md
 
   @threaded for e in eachelement(mesh, dg, cache)

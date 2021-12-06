@@ -14,6 +14,12 @@ const DGMultiWeakForm{ApproxType, ElemType} =
 const DGMultiFluxDiff{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
 
+const DGMultiFluxDiffSBP{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ApproxType<:Union{SBP, AbstractDerivativeOperator}}
+
+const DGMultiSBP{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:Union{SBP, AbstractDerivativeOperator}, SurfaceIntegral, VolumeIntegral}
+
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -55,7 +61,7 @@ function DGMulti(; polydeg::Integer,
 
   # call dispatchable constructor
   DGMulti(element_type, approximation_type, volume_integral, surface_integral;
-          polydeg=polydeg, surface_flux=surface_flux, kwargs...)
+          polydeg=polydeg, kwargs...)
 end
 
 # dispatchable constructor for DGMulti to allow for specialization
@@ -64,7 +70,6 @@ function DGMulti(element_type::AbstractElemShape,
                  volume_integral,
                  surface_integral;
                  polydeg::Integer,
-                 surface_flux,
                  kwargs...)
 
   rd = RefElemData(element_type, approximation_type, polydeg; kwargs...)

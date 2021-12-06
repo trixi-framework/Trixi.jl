@@ -83,7 +83,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  if typeof(rd.approximationType) <: SBP
+  if typeof(rd.approximationType) <: Union{SBP, AbstractDerivativeOperator}
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
   else
     lift_scalings = nothing
@@ -256,7 +256,7 @@ end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral,
-                             dg::DGMulti{NDIMS, <:AbstractElemShape, <:SBP}) where {NDIMS}
+                             dg::DGMultiSBP)
   rd = dg.basis
   @unpack Fmask = rd
   @unpack u_face_values = cache
@@ -271,10 +271,10 @@ end
 # du[Fmask,:] .= u ./ rd.wq[rd.Fmask]
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::VertexMappedMesh, equations,
-                                dg::DGMulti{NDIMS,<:AbstractElemShape, <:SBP}, cache) where {NDIMS}
+                                dg::DGMultiSBP, cache)
   rd = dg.basis
-  md = mesh.md
   @unpack flux_face_values, lift_scalings = cache
+
   @threaded for e in eachelement(mesh, dg, cache)
     for i in each_face_node(mesh, dg, cache)
       fid = rd.Fmask[i]
@@ -289,7 +289,6 @@ calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
 
 # "lispy tuple programming" instead of for loop for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg::DGMulti)
-
   # peel off first boundary condition
   calc_single_boundary_flux!(cache, t, first(boundary_conditions), first(keys(boundary_conditions)),
                  mesh, equations, dg)
@@ -356,7 +355,7 @@ end
 calc_sources!(du, u, t, source_terms::Nothing,
               mesh, equations, dg::DGMulti, cache) = nothing
 calc_sources!(du, u, t, source_terms::Nothing,
-              mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache) = nothing
+              mesh, equations, dg::DGMultiFluxDiffSBP, cache) = nothing
 
 # uses quadrature + projection to compute source terms.
 function calc_sources!(du, u, t, source_terms,
