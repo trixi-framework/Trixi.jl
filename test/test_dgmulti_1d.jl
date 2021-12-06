@@ -25,9 +25,9 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (4,),
       approximation_type = derivative_operator(
         SummationByPartsOperators.MattssonNordström2004(), 1, 2, 0.0, 1.0, 16),
-      dt =
-      l2 = [],
-      linf = []
+      dt = 0.025,
+      l2 = [2.6396080529009936e-5, 1.4809757398058113e-5, 7.301920350998504e-5],
+      linf = [6.847656573860661e-5, 2.866284068225866e-5, 0.00021907349155902978]
     )
   end
 

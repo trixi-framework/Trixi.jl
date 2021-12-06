@@ -55,7 +55,7 @@ function StartUpDG.RefElemData(element_type::Line,
   # volume
   rq = r = nodes_1d
   wq = weights_1d
-  Dr = droptol!(sparse(D), tol)
+  Dr = droptol!(inv(factor) * sparse(D), tol)
   M = Diagonal(wq)
   Pq = LinearAlgebra.I
   Vq = LinearAlgebra.I
