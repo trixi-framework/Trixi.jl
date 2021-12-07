@@ -236,7 +236,6 @@ To get in touch with the developers,
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 
-
 ## Acknowledgments
 This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
 under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
