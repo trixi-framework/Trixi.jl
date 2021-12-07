@@ -221,3 +221,16 @@ function StartUpDG.RefElemData(element_type::Hex,
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
 end
+
+
+function Base.show(io::IO, mime::MIME"text/plain", rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
+  @nospecialize rd
+  print(io, "RefElemData for an approximation using an ")
+  show(IOContext(io, :compact => true), rd.approximationType)
+  print(io, " on $(rd.elementType) element")
+end
+
+function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
+  @nospecialize rd
+  print(io, "RefElemData{", summary(rd.approximationType), ", ", rd.elementType, "}")
+end
