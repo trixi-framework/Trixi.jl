@@ -4,6 +4,10 @@ Trixi includes support for simplicial meshes via the `DGMulti` solver type, whic
 [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) package. `DGMulti` solvers also provides
 support for quadrilateral and hexahedral meshes, though this feature is currently restricted to
 Cartesian grids.
+On these line/quad/hex meshes, the `DGMulti` solver also allows to use all (finite domain) SBP
+derivative operators provided by
+[SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl),
+including several finite difference SBP methods.
 
 We make a few simplifying assumptions about supported meshes:
 * meshes consist of a single type of element
@@ -43,6 +47,10 @@ Here, `element_type` can be `Tri()`, `Quad()`, `Tet()`, or `Hex()`, and `approxi
   More detailed descriptions of each SBP node set can be found in the
   [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/RefElemData/#RefElemData-based-on-SBP-finite-differences).
   Trixi will also specialize certain parts of the solver based on the `SBP` approximation type.
+* some derivative operator from
+  [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl),
+  usually constructed as `D = derivative_operator(...)`. In this case, you do not need to
+  pass a `polydeg`.
 
 Additional options can also be specified through `RefElemData_kwargs`:
 
