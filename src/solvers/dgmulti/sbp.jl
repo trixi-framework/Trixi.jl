@@ -115,7 +115,10 @@ function StartUpDG.RefElemData(element_type::Quad,
   rq = r; sq = s
   wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d))
   wq = wr .* ws
-  Dr = Ds = droptol!(inv(factor) * sparse(D), tol)
+  D_1d = droptol!(inv(factor) * sparse(D), tol)
+  I_1d = Diagonal(ones(Bool, length(nodes_1d)))
+  Dr = kron(I_1d, D_1d)
+  Ds = kron(D_1d, I_1d)
   M = Diagonal(wq)
   Pq = LinearAlgebra.I
   Vq = LinearAlgebra.I
