@@ -143,7 +143,7 @@ function StartUpDG.RefElemData(element_type::Quad,
   face_vertices = StartUpDG.face_vertices(element_type)
   face_mask = vcat(StartUpDG.find_face_nodes(element_type, r, s)...)
 
-  rf, sf, wf, nrJ, nsJ = StartUpDG.init_face_data(element_type, N,
+  rf, sf, wf, nrJ, nsJ = StartUpDG.init_face_data(element_type,
     quad_rule_face=(nodes_1d, weights_1d))
   Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
@@ -203,7 +203,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     rf, sf = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d, nodes_1d))
     wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d))
     wf = wr .* ws
-    StartUpDG.init_face_data(element_type, N, quad_rule_face=(rf, sf, wf))
+    StartUpDG.init_face_data(element_type, quad_rule_face=(rf, sf, wf))
   end
   Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
