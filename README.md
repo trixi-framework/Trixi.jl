@@ -248,3 +248,6 @@ ERC grant agreement no. 714487.
 
 This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden grant
 agreement 2020-03642 VR.
+
+This project has benefited from funding from the United States National Science Foundation under awards
+DMS-1719818 and DMS-1943186.
