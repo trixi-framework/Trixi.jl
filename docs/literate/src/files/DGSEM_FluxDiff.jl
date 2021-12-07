@@ -13,31 +13,34 @@
 # ```
 # with the physical flux $f$.
 
-# We split the domain $\Omega$ into elements, transform the equation to the reference element $[-1,1]$
-# in every elements and get the resulting equation each
+# We split the domain $\Omega$ into elements $K$ with center $x_K$ and size $\Delta x$. With the
+# transformation mapping $x(\xi)=x_K + \frac{\Delta x}{2} \xi$ we can transform the reference element
+# $[-1,1]$ to every element. So, the equation can be restricted to the reference element using the
+# determinant of the Jacobian matrix of the transformation mapping
+# $J=\frac{\partial x}{\partial \xi}=\frac{\Delta x}{2}$.
 # ```math
 # J u_t + f(u)_{\xi} = 0, \qquad t\in \mathbb{R}^+, \xi\in [-1,1]
 # ```
-# with the determinant of the Jacobian matrix of the transformation mapping $J$.
 
 # ## The weak form of the DGSEM
-# We consider the so-called discontinuous Galerkin spectral element method (DGSEM) with collocation
-# which results from choosing a nodal DG ansatz with Gauss-Lobatto nodes used for both interpolation
-# and numerical integration.
+# We consider the so-called discontinuous Galerkin spectral element method (DGSEM) with collocation.
+# It results from choosing a nodal DG ansatz using $N+1$ Gauss-Lobatto nodes $\xi_i$ in $[-1,1]$
+# with matching interpolation weights $w_i$, which are used for numerical integration and interpolation with
+# the Lagrange polynomial basis $l_i$ of degree $N$. The Lagrange functions are created with those nodes and
+# hence fulfil a Kronecker property at the GL nodes.
 # The weak formulation of the DGSEM for one element is
 # ```math
 # J \underline{\dot{u}}(t) = - M^{-1} B \underline{f}^* + M^{-1} D^T M \underline{f}
 # ```
-# where $\underline{u}$ is the pointwise evaluation of $u$ at the discretization nodes,
-# $\underline{\dot{u}}=\underline{u}_t$ and $\underline{f}^*$ the numerical flux.
+# where $\underline{u}=(u_0, u_1, \dots, u_N)^T\in\mathbb{R}^{N+1}$ is the collected pointwise evaluation
+# of $u$ at the discretization nodes and $\underline{\dot{u}}=\underline{u}_t$. The pointwise evaluation
+# $\underline{f}$ of the flux function $f$ results from the collocation approach, since
+# $\underline{f}_j=f(\underline{u}_j)$. Moreover, we got the numerical flux $\underline{f}^*$.
 
 # We will now have a short overview over the operators we used.
 
-# The **derivative matrix** $D$ mimics a spatial derivation on a discrete level with
-# $\underline{f}_x \approx D \underline{f}$. It is defined by $D_{ij} = l_j'(\xi_i)$ using
-# the $N+1$ Gauss-Lobatto nodes $\xi_i$ in $[-1,1]$ with matching weights $w_i$ and the Lagrange
-# basis functions $l_i$ of degree $N$. The Lagrange functions are created with those nodes and
-# hence fulfil a Kronecker property at the GL nodes.
+# The **derivative matrix** $D\in\mathbb{R}^{(N+1)\times (N+1)}$ mimics a spatial derivation on a
+# discrete level with $\underline{f}_x \approx D \underline{f}$. It is defined by $D_{ij} = l_j'(\xi_i)$.
 
 # The diagonal **mass matrix** $M$ is defined by $M_{ij}=\langle l_j, l_i\rangle_N$ with the
 # numerical scalar product $\langle \cdot, \cdot\rangle_N$ defined for functions $f$ and $g$ by
@@ -57,36 +60,48 @@
 #   M D + (M D)^T = B.
 # ```
 # This is called the summation-by-parts (SBP) property since it mimics integration by parts on a
-# discrete level.
+# discrete level ([Gassner (2013)](https://doi.org/10.1137/120890144)).
 
 # The explicit definitions of the operators and the contruction of the 1D algorithm can be found
-# in the [introduction to DG methods](@ref scalar_linear_advection_1d).
+# for instance in the tutorial [introduction to DG methods](@ref scalar_linear_advection_1d)
+# or in more detail in [Kopriva (2009)](https://link.springer.com/book/10.1007/978-90-481-2261-5).
 
-# More information about the DG methods, the operators and SBP property can be found in
-# [Fisher, Carpenter (2013)](https://doi.org/10.1016/j.jcp.2013.06.014)
-# and [Gassner, Winters, Kopriva (2016)](https://doi.org/10.1016/j.jcp.2016.09.013).
-
-# TODO: more sources...
+# This property shows the equivalence between the weak form and the following strong of the DGSEM.
+# ```math
+# \begin{align*}
+# J \underline{\dot{u}}(t)
+# &= - M^{-1} B \underline{f}^* + M^{-1} D^T M \underline{f}\\[5pt]
+# &= - M^{-1} B \underline{f}^* + M^{-1} (B - MD) \underline{f}\\[5pt]
+# &= - M^{-1} B (\underline{f}^* - \underline{f}) - D \underline{f}
+# \end{align*}
+# ```
+# More information about the equivalence you can find in [Kopriva, Gassner (2010)](https://doi.org/10.1007/s10915-010-9372-3).
 
 
 # ## DGSEM with flux differencing
 # When using the diagonal SBP property it is possible to rewrite the application of the derivative
 # operator $D$ in the calculation of the volume integral into a subcell based finite volume type
-# differencing formulation. This leads us to the DGSEM formulation with flux differencing
-# (split form DGSEM).
+# differencing formulation ([Fisher, Carpenter (2013)](https://doi.org/10.1016/j.jcp.2013.06.014)).
+# We replace $D \underline{f}$ in the strong form by $2D \underline{f}_{vol}(u^-, u^+)$ with
+# the consistent two-point volume flux $f_{vol}$ and receive the DGSEM formulation with flux differencing
+# (split form DGSEM) ([Gassner, Winters, Kopriva (2016)](https://doi.org/10.1016/j.jcp.2016.09.013)).
+
 # ```math
 # \begin{align*}
-# J \underline{\dot{u}}(t) &= - M^{-1} B \underline{f}_{sur}^* - (2D - M^{-1} B) \underline{f}_{vol}\\[5pt]
-# &= - 2 D \underline{f}_{vol}(\underline{u}(t)) - M^{-1} B (\underline{f}_{sur}^* - \underline{f}_{vol})
+# J \underline{\dot{u}}(t) &= - M^{-1} B (\underline{f}^* - \underline{f}) - 2D \underline{f}_{vol}(u^-, u^+)\\[5pt]
+# &= - M^{-1} B (\underline{f}^* - \underline{f}_{vol}(\underline{u}, \underline{u})) - 2D \underline{f}_{vol}(u^-, u^+)\\[5pt]
+# &= - M^{-1} B \underline{f}_{sur}^* - (2D - M^{-1} B) \underline{f}_{vol}
 # \end{align*}
 # ```
-# Here, we divide between two fluxes: The surface flux $f_{sur}$ used for the numerical flux $f_{sur}^*$ and the
-# volume flux $f_{vol}$ especially for this formulation.
+# This formulation is in a weak form type formulation and can bei implemented by using the matrix $(2D-M^{-1}B)$
+# and two different fluxes. We divide between the surface flux $f=f_{sur}$ used for the numerical flux
+# $f_{sur}^*$ and the already mentioned volume flux $f_{vol}$ especially for this formulation.
 
 
-# This variant enables improved stability for DGSEM, because it allows the construction of entropy
-# conserving discretisations without relying on exact integration. This is achieved when using a
-# two-point entropy conserving flux function as volume flux in the volume flux differencing formulation.
+# This formulation creates a more stable version of DGSEM, because it fulfils entropy stability.
+# Moreover it allows the construction of entropy conserving discretisations without relying on
+# exact integration. This is achieved when using a two-point entropy conserving flux function as
+# volume flux in the volume flux differencing formulation.
 # Then, the numerical surface flux can be used to control the dissipation of the discretisation and to
 # guarantee decreasing entropy, i.e. entropy stability.
 
@@ -110,7 +125,6 @@ using OrdinaryDiffEq, Trixi
 # ```
 # the pressure.
 
-# TODO: Add formula for $e$?
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
@@ -145,7 +159,7 @@ solver_shima_etal = DGSEM(polydeg=3, surface_flux=flux_shima_etal,
                           volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # Now, we implement Trixi's `mesh`, `semi` and `ode` in a simple framework. For more information please
-# have a look at the documentation, the [introduction tutorial](@ref scalar_linear_advection_1d)
+# have a look at the documentation, the basic tutorial [introduction to DG methods](@ref scalar_linear_advection_1d)
 # or some basic elixirs.
 coordinates_min = (-2.0, -2.0)
 coordinates_max = ( 2.0,  2.0)
@@ -185,8 +199,12 @@ sol_shima_etal = solve(ode_shima_etal, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.
 using Plots
 plot(sol_ranocha)
 
-#src # TODO: How to test the solution?
-
+# Of course, you are not restricted to these two fluxes in Trixi. Here, we will give a short list
+# of possible fluxes for the compressible Euler equations.
+# For the volume flux Trixi provides for example [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref),
+# [`flux_chandrashekar`](@ref), [`flux_kennedy_gruber`](@ref).
+# As surface flux you can use all volume fluxes and additionally for instance [`flux_lax_friedrichs`](@ref),
+# [`flux_hll`](@ref), [`flux_hllc`](@ref).
 
 
 # ## Improved stability by flux differencing
