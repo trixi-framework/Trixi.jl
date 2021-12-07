@@ -13,6 +13,7 @@ mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S<:AbstractSparseMatrix} = 
 
 #  out <- out + α * A * x
 mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
+mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x)->mul!(out, A, x, α, One())
 
 # out <- out + A * x
 mul_by_accum!(A) = mul_by_accum!(A, One())
@@ -75,7 +76,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   @unpack wq, Vq, M, Drst = rd
 
   # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
-  weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * diagm(wq)), Drst)
+  weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * Diagonal(wq)), Drst)
 
   nvars = nvariables(equations)
 

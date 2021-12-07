@@ -37,6 +37,28 @@ function DGMulti(element_type::AbstractElemShape,
 end
 
 
+
+function construct_1d_operators(D::AbstractDerivativeOperator, tol)
+  # StartUpDG assumes nodes from -1 to +1
+  nodes_1d = collect(grid(D))
+  M = SummationByPartsOperators.mass_matrix(D)
+  if M isa UniformScaling
+    weights_1d = M * ones(Bool, length(nodes_1d))
+  else
+    weights_1d = diag(M)
+  end
+  xmin, xmax = extrema(nodes_1d)
+  factor = 2 / (xmax - xmin)
+  @. nodes_1d = factor * (nodes_1d - xmin) - 1
+  @. weights_1d = factor * weights_1d
+
+  D_1d = droptol!(inv(factor) * sparse(D), tol)
+  I_1d = Diagonal(ones(Bool, length(nodes_1d)))
+
+  return nodes_1d, weights_1d, D_1d, I_1d
+end
+
+
 function StartUpDG.RefElemData(element_type::Line,
                                D::AbstractDerivativeOperator;
                                tol = 100*eps())
@@ -44,18 +66,13 @@ function StartUpDG.RefElemData(element_type::Line,
   approximation_type = D
   N = SummationByPartsOperators.accuracy_order(D) # kind of polynomial degree
 
-  # StartUpDG assumes nodes from -1 to +1
-  nodes_1d = collect(grid(D))
-  weights_1d = diag(SummationByPartsOperators.mass_matrix(D))
-  xmin, xmax = extrema(nodes_1d)
-  factor = 2 / (xmax - xmin)
-  @. nodes_1d = factor * (nodes_1d - xmin) - 1
-  @. weights_1d = factor * weights_1d
+  # 1D operators
+  nodes_1d, weights_1d, D_1d = construct_1d_operators(D, tol)
 
   # volume
   rq = r = nodes_1d
   wq = weights_1d
-  Dr = droptol!(inv(factor) * sparse(D), tol)
+  Dr = D_1d
   M = Diagonal(wq)
   Pq = LinearAlgebra.I
   Vq = LinearAlgebra.I
@@ -101,13 +118,8 @@ function StartUpDG.RefElemData(element_type::Quad,
   approximation_type = D
   N = SummationByPartsOperators.accuracy_order(D) # kind of polynomial degree
 
-  # StartUpDG assumes nodes from -1 to +1
-  nodes_1d = collect(grid(D))
-  weights_1d = diag(SummationByPartsOperators.mass_matrix(D))
-  xmin, xmax = extrema(nodes_1d)
-  factor = 2 / (xmax - xmin)
-  @. nodes_1d = factor * (nodes_1d - xmin) - 1
-  @. weights_1d = factor * weights_1d
+  # 1D operators
+  nodes_1d, weights_1d, D_1d, I_1d = construct_1d_operators(D, tol)
 
   # volume
   s, r = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d)) # this is to match
@@ -115,8 +127,6 @@ function StartUpDG.RefElemData(element_type::Quad,
   rq = r; sq = s
   wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d))
   wq = wr .* ws
-  D_1d = droptol!(inv(factor) * sparse(D), tol)
-  I_1d = Diagonal(ones(Bool, length(nodes_1d)))
   Dr = kron(I_1d, D_1d)
   Ds = kron(D_1d, I_1d)
   M = Diagonal(wq)
@@ -163,13 +173,8 @@ function StartUpDG.RefElemData(element_type::Hex,
   approximation_type = D
   N = SummationByPartsOperators.accuracy_order(D) # kind of polynomial degree
 
-  # StartUpDG assumes nodes from -1 to +1
-  nodes_1d = collect(grid(D))
-  weights_1d = diag(SummationByPartsOperators.mass_matrix(D))
-  xmin, xmax = extrema(nodes_1d)
-  factor = 2 / (xmax - xmin)
-  @. nodes_1d = factor * (nodes_1d - xmin) - 1
-  @. weights_1d = factor * weights_1d
+  # 1D operators
+  nodes_1d, weights_1d, D_1d, I_1d = construct_1d_operators(D, tol)
 
   # volume
   # to match ordering of nrstJ
@@ -177,8 +182,6 @@ function StartUpDG.RefElemData(element_type::Hex,
   rq = r; sq = s; tq = t
   wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d, weights_1d))
   wq = wr .* ws .* wt
-  D_1d = droptol!(inv(factor) * sparse(D), tol)
-  I_1d = Diagonal(ones(Bool, length(nodes_1d)))
   Dr = kron(I_1d, I_1d, D_1d)
   Ds = kron(I_1d, D_1d, I_1d)
   Dt = kron(D_1d, I_1d, I_1d)
