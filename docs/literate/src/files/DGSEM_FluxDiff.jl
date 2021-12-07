@@ -1,7 +1,5 @@
 #src # DGSEM with flux differencing
 
-@info "start---------------------------------" #src
-
 # This tutorial starts with a presentation of the weak formulation of the discontinuous Galerkin
 # spectral element method (DGSEM) in order to fix the notation of the used operators.
 # Then, the DGSEM formulation with flux differencing (split form DGSEM) and it's implementation in
@@ -184,13 +182,11 @@ ode_shima_etal = semidiscretize(semi_shima_etal, tspan);
 analysis_callback = AnalysisCallback(semi_ranocha, interval=100);
 
 # We now run the simulation using `flux_ranocha`.
-@info "flux_ranocha" #src
 sol_ranocha = solve(ode_ranocha, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
                     callback=analysis_callback, save_everystep=false);
 # A look at the change in entropy $\sum \partial S/\partial U \cdot U_t$ in the analysis callback
 # confirms that the flux is entropy conserving since the change is about machine precision.
 
-@info "flux_shima_etal" #src
 sol_shima_etal = solve(ode_shima_etal, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
                        callback=analysis_callback, save_everystep=false);
 # On the other hand, this flux is not entropy conserving.
@@ -217,7 +213,6 @@ plot(sol_ranocha)
 
 # ### [Simulation without flux differencing - inviscid Taylor-Green vortex (p.18)](@id without_FluxDiff)
 # First, we implement the equation, the initial condition and the mesh for both versions.
-@info "inviscid Taylor-Green vortex " #src
 using OrdinaryDiffEq, Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
@@ -274,7 +269,6 @@ callbacks = CallbackSet(analysis_callback, stepsize_callback);
 
 
 # We now run the simulation without flux differencing.
-@info "without Flux Differencing:" #src
 try
     sol_LLF = solve(ode_LLF, CarpenterKennedy2N54(williamson_condition=false),
                     dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
@@ -285,7 +279,6 @@ end
 # The simulation crashes quite before `t=5.0` with a physically impossible negative value for the density.
 
 # The simulation with flux differencing is not crashing.
-@info "with Flux Differencing:" #src
 sol_FluxDiff = solve(ode_FluxDiff, CarpenterKennedy2N54(williamson_condition=false),
                      dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                      save_everystep=false, callback=callbacks);
@@ -302,7 +295,6 @@ sol_FluxDiff = solve(ode_FluxDiff, CarpenterKennedy2N54(williamson_condition=fal
 
 # ### Another example - isentropic vortex
 # In this example we implement a simulation for the compressible Euler equations in 2D.
-@info "isentropic vortex" #src
 using OrdinaryDiffEq, Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -367,7 +359,6 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 callbacks = CallbackSet(analysis_callback, stepsize_callback);
 
 # We now run the simulation without flux differencing.
-@info "without Flux Differencing:" #src
 try
     sol_LLF = solve(ode_LLF, CarpenterKennedy2N54(williamson_condition=false),
                     dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
@@ -378,7 +369,6 @@ end
 # The simulation crashes shortly after `t=1.0` with a physically impossible negative value for the density.
 
 # The simulation with flux differencing is not crashing.
-@info "with Flux Differencing:" #src
 sol_FluxDiff = solve(ode_FluxDiff, CarpenterKennedy2N54(williamson_condition=false),
                      dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                      save_everystep=false, callback=callbacks);
