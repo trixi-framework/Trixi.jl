@@ -47,7 +47,7 @@ Here, `element_type` can be `Tri()`, `Quad()`, `Tet()`, or `Hex()`, and `approxi
   More detailed descriptions of each SBP node set can be found in the
   [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/RefElemData/#RefElemData-based-on-SBP-finite-differences).
   Trixi will also specialize certain parts of the solver based on the `SBP` approximation type.
-* some derivative operator from
+* a non-periodic derivative operator from
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl),
   usually constructed as `D = derivative_operator(...)`. In this case, you do not need to
   pass a `polydeg`.
