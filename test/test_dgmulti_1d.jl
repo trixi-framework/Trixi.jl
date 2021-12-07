@@ -29,10 +29,11 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
       cells_per_dimension = (4,),
       approximation_type = derivative_operator(
-        SummationByPartsOperators.MattssonNordström2004(), 1, 4, 0.0, 1.0, 16),
-      dt = 0.025,
-      l2 = [2.6396080529009936e-5, 1.4809757398058113e-5, 7.301920350998504e-5],
-      linf = [6.847656573860661e-5, 2.866284068225866e-5, 0.00021907349155902978]
+        SummationByPartsOperators.MattssonNordström2004(),
+        derivative_order=1, accuracy_order=4,
+        xmin=0.0, xmax=1.0, N=16),
+      l2 = [2.6417669774800198e-5, 1.5028052071001864e-5, 7.321424811919818e-5],
+      linf = [6.923356213395238e-5, 3.008425995654207e-5, 0.0002216469993250314]
     )
   end
 end
