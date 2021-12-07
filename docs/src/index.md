@@ -326,3 +326,20 @@ community. Please refer to [Contributing](@ref) for more details.
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
+
+
+## Acknowledgments
+This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
+under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
+Dynamics-Geometry-Structure.
+
+This project has benefited from funding from the European Research Council through the
+ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
+Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
+ERC grant agreement no. 714487.
+
+This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden grant
+agreement 2020-03642 VR.
+
+This project has benefited from funding from the United States National Science Foundation under awards
+DMS-1719818 and DMS-1943186.
