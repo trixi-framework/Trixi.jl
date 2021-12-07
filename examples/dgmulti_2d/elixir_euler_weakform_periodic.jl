@@ -1,7 +1,7 @@
 
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = 3, element_type = Tri(),
              surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
              volume_integral = VolumeIntegralWeakForm())
 

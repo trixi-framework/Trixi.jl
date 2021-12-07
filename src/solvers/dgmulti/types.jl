@@ -51,7 +51,7 @@ Optional:
 - `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as `quad_rule_vol`.
   For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
 """
-function DGMulti(; polydeg=nothing,
+function DGMulti(; polydeg::Integer,
                    element_type::AbstractElemShape,
                    approximation_type=Polynomial(),
                    surface_flux=flux_central,
