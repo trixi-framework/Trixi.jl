@@ -20,7 +20,7 @@ module Trixi
 
 using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
-using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
+using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros, spzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -61,7 +61,9 @@ using TriplotRecipes: DGTriPseudocolor
 using UnPack: @pack!
 
 # finite difference SBP operators
-using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
+using SummationByPartsOperators: AbstractDerivativeOperator,
+  AbstractNonperiodicDerivativeOperator, DerivativeOperator,
+  AbstractPeriodicDerivativeOperator, PeriodicDerivativeOperator, grid
 import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:

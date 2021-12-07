@@ -39,7 +39,6 @@ end
 
 
 function construct_1d_operators(D::AbstractDerivativeOperator, tol)
-  # StartUpDG assumes nodes from -1 to +1
   nodes_1d = collect(grid(D))
   M = SummationByPartsOperators.mass_matrix(D)
   if M isa UniformScaling
@@ -47,7 +46,19 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
   else
     weights_1d = diag(M)
   end
-  xmin, xmax = extrema(nodes_1d)
+
+  # StartUpDG assumes nodes from -1 to +1. Thus, we need to re-scale everything.
+  if D isa AbstractPeriodicDerivativeOperator
+    # Periodic operators do include only the left boundary nodes in their
+    # computational grid, not the right boundary node. Thus, we need to use
+    # their "evaluation grid" including both boundary nodes to determine the
+    # grid spacing factor.
+    xmin, xmax = extrema(D.grid_evaluate)
+  else
+    # All non-periodic SBP operators include both boundary nodes in their
+    # computational grid.
+    xmin, xmax = extrema(nodes_1d)
+  end
   factor = 2 / (xmax - xmin)
   @. nodes_1d = factor * (nodes_1d - xmin) - 1
   @. weights_1d = factor * weights_1d
@@ -90,7 +101,12 @@ function StartUpDG.RefElemData(element_type::Line,
   rf = [-1.0; 1.0]
   nrJ = [-1.0; 1.0]
   wf = [1.0; 1.0]
-  Vf = sparse([1, 2], [1, length(nodes_1d)], [1.0, 1.0])
+  if D isa AbstractPeriodicDerivativeOperator
+    # we do not need any face stuff for periodic operators
+    Vf = spzeros(length(wf), length(wq))
+  else
+    Vf = sparse([1, 2], [1, length(nodes_1d)], [1.0, 1.0])
+  end
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf,)
@@ -141,11 +157,25 @@ function StartUpDG.RefElemData(element_type::Quad,
 
   # face
   face_vertices = StartUpDG.face_vertices(element_type)
-  face_mask = vcat(StartUpDG.find_face_nodes(element_type, r, s)...)
+  # if D isa AbstractPeriodicDerivativeOperator
+  #   # we need to fake the face mask for periodic operators for StartUpDG to work
+  #   xmin, xmax = extrema(r)
+  #   factor = 2 / (xmax - xmin)
+  #   face_mask = vcat(StartUpDG.find_face_nodes(element_type,
+  #     @.(factor * (r - xmin) - 1),
+  #     @.(factor * (s - xmin) - 1))...)
+  # else
+    face_mask = vcat(StartUpDG.find_face_nodes(element_type, r, s)...)
+  # end
 
   rf, sf, wf, nrJ, nsJ = StartUpDG.init_face_data(element_type,
     quad_rule_face=(nodes_1d, weights_1d))
-  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  if D isa AbstractPeriodicDerivativeOperator
+    # we do not need any face stuff for periodic operators
+    Vf = spzeros(length(wf), length(wq))
+  else
+    Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  end
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf, sf)
@@ -205,7 +235,12 @@ function StartUpDG.RefElemData(element_type::Hex,
     wf = wr .* ws
     StartUpDG.init_face_data(element_type, quad_rule_face=(rf, sf, wf))
   end
-  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  if D isa AbstractPeriodicDerivativeOperator
+    # we do not need any face stuff for periodic operators
+    Vf = spzeros(length(wf), length(wq))
+  else
+    Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  end
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf, sf, tf)
@@ -288,7 +323,7 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   mapM = mapP = mapB = []
 
   # volume geofacs Gij = dx_i/dxhat_j
-  # TODO: extend to mapped domains
+  # TODO: DGMulti; extend to mapped domains
   if NDIMS==1
     rstxyzJ = @SMatrix [e]
   elseif NDIMS==2
@@ -336,3 +371,49 @@ calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm, mesh::Ver
                      equations, dg::DGMultiPeriodicFDSBP) = nothing
 calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
                        equations, dg::DGMultiPeriodicFDSBP, cache) = nothing
+
+
+# specializations for periodic operators
+# function prolong2interfaces!(
+#     cache, u, mesh::AbstractMeshData, equations, surface_integral,
+#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+#   @assert nelements(mesh, dg, cache) == 1
+# end
+
+# function calc_interface_flux!(
+#     cache, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
+#     nonconservative_terms::Val{true}, equations,
+#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+#   @assert nelements(mesh, dg, cache) == 1
+# end
+# function calc_interface_flux!(
+#     cache, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
+#     nonconservative_terms::Val{false}, equations,
+#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+#   @assert nelements(mesh, dg, cache) == 1
+# end
+
+# function calc_boundary_flux!(
+#     cache, t, boundary_conditions::BoundaryConditionPeriodic, mesh, equations,
+#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+#   @assert sum(length, values(mesh.boundary_faces)) == 0
+# end
+# function calc_boundary_flux!(
+#     cache, t, boundary_conditions, mesh, equations,
+#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+#   @assert sum(length, values(mesh.boundary_faces)) == 0
+# end
+
+# function calc_surface_integral!(
+#     du, u, surface_integral::SurfaceIntegralWeakForm,
+#     mesh::VertexMappedMesh, equations,
+#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral},
+#     cache) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+#   @assert nelements(mesh, dg, cache) == 1
+# end

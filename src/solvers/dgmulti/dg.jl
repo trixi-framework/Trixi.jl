@@ -84,7 +84,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  if typeof(rd.approximationType) <: Union{SBP, AbstractDerivativeOperator}
+  if typeof(rd.approximationType) <: Union{SBP, AbstractNonperiodicDerivativeOperator}
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
   else
     lift_scalings = nothing
