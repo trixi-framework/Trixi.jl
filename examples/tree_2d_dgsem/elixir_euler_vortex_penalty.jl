@@ -49,7 +49,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
   ϱ0 = 1.0               # background density
   v0 = SVector(1.0, 1.0) # background velocity
   p0 = 10.0              # background pressure
-  ε  = 1.0               # vortex strength
+  ε  = 20.0               # vortex strength
   L = 20.0               # size of the domain per coordinate direction
 
   T0 = p0 / ϱ0           # background temperature
@@ -80,7 +80,7 @@ vortex_center(x, L) = mod(x + L/2, L) - L/2
   du2 = zero(eltype(u))
   du3 = zero(eltype(u))
   du4 = zero(eltype(u))
-
+  
   if (abs(x[1])<=1.0)
     u_ex = initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
     prim_ex = cons2prim(u_ex, equations)
@@ -96,7 +96,7 @@ vortex_center(x, L) = mod(x + L/2, L) - L/2
     du3 = inverse_penalty_parameter * (u_ex[3] - u[3])
     du4 = inverse_penalty_parameter * (  jmp(prim_ex[1],prim[1])  * (0.5/(gamma - 1) * inv_beta_ln + 0.5 * vel2_bar)
                                        - jmp(beta_ex,beta) * (0.5 * rho_ln / (gamma - 1)*inv_beta_ln^2)
-                                       + avg(prim_ex[1],prim[1])  * (avg(prim_ex[2],prim[2]) * jmp(prim_ex[2],prim[2]) + avg(prim_ex[3],prim[3]) * jmp(prim_ex[3],prim[3]))) 
+                                       + avg(prim_ex[1],prim[1])  * (avg(prim_ex[2],prim[2]) * jmp(prim_ex[2],prim[2]) + avg(prim_ex[3],prim[3]) *jmp(prim_ex[3],prim[3]))) 
   end
 
   return SVector(du1, du2, du3, du4)
@@ -128,12 +128,12 @@ initial_condition = initial_condition_isentropic_vortex
 
 volume_flux = flux_ranocha
 #solver = DGSEM(polydeg=3,surface_flux=flux_lax_friedrichs,volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
-solver = DGSEM(polydeg=3,surface_flux=flux_ranocha,volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=1,surface_flux=flux_ranocha,volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = ( 10.0,  10.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=3,
                 n_cells_max=10_000)
 
 
@@ -162,7 +162,7 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.3)
+stepsize_callback = StepsizeCallback(cfl=0.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -171,14 +171,14 @@ callbacks = CallbackSet(summary_callback,
 
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
-sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks);
-summary_callback() # print the timer summary
+#sol = solve(ode, SSPRK43(),
+#           save_everystep=false, callback=callbacks);
+#summary_callback() # print the timer summary
 
 ###############################################################################
 # run the simulation
 
-#sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-#            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#            save_everystep=false, callback=callbacks);
-#summary_callback() # print the timer summary
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
+summary_callback() # print the timer summary
