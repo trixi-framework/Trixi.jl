@@ -277,8 +277,10 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 """
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations3D)
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations3D)
 
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
@@ -399,24 +401,24 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   if orientation == 1
     pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
     f1 = rho_avg * v1_avg
-    f2 = rho_avg * v1_avg * v1_avg + p_avg
-    f3 = rho_avg * v1_avg * v2_avg
-    f4 = rho_avg * v1_avg * v3_avg
-    f5 = p_avg*v1_avg * equations.inv_gamma_minus_one + rho_avg*v1_avg*kin_avg + pv1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * v3_avg
+    f5 = p_avg*v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
   elseif orientation == 2
     pv2_avg = 1/2 * (p_ll*v2_rr + p_rr*v2_ll)
     f1 = rho_avg * v2_avg
-    f2 = rho_avg * v2_avg * v1_avg
-    f3 = rho_avg * v2_avg * v2_avg + p_avg
-    f4 = rho_avg * v2_avg * v3_avg
-    f5 = p_avg*v2_avg * equations.inv_gamma_minus_one + rho_avg*v2_avg*kin_avg + pv2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = f1 * v3_avg
+    f5 = p_avg*v2_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv2_avg
   else
     pv3_avg = 1/2 * (p_ll*v3_rr + p_rr*v3_ll)
     f1 = rho_avg * v3_avg
-    f2 = rho_avg * v3_avg * v1_avg
-    f3 = rho_avg * v3_avg * v2_avg
-    f4 = rho_avg * v3_avg * v3_avg + p_avg
-    f5 = p_avg*v3_avg * equations.inv_gamma_minus_one + rho_avg*v3_avg*kin_avg + pv3_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * v3_avg + p_avg
+    f5 = p_avg*v3_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv3_avg
   end
 
   return SVector(f1, f2, f3, f4, f5)

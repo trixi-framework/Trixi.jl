@@ -35,6 +35,7 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
+using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
@@ -133,7 +134,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
        FluxLMARS,
-       FluxRotated
+       FluxRotated,
+       flux_shima_etal_turbo, flux_ranocha_turbo
 
 export initial_condition_constant,
        initial_condition_gauss,
