@@ -154,3 +154,70 @@ function StartUpDG.RefElemData(element_type::Quad,
     rstf, wf, Vf, nrstJ, # faces
     M, Pq, Drst, LIFT)
 end
+
+
+function StartUpDG.RefElemData(element_type::Hex,
+                               D::AbstractDerivativeOperator;
+                               tol = 100*eps())
+
+  approximation_type = D
+  N = SummationByPartsOperators.accuracy_order(D) # kind of polynomial degree
+
+  # StartUpDG assumes nodes from -1 to +1
+  nodes_1d = collect(grid(D))
+  weights_1d = diag(SummationByPartsOperators.mass_matrix(D))
+  xmin, xmax = extrema(nodes_1d)
+  factor = 2 / (xmax - xmin)
+  @. nodes_1d = factor * (nodes_1d - xmin) - 1
+  @. weights_1d = factor * weights_1d
+
+  # volume
+  # to match ordering of nrstJ
+  s, r, t = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d, nodes_1d, nodes_1d))
+  rq = r; sq = s; tq = t
+  wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d, weights_1d))
+  wq = wr .* ws .* wt
+  D_1d = droptol!(inv(factor) * sparse(D), tol)
+  I_1d = Diagonal(ones(Bool, length(nodes_1d)))
+  Dr = kron(I_1d, I_1d, D_1d)
+  Ds = kron(I_1d, D_1d, I_1d)
+  Dt = kron(D_1d, I_1d, I_1d)
+  M = Diagonal(wq)
+  Pq = LinearAlgebra.I
+  Vq = LinearAlgebra.I
+
+  VDM = nothing # unused generalized Vandermonde matrix
+
+  rst = (r, s, t)
+  rstq = (rq, sq, tq)
+  Drst = (Dr, Ds, Dt)
+
+  # face
+  face_vertices = StartUpDG.face_vertices(element_type)
+  face_mask = vcat(StartUpDG.find_face_nodes(element_type, r, s, t)...)
+
+  rf, sf, tf, wf, nrJ, nsJ, ntJ = let
+    rf, sf = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d, nodes_1d))
+    wr, ws = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d))
+    wf = wr .* ws
+    StartUpDG.init_face_data(element_type, N, quad_rule_face=(rf, sf, wf))
+  end
+  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
+
+  rstf = (rf, sf, tf)
+  nrstJ = (nrJ, nsJ, ntJ)
+
+  # low order interpolation nodes
+  r1, s1, t1 = StartUpDG.nodes(element_type, 1)
+  V1 = StartUpDG.vandermonde(element_type, 1, r, s, t) / StartUpDG.vandermonde(element_type, 1, r1, s1, t1)
+
+  return RefElemData(
+    element_type, approximation_type, N,
+    face_vertices, V1,
+    rst, VDM, face_mask,
+    N, rst, LinearAlgebra.I, # plotting
+    rstq, wq, Vq, # quadrature
+    rstf, wf, Vf, nrstJ, # faces
+    M, Pq, Drst, LIFT)
+end

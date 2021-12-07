@@ -78,6 +78,30 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.000789350964946367, 0.14819539399525805, 0.14819539399590542, 0.14847291107658706, 0.21313533492059378]
     )
   end
+
+  @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
+      element_type = Hex(),
+      cells_per_dimension = (2, 2, 2),
+      approximation_type = derivative_operator(
+        SummationByPartsOperators.MattssonNordström2004(), 1, 2, 0.0, 1.0, 8),
+      l2 = [0.00681429803534045, 0.00938660260741697, 0.009386602607416987, 0.009386602607416961, 0.03589051527072695],
+      linf = [0.006119053120219098, 0.008487121844488854, 0.008487121844483747, 0.008487121844489076, 0.03511798996766391]
+    )
+  end
+
+  @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
+      element_type = Hex(),
+      cells_per_dimension = (2, 2, 2),
+      approximation_type = derivative_operator(
+        SummationByPartsOperators.MattssonNordström2004(), 1, 2, 0.0, 1.0, 8),
+      volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
+      surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
+      l2 = [0.009768554559994565, 0.01398207926827628, 0.013982079268276352, 0.01398207926827643, 0.050585697826197124],
+      linf = [0.013858341657304596, 0.021259811262206885, 0.021259811262206885, 0.021259811262196227, 0.07713002778804778]
+    )
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
