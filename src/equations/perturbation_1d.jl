@@ -155,6 +155,7 @@ struct PerturbationMomentSystem1D{RealT<:Real} <: AbstractPerturbationMomentSyst
     a4 = 2.0 * w1 * w0x / 3.0 + 4.0 * w0x * w0xx/15.0 + 4.0 * w0y * w0xy/ 15.0 - 2.0 * w0 * w1x / 3.0
     a5 = 2.0 * w1 * w0y / 3.0 + 4.0 * w0y * w0yy/ 15.0 + 4.0 * w0x * w0xy/15.0 - 2.0 * w0 * w1y / 3.0
 
+    # Falls ohne Produktionen gerechnet werden soll, diese gleich null setzten
     #  a1 = 0
     #  a2 = 0
     #  a3 = 0
