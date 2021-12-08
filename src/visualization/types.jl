@@ -576,6 +576,9 @@ function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
   orientation_x = 0 # Set 'orientation' to zero on default.
 
   if u isa StructArray
+    # Convert conserved variables to the given `solution_variables` and set up
+    # plotting coordinates
+    # This uses a "structure of arrays"
     data = map(x -> vcat(dg.basis.Vp * x, fill(NaN, 1, size(u, 2))),
               StructArrays.components(solution_variables_.(u, equations)))
     x = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
@@ -587,6 +590,9 @@ function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
     x_plot = vec(x)
     data_plot = hcat(vec.(data)...)
   else
+    # Convert conserved variables to the given `solution_variables` and set up
+    # plotting coordinates
+    # This uses an "array of structures"
     data_tmp = dg.basis.Vp * solution_variables_.(u, equations)
     data = vcat(data_tmp, fill(NaN * zero(eltype(data_tmp)), 1, size(u, 2)))
     x = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
