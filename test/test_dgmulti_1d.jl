@@ -35,6 +35,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2 = [2.6417669774800198e-5, 1.5028052071001864e-5, 7.321424811919818e-5],
       linf = [6.923356213395238e-5, 3.008425995654207e-5, 0.0002216469993250314]
     )
+    show(stdout, semi.solver.basis)
+    show(stdout, MIME"text/plain"(), semi.solver.basis)
   end
 end
 
