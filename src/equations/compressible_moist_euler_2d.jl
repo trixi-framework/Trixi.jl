@@ -79,7 +79,7 @@ function AtmossphereLayers(equations ; total_hight=10000.0, preciseness=10, grou
   F = generate_function_of_y(dz, y0, r_t0, theta_e0, equations)
   sol = nlsolve(F, y0)
   p, rho, T, r_t, r_v, rho_qv, theta_e = sol.zero
-  @info(sol.zero)
+  
   rho_d = rho / (1 + r_t)
   rho_ql = rho - rho_d - rho_qv
   kappa_M=(R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_ql)
@@ -93,9 +93,6 @@ function AtmossphereLayers(equations ; total_hight=10000.0, preciseness=10, grou
     sol = nlsolve(F, y0)
     p, rho, T, r_t, r_v, rho_qv, theta_e = sol.zero
     
-    if(i==500 || i == 1000)
-      @info(sol.zero)
-    end
     rho_d = rho / (1 + r_t)
     rho_ql = rho - rho_d - rho_qv
     kappa_M=(R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_ql)
@@ -106,7 +103,7 @@ function AtmossphereLayers(equations ; total_hight=10000.0, preciseness=10, grou
   
   return AtmossphereLayers{RealT}(equations, LayerData, total_hight, dz, n, ground_state, theta_e0, mixing_ratios)
 end
-
+#=
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
@@ -117,7 +114,7 @@ end
   E = rho_E / rho
 
 
-  p, W_f, T, e, E_l = get_moist_profile(u, equations)
+  p, _, W_f, _, E_l, _ = get_moist_profile(u, equations)
 
   if orientation == 1
     f1 = rho_v1
@@ -136,30 +133,47 @@ end
   end
   return SVector(f1, f2, f3, f4, f5, f6)
 end
+=#
 
+# Calculate 1D flux for a single point
+@inline function flux(u, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = get_current_condition(u, equations)[1]
 
-function boundary_condition_reflection(u_inner, orientation::Integer, direction, x, t,
-                                       surface_flux_function,
-                                       equations::CompressibleMoistEulerEquations2D)
-  # Orientation 3 neg-y-direction/unten
-  # Orientation 4 pos-y-direction/oben
-
-  if !(orientation == 2)
-    @info(orientation)
-    error("This boundary condition is not supposed to be called in x direction")
+  if orientation == 1
+    f1 = rho_v1
+    f2 = rho_v1 * v1 + p
+    f3 = rho_v1 * v2
+    f4 = (rho_E + p) * v1
+    f5 = rho_qv * v1
+    f6 = rho_ql * v1
+  else
+    f1 = rho_v2 
+    f2 = rho_v2 * v1
+    f3 = rho_v2 * v2 + p
+    f4 = (rho_E + p) * v2 
+    f5 = rho_qv * v2
+    f6 = rho_ql * v2
   end
+  return SVector(f1, f2, f3, f4, f5, f6)
+end
 
-  rho, rho_v1, rho_v2, rho_E = u_inner
-  p = (equations.gamma - 1) * (rho_E - 0.5 * inv(rho) * (rho_v1^2 + rho_v2^2))
-  a_local = sqrt(equations.gamma * p * inv(rho))
 
-  if direction == 3
-    p_wall = p + (a_local * rho_v2 / rho)
-  else # direction == 4
-    p_wall = p - (a_local * rho_v2 / rho)
-  end
+@inline function flux(u, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  rho_e = last(u)
+  rho, v1, v2, p, qv, ql = cons2prim(u, equations)
 
-  return SVector(0, 0,  p_wall, 0)
+  v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+  rho_v_normal = rho * v_normal
+  f1 = rho_v_normal
+  f2 = rho_v_normal * v1 + p * normal_direction[1]
+  f3 = rho_v_normal * v2 + p * normal_direction[2]
+  f4 = (rho_e + p) * v_normal
+  f5 = rho_v_normal * qv 
+  f6 = rho_v_normal * ql
+  return SVector(f1, f2, f3, f4, f5, f6)
 end
 
 
@@ -180,11 +194,6 @@ function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, 
   end
 
   return flux
-end
-
-
-function get_absolute_temperature(u, equations)
-
 end
 
 
@@ -210,7 +219,7 @@ function initial_condition_moist_bubble(x, t, equations::CompressibleMoistEulerE
   if (z > total_hight && !(isapprox(z, total_hight)))
     error("The atmossphere does not match the simulation domain")
   end
-  n = convert(Int, floor(z/dz)) +1
+  n = convert(Int, floor(z/dz)) + 1
   z_l = (n-1) * dz
   (rho_l, rho_theta_l, rho_qv_l, rho_ql_l) = LayerData[n, :]
   z_r = n * dz
@@ -231,6 +240,7 @@ function initial_condition_moist_bubble(x, t, equations::CompressibleMoistEulerE
   rho_v1 = rho * v1
   rho_v2 = rho * v2
   rho_E = rho_e + 1/2 * rho *(v1^2 + v2^2)
+
 
   return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
 end
@@ -394,6 +404,12 @@ end
 
 
 function source_terms_warm_bubble(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
+  source_term_geopotential(du, u, equations, dg, cache)
+  return nothing
+end
+
+
+function source_terms_geopotential(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       # TODO: performance use temp
@@ -424,10 +440,26 @@ function source_terms_moist_air(du, u, equations::CompressibleMoistEulerEquation
   return nothing
 end
 
+function source_terms_moist_bubble(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
+  source_terms_geopotential(du, u, equations, dg, cache)
+  source_terms_phase_change(du, u, equations, dg, cache)
+  return nothing
+end
+
+function source_terms_phase_change(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = u[:, i, j ,element]
+      Q_ph = phase_change_term(u_local, equations)
+      du[5, i, j, element] += Q_ph
+      du[6, i, j, element] -= Q_ph
+    end
+  end
+  return nothing
+end
 
 function get_energy_factor(u, equations::CompressibleMoistEulerEquations2D)
-
-  
+ 
 end
 
 
@@ -464,7 +496,29 @@ function get_moist_profile(u, equations::CompressibleMoistEulerEquations2D)
   h_v = c_pv * T + L_00
   E_v = (rho_E - rho_e) / rho + h_v
 
+
   return SVector(p, T, W_f, e, E_l, E_v)
+end
+
+
+function get_current_condition(u, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_vd, R_d, c_vv, c_pv, R_v, c_pl, L_00 = equations
+  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
+  rho_qd = rho - rho_qv - rho_ql
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  
+  # inner energy
+  rho_e = (rho_E - 0.5 * (rho_v1*v1 + rho_v2*v2))
+
+  # Absolute Temperature
+  T = inv(rho_qd * c_vd + rho_qv * c_vv + rho_ql * c_pl) * (rho_e - L_00 * rho_qv)
+      
+  # Pressure
+  p = (rho_qd * R_d + rho_qv * R_v) * T
+
+  return SVector(p, T)
 end
 
 
@@ -472,7 +526,7 @@ end
 function phase_change_term(u, equations::CompressibleMoistEulerEquations2D)
   @unpack R_v= equations
   rho, _ , _, _, rho_qv, rho_ql = u
-  _, _, T, _ = get_moist_profile(u, equations)
+  _, T = get_current_condition(u, equations)
   rho_qd = rho - rho_qv - rho_ql
 
   T_C = T - 273.15
@@ -675,7 +729,8 @@ end
 
 @inline function max_abs_speeds(u, equations::CompressibleMoistEulerEquations2D)
   rho, v1, v2, p, qv, ql = cons2prim(u, equations)
-  @info(cons2prim(u, equations))
+  #@info(u)
+  #@info(cons2prim(u, equations))
 
   c = sqrt(equations.gamma * p / rho)
   return abs(v1) + c, abs(v2) + c
@@ -687,7 +742,7 @@ end
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p = get_moist_profile(u, equations)[1]
+  p = get_current_condition(u, equations)[1]
   qv = rho_qv / rho
   ql = rho_ql / rho
 
@@ -778,18 +833,18 @@ end
 
 @inline function pressure(u, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
- p = (equations.gamma - 1) * (rho_E - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+ p = get_current_condition(u, equations)[1]
  return p
 end
 
 
 @inline function density_pressure(u, equations::CompressibleMoistEulerEquations2D)
-  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
- rho_times_p = (equations.gamma - 1) * (rho * rho_E - 0.5 * (rho_v1^2 + rho_v2^2))
+  rho = u[1]
+ rho_times_p = rho * get_current_condition(u, equations)[1]
  return rho_times_p
 end
 
-
+#TODO:
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
   # Pressure
@@ -802,6 +857,7 @@ end
 end
 
 
+#TODO:
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equations::CompressibleMoistEulerEquations2D)
   # Mathematical entropy
@@ -831,7 +887,6 @@ end
   v2 = rho_v2 / rho
   return 0.5 * sqrt(v1^2 + v2^2) 
 end
-
 
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleMoistEulerEquations2D)
@@ -872,7 +927,7 @@ end
   @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, kappa, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = cons
   rho_d = rho - rho_qv - rho_ql
-  p, T, _, _, _, _ = get_moist_profile(cons, equations)
+  p, T = get_current_condition(cons, equations)
   p_v = rho_qv * R_v * T
   p_d = p - p_v
   T_C = T - 273.15
@@ -882,10 +937,11 @@ end
   r_l = rho_ql / rho_d
   r_t = r_v + r_l
   L_v = L_00 + (c_pv - c_pl) * T
-  c_d = c_pd + r_t * c_pl
+  c_p = c_pd + r_t * c_pl
+  
   #Aequivalentpotential temperature
-  aeq_pot = (T * (p_0 / p_d)^(R_d / c_d) * H^(- r_v * R_v /c_d) *
-             exp(L_v * r_v / (c_d * T)))
+  aeq_pot = (T * (p_0 / p_d)^(R_d / c_p) * H^(- r_v * R_v / c_p) *
+             exp(L_v * r_v * inv(c_p * T)))
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
@@ -898,5 +954,34 @@ end
   pot6 = r_t
   return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
 end
+
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
+# TODO: This doesn't really use the `orientation` - should it?
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  # Calculate primitive variables and speed of sound
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+  p_ll = get_current_condition(u_ll, equations)[1]
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
+  p_rr = get_current_condition(u_rr, equations)[1]
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
+
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
+end
+
 
 end # @muladd

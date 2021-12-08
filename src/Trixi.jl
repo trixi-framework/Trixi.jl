@@ -142,8 +142,8 @@ export initial_condition_constant,
        initial_condition_shock_bubble,
        initial_condition_taylor_green_vortex,
        initial_condition_gaussian_bubble, source_terms_warm_bubble,
-       initial_condition_warm_bubble, source_terms_moist_air,
-       initial_condition_moist_bubble , AtmossphereLayers
+       initial_condition_warm_bubble, source_terms_moist_bubble,
+       initial_condition_moist_bubble, AtmossphereLayers
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
