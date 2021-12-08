@@ -567,7 +567,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
 end
 
 # Specializes the `PlotData1D` constructor for one-dimensional `DGMulti` solvers.
-function PlotData1D(u::StructArray, mesh, equations, dg::DGMulti{1}, cache;
+function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
                     solution_variables=nothing)
 
   solution_variables_ = digest_solution_variables(equations, solution_variables)
@@ -575,15 +575,30 @@ function PlotData1D(u::StructArray, mesh, equations, dg::DGMulti{1}, cache;
 
   orientation_x = 0 # Set 'orientation' to zero on default.
 
-  data = map(x -> vcat(dg.basis.Vp * x, fill(NaN, 1, size(u, 2))),
-             StructArrays.components(solution_variables_.(u, equations)))
-  x_plot = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
+  if u isa StructArray
+    data = map(x -> vcat(dg.basis.Vp * x, fill(NaN, 1, size(u, 2))),
+              StructArrays.components(solution_variables_.(u, equations)))
+    x = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
 
-  # Here, we ensure that `DGMulti` visualization uses the same data layout and format
-  # as `TreeMesh`. This enables us to reuse existing plot recipes. In particular,
-  # `hcat(data...)` creates a matrix of size `num_plotting_points` by `nvariables(equations)`,
-  # with data on different elements separated by `NaNs`.
-  return PlotData1D(vec(x_plot), hcat(vec.(data)...), variable_names, mesh.md.VX, orientation_x)
+    # Here, we ensure that `DGMulti` visualization uses the same data layout and format
+    # as `TreeMesh`. This enables us to reuse existing plot recipes. In particular,
+    # `hcat(data...)` creates a matrix of size `num_plotting_points` by `nvariables(equations)`,
+    # with data on different elements separated by `NaNs`.
+    x_plot = vec(x)
+    data_plot = hcat(vec.(data)...)
+  else
+    data_tmp = dg.basis.Vp * solution_variables_.(u, equations)
+    data = vcat(data_tmp, fill(NaN * zero(eltype(data_tmp)), 1, size(u, 2)))
+    x = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
+
+    # Same as above - we create `data_plot` as array of size `num_plotting_points`
+    # by "number of plotting variables".
+    x_plot = vec(x)
+    data_plot = permutedims(reinterpret(reshape, eltype(eltype(data)), vec(data)),
+      (2, 1))
+  end
+
+  return PlotData1D(x_plot, data_plot, variable_names, mesh.md.VX, orientation_x)
 end
 
 """

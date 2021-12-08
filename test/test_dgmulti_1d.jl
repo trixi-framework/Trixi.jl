@@ -25,6 +25,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isapprox(mean_convergence[:l2], [4.1558759698638434, 3.977911306037128, 4.041421206468769], rtol=0.05)
   end
 
+  @trixi_testset "elixir_euler_flux_diff.jl (SBP) " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
+      cells_per_dimension = (16,),
+      approximation_type = SBP(),
+      l2 = [9.104462842297693e-6, 3.088721453805293e-6, 1.8732205632664948e-5],
+      linf = [2.0715843751295537e-5, 8.519520630301258e-6, 4.2642194098885255e-5]
+    )
+  end
+
   @trixi_testset "elixir_euler_flux_diff.jl (FD SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
       cells_per_dimension = (4,),
