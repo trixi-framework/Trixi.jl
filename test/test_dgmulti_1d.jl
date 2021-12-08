@@ -25,6 +25,17 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isapprox(mean_convergence[:l2], [4.1558759698638434, 3.977911306037128, 4.041421206468769], rtol=0.05)
   end
 
+  @trixi_testset "elixir_euler_flux_diff.jl (FD SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
+      cells_per_dimension = (4,),
+      approximation_type = derivative_operator(
+        SummationByPartsOperators.MattssonNordström2004(),
+        derivative_order=1, accuracy_order=4,
+        xmin=0.0, xmax=1.0, N=16),
+      l2 = [2.6417669774800198e-5, 1.5028052071001864e-5, 7.321424811919818e-5],
+      linf = [6.923356213395238e-5, 3.008425995654207e-5, 0.0002216469993250314]
+    )
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory

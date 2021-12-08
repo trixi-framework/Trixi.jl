@@ -11,7 +11,10 @@ for human readability.
 
 - Numerical fluxes `flux_shima_etal_turbo` and `flux_ranocha_turbo` that are
   equivalent to their non-`_turbo` counterparts but may enable specialized
-  methods making use of SIMD instructions to increase runtime efficiency.
+  methods making use of SIMD instructions to increase runtime efficiency
+- Support for all non-periodic SBP operators of
+  [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
+  as approximation type in `DGMulti` solvers
 
 
 ## Changes when updating to v0.4 from v0.3.x

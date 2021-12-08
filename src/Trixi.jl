@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: LinearAlgebra, diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
+using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
 
@@ -62,7 +62,8 @@ using UnPack: @pack!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
-import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
+import SummationByPartsOperators: integrate, semidiscretize,
+                                  left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator
 

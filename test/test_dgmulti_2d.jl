@@ -122,6 +122,36 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
+      cells_per_dimension = (2, 2),
+      element_type = Quad(),
+      cfl = 1.0,
+      approximation_type = derivative_operator(
+        SummationByPartsOperators.MattssonNordström2004(),
+        derivative_order=1, accuracy_order=4,
+        xmin=0.0, xmax=1.0, N=12),
+      l2 = [0.0008966318978421226, 0.0011418826379110242, 0.001141882637910878, 0.0030918374335671393],
+      linf = [0.0015281525343109337, 0.00162430960401716, 0.0016243096040242655, 0.004447503691245913],
+    )
+  end
+
+  @trixi_testset "elixir_euler_weakform.jl (FD SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
+      cells_per_dimension = (2, 2),
+      element_type = Quad(),
+      cfl = 1.0,
+      approximation_type = derivative_operator(
+        SummationByPartsOperators.MattssonNordström2004(),
+        derivative_order=1, accuracy_order=4,
+        xmin=0.0, xmax=1.0, N=12),
+      volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
+      surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
+      l2 = [0.0014018725496871129, 0.0015887007320868913, 0.001588700732086329, 0.003870926821031202],
+      linf = [0.0029541996523780867, 0.0034520465226108854, 0.003452046522624652, 0.007677153211004928],
+    )
+  end
+
   @trixi_testset "elixir_mhd_weak_blast_wave.jl (Quad)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
       cells_per_dimension = 4,
