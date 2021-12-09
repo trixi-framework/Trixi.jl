@@ -69,7 +69,7 @@ import SummationByPartsOperators: integrate, semidiscretize,
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
-using StartUpDG: RefElemData, MeshData, AbstractElemShape, inverse_trace_constant
+using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
 # TODO: include_optimized
 # This should be used everywhere (except to `include("interpolations.jl")`)
