@@ -86,7 +86,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_pkg_mesh.jl"),
-      l2 = [4.664661209491976e-6, 3.7033509525940745e-6, 4.794877426562555e-6, 1.2682723101532175e-5] ./ 2.0,
+      l2 = [2.344080455438114e-6, 1.8610038753097983e-6, 2.4095165666095305e-6, 6.373308158814308e-6],
       linf = [2.5099852761334418e-5, 2.2683684021362893e-5, 2.6180448559287584e-5, 5.5752932611508044e-5]
     )
   end
@@ -110,7 +110,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor_instability.jl"),
       cells_per_dimension = (8, 8), tspan = (0.0, 0.2),
-      l2 = [0.03548329484912729, 0.002591414376082683, 0.006916327792623457, 0.016235069002818153] ./ 2.0,
+      l2 = [0.0709665896982514, 0.005182828752164663, 0.013832655585206478, 0.03247013800580221],
       linf = [0.4783963902824797, 0.022527207050681054, 0.040307056293369226, 0.0852365428206836]
     )
   end
@@ -118,7 +118,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_brown_minion_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_brown_minion_vortex.jl"),
       cells_per_dimension = 4, tspan = (0.0, 0.1),
-      l2 = [0.0066800016110776066, 0.021516763475855016, 0.01069652423536524, 0.15052841129693573] ./ 2.0,
+      l2 = [0.006680001611078062, 0.02151676347585447, 0.010696524235364626, 0.15052841129694647],
       linf = [0.01544756362800248, 0.09517304772476806, 0.021957154972646383, 0.33773439650806303]
     )
   end
@@ -156,9 +156,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_mhd_weak_blast_wave.jl (Quad)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
       cells_per_dimension = 4,
-      l2 = [0.1562707966203802, 0.19692319035938727, 0.19692319035938863, 0.10641395363893119,
-            0.7221962824695998, 0.07678102773723876, 0.07678102773723913, 0.11142445367787217,
-            0.006627119909705745] ./ 2.0,
+      l2 = [0.03906769915509508, 0.04923079758984701, 0.049230797589847136, 0.02660348840973283,
+            0.18054907061740028, 0.019195256934309846, 0.019195256934310016, 0.027856113419468087,
+            0.0016567799774264065],
       linf = [0.16447597822733662, 0.244157345789029, 0.24415734578903472, 0.11982440036793476,
               0.7450328339751362, 0.06357382685763713, 0.0635738268576378, 0.1058830287485999,
               0.005740591170062146]
@@ -168,9 +168,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
       cells_per_dimension = 4, element_type = Tri(),
-      l2 = [0.1348987236501758, 0.1588650593363661, 0.15886505933636905, 0.08571028568614296,
-            0.6031732736338957, 0.06286520146660214, 0.06286520146660948, 0.0894610083051161,
-            0.003693188791960107] ./ 2.0,
+      l2 = [0.03372468091254386, 0.03971626483409167, 0.03971626483409208, 0.021427571421535722,
+            0.15079331840847413, 0.015716300366650286, 0.015716300366652128, 0.022365252076279075,
+            0.0009232971979900358],
       linf = [0.16290247390873458, 0.2256891306641319, 0.2256891306641336, 0.09476017042552534,
               0.6906308908961734, 0.05349939593012487, 0.05349939593013042, 0.08830587480616725,
               0.0029551359803035027]
@@ -210,7 +210,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_shallowwater_source_terms.jl (Quad, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Quad(), approximation_type = SBP(),
-      l2 = [0.0028731817391463733, 0.033473047741338476, 0.04873655357923285, 2.7341648767587304e-15] ./ 2.0,
+      l2 = [0.0020316462913319046, 0.023669019044882247, 0.03446194752754684, 1.9333465252381796e-15],
       linf = [0.010385010095182778, 0.08750628939565086, 0.12088392994348407, 9.325873406851315e-15]
     )
   end
@@ -218,7 +218,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_shallowwater_source_terms.jl (Tri, SBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Tri(), approximation_type = SBP(),
-      l2 = [0.005912374812011487, 0.0993653660027428, 0.1670914777143732, 3.2948191109718012e-15] ./ 2.0,
+      l2 = [0.004180680322490383, 0.07026192411558974, 0.11815151697006446, 2.329788936151192e-15],
       linf = [0.02076003852980346, 0.29169601664914424, 0.5674183379872275, 1.1546319456101628e-14]
     )
   end
@@ -228,7 +228,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = 8, element_type = Tri(), approximation_type = Polynomial(),
       # The last l2, linf error are the L2 projection error in approximating `b`, so they are not
       # zero for general non-collocated quadrature rules (e.g., for `element_type=Tri()`, `polydeg > 2`).
-      l2 = [0.0011751205240013974, 0.021530712606619058, 0.022675456966150455, 1.813056761616414e-5] ./ 2.0,
+      l2 = [0.0008309356912456799, 0.01522451288799231, 0.016033969387208476, 1.2820247308150876e-5],
       linf = [0.001888045014140971, 0.05466838692127718, 0.06345885709961152, 3.3989933098554914e-5]
     )
   end
@@ -240,7 +240,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       # for `Quad()` elements with `Polynomial()` approximations because the quadrature rule defaults to
       # a `(polydeg + 1)`-point Gauss quadrature rule in each coordinate (in general, StartUpDG.jl defaults
       # to the quadrature rule with the fewest number of points which exactly integrates the mass matrix).
-      l2 = [0.00010550686466016327, 0.005212211092466598, 0.005529801974869844, 3.062184075681645e-15] ./ 2.0,
+      l2 = [7.460461950323111e-5, 0.003685589808444905, 0.0039101604749887785, 2.0636891126652983e-15],
       linf = [0.000259995400729629, 0.0072236204211630906, 0.010364675200833062, 1.021405182655144e-14]
     )
   end
