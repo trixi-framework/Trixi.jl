@@ -237,3 +237,60 @@ function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType
   @nospecialize rd
   print(io, "RefElemData{", summary(rd.approximationType), ", ", rd.elementType, "}")
 end
+
+"""
+  Constructs a single-element MeshData for a single periodic element given
+  a SummationByPartsOperators RefElemData. The domain is assumed to be an affine
+  transformation of a tensor product domain.
+
+  MeshData(rd::RefElemData{NDIMS, ElementType, ApproximationType})
+"""
+function StartUpDG.MeshData(rd::RefElemData{NDIMS, ElementType, ApproximationType};
+                            is_periodic=ntuple(_->true, NDIMS)) where {NDIMS, ElementType, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
+
+  I = UniformScaling(1) # identity
+  Z = UniformScaling(0) # zero matrix
+
+  VXYZ = EToV = FToF = nothing
+
+  xyz = xyzq = rd.rst # TODO: extend to affinely mapped domains
+  xyzf = nothing
+  wJq = diag(rd.M)
+
+  # arrays of connectivity indices between face nodes
+  mapM = mapP = mapB = nothing
+
+  # volume geofacs Gij = dx_i/dxhat_j
+  DimTimesDim = Static.StaticInt(NDIMS) * Static.StaticInt(NDIMS)
+  rstxyzJ = SMatrix{NDIMS, NDIMS, typeof(I), DimTimesDim}() # TODO: extend to affinely mapped domains
+  J = I
+
+  # surface geofacs
+  nxyzJ = Jf = nothing
+
+  is_periodic = is_periodic
+
+  return MeshData(VXYZ, EToV, FToF, xyz, xyzq, xyzf, wJq,
+                  mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
+                  is_periodic)
+end
+
+# `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(h)`. However,
+# since we do not initialize `Jf` here, we specialize `estimate_h` based on the grid
+# provided by SummationByPartsOperators.jl.
+function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md)  where {NDIMS, ElementType, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
+  D = rd.approximationType
+  grid = SummationByPartsOperators.grid(D)
+  return grid[2] - grid[1]
+end
+
+# TODO: overwrite these
+#     @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral, mesh,
+#     have_nonconservative_terms(equations),
+#     equations, dg)
+
+# @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
+#   mesh, equations, dg)
+
+# @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
+#         mesh, equations, dg, cache)
