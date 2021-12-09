@@ -15,9 +15,9 @@ mapping which can be constructed using only the vertex positions.
 
 Wraps `MeshData` and `boundary_faces` in a dispatchable mesh type.
 """
-struct VertexMappedMesh{NDIMS, ElemType, MeshDataT <: MeshData{NDIMS}, Nboundaries} <: AbstractMeshData{NDIMS, ElemType}
+struct VertexMappedMesh{NDIMS, ElemType, MeshDataT <: MeshData{NDIMS}, Nboundaries, BoundaryFaceT} <: AbstractMeshData{NDIMS, ElemType}
   md::MeshDataT
-  boundary_faces::Dict{Symbol, Vector{Int}}
+  boundary_faces::BoundaryFaceT
 end
 
 Base.ndims(::VertexMappedMesh{NDIMS}) where {NDIMS} = NDIMS
