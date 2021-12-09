@@ -25,6 +25,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4, 4),
       approximation_type = SBP(),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0074706882014934735, 0.005306220583603261, 0.005306220583613591, 0.014724842607716771] ./ 2.0,
       linf = [0.021563604940952885, 0.01359397832530762, 0.013593978324845324, 0.03270995869587523]
     )
@@ -34,6 +35,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4, 4),
       element_type = Quad(),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.00031892254415307093, 0.00033637562986771894, 0.0003363756298680649, 0.0011100259064243145] ./ 2.0,
       linf = [0.001073298211445639, 0.0013568139808282087, 0.0013568139808290969, 0.0032249020004324613]
     )
@@ -44,6 +46,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (4, 4),
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.007801417730672109, 0.00708583561714128, 0.0070858356171393, 0.015217574294198809] ./ 2.0,
       linf = [0.011572828457858897, 0.013965298735070686, 0.01396529873508534, 0.04227683691807904]
     )
@@ -55,6 +58,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       approximation_type = SBP(),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.01280067571168776, 0.010607599608273302, 0.010607599608239775, 0.026408338014056548] ./ 2.0,
       linf = [0.037983023185674814, 0.05321027922533417, 0.05321027922608157, 0.13392025411844033]
     )
@@ -67,6 +71,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       approximation_type = SBP(),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0029373718090697975, 0.0030629360605489465, 0.003062936060545615, 0.0068486089344859755] ./ 2.0,
       linf = [0.01360165305316885, 0.01267402847925303, 0.012674028479251254, 0.02210545278615017]
     )
@@ -79,6 +84,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_weakform_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0014986508075708323, 0.001528523420746786, 0.0015285234207473158, 0.004846505183839211] ./ 2.0,
       linf = [0.0015062108658376872, 0.0019373508504645365, 0.0019373508504538783, 0.004742686826709086]
     )
@@ -94,6 +100,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       cells_per_dimension = (32, 32), tspan = (0.0, 0.2),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.11140378947116614, 0.06598161188703612, 0.10448953167839563, 0.16023209181809595] ./ 2.0,
       linf = [0.24033843177853664, 0.1659992245272325, 0.1235468309508845, 0.26911424973147735]
     )
@@ -102,6 +109,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (Quadrilateral elements, GaussSBP)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       cells_per_dimension = (32, 32), element_type = Quad(), approximation_type=GaussSBP(), tspan = (0.0, 0.2),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.11141270656347146, 0.06598888014584121, 0.1044902203749932, 0.16023037364774995] ./ 2.0,
       linf = [0.2414760062126462, 0.1662111846065654, 0.12344140473946856, 0.26978428189564774]
     )
@@ -132,6 +140,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         SummationByPartsOperators.MattssonNordström2004(),
         derivative_order=1, accuracy_order=4,
         xmin=0.0, xmax=1.0, N=12),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0008966318978421226, 0.0011418826379110242, 0.001141882637910878, 0.0030918374335671393] ./ 2.0,
       linf = [0.0015281525343109337, 0.00162430960401716, 0.0016243096040242655, 0.004447503691245913]
     )
@@ -148,6 +157,7 @@ isdir(outdir) && rm(outdir, recursive=true)
         xmin=0.0, xmax=1.0, N=12),
       volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0014018725496871129, 0.0015887007320868913, 0.001588700732086329, 0.003870926821031202] ./ 2.0,
       linf = [0.0029541996523780867, 0.0034520465226108854, 0.003452046522624652, 0.007677153211004928]
     )
@@ -183,6 +193,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     # https://github.com/trixi-framework/Trixi.jl/issues/881
     @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
       cells_per_dimension = 4,
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.15825983698241494, 0.19897219694837923, 0.19784182473275247, 0.10482833997417325,
             0.7310752391255246, 0.07374056714564853, 0.07371172293240634, 0.10782032253431281,
             0.004921676235111545] ./ 2.0,
@@ -198,6 +209,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     # https://github.com/trixi-framework/Trixi.jl/issues/881
     @test_skip @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_SBP.jl"),
       cells_per_dimension = 4, element_type=Tri(), tspan = (0.0, 0.2),
+      # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.13825044764021147, 0.15472815448314997, 0.1549093274293255, 0.053103596213755405,
             0.7246162776815603, 0.07730777596615901, 0.07733438386480523, 0.109893463921706,
             0.00617678167062838] ./ 2.0,
