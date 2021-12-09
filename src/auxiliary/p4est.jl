@@ -86,7 +86,7 @@ end
 function load_p4est(file, ::Val{2})
   conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
   comm = p4est_has_mpi() ? mpi_comm() : C_NULL # Use Trixi's MPI communicator if p4est supports MPI
-  p4est_load(file, comm, 0, false, C_NULL, pointer(conn_vec))
+  p4est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
 end
 
 # 3D

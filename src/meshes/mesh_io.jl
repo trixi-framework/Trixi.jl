@@ -6,7 +6,7 @@
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0)
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory, timestep=0)
   save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
 
@@ -142,7 +142,7 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0, mpi_parallel::Val{false})
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -159,6 +159,46 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0)
 
   # Save the complete connectivity/p4est data to disk.
   save_p4est!(p4est_file, mesh.p4est)
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["p4est_file"] = p4est_filename
+
+    file["tree_node_coordinates"] = mesh.tree_node_coordinates
+    file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
+                                       # to increase the runtime performance
+                                       # but HDF5 can only handle plain arrays
+    file["boundary_names"] = mesh.boundary_names .|> String
+  end
+
+  return filename
+end
+
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0, mpi_parallel::Val{true})
+  # Create output directory (if it does not exist)
+  mpi_isroot() && mkpath(output_directory)
+
+  # Determine file name based on existence of meaningful time step
+  if timestep > 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    p4est_filename = @sprintf("p4est_data_%06d", timestep)
+  else
+    filename = joinpath(output_directory, "mesh.h5")
+    p4est_filename = "p4est_data"
+  end
+
+  p4est_file = joinpath(output_directory, p4est_filename)
+
+  # Save the complete connectivity/p4est data to disk.
+  save_p4est!(p4est_file, mesh.p4est)
+
+  # Since the mesh attributes are replicated on all ranks, only save from MPI root
+  if !mpi_isroot()
+    return filename
+  end
 
   # Open file (clobber existing content)
   h5open(filename, "w") do file
