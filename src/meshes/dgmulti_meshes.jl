@@ -61,7 +61,7 @@ function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::A
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # specialization for NDIMS = 1
@@ -72,7 +72,7 @@ function VertexMappedMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic...)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return VertexMappedMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return VertexMappedMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 """
@@ -88,7 +88,7 @@ function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict:
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
   md = MeshData(vertex_coordinates, EToV, rd)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 end # @muladd
