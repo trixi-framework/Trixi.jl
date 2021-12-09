@@ -276,26 +276,26 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   e = ones(size(rd.r))
   z = zero.(e)
 
-  VXYZ = ntuple(_ -> nothing, NDIMS)
+  VXYZ = ntuple(_ -> [], NDIMS)
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
-  FToF = nothing
+  FToF = []
 
   xyz = xyzq = rd.rst # TODO: extend to mapped domains
-  xyzf = ntuple(_ -> nothing, NDIMS)
+  xyzf = ntuple(_ -> [], NDIMS)
   wJq = diag(rd.M)
 
   # arrays of connectivity indices between face nodes
-  mapM = mapP = mapB = nothing
+  mapM = mapP = mapB = []
 
   # volume geofacs Gij = dx_i/dxhat_j
   rstxyzJ = @SMatrix [e z; z e] # TODO: extend to mapped domains
   J = e
 
   # surface geofacs
-  nxyzJ = ntuple(_ -> nothing, NDIMS)
-  Jf = nothing
+  nxyzJ = ntuple(_ -> [], NDIMS)
+  Jf = []
 
-  is_periodic = ntuple(_->true, NDIMS)
+  is_periodic = ntuple(_ -> true, NDIMS)
 
   md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
@@ -309,15 +309,23 @@ end
 # `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(h)`. However,
 # since we do not initialize `Jf` here, we specialize `estimate_h` based on the grid
 # provided by SummationByPartsOperators.jl.
-function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md)  where {NDIMS, ElementType, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
+function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
   D = rd.approximationType
   grid = SummationByPartsOperators.grid(D)
   return grid[2] - grid[1]
 end
 
+# specialized for DGMultiPeriodicFDSBP since there are no face nodes
+# and thus no inverse trace constant for periodic domains.
+function estimate_dt(mesh::AbstractMeshData, dg::DGMultiPeriodicFDSBP)
+  rd = dg.basis # RefElemData
+  return StartUpDG.estimate_h(rd, mesh.md)
+end
+
 # do nothing for interface terms if using a periodic operator
-prolong2interfaces!(cache, u, mesh, equations, surface_integral, dg::DGMultiPeriodicFDSBP) = nothing
-calc_interface_flux!(cache, surface_integral, mesh, have_nonconservative_terms::Val{false},
+prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral, dg::DGMultiPeriodicFDSBP) = nothing
+calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
+                     have_nonconservative_terms::Val{false},
                      equations, dg::DGMultiPeriodicFDSBP) = nothing
-calc_surface_integral!(du, u, surface_integral, mesh, equations,
-                       dg::DGMultiPeriodicFDSBP, cache) = nothing
+calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
+                       equations, dg::DGMultiPeriodicFDSBP, cache) = nothing
