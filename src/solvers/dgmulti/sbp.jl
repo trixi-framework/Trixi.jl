@@ -238,6 +238,7 @@ function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType
   print(io, "RefElemData{", summary(rd.approximationType), ", ", rd.elementType, "}")
 end
 
+# type alias for specializing on a periodic SBP operator
 const DGMultiPeriodicFDSBP{ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.PeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
@@ -280,7 +281,8 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
                 is_periodic)
 
   boundary_faces = []
-  return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), 0, typeof(boundary_faces)}(md, boundary_faces)
+  n_boundary_faces = length(boundary_faces)
+  return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(h)`. However,
