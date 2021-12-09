@@ -146,6 +146,16 @@ end
 # We use a lazy evaluation of physical differentiation operators, so that we can compute linear
 # combinations of differentiation operators on-the-fly in an allocation-free manner.
 @inline function build_lazy_physical_derivative(element, orientation,
+                                                mesh::VertexMappedMesh{1}, dg, cache,
+                                                operator_scaling = 1.0)
+  @unpack Qrst_skew = cache
+  @unpack rxJ = mesh.md
+  scaling = 2 * operator_scaling
+  # ignore orientation
+  return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element],))
+end
+
+@inline function build_lazy_physical_derivative(element, orientation,
                                                 mesh::VertexMappedMesh{2}, dg, cache,
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
@@ -350,6 +360,10 @@ end
   rd = dg.basis
   return has_sparse_operators(rd.elementType, rd.approximationType)
 end
+
+# The general fallback does not assume sparse operators
+@inline has_sparse_operators(element_type, approximation_type) = Val{false}()
+
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
 @inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
