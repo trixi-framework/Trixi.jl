@@ -13,9 +13,9 @@ to manage trees and mesh refinement.
 """
 mutable struct P4estMesh{NDIMS, IsParallel, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
   p4est                 ::P # Either Ptr{p4est_t} or Ptr{p8est_t}
+  is_parallel           ::IsParallel
   # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
   # This specifies the geometry interpolation for each tree.
-  is_parallel           ::IsParallel
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
   nodes                 ::SVector{NNODES, RealT}
   boundary_names        ::Array{Symbol, 2}      # [face direction, tree]
@@ -51,6 +51,9 @@ end
 
 const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Val{false}}
 const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Val{true}}
+
+@inline mpi_parallel(mesh::SerialP4estMesh) = Val(false)
+@inline mpi_parallel(mesh::ParallelP4estMesh) = Val(true)
 
 
 function destroy_mesh(mesh::P4estMesh{2})
@@ -1045,6 +1048,11 @@ end
 
 function balance!(mesh::P4estMesh{3}, init_fn=C_NULL)
   p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
+end
+
+
+function partition!(mesh::ParallelP4estMesh{2}; allow_coarsening=true, weight_fn=C_NULL)
+  p4est_partition(mesh.p4est, Int(allow_coarsening), weight_fn)
 end
 
 

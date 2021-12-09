@@ -211,14 +211,12 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
   tree = unsafe_load_tree(mesh.p4est, sides[local_side].treeid + 1)
   # Quadrant numbering offset of the local quadrant at this interface
   offset = tree.quadrants_offset
+  tree_quad_id = sides[local_side].is.full.quadid # quadid in the local tree
+  # ID of the local neighboring quad, cumulative over local trees
+  local_quad_id = offset + tree_quad_id
 
-  local_quad_id = sides[local_side].is.full.quadid
-  # Global ID of the local neighboring quad
-  quad_id = offset + local_quad_id
-
-  # Write data to MPI interfaces container
-  # p4est uses zero-based indexing; convert to one-based indexing
-  mpi_interfaces.local_element_ids[mpi_interface_id] = quad_id + 1
+  # p4est uses zero-based indexing, convert to one-based indexing
+  mpi_interfaces.local_element_ids[mpi_interface_id] = local_quad_id + 1
   mpi_interfaces.local_sides[mpi_interface_id] = local_side
 
   # Local face at which the interface lies
