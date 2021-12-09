@@ -116,7 +116,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
       l2   = [0.046315994852653024, 0.0650818006233669, 0.06508180062336677, 0.4896707211656037],
       linf = [2.3874843337593776, 4.07876384374792, 4.07876384374792, 16.23914384809855],
-      tspan = (0.0, 0.05))
+      tspan = (0.0, 0.05),
+      coverage_override = (maxiters=2,))
   end
 
   @trixi_testset "elixir_eulergravity_sedov_blast_wave.jl with ref-level=8 and no AMR" begin

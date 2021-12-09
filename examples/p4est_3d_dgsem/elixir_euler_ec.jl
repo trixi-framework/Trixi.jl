@@ -14,14 +14,12 @@ boundary_conditions = Dict(
   :all => boundary_condition_slip_wall
 )
 
-###############################################################################
 # Get the DG approximation space
 
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg=5, surface_flux=FluxRotated(flux_ranocha),
+solver = DGSEM(polydeg=5, surface_flux=flux_ranocha,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-###############################################################################
 # Get the curved quad mesh from a file
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
@@ -55,8 +53,7 @@ mesh = P4estMesh{3}(mesh_file, polydeg=5,
                     mapping=mapping,
                     initial_refinement_level=0)
 
-###############################################################################
-# create the semi discretization object
+# create the semidiscretization object
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
 

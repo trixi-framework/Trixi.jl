@@ -595,22 +595,30 @@ function calc_surface_integral!(du, u,
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
-  # Note that all fluxes have been computed with outward-pointing normal vectors
+  # Note that all fluxes have been computed with outward-pointing normal vectors.
+  # Access the factors only once before beginning the loop to increase performance.
+  # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+  # into FMAs (see comment at the top of the file).
+  factor_1 = boundary_interpolation[1,          1]
+  factor_2 = boundary_interpolation[nnodes(dg), 2]
   @threaded for element in eachelement(dg, cache)
     for l in eachnode(dg)
       for v in eachvariable(equations)
         # surface at -x
-        du[v, 1,          l, element] += (surface_flux_values[v, l, 1, element]
-                                          * boundary_interpolation[1, 1])
+        du[v, 1,          l, element] = (
+          du[v, 1,          l, element] + surface_flux_values[v, l, 1, element] * factor_1)
+
         # surface at +x
-        du[v, nnodes(dg), l, element] += (surface_flux_values[v, l, 2, element]
-                                          * boundary_interpolation[nnodes(dg), 2])
+        du[v, nnodes(dg), l, element] = (
+          du[v, nnodes(dg), l, element] + surface_flux_values[v, l, 2, element] * factor_2)
+
         # surface at -y
-        du[v, l, 1,          element] += (surface_flux_values[v, l, 3, element]
-                                          * boundary_interpolation[1, 1])
+        du[v, l, 1,          element] = (
+          du[v, l, 1,          element] + surface_flux_values[v, l, 3, element] * factor_1)
+
         # surface at +y
-        du[v, l, nnodes(dg), element] += (surface_flux_values[v, l, 4, element]
-                                          * boundary_interpolation[nnodes(dg), 2])
+        du[v, l, nnodes(dg), element] = (
+          du[v, l, nnodes(dg), element] + surface_flux_values[v, l, 4, element] * factor_2)
       end
     end
   end

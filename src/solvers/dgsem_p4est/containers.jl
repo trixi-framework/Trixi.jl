@@ -261,7 +261,7 @@ function init_boundaries_iter_face_inner(info, boundaries, boundary_id, mesh)
   quad_id = offset + local_quad_id
 
   # Write data to boundaries container
-  # p4est uses zero-based indexing; convert to one-based indexing
+  # `p4est` uses zero-based indexing; convert to one-based indexing
   boundaries.neighbor_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
@@ -397,7 +397,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
   resize!(mortars, required.mortars)
 
   # re-initialize containers together to reduce
-  # the number of iterations over the mesh in p4est
+  # the number of iterations over the mesh in `p4est`
   init_surfaces!(interfaces, mortars, boundaries, mesh)
 end
 
@@ -464,7 +464,7 @@ function init_surfaces_iter_face_inner(info, user_data)
 end
 
 function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call init_surfaces_iter_face
+  # Let `p4est` iterate over all interfaces and call init_surfaces_iter_face
   iter_face_c = cfunction(init_surfaces_iter_face, Val(ndims(mesh)))
   user_data = InitSurfacesIterFaceUserData(
     interfaces, mortars, boundaries, mesh)
@@ -492,7 +492,7 @@ function init_interfaces_iter_face_inner(info, sides, user_data)
   quad_ids = offsets + local_quad_ids
 
   # Write data to interfaces container
-  # p4est uses zero-based indexing; convert to one-based indexing
+  # `p4est` uses zero-based indexing; convert to one-based indexing
   interfaces.neighbor_ids[1, interface_id] = quad_ids[1] + 1
   interfaces.neighbor_ids[2, interface_id] = quad_ids[2] + 1
 
@@ -526,7 +526,7 @@ function init_boundaries_iter_face_inner(info, user_data)
   quad_id = offset + local_quad_id
 
   # Write data to boundaries container
-  # p4est uses zero-based indexing; convert to one-based indexing
+  # `p4est` uses zero-based indexing; convert to one-based indexing
   boundaries.neighbor_ids[boundary_id] = quad_id + 1
 
   # Face at which the boundary lies
@@ -580,7 +580,7 @@ function init_mortars_iter_face_inner(info, sides, user_data)
   end
 
   # Write data to mortar container, 1 and 2 are the small elements
-  # p4est uses zero-based indexing; convert to one-based indexing
+  # `p4est` uses zero-based indexing; convert to one-based indexing
   mortars.neighbor_ids[1:end-1, mortar_id] .= small_quad_ids[:] .+ 1
   # Last entry is the large element
   mortars.neighbor_ids[end, mortar_id] = large_quad_id + 1
@@ -634,7 +634,7 @@ cfunction(::typeof(count_surfaces_iter_face), ::Val{2}) = @cfunction(count_surfa
 cfunction(::typeof(count_surfaces_iter_face), ::Val{3}) = @cfunction(count_surfaces_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 
 function count_required_surfaces(mesh::P4estMesh)
-  # Let p4est iterate over all interfaces and call count_surfaces_iter_face
+  # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
   iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh)))
 
   # interfaces, mortars, boundaries

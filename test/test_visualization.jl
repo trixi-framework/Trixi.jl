@@ -210,7 +210,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "adapt_to_mesh_level" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"),
-                                     tspan=(0,0.1))
+                                     tspan=(0,0.1), analysis_callback=Trixi.TrivialCallback())
     @test adapt_to_mesh_level(sol, 5) isa Tuple
 
     u_ode_level5, semi_level5 = adapt_to_mesh_level(sol, 5)
@@ -223,7 +223,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
-                                     tspan=(0,0.1))
+                                     tspan=(0,0.1), analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice =:yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice =:xz) isa Trixi.PlotData2DCartesian
@@ -239,8 +239,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
 
       @testset "Create 1D plot along curve" begin
-        curve = zeros(3,10)
-        curve[1,:] = range(-1,-0.5,length=10)
+        curve = zeros(3, 10)
+        curve[1, :] = range(-1.0, -0.5, length=10)
         @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
         pd1D = PlotData1D(sol, curve=curve)
         @test_nowarn_debug Plots.plot(pd1D)
@@ -249,7 +249,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"))
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
+                                     maxiters=1, analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
     @test_nowarn_debug Plots.plot(sol)
   end
 

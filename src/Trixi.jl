@@ -18,8 +18,9 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: LinearAlgebra, diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
+using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
+using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -34,6 +35,7 @@ using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
+using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
@@ -46,8 +48,7 @@ using P4est
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
-using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
-using Static: One
+using Static: Static, One
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -61,7 +62,8 @@ using UnPack: @pack!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
-import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
+import SummationByPartsOperators: integrate, semidiscretize,
+                                  left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
   SummationByPartsOperators, derivative_operator
 
@@ -132,7 +134,9 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxRotated
+       FluxLMARS,
+       FluxRotated,
+       flux_shima_etal_turbo, flux_ranocha_turbo
 
 export initial_condition_constant,
        initial_condition_gauss,

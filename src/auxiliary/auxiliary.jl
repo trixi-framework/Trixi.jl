@@ -185,7 +185,7 @@ macro threaded(expr)
   # !!! danger "Heisenbug"
   #     Look at the comments for `wrap_array` when considering to change this macro.
 
-  return esc(quote @batch $(expr) end)
+  return esc(quote Trixi.@batch $(expr) end)
 end
 
 

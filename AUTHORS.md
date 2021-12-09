@@ -7,8 +7,8 @@ provided substantial additions or modifications. Together, these two groups form
 "The Trixi Authors" as mentioned in the [LICENSE.md](LICENSE.md) file.
 
 ## Principal Developers
-* [Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper),
-  University of Cologne, Germany
+* [Michael Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper),
+  University of Stuttgart, Germany
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
