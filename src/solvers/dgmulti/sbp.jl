@@ -238,21 +238,24 @@ function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType
   print(io, "RefElemData{", summary(rd.approximationType), ", ", rd.elementType, "}")
 end
 
-"""
-  Constructs a single-element MeshData for a single periodic element given
-  a SummationByPartsOperators RefElemData. The domain is assumed to be an affine
-  transformation of a tensor product domain.
+const DGMultiPeriodicFDSBP{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.PeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
-  MeshData(rd::RefElemData{NDIMS, ElementType, ApproximationType})
 """
-function StartUpDG.MeshData(rd::RefElemData{NDIMS, ElementType, ApproximationType};
-                            is_periodic=ntuple(_->true, NDIMS)) where {NDIMS, ElementType, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
+  CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS})
+
+Constructs a single-element `mesh::AbstractMeshData` for a single periodic element given
+a DGMulti with approximation_type <: SummationByPartsOperators.AbstractDerivativeOperator.
+"""
+function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
+
+  rd = dg.basis
 
   e = ones(size(rd.r))
   z = zero.(e)
 
   VXYZ = ntuple(_ -> nothing, NDIMS)
-  EToV = NaN # StartUpDG.jl uses size(EToV, 1) to get the number of elements. This lets us reuse that.
+  EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = nothing
 
   xyz = xyzq = rd.rst # TODO: extend to mapped domains
@@ -270,11 +273,14 @@ function StartUpDG.MeshData(rd::RefElemData{NDIMS, ElementType, ApproximationTyp
   nxyzJ = ntuple(_ -> nothing, NDIMS)
   Jf = nothing
 
-  is_periodic = is_periodic
+  is_periodic = ntuple(_->true, NDIMS)
 
-  return MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
-                  mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
-                  is_periodic)
+  md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
+                mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
+                is_periodic)
+
+  boundary_faces = []
+  return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), 0, typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(h)`. However,
@@ -286,13 +292,9 @@ function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, Approximati
   return grid[2] - grid[1]
 end
 
-# TODO: overwrite these
-#     @trixi_timeit timer() "interface flux" calc_interface_flux!(cache, dg.surface_integral, mesh,
-#     have_nonconservative_terms(equations),
-#     equations, dg)
-
-# @trixi_timeit timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions,
-#   mesh, equations, dg)
-
-# @trixi_timeit timer() "surface integral" calc_surface_integral!(du, u, dg.surface_integral,
-#         mesh, equations, dg, cache)
+# do nothing for interface terms if using a periodic operator
+prolong2interfaces!(cache, u, mesh, equations, surface_integral, dg::DGMultiPeriodicFDSBP) = nothing
+calc_interface_flux!(cache, surface_integral, mesh, have_nonconservative_terms::Val{false},
+                     equations, dg::DGMultiPeriodicFDSBP) = nothing
+calc_surface_integral!(du, u, surface_integral, mesh, equations,
+                       dg::DGMultiPeriodicFDSBP, cache) = nothing
