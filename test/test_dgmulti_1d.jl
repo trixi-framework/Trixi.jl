@@ -30,7 +30,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
       cells_per_dimension = (16,),
       approximation_type = SBP(),
-      l2 = [9.104462842297693e-6, 3.088721453805293e-6, 1.8732205632664948e-5],
+      l2 = [6.437827414849647e-6, 2.1840558851820947e-6, 1.3245669629438228e-5],
       linf = [2.0715843751295537e-5, 8.519520630301258e-6, 4.2642194098885255e-5]
     )
   end
