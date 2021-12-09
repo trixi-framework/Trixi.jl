@@ -128,7 +128,7 @@ new_p4est_ghost_layer(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_
 # Let p4est iterate over each cell volume and cell face.
 # Call iter_volume_c for each cell and iter_face_c for each face.
 # 2D
-function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
+function iterate_p4est(p4est::Ptr{p4est_t}, user_data; ghost_layer=C_NULL,
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL
     user_data_ptr = user_data
@@ -140,7 +140,7 @@ function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
 
   GC.@preserve user_data begin
     p4est_iterate(p4est,
-                  C_NULL, # ghost layer
+                  ghost_layer,
                   user_data_ptr,
                   iter_volume_c, # iter_volume
                   iter_face_c, # iter_face
