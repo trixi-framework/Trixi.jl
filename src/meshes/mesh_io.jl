@@ -142,7 +142,7 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0, mpi_parallel::Val{false})
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::Val{false})
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -177,7 +177,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0, mpi_paral
   return filename
 end
 
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep=0, mpi_parallel::Val{true})
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::Val{true})
   # Create output directory (if it does not exist)
   mpi_isroot() && mkpath(output_directory)
 
