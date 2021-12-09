@@ -148,7 +148,7 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh, elem
 
   # Determine local and total number of elements
   n_elements_global = Int(mesh.p4est.global_num_quadrants)
-  n_elements_by_rank = vcat(Int.(unsafe_load.(mesh.p4est.global_first_quadrant, 1:mpi_nranks())),
+  n_elements_by_rank = vcat(Int.(unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks())),
                             n_elements_global) |> diff # diff sufficient due to 0-based quad indices
   n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
   # Account for 1-based indexing in Julia
