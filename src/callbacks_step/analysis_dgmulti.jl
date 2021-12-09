@@ -23,7 +23,8 @@ function calc_error_norms(func, u, t, analyzer,
     component_l2_errors += md.wJq[i] * error_at_node.^2
     component_linf_errors = max.(component_linf_errors, abs.(error_at_node))
   end
-  return sqrt.(component_l2_errors), component_linf_errors
+  total_volume = sum(md.wJq)
+  return sqrt.(component_l2_errors ./ total_volume), component_linf_errors
 end
 
 function integrate(func::Func, u,
