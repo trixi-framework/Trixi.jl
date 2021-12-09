@@ -50,7 +50,7 @@ using RecipesBase: RecipesBase
 using Requires: @require
 using Static: Static, One
 @reexport using StaticArrays: SVector
-using StaticArrays: MVector, MArray, SMatrix
+using StaticArrays: MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!

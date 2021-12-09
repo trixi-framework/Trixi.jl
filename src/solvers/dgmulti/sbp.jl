@@ -248,29 +248,31 @@ end
 function StartUpDG.MeshData(rd::RefElemData{NDIMS, ElementType, ApproximationType};
                             is_periodic=ntuple(_->true, NDIMS)) where {NDIMS, ElementType, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
 
-  I = UniformScaling(1) # identity
-  Z = UniformScaling(0) # zero matrix
+  e = ones(size(rd.r))
+  z = zero.(e)
 
-  VXYZ = EToV = FToF = nothing
+  VXYZ = ntuple(_ -> nothing, NDIMS)
+  EToV = NaN # StartUpDG.jl uses size(EToV, 1) to get the number of elements. This lets us reuse that.
+  FToF = nothing
 
-  xyz = xyzq = rd.rst # TODO: extend to affinely mapped domains
-  xyzf = nothing
+  xyz = xyzq = rd.rst # TODO: extend to mapped domains
+  xyzf = ntuple(_ -> nothing, NDIMS)
   wJq = diag(rd.M)
 
   # arrays of connectivity indices between face nodes
   mapM = mapP = mapB = nothing
 
   # volume geofacs Gij = dx_i/dxhat_j
-  DimTimesDim = Static.StaticInt(NDIMS) * Static.StaticInt(NDIMS)
-  rstxyzJ = SMatrix{NDIMS, NDIMS, typeof(I), DimTimesDim}() # TODO: extend to affinely mapped domains
-  J = I
+  rstxyzJ = @SMatrix [e z; z e] # TODO: extend to mapped domains
+  J = e
 
   # surface geofacs
-  nxyzJ = Jf = nothing
+  nxyzJ = ntuple(_ -> nothing, NDIMS)
+  Jf = nothing
 
   is_periodic = is_periodic
 
-  return MeshData(VXYZ, EToV, FToF, xyz, xyzq, xyzf, wJq,
+  return MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
                   mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
                   is_periodic)
 end
