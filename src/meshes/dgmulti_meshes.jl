@@ -32,7 +32,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::VertexMappedMesh{NDIMS, Ele
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "VertexMappedMesh{$NDIMS, $ElemType, $MeshDataT, $Nb}, ")
+    summary_header(io, "VertexMappedMesh{$NDIMS, $ElemType, $Nb}, ")
     summary_line(io, "number of elements", mesh.md.num_elements)
     summary_line(io, "number of boundaries", length(mesh.boundary_faces))
     for (boundary_name, faces) in mesh.boundary_faces
