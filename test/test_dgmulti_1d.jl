@@ -48,6 +48,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
   end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (FD SBP periodic)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      l2 = [9.143049271995802e-7, 1.8989162075330386e-6, 3.9897318713851825e-6],
+      linf = [1.7314023346148844e-6, 3.3238808521129926e-6, 6.522518362750418e-6]
+    )
+    show(stdout, semi.solver.basis)
+    show(stdout, MIME"text/plain"(), semi.solver.basis)
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory

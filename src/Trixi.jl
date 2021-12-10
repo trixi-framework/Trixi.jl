@@ -20,7 +20,7 @@ module Trixi
 
 using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
-using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros
+using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros, spzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -50,7 +50,7 @@ using RecipesBase: RecipesBase
 using Requires: @require
 using Static: Static, One
 @reexport using StaticArrays: SVector
-using StaticArrays: MVector, MArray, SMatrix
+using StaticArrays: MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
@@ -61,11 +61,13 @@ using TriplotRecipes: DGTriPseudocolor
 using UnPack: @pack!
 
 # finite difference SBP operators
-using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
+using SummationByPartsOperators: AbstractDerivativeOperator,
+  AbstractNonperiodicDerivativeOperator, DerivativeOperator,
+  AbstractPeriodicDerivativeOperator, PeriodicDerivativeOperator, grid
 import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
-  SummationByPartsOperators, derivative_operator
+  SummationByPartsOperators, derivative_operator, periodic_derivative_operator
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
@@ -201,7 +203,7 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
-export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
+export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt, CartesianMesh
 export GaussSBP
 
 # Visualization-related exports
