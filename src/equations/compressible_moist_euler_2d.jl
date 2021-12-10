@@ -404,7 +404,7 @@ end
 
 
 function source_terms_warm_bubble(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
-  source_term_geopotential(du, u, equations, dg, cache)
+  source_terms_geopotential(du, u, equations, dg, cache)
   return nothing
 end
 
@@ -831,6 +831,24 @@ end
 end
 
 
+@inline function density_dry(u, equations::CompressibleMoistEulerEquations2D)
+  rho_qd = u[1] - (u[5] + u[6])
+  return rho_qd
+ end
+
+
+ @inline function density_vapor(u, equations::CompressibleMoistEulerEquations2D)
+  rho_qv = u[5] 
+  return rho_qv
+ end
+
+
+ @inline function density_liqid(u, equations::CompressibleMoistEulerEquations2D)
+  rho_ql = u[6]
+  return rho_ql
+ end
+
+
 @inline function pressure(u, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
  p = get_current_condition(u, equations)[1]
@@ -981,6 +999,89 @@ end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
   return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
+end
+
+
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  # Unpack left and right state
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
+
+  # Compute the necessary mean values
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  qv_avg = 0.5 * (qv_ll + qv_rr)
+  ql_avg = 0.5 * (ql_ll + ql_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+  qd_avg = (1 - qv_avg - ql_avg)
+  e = (qv_avg * L_00 + 
+       (qd_avg * c_vd + qv_avg * c_vv + ql_avg * c_pl) * 
+       inv_rho_p_mean * inv(qd_avg * R_d + qv_avg * R_v))
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f1 = rho_mean * v1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * ( velocity_square_avg + e ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+    f5 = f1 * qv_avg
+    f6 = f1 * ql_avg
+  else
+    f1 = rho_mean * v2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = f1 * ( velocity_square_avg + e ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+    f5 = f1 * qv_avg
+    f6 = f1 * ql_avg
+  end
+
+  return SVector(f1, f2, f3, f4, f5, f6)
+end
+
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+  # Compute the necessary mean values
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  qv_avg = 0.5 * (qv_ll + qv_rr)
+  ql_avg = 0.5 * (ql_ll + ql_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+  qd_avg = (1 - qv_avg - ql_avg)
+  e = (qv_avg * L_00 + 
+       (qd_avg * c_vd + qv_avg * c_vv + ql_avg * c_pl) * 
+       inv_rho_p_mean * inv(qd_avg * R_d + qv_avg * R_v))
+
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2])
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = ( f1 * ( velocity_square_avg + e )
+        + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
+  f5 = f1 * qv_avg
+  f6 = f1 * ql_avg
+
+  return SVector(f1, f2, f3, f4, f5, f6)
 end
 
 
