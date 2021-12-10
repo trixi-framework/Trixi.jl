@@ -237,3 +237,24 @@ function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType
   @nospecialize rd
   print(io, "RefElemData{", summary(rd.approximationType), ", ", rd.elementType, "}")
 end
+
+function StartUpDG.inverse_trace_constant(rd::RefElemData{NDIMS, ElementType, ApproximationType})  where {NDIMS, ElementType<:Union{Line, Quad, Hex}, ApproximationType<:AbstractDerivativeOperator}
+  D = rd.approximationType
+
+  # the inverse trace constant is the maximum eigenvalue corresponding to
+  #       M_f * v = λ * M * v
+  # where M_f is the face mass matrix and M is the volume mass matrix.
+  # Since M is diagonal and since M_f is just the boundary "mask" matrix
+  # (which extracts the first and last entries of a vector), the maximum
+  # eigenvalue is the inverse of the first or last mass matrix diagonal.
+  left_weight = SummationByPartsOperators.left_boundary_weight(D)
+  right_weight = SummationByPartsOperators.right_boundary_weight(D)
+  max_eigenvalue = max(inv(left_weight), inv(right_weight))
+
+  # For tensor product elements, the trace constant for higher dimensional
+  # elements is the one-dimensional trace constant multiplied by `NDIMS`. See
+  #     "GPU-accelerated discontinuous Galerkin methods on hybrid meshes."
+  #     Chan, Jesse, et al (2016), https://doi.org/10.1016/j.jcp.2016.04.003
+  # for more details (specifically, Appendix A.1, Theorem A.4).
+  return NDIMS * max_eigenvalue
+end
