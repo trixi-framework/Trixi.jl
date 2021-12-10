@@ -8,7 +8,8 @@
             kwargs...)
 
 Create a summation by parts (SBP) discretization on the given `element_type`
-using a tensor product structure.
+using a tensor product structure based on the 1D SBP derivative operator
+passed as `approximation_type`.
 
 For more info, see the documentations of
 [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
@@ -157,16 +158,7 @@ function StartUpDG.RefElemData(element_type::Quad,
 
   # face
   face_vertices = StartUpDG.face_vertices(element_type)
-  # if D isa AbstractPeriodicDerivativeOperator
-  #   # we need to fake the face mask for periodic operators for StartUpDG to work
-  #   xmin, xmax = extrema(r)
-  #   factor = 2 / (xmax - xmin)
-  #   face_mask = vcat(StartUpDG.find_face_nodes(element_type,
-  #     @.(factor * (r - xmin) - 1),
-  #     @.(factor * (s - xmin) - 1))...)
-  # else
-    face_mask = vcat(StartUpDG.find_face_nodes(element_type, r, s)...)
-  # end
+  face_mask = vcat(StartUpDG.find_face_nodes(element_type, r, s)...)
 
   rf, sf, wf, nrJ, nsJ = StartUpDG.init_face_data(element_type,
     quad_rule_face=(nodes_1d, weights_1d))
@@ -302,7 +294,7 @@ const DGMultiPeriodicFDSBP{ApproxType, ElemType} =
     CartesianMesh(dg::DGMulti)
 
 Constructs a single-element `mesh::AbstractMeshData` for a single periodic element given
-a DGMulti with `approximation_type` set to a periodic (finite difference) SBP oerator from 
+a DGMulti with `approximation_type` set to a periodic (finite difference) SBP oerator from
 SummationByPartsOperators.jl.
 """
 function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
