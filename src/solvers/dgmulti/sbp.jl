@@ -341,9 +341,9 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
 end
 
-# `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`. However,
-# since we do not initialize `Jf` here, we specialize `estimate_h` based on the grid
-# provided by SummationByPartsOperators.jl.
+# This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
+# However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
+# based on the grid provided by SummationByPartsOperators.jl.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
   D = rd.approximationType
   x = grid(D)
