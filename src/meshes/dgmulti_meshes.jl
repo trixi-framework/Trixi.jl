@@ -22,12 +22,26 @@ end
 
 Base.ndims(::VertexMappedMesh{NDIMS}) where {NDIMS} = NDIMS
 
-function Base.show(io::IO, mesh::VertexMappedMesh{NDIMS, ElemType}) where {NDIMS, ElemType}
+"""
+    DGMultiMesh{NDIMS, ElemType, Nboundaries, Tv, Ti} <: AbstractMeshData{NDIMS, ElemType}
+
+`DGMultiMesh` describes a mesh type which wraps `StartUpDG.MeshData` and `boundary_faces` in a
+dispatchable type. This is intended to store geometric data and connectivities for any type of
+mesh (Cartesian, affine, curved, structured/unstructured).
+"""
+struct DGMultiMesh{NDIMS, ElemType, MeshDataT <: MeshData{NDIMS}, Nboundaries} <: AbstractMeshData{NDIMS, ElemType}
+  md::MeshDataT
+  boundary_faces::Dict{Symbol, Vector{Int}}
+end
+
+Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
+
+function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, ElemType}) where {NDIMS, ElemType}
   @nospecialize mesh # reduce precompilation time
   print(io, "$ElemType VertexMappedMesh with NDIMS = $NDIMS.")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::VertexMappedMesh{NDIMS, ElemType, MeshDataT, Nb}) where {NDIMS, ElemType, MeshDataT, Nb}
+function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, ElemType, MeshDataT, Nb}) where {NDIMS, ElemType, MeshDataT, Nb}
   @nospecialize mesh # reduce precompilation time
   if get(io, :compact, false)
     show(io, mesh)
@@ -61,7 +75,7 @@ function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::A
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
 # specialization for NDIMS = 1
@@ -72,7 +86,7 @@ function VertexMappedMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic...)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return VertexMappedMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
 """
@@ -88,7 +102,7 @@ function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict:
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
   md = MeshData(vertex_coordinates, EToV, rd)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
 end # @muladd
