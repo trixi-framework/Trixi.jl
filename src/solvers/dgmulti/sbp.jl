@@ -365,7 +365,7 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                              mesh::VertexMappedMesh,
+                              mesh::DGMultiMesh,
                               have_nonconservative_terms::Val{false}, equations,
                               dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
@@ -373,7 +373,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
 end
 
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::VertexMappedMesh, equations,
+                                mesh::DGMultiMesh, equations,
                                 dg::DGMultiPeriodicFDSBP, cache)
   @assert nelements(mesh, dg, cache) == 1
   nothing
