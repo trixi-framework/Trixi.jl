@@ -14,9 +14,9 @@ abstract type AbstractMeshData{NDIMS, ElemType} end
 dispatchable type. This is intended to store geometric data and connectivities for any type of
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
-struct DGMultiMesh{NDIMS, ElemType, MeshDataT <: MeshData{NDIMS}, Nboundaries} <: AbstractMeshData{NDIMS, ElemType}
+struct DGMultiMesh{NDIMS, ElemType, MeshDataT <: MeshData{NDIMS}, Nboundaries, BoundaryFaceT} <: AbstractMeshData{NDIMS, ElemType}
   md::MeshDataT
-  boundary_faces::Dict{Symbol, Vector{Int}}
+  boundary_faces::BoundaryFaceT
 end
 
 Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
@@ -60,7 +60,7 @@ function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # specialization for NDIMS = 1
@@ -71,7 +71,7 @@ function DGMultiMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, is_periodic...)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 """
@@ -87,7 +87,7 @@ function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
   md = MeshData(vertex_coordinates, EToV, rd)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return DGMultiMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # TODO: deprecate this interface

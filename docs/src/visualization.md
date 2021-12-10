@@ -33,7 +33,7 @@ To visualize the solution, execute
 julia> plot(sol)
 ```
 Here we assume that `sol` holds the return value of the `solve(...)` method
-(with type `DiffEqBase.ODESolution`), which is the default variable name when
+(with type `SciMLBase.ODESolution`), which is the default variable name when
 you use one of the example elixirs. This will generate a grid layout with one
 subplot for each solution variable, convenient for getting an overview of
 the current solution:

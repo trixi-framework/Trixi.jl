@@ -8,7 +8,8 @@
             kwargs...)
 
 Create a summation by parts (SBP) discretization on the given `element_type`
-using a tensor product structure.
+using a tensor product structure based on the 1D SBP derivative operator
+passed as `approximation_type`.
 
 For more info, see the documentations of
 [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
@@ -39,7 +40,6 @@ end
 
 
 function construct_1d_operators(D::AbstractDerivativeOperator, tol)
-  # StartUpDG assumes nodes from -1 to +1
   nodes_1d = collect(grid(D))
   M = SummationByPartsOperators.mass_matrix(D)
   if M isa UniformScaling
@@ -47,7 +47,19 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
   else
     weights_1d = diag(M)
   end
-  xmin, xmax = extrema(nodes_1d)
+
+  # StartUpDG assumes nodes from -1 to +1. Thus, we need to re-scale everything.
+  if D isa AbstractPeriodicDerivativeOperator
+    # Periodic operators do include only the left boundary nodes in their
+    # computational grid, not the right boundary node. Thus, we need to use
+    # their "evaluation grid" including both boundary nodes to determine the
+    # grid spacing factor.
+    xmin, xmax = extrema(D.grid_evaluate)
+  else
+    # All non-periodic SBP operators include both boundary nodes in their
+    # computational grid.
+    xmin, xmax = extrema(nodes_1d)
+  end
   factor = 2 / (xmax - xmin)
   @. nodes_1d = factor * (nodes_1d - xmin) - 1
   @. weights_1d = factor * weights_1d
@@ -90,7 +102,12 @@ function StartUpDG.RefElemData(element_type::Line,
   rf = [-1.0; 1.0]
   nrJ = [-1.0; 1.0]
   wf = [1.0; 1.0]
-  Vf = sparse([1, 2], [1, length(nodes_1d)], [1.0, 1.0])
+  if D isa AbstractPeriodicDerivativeOperator
+    # we do not need any face stuff for periodic operators
+    Vf = spzeros(length(wf), length(wq))
+  else
+    Vf = sparse([1, 2], [1, length(nodes_1d)], [1.0, 1.0])
+  end
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf,)
@@ -145,7 +162,12 @@ function StartUpDG.RefElemData(element_type::Quad,
 
   rf, sf, wf, nrJ, nsJ = StartUpDG.init_face_data(element_type,
     quad_rule_face=(nodes_1d, weights_1d))
-  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  if D isa AbstractPeriodicDerivativeOperator
+    # we do not need any face stuff for periodic operators
+    Vf = spzeros(length(wf), length(wq))
+  else
+    Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  end
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf, sf)
@@ -205,7 +227,12 @@ function StartUpDG.RefElemData(element_type::Hex,
     wf = wr .* ws
     StartUpDG.init_face_data(element_type, quad_rule_face=(rf, sf, wf))
   end
-  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  if D isa AbstractPeriodicDerivativeOperator
+    # we do not need any face stuff for periodic operators
+    Vf = spzeros(length(wf), length(wq))
+  else
+    Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
+  end
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf, sf, tf)
@@ -257,4 +284,97 @@ function StartUpDG.inverse_trace_constant(rd::RefElemData{NDIMS, ElementType, Ap
   #     Chan, Jesse, et al (2016), https://doi.org/10.1016/j.jcp.2016.04.003
   # for more details (specifically, Appendix A.1, Theorem A.4).
   return NDIMS * max_eigenvalue
+end
+
+# type alias for specializing on a periodic SBP operator
+const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+"""
+    CartesianMesh(dg::DGMulti)
+
+Constructs a single-element [`VertexMappedMesh`](@ref) for a single periodic element given
+a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
+SummationByPartsOperators.jl.
+"""
+function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
+
+  rd = dg.basis
+
+  e = ones(size(rd.r))
+  z = zero(e)
+
+  VXYZ = ntuple(_ -> [], NDIMS)
+  EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
+  FToF = []
+
+  xyz = xyzq = rd.rst # TODO: DGMulti; extend to mapped domains
+  xyzf = ntuple(_ -> [], NDIMS)
+  wJq = diag(rd.M)
+
+  # arrays of connectivity indices between face nodes
+  mapM = mapP = mapB = []
+
+  # volume geofacs Gij = dx_i/dxhat_j
+  # TODO: DGMulti; extend to mapped domains
+  if NDIMS==1
+    rstxyzJ = @SMatrix [e]
+  elseif NDIMS==2
+    rstxyzJ = @SMatrix [e z; z e]
+  elseif NDIMS==3
+    rstxyzJ = @SMatrix [e z z; z e z; z z e]
+  end
+  J = e
+
+  # surface geofacs
+  nxyzJ = ntuple(_ -> [], NDIMS)
+  Jf = []
+
+  is_periodic = ntuple(_ -> true, NDIMS)
+
+  md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
+                mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
+                is_periodic)
+
+  boundary_faces = []
+  n_boundary_faces = length(boundary_faces)
+  return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
+end
+
+# This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
+# However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
+# based on the grid provided by SummationByPartsOperators.jl.
+function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
+  D = rd.approximationType
+  x = grid(D)
+  return x[2] - x[1]
+end
+
+# specialized for DGMultiPeriodicFDSBP since there are no face nodes
+# and thus no inverse trace constant for periodic domains.
+function estimate_dt(mesh::AbstractMeshData, dg::DGMultiPeriodicFDSBP)
+  rd = dg.basis # RefElemData
+  return StartUpDG.estimate_h(rd, mesh.md)
+end
+
+# do nothing for interface terms if using a periodic operator
+function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
+                             surface_integral, dg::DGMultiPeriodicFDSBP)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
+
+function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
+                              mesh::VertexMappedMesh,
+                              have_nonconservative_terms::Val{false}, equations,
+                              dg::DGMultiPeriodicFDSBP)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
+
+function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
+                                mesh::VertexMappedMesh, equations,
+                                dg::DGMultiPeriodicFDSBP, cache)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
 end

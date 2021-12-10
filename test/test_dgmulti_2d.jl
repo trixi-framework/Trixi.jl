@@ -163,6 +163,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (FD SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      l2 = [1.3332363422387599e-6, 2.044661420878783e-6, 2.0446614209704155e-6, 5.281729652546522e-6],
+      linf = [2.6998018645141286e-6, 3.988278189259731e-6, 3.988278191480177e-6, 8.847848166571026e-6]
+    )
+  end
+
   @trixi_testset "elixir_mhd_weak_blast_wave.jl (Quad)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
       cells_per_dimension = 4,

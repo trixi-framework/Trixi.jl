@@ -1,7 +1,9 @@
 
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = 3, element_type = Quad(),
+             approximation_type = periodic_derivative_operator(
+               derivative_order=1, accuracy_order=4, xmin=0.0, xmax=1.0, N=50),
              surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
              volume_integral = VolumeIntegralWeakForm())
 
@@ -9,9 +11,8 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-cells_per_dimension = (4, 4)
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
-mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true,true))
+mesh = CartesianMesh(dg)
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms)
 
@@ -22,7 +23,8 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+stepsize_callback = StepsizeCallback(cfl=1.0)
+callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
