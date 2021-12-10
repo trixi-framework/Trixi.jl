@@ -266,8 +266,8 @@ const DGMultiPeriodicFDSBP{ApproxType, ElemType} =
 """
     CartesianMesh(dg::DGMulti)
 
-Constructs a single-element `mesh::AbstractMeshData` for a single periodic element given
-a DGMulti with `approximation_type` set to a periodic (finite difference) SBP oerator from 
+Constructs a single-element [`VertexMappedMesh`](@ref) for a single periodic element given
+a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from 
 SummationByPartsOperators.jl.
 """
 function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
