@@ -293,7 +293,7 @@ const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
 """
     CartesianMesh(dg::DGMulti)
 
-Constructs a single-element [`VertexMappedMesh`](@ref) for a single periodic element given
+Constructs a single-element [`DGMultiMesh`](@ref) for a single periodic element given
 a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
 SummationByPartsOperators.jl.
 """
@@ -338,7 +338,7 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
 
   boundary_faces = []
   n_boundary_faces = length(boundary_faces)
-  return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
