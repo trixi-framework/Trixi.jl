@@ -107,7 +107,8 @@ the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function CartesianMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
-                       coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
+                       coordinates_min=ntuple(_ -> -1.0, NDIMS),
+                       coordinates_max=ntuple(_ -> 1.0, NDIMS),
                        is_on_boundary=nothing,
                        is_periodic=ntuple(_ -> false, NDIMS)) where {NDIMS}
 
