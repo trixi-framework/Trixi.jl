@@ -308,7 +308,7 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
 
-  xyz = xyzq = rd.rst # TODO: extend to mapped domains
+  xyz = xyzq = rd.rst # TODO: DGMulti; extend to mapped domains
   xyzf = ntuple(_ -> [], NDIMS)
   wJq = diag(rd.M)
 
@@ -346,8 +346,8 @@ end
 # provided by SummationByPartsOperators.jl.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
   D = rd.approximationType
-  grid = SummationByPartsOperators.grid(D)
-  return grid[2] - grid[1]
+  x = grid(D)
+  return x[2] - x[1]
 end
 
 # specialized for DGMultiPeriodicFDSBP since there are no face nodes
@@ -358,55 +358,23 @@ function estimate_dt(mesh::AbstractMeshData, dg::DGMultiPeriodicFDSBP)
 end
 
 # do nothing for interface terms if using a periodic operator
-prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral, dg::DGMultiPeriodicFDSBP) = nothing
-calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
-                     have_nonconservative_terms::Val{false},
-                     equations, dg::DGMultiPeriodicFDSBP) = nothing
-calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
-                       equations, dg::DGMultiPeriodicFDSBP, cache) = nothing
+function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
+                             surface_integral, dg::DGMultiPeriodicFDSBP)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
 
+function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
+                              mesh::VertexMappedMesh,
+                              have_nonconservative_terms::Val{false}, equations,
+                              dg::DGMultiPeriodicFDSBP)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
 
-# specializations for periodic operators
-# function prolong2interfaces!(
-#     cache, u, mesh::AbstractMeshData, equations, surface_integral,
-#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
-
-#   @assert nelements(mesh, dg, cache) == 1
-# end
-
-# function calc_interface_flux!(
-#     cache, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
-#     nonconservative_terms::Val{true}, equations,
-#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
-
-#   @assert nelements(mesh, dg, cache) == 1
-# end
-# function calc_interface_flux!(
-#     cache, surface_integral::SurfaceIntegralWeakForm, mesh::VertexMappedMesh,
-#     nonconservative_terms::Val{false}, equations,
-#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
-
-#   @assert nelements(mesh, dg, cache) == 1
-# end
-
-# function calc_boundary_flux!(
-#     cache, t, boundary_conditions::BoundaryConditionPeriodic, mesh, equations,
-#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
-
-#   @assert sum(length, values(mesh.boundary_faces)) == 0
-# end
-# function calc_boundary_flux!(
-#     cache, t, boundary_conditions, mesh, equations,
-#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral}) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
-
-#   @assert sum(length, values(mesh.boundary_faces)) == 0
-# end
-
-# function calc_surface_integral!(
-#     du, u, surface_integral::SurfaceIntegralWeakForm,
-#     mesh::VertexMappedMesh, equations,
-#     dg::DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral},
-#     cache) where {NDIMS, ElemType, ApproxType<:AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
-
-#   @assert nelements(mesh, dg, cache) == 1
-# end
+function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
+                                mesh::VertexMappedMesh, equations,
+                                dg::DGMultiPeriodicFDSBP, cache)
+  @assert nelements(mesh, dg, cache) == 1
+  nothing
+end
