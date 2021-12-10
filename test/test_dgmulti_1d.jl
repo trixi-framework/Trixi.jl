@@ -57,6 +57,17 @@ isdir(outdir) && rm(outdir, recursive=true)
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
   end
+
+  @trixi_testset "DGMulti with periodic SBP unit test" begin
+    # see https://github.com/trixi-framework/Trixi.jl/pull/1013
+    dg = DGMulti(element_type = Line(),
+                 approximation_type = periodic_derivative_operator(
+                   derivative_order=1, accuracy_order=4, xmin=-5.0, xmax=10.0, N=50))
+    mesh = CartesianMesh(dg)
+    @test mapreduce(isapprox, &, mesh.md.xyz, dg.basis.rst)
+    @test minimum(dg.basis.rst[1]) ≈ -5
+    @test maximum(dg.basis.rst[1]) ≈ 10 atol=0.35
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
