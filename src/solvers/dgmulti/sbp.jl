@@ -288,7 +288,14 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   mapM = mapP = mapB = []
 
   # volume geofacs Gij = dx_i/dxhat_j
-  rstxyzJ = @SMatrix [e z; z e] # TODO: extend to mapped domains
+  # TODO: extend to mapped domains
+  if NDIMS==1
+    rstxyzJ = @SMatrix [e]
+  elseif NDIMS==2
+    rstxyzJ = @SMatrix [e z; z e]
+  elseif NDIMS==3
+    rstxyzJ = @SMatrix [e z z; z e z; z z e]
+  end
   J = e
 
   # surface geofacs

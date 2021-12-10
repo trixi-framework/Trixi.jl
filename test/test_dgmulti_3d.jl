@@ -112,6 +112,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.013861851418853988, 0.02126572106620328, 0.021265721066209053, 0.021265721066210386, 0.0771455289446683]
     )
   end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (FD SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      l2 = [0.03018352342456208, 0.03196484844911281, 0.0319648484491128, 0.031964848449112786, 0.0737406965643717],
+      linf = [0.11502358754869335, 0.14221220322810502, 0.1422122032281119, 0.142212203228109, 0.35102672849482985]
+    )
+  end
+
 end
 
 # Clean up afterwards: delete Trixi output directory
