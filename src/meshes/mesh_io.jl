@@ -347,19 +347,62 @@ end
 
 function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
   if mpi_isroot()
-    ndims_, n_cells = h5open(mesh_file, "r") do file
-      read(attributes(file)["ndims"]),
-      read(attributes(file)["n_cells"])
+    ndims_, mesh_type = h5open(mesh_file, "r") do file
+      return read(attributes(file)["ndims"]),
+            read(attributes(file)["mesh_type"])
     end
     MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
-    MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
+    MPI.bcast(mesh_type, mpi_root(), mpi_comm())
   else
     ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
-    n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+    mesh_type = MPI.bcast(nothing, mpi_root(), mpi_comm())
   end
 
-  mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max))
-  load_mesh!(mesh, mesh_file)
+  if mesh_type == "TreeMesh"
+    if mpi_isroot()
+      n_cells = h5open(mesh_file, "r") do file
+        read(attributes(file)["n_cells"])
+      end
+      MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
+      MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
+    else
+      ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+      n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+    end
+
+    mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max))
+    load_mesh!(mesh, mesh_file)
+  elseif mesh_type == "P4estMesh"
+    if mpi_isroot()
+      p4est_filename, tree_node_coordinates,
+          nodes, boundary_names_ = h5open(mesh_file, "r") do file
+        return read(attributes(file)["p4est_file"]),
+              read(file["tree_node_coordinates"]),
+              read(file["nodes"]),
+              read(file["boundary_names"])
+      end
+
+      boundary_names = boundary_names_ .|> Symbol
+
+      p4est_file = joinpath(dirname(mesh_file), p4est_filename)
+
+      data = (p4est_file, tree_node_coordinates, nodes, boundary_names)
+      MPI.bcast(data, mpi_root(), mpi_comm())
+    else
+      data = MPI.bcast(nothing, mpi_root(), mpi_comm())
+      p4est_file, tree_node_coordinates, nodes, boundary_names = data
+    end
+
+    # Prevent Julia crashes when `p4est` can't find the file
+    @assert isfile(p4est_file)
+
+    p4est = load_p4est(p4est_file, Val(ndims_))
+
+    mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
+                            nodes, boundary_names, "", false)
+  else
+    error("Unknown mesh type!")
+  end
 
   return mesh
 end
