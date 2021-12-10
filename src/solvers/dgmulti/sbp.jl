@@ -352,13 +352,13 @@ end
 
 # specialized for DGMultiPeriodicFDSBP since there are no face nodes
 # and thus no inverse trace constant for periodic domains.
-function estimate_dt(mesh::AbstractMeshData, dg::DGMultiPeriodicFDSBP)
+function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
   rd = dg.basis # RefElemData
   return StartUpDG.estimate_h(rd, mesh.md)
 end
 
 # do nothing for interface terms if using a periodic operator
-function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
+function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
                              surface_integral, dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
   nothing
