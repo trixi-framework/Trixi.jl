@@ -296,20 +296,21 @@ end
 
 # type alias for specializing on a periodic SBP operator
 const DGMultiPeriodicFDSBP{ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.PeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
 """
-  CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS})
+    CartesianMesh(dg::DGMulti)
 
 Constructs a single-element `mesh::AbstractMeshData` for a single periodic element given
-a DGMulti with approximation_type <: SummationByPartsOperators.AbstractDerivativeOperator.
+a DGMulti with `approximation_type` set to a periodic (finite difference) SBP oerator from 
+SummationByPartsOperators.jl.
 """
 function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
 
   rd = dg.basis
 
   e = ones(size(rd.r))
-  z = zero.(e)
+  z = zero(e)
 
   VXYZ = ntuple(_ -> [], NDIMS)
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
@@ -348,7 +349,7 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
 end
 
-# `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(h)`. However,
+# `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`. However,
 # since we do not initialize `Jf` here, we specialize `estimate_h` based on the grid
 # provided by SummationByPartsOperators.jl.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
