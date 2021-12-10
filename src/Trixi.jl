@@ -67,7 +67,7 @@ using SummationByPartsOperators: AbstractDerivativeOperator,
 import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
-  SummationByPartsOperators, derivative_operator
+  SummationByPartsOperators, derivative_operator, periodic_derivative_operator
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
