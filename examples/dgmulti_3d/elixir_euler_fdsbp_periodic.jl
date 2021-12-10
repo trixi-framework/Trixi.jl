@@ -14,7 +14,7 @@ volume_flux  = flux_ranocha
 surface_flux = flux_lax_friedrichs
 solver = DGMulti(polydeg = 3, element_type = Hex(),
                  approximation_type = SummationByPartsOperators.periodic_derivative_operator(
-                 derivative_order=1, accuracy_order=4, xmin=0.0, xmax=1.0, N=20),
+                   derivative_order=1, accuracy_order=4, xmin=0.0, xmax=1.0, N=20),
                  surface_integral= SurfaceIntegralWeakForm(surface_flux),
                  volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
