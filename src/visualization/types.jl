@@ -1,6 +1,6 @@
 # Convenience type to allow dispatch on solution objects that were created by Trixi
 #
-# This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
+# This is a union of a Trixi-specific SciMLBase.ODESolution and of Trixi's own
 # TimeIntegratorSolution.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
@@ -277,7 +277,7 @@ end
     PlotData2D(sol; kwargs...)
 
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
-returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
+returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
 `TimeIntegratorSolution`).
 
 !!! warning "Experimental implementation"
@@ -585,9 +585,10 @@ end
 """
     PlotData1D(sol; kwargs...)
 
-Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
-returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
+Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
+(which returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
 `TimeIntegratorSolution`).
+
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
