@@ -91,6 +91,6 @@ function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict
 end
 
 # TODO: deprecate this interface
-VertexMappedMesh(args...) = DGMultiMesh(args...)
+VertexMappedMesh(args...; kwargs...) = DGMultiMesh(args...; kwargs...)
 
 end # @muladd
