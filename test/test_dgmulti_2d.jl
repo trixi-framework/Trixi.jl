@@ -163,10 +163,20 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_euler_fdsbp_periodic.jl (FD SBP, EC)" begin
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
-      l2 = [1.3332363422387599e-6, 2.044661420878783e-6, 2.0446614209704155e-6, 5.281729652546522e-6],
-      linf = [2.6998018645141286e-6, 3.988278189259731e-6, 3.988278191480177e-6, 8.847848166571026e-6]
+      l2 = [1.333332034149886e-6, 2.0448346280892024e-6, 2.0448346279766305e-6, 5.282189803510037e-6],
+      linf = [2.700015170553627e-6, 3.988595024262409e-6, 3.988595024928543e-6, 8.84858303740188e-6]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (CGSEM)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      approximation_type = SummationByPartsOperators.couple_continuously(
+        SummationByPartsOperators.legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
+        SummationByPartsOperators.UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10)),
+      l2 = [1.5440402410017893e-5, 1.4913189903083485e-5, 1.4913189902797073e-5, 2.6104615985156992e-5],
+      linf = [4.16334345412217e-5, 5.067812788173143e-5, 5.067812786885284e-5, 9.887976803746312e-5]
     )
   end
 
