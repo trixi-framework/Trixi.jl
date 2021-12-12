@@ -322,19 +322,6 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   # volume geofacs Gij = dx_i/dxhat_j
   coord_diffs = coordinates_max .- coordinates_min
-  if NDIMS==1
-    rxJ = coord_diffs[1] / 2
-    rstxyzJ = @SMatrix [rxJ * e]
-  elseif NDIMS==2
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
-    rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
-  elseif NDIMS==3
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
-    tzJ = coord_diffs[3] / 2
-    rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
-  end
 
   # Periodic SBP operators do not include one endpoint. We account for this by adding
   # `h`` when estimating `factor`, which is the size of the "reference interval".
@@ -342,6 +329,21 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   x = grid(D)
   h = x[2] - x[1]
   factor = (x -> x[2] - x[1])(extrema(grid(D))) + h
+
+  if NDIMS==1
+    rxJ = coord_diffs[1] / factor
+    rstxyzJ = @SMatrix [rxJ * e]
+  elseif NDIMS==2
+    rxJ = coord_diffs[1] / factor
+    syJ = coord_diffs[2] / factor
+    rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
+  elseif NDIMS==3
+    rxJ = coord_diffs[1] / factor
+    syJ = coord_diffs[2] / factor
+    tzJ = coord_diffs[3] / factor
+    rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
+  end
+
   J = e * prod(coord_diffs) / factor^NDIMS
 
   # surface geofacs
