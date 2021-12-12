@@ -205,7 +205,6 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, DGMultiMesh, estimate_dt, CartesianMesh
-export VertexMappedMesh # TODO: deprecate
 export GaussSBP
 
 # Visualization-related exports

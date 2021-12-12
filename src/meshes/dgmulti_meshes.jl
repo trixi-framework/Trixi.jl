@@ -90,7 +90,6 @@ function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict
   return DGMultiMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
 
-# TODO: deprecate this interface
-VertexMappedMesh(args...; kwargs...) = DGMultiMesh(args...; kwargs...)
+@deprecate VertexMappedMesh(args...; kwargs...) = DGMultiMesh(args...; kwargs...)
 
 end # @muladd
