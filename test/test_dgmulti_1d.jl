@@ -49,13 +49,24 @@ isdir(outdir) && rm(outdir, recursive=true)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
   end
 
-  @trixi_testset "elixir_euler_fdsbp_periodic.jl (FD SBP periodic)" begin
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
-      l2 = [9.143049271995802e-7, 1.8989162075330386e-6, 3.9897318713851825e-6],
-      linf = [1.7314023346148844e-6, 3.3238808521129926e-6, 6.522518362750418e-6]
+      l2 = [9.146929181643738e-7, 1.8997616880602161e-6, 3.991417702597226e-6],
+      linf = [1.7321089886834784e-6, 3.325288882471966e-6, 6.525278768876319e-6]
     )
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
+  end
+
+  @trixi_testset "DGMulti with periodic SBP unit test" begin
+    # see https://github.com/trixi-framework/Trixi.jl/pull/1013
+    dg = DGMulti(element_type = Line(),
+                 approximation_type = periodic_derivative_operator(
+                   derivative_order=1, accuracy_order=4, xmin=-5.0, xmax=10.0, N=50))
+    mesh = CartesianMesh(dg)
+    @test mapreduce(isapprox, &, mesh.md.xyz, dg.basis.rst)
+    @test minimum(dg.basis.rst[1]) ≈ -5
+    @test maximum(dg.basis.rst[1]) ≈ 10 atol=0.35
   end
 end
 

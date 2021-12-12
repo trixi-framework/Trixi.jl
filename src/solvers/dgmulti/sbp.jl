@@ -50,19 +50,22 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
 
   # StartUpDG assumes nodes from -1 to +1. Thus, we need to re-scale everything.
   if D isa AbstractPeriodicDerivativeOperator
-    # Periodic operators do include only the left boundary nodes in their
-    # computational grid, not the right boundary node. Thus, we need to use
-    # their "evaluation grid" including both boundary nodes to determine the
-    # grid spacing factor.
-    xmin, xmax = extrema(D.grid_evaluate)
+    # Periodic operators do not include both boundary nodes in their
+    # computational grid. Thus, they cannot be handled in the same way as
+    # non-periodic operators.
+    # Currently, we only support periodic operators with our special
+    # `CartesianMesh` constructor, which gets the geometry information from
+    # the DGMulti solver itself. Hence, the nodes of the mesh will always be
+    # the same as the nodes of the solver and we do not need to adjust anything.
+    factor = one(eltype(nodes_1d))
   else
     # All non-periodic SBP operators include both boundary nodes in their
-    # computational grid.
+    # computational grid. Thus, we can adjust the grid spacing as follows.
     xmin, xmax = extrema(nodes_1d)
+    factor = 2 / (xmax - xmin)
+    @. nodes_1d = factor * (nodes_1d - xmin) - 1
+    @. weights_1d = factor * weights_1d
   end
-  factor = 2 / (xmax - xmin)
-  @. nodes_1d = factor * (nodes_1d - xmin) - 1
-  @. weights_1d = factor * weights_1d
 
   D_1d = droptol!(inv(factor) * sparse(D), tol)
   I_1d = Diagonal(ones(Bool, length(nodes_1d)))
@@ -344,7 +347,7 @@ end
 # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
 # However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
 # based on the grid provided by SummationByPartsOperators.jl.
-function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.PeriodicDerivativeOperator}
+function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator}
   D = rd.approximationType
   x = grid(D)
   return x[2] - x[1]
