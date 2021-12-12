@@ -15,11 +15,9 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = Polynomial()
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-cells_per_dimension = (16, 16)
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
-vertex_coordinates = map(x -> 2 * x, vertex_coordinates) # map domain to [-2, 2]^2
-mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
-
+mesh = CartesianMesh(dg, cells_per_dimension=(16, 16),
+                     coordinates_min=(-2, -2), coordinates_max=(2, 2),
+                     is_periodic=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
 ###############################################################################
