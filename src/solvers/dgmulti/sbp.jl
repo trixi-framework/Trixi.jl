@@ -300,7 +300,9 @@ Constructs a single-element [`VertexMappedMesh`](@ref) for a single periodic ele
 a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
 SummationByPartsOperators.jl.
 """
-function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
+function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
+                       coordinates_min=ntuple(_ -> -1.0, NDIMS),
+                       coordinates_max=ntuple(_ -> 1.0, NDIMS)) where {NDIMS}
 
   rd = dg.basis
 
@@ -311,7 +313,7 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
 
-  xyz = xyzq = rd.rst # TODO: DGMulti; extend to mapped domains
+  xyz = xyzq = rd.rst
   xyzf = ntuple(_ -> [], NDIMS)
   wJq = diag(rd.M)
 
@@ -319,15 +321,28 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   mapM = mapP = mapB = []
 
   # volume geofacs Gij = dx_i/dxhat_j
-  # TODO: DGMulti; extend to mapped domains
+  coord_diffs = coordinates_max .- coordinates_min
   if NDIMS==1
-    rstxyzJ = @SMatrix [e]
+    rxJ = coord_diffs[1] / 2
+    rstxyzJ = @SMatrix [rxJ * e]
   elseif NDIMS==2
-    rstxyzJ = @SMatrix [e z; z e]
+    rxJ = coord_diffs[1] / 2
+    syJ = coord_diffs[2] / 2
+    rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
   elseif NDIMS==3
-    rstxyzJ = @SMatrix [e z z; z e z; z z e]
+    rxJ = coord_diffs[1] / 2
+    syJ = coord_diffs[2] / 2
+    tzJ = coord_diffs[3] / 2
+    rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
   end
-  J = e
+
+  # Periodic SBP operators do not include one endpoint. We account for this by adding
+  # `h`` when estimating `factor`, which is the size of the "reference interval".
+  D = rd.approximationType
+  x = grid(D)
+  h = x[2] - x[1]
+  factor = (x -> x[2] - x[1])(extrema(grid(D))) + h
+  J = e * prod(coord_diffs) / factor^NDIMS
 
   # surface geofacs
   nxyzJ = ntuple(_ -> [], NDIMS)
