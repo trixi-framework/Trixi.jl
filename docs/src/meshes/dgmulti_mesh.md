@@ -98,7 +98,7 @@ the `examples/dgmulti_2d` and `examples/dgmulti_3d` folders. Some key elixirs to
 
 # For developers
 
-## `AbstractMeshData` wrapper type
+## `DGMultiMesh` wrapper type
 
 `DGMulti` meshes in Trixi are represented using a `DGMultiMesh{NDIMS, ElemType, ...}` type.
 This mesh type is assumed to have fields `md::MeshData`, which contains geometric terms
