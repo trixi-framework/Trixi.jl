@@ -30,7 +30,7 @@ initial_condition = initial_condition_BM_vortex
 
 mesh = CartesianMesh(dg, cells_per_dimension=(16, 16),
                      coordinates_min=(-0.5, -0.5), coordinates_max=(0.5, 0.5),
-                     is_periodic=(true, true))
+                     periodic=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
 tspan = (0.0, 1.0)

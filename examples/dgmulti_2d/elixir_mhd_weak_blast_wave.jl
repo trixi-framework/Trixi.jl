@@ -17,7 +17,7 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = Polynomial()
 
 mesh = CartesianMesh(dg, cells_per_dimension=(16, 16),
                      coordinates_min=(-2, -2), coordinates_max=(2, 2),
-                     is_periodic=(true, true))
+                     periodic=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
 ###############################################################################

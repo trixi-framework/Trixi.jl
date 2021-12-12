@@ -44,21 +44,21 @@ end
 """
   DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV, rd::RefElemData;
               is_on_boundary = nothing,
-              is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+              periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
 - `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
 - `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
   reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
-- `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
+- `periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                      is_on_boundary = nothing,
-                     is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
+                     periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
 
   md = MeshData(vertex_coordinates, EToV, rd)
-  md = StartUpDG.make_periodic(md, is_periodic)
+  md = StartUpDG.make_periodic(md, periodic)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
   return DGMultiMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end
@@ -66,10 +66,10 @@ end
 # specialization for NDIMS = 1
 function DGMultiMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                      is_on_boundary = nothing,
-                     is_periodic = (false, )) where {Tv, Ti}
+                     periodic = (false, )) where {Tv, Ti}
 
   md = MeshData(vertex_coordinates, EToV, rd)
-  md = StartUpDG.make_periodic(md, is_periodic...)
+  md = StartUpDG.make_periodic(md, periodic...)
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
   return DGMultiMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces), typeof(boundary_faces)}(md, boundary_faces)
 end

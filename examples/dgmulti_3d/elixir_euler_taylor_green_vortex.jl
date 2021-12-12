@@ -35,7 +35,7 @@ solver = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynom
 
 mesh = CartesianMesh(solver, cells_per_dimension=(8, 8, 8),
                      coordinates_min=(-pi, -pi, -pi), coordinates_max=(pi, pi, pi),
-                     is_periodic=(true, true, true))
+                     periodic=(true, true, true))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 

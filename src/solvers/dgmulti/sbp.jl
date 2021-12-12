@@ -333,11 +333,11 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   nxyzJ = ntuple(_ -> [], NDIMS)
   Jf = []
 
-  is_periodic = ntuple(_ -> true, NDIMS)
+  periodic = ntuple(_ -> true, NDIMS)
 
   md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
-                is_periodic)
+                periodic)
 
   boundary_faces = []
   n_boundary_faces = length(boundary_faces)

@@ -80,7 +80,7 @@ end
 """
   DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti;
               is_on_boundary = nothing,
-              is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+              periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
 Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 """
@@ -99,18 +99,18 @@ DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
   CartesianMesh(dg::DGMulti; cells_per_dimension,
                 coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
                 is_on_boundary=nothing,
-                is_periodic=ntuple(_ -> false, NDIMS))
+                periodic=ntuple(_ -> false, NDIMS))
 
 Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.elementType`. The domain is
 the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
-- `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
+- `periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function CartesianMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
                        coordinates_min=ntuple(_ -> -1.0, NDIMS),
                        coordinates_max=ntuple(_ -> 1.0, NDIMS),
                        is_on_boundary=nothing,
-                       is_periodic=ntuple(_ -> false, NDIMS)) where {NDIMS}
+                       periodic=ntuple(_ -> false, NDIMS)) where {NDIMS}
 
   vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
   domain_lengths = coordinates_max .- coordinates_min
@@ -118,7 +118,7 @@ function CartesianMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
     @. vertex_coordinates[i] = .5 * (vertex_coordinates[i] + 1) * domain_lengths[i] + coordinates_min[i]
   end
 
-  return DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary, is_periodic=is_periodic)
+  return DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary, periodic=periodic)
 end
 
 # Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
