@@ -19,7 +19,7 @@ for human readability.
 #### Removed
 
 - The `VertexMappedMesh` type is removed in favor of the `DGMultiMesh` type.
-  The `VertexMappedMesh` constructor is still supported but will be deprecated.
+  The `VertexMappedMesh` constructor is deprecated.
 
 ## Changes when updating to v0.4 from v0.3.x
 
