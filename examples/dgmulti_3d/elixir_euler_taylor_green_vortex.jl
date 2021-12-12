@@ -33,7 +33,7 @@ solver = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynom
                 surface_integral= SurfaceIntegralWeakForm(surface_flux),
                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = CartesianMesh(dg, cells_per_dimension=(8, 8, 8),
+mesh = CartesianMesh(solver, cells_per_dimension=(8, 8, 8),
                      coordinates_min=(-pi, -pi, -pi), coordinates_max=(pi, pi, pi),
                      is_periodic=(true, true, true))
 
