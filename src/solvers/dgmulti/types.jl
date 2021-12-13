@@ -110,7 +110,7 @@ function CartesianMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
                        coordinates_min=ntuple(_ -> -1.0, NDIMS),
                        coordinates_max=ntuple(_ -> 1.0, NDIMS),
                        is_on_boundary=nothing,
-                       periodic=ntuple(_ -> false, NDIMS)) where {NDIMS}
+                       periodicity=ntuple(_ -> false, NDIMS)) where {NDIMS}
 
   vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
   domain_lengths = coordinates_max .- coordinates_min
@@ -118,7 +118,7 @@ function CartesianMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
     @. vertex_coordinates[i] = .5 * (vertex_coordinates[i] + 1) * domain_lengths[i] + coordinates_min[i]
   end
 
-  return DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary, periodic=periodic)
+  return DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary, periodicity=periodicity)
 end
 
 # Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
