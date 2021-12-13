@@ -303,8 +303,8 @@ a DGMulti with `approximation_type` set to a periodic (finite difference) SBP op
 SummationByPartsOperators.jl.
 """
 function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
-                       coordinates_min=ntuple(_ -> -1.0, NDIMS),
-                       coordinates_max=ntuple(_ -> 1.0, NDIMS)) where {NDIMS}
+                       coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
+                       coordinates_max=ntuple(_ -> one(real(dg)), NDIMS)) where {NDIMS}
 
   rd = dg.basis
 
