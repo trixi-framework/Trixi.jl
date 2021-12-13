@@ -50,6 +50,8 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
 
   # StartUpDG assumes nodes from -1 to +1. Thus, we need to re-scale everything.
   if D isa AbstractPeriodicDerivativeOperator
+    # TODO: DGMulti. Remove this branch and use the non-periodic code for all
+    #                operators.
     # Periodic operators do not include both boundary nodes in their
     # computational grid. Thus, they cannot be handled in the same way as
     # non-periodic operators.
@@ -59,9 +61,9 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
     # the same as the nodes of the solver and we do not need to adjust anything.
     factor = one(eltype(nodes_1d))
   else
-    # All non-periodic SBP operators include both boundary nodes in their
-    # computational grid. Thus, we can adjust the grid spacing as follows.
-    xmin, xmax = extrema(nodes_1d)
+    # We can adjust the grid spacing as follows.
+    xmin = SummationByPartsOperators.xmin(D)
+    xmax = SummationByPartsOperators.xmax(D)
     factor = 2 / (xmax - xmin)
     @. nodes_1d = factor * (nodes_1d - xmin) - 1
     @. weights_1d = factor * weights_1d
