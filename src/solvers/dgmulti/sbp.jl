@@ -49,25 +49,12 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
   end
 
   # StartUpDG assumes nodes from -1 to +1. Thus, we need to re-scale everything.
-  if D isa AbstractPeriodicDerivativeOperator
-    # TODO: DGMulti. Remove this branch and use the non-periodic code for all
-    #                operators.
-    # Periodic operators do not include both boundary nodes in their
-    # computational grid. Thus, they cannot be handled in the same way as
-    # non-periodic operators.
-    # Currently, we only support periodic operators with our special
-    # `CartesianMesh` constructor, which gets the geometry information from
-    # the DGMulti solver itself. Hence, the nodes of the mesh will always be
-    # the same as the nodes of the solver and we do not need to adjust anything.
-    factor = one(eltype(nodes_1d))
-  else
-    # We can adjust the grid spacing as follows.
-    xmin = SummationByPartsOperators.xmin(D)
-    xmax = SummationByPartsOperators.xmax(D)
-    factor = 2 / (xmax - xmin)
-    @. nodes_1d = factor * (nodes_1d - xmin) - 1
-    @. weights_1d = factor * weights_1d
-  end
+  # We can adjust the grid spacing as follows.
+  xmin = SummationByPartsOperators.xmin(D)
+  xmax = SummationByPartsOperators.xmax(D)
+  factor = 2 / (xmax - xmin)
+  @. nodes_1d = factor * (nodes_1d - xmin) - 1
+  @. weights_1d = factor * weights_1d
 
   D_1d = droptol!(inv(factor) * sparse(D), tol)
   I_1d = Diagonal(ones(Bool, length(nodes_1d)))
@@ -325,28 +312,21 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   # volume geofacs Gij = dx_i/dxhat_j
   coord_diffs = coordinates_max .- coordinates_min
 
-  # Periodic SBP operators do not include one endpoint. We account for this by adding
-  # `h`` when estimating `factor`, which is the size of the "reference interval".
-  D = rd.approximationType
-  xmin = SummationByPartsOperators.xmin(D)
-  xmax = SummationByPartsOperators.xmax(D)
-  factor = (xmax - xmin)
-
   if NDIMS==1
-    rxJ = coord_diffs[1] / factor
+    rxJ = coord_diffs[1] / 2
     rstxyzJ = @SMatrix [rxJ * e]
   elseif NDIMS==2
-    rxJ = coord_diffs[1] / factor
-    syJ = coord_diffs[2] / factor
+    rxJ = coord_diffs[1] / 2
+    syJ = coord_diffs[2] / 2
     rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
   elseif NDIMS==3
-    rxJ = coord_diffs[1] / factor
-    syJ = coord_diffs[2] / factor
-    tzJ = coord_diffs[3] / factor
+    rxJ = coord_diffs[1] / 2
+    syJ = coord_diffs[2] / 2
+    tzJ = coord_diffs[3] / 2
     rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
   end
 
-  J = e * prod(coord_diffs) / factor^NDIMS
+  J = e * prod(coord_diffs) / 2^NDIMS
 
   # surface geofacs
   nxyzJ = ntuple(_ -> [], NDIMS)
