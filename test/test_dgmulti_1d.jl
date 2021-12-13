@@ -65,8 +65,9 @@ isdir(outdir) && rm(outdir, recursive=true)
                    derivative_order=1, accuracy_order=4, xmin=-5.0, xmax=10.0, N=50))
     mesh = CartesianMesh(dg)
     @test mapreduce(isapprox, &, mesh.md.xyz, dg.basis.rst)
-    @test minimum(dg.basis.rst[1]) ≈ -5
-    @test maximum(dg.basis.rst[1]) ≈ 10 atol=0.35
+    # check to make sure nodes are rescaled to [-1, 1]
+    @test minimum(dg.basis.rst[1]) ≈ -1
+    @test maximum(dg.basis.rst[1]) ≈ 1 atol=0.35
   end
 end
 
