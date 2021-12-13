@@ -63,7 +63,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     dg = DGMulti(element_type = Line(),
                  approximation_type = periodic_derivative_operator(
                    derivative_order=1, accuracy_order=4, xmin=-5.0, xmax=10.0, N=50))
-    mesh = CartesianMesh(dg)
+    mesh = DGMultiMesh(dg)
     @test mapreduce(isapprox, &, mesh.md.xyz, dg.basis.rst)
     # check to make sure nodes are rescaled to [-1, 1]
     @test minimum(dg.basis.rst[1]) ≈ -1

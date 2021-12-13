@@ -283,15 +283,15 @@ const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
 """
-    CartesianMesh(dg::DGMulti)
+    DGMultiMesh(dg::DGMulti)
 
 Constructs a single-element [`VertexMappedMesh`](@ref) for a single periodic element given
 a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
 SummationByPartsOperators.jl.
 """
-function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
-                       coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
-                       coordinates_max=ntuple(_ -> one(real(dg)), NDIMS)) where {NDIMS}
+function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
+                     coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
+                     coordinates_max=ntuple(_ -> one(real(dg)), NDIMS)) where {NDIMS}
 
   rd = dg.basis
 

@@ -11,7 +11,7 @@ equations = CompressibleEulerEquations1D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-mesh = CartesianMesh(dg)
+mesh = DGMultiMesh(dg)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms)

@@ -18,7 +18,7 @@ solver = DGMulti(polydeg = 3, element_type = Hex(),
                  surface_integral= SurfaceIntegralWeakForm(surface_flux),
                  volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = CartesianMesh(solver)
+mesh = DGMultiMesh(solver)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms=source_terms)
