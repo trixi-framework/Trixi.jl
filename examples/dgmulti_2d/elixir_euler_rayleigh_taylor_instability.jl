@@ -67,7 +67,7 @@ dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial
 num_elements = 16
 mesh = CartesianMesh(dg, cells_per_dimension=(num_elements, 4 * num_elements),
                      coordinates_min=(0.0, 0.0), coordinates_max=(0.25, 1.0),
-                     periodic=(true,false))
+                     periodicity=(true,false))
 
 initial_condition = initial_condition_rayleigh_taylor_instability
 boundary_conditions = (; :entire_boundary => boundary_condition_slip_wall)
