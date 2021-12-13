@@ -328,9 +328,9 @@ function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   # Periodic SBP operators do not include one endpoint. We account for this by adding
   # `h`` when estimating `factor`, which is the size of the "reference interval".
   D = rd.approximationType
-  x = grid(D)
-  h = x[2] - x[1]
-  factor = (x -> x[2] - x[1])(extrema(grid(D))) + h
+  xmin = SummationByPartsOperators.xmin(D)
+  xmax = SummationByPartsOperators.xmax(D)
+  factor = (xmax - xmin)
 
   if NDIMS==1
     rxJ = coord_diffs[1] / factor
