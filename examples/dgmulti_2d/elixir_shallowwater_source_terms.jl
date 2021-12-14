@@ -14,7 +14,7 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = SBP(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = CartesianMesh(dg, cells_per_dimension=(8, 8),
+mesh = DGMultiMesh(dg, cells_per_dimension=(8, 8),
                      coordinates_min=(0, 0), coordinates_max=(sqrt(2), sqrt(2)),
                      periodicity=(true, true))
 

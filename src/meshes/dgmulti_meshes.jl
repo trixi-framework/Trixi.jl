@@ -51,11 +51,12 @@ end
 - `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
   reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
-- `periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
+- `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
+   (x,y,z) direction.
 """
 function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                      is_on_boundary = nothing,
-                     periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
+                     periodicity=ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
 
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, periodicity)
@@ -66,7 +67,7 @@ end
 # specialization for NDIMS = 1
 function DGMultiMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                      is_on_boundary = nothing,
-                     periodicity = (false, )) where {Tv, Ti}
+                     periodicity=(false, )) where {Tv, Ti}
 
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, periodicity...)

@@ -96,7 +96,7 @@ DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
   DGMultiMesh(triangulateIO, dg.basis, boundary_dict)
 
 """
-  CartesianMesh(dg::DGMulti; cells_per_dimension,
+  DGMultiMesh(dg::DGMulti; cells_per_dimension,
                 coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
                 is_on_boundary=nothing,
                 periodic=ntuple(_ -> false, NDIMS))
@@ -106,11 +106,11 @@ the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
-function CartesianMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
-                       coordinates_min=ntuple(_ -> -1.0, NDIMS),
-                       coordinates_max=ntuple(_ -> 1.0, NDIMS),
-                       is_on_boundary=nothing,
-                       periodicity=ntuple(_ -> false, NDIMS)) where {NDIMS}
+function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
+                     coordinates_min=ntuple(_ -> -1.0, NDIMS),
+                     coordinates_max=ntuple(_ -> 1.0, NDIMS),
+                     is_on_boundary=nothing,
+                     periodicity=ntuple(_ -> false, NDIMS)) where {NDIMS}
 
   vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
   domain_lengths = coordinates_max .- coordinates_min

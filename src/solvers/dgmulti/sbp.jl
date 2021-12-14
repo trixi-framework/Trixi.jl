@@ -56,7 +56,7 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
     # computational grid. Thus, they cannot be handled in the same way as
     # non-periodic operators.
     # Currently, we only support periodic operators with our special
-    # `CartesianMesh` constructor, which gets the geometry information from
+    # `DGMultiMesh` constructor, which gets the geometry information from
     # the DGMulti solver itself. Hence, the nodes of the mesh will always be
     # the same as the nodes of the solver and we do not need to adjust anything.
     factor = one(eltype(nodes_1d))
@@ -296,13 +296,13 @@ const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
 """
-    CartesianMesh(dg::DGMulti)
+    DGMultiMesh(dg::DGMulti)
 
 Constructs a single-element [`DGMultiMesh`](@ref) for a single periodic element given
 a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
 SummationByPartsOperators.jl.
 """
-function CartesianMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
+function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
 
   rd = dg.basis
 

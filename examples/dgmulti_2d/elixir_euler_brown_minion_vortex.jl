@@ -28,7 +28,7 @@ function initial_condition_BM_vortex(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_BM_vortex
 
-mesh = CartesianMesh(dg, cells_per_dimension=(16, 16),
+mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16),
                      coordinates_min=(-0.5, -0.5), coordinates_max=(0.5, 0.5),
                      periodicity=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)

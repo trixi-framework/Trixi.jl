@@ -65,7 +65,7 @@ dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 num_elements = 16
-mesh = CartesianMesh(dg, cells_per_dimension=(num_elements, 4 * num_elements),
+mesh = DGMultiMesh(dg, cells_per_dimension=(num_elements, 4 * num_elements),
                      coordinates_min=(0.0, 0.0), coordinates_max=(0.25, 1.0),
                      periodicity=(true,false))
 

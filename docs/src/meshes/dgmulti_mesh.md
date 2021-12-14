@@ -51,7 +51,7 @@ Here, `element_type` can be `Tri()`, `Quad()`, `Tet()`, or `Hex()`, and `approxi
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl),
   usually constructed as `D = derivative_operator(...)`. In this case, you do not need to
   pass a `polydeg`. Periodic derivative operators will only work with single-element meshes
-  constructed using [`CartesianMesh`](@ref).
+  constructed using [`DGMultiMesh`](@ref).
 
 Additional options can also be specified through `RefElemData_kwargs`:
 
@@ -106,7 +106,7 @@ derived from the mapping between the reference and physical elements, and `bound
 contains a `Dict` of boundary segment names (symbols) and list of faces which lie on that boundary
 segment.
 
-A [`DGMultiMesh`](@ref) can be constructed in several ways. For example, `CartesianMesh(dg::DGMulti)` will
+A [`DGMultiMesh`](@ref) can be constructed in several ways. For example, `DGMultiMesh(dg::DGMulti)` will
 return a Cartesian mesh on ``[-1, 1]^d`` with element types specified by `dg`.
 `DGMulti` meshes can also be constructed by specifying a list
 of vertex coordinates `vertex_coordinates_x`, `vertex_coordinates_y`, `vertex_coordinates_z` and a

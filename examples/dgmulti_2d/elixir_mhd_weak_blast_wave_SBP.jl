@@ -19,7 +19,7 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = SBP(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-mesh = CartesianMesh(dg, cells_per_dimension=cells_per_dimension,
+mesh = DGMultiMesh(dg, cells_per_dimension=cells_per_dimension,
                      coordinates_min=(-2, -2), coordinates_max=(2, 2),
                      periodicity=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
