@@ -121,6 +121,13 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
   return DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary, periodicity=periodicity)
 end
 
+# TODO: DGMulti. Deprecate in version 0.5
+function DGMultiMesh(dg::DGMulti{NDIMS}, args...;
+                     is_periodic=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+  Base.depwarn("keyword argument `is_periodic` is now `periodicity`", :DGMultiMesh)
+  return DGMultiMesh(args...; periodicity=is_periodic, kwargs...)
+end
+
 # Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
 
 # Matrix type for lazy construction of physical differentiation matrices
