@@ -181,9 +181,9 @@ function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, 
                                        surface_flux_function,
                                        equation::CompressibleMoistEulerEquations2D)
   if orientation == 1 # interface in x-direction
-    u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4], u_inner[5],u_inner[6])
+    u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4], u_inner[5], u_inner[6])
   else # interface in y-direction
-    u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4], u_inner[5],u_inner[6])
+    u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4], u_inner[5], u_inner[6])
   end
 
   # Calculate boundary flux
@@ -194,6 +194,78 @@ function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, 
   end
 
   return flux
+end
+
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+  surface_flux_function, equations::CompressibleMoistEulerEquations2D)
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
+
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_inner, normal, equations)
+
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent, p_local, rho_qv_local, rho_ql_local = cons2prim(u_local, equations)
+
+  # Get the solution of the pressure Riemann problem
+  # See Section 6.3.3 of
+  # Eleuterio F. Toro (2009)
+  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+  if v_normal <= 0.0
+  sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+  p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * inv(equations.kappa))
+  else # v_normal > 0.0
+  A = 2.0 / ((equations.gamma + 1) * rho_local)
+  B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+  p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+  end
+
+  # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_inner)),
+  p_star * normal[1],
+  p_star * normal[2],
+  zero(eltype(u_inner)),
+  zero(eltype(u_inner)),
+  zero(eltype(u_inner))) * norm_
+end
+
+
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
+  surface_flux_function, equations::CompressibleMoistEulerEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+              x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+             x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
+end
+
+
+@inline function rotate_to_x(u, normal_vector, equations::CompressibleMoistEulerEquations2D)
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal_vector[1]
+  s = normal_vector[2]
+
+  # Apply the 2D rotation matrix with normal and tangent directions of the form
+  # [ 1    0    0   0;
+  #   0   n_1  n_2  0;
+  #   0   t_1  t_2  0;
+  #   0    0    0   1 ]
+  # where t_1 = -n_2 and t_2 = n_1
+
+  return SVector(u[1],
+                 c * u[2] + s * u[3],
+                 -s * u[2] + c * u[3],
+                 u[4], u[5], u[6])
 end
 
 
@@ -403,22 +475,16 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleMoistEulerEq
 end
 
 
-function source_terms_warm_bubble(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
-  source_terms_geopotential(du, u, equations, dg, cache)
-  return nothing
+function source_terms_warm_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  du = zeros(eltype(u[1]), nvariables(equations))
+  source_terms_geopotential!(du, u, equations)
+  return SVector(du[1], du[2], du[3], du[4], du[5], du[6])
 end
 
 
-function source_terms_geopotential(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      # TODO: performance use temp
-      #x1 = x[1, i, j, element_id]
-      #x2 = x[2, i, j, element_id]
-      du[3, i, j, element] -=  equations.g * u[1, i, j, element]
-      du[4, i, j, element] -=  equations.g * u[3, i, j, element]
-    end
-  end
+function source_terms_geopotential!(du, u, equations::CompressibleMoistEulerEquations2D)
+  du[3] -=  equations.g * u[1]
+  du[4] -=  equations.g * u[3]
   return nothing
 end
 
@@ -441,25 +507,18 @@ function source_terms_moist_air(du, u, equations::CompressibleMoistEulerEquation
 end
 
 function source_terms_moist_bubble(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
-  source_terms_geopotential(du, u, equations, dg, cache)
-  source_terms_phase_change(du, u, equations, dg, cache)
-  return nothing
+  du = zeros(eltype(u[1]), nvariables(equations))
+  source_terms_geopotential!(du, u, equations)
+  source_terms_phase_change!(du, u, equations)
+  return SVector(du[1], du[2], du[3], du[4], du[5], du[6])
+  
 end
 
-function source_terms_phase_change(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      u_local = u[:, i, j ,element]
-      Q_ph = phase_change_term(u_local, equations)
-      du[5, i, j, element] += Q_ph
-      du[6, i, j, element] -= Q_ph
-    end
-  end
+function source_terms_phase_change!(du, u, equations::CompressibleMoistEulerEquations2D)
+      Q_ph = phase_change_term(u, equations)
+      du[5] += Q_ph
+      du[6] -= Q_ph
   return nothing
-end
-
-function get_energy_factor(u, equations::CompressibleMoistEulerEquations2D)
- 
 end
 
 
@@ -563,65 +622,66 @@ function condensation_source_term(u, equations::CompressibleMoistEulerEquations2
 end
 
 
-
 @inline function flux_LMARS(u_ll, u_rr, orientation::Integer , equations::CompressibleMoistEulerEquations2D)
-  @unpack a, gamma = equations
+  @unpack g = equations
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
   
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_E_ll = u_ll
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_E_rr = u_rr
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
   
   # Compute the necessary interface flux components
 
   rho_mean = 0.5 * (rho_ll + rho_rr) # TODO why choose the mean value here?
 
-  p_ll = (gamma - 1) * (rho_E_ll - 0.5 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll))
-  p_rr = (gamma - 1) * (rho_E_rr - 0.5 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr))
-
   if orientation == 1
 
     beta = 1 # diffusion parameter <= 1 
 
-    v_interface = 0.5 * (v1_rr + v1_ll) - beta * inv(2 * rho_mean * a) * (p_rr - p_ll)
-    p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * a * (v1_rr - v1_ll)
+    v_interface = 0.5 * (v1_rr + v1_ll) - beta * inv(2 * rho_mean * g) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * g * (v1_rr - v1_ll)
 
     if (v_interface > 0)
       f1 = rho_ll
       f2 = rho_v1_ll
       f3 = rho_v2_ll
-      f4 = rho_E_ll + p_ll
+      f4 = rho_e_ll + p_ll
+      f5 = rho_qv_ll
+      f6 = rho_ql_ll
     else
       f1 = rho_rr
       f2 = rho_v1_rr
       f3 = rho_v2_rr
-      f4 = rho_E_rr + p_rr
+      f4 = rho_e_rr + p_rr
+      f5 = rho_qv_rr
+      f6 = rho_ql_rr
     end
 
-    flux = SVector(f1, f2, f3, f4) * v_interface + SVector(0, 1, 0, 0) * p_interface
+    flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 1, 0, 0, 0, 0) * p_interface
 
   else # orientation = 2
 
-    v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * a) * (p_rr - p_ll)
-    p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
+    v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * g) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * g * (v2_rr - v2_ll)
 
     if (v_interface > 0)
       f1 = rho_ll
       f2 = rho_v1_ll
       f3 = rho_v2_ll
-      f4 = rho_E_ll + p_ll
+      f4 = rho_e_ll + p_ll
+      f5 = rho_qv_ll
+      f6 = rho_ql_ll
     else
       f1 = rho_rr
       f2 = rho_v1_rr
       f3 = rho_v2_rr
-      f4 = rho_E_rr + p_rr
+      f4 = rho_e_rr + p_rr
+      f5 = rho_qv_rr
+      f6 = rho_ql_rr
     end
 
-    flux = SVector(f1, f2, f3, f4) * v_interface + SVector(0, 0, 1, 0) * p_interface
+    flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 0, 1, 0, 0 ,0 ) * p_interface
   end
 
   return flux
@@ -672,58 +732,6 @@ end
   flux = SVector(f1, f2, f3, f4)*v_interface + SVector(0, normal_direction[1], normal_direction[2], 0)*p_interface
 
   return flux
-end
-
-#TODO: is it u_ll-u_rr?
-function flux_rusanov(u_ll, u_rr, orientation::Integer , equations::CompressibleMoistEulerEquations2D)
-  lambda = max(max_abs_speeds(u_ll, equations)[orientation], max_abs_speeds(u_rr, equations)[orientation])
-  #F_rusanov = SVector{length(u_ll)}(zeros(eltype(u_ll[1]), length(u_ll)))  
-  F_rusanov = 0.5*(flux(u_ll, orientation, equations) + flux(u_rr, orientation, equations)) + lambda*(u_ll - u_rr) 
-  return F_rusanov
-end
-
-
-# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
-# has been normalized prior to this rotation of the state vector
-@inline function rotate_to_x(u, normal_vector, equations::CompressibleMoistEulerEquations2D)
-  # cos and sin of the angle between the x-axis and the normalized normal_vector are
-  # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1]
-  s = normal_vector[2]
-
-  # Apply the 2D rotation matrix with normal and tangent directions of the form
-  # [ 1    0    0   0;
-  #   0   n_1  n_2  0;
-  #   0   t_1  t_2  0;
-  #   0    0    0   1 ]
-  # where t_1 = -n_2 and t_2 = n_1
-
-  return SVector(u[1],
-                 c * u[2] + s * u[3],
-                 -s * u[2] + c * u[3],
-                 u[4])
-end
-
-
-# Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
-# has been normalized prior to this back-rotation of the state vector
-@inline function rotate_from_x(u, normal_vector, equations::CompressibleMoistEulerEquations2D)
-  # cos and sin of the angle between the x-axis and the normalized normal_vector are
-  # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1]
-  s = normal_vector[2]
-
-  # Apply the 2D back-rotation matrix with normal and tangent directions of the form
-  # [ 1    0    0   0;
-  #   0   n_1  t_1  0;
-  #   0   n_2  t_2  0;
-  #   0    0    0   1 ]
-  # where t_1 = -n_2 and t_2 = n_1
-
-  return SVector(u[1],
-                 c * u[2] - s * u[3],
-                 s * u[2] + c * u[3],
-                 u[4])
 end
 
 
@@ -1003,8 +1011,8 @@ end
 
 
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
-  # Unpack left and right state
   @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
+  # Unpack left and right state
   rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
 
@@ -1047,9 +1055,10 @@ end
 end
 
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
   # Unpack left and right state
-  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
-  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
   v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
   v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
@@ -1080,6 +1089,102 @@ end
         + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
   f5 = f1 * qv_avg
   f6 = f1 * ql_avg
+
+  return SVector(f1, f2, f3, f4, f5, f6)
+end
+
+
+"""
+    function flux_shima_etal(u_ll, u_rr, orientation, equation::CompressibleMoistEquations2D)
+This flux is is a modification of the original kinetic energy preserving two-point flux by
+Kuya, Totani and Kawai (2018)
+  Kinetic energy and entropy preserving schemes for compressible flows
+  by split convective forms
+  [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+The modification is in the energy flux to guarantee pressure equilibrium and was developed by
+Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
+  Preventing spurious pressure oscillations in split convective form discretizations for
+  compressible flows
+"""
+@inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  qv_avg  = 1/2 * ( qv_ll +  qv_rr)
+  ql_avg  = 1/2 * ( ql_ll +  ql_rr)
+  p_avg = 1/2 * (p_ll + p_rr)
+  qd_avg = (1 - qv_avg - ql_avg)
+  e = (qv_avg * L_00 + 
+       (qd_avg * c_vd + qv_avg * c_vv + ql_avg * c_pl) * 
+       (p_avg / rho_avg) * inv(qd_avg * R_d + qv_avg * R_v))
+  kin_avg = 1/2 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
+    f1 = rho_avg * v1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * e  + rho_avg*v1_avg*kin_avg + pv1_avg
+    f5 = f1 * qv_avg
+    f6 = f1 * ql_avg
+  else
+    pv2_avg = 1/2 * (p_ll*v2_rr + p_rr*v2_ll)
+    f1 = rho_avg * v2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = f1 * e  + rho_avg*v1_avg*kin_avg + pv2_avg
+    f5 = f1 * qv_avg
+    f6 = f1 * ql_avg
+  end
+
+  return SVector(f1, f2, f3, f4, f5, f6)
+end
+
+
+@inline function flux_shima_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  qv_avg  = 1/2 * ( qv_ll +  qv_rr)
+  ql_avg  = 1/2 * ( ql_ll +  ql_rr)
+  p_avg = 1/2 * (p_ll + p_rr)
+  qd_avg = (1 - qv_avg - ql_avg)
+  e = (qv_avg * L_00 + 
+       (qd_avg * c_vd + qv_avg * c_vv + ql_avg * c_pl) * 
+       (p_avg / rho_avg) * inv(qd_avg * R_d + qv_avg * R_v))
+
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+  
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  qv_avg  = 1/2 * ( qv_ll +  qv_rr)
+  ql_avg  = 1/2 * ( qc_ll +  qc_rr)
+  p_avg = 1/2 * (p_ll + p_rr)
+  v_dot_n_avg = 1/2 * (v_dot_n_ll + v_dot_n_rr)
+
+   # Calculate fluxes depending on normal_direction
+   f1 = rho_avg * v_dot_n_avg
+   f2 = f1 * v1_avg + p_avg * normal_direction[1]
+   f3 = f1 * v2_avg + p_avg * normal_direction[2]
+   f4 = ( f1 * (velocity_square_avg + e)
+         + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
+   f5 = f1 * qv_avg
+   f6 = f1 * ql_avg
 
   return SVector(f1, f2, f3, f4, f5, f6)
 end

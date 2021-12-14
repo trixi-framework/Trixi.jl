@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleMoistEulerEquations2D()
+equations = CompressibleDryEulerEquations2D()
 
 initial_condition = initial_condition_warm_bubble
 
@@ -18,26 +18,17 @@ source_term = source_terms_warm_bubble
 
 ###############################################################################
 # Get the DG approximation space
-
-
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha
+volume_flux = flux_shima_etal
 
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.5,
-                                         alpha_min=0.001,
-                                         alpha_smooth=true,
-                                         variable=density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg=volume_flux,
-                                                  volume_flux_fv=surface_flux)
+volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
 
-#volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
+
 
 coordinates_min = (-5000.0, 0.0)
 coordinates_max = (5000.0, 10000.0)
@@ -69,19 +60,15 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=1000,
+save_solution = SaveSolutionCallback(interval=10000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=solution_variables)
 
 
-#amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=velocity),
-#                                      base_level=3, max_level=6,
-#                                      med_threshold=1, max_threshold=5)
-
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=velocity),
                                       base_level=3, max_level=5,
-                                      med_threshold=0.2, max_threshold=0.7)
+                                      med_threshold=0.2, max_threshold=1.0)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
@@ -100,12 +87,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-#limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
-#                                               variables=(Trixi.density, pressure))
-#stage_limiter! = limiter!
-#step_limiter!  = limiter!
-
-sol = solve(ode, CarpenterKennedy2N54( williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

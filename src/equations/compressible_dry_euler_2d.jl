@@ -175,19 +175,18 @@ function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEuler
 end
 
 
-function source_terms_warm_bubble(du, u, equations::CompressibleDryEulerEquations2D, dg, cache)
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      # TODO: performance use temp
-      #x1 = x[1, i, j, element_id]
-      #x2 = x[2, i, j, element_id]
-      du[3, i, j, element] -=  equations.g * u[1, i, j, element]
-      du[4, i, j, element] -=  equations.g * u[3, i, j, element]
-    end
-  end
-  return nothing
+function source_terms_warm_bubble(u, x, t, equations::CompressibleDryEulerEquations2D)
+  du = zeros(eltype(u[1]), nvariables(equations))
+  source_terms_geopotential!(du, u, equations)
+  return SVector(du[1], du[2], du[3], du[4])
 end
 
+
+function source_terms_geopotential!(du, u, equations::CompressibleDryEulerEquations2D)
+  du[3] -=  equations.g * u[1]
+  du[4] -=  equations.g * u[3]
+  return nothing
+end
 
 @inline function flux_LMARS(u_ll, u_rr, orientation::Integer , equations::CompressibleDryEulerEquations2D)
   @unpack a, gamma = equations
@@ -513,4 +512,55 @@ end
 end
 
 
-end # @muladd
+@inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleDryEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  p_avg   = 1/2 * (  p_ll +   p_rr)
+  kin_avg = 1/2 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
+    f1 = rho_avg * v1_avg
+    f2 = rho_avg * v1_avg * v1_avg + p_avg
+    f3 = rho_avg * v1_avg * v2_avg
+    f4 = p_avg*v1_avg * inv(equations.gamma - 1) + rho_avg*v1_avg*kin_avg + pv1_avg
+  else
+    pv2_avg = 1/2 * (p_ll*v2_rr + p_rr*v2_ll)
+    f1 = rho_avg * v2_avg
+    f2 = rho_avg * v2_avg * v1_avg
+    f3 = rho_avg * v2_avg * v2_avg + p_avg
+    f4 = p_avg*v2_avg * inv(equations.gamma - 1) + rho_avg*v2_avg*kin_avg + pv2_avg
+  end
+
+  return SVector(f1, f2, f3, f4)
+end
+
+
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleDryEulerEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  # Calculate primitive variables and speed of sound
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
+end
