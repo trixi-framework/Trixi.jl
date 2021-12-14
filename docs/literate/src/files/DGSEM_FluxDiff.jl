@@ -2,7 +2,7 @@
 
 # This tutorial starts with a presentation of the weak formulation of the discontinuous Galerkin
 # spectral element method (DGSEM) in order to fix the notation of the used operators.
-# Then, the DGSEM formulation with flux differencing (split form DGSEM) and it's implementation in
+# Then, the DGSEM formulation with flux differencing (split form DGSEM) and its implementation in
 # [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) is shown.
 
 # We start with the one-dimensional conservation law
@@ -13,7 +13,7 @@
 
 # We split the domain $\Omega$ into elements $K$ with center $x_K$ and size $\Delta x$. With the
 # transformation mapping $x(\xi)=x_K + \frac{\Delta x}{2} \xi$ we can transform the reference element
-# $[-1,1]$ to every element. So, the equation can be restricted to the reference element using the
+# $[-1,1]$ to every physical element. So, the equation can be restricted to the reference element using the
 # determinant of the Jacobian matrix of the transformation mapping
 # $J=\frac{\partial x}{\partial \xi}=\frac{\Delta x}{2}$.
 # ```math
@@ -31,9 +31,9 @@
 # J \underline{\dot{u}}(t) = - M^{-1} B \underline{f}^* + M^{-1} D^T M \underline{f}
 # ```
 # where $\underline{u}=(u_0, u_1, \dots, u_N)^T\in\mathbb{R}^{N+1}$ is the collected pointwise evaluation
-# of $u$ at the discretization nodes and $\underline{\dot{u}}=\underline{u}_t$. The pointwise evaluation
-# $\underline{f}$ of the flux function $f$ results from the collocation approach, since
-# $\underline{f}_j=f(\underline{u}_j)$. Moreover, we got the numerical flux $\underline{f}^*$.
+# of $u$ at the discretization nodes and $\dot{u} = \partial u / \partial t = u_t$ is the temporal derivative.
+# The nodal values of the flux function $f$ results with collocation in $\underline{f}$, since
+# $\underline{f}_j=f(\underline{u}_j)$. Moreover, we got the numerical flux $f^*=f^*(u^-, u^+)$.
 
 # We will now have a short overview over the operators we used.
 
@@ -97,10 +97,10 @@
 
 
 # This formulation creates a more stable version of DGSEM, because it fulfils entropy stability.
-# Moreover it allows the construction of entropy conserving discretisations without relying on
+# Moreover it allows the construction of entropy conserving discretizations without relying on
 # exact integration. This is achieved when using a two-point entropy conserving flux function as
 # volume flux in the volume flux differencing formulation.
-# Then, the numerical surface flux can be used to control the dissipation of the discretisation and to
+# Then, the numerical surface flux can be used to control the dissipation of the discretization and to
 # guarantee decreasing entropy, i.e. entropy stability.
 
 
