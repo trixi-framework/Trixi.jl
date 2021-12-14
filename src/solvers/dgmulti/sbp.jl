@@ -49,25 +49,12 @@ function construct_1d_operators(D::AbstractDerivativeOperator, tol)
   end
 
   # StartUpDG assumes nodes from -1 to +1. Thus, we need to re-scale everything.
-  if D isa AbstractPeriodicDerivativeOperator
-    # TODO: DGMulti. Remove this branch and use the non-periodic code for all
-    #                operators.
-    # Periodic operators do not include both boundary nodes in their
-    # computational grid. Thus, they cannot be handled in the same way as
-    # non-periodic operators.
-    # Currently, we only support periodic operators with our special
-    # `DGMultiMesh` constructor, which gets the geometry information from
-    # the DGMulti solver itself. Hence, the nodes of the mesh will always be
-    # the same as the nodes of the solver and we do not need to adjust anything.
-    factor = one(eltype(nodes_1d))
-  else
-    # We can adjust the grid spacing as follows.
-    xmin = SummationByPartsOperators.xmin(D)
-    xmax = SummationByPartsOperators.xmax(D)
-    factor = 2 / (xmax - xmin)
-    @. nodes_1d = factor * (nodes_1d - xmin) - 1
-    @. weights_1d = factor * weights_1d
-  end
+  # We can adjust the grid spacing as follows.
+  xmin = SummationByPartsOperators.xmin(D)
+  xmax = SummationByPartsOperators.xmax(D)
+  factor = 2 / (xmax - xmin)
+  @. nodes_1d = factor * (nodes_1d - xmin) - 1
+  @. weights_1d = factor * weights_1d
 
   D_1d = droptol!(inv(factor) * sparse(D), tol)
   I_1d = Diagonal(ones(Bool, length(nodes_1d)))
@@ -302,7 +289,9 @@ Constructs a single-element [`DGMultiMesh`](@ref) for a single periodic element 
 a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
 SummationByPartsOperators.jl.
 """
-function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
+function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
+                     coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
+                     coordinates_max=ntuple(_ -> one(real(dg)), NDIMS)) where {NDIMS}
 
   rd = dg.basis
 
@@ -313,7 +302,7 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
 
-  xyz = xyzq = rd.rst # TODO: DGMulti; extend to mapped domains
+  xyz = xyzq = rd.rst
   xyzf = ntuple(_ -> [], NDIMS)
   wJq = diag(rd.M)
 
@@ -321,15 +310,23 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS}) where {NDIMS}
   mapM = mapP = mapB = []
 
   # volume geofacs Gij = dx_i/dxhat_j
-  # TODO: DGMulti; extend to mapped domains
+  coord_diffs = coordinates_max .- coordinates_min
+
   if NDIMS==1
-    rstxyzJ = @SMatrix [e]
+    rxJ = coord_diffs[1] / 2
+    rstxyzJ = @SMatrix [rxJ * e]
   elseif NDIMS==2
-    rstxyzJ = @SMatrix [e z; z e]
+    rxJ = coord_diffs[1] / 2
+    syJ = coord_diffs[2] / 2
+    rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
   elseif NDIMS==3
-    rstxyzJ = @SMatrix [e z z; z e z; z z e]
+    rxJ = coord_diffs[1] / 2
+    syJ = coord_diffs[2] / 2
+    tzJ = coord_diffs[3] / 2
+    rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
   end
-  J = e
+
+  J = e * prod(coord_diffs) / 2^NDIMS
 
   # surface geofacs
   nxyzJ = ntuple(_ -> [], NDIMS)
