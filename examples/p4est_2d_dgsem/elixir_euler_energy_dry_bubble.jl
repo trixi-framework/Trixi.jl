@@ -35,9 +35,9 @@ volume_flux = flux_shima_etal
 #                                                 volume_flux_dg=volume_flux,
 #                                                 volume_flux_fv=surface_flux)
 
-#volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
+volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
 
-solver = DGSEM(basis, surface_flux)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-5000.0, 0.0)
 coordinates_max = (5000.0, 10000.0)
