@@ -132,7 +132,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
         cells_per_dimension = (2, 2)
         vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
-        mesh = VertexMappedMesh(vertex_coordinates, EToV, solver, periodic=(true,true))
+        mesh = DGMultiMesh(vertex_coordinates, EToV, solver, periodicity=(true,true))
 
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -153,7 +153,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
         cells_per_dimension = (2, 2)
         vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
-        mesh = VertexMappedMesh(vertex_coordinates, EToV, solver, periodic=(true,true))
+        mesh = DGMultiMesh(vertex_coordinates, EToV, solver, periodicity=(true,true))
 
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
