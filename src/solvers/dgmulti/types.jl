@@ -80,7 +80,7 @@ end
 """
   DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti;
               is_on_boundary = nothing,
-              periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+              periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
 Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 """
@@ -96,19 +96,19 @@ DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
   DGMultiMesh(triangulateIO, dg.basis, boundary_dict)
 
 """
-  DGMultiMesh(dg::DGMulti; cells_per_dimension,
+    DGMultiMesh(dg::DGMulti; cells_per_dimension,
                 coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
                 is_on_boundary=nothing,
-                periodic=ntuple(_ -> false, NDIMS))
+                periodicity=ntuple(_ -> false, NDIMS))
 
 Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.elementType`. The domain is
 the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
-- `periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
+- `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
-                     coordinates_min=ntuple(_ -> -1.0, NDIMS),
-                     coordinates_max=ntuple(_ -> 1.0, NDIMS),
+                     coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
+                     coordinates_max=ntuple(_ -> one(real(dg)), NDIMS),
                      is_on_boundary=nothing,
                      periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
 
@@ -121,7 +121,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
   vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
   domain_lengths = coordinates_max .- coordinates_min
   for i in 1:NDIMS
-    @. vertex_coordinates[i] = .5 * (vertex_coordinates[i] + 1) * domain_lengths[i] + coordinates_min[i]
+    @. vertex_coordinates[i] = 0.5 * (vertex_coordinates[i] + 1) * domain_lengths[i] + coordinates_min[i]
   end
 
   return DGMultiMesh(vertex_coordinates, EToV, dg, is_on_boundary=is_on_boundary, periodicity=periodicity)
