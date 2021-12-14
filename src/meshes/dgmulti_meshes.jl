@@ -56,7 +56,13 @@ end
 """
 function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                      is_on_boundary = nothing,
-                     periodicity=ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
+                     periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS, Tv, Ti}
+
+  if haskey(kwargs, :is_periodic)
+    # TODO: DGMulti. Deprecate `is_periodic` in version 0.5
+    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
+    periodicity=kwargs[:is_periodic]
+  end
 
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, periodicity)
@@ -67,7 +73,13 @@ end
 # specialization for NDIMS = 1
 function DGMultiMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                      is_on_boundary = nothing,
-                     periodicity=(false, )) where {Tv, Ti}
+                     periodicity=(false, ), kwargs...) where {Tv, Ti}
+
+  if haskey(kwargs, :is_periodic)
+    # TODO: DGMulti. Deprecate `is_periodic` in version 0.5
+    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
+    periodicity=kwargs[:is_periodic]
+  end
 
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, periodicity...)
