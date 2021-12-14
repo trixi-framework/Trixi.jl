@@ -5,9 +5,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
@@ -81,7 +80,7 @@ callbacks = CallbackSet(summary_callback,
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 
 # Print the timer summary
 summary_callback()

@@ -14,6 +14,7 @@
 mutable struct MPICache
   mpi_neighbor_ranks::Vector{Int}
   mpi_neighbor_interfaces::Vector{Vector{Int}}
+  mpi_neighbor_mortars::Vector{Vector{Int}}
   mpi_send_buffers::Vector{Vector{Float64}}
   mpi_recv_buffers::Vector{Vector{Float64}}
   mpi_send_requests::Vector{MPI.Request}
@@ -27,6 +28,7 @@ end
 function MPICache()
   mpi_neighbor_ranks = Vector{Int}(undef, 0)
   mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0)
+  mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0)
   mpi_send_buffers = Vector{Vector{Float64}}(undef, 0)
   mpi_recv_buffers = Vector{Vector{Float64}}(undef, 0)
   mpi_send_requests = Vector{MPI.Request}(undef, 0)
@@ -35,7 +37,7 @@ function MPICache()
   n_elements_global = 0
   first_element_global_id = 0
 
-  MPICache(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+  MPICache(mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars,
            mpi_send_buffers, mpi_recv_buffers,
            mpi_send_requests, mpi_recv_requests,
            n_elements_by_rank, n_elements_global,
@@ -70,6 +72,60 @@ function start_mpi_send!(mpi_cache::MPICache, mesh, equations, dg, cache)
         @views send_buffer[first:last] .= vec(cache.mpi_interfaces.u[2, :, :, interface])
       else # local element in negative direction
         @views send_buffer[first:last] .= vec(cache.mpi_interfaces.u[1, :, :, interface])
+      end
+    end
+
+    # Each mortar has a total size of 4 * data_size, set everything to NaN first and overwrite the
+    # parts where local data exists
+    interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces[d]) * data_size
+    mortars_data_size = length(mpi_cache.mpi_neighbor_mortars[d]) * 4 * data_size
+    send_buffer[interfaces_data_size+1:interfaces_data_size+mortars_data_size] .= NaN
+
+    for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[d])
+      # First and last indices in the send buffer for mortar data obtained from local element
+      # in a given position
+      index_base = interfaces_data_size + (index - 1) * 4 * data_size
+      indices = (
+        # first, last for local element in position 1 (lower element)
+        (index_base + 1,
+         index_base + 1 * data_size),
+        # first, last for local element in position 2 (upper element)
+        (index_base + 1 * data_size + 1,
+         index_base + 2 * data_size),
+        # firsts, lasts for local element in position 3 (large element)
+        (index_base + 2 * data_size + 1,
+         index_base + 3 * data_size,
+         index_base + 3 * data_size + 1,
+         index_base + 4 * data_size),
+      )
+
+      for position in cache.mpi_mortars.local_element_positions[mortar]
+        # Determine whether the data belongs to the left or right side
+        if cache.mpi_mortars.large_sides[mortar] == 1 # large element on left side
+          if position in (1, 2) # small element
+            leftright = 2
+          else # large element
+            leftright = 1
+          end
+        else # large element on right side
+          if position in (1, 2) # small element
+            leftright = 1
+          else # large element
+            leftright = 2
+          end
+        end
+        # copy data to buffer
+        if position == 1 # lower element
+          first, last = indices[position]
+          @views send_buffer[first:last] .= vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar])
+        elseif position == 2 # upper element
+          first, last = indices[position]
+          @views send_buffer[first:last] .= vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar])
+        else # large element
+          first_lower, last_lower, first_upper, last_upper = indices[position]
+          @views send_buffer[first_lower:last_lower] .= vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar])
+          @views send_buffer[first_upper:last_upper] .= vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar])
+        end
       end
     end
   end
@@ -110,6 +166,61 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
       end
     end
 
+    interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces[d]) * data_size
+    for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[d])
+      # First and last indices in the receive buffer for mortar data obtained from remote element
+      # in a given position
+      index_base = interfaces_data_size + (index - 1) * 4 * data_size
+      indices = (
+        # first, last for local element in position 1 (lower element)
+        (index_base + 1,
+         index_base + 1 * data_size),
+        # first, last for local element in position 2 (upper element)
+        (index_base + 1 * data_size + 1,
+         index_base + 2 * data_size),
+        # firsts, lasts for local element in position 3 (large element)
+        (index_base + 2 * data_size + 1,
+         index_base + 3 * data_size,
+         index_base + 3 * data_size + 1,
+         index_base + 4 * data_size),
+      )
+
+      for position in 1:3
+        # Skip if received data for `pos` is NaN as no real data has been sent for the
+        # corresponding element
+        if isnan(recv_buffer[Base.first(indices[position])])
+          continue
+        end
+
+        # Determine whether the received data belongs to the left or right side
+        if cache.mpi_mortars.large_sides[mortar] == 1 # large element on left side
+          if position in (1, 2) # small element
+            leftright = 2
+          else # large element
+            leftright = 1
+          end
+        else # large element on right side
+          if position in (1, 2) # small element
+            leftright = 1
+          else # large element
+            leftright = 2
+          end
+        end
+
+        if position == 1 # lower element data has been received
+          first, last = indices[position]
+          @views vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar]) .= recv_buffer[first:last]
+        elseif position == 2 # upper element data has been received
+          first, last = indices[position]
+          @views vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar]) .= recv_buffer[first:last]
+        else # large element data has been received
+          first_lower, last_lower, first_upper, last_upper = indices[position]
+          @views vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar]) .= recv_buffer[first_lower:last_lower]
+          @views vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar]) .= recv_buffer[first_upper:last_upper]
+        end
+      end
+    end
+
     d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
   end
 
@@ -135,9 +246,12 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
 
   mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
-  mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
+  mpi_mortars = init_mpi_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
-  cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+  mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
+                             nvariables(equations), nnodes(dg))
+
+  cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
              mpi_cache)
 
   # Add specialized parts of the cache required to compute the volume integral etc.
@@ -148,20 +262,20 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
 end
 
 
-function init_mpi_cache(mesh, elements, mpi_interfaces, nvars, nnodes)
+function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes)
   mpi_cache = MPICache()
 
-  init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnodes)
+  init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes)
   return mpi_cache
 end
 
 
-function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnodes)
-  mpi_neighbor_ranks, mpi_neighbor_interfaces =
-    init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes)
+  mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars =
+    init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, mesh)
 
   mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests =
-    init_mpi_data_structures(mpi_neighbor_interfaces, ndims(mesh), nvars, nnodes)
+    init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, ndims(mesh), nvars, nnodes)
 
   # Determine local and total number of elements
   n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
@@ -181,7 +295,7 @@ function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnode
     first_element_global_id += 1
   end
   # TODO reuse existing structures
-  @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
+  @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars,
                      mpi_send_buffers, mpi_recv_buffers,
                      mpi_send_requests, mpi_recv_requests,
                      n_elements_by_rank, n_elements_global,
@@ -190,11 +304,11 @@ end
 
 
 # Initialize connectivity between MPI neighbor ranks
-function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh2D)
+function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, mesh::TreeMesh2D)
   tree = mesh.tree
 
   # Determine neighbor ranks and sides for MPI interfaces
-  neighbor_ranks = fill(-1, nmpiinterfaces(mpi_interfaces))
+  neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces))
   # The global interface id is the smaller of the (globally unique) neighbor cell ids, multiplied by
   # number of directions (2 * ndims) plus direction minus one
   global_interface_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
@@ -218,7 +332,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
     local_element_id = mpi_interfaces.local_element_ids[interface_id]
     local_cell_id = elements.cell_ids[local_element_id]
     remote_cell_id = tree.neighbor_ids[direction, local_cell_id]
-    neighbor_ranks[interface_id] = tree.mpi_ranks[remote_cell_id]
+    neighbor_ranks_interface[interface_id] = tree.mpi_ranks[remote_cell_id]
     if local_cell_id < remote_cell_id
       global_interface_ids[interface_id] = 2 * ndims(tree) * local_cell_id + direction - 1
     else
@@ -227,36 +341,98 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
     end
   end
 
+  # Determine neighbor ranks for MPI mortars
+  neighbor_ranks_mortar = Vector{Vector{Int}}(undef, nmpimortars(mpi_mortars))
+  # The global mortar id is the (globally unique) large cell id, multiplied by
+  # number of directions (2 * ndims) plus direction minus one where
+  # direction = 1 for mortars in x-direction where large element is left
+  # direction = 2 for mortars in x-direction where large element is right
+  # direction = 3 for mortars in y-direction where large element is left
+  # direction = 4 for mortars in y-direction where large element is right
+  global_mortar_ids = fill(-1, nmpimortars(mpi_mortars))
+  for mortar in 1:nmpimortars(mpi_mortars)
+    neighbor_ranks_mortar[mortar] = Vector{Int}()
+
+    orientation = mpi_mortars.orientations[mortar]
+    large_side = mpi_mortars.large_sides[mortar]
+    direction = (orientation - 1) * 2 + large_side
+
+    local_element_ids = mpi_mortars.local_element_ids[mortar]
+    local_element_positions = mpi_mortars.local_element_positions[mortar]
+    if 3 in local_element_positions # large element is on this rank
+      large_element_id = local_element_ids[findfirst(pos -> pos == 3, local_element_positions)]
+      large_cell_id = elements.cell_ids[large_element_id]
+    else # large element is remote
+      cell_id = elements.cell_ids[first(local_element_ids)]
+      large_cell_id = tree.neighbor_ids[direction, tree.parent_ids[cell_id]]
+    end
+
+    neighbor_cell_id = tree.neighbor_ids[opposite_direction(direction), large_cell_id]
+    if direction == 1
+      lower_cell_id = tree.child_ids[1, neighbor_cell_id]
+      upper_cell_id = tree.child_ids[3, neighbor_cell_id]
+    elseif direction == 2
+      lower_cell_id = tree.child_ids[2, neighbor_cell_id]
+      upper_cell_id = tree.child_ids[4, neighbor_cell_id]
+    elseif direction == 3
+      lower_cell_id = tree.child_ids[1, neighbor_cell_id]
+      upper_cell_id = tree.child_ids[2, neighbor_cell_id]
+    else
+      lower_cell_id = tree.child_ids[3, neighbor_cell_id]
+      upper_cell_id = tree.child_ids[4, neighbor_cell_id]
+    end
+
+    for cell_id in (lower_cell_id, upper_cell_id, large_cell_id)
+      if !is_own_cell(tree, cell_id)
+        neighbor_rank = tree.mpi_ranks[cell_id]
+        if !(neighbor_rank in neighbor_ranks_mortar[mortar])
+          push!(neighbor_ranks_mortar[mortar], neighbor_rank)
+        end
+      end
+    end
+
+    global_mortar_ids[mortar] = 2 * ndims(tree) * large_cell_id + direction - 1
+  end
+
   # Get sorted, unique neighbor ranks
-  mpi_neighbor_ranks = unique(sort(neighbor_ranks))
+  mpi_neighbor_ranks = vcat(neighbor_ranks_interface, neighbor_ranks_mortar...) |> sort |> unique
 
   # Sort interfaces by global interface id
   p = sortperm(global_interface_ids)
-  neighbor_ranks .= neighbor_ranks[p]
+  neighbor_ranks_interface .= neighbor_ranks_interface[p]
   interface_ids = collect(1:nmpiinterfaces(mpi_interfaces))[p]
+
+  # Sort mortars by global mortar id
+  p = sortperm(global_mortar_ids)
+  neighbor_ranks_mortar .= neighbor_ranks_mortar[p]
+  mortar_ids = collect(1:nmpimortars(mpi_mortars))[p]
 
   # For each neighbor rank, init connectivity data structures
   mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
+  mpi_neighbor_mortars = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
   for (index, d) in enumerate(mpi_neighbor_ranks)
-    mpi_neighbor_interfaces[index] = interface_ids[findall(x->(x == d), neighbor_ranks)]
+    mpi_neighbor_interfaces[index] = interface_ids[findall(x->(x == d), neighbor_ranks_interface)]
+    mpi_neighbor_mortars[index] = mortar_ids[findall(x->(d in x), neighbor_ranks_mortar)]
   end
 
-  # Sanity check that we counted all interfaces exactly once
+  # Sanity checks that we counted all interfaces exactly once
   @assert sum(length(v) for v in mpi_neighbor_interfaces) == nmpiinterfaces(mpi_interfaces)
 
-  return mpi_neighbor_ranks, mpi_neighbor_interfaces
+  return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
 
 
 # TODO: MPI dimension agnostic
 # Initialize MPI data structures
-function init_mpi_data_structures(mpi_neighbor_interfaces, ndims, nvars, n_nodes)
+function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, ndims, nvars, n_nodes)
   data_size = nvars * n_nodes^(ndims - 1)
   mpi_send_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
   mpi_recv_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
   for index in 1:length(mpi_neighbor_interfaces)
-    mpi_send_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size)
-    mpi_recv_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size)
+    mpi_send_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
+                                                     length(mpi_neighbor_mortars[index]) * 4 * data_size)
+    mpi_recv_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size +
+                                                     length(mpi_neighbor_mortars[index]) * 4 * data_size)
   end
 
   mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
@@ -277,12 +453,16 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(
     cache, u, mesh, equations, dg.surface_integral, dg)
 
+  # Prolong solution to MPI mortars
+  @trixi_timeit timer() "prolong2mpimortars" prolong2mpimortars!(
+    cache, u, mesh, equations, dg.mortar, dg.surface_integral, dg)
+
   # Start to send MPI data
   @trixi_timeit timer() "start MPI send" start_mpi_send!(
     cache.mpi_cache, mesh, equations, dg, cache)
 
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" du .= zero(eltype(du))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
@@ -328,6 +508,12 @@ function rhs!(du, u, t,
     cache.elements.surface_flux_values, mesh,
     have_nonconservative_terms(equations), equations,
     dg.surface_integral, dg, cache)
+
+  # Calculate MPI mortar fluxes
+  @trixi_timeit timer() "MPI mortar flux" calc_mpi_mortar_flux!(
+    cache.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations), equations,
+    dg.mortar, dg.surface_integral, dg, cache)
 
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" calc_surface_integral!(
@@ -383,6 +569,116 @@ function prolong2mpiinterfaces!(cache, u,
 end
 
 
+function prolong2mpimortars!(cache, u,
+                             mesh::ParallelTreeMesh{2}, equations,
+                             mortar_l2::LobattoLegendreMortarL2, surface_integral, dg::DGSEM)
+  @unpack mpi_mortars = cache
+
+  @threaded for mortar in eachmpimortar(dg, cache)
+    local_elements = mpi_mortars.local_element_ids[mortar]
+    local_element_positions = mpi_mortars.local_element_positions[mortar]
+
+    for (element, position) in zip(local_elements, local_element_positions)
+      if position in (1, 2) # Current element is small
+        # Copy solution small to small
+        if mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            if position == 1
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_lower[2, v, l, mortar] = u[v, 1, l, element]
+                end
+              end
+            else # position == 2
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_upper[2, v, l, mortar] = u[v, 1, l, element]
+                end
+              end
+            end
+          else
+            # L2 mortars in y-direction
+            if position == 1
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_lower[2, v, l, mortar] = u[v, l, 1, element]
+                end
+              end
+            else # position == 2
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_upper[2, v, l, mortar] = u[v, l, 1, element]
+                end
+              end
+            end
+          end
+        else # large_sides[mortar] == 2 -> small elements on left side
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            if position == 1
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l, element]
+                end
+              end
+            else # position == 2
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l, element]
+                end
+              end
+            end
+          else
+            # L2 mortars in y-direction
+            if position == 1
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg), element]
+                end
+              end
+            else # position == 2
+              for l in eachnode(dg)
+                for v in eachvariable(equations)
+                  mpi_mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg), element]
+                end
+              end
+            end
+          end
+        end
+      else # position == 3 -> current element is large
+        # Interpolate large element face data to small interface locations
+        if mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
+          leftright = 1
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            u_large = view(u, :, nnodes(dg), :, element)
+            element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright, mortar, u_large)
+          else
+            # L2 mortars in y-direction
+            u_large = view(u, :, :, nnodes(dg), element)
+            element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright, mortar, u_large)
+          end
+        else # large_sides[mortar] == 2 -> large element on right side
+          leftright = 2
+          if mpi_mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            u_large = view(u, :, 1, :, element)
+            element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright, mortar, u_large)
+          else
+            # L2 mortars in y-direction
+            u_large = view(u, :, :, 1, element)
+            element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright, mortar, u_large)
+          end
+        end
+      end
+    end
+  end
+
+  return nothing
+end
+
+
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
                                   nonconservative_terms::Val{false}, equations,
@@ -423,6 +719,98 @@ function calc_mpi_interface_flux!(surface_flux_values,
 
   return nothing
 end
+
+
+function calc_mpi_mortar_flux!(surface_flux_values,
+                               mesh::ParallelTreeMesh{2},
+                               nonconservative_terms::Val{false}, equations,
+                               mortar_l2::LobattoLegendreMortarL2,
+                               surface_integral, dg::DG, cache)
+  @unpack surface_flux = surface_integral
+  @unpack u_lower, u_upper, orientations = cache.mpi_mortars
+  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+
+  @threaded for mortar in eachmpimortar(dg, cache)
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
+
+    # Calculate fluxes
+    orientation = orientations[mortar]
+    calc_fstar!(fstar_upper, equations, surface_flux, dg, u_upper, mortar, orientation)
+    calc_fstar!(fstar_lower, equations, surface_flux, dg, u_lower, mortar, orientation)
+
+    mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                   mesh, equations, mortar_l2, dg, cache,
+                                   mortar, fstar_upper, fstar_lower)
+  end
+
+  return nothing
+end
+
+@inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                                mesh::ParallelTreeMesh{2}, equations,
+                                                mortar_l2::LobattoLegendreMortarL2,
+                                                dg::DGSEM, cache,
+                                                mortar, fstar_upper, fstar_lower)
+  local_element_ids = cache.mpi_mortars.local_element_ids[mortar]
+  local_element_positions = cache.mpi_mortars.local_element_positions[mortar]
+
+  for (element, position) in zip(local_element_ids, local_element_positions)
+    if position in (1, 2) # Current element is small
+      # Copy flux small to small
+      if cache.mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 1
+        else
+          # L2 mortars in y-direction
+          direction = 3
+        end
+      else # large_sides[mortar] == 2 -> small elements on left side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 2
+        else
+          # L2 mortars in y-direction
+          direction = 4
+        end
+      end
+
+      if position == 1
+        surface_flux_values[:, :, direction, element] .= fstar_lower
+      elseif position == 2
+        surface_flux_values[:, :, direction, element] .= fstar_upper
+      end
+    else # position == 3 -> current element is large
+      # Project small fluxes to large element
+      if cache.mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 2
+        else
+          # L2 mortars in y-direction
+          direction = 4
+        end
+      else # large_sides[mortar] == 2 -> large element on right side
+        if cache.mpi_mortars.orientations[mortar] == 1
+          # L2 mortars in x-direction
+          direction = 1
+        else
+          # L2 mortars in y-direction
+          direction = 3
+        end
+      end
+
+      multiply_dimensionwise!(
+        view(surface_flux_values, :, :, direction, element), mortar_l2.reverse_upper, fstar_upper,
+                                                             mortar_l2.reverse_lower, fstar_lower)
+    end
+  end
+
+  return nothing
+end
+
 
 
 end # @muladd

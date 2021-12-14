@@ -12,8 +12,8 @@ volume_flux = flux_ranocha
 solver = DGSEM(polydeg=3, surface_flux=flux_ranocha,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-2,)
-coordinates_max = ( 2,)
+coordinates_min = (-2.0,)
+coordinates_max = ( 2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=5,
                 n_cells_max=10_000)
@@ -53,5 +53,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

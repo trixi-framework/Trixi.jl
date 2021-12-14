@@ -9,8 +9,8 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any, ::Type{uEltype}) where {uEltype<:Real}
-  # Make sure to balance the p4est before creating any containers
-  # in case someone has tampered with the p4est after creating the mesh
+  # Make sure to balance the `p4est` before creating any containers
+  # in case someone has tampered with the `p4est` after creating the mesh
   balance!(mesh)
 
   elements   = init_elements(mesh, equations, dg.basis, uEltype)
@@ -21,6 +21,7 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
   cache = (; elements, interfaces, boundaries, mortars)
 
   # Add specialized parts of the cache required to compute the volume integral etc.
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
   return cache

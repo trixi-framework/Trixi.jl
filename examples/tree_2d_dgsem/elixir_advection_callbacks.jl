@@ -100,15 +100,14 @@ import .TrixiExtensionExample
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1, -1)
-coordinates_max = ( 1,  1)
+coordinates_min = (-1.0, -1.0)
+coordinates_max = ( 1.0,  1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=30_000)
@@ -150,18 +149,16 @@ callbacks = CallbackSet(summary_callback,
 # but before possible RHS evaluations of the new value occur. Hence, it's possible
 # to modify the new solution value there without impacting the performance of FSAL
 # methods.
-# The `stage_limiter!` is called additionally after computing a Runge-Kutta stage
-# value but before evaluating the corresponding stage derivatives.
+# The `stage_limiter!` is called after computing a Runge-Kutta stage value but
+# before evaluating the corresponding stage derivatives.
 # Hence, if a limiter should be called before each RHS evaluation, it needs to be
-# set both as `stage_limiter!` and as `step_limiter!`.
+# set as `stage_limiter!`.
 example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
-stage_limiter! = example_stage_callback!
-step_limiter!  = example_stage_callback!
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(example_stage_callback!, williamson_condition=false),
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

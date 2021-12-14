@@ -8,8 +8,35 @@
 @doc raw"""
     CompressibleEulerEquations2D(gamma)
 
-The compressible Euler equations for an ideal gas with ratio of specific heats `gamma`
+The compressible Euler equations
+```math
+\partial t
+\begin{pmatrix}
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
+\end{pmatrix}
++
+\partial x
+\begin{pmatrix}
+ \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e +p) v_1
+\end{pmatrix}
++
+\partial y
+\begin{pmatrix}
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e +p) v_2
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ 0 \\ 0 \\ 0
+\end{pmatrix}
+```
+for an ideal gas with ratio of specific heats `gamma`
 in two space dimensions.
+Here, ``\rho`` is the density, ``v_1``,`v_2` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
+```
+the pressure.
+
 """
 struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
   gamma::RealT               # ratio of specific heats
@@ -81,47 +108,19 @@ Source terms used for convergence tests in combination with
   γ = equations.gamma
 
   x1, x2 = x
-  si, co = sincos((x1 + x2 - t)*ω)
-  tmp1 = co * A * ω
-  tmp2 = si * A
-  tmp3 = γ - 1
-  tmp4 = (2*c - 1)*tmp3
-  tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
-  tmp6 = tmp2 + c
+  si, co = sincos(ω * (x1 + x2 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
+  # Note that d/dt rho = -d/dx rho = -d/dy rho.
 
-  du1 = tmp1
-  du2 = tmp5
-  du3 = tmp5
-  du4 = 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
+  tmp = (2 * rho - 1) * (γ - 1)
 
-  # Original terms (without performanc enhancements)
-  # du1 = cos((x1 + x2 - t)*ω)*A*ω
-  # du2 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-  # du3 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-  # du3 = 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
-  #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
+  du1 = rho_x
+  du2 = rho_x * (1 + tmp)
+  du3 = du2
+  du4 = 2 * rho_x * (rho + tmp)
 
   return SVector(du1, du2, du3, du4)
-end
-
-
-"""
-    initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations2D)
-
-A Gaussian pulse in the density with constant velocity and pressure; reduces the
-compressible Euler equations to the linear advection equations.
-"""
-function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations2D)
-  rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
-  v1 = 1
-  v2 = 1
-  rho_v1 = rho * v1
-  rho_v2 = rho * v2
-  p = 1
-  rho_e = p/(equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-  return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
 
@@ -152,81 +151,6 @@ end
 
 
 """
-    initial_condition_pressure_pulse(x, t, equations::CompressibleEulerEquations2D)
-
-A Gaussian pulse in the pressure with constant velocity and density.
-"""
-function initial_condition_pressure_pulse(x, t, equations::CompressibleEulerEquations2D)
-  rho = 1
-  v1 = 1
-  v2 = 1
-  rho_v1 = rho * v1
-  rho_v2 = rho * v2
-  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
-  rho_e = p/(equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-  return SVector(rho, rho_v1, rho_v2, rho_e)
-end
-
-
-"""
-    initial_condition_density_pressure_pulse(x, t, equations::CompressibleEulerEquations2D)
-
-A Gaussian pulse in density and pressure with constant velocity.
-"""
-function initial_condition_density_pressure_pulse(x, t, equations::CompressibleEulerEquations2D)
-  rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
-  v1 = 1
-  v2 = 1
-  rho_v1 = rho * v1
-  rho_v2 = rho * v2
-  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
-  rho_e = p/(equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-  return SVector(rho, rho_v1, rho_v2, rho_e)
-end
-
-
-"""
-    initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
-
-The classical isentropic vortex test case of
-- Chi-Wang Shu (1997)
-  Essentially Non-Oscillatory and Weighted Essentially Non-Oscillatory
-  Schemes for Hyperbolic Conservation Laws
-  [NASA/CR-97-206253](https://ntrs.nasa.gov/citations/19980007543)
-"""
-function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
-  # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
-  # make sure that the inicenter does not exit the domain, e.g. T=10.0
-  # initial center of the vortex
-  inicenter = SVector(0.0, 0.0)
-  # size and strength of the vortex
-  iniamplitude = 0.2
-  # base flow
-  rho = 1.0
-  v1 = 1.0
-  v2 = 1.0
-  vel = SVector(v1, v2)
-  p = 10.0
-  vec = SVector(v1, v2)
-  rt = p / rho                  # ideal gas equation
-  cent = inicenter + vel*t      # advection of center
-  cent = x - cent               # distance to centerpoint
-  #cent=cross(iniaxis,cent)     # distance to axis, tangent vector, length r
-  # cross product with iniaxis = [0,0,1]
-  cent = SVector(-cent[2], cent[1])
-  r2 = cent[1]^2 + cent[2]^2
-  du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-  dtemp = -(equations.gamma-1)/(2*equations.gamma*rt)*du^2            # isentrop
-  rho = rho * (1+dtemp)^(1\(equations.gamma-1))
-  vel = vel + du*cent
-  v1, v2 = vel
-  p = p * (1+dtemp)^(equations.gamma/(equations.gamma-1))
-  prim = SVector(rho, v1, v2, p)
-  return prim2cons(prim, equations)
-end
-
-
-"""
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
 A weak blast wave taken from
@@ -251,141 +175,6 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEqu
   p   = r > 0.5 ? 1.0 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
-
-"""
-    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-
-A medium blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
-function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-  # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-  phi = atan(y_norm, x_norm)
-  sin_phi, cos_phi = sincos(phi)
-
-  # Calculate primitive variables
-  rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  p   = r > 0.5 ? 1.0E-3 : 1.245
-
-  return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
-
-"""
-    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-
-The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-"""
-function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-  # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # r0 = 0.5 # = more reasonable setup
-  E = 1.0
-  p0_inner = 3 * (equations.gamma - 1) * E / (3 * pi * r0^2)
-  p0_outer = 1.0e-5 # = true Sedov setup
-  # p0_outer = 1.0e-3 # = more reasonable setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1  = 0.0
-  v2  = 0.0
-  p   = r > r0 ? p0_outer : p0_inner
-
-  return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
-
-"""
-    initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-
-The Sedov blast wave setup based on Flash
-- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-with smaller strength of the initial discontinuity.
-"""
-function initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-  # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # r0 = 0.5 # = more reasonable setup
-  E = 1.0
-  p0_inner = 3 * (equations.gamma - 1) * E / (3 * pi * r0^2)
-  # p0_outer = 1.0e-5 # = true Sedov setup
-  p0_outer = 1.0e-3 # = more reasonable setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1  = 0.0
-  v2  = 0.0
-  p   = r > r0 ? p0_outer : p0_inner
-
-  return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
-
-"""
-    initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
-
-The blob test case taken from
-- Agertz et al. (2006)
-  Fundamental differences between SPH and grid methods
-  [arXiv: astro-ph/0610051](https://arxiv.org/abs/astro-ph/0610051)
-"""
-function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
-  # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
-  # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
-  # change discontinuity to tanh
-  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-  # resolution 128^2, 256^2
-  # domain size is [-20.0,20.0]^2
-  # gamma = 5/3 for this test case
-  R = 1.0 # radius of the blob
-  # background density
-  dens0 = 1.0
-  Chi = 10.0 # density contrast
-  # reference time of characteristic growth of KH instability equal to 1.0
-  tau_kh = 1.0
-  tau_cr = tau_kh/1.6 # crushing time
-  # determine background velocity
-  velx0 = 2*R*sqrt(Chi)/tau_cr
-  vely0 = 0.0
-  Ma0 = 2.7 # background flow Mach number Ma=v/c
-  c = velx0/Ma0 # sound speed
-  # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
-  p0 = c*c*dens0/equations.gamma
-  # initial center of the blob
-  inicenter = [-15,0]
-  x_rel = x-inicenter
-  r = sqrt(x_rel[1]^2 + x_rel[2]^2)
-  # steepness of the tanh transition zone
-  slope = 2
-  # density blob
-  dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-  # velocity blob is zero
-  velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-  return prim2cons(SVector(dens, velx, vely0, p0), equations)
 end
 
 
@@ -475,82 +264,6 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   return SVector(du1, du2, du3, du4)
 end
 
-"""
-    initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
-"""
-function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
-  # Set up polar coordinates
-  r = sqrt(x[1]^2 + x[2]^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
-  E = 1.0
-  p_inner   = (equations.gamma - 1) * E / (pi * r0^2)
-  p_ambient = 1e-5 # = true Sedov setup
-
-  # Calculate primitive variables
-  # use a logistic function to tranfer density value smoothly
-  L  = 1.0    # maximum of function
-  x0 = 1.0    # center point of function
-  k  = -150.0 # sharpness of transfer
-  logistic_function_rho = L/(1.0 + exp(-k*(r - x0)))
-  rho_ambient = 1e-5
-  rho = max(logistic_function_rho, rho_ambient) # clip background density to not be so tiny
-
-  # velocities are zero
-  v1 = 0.0
-  v2 = 0.0
-
-  # use a logistic function to tranfer pressure value smoothly
-  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
-  p = max(logistic_function_p, p_ambient)
-
-  return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
-"""
-    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                          surface_flux_function,
-                                          equations::CompressibleEulerEquations2D)
-
-Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
-"""
-function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                               surface_flux_function,
-                                               equations::CompressibleEulerEquations2D)
-  # velocities are zero, density/pressure are ambient values according to
-  # initial_condition_sedov_self_gravity
-  rho = 1e-5
-  v1 = 0.0
-  v2 = 0.0
-  p = 1e-5
-
-  u_boundary = prim2cons(SVector(rho, v1, v2, p), equations)
-
-  # Calculate boundary flux
-  if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
 
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
@@ -573,12 +286,11 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
 Should be used together with [`UnstructuredMesh2D`](@ref).
-
-!!! warning "Experimental code"
-    This wall function can change any time.
 """
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations2D)
 
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
@@ -614,13 +326,13 @@ end
 """
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
                                  surface_flux_function, equations::CompressibleEulerEquations2D)
-Should be used together with [`TreeMesh`](@ref).
 
-!!! warning "Experimental code"
-    This wall function can change any time.
+Should be used together with [`TreeMesh`](@ref).
 """
-function boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations2D)
   # get the appropriate normal vector from the orientation
   if orientation == 1
     normal = SVector(1, 0)
@@ -635,13 +347,13 @@ end
 """
     boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
                                  surface_flux_function, equations::CompressibleEulerEquations2D)
-Should be used together with [`StructuredMesh`](@ref).
 
-!!! warning "Experimental code"
-    This wall function can change any time.
+Should be used together with [`StructuredMesh`](@ref).
 """
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
-                                      surface_flux_function, equations::CompressibleEulerEquations2D)
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations2D)
   # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
   # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
   if isodd(direction)
@@ -724,15 +436,15 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   if orientation == 1
     pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
     f1 = rho_avg * v1_avg
-    f2 = rho_avg * v1_avg * v1_avg + p_avg
-    f3 = rho_avg * v1_avg * v2_avg
-    f4 = p_avg*v1_avg * equations.inv_gamma_minus_one + rho_avg*v1_avg*kin_avg + pv1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = p_avg*v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
   else
     pv2_avg = 1/2 * (p_ll*v2_rr + p_rr*v2_ll)
     f1 = rho_avg * v2_avg
-    f2 = rho_avg * v2_avg * v1_avg
-    f3 = rho_avg * v2_avg * v2_avg + p_avg
-    f4 = p_avg*v2_avg * equations.inv_gamma_minus_one + rho_avg*v2_avg*kin_avg + pv2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = p_avg*v2_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv2_avg
   end
 
   return SVector(f1, f2, f3, f4)
@@ -942,7 +654,7 @@ end
   velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
 
   # Calculate fluxes depending on normal_direction
-  f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2])
+  f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
   f2 = f1 * v1_avg + p_avg * normal_direction[1]
   f3 = f1 * v2_avg + p_avg * normal_direction[2]
   f4 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
@@ -954,29 +666,41 @@ end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
-# TODO: This doesn't really use the `orientation` - should it?
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  # Get the velocity value in the appropriate direction
+  if orientation == 1
+    v_ll = v1_ll
+    v_rr = v1_rr
+  else # orientation == 2
+    v_ll = v2_ll
+    v_rr = v2_rr
+  end
+  # Calculate sound speeds
   c_ll = sqrt(equations.gamma * p_ll / rho_ll)
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
-  return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+  # Calculate normal velocities and sound speed
+  # left
+  v_ll = (  v1_ll * normal_direction[1]
+          + v2_ll * normal_direction[2] )
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+  # right
+  v_rr = (  v1_rr * normal_direction[1]
+          + v2_rr * normal_direction[2] )
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
 

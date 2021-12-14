@@ -27,8 +27,8 @@ function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
   resize!(alpha, nelements(dg, cache))
 
   #Predict the theoretical center.
-  advectionvelocity = (1.0, 1.0)
-  center = t.*advectionvelocity
+  advection_velocity = (0.2, -0.7)
+  center = t.*advection_velocity
 
   inner_distance = 1
   outer_distance = 1.85
@@ -83,9 +83,8 @@ import .TrixiExtension
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_gauss
 

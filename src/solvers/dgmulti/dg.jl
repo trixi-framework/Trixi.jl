@@ -7,12 +7,16 @@
 
 # out <- A*x
 mul_by!(A) = @inline (out, x)->matmul!(out, A, x)
-
-# out <- out + A * x
-mul_by_accum!(A) = @inline (out, x)->matmul!(out, A, x, one(eltype(out)), one(eltype(out)))
+mul_by!(A::T) where {T<:SimpleKronecker} = @inline (out, x)->mul!(out, A, x)
+mul_by!(A::AbstractSparseMatrix) = @inline (out, x)->mul!(out, A, x)
+mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S<:AbstractSparseMatrix} = @inline (out, x)->mul!(out, A, x)
 
 #  out <- out + α * A * x
-mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, one(eltype(out)))
+mul_by_accum!(A, α) = @inline (out, x)->matmul!(out, A, x, α, One())
+mul_by_accum!(A::AbstractSparseMatrix, α) = @inline (out, x)->mul!(out, A, x, α, One())
+
+# out <- out + A * x
+mul_by_accum!(A) = mul_by_accum!(A, One())
 
 # specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
 struct MulByUniformScaling end
@@ -27,6 +31,7 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 # solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
 @inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
+  # TODO: DGMulti speed up using threads
   for (i, x_i) in enumerate(x)
     out[i] = out[i] + x_i
   end
@@ -71,7 +76,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   @unpack wq, Vq, M, Drst = rd
 
   # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
-  weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * diagm(wq)), Drst)
+  weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * Diagonal(wq)), Drst)
 
   nvars = nvariables(equations)
 
@@ -79,7 +84,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiWeakForm, Re
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  if typeof(rd.approximationType) <: SBP
+  if typeof(rd.approximationType) <: Union{SBP, AbstractNonperiodicDerivativeOperator}
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
   else
     lift_scalings = nothing
@@ -105,7 +110,8 @@ function compute_coefficients!(u, initial_condition, t,
 
   # evaluate the initial condition at quadrature points
   @threaded for i in each_quad_node_global(mesh, dg, cache)
-    u_values[i] = initial_condition(getindex.(md.xyzq, i), t, equations)
+    u_values[i] = initial_condition(SVector(getindex.(md.xyzq, i)),
+                                    t, equations)
   end
 
   # multiplying by Pq computes the L2 projection
@@ -136,7 +142,12 @@ function max_dt(u, t, mesh::AbstractMeshData,
     end
     dt_min = min(dt_min, h_e / sum(max_speeds))
   end
-  return 2.0 * dt_min / StartUpDG.inverse_trace_constant(rd)
+  # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+  # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+  # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+  # the number of 1D nodes for `DGSEM` solvers.
+  polydeg = rd.N
+  return 2 * dt_min / (polydeg + 1)
 end
 
 # interpolates from solution coefficients to face quadrature points
@@ -147,8 +158,10 @@ function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
   apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 end
 
-function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
-                               mesh::VertexMappedMesh, equations, dg::DGMulti, cache)
+function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
+                               have_nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache)
 
   rd = dg.basis
   md = mesh.md
@@ -173,7 +186,9 @@ function calc_volume_integral!(du, u, volume_integral::VolumeIntegralWeakForm,
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                              mesh::VertexMappedMesh, equations, dg::DGMulti{NDIMS}) where {NDIMS}
+                              mesh::VertexMappedMesh,
+                              have_nonconservative_terms::Val{false}, equations,
+                              dg::DGMulti{NDIMS}) where {NDIMS}
 
   @unpack surface_flux = surface_integral
   md = mesh.md
@@ -195,6 +210,42 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
   end
 end
 
+function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
+                              mesh::VertexMappedMesh,
+                              have_nonconservative_terms::Val{true}, equations,
+                              dg::DGMulti{NDIMS}) where {NDIMS}
+
+  flux_conservative, flux_nonconservative = surface_integral.surface_flux
+  md = mesh.md
+  @unpack mapM, mapP, nxyzJ, Jf = md
+  @unpack u_face_values, flux_face_values = cache
+
+  @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
+
+    # inner (idM -> minus) and outer (idP -> plus) indices
+    idM, idP = mapM[face_node_index], mapP[face_node_index]
+    uM = u_face_values[idM]
+
+    # compute flux if node is not a boundary node
+    if idM != idP
+      uP = u_face_values[idP]
+      normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
+      conservative_part = flux_conservative(uM, uP, normal, equations)
+
+      # Two notes on the use of `flux_nonconservative`:
+      # 1. In contrast to other mesh types, only one nonconservative part needs to be
+      #    computed since we loop over the elements, not the unique interfaces.
+      # 2. In general, nonconservative fluxes can depend on both the contravariant
+      #    vectors (normal direction) at the current node and the averaged ones. However,
+      #    both are the same at watertight interfaces, so we pass `normal` twice.
+      nonconservative_part = flux_nonconservative(uM, uP, normal, normal, equations)
+      # The factor 0.5 is necessary for the nonconservative fluxes based on the
+      # interpretation of global SBP operators.
+      flux_face_values[idM] = (conservative_part + 0.5 * nonconservative_part) * Jf[idM]
+    end
+  end
+end
+
 # assumes cache.flux_face_values is computed and filled with
 # for polyomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
@@ -206,7 +257,7 @@ end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
 function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations, surface_integral,
-                             dg::DGMulti{NDIMS, <:AbstractElemShape, <:SBP}) where {NDIMS}
+                             dg::DGMultiSBP)
   rd = dg.basis
   @unpack Fmask = rd
   @unpack u_face_values = cache
@@ -221,10 +272,10 @@ end
 # du[Fmask,:] .= u ./ rd.wq[rd.Fmask]
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
                                 mesh::VertexMappedMesh, equations,
-                                dg::DGMulti{NDIMS,<:AbstractElemShape, <:SBP}, cache) where {NDIMS}
+                                dg::DGMultiSBP, cache)
   rd = dg.basis
-  md = mesh.md
   @unpack flux_face_values, lift_scalings = cache
+
   @threaded for e in eachelement(mesh, dg, cache)
     for i in each_face_node(mesh, dg, cache)
       fid = rd.Fmask[i]
@@ -239,7 +290,6 @@ calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
 
 # "lispy tuple programming" instead of for loop for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg::DGMulti)
-
   # peel off first boundary condition
   calc_single_boundary_flux!(cache, t, first(boundary_conditions), first(keys(boundary_conditions)),
                  mesh, equations, dg)
@@ -306,7 +356,7 @@ end
 calc_sources!(du, u, t, source_terms::Nothing,
               mesh, equations, dg::DGMulti, cache) = nothing
 calc_sources!(du, u, t, source_terms::Nothing,
-              mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache) = nothing
+              mesh, equations, dg::DGMultiFluxDiffSBP, cache) = nothing
 
 # uses quadrature + projection to compute source terms.
 function calc_sources!(du, u, t, source_terms,
@@ -320,10 +370,11 @@ function calc_sources!(du, u, t, source_terms,
 
     source_values = local_values_threaded[Threads.threadid()]
 
-    u_e = view(u_values, :, e) # u_values should already be computed from volume kernel
+    u_e = view(u_values, :, e) # u_values should already be computed from volume integral
 
     for i in each_quad_node(mesh, dg, cache)
-      source_values[i] = source_terms(u_e[i], getindex.(md.xyzq, i, e), t, equations)
+      source_values[i] = source_terms(u_e[i], SVector(getindex.(md.xyzq, i, e)),
+                                      t, equations)
     end
     apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
   end
@@ -333,22 +384,30 @@ function rhs!(du, u, t, mesh, equations,
               initial_condition, boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
 
-  @trixi_timeit timer() "Reset du/dt" fill!(du,zero(eltype(du)))
+  @trixi_timeit timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
 
-  @trixi_timeit timer() "calc_volume_integral!" calc_volume_integral!(du, u, dg.volume_integral,
-                                    mesh, equations, dg, cache)
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
 
-  @trixi_timeit timer() "prolong2interfaces!" prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, mesh, equations, dg.surface_integral, dg)
 
-  @trixi_timeit timer() "calc_interface_flux!" calc_interface_flux!(cache, dg.surface_integral, mesh, equations, dg)
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
+    cache, dg.surface_integral, mesh,
+    have_nonconservative_terms(equations), equations, dg)
 
-  @trixi_timeit timer() "calc_boundary_flux!" calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, dg)
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg)
 
-  @trixi_timeit timer() "calc_surface_integral!" calc_surface_integral!(du, u, dg.surface_integral, mesh, equations, dg, cache)
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
+    du, u, dg.surface_integral, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "invert_jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
+  @trixi_timeit timer() "Jacobian" invert_jacobian!(
+    du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "calc_sources!" calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+  @trixi_timeit timer() "source terms" calc_sources!(
+    du, u, t, source_terms, mesh, equations, dg, cache)
 
   return nothing
 end

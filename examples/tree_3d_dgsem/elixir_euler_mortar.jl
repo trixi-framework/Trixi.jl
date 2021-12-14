@@ -10,8 +10,8 @@ equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (0, 0, 0)
-coordinates_max = (2, 2, 2)
+coordinates_min = (0.0, 0.0, 0.0)
+coordinates_max = (2.0, 2.0, 2.0)
 refinement_patches = (
   (type="box", coordinates_min=(0.5, 0.5, 0.5), coordinates_max=(1.5, 1.5, 1.5)),
 )

@@ -12,24 +12,38 @@ Multicomponent version of the compressible Euler equations
 ```math
 \partial t
 \begin{pmatrix}
-\rho v_1 \\ \rho v_2 \\ E \\ \rho_1 \\ \rho_2 \\ \vdots \\ \rho_{n}
+\rho v_1 \\ \rho v_2 \\ \rho e \\ \rho_1 \\ \rho_2 \\ \vdots \\ \rho_{n}
 \end{pmatrix}
 +
 \partial x
 \begin{pmatrix}
-\rho v_1^2 + p \\ \rho v_1 v_2 \\ (E+p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
+\rho v_1^2 + p \\ \rho v_1 v_2 \\ ( \rho e +p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
 \end{pmatrix}
 +
 \partial y
 \begin{pmatrix}
-\rho v_1 v_2 \\ \rho v_2^2 + p \\ (E+p) v_2 \\ \rho_1 v_2 \\ \rho_2 v_2 \\ \vdots \\ \rho_{n} v_2
+\rho v_1 v_2 \\ \rho v_2^2 + p \\ ( \rho e +p) v_2 \\ \rho_1 v_2 \\ \rho_2 v_2 \\ \vdots \\ \rho_{n} v_2
 \end{pmatrix}
 =
 \begin{pmatrix}
 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ \vdots \\ 0
 \end{pmatrix}
 ```
-for calorically perfect gas in two space dimensions.
+for calorically perfect gas in two space dimensions. 
+Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``, 
+``v_1``, ``v_2`` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
+```
+the pressure,
+```math
+\gamma=\frac{\sum_{i=1}^n\rho_i C_{v,i}\gamma_i}{\sum_{i=1}^n\rho_i C_{v,i}} 
+```
+total heat capacity ratio, ``\gamma_i`` heat capacity ratio of component ``i``,
+```math
+C_{v,i}=\frac{R}{\gamma_i-1}
+```
+specific heat capacity at constant volume of component ``i``.
 
 In case of more than one component, the specific heat ratios `gammas` and the gas constants
 `gas_constants` in [kJ/(kg*K)] should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
@@ -58,9 +72,9 @@ end
 
 function CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
 
-  _gammas        = promote(gammas...)
-  _gas_constants = promote(gas_constants...)
-  RealT          = promote_type(eltype(_gammas), eltype(_gas_constants))
+  _gammas                 = promote(gammas...)
+  _gas_constants          = promote(gas_constants...)
+  RealT                   = promote_type(eltype(_gammas), eltype(_gas_constants), typeof(gas_constants[1] / (gammas[1] - 1)))
 
   NVARS = length(_gammas) + 3
   NCOMP = length(_gammas)
@@ -161,77 +175,6 @@ Source terms used for convergence tests in combination with
   du_other  = SVector{3, real(equations)}(du1, du2, du3)
 
   return vcat(du_other, du_rho)
-end
-
-
-"""
-    initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{5, 2})
-
-A shock-bubble testcase for multicomponent Euler equations
-- Ayoub Gouasmi, Karthik Duraisamy, Scott Murman
-  Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations
-  [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
-"""
-function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{5, 2})
-  # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
-  # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
-  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-  @unpack gas_constants = equations
-
-  # Positivity Preserving Parameter, can be set to zero if scheme is positivity preserving
-  delta   = 0.03
-
-  # Region I
-  rho1_1  = delta
-  rho2_1  = 1.225 * gas_constants[1]/gas_constants[2] - delta
-  v1_1    = zero(delta)
-  v2_1    = zero(delta)
-  p_1     = 101325
-
-  # Region II
-  rho1_2  = 1.225-delta
-  rho2_2  = delta
-  v1_2    = zero(delta)
-  v2_2    = zero(delta)
-  p_2     = 101325
-
-  # Region III
-  rho1_3  = 1.6861 - delta
-  rho2_3  = delta
-  v1_3    = -113.5243
-  v2_3    = zero(delta)
-  p_3     = 159060
-
-  # Set up Region I & II:
-  inicenter = SVector(zero(delta), zero(delta))
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-
-  if (x[1] > 0.50)
-    # Set up Region III
-    rho1    = rho1_3
-    rho2    = rho2_3
-    v1      = v1_3
-    v2      = v2_3
-    p       = p_3
-  elseif (r < 0.25)
-    # Set up Region I
-    rho1    = rho1_1
-    rho2    = rho2_1
-    v1      = v1_1
-    v2      = v2_1
-    p       = p_1
-  else
-    # Set up Region II
-    rho1    = rho1_2
-    rho2    = rho2_2
-    v1      = v1_2
-    v2      = v2_2
-    p       = p_2
-  end
-
-  return prim2cons(SVector(v1, v2, p, rho1, rho2), equations)
 end
 
 
@@ -397,13 +340,13 @@ See also
 
   # Calculating gamma
   gamma               = totalgamma(0.5*(u_ll+u_rr), equations)
-  inv_gamma_minus_one = 1/(gamma-1) 
+  inv_gamma_minus_one = 1/(gamma-1)
 
   # extract velocities
   v1_ll               = rho_v1_ll / rho_ll
   v1_rr               = rho_v1_rr / rho_rr
   v1_avg              = 0.5 * (v1_ll + v1_rr)
-  v2_ll               = rho_v2_ll / rho_ll 
+  v2_ll               = rho_v2_ll / rho_ll
   v2_rr               = rho_v2_rr / rho_rr
   v2_avg              = 0.5 * (v2_ll + v2_rr)
   velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
@@ -423,11 +366,11 @@ See also
   # temperature and pressure
   T_ll            = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
   T_rr            = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
-  p_ll            = T_ll * enth_ll 
+  p_ll            = T_ll * enth_ll
   p_rr            = T_rr * enth_rr
   p_avg           = 0.5 * (p_ll + p_rr)
   inv_rho_p_mean  = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
- 
+
   f_rho_sum = zero(T_rr)
   if orientation == 1
     f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v1_avg for i in eachcomponent(equations))
@@ -459,25 +402,28 @@ end
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
-  # Calculate primitive variables and speed of sound
+  # Get the density and gas gamma
   rho_ll   = density(u_ll, equations)
   rho_rr   = density(u_rr, equations)
   gamma_ll = totalgamma(u_ll, equations)
   gamma_rr = totalgamma(u_rr, equations)
 
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
-  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+  # Get the velocities based on direction
+  if orientation == 1
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+  else # orientation == 2
+    v_ll = rho_v2_ll / rho_ll
+    v_rr = rho_v2_rr / rho_rr
+  end
 
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
-  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  # Compute the sound speeds on the left and right
+  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 

@@ -42,7 +42,7 @@ save_solution = SaveSolutionCallback(interval=10,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-cfl = 0.1
+cfl = 1.0
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
@@ -60,5 +60,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

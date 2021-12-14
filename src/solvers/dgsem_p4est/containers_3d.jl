@@ -10,7 +10,7 @@ function init_elements!(elements, mesh::P4estMesh{3}, basis::LobattoLegendreBasi
   @unpack node_coordinates, jacobian_matrix,
           contravariant_vectors, inverse_jacobian = elements
 
-  calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+  calc_node_coordinates!(node_coordinates, mesh, basis)
 
   for element in 1:ncells(mesh)
     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
@@ -40,7 +40,7 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{3},
                                 nodes::AbstractVector)
-  # Macros from p4est
+  # Macros from `p4est`
   p4est_root_len = 1 << P4EST_MAXLEVEL
   p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
@@ -181,14 +181,14 @@ end
 end
 
 
-# Convert p4est orientation code to node indices.
+# Convert `p4est` orientation code to node indices.
 # Return node indices that index "my side" wrt "other side",
 # i.e., i and j are indices of other side.
 function orientation_to_indices_p4est(my_face, other_face, orientation_code)
   # my_face and other_face are the face directions (zero-based)
   # of "my side" and "other side" respectively.
   # Face corner 0 of the face with the lower face direction connects to a corner of the other face.
-  # The number of this corner is the orientation code in p4est.
+  # The number of this corner is the orientation code in `p4est`.
   lower = my_face <= other_face
 
   # x_pos, y_neg, and z_pos are the directions in which the face has right-handed coordinates
@@ -200,7 +200,7 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
   # orientations when looked at from the same side of the interface.
   flipped = my_right_handed == other_right_handed
 
-  # In the folowing illustrations, p4est's face corner numbering is shown.
+  # In the folowing illustrations, the face corner numbering of `p4est` is shown.
   # ξ and η are the local coordinates of the respective face.
   # We're looking at both faces from the same side of the interface, so that "other side"
   # (in the illustrations on the left) has right-handed coordinates.

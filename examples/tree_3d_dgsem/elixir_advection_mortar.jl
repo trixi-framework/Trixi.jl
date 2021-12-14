@@ -5,14 +5,14 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (0.2, -0.7, 0.3)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1, -1, -1)
-coordinates_max = ( 1,  1,  1)
+coordinates_min = (-1.0, -1.0, -1.0)
+coordinates_max = ( 1.0,  1.0,  1.0)
 refinement_patches = (
   (type="box", coordinates_min=(0.0, -1.0, -1.0), coordinates_max=(1.0, 1.0, 1.0)),
   (type="box", coordinates_min=(0.0, -0.5, -0.5), coordinates_max=(0.5, 0.5, 0.5)),

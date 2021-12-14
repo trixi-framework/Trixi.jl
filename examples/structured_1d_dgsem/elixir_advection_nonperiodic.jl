@@ -5,8 +5,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = 1.0
-equations = LinearScalarAdvectionEquation1D(advectionvelocity)
+advection_velocity = 1.0
+equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 initial_condition = initial_condition_gauss
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)

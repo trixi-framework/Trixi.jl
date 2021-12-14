@@ -30,7 +30,8 @@ function initial_condition_kelvin_helmholtz_instability(x, t, equations::Compres
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, 32)
+cells_per_dimension = (32, 32)
+vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
 mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
@@ -49,6 +50,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt= estimate_dt(mesh, dg), save_everystep=false, callback=callbacks);
+            dt = estimate_dt(mesh, dg), save_everystep=false, callback=callbacks);
 
 summary_callback() # print the timer summary

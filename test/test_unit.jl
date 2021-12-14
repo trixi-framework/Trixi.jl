@@ -473,7 +473,7 @@ Cassette.@context Ctx
     println()
   end
 
-  @timed_testset "APE 2D varnames" begin
+  @timed_testset "Acoustic perturbation 2D varnames" begin
     v_mean_global = (0.0, 0.0)
     c_mean_global = 1.0
     rho_mean_global = 1.0
@@ -520,9 +520,24 @@ Cassette.@context Ctx
     end
   end
 
+  @timed_testset "Shallow water conversion between conservative/entropy variables" begin
+    H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
+
+    let equations = ShallowWaterEquations2D(gravity_constant=9.8)
+      cons_vars = prim2cons(SVector(H,v1,v2,b),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      # test tuple args
+      cons_vars = prim2cons((H, v1, v2, b), equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+  end
+
   @timed_testset "TimeSeriesCallback" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
-                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_ape_gaussian_source.jl"),
+                                     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
                                      tspan=(0, 0.05))
 
     point_data_1 = time_series.affect!.point_data[1]
@@ -563,7 +578,7 @@ Cassette.@context Ctx
                           SVector(-1.2, 0.3, 1.4)]
       u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
                   SVector(1.5, -0.2, 0.1, 0.2, 5.0),]
-      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber]
+      fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber, FluxLMARS(340)]
 
       for f_std in fluxes
         f_rot = FluxRotated(f_std)
@@ -610,6 +625,36 @@ Cassette.@context Ctx
       end
     end
   end
+
+  @testset "SimpleKronecker" begin
+    N = 3
+
+    NDIMS = 2
+    r, s = StartUpDG.nodes(Quad(), N)
+    V = StartUpDG.vandermonde(Quad(), N, r, s)
+    r1D = StartUpDG.nodes(Line(), N)
+    V1D = StartUpDG.vandermonde(Line(), N, r1D)
+
+    x = r + s
+    V_kron = Trixi.SimpleKronecker(NDIMS, V1D, eltype(x))
+
+    b = similar(x)
+    b_kron = similar(x)
+    Trixi.mul!(b, V, x)
+    Trixi.mul!(b_kron, V_kron, x)
+    @test b ≈ b_kron
+  end
+
+  @testset "SummationByPartsOperators + StartUpDG" begin
+    dg = DGMulti(polydeg = 3, element_type = Quad(),
+                 approximation_type = derivative_operator(
+                 SummationByPartsOperators.MattssonNordström2004(),
+                 derivative_order=1, accuracy_order=4,
+                 xmin=0.0, xmax=1.0, N=10))
+
+    @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
+  end
+
 end
 
 

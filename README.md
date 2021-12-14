@@ -37,6 +37,7 @@ installation and postprocessing procedures. Its features include:
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
+  * Finite difference summation by parts (SBP) methods
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -51,12 +52,14 @@ installation and postprocessing procedures. Its features include:
   * Acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
+  * Shallow water equations
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
 * Visualization and postprocessing of the results
   * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+  * Interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
   * Postprocessing with ParaView/VisIt via [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
 
 
@@ -204,9 +207,9 @@ In addition, you can also refer to Trixi directly as
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
          of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
-          Ranocha, Hendrik and Winters, Andrew R},
-  year={2020},
-  month={08},
+          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse},
+  year={2021},
+  month={09},
   howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
   doi={10.5281/zenodo.3996439}
 }
@@ -215,11 +218,13 @@ In addition, you can also refer to Trixi directly as
 
 ## Authors
 Trixi was initiated by [Michael
-Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
-[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner) (both
-University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), they are the principal developers of Trixi.
+Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
+(University of Stuttgart, Germany) and
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
+(University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
+(University of Münster, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+they are the principal developers of Trixi.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
 
@@ -230,3 +235,20 @@ community. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
+
+
+## Acknowledgments
+This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
+under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
+Dynamics-Geometry-Structure.
+
+This project has benefited from funding from the European Research Council through the
+ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
+Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
+ERC grant agreement no. 714487.
+
+This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden grant
+agreement 2020-03642 VR.
+
+This project has benefited from funding from the United States National Science Foundation under awards
+DMS-1719818 and DMS-1943186.

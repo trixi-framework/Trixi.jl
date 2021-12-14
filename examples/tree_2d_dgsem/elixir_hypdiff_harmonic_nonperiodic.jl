@@ -7,6 +7,26 @@ using Trixi
 
 equations = HyperbolicDiffusionEquations2D()
 
+@inline function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -ν Δϕ = 0 in Ω, u = g on ∂Ω
+  if t == 0.0
+    phi = 1.0
+    q1  = 1.0
+    q2  = 1.0
+  else
+    C   = inv(sinh(pi))
+    sinpi_x1, cospi_x1 = sincos(pi*x[1])
+    sinpi_x2, cospi_x2 = sincos(pi*x[2])
+    sinh_pix1 = sinh(pi*x[1])
+    cosh_pix1 = cosh(pi*x[1])
+    sinh_pix2 = sinh(pi*x[2])
+    cosh_pix2 = cosh(pi*x[2])
+    phi = C *      (sinh_pix1 * sinpi_x2 + sinh_pix2 * sinpi_x1)
+    q1  = C * pi * (cosh_pix1 * sinpi_x2 + sinh_pix2 * cospi_x1)
+    q2  = C * pi * (sinh_pix1 * cospi_x2 + cosh_pix2 * sinpi_x1)
+  end
+  return SVector(phi, q1, q2)
+end
 initial_condition = initial_condition_harmonic_nonperiodic
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)

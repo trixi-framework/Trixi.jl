@@ -5,14 +5,14 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0, 1.0)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1, -1, -1) # minimum coordinates (min(x), min(y), min(z))
-coordinates_max = ( 1,  1,  1) # maximum coordinates (max(x), max(y), max(z))
+coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
+coordinates_max = ( 1.0,  1.0,  1.0) # maximum coordinates (max(x), max(y), max(z))
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,

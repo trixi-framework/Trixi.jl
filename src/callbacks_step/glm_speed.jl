@@ -84,6 +84,9 @@ end
   # c_h is proportional to its own time step divided by the complete MHD time step
   equations.c_h = glm_scale * c_h_deltat / dt
 
+  # avoid re-evaluating possible FSAL stages
+  u_modified!(integrator, false)
+
   return nothing
 end
 

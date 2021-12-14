@@ -22,7 +22,7 @@ function init_elements!(elements, mesh::StructuredMesh{1}, basis::LobattoLegendr
   # Contravariant vectors don't make sense in 1D, they would be identical to inverse_jacobian
   fill!(contravariant_vectors, NaN)
 
-  initialize_neighbor_connectivity!(left_neighbors, mesh)
+  initialize_left_neighbor_connectivity!(left_neighbors, mesh)
 
   return nothing
 end
@@ -65,7 +65,7 @@ end
 
 
 # Save id of left neighbor of every element
-function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{1})
+function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{1})
   # Neighbors in x-direction
   # Inner elements
   for cell_x in 2:size(mesh, 1)
@@ -82,6 +82,5 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{
 
   return left_neighbors
 end
-
 
 end # @muladd

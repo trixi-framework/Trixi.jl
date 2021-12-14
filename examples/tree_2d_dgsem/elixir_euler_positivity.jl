@@ -7,6 +7,35 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
+"""
+    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+
+The Sedov blast wave setup based on Flash
+- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+"""
+function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+  # Set up polar coordinates
+  inicenter = SVector(0.0, 0.0)
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  # r0 = 0.5 # = more reasonable setup
+  E = 1.0
+  p0_inner = 3 * (equations.gamma - 1) * E / (3 * pi * r0^2)
+  p0_outer = 1.0e-5 # = true Sedov setup
+  # p0_outer = 1.0e-3 # = more reasonable setup
+
+  # Calculate primitive variables
+  rho = 1.0
+  v1  = 0.0
+  v2  = 0.0
+  p   = r > r0 ? p0_outer : p0_inner
+
+  return prim2cons(SVector(rho, v1, v2, p), equations)
+end
 initial_condition = initial_condition_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
@@ -22,8 +51,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2, -2)
-coordinates_max = ( 2,  2)
+coordinates_min = (-2.0, -2.0)
+coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
                 n_cells_max=100_000)
@@ -69,16 +98,14 @@ callbacks = CallbackSet(summary_callback,
                         amr_callback, stepsize_callback)
 
 
-limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
-                                               variables=(Trixi.density, pressure))
-stage_limiter! = limiter!
-step_limiter!  = limiter!
+stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
+                                                     variables=(Trixi.density, pressure))
 
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

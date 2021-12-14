@@ -1,5 +1,16 @@
 # Troubleshooting and FAQ
 
+In general, Trixi.jl works best with the newest Julia release and up-to-date
+dependencies. If something does not work as expected, try updating your installed
+Julia packages via the package manager, e.g., by running
+```julia
+julia> import Pkg; Pkg.update()
+```
+If you do  not use the latest stable release of Julia from the 
+[official website](https://julialang.org/downloads/#current_stable_release),
+consider updating your Julia installation.
+
+
 ## [Installing Trixi as a package only provides an older release](@id old-release)
 Trixi requires fairly recent versions of several of its dependencies, which
 sometimes causes issues when other installed packages have conflicting version
@@ -119,7 +130,7 @@ using Trixi
 begin
   Trixi.reset_timer!(Trixi.timer())
 
-  equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+  equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
   mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max=10^5, initial_refinement_level=5)
   solver = DGSEM(3)
   semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)

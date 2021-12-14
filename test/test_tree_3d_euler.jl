@@ -11,8 +11,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
 @testset "Compressible Euler" begin
   @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [0.01032310150257373, 0.009728768969448439, 0.009728768969448494, 0.009728768969448388, 0.015080412597559597],
-      linf = [0.034894790428615874, 0.033835365548322116, 0.033835365548322116, 0.03383536554832034, 0.06785765131417065])
+      l2   = [0.010385936842224346, 0.009776048833895767, 0.00977604883389591, 0.009776048833895733, 0.01506687097416608],
+      linf = [0.03285848350791731, 0.0321792316408982, 0.032179231640894645, 0.032179231640895534, 0.0655408023333299])
   end
 
   @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
@@ -23,8 +23,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
 
   @trixi_testset "elixir_euler_source_terms.jl with split_form" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [0.010323101502574773, 0.009728768969449282, 0.009728768969449344, 0.009728768969449401, 0.015080412597560888],
-      linf = [0.0348947904286212, 0.03383536554832034, 0.03383536554831723, 0.03383536554831679, 0.0678576513141671],
+      l2   = [0.010385936842223388, 0.009776048833894784, 0.009776048833894784, 0.009776048833894765, 0.015066870974164096],
+      linf = [0.03285848350791687, 0.032179231640897754, 0.0321792316408942, 0.0321792316408982, 0.06554080233333615],
       volume_integral=VolumeIntegralFluxDifferencing(flux_central))
   end
 
@@ -36,21 +36,22 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
 
   @trixi_testset "elixir_euler_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mortar.jl"),
-      l2   = [0.0019011097544691046, 0.0018289464161846331, 0.0018289464161847266, 0.0018289464161847851, 0.0033547668596639966],
-      linf = [0.011918626829790169, 0.011808582902362641, 0.01180858290237552, 0.011808582902357312, 0.024648094686513744])
+      l2   = [0.0019428114665068841, 0.0018659907926698422, 0.0018659907926698589, 0.0018659907926698747, 0.0034549095578444056],
+      linf = [0.011355360771142298, 0.011526889155693887, 0.011526889155689002, 0.011526889155701436, 0.02299726519821288])
   end
 
   @trixi_testset "elixir_euler_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_amr.jl"),
-      l2   = [0.0038281919675174224, 0.003828191967517416, 0.003828191967517415, 0.003828191967517416, 0.0057422879512759525],
-      linf = [0.07390148817126874, 0.07390148817126896, 0.07390148817126896, 0.07390148817126874, 0.110852232256903],
-      tspan=(0.0, 0.1))
+      l2   = [0.0038281920613404716, 0.003828192061340465, 0.0038281920613404694, 0.0038281920613404672, 0.005742288092010652],
+      linf = [0.07390396464027349, 0.07390396464027305, 0.07390396464027305, 0.07390396464027305, 0.11085594696041134],
+      tspan=(0.0, 0.1),
+      coverage_override = (maxiters=6, initial_refinement_level=0, base_level=0, med_level=0, max_level=1))
   end
 
   @trixi_testset "elixir_euler_taylor_green_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
-      l2   = [0.000349497725802709, 0.031333864159293845, 0.03133386415929371, 0.04378595044851934, 0.015796652303527357],
-      linf = [0.0013934750216293423, 0.07242017454880123, 0.07242017454880156, 0.12796560115483002, 0.07680757651078807],
+      l2   = [0.00034949871748737876, 0.03133384111621587, 0.03133384111621582, 0.04378599329988925, 0.015796137903453026],
+      linf = [0.0013935237751798724, 0.0724080091006194, 0.07240800910061806, 0.12795921224174792, 0.07677156293692633],
       tspan = (0.0, 0.5))
   end
 
@@ -60,22 +61,6 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       linf = [0.3954458125573179, 0.26876916180359345, 0.26876916180359345, 0.26933123042178553, 1.3724137121660251])
   end
 
-  @trixi_testset "elixir_euler_shockcapturing.jl with initial_condition_sedov_blast_wave" begin
-    # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-      l2   = [0.03627061709701234, 0.05178777768691398, 0.05178777768691404, 0.051787777686913984, 0.2308467334945545],
-      linf = [0.9542995612960261, 1.2654683412445416, 1.2654683412445418, 1.2654683412445418, 12.805752164787227],
-      initial_condition=initial_condition_sedov_blast_wave, cfl=0.7, alpha_max=1.0, tspan=(0.0, 0.1))
-  end
-
-  @trixi_testset "elixir_euler_shockcapturing.jl with initial_condition_sedov_self_gravity" begin
-    # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-      l2   = [0.048222481449477446, 0.0517877776783649, 0.051787777678364795, 0.05178777767836493, 0.230846733492145],
-      linf = [0.954296651568088, 1.2654683413909855, 1.2654683413909855, 1.2654683413909857, 12.805752164822744],
-      initial_condition=initial_condition_sedov_self_gravity, cfl=0.7, alpha_max=1.0, tspan=(0.0, 0.1))
-  end
-
   @trixi_testset "elixir_euler_shockcapturing_amr.jl" begin
     # OBS! This setup does not make much practical sense. It is only added to exercise the
     # `sedov_self_gravity` AMR indicator, which in its original configuration is too expensive for
@@ -83,7 +68,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_amr.jl"),
       l2   = [0.02217299067704248, 0.012771561294571411, 0.01277156129457143, 0.012770635779336643, 0.08091898488262424],
       linf = [0.4047819603427084, 0.27493532130155474, 0.2749353213015551, 0.2749304638368023, 1.4053942765487641],
-      maxiters=10)
+      maxiters=10,
+      coverage_override = (maxiters=2,))
   end
 
   @trixi_testset "elixir_euler_density_pulse.jl" begin
@@ -130,14 +116,18 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
       l2   = [0.04867856452253151, 0.2640486962336911, 0.0354927658652858, 0.03549276586528571, 1.0777274757408568],
       linf = [9.558543313792217, 49.4518309553356, 10.319859082570309, 10.319859082570487, 195.1066220797401],
-      tspan = (0.0, 0.2))
+      tspan = (0.0, 0.2),
+      # Let this test run longer to cover some lines in the positivity preserving limiter
+      # and some AMR lines
+      coverage_override = (maxiters=10^5,))
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.0007127163978031706, 0.0023166296394624025, 0.002316629639462401, 0.0023166296394624038, 0.010200581509653256],
       linf = [0.06344190883105805, 0.6292607955969378, 0.6292607955969377, 0.6292607955969377, 2.397746252817731],
-      maxiters=5, max_level=6)
+      maxiters=5, max_level=6,
+      coverage_override = (maxiters=2, initial_refinement_level=1, base_level=1, max_level=3))
   end
 end
 
