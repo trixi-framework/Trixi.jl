@@ -302,7 +302,13 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
 
-  xyz = xyzq = rd.rst
+  # We need to scale the domain from `[-1, 1]^NDIMS` (default in StartUpDG.jl)
+  # to the given `coordinates_min, coordinates_max`
+  xyz = xyzq = map(copy, rd.rst)
+  for dim in 1:NDIMS
+    factor = (coordinates_max[dim] - coordinates_min[dim]) / 2
+    @. xyz[dim] = factor * (xyz[dim] + 1) + coordinates_min[dim]
+  end
   xyzf = ntuple(_ -> [], NDIMS)
   wJq = diag(rd.M)
 
@@ -312,14 +318,14 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   # volume geofacs Gij = dx_i/dxhat_j
   coord_diffs = coordinates_max .- coordinates_min
 
-  if NDIMS==1
+  if NDIMS == 1
     rxJ = coord_diffs[1] / 2
     rstxyzJ = @SMatrix [rxJ * e]
-  elseif NDIMS==2
+  elseif NDIMS == 2
     rxJ = coord_diffs[1] / 2
     syJ = coord_diffs[2] / 2
     rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
-  elseif NDIMS==3
+  elseif NDIMS == 3
     rxJ = coord_diffs[1] / 2
     syJ = coord_diffs[2] / 2
     tzJ = coord_diffs[3] / 2
