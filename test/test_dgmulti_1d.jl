@@ -51,8 +51,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
-      l2 = [9.143049271995802e-7, 1.8989162075330386e-6, 3.9897318713851825e-6],
-      linf = [1.7314023346148844e-6, 3.3238808521129926e-6, 6.522518362750418e-6]
+      l2 = [9.146929180585711e-7, 1.8997616878017292e-6, 3.991417702211889e-6],
+      linf = [1.7321089884614338e-6, 3.3252888855805907e-6, 6.5252787737613005e-6]
     )
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
