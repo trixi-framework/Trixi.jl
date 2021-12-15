@@ -298,7 +298,6 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   e = ones(size(rd.r))
   z = zero(e)
 
-  # VXYZ = vec.(StartUpDG.meshgrid(((coordinates_min[i], coordinates_max[i]) for i in eachindex(coordinates_min))...))
   VXYZ = ntuple(_ -> [], NDIMS)
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
