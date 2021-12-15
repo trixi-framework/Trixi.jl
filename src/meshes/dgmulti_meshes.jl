@@ -23,7 +23,7 @@ function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, ElemType}) where {NDIMS, Ele
   print(io, "$ElemType DGMultiMesh with NDIMS = $NDIMS.")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, ElemType, MeshDataT}) where {NDIMS, ElemType, MeshDataT}
+function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, ElemType}) where {NDIMS, ElemType}
   @nospecialize mesh # reduce precompilation time
   if get(io, :compact, false)
     show(io, mesh)
