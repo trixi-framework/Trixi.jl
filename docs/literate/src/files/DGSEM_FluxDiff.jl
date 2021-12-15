@@ -20,6 +20,7 @@
 # J u_t + f(u)_{\xi} = 0, \qquad t\in \mathbb{R}^+, \xi\in [-1,1]
 # ```
 
+
 # ## The weak form of the DGSEM
 # We consider the so-called discontinuous Galerkin spectral element method (DGSEM) with collocation.
 # It results from choosing a nodal DG ansatz using $N+1$ Gauss-Lobatto nodes $\xi_i$ in $[-1,1]$
@@ -64,7 +65,8 @@
 # for instance in the tutorial [introduction to DG methods](@ref scalar_linear_advection_1d)
 # or in more detail in [Kopriva (2009)](https://link.springer.com/book/10.1007/978-90-481-2261-5).
 
-# This property shows the equivalence between the weak form and the following strong of the DGSEM.
+# This property shows the equivalence between the weak form and the following strong formulation
+# of the DGSEM.
 # ```math
 # \begin{align*}
 # J \underline{\dot{u}}(t)
@@ -136,11 +138,11 @@ equations = CompressibleEulerEquations2D(gamma)
 # ```
 # with $\phi = \tan^{-1}(\frac{x_2}{x_1})$.
 
-# This initial condition is implemented in Trixi under the name `initial_condition_weak_blast_wave`.
+# This initial condition is implemented in Trixi under the name [`initial_condition_weak_blast_wave`](@ref).
 initial_condition = initial_condition_weak_blast_wave
 
 # In Trixi, flux differencing for the volume integral can be implemented with
-# `VolumeIntegralFluxDifferencing` using symmetric two-point volume fluxes.
+# [`VolumeIntegralFluxDifferencing`](@ref) using symmetric two-point volume fluxes.
 # Here, we are using two different fluxes. First, we set up the entropy conserving and kinetic energy preserving
 # flux `flux_ranocha` by [Hendrik Ranocha (2018)](https://cuvillier.de/en/shop/publications/7743)
 # and second, a modification of the original kinetic energy preserving two-point flux by
@@ -204,102 +206,14 @@ plot(sol_ranocha)
 
 
 # ## Improved stability by flux differencing
-# Now, we want to give an example showing the stability advantage of flux differencing. We implement
-# a simulation for the compressible Euler equations in 3D. As initial condition we use the inviscid
-# Taylor-Green vortex by [Gassner, Winters, Kopriva (2016)](https://doi.org/10.1016/j.jcp.2016.09.013).
-# We show an [unstable simulation without](@ref without_FluxDiff) and the corresponding
-# [stable simulation with flux differencing](@ref with_FluxDiff).
-
-
-# ### [Simulation without flux differencing - inviscid Taylor-Green vortex (p.18)](@id without_FluxDiff)
-# First, we implement the equation, the initial condition and the mesh for both versions.
-using OrdinaryDiffEq, Trixi
-
-equations = CompressibleEulerEquations3D(1.4)
-
-function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
-    A  = 1.0 # magnitude of speed
-    Ms = 0.1 # maximum Mach number
-
-    rho = 1.0
-    v1  =  A * sin(x[1]) * cos(x[2]) * cos(x[3])
-    v2  = -A * cos(x[1]) * sin(x[2]) * cos(x[3])
-    v3  = 0.0
-    p   = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
-    p   = p + 1.0/16.0 * A^2 * rho * (cos(2*x[1])*cos(2*x[3]) + 2*cos(2*x[2]) + 2*cos(2*x[1]) + cos(2*x[2])*cos(2*x[3]))
-
-    return prim2cons(SVector(rho, v1, v2, v3, p), equations)
-end
-initial_condition = initial_condition_taylor_green_vortex
-
-coordinates_min = (0.0, 0.0, 0.0)
-coordinates_max = (2.0*pi, 2.0*pi, 2.0*pi)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=10_000,
-                periodicity=true)
-
-# Now, we define `solver`, `semi` and `ode` and some callbacks for the two different approaches.
-solver_LLF      = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,)
-solver_FluxDiff = DGSEM(polydeg=3, surface_flux=flux_shima_etal,
-                        volume_integral=VolumeIntegralFluxDifferencing(flux_shima_etal))
-
-semi_LLF      = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver_LLF,
-                                             boundary_conditions=boundary_condition_periodic)
-semi_FluxDiff = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver_FluxDiff,
-                                             boundary_conditions=boundary_condition_periodic)
-
-tspan = (0.0, 10.0)
-ode_LLF      = semidiscretize(semi_LLF,      tspan)
-ode_FluxDiff = semidiscretize(semi_FluxDiff, tspan)
-
-analysis_callback = AnalysisCallback(semi_LLF, interval=800)
-
-stepsize_callback = StepsizeCallback(cfl=1.0)
-
-callbacks = CallbackSet(analysis_callback, stepsize_callback);
-
-
-
-# TODO: Use `RDPK3SpFSAL49()`, `CarpenterKennedy2N54(williamson_condition=false)` or another time integration method?
-
-# Use analysis, stepsize callback?
-# No callbacks: Simple Code, but no ouput. <-> More code (callbacks) and output to make result clear (which one crashes!?)
-
-
-
-# We now run the simulation without flux differencing.
-try
-    sol_LLF = solve(ode_LLF, CarpenterKennedy2N54(williamson_condition=false),
-                    dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                    save_everystep=false, callback=callbacks);
-catch LoadError
-    println("Simulation stops, because of a negative value for the density `rho`.")
-end
-# The simulation crashes quite before `t=5.0` with a physically impossible negative value for the density.
-
-# The simulation with flux differencing is not crashing.
-sol_FluxDiff = solve(ode_FluxDiff, CarpenterKennedy2N54(williamson_condition=false),
-                     dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                     save_everystep=false, callback=callbacks);
-
-
-# ### [Simulation with flux differencing](@id with_FluxDiff)
-# TODO: Splitting the two versions into two independent blocks?
-
-# (Y) No doubled code, but long code
-
-# (N) Shorter code blocks, but worse comparability
-
-
-
-# ### Another example - isentropic vortex
-# In this example we implement a simulation for the compressible Euler equations in 2D.
+# Now, we want to give an example showing the stability advantage of flux differencing. We are
+# implementing the isentropic vortex by [Shu (1997)](https://ntrs.nasa.gov/citations/19980007543)
+# for the compressible Euler equation in 2D.
 using OrdinaryDiffEq, Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# The initial condition is the isentropic vortex by [Shu (1997)](https://ntrs.nasa.gov/citations/19980007543).
+# The initial condition is the isentropic vortex.
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
     ## needs appropriate mesh size, e.g. [-10,-10]x[10,10]
     ## make sure that the inicenter does not exit the domain, e.g. T=10.0
@@ -320,8 +234,8 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     ## cross product with iniaxis = [0,0,1]
     cent = SVector(-cent[2], cent[1])
     r2 = cent[1]^2 + cent[2]^2
-    du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-    dtemp = -(equations.gamma-1)/(2*equations.gamma*rt)*du^2            # isentrop
+    du = iniamplitude/(2*π)*exp(0.5*(1-r2))                     # vel. perturbation
+    dtemp = -(equations.gamma-1)/(2*equations.gamma*rt)*du^2    # isentrop
     rho = rho * (1+dtemp)^(1\(equations.gamma-1))
     vel = vel + du*cent
     v1, v2 = vel
@@ -331,6 +245,8 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
+# Defining the physical domain, discretized with Trixi's standard mesh [`TreeMesh`](@ref)
+# and $2^4=16$ elements per dimension.
 coordinates_min = (-10.0, -10.0)
 coordinates_max = ( 10.0,  10.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -338,7 +254,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000,
                 periodicity=true)
 
-# Now, we define `solver`, `semi` and `ode` and some callbacks for the two different approaches.
+# Now, we define `solver`, `semi` and `ode` and some callbacks for the two different fluxes.
 solver_LLF      = DGSEM(polydeg=5, surface_flux=flux_lax_friedrichs,)
 solver_FluxDiff = DGSEM(polydeg=5, surface_flux=flux_shima_etal,
                         volume_integral=VolumeIntegralFluxDifferencing(flux_shima_etal))
@@ -366,7 +282,7 @@ try
 catch LoadError
     println("Simulation stops, because of a negative value for the density `rho`.")
 end
-# The simulation crashes shortly after `t=1.0` with a physically impossible negative value for the density.
+# The simulation crashes shortly after `t=1.0` with a physically meaningless negative value for the density.
 
 # The simulation with flux differencing is not crashing.
 sol_FluxDiff = solve(ode_FluxDiff, CarpenterKennedy2N54(williamson_condition=false),
@@ -376,4 +292,7 @@ sol_FluxDiff = solve(ode_FluxDiff, CarpenterKennedy2N54(williamson_condition=fal
 using Plots
 plot(sol_FluxDiff)
 
-# TODO: Using another example?
+# Open questions/possibilities:
+# - Use `RDPK3SpFSAL49()`, `CarpenterKennedy2N54(williamson_condition=false)` or another time integration method?
+# - Use analysis, stepsize callback? (More extra code, but more maybe usefull output)
+# - Give another example? (e.g. inviscid Taxlor-Green-Vortex)
