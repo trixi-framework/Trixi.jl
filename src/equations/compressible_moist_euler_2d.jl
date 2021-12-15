@@ -516,9 +516,9 @@ function source_terms_moist_bubble(u, x, t, equations::CompressibleMoistEulerEqu
 end
 
 function source_terms_phase_change!(du, u, equations::CompressibleMoistEulerEquations2D)
-      Q_ph = phase_change_term(u, equations)
-      du[5] += Q_ph
-      du[6] -= Q_ph
+  Q_ph = phase_change_term(u, equations)
+  du[5] += Q_ph
+  du[6] -= Q_ph
   return nothing
 end
 
@@ -931,7 +931,7 @@ end
   return pot
 end
 
-@inline function aequivvalent_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
+@inline function aequivalent_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
   @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, kappa, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = cons
   rho_d = rho - rho_qv - rho_ql

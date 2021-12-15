@@ -55,48 +55,23 @@ varnames(::typeof(cons2pot), ::CompressibleDryEulerEquations2D) = ("rho", "v1", 
 end
 
 
-function boundary_condition_reflection(u_inner, orientation::Integer, direction, x, t,
-                                       surface_flux_function,
-                                       equations::CompressibleDryEulerEquations2D)
-  # Orientation 3 neg-y-direction/unten
-  # Orientation 4 pos-y-direction/oben
-
-  if !(orientation == 2)
-    @info(orientation)
-    error("This boundary condition is not supposed to be called in x direction")
-  end
-
-  rho, rho_v1, rho_v2, rho_E = u_inner
-  p = (equations.gamma - 1) * (rho_E - 0.5 * inv(rho) * (rho_v1^2 + rho_v2^2))
-  a_local = sqrt(equations.gamma * p * inv(rho))
-
-  if direction == 3
-    p_wall = p + (a_local * rho_v2 / rho)
-  else # direction == 4
-    p_wall = p - (a_local * rho_v2 / rho)
-  end
-
-return SVector(0, 0,  p_wall, 0)
-end
-
-
 function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, x, t,
-                                       surface_flux_function,
-                                       equation::CompressibleDryEulerEquations2D)
-if orientation == 1 # interface in x-direction
-u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4])
-else # interface in y-direction
-u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4])
-end
+                                      surface_flux_function,
+                                      equation::CompressibleDryEulerEquations2D)
+  if orientation == 1 # interface in x-direction
+    u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4])
+  else # interface in y-direction
+    u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4])
+  end
 
-# Calculate boundary flux
-if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-end
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
 
-return flux
+  return flux
 end
 
 
@@ -116,21 +91,21 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleDryEulerEqua
   #Perturbed state:
   θ = θ_ref + Δθ # potential temperature
   π_exner = 1 - g / (c_p * θ) * x[2] # exner pressure
-  ρ = p_0 / (R_d * θ) * (π_exner)^(c_v / R_d) # density
+  rho = p_0 / (R_d * θ) * (π_exner)^(c_v / R_d) # density
   p = p_0 * (1-kappa * g * x[2] / (R_d * θ_ref))^(c_p / R_d)
-  T = p / (R_d * ρ)
+  T = p / (R_d * rho)
 
   v1 = 0
   v2 = 0
-  ρ_v1 = ρ * v1
-  ρ_v2 = ρ * v2
-  ρ_E = ρ * c_v * T + 1/2 * ρ * (v1^2 + v2^2)  
-  return SVector(ρ, ρ_v1, ρ_v2, ρ_E)
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_E = rho * c_v * T + 1/2 * rho * (v1^2 + v2^2)  
+  return SVector(rho, rho_v1, rho_v2, rho_E)
 end
 
 
 function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEulerEquations2D)
-@unpack p_0, R_d, c_p, c_v, g, gamma, kappa = equations 
+  @unpack p_0, R_d, c_p, c_v, g, gamma, kappa = equations 
   # Gaussian bubble at the center (x0, z0) with a potential Temperature 
   # perturbation of 0.5 K (for a 1x1.5 km^2 box)
   
@@ -430,7 +405,6 @@ end
 
   return SVector(pot1, pot2, pot3, pot4)
 end
-
 
 @inline function density(u, equations::CompressibleDryEulerEquations2D)
  rho = u[1]
