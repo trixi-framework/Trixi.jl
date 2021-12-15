@@ -345,8 +345,8 @@ end
 
 
 # Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
-function invert_jacobian!(du, mesh::Mesh, equations, dg::DGMulti,
-                          cache) where {Mesh <: AbstractMeshData}
+function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti,
+                          cache)
   @threaded for i in each_dof_global(mesh, dg, cache)
     du[i] *= -cache.invJ[i]
   end
