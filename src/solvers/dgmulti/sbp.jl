@@ -347,8 +347,7 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
                 periodic)
 
   boundary_faces = []
-  n_boundary_faces = length(boundary_faces)
-  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
