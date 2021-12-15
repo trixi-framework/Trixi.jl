@@ -507,7 +507,7 @@ function source_terms_moist_air(du, u, equations::CompressibleMoistEulerEquation
   return nothing
 end
 
-function source_terms_moist_bubble(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
+function source_terms_moist_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
   du = zeros(eltype(u[1]), nvariables(equations))
   source_terms_geopotential!(du, u, equations)
   source_terms_phase_change!(du, u, equations)
