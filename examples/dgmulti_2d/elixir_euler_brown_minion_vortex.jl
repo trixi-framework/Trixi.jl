@@ -30,7 +30,7 @@ initial_condition = initial_condition_BM_vortex
 
 mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16),
                    coordinates_min=(-0.5, -0.5), coordinates_max=(0.5, 0.5),
-                   periodicity=(true, true))
+                   periodicity=true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
 tspan = (0.0, 1.0)
