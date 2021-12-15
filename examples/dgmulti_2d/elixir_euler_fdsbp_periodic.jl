@@ -4,7 +4,7 @@ using Trixi, OrdinaryDiffEq
 dg = DGMulti(element_type = Quad(),
              approximation_type = periodic_derivative_operator(
                derivative_order=1, accuracy_order=4, xmin=0.0, xmax=1.0, N=50),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+             surface_flux = flux_hll,
              volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations2D(1.4)
