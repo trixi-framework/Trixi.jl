@@ -103,6 +103,7 @@ function AtmossphereLayers(equations ; total_hight=10000.0, preciseness=10, grou
   
   return AtmossphereLayers{RealT}(equations, LayerData, total_hight, dz, n, ground_state, theta_e0, mixing_ratios)
 end
+
 #=
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
@@ -162,7 +163,7 @@ end
 
 
 @inline function flux(u, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
-  rho_e = last(u)
+  rho_e = u[4]
   rho, v1, v2, p, qv, ql = cons2prim(u, equations)
 
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
@@ -438,7 +439,7 @@ function initial_density_current(x, t, equations::CompressibleMoistEulerEquation
   Δθ = 0.5 * θ_c * (1 + cos( pi * r))
   end
 
-  return SVector(ρ, ρ_v1, ρ_v2, ρ_E,  ρ_qv, ρ_ql)
+  return SVector(rho, rho_v1, rho_v2, rho_E,  rho_qv, rho_ql)
 end
 
 
@@ -462,16 +463,16 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleMoistEulerEq
   #Perturbed state:
   θ = θ_ref + Δθ # potential temperature
   π_exner = 1 - g / (c_pd * θ) * x[2] # exner pressure
-  ρ = p_0 / (R_d * θ) * (π_exner)^(c_vd / R_d) # density
+  rho = p_0 / (R_d * θ) * (π_exner)^(c_vd / R_d) # density
   p = p_0 * (1-kappa * g * x[2] / (R_d * θ_ref))^(c_pd / R_d)
-  T = p / (R_d * ρ)
+  T = p / (R_d * rho)
 
   v1 = 0
   v2 = 0
-  ρ_v1 = ρ * v1
-  ρ_v2 = ρ * v2
-  ρ_E = ρ * c_vd * T + 1/2 * ρ * (v1^2 + v2^2)  
-  return SVector(ρ, ρ_v1, ρ_v2, ρ_E, 0 ,0)
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_E = rho * c_vd * T + 1/2 * rho * (v1^2 + v2^2)  
+  return SVector(rho, rho_v1, rho_v2, rho_E, 0 ,0)
 end
 
 
