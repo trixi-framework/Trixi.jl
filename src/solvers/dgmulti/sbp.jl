@@ -318,21 +318,22 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   # volume geofacs Gij = dx_i/dxhat_j
   coord_diffs = coordinates_max .- coordinates_min
 
+  J_scalar = prod(coord_diffs) / 2^NDIMS
+  J = e * J_scalar
+
   if NDIMS == 1
-    rxJ = coord_diffs[1] / 2
+    rxJ = J_scalar * 2 / coord_diffs[1]
     rstxyzJ = @SMatrix [rxJ * e]
   elseif NDIMS == 2
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
+    rxJ = J_scalar * 2 / coord_diffs[1]
+    syJ = J_scalar * 2 / coord_diffs[2]
     rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
   elseif NDIMS == 3
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
-    tzJ = coord_diffs[3] / 2
+    rxJ = J_scalar * 2 / coord_diffs[1]
+    syJ = J_scalar * 2 / coord_diffs[2]
+    tzJ = J_scalar * 2 / coord_diffs[3]
     rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
   end
-
-  J = e * prod(coord_diffs) / 2^NDIMS
 
   # surface geofacs
   nxyzJ = ntuple(_ -> [], NDIMS)
