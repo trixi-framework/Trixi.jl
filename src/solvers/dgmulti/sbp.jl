@@ -339,11 +339,11 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   nxyzJ = ntuple(_ -> [], NDIMS)
   Jf = []
 
-  periodic = ntuple(_ -> true, NDIMS)
+  periodicity = ntuple(_ -> true, NDIMS)
 
   md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
-                periodic)
+                periodicity)
 
   boundary_faces = []
   return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)

@@ -56,7 +56,7 @@ function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{
                      periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS, Tv, Ti}
 
   if haskey(kwargs, :is_periodic)
-    # TODO: DGMulti. Deprecate `is_periodic` in version 0.5
+    # TODO: DGMulti, v0.5. Remove deprecated keyword
     Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
     periodicity=kwargs[:is_periodic]
   end
@@ -73,7 +73,7 @@ function DGMultiMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2
                      periodicity=(false, ), kwargs...) where {Tv, Ti}
 
   if haskey(kwargs, :is_periodic)
-    # TODO: DGMulti. Deprecate `is_periodic` in version 0.5
+    # TODO: DGMulti, v0.5. Remove deprecated keyword
     Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
     periodicity=kwargs[:is_periodic]
   end
@@ -100,6 +100,7 @@ function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict
   return DGMultiMesh{2, typeof(rd.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
+# TODO: DGMulti, v0.5. Remove deprecated constructor
 @deprecate VertexMappedMesh(args...; kwargs...) DGMultiMesh(args...; kwargs...)
 
 end # @muladd
