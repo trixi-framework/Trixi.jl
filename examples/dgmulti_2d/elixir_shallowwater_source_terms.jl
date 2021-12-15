@@ -15,8 +15,8 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = SBP(),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 mesh = DGMultiMesh(dg, cells_per_dimension=(8, 8),
-                     coordinates_min=(0.0, 0.0), coordinates_max=(sqrt(2), sqrt(2)),
-                     periodicity=(true, true))
+                   coordinates_min=(0.0, 0.0), coordinates_max=(sqrt(2), sqrt(2)),
+                   periodicity=(true, true))
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
