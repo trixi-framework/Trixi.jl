@@ -11,7 +11,8 @@ equations = CompressibleEulerEquations1D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-mesh = DGMultiMesh(dg, cells_per_dimension=(8,), periodicity=(true,))
+mesh = DGMultiMesh(dg, cells_per_dimension=(8,),
+                   coordinates_min=(-1, -1), coordinates_max=(1, 1), periodicity=(true,))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms=source_terms)
 

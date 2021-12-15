@@ -170,6 +170,24 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      xmin=-200.0, xmax=100.0 #= parameters for reference interval =#,
+      l2 = [1.333332034149886e-6, 2.0448346280892024e-6, 2.0448346279766305e-6, 5.282189803510037e-6],
+      linf = [2.700015170553627e-6, 3.988595024262409e-6, 3.988595024928543e-6, 8.84858303740188e-6]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      approximation_type = periodic_derivative_operator(
+        derivative_order=1, accuracy_order=4, xmin=-200.0, xmax=100.0, N=100),
+      coordinates_min=(-3.0, -4.0), coordinates_max=(0.0, -1.0),
+      l2 = [0.048731550676405784, 0.08812289463939307, 0.08812289463939303, 0.27681196537959807],
+      linf = [0.07198676606561927, 0.12883508654646336, 0.12883508654646492, 0.40143268164127566]
+    )
+  end
+
   @trixi_testset "elixir_euler_fdsbp_periodic.jl (CGSEM)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
       approximation_type = SummationByPartsOperators.couple_continuously(

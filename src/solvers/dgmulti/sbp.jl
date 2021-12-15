@@ -298,6 +298,7 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   e = ones(size(rd.r))
   z = zero(e)
 
+  # VXYZ = vec.(StartUpDG.meshgrid(((coordinates_min[i], coordinates_max[i]) for i in eachindex(coordinates_min))...))
   VXYZ = ntuple(_ -> [], NDIMS)
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
@@ -352,11 +353,20 @@ end
 
 # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
 # However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
-# based on the grid provided by SummationByPartsOperators.jl.
+# based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
+# provided by `md::MeshData``.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator}
   D = rd.approximationType
   x = grid(D)
-  return x[2] - x[1]
+
+  # we assume all SummationByPartsOperators.jl reference grids are rescaled to [-1, 1]
+  xmin = SummationByPartsOperators.xmin(D)
+  xmax = SummationByPartsOperators.xmax(D)
+  factor = 2 / (xmax - xmin)
+
+  # If the domain has size L^NDIMS, then `minimum(md.J)^(1 / NDIMS) = L`.
+  # WARNING: this is not a good estimate on anisotropic grids.
+  return minimum(diff(x)) * factor * minimum(md.J)^(1 / NDIMS)
 end
 
 # specialized for DGMultiPeriodicFDSBP since there are no face nodes

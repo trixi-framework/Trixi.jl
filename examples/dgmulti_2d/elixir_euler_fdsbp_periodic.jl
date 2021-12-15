@@ -26,6 +26,7 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
 stepsize_callback = StepsizeCallback(cfl=1.0)
 callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback, analysis_callback)
+# callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
