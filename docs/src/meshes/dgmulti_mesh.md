@@ -100,7 +100,7 @@ the `examples/dgmulti_2d` and `examples/dgmulti_3d` folders. Some key elixirs to
 
 ## `DGMultiMesh` wrapper type
 
-`DGMulti` meshes in Trixi are represented using a `DGMultiMesh{NDIMS, ElemType, ...}` type.
+`DGMulti` meshes in Trixi are represented using a `DGMultiMesh{NDIMS, ...}` type.
 This mesh type is assumed to have fields `md::MeshData`, which contains geometric terms
 derived from the mapping between the reference and physical elements, and `boundary_faces`, which
 contains a `Dict` of boundary segment names (symbols) and list of faces which lie on that boundary
