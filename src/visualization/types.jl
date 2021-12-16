@@ -1,6 +1,6 @@
 # Convenience type to allow dispatch on solution objects that were created by Trixi
 #
-# This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
+# This is a union of a Trixi-specific SciMLBase.ODESolution and of Trixi's own
 # TimeIntegratorSolution.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
@@ -277,7 +277,7 @@ end
     PlotData2D(sol; kwargs...)
 
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
-returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
+returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
 `TimeIntegratorSolution`).
 
 !!! warning "Experimental implementation"
@@ -317,7 +317,11 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  num_plotting_points = size(Vp, 1)
+  if Vp isa UniformScaling
+    num_plotting_points = size(u, 1)
+  else
+    num_plotting_points = size(Vp, 1)
+  end
   nvars = nvariables(equations)
   uEltype = eltype(first(u))
   u_plot = StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, num_plotting_points, md.num_elements), nvars))
@@ -563,7 +567,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
 end
 
 # Specializes the `PlotData1D` constructor for one-dimensional `DGMulti` solvers.
-function PlotData1D(u::StructArray, mesh, equations, dg::DGMulti{1}, cache;
+function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
                     solution_variables=nothing)
 
   solution_variables_ = digest_solution_variables(equations, solution_variables)
@@ -571,23 +575,45 @@ function PlotData1D(u::StructArray, mesh, equations, dg::DGMulti{1}, cache;
 
   orientation_x = 0 # Set 'orientation' to zero on default.
 
-  data = map(x -> vcat(dg.basis.Vp * x, fill(NaN, 1, size(u, 2))),
-             StructArrays.components(solution_variables_.(u, equations)))
-  x_plot = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
+  if u isa StructArray
+    # Convert conserved variables to the given `solution_variables` and set up
+    # plotting coordinates
+    # This uses a "structure of arrays"
+    data = map(x -> vcat(dg.basis.Vp * x, fill(NaN, 1, size(u, 2))),
+              StructArrays.components(solution_variables_.(u, equations)))
+    x = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
 
-  # Here, we ensure that `DGMulti` visualization uses the same data layout and format
-  # as `TreeMesh`. This enables us to reuse existing plot recipes. In particular,
-  # `hcat(data...)` creates a matrix of size `num_plotting_points` by `nvariables(equations)`,
-  # with data on different elements separated by `NaNs`.
-  return PlotData1D(vec(x_plot), hcat(vec.(data)...), variable_names, mesh.md.VX, orientation_x)
+    # Here, we ensure that `DGMulti` visualization uses the same data layout and format
+    # as `TreeMesh`. This enables us to reuse existing plot recipes. In particular,
+    # `hcat(data...)` creates a matrix of size `num_plotting_points` by `nvariables(equations)`,
+    # with data on different elements separated by `NaNs`.
+    x_plot = vec(x)
+    data_plot = hcat(vec.(data)...)
+  else
+    # Convert conserved variables to the given `solution_variables` and set up
+    # plotting coordinates
+    # This uses an "array of structures"
+    data_tmp = dg.basis.Vp * solution_variables_.(u, equations)
+    data = vcat(data_tmp, fill(NaN * zero(eltype(data_tmp)), 1, size(u, 2)))
+    x = vcat(dg.basis.Vp * mesh.md.x, fill(NaN, 1, size(u, 2)))
+
+    # Same as above - we create `data_plot` as array of size `num_plotting_points`
+    # by "number of plotting variables".
+    x_plot = vec(x)
+    data_plot = permutedims(reinterpret(reshape, eltype(eltype(data)), vec(data)),
+      (2, 1))
+  end
+
+  return PlotData1D(x_plot, data_plot, variable_names, mesh.md.VX, orientation_x)
 end
 
 """
     PlotData1D(sol; kwargs...)
 
-Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
-returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
+Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
+(which returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
 `TimeIntegratorSolution`).
+
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """

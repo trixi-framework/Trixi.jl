@@ -47,7 +47,7 @@ new features. This allows rapid prototyping of new ideas and is one of the main
 design goals behind Trixi. Below is a brief overview of the availability of
 different features on different mesh types.
 
-| Feature                                                      | [`TreeMesh`](@ref) | [`StructuredMesh`](@ref) | [`UnstructuredMesh2D`](@ref) | [`P4estMesh`](@ref) | [`VertexMappedMesh`](@ref) | Further reading
+| Feature                                                      | [`TreeMesh`](@ref) | [`StructuredMesh`](@ref) | [`UnstructuredMesh2D`](@ref) | [`P4estMesh`](@ref) | [`DGMultiMesh`](@ref) | Further reading
 |:-------------------------------------------------------------|:------------------:|:------------------------:|:----------------------------:|:-------------------:|:--------------------------:|:-----------------------------------------
 | Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |        2D, 3D       |          1D, 2D, 3D        |
 | Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |     curvilinear     |            affine          |

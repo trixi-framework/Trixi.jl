@@ -11,8 +11,15 @@ for human readability.
 
 - Numerical fluxes `flux_shima_etal_turbo` and `flux_ranocha_turbo` that are
   equivalent to their non-`_turbo` counterparts but may enable specialized
-  methods making use of SIMD instructions to increase runtime efficiency.
+  methods making use of SIMD instructions to increase runtime efficiency
+- Support for (periodic and non-periodic) SBP operators of
+  [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
+  as approximation type in `DGMulti` solvers
 
+#### Removed
+
+- The `VertexMappedMesh` type is removed in favor of the `DGMultiMesh` type.
+  The `VertexMappedMesh` constructor is deprecated.
 
 ## Changes when updating to v0.4 from v0.3.x
 
