@@ -146,7 +146,7 @@ end
 # We use a lazy evaluation of physical differentiation operators, so that we can compute linear
 # combinations of differentiation operators on-the-fly in an allocation-free manner.
 @inline function build_lazy_physical_derivative(element, orientation,
-                                                mesh::VertexMappedMesh{1}, dg, cache,
+                                                mesh::DGMultiMesh{1}, dg, cache,
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ = mesh.md
@@ -156,7 +156,7 @@ end
 end
 
 @inline function build_lazy_physical_derivative(element, orientation,
-                                                mesh::VertexMappedMesh{2}, dg, cache,
+                                                mesh::DGMultiMesh{2}, dg, cache,
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
@@ -169,7 +169,7 @@ end
 end
 
 @inline function build_lazy_physical_derivative(element, orientation,
-                                                mesh::VertexMappedMesh{3}, dg, cache,
+                                                mesh::DGMultiMesh{3}, dg, cache,
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
@@ -190,12 +190,12 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{1})
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{1})
   @unpack rxJ = mesh.md
   return 2 * SVector(rxJ[1, element]) # the 1D contravariant vector reduces to a scaling.
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{2})
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{2})
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
   if orientation == 1
     return 2 * SVector(rxJ[1, element], ryJ[1, element])
@@ -204,7 +204,7 @@ end
   end
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{3})
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{3})
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   if orientation == 1
     return 2 * SVector(rxJ[1, element], ryJ[1, element], rzJ[1, element])
@@ -249,7 +249,7 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFlux
   return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiffSBP, RealT, uEltype)
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, RealT, uEltype)
 
   rd = dg.basis
   md = mesh.md
@@ -282,7 +282,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiffSBP,
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -324,7 +324,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff, Re
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
-function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMulti)
+function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
 
   rd = dg.basis
   @unpack Vq = rd
@@ -484,7 +484,7 @@ end
 end
 
 
-function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiff{<:Polynomial},
                                cache)
@@ -512,7 +512,7 @@ function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
   end
 end
 
-function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiffSBP,
                                cache)

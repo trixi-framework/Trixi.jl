@@ -1,17 +1,18 @@
 
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Quad(),
+dg = DGMulti(element_type = Quad(),
              approximation_type = periodic_derivative_operator(
-               derivative_order=1, accuracy_order=4, xmin=-1.0, xmax=1.0, N=50),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+               derivative_order=1, accuracy_order=4, xmin=0.0, xmax=1.0, N=50),
+             surface_flux = flux_hll,
              volume_integral = VolumeIntegralWeakForm())
 
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-mesh = DGMultiMesh(dg)
+mesh = DGMultiMesh(dg, coordinates_min=(-1.0, -1.0),
+                       coordinates_max=( 1.0,  1.0))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms)

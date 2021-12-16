@@ -1,9 +1,9 @@
-# Unstructured simplicial meshes and the `DGMulti` solver
+# Unstructured meshes and the `DGMulti` solver
 
-Trixi includes support for simplicial meshes via the `DGMulti` solver type, which is based on the
-[StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) package. `DGMulti` solvers also provides
-support for quadrilateral and hexahedral meshes, though this feature is currently restricted to
-Cartesian grids.
+Trixi includes support for simplicial and tensor product meshes via the `DGMulti` solver type,
+which is based on the [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) package.
+`DGMulti` solvers also provide support for quadrilateral and hexahedral meshes, though this
+feature is currently restricted to Cartesian grids.
 On these line/quad/hex meshes, the `DGMulti` solver also allows to use all (finite domain) SBP
 derivative operators provided by
 [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl),
@@ -98,20 +98,20 @@ the `examples/dgmulti_2d` and `examples/dgmulti_3d` folders. Some key elixirs to
 
 # For developers
 
-## `AbstractMeshData` wrapper type
+## `DGMultiMesh` wrapper type
 
-Simplicial meshes in Trixi are represented using an `AbstractMeshData{NDIMS, ElemType}` type.
-For example, `VertexMappedMesh{NDIMS, Tri} <: AbstractMeshData{NDIMS, Tri}` describes a mesh whose
-reference-to-physical mapping can be constructed using only the vertex positions (e.g., an affine
-simplicial mesh or a bilinear quadrilateral mesh). These meshes are constructed by specifying a list
-of vertex coordinates `vertex_coordinates_x`, `vertex_coordinates_y`, `vertex_coordinates_z` and a
-connectivity matrix `EToV` where `EToV[e,:]` gives the vertices which correspond to element `e`.
-These quantities are available from most simplicial mesh generators.
-
-An `AbstractMeshData` mesh is assumed to have fields `md::MeshData`, which contains geometric terms
+`DGMulti` meshes in Trixi are represented using a `DGMultiMesh{NDIMS, ...}` type.
+This mesh type is assumed to have fields `md::MeshData`, which contains geometric terms
 derived from the mapping between the reference and physical elements, and `boundary_faces`, which
 contains a `Dict` of boundary segment names (symbols) and list of faces which lie on that boundary
 segment.
+
+A [`DGMultiMesh`](@ref) can be constructed in several ways. For example, `DGMultiMesh(dg::DGMulti)` will
+return a Cartesian mesh on ``[-1, 1]^d`` with element types specified by `dg`.
+`DGMulti` meshes can also be constructed by specifying a list
+of vertex coordinates `vertex_coordinates_x`, `vertex_coordinates_y`, `vertex_coordinates_z` and a
+connectivity matrix `EToV` where `EToV[e,:]` gives the vertices which correspond to element `e`.
+These quantities are available from most unstructured mesh generators.
 
 ## Variable naming conventions
 

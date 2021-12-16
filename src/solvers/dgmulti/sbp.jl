@@ -285,7 +285,7 @@ const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
 """
     DGMultiMesh(dg::DGMulti)
 
-Constructs a single-element [`VertexMappedMesh`](@ref) for a single periodic element given
+Constructs a single-element [`DGMultiMesh`](@ref) for a single periodic element given
 a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
 SummationByPartsOperators.jl.
 """
@@ -302,7 +302,13 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
 
-  xyz = xyzq = rd.rst
+  # We need to scale the domain from `[-1, 1]^NDIMS` (default in StartUpDG.jl)
+  # to the given `coordinates_min, coordinates_max`
+  xyz = xyzq = map(copy, rd.rst)
+  for dim in 1:NDIMS
+    factor = (coordinates_max[dim] - coordinates_min[dim]) / 2
+    @. xyz[dim] = factor * (xyz[dim] + 1) + coordinates_min[dim]
+  end
   xyzf = ntuple(_ -> [], NDIMS)
   wJq = diag(rd.M)
 
@@ -312,62 +318,71 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   # volume geofacs Gij = dx_i/dxhat_j
   coord_diffs = coordinates_max .- coordinates_min
 
-  if NDIMS==1
-    rxJ = coord_diffs[1] / 2
+  J_scalar = prod(coord_diffs) / 2^NDIMS
+  J = e * J_scalar
+
+  if NDIMS == 1
+    rxJ = J_scalar * 2 / coord_diffs[1]
     rstxyzJ = @SMatrix [rxJ * e]
-  elseif NDIMS==2
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
+  elseif NDIMS == 2
+    rxJ = J_scalar * 2 / coord_diffs[1]
+    syJ = J_scalar * 2 / coord_diffs[2]
     rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
-  elseif NDIMS==3
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
-    tzJ = coord_diffs[3] / 2
+  elseif NDIMS == 3
+    rxJ = J_scalar * 2 / coord_diffs[1]
+    syJ = J_scalar * 2 / coord_diffs[2]
+    tzJ = J_scalar * 2 / coord_diffs[3]
     rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
   end
-
-  J = e * prod(coord_diffs) / 2^NDIMS
 
   # surface geofacs
   nxyzJ = ntuple(_ -> [], NDIMS)
   Jf = []
 
-  is_periodic = ntuple(_ -> true, NDIMS)
+  periodicity = ntuple(_ -> true, NDIMS)
 
   md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
-                is_periodic)
+                periodicity)
 
   boundary_faces = []
-  n_boundary_faces = length(boundary_faces)
-  return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
 # However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
-# based on the grid provided by SummationByPartsOperators.jl.
+# based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
+# provided by `md::MeshData``.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator}
   D = rd.approximationType
   x = grid(D)
-  return x[2] - x[1]
+
+  # we assume all SummationByPartsOperators.jl reference grids are rescaled to [-1, 1]
+  xmin = SummationByPartsOperators.xmin(D)
+  xmax = SummationByPartsOperators.xmax(D)
+  factor = 2 / (xmax - xmin)
+
+  # If the domain has size L^NDIMS, then `minimum(md.J)^(1 / NDIMS) = L`.
+  # WARNING: this is not a good estimate on anisotropic grids.
+  return minimum(diff(x)) * factor * minimum(md.J)^(1 / NDIMS)
 end
 
 # specialized for DGMultiPeriodicFDSBP since there are no face nodes
 # and thus no inverse trace constant for periodic domains.
-function estimate_dt(mesh::AbstractMeshData, dg::DGMultiPeriodicFDSBP)
+function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
   rd = dg.basis # RefElemData
   return StartUpDG.estimate_h(rd, mesh.md)
 end
 
 # do nothing for interface terms if using a periodic operator
-function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
+function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
                              surface_integral, dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
   nothing
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                              mesh::VertexMappedMesh,
+                              mesh::DGMultiMesh,
                               have_nonconservative_terms::Val{false}, equations,
                               dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
@@ -375,7 +390,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
 end
 
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::VertexMappedMesh, equations,
+                                mesh::DGMultiMesh, equations,
                                 dg::DGMultiPeriodicFDSBP, cache)
   @assert nelements(mesh, dg, cache) == 1
   nothing

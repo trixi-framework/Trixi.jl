@@ -165,8 +165,26 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      l2 = [1.3333320340010056e-6, 2.044834627970641e-6, 2.044834627855601e-6, 5.282189803559564e-6],
+      linf = [2.7000151718858945e-6, 3.988595028259212e-6, 3.9885950273710336e-6, 8.848583042286862e-6]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      xmin=-200.0, xmax=100.0 #= parameters for reference interval =#,
       l2 = [1.333332034149886e-6, 2.0448346280892024e-6, 2.0448346279766305e-6, 5.282189803510037e-6],
       linf = [2.700015170553627e-6, 3.988595024262409e-6, 3.988595024928543e-6, 8.84858303740188e-6]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      approximation_type = periodic_derivative_operator(
+        derivative_order=1, accuracy_order=4, xmin=-200.0, xmax=100.0, N=100),
+      coordinates_min=(-3.0, -4.0), coordinates_max=(0.0, -1.0),
+      l2 = [0.07318831033918516, 0.10039910610067465, 0.1003991061006748, 0.2642450566234564],
+      linf = [0.36081081739439735, 0.5244468027020845, 0.5244468027020814, 1.2210130256735705]
     )
   end
 

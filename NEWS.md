@@ -16,6 +16,10 @@ for human readability.
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
   as approximation type in `DGMulti` solvers
 
+#### Removed
+
+- The `VertexMappedMesh` type is removed in favor of the `DGMultiMesh` type.
+  The `VertexMappedMesh` constructor is deprecated.
 
 ## Changes when updating to v0.4 from v0.3.x
 
