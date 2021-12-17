@@ -279,8 +279,8 @@ function StartUpDG.inverse_trace_constant(rd::RefElemData{NDIMS, ElementType, Ap
 end
 
 # type alias for specializing on a periodic SBP operator
-const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
-  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+const DGMultiPeriodicFDSBP{NDIMS, ApproxType, MeshType} =
+  DGMulti{NDIMS, MeshType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, MeshType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
 """
     DGMultiMesh(dg::DGMulti)
