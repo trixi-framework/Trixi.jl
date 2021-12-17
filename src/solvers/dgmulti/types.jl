@@ -4,21 +4,21 @@
 
 # `DGMulti` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
 # the use of multi-dimensional operators in the solver.
-const DGMulti{NDIMS, MeshType, ApproxType, SurfaceIntegral, VolumeIntegral} =
-  DG{<:RefElemData{NDIMS, MeshType, ApproxType}, Mortar, SurfaceIntegral, VolumeIntegral} where {Mortar}
+const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} =
+  DG{<:RefElemData{NDIMS, ElemType, ApproxType}, Mortar, SurfaceIntegral, VolumeIntegral} where {Mortar}
 
 # Type aliases. The first parameter is `ApproxType` since it is more commonly used for dispatch.
-const DGMultiWeakForm{ApproxType, MeshType} =
-  DGMulti{NDIMS, MeshType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
+const DGMultiWeakForm{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralWeakForm} where {NDIMS}
 
-const DGMultiFluxDiff{ApproxType, MeshType} =
-  DGMulti{NDIMS, MeshType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
+const DGMultiFluxDiff{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS}
 
-const DGMultiFluxDiffSBP{ApproxType, MeshType} =
-  DGMulti{NDIMS, MeshType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ApproxType<:Union{SBP, AbstractDerivativeOperator}}
+const DGMultiFluxDiffSBP{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, <:SurfaceIntegralWeakForm, <:VolumeIntegralFluxDifferencing} where {NDIMS, ApproxType<:Union{SBP, AbstractDerivativeOperator}}
 
-const DGMultiSBP{ApproxType, MeshType} =
-  DGMulti{NDIMS, MeshType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, MeshType, ApproxType<:Union{SBP, AbstractDerivativeOperator}, SurfaceIntegral, VolumeIntegral}
+const DGMultiSBP{ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:Union{SBP, AbstractDerivativeOperator}, SurfaceIntegral, VolumeIntegral}
 
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
