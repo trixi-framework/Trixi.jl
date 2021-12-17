@@ -38,6 +38,15 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, MeshType
   end
 end
 
+# Mesh type parameters for dispatch using DGMultiMesh
+
+# when geometric terms are constant
+struct Affine end
+
+# # a degree Ngeo isoparametric curved mesh
+# struct Isoparametric{ElemType, Ngeo} end
+
+
 """
     DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV, rd::RefElemData;
                 is_on_boundary = nothing,
@@ -62,26 +71,13 @@ function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{
   end
 
   md = MeshData(vertex_coordinates, EToV, rd)
-  md = StartUpDG.make_periodic(md, periodicity)
+  if NDIMS==1
+    md = StartUpDG.make_periodic(md, periodicity...)
+  else
+    md = StartUpDG.make_periodic(md, periodicity)
+  end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
   return DGMultiMesh{NDIMS, typeof(rd.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
-end
-
-# specialization for NDIMS = 1
-function DGMultiMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
-                     is_on_boundary = nothing,
-                     periodicity=(false, ), kwargs...) where {Tv, Ti}
-
-  if haskey(kwargs, :is_periodic)
-    # TODO: DGMulti, v0.5. Remove deprecated keyword
-    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
-    periodicity=kwargs[:is_periodic]
-  end
-
-  md = MeshData(vertex_coordinates, EToV, rd)
-  md = StartUpDG.make_periodic(md, periodicity...)
-  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{1, typeof(rd.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 """
