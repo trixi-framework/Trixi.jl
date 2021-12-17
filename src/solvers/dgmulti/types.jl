@@ -78,22 +78,54 @@ end
 
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
 """
-    DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti;
+    DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV, dg::DGMulti;
                 is_on_boundary = nothing,
                 periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
-Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+- `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
+- `EToV` is a 2D array containing element-to-vertex connectivities for each element
+- `dg` is a `DGMulti` instance, and `dg.basis` contains information associated with the
+  reference element (e.g., quadrature, basis evaluation, differentiation, etc).
+- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
+   (x,y,z) direction.
 """
-DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti; kwargs...) =
-  DGMultiMesh(vertex_coordinates, EToV, dg.basis; kwargs...)
+function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, dg::DGMulti;
+                     is_on_boundary = nothing,
+                     periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS, Tv, Ti}
+
+  if haskey(kwargs, :is_periodic)
+    # TODO: DGMulti, v0.5. Remove deprecated keyword
+    Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
+    periodicity=kwargs[:is_periodic]
+  end
+
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  if NDIMS==1
+    md = StartUpDG.make_periodic(md, periodicity...)
+  else
+    md = StartUpDG.make_periodic(md, periodicity)
+  end
+  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
+  return DGMultiMesh{NDIMS, typeof(dg.basis.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+end
 
 """
-    DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
+    DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
-Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
+- `triangulateIO` is a `TriangulateIO` mesh representation
+- `dg` is a `DGMulti` instance, and `dg.basis` contains information associated with the
+  reference element (e.g., quadrature, basis evaluation, differentiation, etc).
+- `boundary_dict` is a `Dict{Symbol, Int}` which associates each integer `TriangulateIO` boundary
+  tag with a Symbol
 """
-DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int}) =
-  DGMultiMesh(triangulateIO, dg.basis, boundary_dict)
+function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int})
+
+  vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, dg.basis, md, boundary_dict)
+  return DGMultiMesh{2, typeof(dg.basis.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+end
 
 """
     DGMultiMesh(dg::DGMulti; cells_per_dimension,
