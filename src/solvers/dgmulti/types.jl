@@ -164,7 +164,7 @@ function DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
     md = StartUpDG.make_periodic(md, periodicity)
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{NDIMS, typeof(dg.basis.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, GeometricTermsType(VertexMapped(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 """
@@ -182,7 +182,7 @@ function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Sym
   md = MeshData(vertex_coordinates, EToV, rd)
   md = StartUpDG.make_periodic(md, periodicity)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return DGMultiMesh{2, typeof(dg.basis.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{2, GeometricTermsType(TriangulateIO(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 """
@@ -221,7 +221,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
     md = StartUpDG.make_periodic(md, periodicity)
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{NDIMS, typeof(dg.basis.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, GeometricTermsType(Cartesian(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
