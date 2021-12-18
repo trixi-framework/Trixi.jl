@@ -16,6 +16,9 @@ struct DGMultiMesh{NDIMS, ElemType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
   boundary_faces::BoundaryFaceT
 end
 
+# enable use of @set and setproperties(...) for DGMultiMesh
+ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {T1, T2, T3, T4} = DGMultiMesh{T1, T2, T3, T4}
+
 Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
 
 function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, ElemType}) where {NDIMS, ElemType}
