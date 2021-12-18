@@ -114,6 +114,27 @@ end
 # TODO: DGMulti, v0.5. Remove deprecated constructor
 @deprecate VertexMappedMesh(args...; kwargs...) DGMultiMesh(args...; kwargs...)
 
+# Mesh types for trait dispatch
+struct Cartesian end
+struct VertexMapped end # where element geometry is determined by vertices.
+struct Curved end
+
+# type parameters for dispatch using `DGMultiMesh`
+struct Affine end # mesh produces constant geometric terms
+struct NonAffine end # mesh produces non-constant geometric terms
+
+# choose MeshType based on the constructor and element type
+GeometricTermsType(mesh_type, dg::DGMulti) = typeof(GeometricTermsType(mesh_type, dg.basis.elementType))
+GeometricTermsType(mesh_type::Cartesian, element_type::AbstractElemShape) = Affine()
+GeometricTermsType(mesh_type::TriangulateIO, element_type::Tri) = Affine()
+GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Tri, Tet}) = Affine()
+# GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Quad, Hex}) = NonAffine()
+# GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffine()
+
+# other potential constructor types to add later: Bilinear, Isoparametric{polydeg_geo}, Rational/Exact?
+# other potential mesh types to add later: Polynomial{polydeg_geo}?
+
+
 """
     DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
                 is_on_boundary=nothing,
