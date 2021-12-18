@@ -130,9 +130,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
                         volume_integral = VolumeIntegralWeakForm())
 
         # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
-        cells_per_dimension = (2, 2)
-        vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
-        mesh = DGMultiMesh(vertex_coordinates, EToV, solver, periodicity=(true,true))
+        mesh = DGMultiMesh(solver, cells_per_dimension=(2, 2), periodicity=(true, true))
 
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -151,9 +149,7 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
                         volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
         # StartUpDG.uniform_mesh is on [-1, 1]^ndims by default
-        cells_per_dimension = (2, 2)
-        vertex_coordinates, EToV = StartUpDG.uniform_mesh(solver.basis.elementType, cells_per_dimension...)
-        mesh = DGMultiMesh(vertex_coordinates, EToV, solver, periodicity=(true,true))
+        mesh = DGMultiMesh(solver, cells_per_dimension=(2, 2), periodicity=(true, true))
 
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
