@@ -179,9 +179,9 @@ end
 function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int};
                      periodicity=(false, false)) where {NDIMS}
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
-  md = MeshData(vertex_coordinates, EToV, rd)
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
   md = StartUpDG.make_periodic(md, periodicity)
-  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
+  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, dg.basis, md, boundary_dict)
   return DGMultiMesh{2, GeometricTermsType(TriangulateIO(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
