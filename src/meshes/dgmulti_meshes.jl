@@ -39,9 +39,9 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, ElemType
 end
 
 """
-  DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV, rd::RefElemData;
-              is_on_boundary = nothing,
-              periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+    DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV, rd::RefElemData;
+                is_on_boundary = nothing,
+                periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
 - `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
@@ -85,7 +85,7 @@ function DGMultiMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2
 end
 
 """
-  DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
+    DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
 
 - `triangulateIO` is a `TriangulateIO` mesh representation
 - `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the

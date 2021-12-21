@@ -78,9 +78,9 @@ end
 
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
 """
-  DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti;
-              is_on_boundary = nothing,
-              periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
+    DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti;
+                is_on_boundary = nothing,
+                periodicity::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
 
 Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 """
@@ -88,7 +88,7 @@ DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti; kwargs...) =
   DGMultiMesh(vertex_coordinates, EToV, dg.basis; kwargs...)
 
 """
-  DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
+    DGMultiMesh(triangulateIO, dg::DGMulti, boundary_dict::Dict{Symbol, Int})
 
 Constructor which uses `dg::DGMulti` instead of `rd::RefElemData`.
 """
