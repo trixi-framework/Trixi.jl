@@ -1,7 +1,9 @@
 using OrdinaryDiffEq
 using Trixi
 
-# define new structs inside a module to allow re-evaluating the file
+# Define new structs inside a module to allow re-evaluating the file.
+# The stage and step callbacks are both based on the Trixi.jl elixir called
+# elixir_advection_callbacks.jl, where examples are given to implement callbacks
 module TrixiExtensionFilter
 
 using Trixi
@@ -12,7 +14,7 @@ using IncompleteLU
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which uses the differential
-# filter introduced by Germano to filter the solution in every stage
+# filters to filter the solution in every stage
 struct FilterStageCallback
     N::Int64
     N_Q::Int64
@@ -21,8 +23,7 @@ struct FilterStageCallback
     RHS::SparseMatrixCSC{Float64,Int64}
 
     # You can optionally define an inner constructor like the one below to set up
-    # some required stuff. You can also create outer constructors (not demonstrated
-    # here) for further customization options.
+    # some required parameters.
     function FilterStageCallback(
         N::Int64,
         N_Q::Int64,
@@ -53,7 +54,7 @@ function (filter_stage_callback::FilterStageCallback)(u_ode, f, semi, t)
     return nothing
 end
 
-# takes the solution u and applies the differential filter
+# Takes the solution u and applies the differential filter
 function stage_callback_filter(
     u,
     N::Int64,
@@ -67,14 +68,14 @@ function stage_callback_filter(
     cache)
 
 
-    # split u into 4 vectors (the matrix rows) to seperate the coordinates
+    # Split u into 4 vectors (the matrix rows) to seperate the coordinates.
     # U[k,:] describes the solution at all points for coordinate k
     U = reshape(u, 4, Int(length(u) / 4))
-    U = convert(Array{Float64,2}, U') # transpose for matrix multiplication
+    U = convert(Array{Float64,2}, U') # Transpose for matrix multiplication
 
-    # apply the filter by solving the following system of equations.
-    # the system gets solved for every stage, which takes a lot of time.
-    # alternatively you can solve LHS\RHS = FilterMatrix beforehand and just
+    # Apply the filter by solving the following system of equations.
+    # The system gets solved for every stage, which takes a lot of time.
+    # Alternatively you can solve LHS\RHS = FilterMatrix beforehand and just
     # calculate FilterMatrix * U in every stage, but that method takes far longer.
     # LHS is already factorized for better runtime, RHS is sparse
     rhs = RHS * U
@@ -83,12 +84,12 @@ function stage_callback_filter(
         U_filter[:, i] = gmres(LHS, rhs[:, i], Pl = LHS_precondition)
     end
 
-    # the 4 coordinates of the filtered solution, which were seperated, are now
+    # The 4 coordinates of the filtered solution, which were seperated, are now
     # being merged into one matrix again
     U_filter = convert(Array{Float64,2}, U_filter')
     u_filter = reshape(U_filter, 4, N + 1, N + 1, N_Q^2)
 
-    # overwrite the value of u with the filtered value of u_filter for each
+    # Overwrite the value of u with the filtered value of u_filter for each
     # node in each element
     for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
@@ -104,9 +105,8 @@ end
 
 
 # This is an example implementation for a simple step callback (i.e., a callable
-# that is potentially executed after each Runge-Kutta *step*), which records
-# some values each time it is called. Its sole purpose here is to showcase
-# how to implement a step callback for Trixi.
+# that is potentially executed after each time step), which applies the
+# differential filter to the solution u in every step
 struct FilterStepCallback
     N::Int64
     N_Q::Int64
@@ -117,8 +117,7 @@ struct FilterStepCallback
     filt_para::Array{Float64,1}
 
     # You can optionally define an inner constructor like the one below to set up
-    # some required stuff. You can also create outer constructors (not demonstrated
-    # here) for further customization options.
+    # some required parameters.
     function FilterStepCallback(
         N::Int64,
         N_Q::Int64,
@@ -132,11 +131,10 @@ struct FilterStepCallback
     end
 end
 
-# This method is called when the `ExampleStepCallback` is used as callback
+# This method is called when the `FilterStepCallback` is used as callback
 # which gets called after RK steps.
 function (filter_step_callback::FilterStepCallback)(integrator)
     u_ode = integrator.u
-    #t = integrator.t
     semi = integrator.p
 
     u = Trixi.wrap_array(u_ode, semi)
@@ -150,12 +148,13 @@ function (filter_step_callback::FilterStepCallback)(integrator)
         filter_step_callback.RHS,
         Trixi.mesh_equations_solver_cache(semi)...)
 
-    # avoid re-evaluating possible FSAL stages
+    # Avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
 
     return nothing
 end
 
+# Takes the solution u and applies the differential filter
 function step_callback_filter(
     u,
     N::Int64,
@@ -169,14 +168,14 @@ function step_callback_filter(
     cache)
 
 
-    # split u into 4 vectors (the matrix rows) to seperate the coordinates
+    # Split u into 4 vectors (the matrix rows) to seperate the coordinates.
     # U[k,:] describes the solution at all points for coordinate k
     U = reshape(u, 4, Int(length(u) / 4))
-    U = convert(Array{Float64,2}, U') # transpose for matrix multiplication
+    U = convert(Array{Float64,2}, U') # Transpose for matrix multiplication
 
-    # apply the filter by solving the following system of equations.
+    # Apply the filter by solving the following system of equations.
     # the system gets solved for every step, which takes a lot of time.
-    # alternatively you can solve LHS\RHS = FilterMatrix beforehand and just
+    # Alternatively you can solve LHS\RHS = FilterMatrix beforehand and just
     # calculate FilterMatrix * U in every step, but that method takes far longer.
     # LHS is already factorized for better runtime, RHS is sparse
     rhs = RHS * U
@@ -185,12 +184,12 @@ function step_callback_filter(
         U_filter[:, i] = gmres(LHS, rhs[:, i], Pl = LHS_precondition)
     end
 
-    # the 4 coordinates of the filtered solution, which were seperated, are now
+    # The 4 coordinates of the filtered solution, which were seperated, are now
     # being merged into one matrix again
     U_filter = convert(Array{Float64,2}, U_filter')
     u_filter = reshape(U_filter, 4, N + 1, N + 1, N_Q^2)
 
-    # overwrite the value of u with the filtered value of u_filter for each
+    # Overwrite the value of u with the filtered value of u_filter for each
     # node in each element
     for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
@@ -204,7 +203,7 @@ end
 
 
 # This method is used to wrap an `FilterStepCallback` inside a `DiscreteCallback`
-# which gets called after every RK step. You can pass an additional initialization
+# which gets called after every step. You can pass an additional initialization
 # method and a separate condition specifying whether the callback shall be called.
 function FilterStepCallback(;
     N::Int64,
@@ -216,7 +215,7 @@ function FilterStepCallback(;
     filt_para::Array{Float64,1})
 
 
-    # Call the `FilterStepCallback` after every RK step.
+    # Call the `FilterStepCallback` after every step.
     condition = (u_ode, t, integrator) -> true
 
     filter_step_callback =
@@ -225,7 +224,7 @@ function FilterStepCallback(;
     DiscreteCallback(condition,filter_step_callback,save_positions = (false, false))
 end
 
-# prin filter parameters
+# Print filter parameters
 function Base.show(io::IO,::MIME"text/plain",cb::DiscreteCallback{<:Any,<:FilterStepCallback})
     @nospecialize cb # reduce precompilation time
 
@@ -244,13 +243,13 @@ function Base.show(io::IO,::MIME"text/plain",cb::DiscreteCallback{<:Any,<:Filter
     end
 end
 
-end # module TrixiExtensionFilter
+end # Module TrixiExtensionFilter
 
 import .TrixiExtensionFilter
 
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# Semidiscretization of the compressible Euler equations
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
@@ -287,8 +286,8 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          variable=density_pressure)
 surface_flux = flux_lax_friedrichs
 
-# filtering should replace the shock-capturing
-if filt_type == "none"
+# Filtering should replace the shock capturing
+if filt_type == "none" && apply_shock_capturing
     volume_flux  = flux_chandrashekar
     volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                      volume_flux_dg=volume_flux,
@@ -331,11 +330,17 @@ N = polydeg
 # N_Q elements in each direction, all in all we have N_Q² elements
 N_Q = Int(sqrt(size(semi.cache.elements.node_coordinates,4)))
 
-if !post
-    ElementMatrix,LHS,LHS_precondition,RHS,w_bary = prepareFilter(N,N_Q,
-        coordinates_min[1],coordinates_max[1],filt,filt_para,solver)
+# Calculating these matrices is only necessary for filtering and plotting
+if (!post && filt_type == "step") ||
+   (!post && filt_type == "stage") ||
+   (!post && filt_type == "none" && !runtime_without_plots)
+
+    ElementMatrix, LHS, LHS_precondition, RHS, w_bary = prepareFilter(N,N_Q,
+                                    coordinates_min[1],coordinates_max[1],
+                                    filt,filt_para,solver)
 end
 
+# Step callbacks are added to the CallbackSet
 if filt_type == "step"
     filter_step_callback = TrixiExtensionFilter.FilterStepCallback(N=N,N_Q=N_Q,
                                                                 LHS=LHS,
@@ -368,7 +373,7 @@ if filt_type == "stage"
     step_limiter! = filter_stage_callback!
 
     ############################################################################
-    # run the simulation
+    # Run the simulation
     sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
                 dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                 save_everystep=false, callback=callbacks);
@@ -376,17 +381,24 @@ if filt_type == "stage"
 else
 
     ############################################################################
-    # run the simulation
+    # Run the simulation
     sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
                 dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                 save_everystep=false, callback=callbacks);
 end
 
-summary_callback() # print the timer summary
+summary_callback() # Print the timer summary
 
-if !post
-    # converts the solution to primitive coordinates and plots them
+# The function that applies the a posteriori filter also plots the solution, so
+# you don't have to plot it here in this case. Also if you want to know the
+# runtime of just the filtering process
+if post || runtime_without_plots
+    @goto noplot
+else
+    # Converts the solution to primitive coordinates and plots them
     plot_sol(N,N_Q,coordinates_min[1],coordinates_max[1],
         convert(Array{Float64,1}, solver.basis.nodes),w_bary,
         ElementMatrix,sol[end])
+
+    @label noplot
 end
