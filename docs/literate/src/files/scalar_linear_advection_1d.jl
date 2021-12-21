@@ -172,7 +172,7 @@ using LinearAlgebra
 M = diagm(weights)
 # Now, we can write the integral with this new matrix.
 # ```math
-# \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{u}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),
+# \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{l}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),
 # ```
 # where $\underline{\dot{u}} = (\dot{u}_0, ..., \dot{u}_N)^T$ and $\underline{l}$ respectively.
 
