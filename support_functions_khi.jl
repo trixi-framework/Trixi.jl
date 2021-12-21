@@ -2,39 +2,38 @@ using SparseArrays
 using LinearAlgebra
 using Plots
 using IncompleteLU
-using LaTeXStrings
 
 
 ######################################################
-## FUNCTIONS FOR PLOTTING
+## FUNCTIONS NECESSARY FOR PLOTTING
 #####################################################
 
-# plot the (un-)filtered solution to the KHI problem calculated by Trixi
+# Plot the (un-)filtered solution to the KHI problem calculated by Trixi
 function plot_sol(N::Int64,N_Q::Int64,a::Float64,b::Float64,
     xy_quad::Array{Float64,1},w_bary::Array{Float64,1},
     ElementMatrix::Array{Int64,2},solution::Array{Float64,1})
 
 
-    # Separate coordinates and turn vector into matrix
+    # Separate coordinates and turn vector into matrix,
     # u is then a matrix of dimension N_Q*(N+1) x N_Q*(N+1) x 4
     u = trixi_vec_to_filter_matrix(solution, ElementMatrix, N, N_Q)
     u = cons_2_prim(u, gamma)
 
-    # calc grid points xy and evenly spaced points for plotting xy_plot
+    # Calc grid points xy and evenly spaced points xy_plot for plotting
     xy = calc_vector_xy(N, N_Q, a, b, xy_quad)
-    xy_plot = collect(a:(b-a)/100:b)  # evenly space plotting points
+    xy_plot = collect(a:(b-a)/100:b)  # Evenly space plotting points
 
-    # interpolate filtered solution to evenly spaced grid points for plotting
+    # Interpolate filtered solution to evenly spaced grid points for plotting
     u_plot = zeros(length(xy_plot), length(xy_plot), 4)
     for k = 1:4
         u_plot[:, :, k] =
             prepare_for_plotting(N, N_Q, xy_plot, xy, w_bary, u[:, :, k])
     end
 
-    # each column of u_plot represents the values of a coordinate of the solution
+    # Each column of u_plot represents the values of a coordinate of the solution
     # at the grid points for plotting
 
-    # plot all 4 coordinates of the unfiltered and filtered solutions to the KHI problem
+    # Plot all 4 coordinates of the (un-)filtered solutions to the KHI problem
     prim = ["rho";"v1";"v2";"p"]
     default(legend = true)
     for k = 1:4
@@ -53,12 +52,8 @@ function plot_sol(N::Int64,N_Q::Int64,a::Float64,b::Float64,
                 title = "$(prim[k]), unfiltered, T = $(tspan[2])")
         end
 
-        #plot!(s,#=zticks=[0.5, 1.0, 1.5, 2.0],=#xtickfontsize = 10,ytickfontsize = 10,ztickfontsize = 10,xlabel = L"x",
-        #    ylabel = L"y",zlabel = L"\rho",guidefontsize = 15,camera = (50, 75),
-        #    #=clims = extrema(u_legende[:, :, 1]),zlims = extrema(u_legende[:, :, 1])=#)
-
         display(s)
-        #savefig("M_step_new_3_S")
+
 
         c = plot(xy_plot, xy_plot, u_plot[:, :, k], st = :contourf)
         if filt_type == "step"
@@ -71,12 +66,7 @@ function plot_sol(N::Int64,N_Q::Int64,a::Float64,b::Float64,
             plot!(c,title = "$(prim[k]), unfiltered, T = $(tspan[2])")
         end
 
-        #plot!(c,xtickfontsize = 10,ytickfontsize = 10,ztickfontsize = 10,xlabel = L"x",
-        #    ylabel = L"y",guidefontsize = 15,#=clims = extrema(u_legende[:, :, 1]),
-        #    zlims = extrema(u_legende[:, :, 1])=#)
-
         display(c)
-        #savefig("M_step_new_3_C")
 
     end
 
@@ -84,7 +74,10 @@ function plot_sol(N::Int64,N_Q::Int64,a::Float64,b::Float64,
 
 end
 
-# turn conservative variables of the solution to the KHI problem into primitive ones
+####################
+
+# Turn conservative variables of the solution to the KHI problem into primitive ones.
+# gamma is needed for calculating the pressure
 function cons_2_prim(u,gamma::Float64)
 
     output = zero(u)
@@ -100,7 +93,7 @@ end
 
 ####################
 
-# calculate vector of grid points in [a,b] in one dimension
+# Calculate vector of grid points in [a,b] in one dimension
 function calc_vector_xy(N::Int64,N_Q::Int64,a::Float64,b::Float64,
     xy_quad::Array{Float64,1})
 
@@ -108,7 +101,7 @@ function calc_vector_xy(N::Int64,N_Q::Int64,a::Float64,b::Float64,
     xy_MP = collect(a+Δxy/2:Δxy:b-Δxy/2)
     xy = [0.0 for i = 1:N_Q*(N+1)]
 
-    # translate points in [-1,1] to [a,b]
+    # Translate points in [-1,1] to [a,b]
     count = 1
     for i = 1:N+1:length(xy)-N
         xy[i:i+N] = extend_grid_points(xy_MP[count], Δxy, xy_quad)
@@ -118,9 +111,10 @@ function calc_vector_xy(N::Int64,N_Q::Int64,a::Float64,b::Float64,
     return xy
 
 end
-#####################################
 
-# take the solution u in matrix form and interpolate it to evenly distributed
+####################
+
+# Take the solution u in matrix form and interpolate it to evenly distributed
 # grid points for plotting
 function prepare_for_plotting(N::Int64,N_Q::Int64,xy_plot::Array{Float64,1},
     xy::Array{Float64,1},w_bary::Array{Float64,1},u::Array{Float64,2})
@@ -128,7 +122,7 @@ function prepare_for_plotting(N::Int64,N_Q::Int64,xy_plot::Array{Float64,1},
     u_final = zeros(length(xy_plot), N_Q * (N + 1))
     u_output = zeros(length(xy_plot), length(xy_plot))
 
-    # interpolate in x direction first
+    # Interpolate in x direction first
     temp = 1
     for i = 1:N+1:length(xy)-N
         if xy[i+N] == xy[end]
@@ -150,7 +144,7 @@ function prepare_for_plotting(N::Int64,N_Q::Int64,xy_plot::Array{Float64,1},
 
     u_final = u_final'
 
-    # interpolate in y direction second
+    # Interpolate in y direction second
     temp = 1
     for i = 1:N+1:length(xy)-N
         if xy[i+N] == xy[end]
@@ -174,9 +168,9 @@ function prepare_for_plotting(N::Int64,N_Q::Int64,xy_plot::Array{Float64,1},
 
 end
 
-############################
+####################
 
-# take the solutioon vector calculated by Trixi and separeate the coordinates into
+# Take the solution vector calculated by Trixi and separate the coordinates into
 # the different columns of U. Then turn each column vector into a matrix
 # that can be interpolated to the plotting points
 function trixi_vec_to_filter_matrix(u::Array{Float64,1},
@@ -210,23 +204,23 @@ function trixi_vec_to_filter_matrix(u::Array{Float64,1},
     return U_filter
 end
 
-########################################
+####################
 
-# translates grid points in [-1,1] to points in [a,b]
+# Translates grid points in [-1,1] to points in [a,b]
 function extend_grid_points(x_MP::Float64, Δx::Float64, ξ::Array{Float64,1})
 
     return x_MP .+ Δx / 2 * ξ
 
 end
 
-######################################
+####################
 
-# matrix for visualization purposes
+# Matrix for visualization purposes
 function visual_matrix(x::Array{Float64,1},w::Array{Float64,1},z::Array{Float64,1})
 
-    # x: current grid points
-    # w: barycentric weights
-    # z: grid points we want to interpolate to
+    # x: Current grid points
+    # w: Barycentric weights
+    # z: Grid points we want to interpolate to
 
     N = length(x) - 1
     N_out = length(z) - 1
@@ -262,34 +256,34 @@ end
 
 
 
-#############################################
-## FUNCTIONS FOR FILTERING
-#############################################
+######################################################
+## FUNCTIONS NECESSARY FOR FILTERING
+#####################################################
 
 
-# calculate the matrices of the CG method that we need for filtering
+# Calculate the matrices of the CG method that we need for filtering
 function prepareFilter(N::Int64,N_Q::Int64,a::Float64,b::Float64,
     filt::Bool,filt_para::Array{Float64,1},solver::DG)
 
-    # quadrature nodes and weights, barycentric weights on [-1,1]
+    # Quadrature nodes and weights, barycentric weights on [-1,1]
     xy_quad = convert(Array{Float64,1},solver.basis.nodes)
     w_quad = convert(Array{Float64,1},solver.basis.weights)
     w_bary = barycentric_weights(xy_quad)
 
-    # calculates mass matrix M_global and differentiation matrix D_global that
+    # Calculates mass matrix M_global and differentiation matrix D_global that
     # are used in the CG method for solving the filter PDE,
-    # both have dimension N_Q² * (N+1)² x N_Q² * (N+1)²
-    # we assume perdiodic boundary conditions for all boundaries
+    # both have dimension N_Q² * (N+1)² x N_Q² * (N+1)².
+    # We assume perdiodic boundary conditions for all boundaries
     D_global, M_global = calc_global_matrices(N, N_Q, a, b, xy_quad, w_quad, w_bary)
 
-    # rearrange the rows and columns of D_global (M_global is symmetric,
+    # Rearrange the rows and columns of D_global (M_global is symmetric,
     # no rearranging necessary). The filter uses a different order of elements,
-    # so to fit the vector Trixi uses we habe to change the matrix D_global
+    # so to fit the vector Trixi uses, we habe to change the matrix D_global
 
-    # matrix of indices that indicate the ordering trixi uses to store the elements
+    # Matrix of indices that indicate the ordering Trixi uses to store the elements
     ElementMatrix = calc_element_matrix(N_Q)
 
-    # the ordering IN each element is different for trixi as well, so we have
+    # The ordering IN each element is different for Trixi as well, so we have
     # a matrix of indices for that as well
     KnotenMatrix = [0 for i=1:N+1,j=1:N+1]
     for i=1:(N+1)^2
@@ -302,15 +296,15 @@ function prepareFilter(N::Int64,N_Q::Int64,a::Float64,b::Float64,
 
     # Determine the matrices for the rhs and lhs of the equations, whose solution
     # gives us the filtered vectors
-    if filt                  # germano filter: (M - δ²D)*u_filt = M*u
+    if filt                  # Germano filter: (M - δ²D)*u_filt = M*u
         LHS = M_global - filt_para[3] * D_trixi
         RHS = M_global
-    else                     # new filter: (M + α²D)*u_filt = (M + β²D)*u
+    else                     # New filter: (M + α²D)*u_filt = (M + β²D)*u
         LHS = M_global + filt_para[1] * D_trixi
         RHS = M_global + filt_para[2] * D_trixi
     end
 
-    # factorize the left hand side matrix to speed up the process of LHS\RHS*u,
+    # Factorize the left hand side matrix to speed up the process of LHS\RHS*u,
     # that the callback has to solve over and over again
     LHS_factor = ilu(LHS, τ = 0.1)
 
@@ -318,33 +312,33 @@ function prepareFilter(N::Int64,N_Q::Int64,a::Float64,b::Float64,
 
 end
 
-############################
+####################
 
-# calculate the global matrices for the CG method
+# Calculate the global matrices for the CG method
 function calc_global_matrices(N::Int64,N_Q::Int64,a::Float64,b::Float64,
     xy_quad::Array{Float64,1},w_quad::Array{Float64,1},w_Bary::Array{Float64,1})
 
 
-    Δxy = (b - a) / N_Q    # element width
+    Δxy = (b - a) / N_Q    # Element width
     J = (Δxy)^2 / 4  # Determinant of the transformation
 
     D = diff_matrix(xy_quad, w_Bary)    # Differentiation matrix for one element
-    D_scaled = (w_quad .* D)' * D      # apply quadrature weights to rows
+    D_scaled = (w_quad .* D)' * D      # Apply quadrature weights to rows
 
-    # mass matrix M for one element
+    # Mass matrix M for one element with boundary conditions accounted for
     M = spdiagm(0 => [(i == 1 || i == N+1 ? w_quad[1]+w_quad[end] : w_quad[i]) for i = 1:N+1])
 
-    # global mass matrices M_x and M_y for the x and y directions respectively
-    # periodic boundary conditions, length and width N_Q²*(N+1)²
+    # Global mass matrices M_x and M_y for the x and y directions respectively.
+    # Periodic boundary conditions, length and width N_Q²*(N+1)²
     M_x = calc_partial_matrices_periodic(N, N_Q, M, D_scaled, 1)
     M_y = calc_partial_matrices_periodic(N, N_Q, M, D_scaled, 2)
 
-    # global differentiation matrices for the x and y directions
-    # periodic boundary conditions, length and width N_Q²*(N+1)²
+    # Global differentiation matrices for the x and y directions.
+    # Periodic boundary conditions, length and width N_Q²*(N+1)²
     D_x = calc_partial_matrices_periodic(N, N_Q, M, D_scaled, 3)
     D_y = calc_partial_matrices_periodic(N, N_Q, M, D_scaled, 4)
 
-    # combine the global matrices for both directions following the 2D CG method
+    # Combine the global matrices for both directions following the 2D CG method
     M_global = J * M_x * M_y
     D_global = -(D_x * M_y + M_x * D_y)
 
@@ -352,14 +346,14 @@ function calc_global_matrices(N::Int64,N_Q::Int64,a::Float64,b::Float64,
 
 end
 
-#############################################
+####################
 
-# calculate 1D mass matrices and differentiation matrices for both the
+# Calculate 1D mass matrices and differentiation matrices for both the
 # x and y directions, assume periodic boundaries for all cases
 function calc_partial_matrices_periodic(N::Int64,N_Q::Int64,
     M::SparseMatrixCSC{Float64,Int64},D::Array{Float64,2},case::Int64)
 
-    if case == 1 # mass matrix for x direction
+    if case == 1 # Mass matrix for x direction
 
         H = spdiagm(0 => [1 for i = 1:N_Q*(N+1)])
 
@@ -367,14 +361,14 @@ function calc_partial_matrices_periodic(N::Int64,N_Q::Int64,
 
         Output = kron(spdiagm(0 => [1 for i = 1:N_Q]), Diag_0)
 
-    elseif case == 2 # mass matrix for y direction
+    elseif case == 2 # Mass matrix for y direction
 
         H = spdiagm(0 => [1 for i = 1:N_Q^2])
         Diag_0 = kron(M, spdiagm(0 => [1 for i = 1:N+1]))
 
         Output = kron(H, Diag_0)
 
-    elseif case == 3 # differentiation matrix for x direction
+    elseif case == 3 # Differentiation matrix for x direction
 
         Diag_0 = spdiagm(0 => [1 for i = 1:N_Q*(N+1)])
 
@@ -398,7 +392,7 @@ function calc_partial_matrices_periodic(N::Int64,N_Q::Int64,
 
         Output = kron(spdiagm(0 => [1 for i = 1:N_Q]), Column)
 
-    elseif case == 4 # differentiation matrix for x direction
+    elseif case == 4 # Differentiation matrix for x direction
 
         Diag_0 = spdiagm(0 => [1 for i = 1:N_Q^2])
         Diag_main = kron(D, spdiagm(0 => [1 for i = 1:N+1]))
@@ -432,31 +426,31 @@ function calc_partial_matrices_periodic(N::Int64,N_Q::Int64,
 
 end
 
-##########################################
+####################
 
-# rearrange rows and columns of matrix A s.t. it fits the format given by Trixi
+# Rearrange rows and columns of matrix A s.t. it fits the format given by Trixi
 function rearrange_filter_matrix(A::SparseMatrixCSC{Float64,Int64},
     ElementMatrix::Array{Int64,2},KnotenMatrix::Array{Int64,2},N::Int64,N_Q::Int64)
 
-    # rearrange the rows first
+    # Rearrange the rows first
     B = zero(A)
     indexF = 1
     while indexF <= N_Q^2
 
         temp = A[1+(indexF-1)*(N+1)^2:indexF*(N+1)^2, :]
 
-        # rearrange the in-element order
+        # Rearrange the in-element order
         for i = 1:N_Q^2
             if length(temp[:, 1+(i-1)*(N+1)^2:i*(N+1)^2].nzval) > 0
                 temp2 = temp[:, 1+(i-1)*(N+1)^2:i*(N+1)^2]
 
                 temp3 = zero(temp2)
-                for k = 1:(N+1)^2  # in-element rows
+                for k = 1:(N+1)^2  # In-element rows
                     tempIndex = KnotenMatrix[k]
                     temp3[tempIndex, :] = temp2[k, :]
                 end
                 temp4 = zero(temp3)
-                for k = 1:(N+1)^2  # in-element columns
+                for k = 1:(N+1)^2  # In-element columns
                     tempIndex = KnotenMatrix[k]
                     temp4[:, tempIndex] = temp3[:, k]
                 end
@@ -465,7 +459,7 @@ function rearrange_filter_matrix(A::SparseMatrixCSC{Float64,Int64},
             end
         end
 
-        # find correct position in ElementMatrix
+        # Find correct position in ElementMatrix
         indexT = ElementMatrix[indexF]
 
         B[1+(indexT-1)*(N+1)^2:indexT*(N+1)^2, :] = temp
@@ -474,14 +468,14 @@ function rearrange_filter_matrix(A::SparseMatrixCSC{Float64,Int64},
 
     end
 
-    # now rearrange the columns
+    # Now rearrange the columns
     C = zero(B)
     indexF = 1
     while indexF <= N_Q^2
 
         temp = B[:, 1+(indexF-1)*(N+1)^2:indexF*(N+1)^2]
 
-        # find correct position in ElementMatrix
+        # Find correct position in ElementMatrix
         indexT = ElementMatrix[indexF]
 
         C[:, 1+(indexT-1)*(N+1)^2:indexT*(N+1)^2] = temp
@@ -493,9 +487,9 @@ function rearrange_filter_matrix(A::SparseMatrixCSC{Float64,Int64},
     return dropzeros(C)
 end
 
-########################################
+####################
 
-# calculates matrix of indices that indicates the order in which Trixi goes
+# Calculates matrix of indices that indicates the order in which Trixi goes
 # through the different elements
 function calc_element_matrix(N_Q::Int64)
 
@@ -511,14 +505,14 @@ function calc_element_matrix(N_Q::Int64)
     return Block
 end
 
-#######################################
+####################
 
-# calculates the 1D differentiation matrix
+# Calculates the 1D differentiation matrix
 function diff_matrix(x::Array{Float64,1}, w_bary::Array{Float64,1})
 
     N = length(x) - 1
 
-    diag = [0.0 for i in x]  # entries on the main diagonal
+    diag = [0.0 for i in x]  # Entries on the main diagonal
 
     for i = 1:N+1
         for j = 1:N+1
@@ -536,9 +530,9 @@ function diff_matrix(x::Array{Float64,1}, w_bary::Array{Float64,1})
     return D
 end
 
-#####################################
+####################
 
- # calc barycentric weights for points x
+ # Calc barycentric weights for points x
 function barycentric_weights(x::Array{Float64,1})
 
     N = length(x)-1
@@ -555,3 +549,4 @@ function barycentric_weights(x::Array{Float64,1})
     return 1 ./ w
 
 end
+
