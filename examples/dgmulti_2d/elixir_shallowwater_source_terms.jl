@@ -14,10 +14,10 @@ dg = DGMulti(polydeg=3, element_type = Quad(), approximation_type = SBP(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-cells_per_dimension = 8
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension)
-vertex_coordinates = map(x -> sqrt(2) .* 0.5 .* (1 .+ x), vertex_coordinates) # map domain to [0, sqrt(2)]^2
-mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
+mesh = DGMultiMesh(dg, cells_per_dimension=(8, 8),
+                   coordinates_min=(0.0, 0.0), coordinates_max=(sqrt(2), sqrt(2)),
+                   periodicity=true)
+
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms=source_terms_convergence_test)

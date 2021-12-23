@@ -1,15 +1,19 @@
 
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
+dg = DGMulti(element_type = Line(),
+             approximation_type = periodic_derivative_operator(
+               derivative_order=1, accuracy_order=4, xmin=0.0, xmax=1.0, N=50),
+             surface_flux = flux_hll,
              volume_integral = VolumeIntegralWeakForm())
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations1D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-mesh = DGMultiMesh(dg, cells_per_dimension = (4, 4), periodicity=true)
+mesh = DGMultiMesh(dg, coordinates_min=(-1.0,),
+                       coordinates_max=( 1.0,))
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms)
 
@@ -20,7 +24,8 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+stepsize_callback = StepsizeCallback(cfl=1.0)
+callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation

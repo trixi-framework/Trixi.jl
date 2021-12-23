@@ -644,6 +644,17 @@ Cassette.@context Ctx
     Trixi.mul!(b_kron, V_kron, x)
     @test b ≈ b_kron
   end
+
+  @testset "SummationByPartsOperators + StartUpDG" begin
+    dg = DGMulti(polydeg = 3, element_type = Quad(),
+                 approximation_type = derivative_operator(
+                 SummationByPartsOperators.MattssonNordström2004(),
+                 derivative_order=1, accuracy_order=4,
+                 xmin=0.0, xmax=1.0, N=10))
+
+    @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
+  end
+
 end
 
 

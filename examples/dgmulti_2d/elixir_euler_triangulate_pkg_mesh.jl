@@ -13,7 +13,7 @@ meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole())
 
 # the pre-defined Triangulate geometry in StartUpDG has integer boundary tags. this routine
 # assigns boundary faces based on these integer boundary tags.
-mesh = VertexMappedMesh(meshIO, dg, Dict(:bottom=>1, :right=>2, :top=>3, :left=>4))
+mesh = DGMultiMesh(meshIO, dg, Dict(:bottom=>1, :right=>2, :top=>3, :left=>4))
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :bottom => boundary_condition_convergence_test,

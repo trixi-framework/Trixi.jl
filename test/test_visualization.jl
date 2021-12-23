@@ -202,6 +202,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @timed_testset "PlotData1D (DGMulti)" begin
+    # Test two different approximation types since these use different memory layouts:
+    # - structure of arrays for `Polynomial()`
+    # - array of structures for `SBP()`
+    @test_nowarn_debug trixi_include(@__MODULE__,
+      joinpath(examples_dir(), "dgmulti_1d", "elixir_euler_flux_diff.jl"), tspan=(0.0 ,0.0),
+      approximation_type=Polynomial())
+    @test PlotData1D(sol) isa PlotData1D
+
+    @test_nowarn_debug trixi_include(@__MODULE__,
+      joinpath(examples_dir(), "dgmulti_1d", "elixir_euler_flux_diff.jl"), tspan=(0.0 ,0.0),
+      approximation_type=SBP())
+    @test PlotData1D(sol) isa PlotData1D
+  end
+
   @timed_testset "plot time series" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
