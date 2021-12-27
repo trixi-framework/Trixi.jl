@@ -122,7 +122,6 @@ end
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
   row_ids = axes(A, 2)
   rows = rowvals(A_base)
-  vals = nonzeros(A_base)
 
   for i in row_ids
     u_i = u[i]
