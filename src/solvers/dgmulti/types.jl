@@ -196,7 +196,7 @@ the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
-function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension;
+function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
                      coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
                      coordinates_max=ntuple(_ -> one(real(dg)), NDIMS),
                      is_on_boundary=nothing,

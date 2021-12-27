@@ -30,8 +30,7 @@ function initial_condition_kelvin_helmholtz_instability(x, t, equations::Compres
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-cells_per_dimension = (32, 32)
-mesh = DGMultiMesh(dg, cells_per_dimension, periodicity=true)
+mesh = DGMultiMesh(dg, cells_per_dimension=(32, 32), periodicity=true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
 tspan = (0.0, 1.0)
