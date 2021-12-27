@@ -175,11 +175,11 @@ end
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
   scaling = 2 * operator_scaling
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element], sxJ[1,element], txJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1, element], sxJ[1, element], txJ[1, element]))
   elseif orientation == 2
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (ryJ[1,element], syJ[1,element], tyJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (ryJ[1, element], syJ[1, element], tyJ[1, element]))
   else # if orientation == 3
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rzJ[1,element], szJ[1,element], tzJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rzJ[1, element], szJ[1, element], tzJ[1, element]))
   end
 end
 
