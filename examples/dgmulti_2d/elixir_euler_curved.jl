@@ -37,12 +37,12 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
-stepsize_callback = StepsizeCallback(cfl=1.5)
-callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback, analysis_callback)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt = 0.5 * estimate_dt(mesh, dg), save_everystep=false, callback=callbacks);
+sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
+            save_everystep=false, callback=callbacks);
+
 summary_callback() # print the timer summary
