@@ -117,7 +117,7 @@ Initial support for curved `DGMultiMesh`es is available for flux differencing so
 `SBP` and `GaussSBP` approximation types on quadrilateral and hexahedral meshes. These can be
 called by specifying `mesh = DGMultiMesh(dg, cells_per_dimension, mapping)`, where `mapping` is a
 function which specifies the warping of the mesh (e.g., `mapping(xi, eta) = SVector{2}(xi, eta)` is
-the identity mapping).
+the identity mapping) similar to the `mapping` argument used by `StructuredMesh`.
 
 ## Variable naming conventions
 
