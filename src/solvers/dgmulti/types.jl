@@ -129,7 +129,7 @@ GeometricTermsType(mesh_type::Cartesian, element_type::AbstractElemShape) = Affi
 GeometricTermsType(mesh_type::TriangulateIO, element_type::Tri) = Affine()
 GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Tri, Tet}) = Affine()
 GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Quad, Hex}) = NonAffine()
-# GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffine()
+GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffine()
 
 # other potential constructor types to add later: Bilinear, Isoparametric{polydeg_geo}, Rational/Exact?
 # other potential mesh types to add later: Polynomial{polydeg_geo}?
@@ -222,6 +222,43 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
   return DGMultiMesh{NDIMS, GeometricTermsType(Cartesian(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+end
+
+"""
+    DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
+                is_on_boundary=nothing,
+                periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+
+Constructs a `Curved()` [`DGMultiMesh`](@ref) with element type `dg.basis.elementType`. The domain is
+the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
+- `mapping` is a function which maps from a reference [-1, 1]^NDIMS domain to a mapped domain,
+   e.g., `xy = mapping(x, y)` in 2D.
+- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
+"""
+function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
+                     is_on_boundary=nothing,
+                     periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+
+  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
+  md = MeshData(vertex_coordinates, EToV, dg.basis)
+  md = NDIMS==1 ? StartUpDG.make_periodic(md, periodicity...) : StartUpDG.make_periodic(md, periodicity)
+
+  @unpack xyz = md
+  for i in eachindex(xyz[1])
+    new_xyz = mapping(getindex.(xyz, i)...)
+    setindex!.(xyz, new_xyz, i)
+  end
+  md_curved = MeshData(dg.basis, md, xyz...)
+
+  # interpolate geometric terms to both volume and face cubature points
+  @unpack rstxyzJ = md_curved
+  @unpack Vq, Vf = dg.basis
+  rstxyzJ_interpolated = map(x -> [Vq; Vf] * x, rstxyzJ)
+  md_curved = @set md_curved.rstxyzJ = rstxyzJ_interpolated
+
+  boundary_faces = StartUpDG.tag_boundary_faces(md_curved, is_on_boundary)
+  return DGMultiMesh{NDIMS, GeometricTermsType(Curved(), dg), typeof(md), typeof(boundary_faces)}(md_curved, boundary_faces)
 end
 
 # Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
