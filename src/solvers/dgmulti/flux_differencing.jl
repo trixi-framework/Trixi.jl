@@ -156,18 +156,20 @@ end
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
   row_ids = axes(A, 2)
   rows = rowvals(A_base)
+  vals = nonzeros(A_base)
 
   for i in row_ids
     u_i = u[i]
     du_i = du[i]
     for id in nzrange(A_base, i)
+      A_ij = vals[id]
       j = rows[id]
       # The `normal_direction::AbstractVector` has to be passed in twice.
       # This is because on curved meshes, nonconservative fluxes are
       # evaluated using both the normal and its average at interfaces.
       u_j = u[j]
       f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-      du_i = du_i + A[i,j] * f_ij
+      du_i = du_i + A_ij * f_ij
     end
     du[i] = du_i
   end
