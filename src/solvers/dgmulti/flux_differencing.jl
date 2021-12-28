@@ -225,12 +225,16 @@ end
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
+
+  # assumes geometric terms are constant on each element
   @unpack rstxyzJ = mesh.md
   return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
 end
 
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine()}) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
+
+  # assumes geometric terms vary spatially over each element
   @unpack rstxyzJ = mesh.md
   return SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
 end
