@@ -139,7 +139,7 @@ end
         # provably entropy stable de-aliasing of geometric terms
         normal_direction = 1/2 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
 
-        AF_ij = A_ij * volume_flux(u_i, u_j, normal_avg, equations)
+        AF_ij = A_ij * volume_flux(u_i, u_j, normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
