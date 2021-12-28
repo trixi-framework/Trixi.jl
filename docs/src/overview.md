@@ -62,7 +62,7 @@ different features on different mesh types.
 | Nonconservative equations                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | e.g., GLM MHD or shallow water equations
 
 ᵃ: quad = quadrilateral, hex = hexahedron
-ᵇ: curved meshes supported for `SBP` and `GaussSBP` approximation types for `VolumeKernelFluxDifferencing` solvers on quadrilateral and hexahedral `DGMultiMesh`es.
+ᵇ: curved meshes supported for `SBP` and `GaussSBP` approximation types for `VolumeIntegralFluxDifferencing` solvers on quadrilateral and hexahedral `DGMultiMesh`es.
 
 ## Time integration methods
 

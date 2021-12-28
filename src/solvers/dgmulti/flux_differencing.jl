@@ -116,7 +116,7 @@ end
 # Version for sparse operators and symmetric fluxes with curved meshes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::Val{true}, volume_flux,
-                               normal_direction::AbstractVector{<:AbstractVector},
+                               normal_directions::AbstractVector{<:AbstractVector},
                                u, equations)
   A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
   row_ids = axes(A, 2)
@@ -137,7 +137,7 @@ end
         A_ij = vals[id]
 
         # provably entropy stable de-aliasing of geometric terms
-        normal_avg = 1/2 * (getindex.(normal_direction, i) + getindex.(normal_direction, j))
+        normal_direction = 1/2 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
 
         AF_ij = A_ij * volume_flux(u_i, u_j, normal_avg, equations)
         du_i = du_i + AF_ij
