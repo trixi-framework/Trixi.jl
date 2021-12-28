@@ -87,6 +87,8 @@ function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{
                      is_on_boundary = nothing,
                      periodicity=ntuple(_->false, NDIMS), kwargs...) where {NDIMS, Tv, Ti}
 
+  Base.depwarn("`DGMultiMesh` constructor with `rd::RefElemData` is deprecated. Use the constructor with `dg::DGMulti` instead.",
+               :DGMultiMesh)
   if haskey(kwargs, :is_periodic)
     # TODO: DGMulti, v0.5. Remove deprecated keyword
     Base.depwarn("keyword argument `is_periodic` is now `periodicity`.", :DGMultiMesh)
