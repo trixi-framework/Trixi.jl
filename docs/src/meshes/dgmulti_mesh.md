@@ -113,6 +113,12 @@ of vertex coordinates `vertex_coordinates_x`, `vertex_coordinates_y`, `vertex_co
 connectivity matrix `EToV` where `EToV[e,:]` gives the vertices which correspond to element `e`.
 These quantities are available from most unstructured mesh generators.
 
+Initial support for curved `DGMultiMesh`es is available for flux differencing solvers using
+`SBP` and `GaussSBP` approximation types on quadrilateral and hexahedral meshes. These can be
+called by specifying `mesh = DGMultiMesh(dg, cells_per_dimension, mapping)`, where `mapping` is a
+function which specifies the warping of the mesh (e.g., `mapping(xi, eta) = SVector{2}(xi, eta)` is
+the identity mapping).
+
 ## Variable naming conventions
 
 We use the convention that coordinates on the reference element are ``r`` in 1D, ``r, s`` in 2D,
