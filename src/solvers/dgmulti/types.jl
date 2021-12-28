@@ -82,6 +82,10 @@ end
 
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
 
+function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces) where {NDIMS}
+  return DGMultiMesh{NDIMS, geometric_term_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+end
+
 # TODO: DGMulti, v0.5. These constructors which use `rd::RefElemData` are now redundant and can be removed.
 function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
                      is_on_boundary = nothing,
@@ -167,7 +171,7 @@ function DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
     md = StartUpDG.make_periodic(md, periodicity)
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{NDIMS, GeometricTermsType(VertexMapped(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh(dg, GeometricTermsType(VertexMapped(), dg), md, boundary_faces)
 end
 
 """
@@ -185,7 +189,7 @@ function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Sym
   md = MeshData(vertex_coordinates, EToV, dg.basis)
   md = StartUpDG.make_periodic(md, periodicity)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, dg.basis, md, boundary_dict)
-  return DGMultiMesh{2, GeometricTermsType(TriangulateIO(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh(dg, GeometricTermsType(TriangulateIO(), dg), md, boundary_faces)
 end
 
 # TODO: DGMulti. Make `cells_per_dimension` a non-keyword argument for easier dispatch.
@@ -225,7 +229,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
     md = StartUpDG.make_periodic(md, periodicity)
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{NDIMS, GeometricTermsType(Cartesian(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh(dg, GeometricTermsType(Cartesian(), dg), md, boundary_faces)
 end
 
 """
@@ -261,7 +265,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
   md_curved = @set md_curved.rstxyzJ = rstxyzJ_interpolated
 
   boundary_faces = StartUpDG.tag_boundary_faces(md_curved, is_on_boundary)
-  return DGMultiMesh{NDIMS, GeometricTermsType(Curved(), dg), typeof(md), typeof(boundary_faces)}(md_curved, boundary_faces)
+  return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md, boundary_faces)
 end
 
 # Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
