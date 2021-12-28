@@ -230,13 +230,15 @@ end
   # 2 * SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
   @unpack rstxyzJ = mesh.md
   return 2 * SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
+  # return 2 * SVector{NDIMS}(ntuple(ref_coord_index -> rstxyzJ[ref_coord_index, orientation][1, element], NDIMS))
 end
 
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine()}) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
   @unpack rstxyzJ = mesh.md
-  return 2 * SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
+  return 2 * SVector{NDIMS}(ntuple(i -> view(rstxyzJ[i, orientation], :, element), NDIMS))
 end
+
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)

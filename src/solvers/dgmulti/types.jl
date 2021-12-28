@@ -116,7 +116,7 @@ end
 # TODO: DGMulti, v0.5. Remove deprecated constructor
 @deprecate VertexMappedMesh(args...; kwargs...) DGMultiMesh(args...; kwargs...)
 
-# Mesh types for trait dispatch
+# Mesh types used internally for trait dispatch
 struct Cartesian end
 struct VertexMapped end # where element geometry is determined by vertices.
 struct Curved end
