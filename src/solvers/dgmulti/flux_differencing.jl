@@ -191,8 +191,11 @@ end
 # combination of reference derivatives.
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
   @unpack rstxyzJ = mesh.md
-  return 2 * SVector{NDIMS}(getindex.(rstxyzJ[orientation, :], 1, element)) # the 1D contravariant vector reduces to a scaling.
+  # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
+  return 2 * SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element)) # the 1D contravariant vector reduces to a scaling.
 end
+
+
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
