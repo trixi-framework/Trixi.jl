@@ -63,7 +63,6 @@ end
   end
 end
 
-# TODO: DGMulti. Fix for curved meshes.
 @inline function hadamard_sum!(du, A,
                                flux_is_symmetric::Val{false}, volume_flux,
                                normal_direction::AbstractVector, u, equations)
@@ -114,7 +113,7 @@ end
   end
 end
 
-# Version for sparse operators and symmetric fluxes
+# Version for sparse operators and symmetric fluxes with curved meshes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::Val{true}, volume_flux,
                                normal_direction::AbstractVector{<:AbstractVector},
@@ -136,7 +135,10 @@ end
       if j > i
         u_j = u[j]
         A_ij = vals[id]
+
+        # provably entropy stable de-aliasing of geometric terms
         normal_avg = 1/2 * (getindex.(normal_direction, i) + getindex.(normal_direction, j))
+
         AF_ij = A_ij * volume_flux(u_i, u_j, normal_avg, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
@@ -222,15 +224,15 @@ end
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
-  @unpack rstxyzJ = mesh.md
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # 2 * SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
+  @unpack rstxyzJ = mesh.md
   return 2 * SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
 end
 
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine()}) where {NDIMS}
-  @unpack rstxyzJ = mesh.md
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
+  @unpack rstxyzJ = mesh.md
   return 2 * SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
 end
 
