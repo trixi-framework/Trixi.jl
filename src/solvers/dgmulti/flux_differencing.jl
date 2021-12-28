@@ -114,6 +114,38 @@ end
   end
 end
 
+# Version for sparse operators and symmetric fluxes
+@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
+                               flux_is_symmetric::Val{true}, volume_flux,
+                               normal_direction::AbstractVector{<:AbstractVector},
+                               u, equations)
+  A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+  row_ids = axes(A, 2)
+  rows = rowvals(A_base)
+  vals = nonzeros(A_base)
+
+  for i in row_ids
+    u_i = u[i]
+    du_i = du[i]
+    for id in nzrange(A_base, i)
+      j = rows[id]
+      # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+      # We avoid computing the lower-triangular part, and instead accumulate those contributions
+      # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+      # is symmetric).
+      if j > i
+        u_j = u[j]
+        A_ij = vals[id]
+        normal_avg = 1/2 * (getindex.(normal_direction, i) + getindex.(normal_direction, j))
+        AF_ij = A_ij * volume_flux(u_i, u_j, normal_avg, equations)
+        du_i = du_i + AF_ij
+        du[j] = du[j] - AF_ij
+      end
+    end
+    du[i] = du_i
+  end
+end
+
 # TODO: DGMulti. Fix for curved meshes.
 # Version for sparse operators and non-symmetric fluxes
 @inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
