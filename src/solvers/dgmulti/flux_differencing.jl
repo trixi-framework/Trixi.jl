@@ -192,7 +192,7 @@ end
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
   @unpack rstxyzJ = mesh.md
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
-  return 2 * SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element)) # the 1D contravariant vector reduces to a scaling.
+  return 2 * SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
 end
 
 
