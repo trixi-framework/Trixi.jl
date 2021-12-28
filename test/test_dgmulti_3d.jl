@@ -40,15 +40,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_euler_weakform_curved.jl (Hex elements, SBP, EC)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_curved.jl"),
+  @trixi_testset "elixir_euler_curved.jl (Hex elements, SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       l2 = [0.0179610800408638, 0.024386439294479458, 0.024389821246679416, 0.017777180616081047, 0.03834134423952834],
       linf = [0.14862225990775713, 0.2895236816186486, 0.2912054484817008, 0.14566031338541174, 0.3315354586775463]
     )
   end
 
-  @trixi_testset "elixir_euler_weakform_curved.jl (Hex elements, GaussSBP, EC)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_curved.jl"),
+  @trixi_testset "elixir_euler_curved.jl (Hex elements, GaussSBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       approximation_type=GaussSBP(),
       l2 = [0.0024979831949246147, 0.0027675959578935365, 0.002767956281475858, 0.002502325888620408, 0.0066576433371695765],
       linf = [0.021424273409069272, 0.021335196280068747, 0.02130471009376489, 0.020809830642011473, 0.05344736080483159]
