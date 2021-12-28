@@ -77,6 +77,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_weakform_curved.jl (Quadrilateral elements, SBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_curved.jl"),
+      l2 = [1.5895146770879104e-5, 1.4727607455185196e-5, 1.4727607454664e-5, 4.5012139131556355e-5],
+      linf = [0.00010532795141804385, 0.00010014884337627983, 0.00010014884331521756, 0.0003644813346266318]
+    )
+  end
+
+  @trixi_testset "elixir_euler_weakform_curved.jl (Quadrilateral elements, GaussSBP, EC)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_curved.jl"),
+      approximation_type = GaussSBP(),
+      l2 = [3.57692246277701e-6, 3.4768228485052918e-6, 3.476822848318861e-6, 1.08063695696169e-5],
+      linf = [1.2961340997819093e-5, 1.256171428520858e-5, 1.2561714344716535e-5, 3.932134587136815e-5]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2], [4.243843382379403, 4.128314378833922, 4.128314378397532, 4.081366752807379], rtol=0.05)
