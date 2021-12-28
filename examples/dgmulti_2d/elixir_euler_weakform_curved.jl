@@ -15,8 +15,8 @@ rest_of_boundary(x, tol=50*eps()) = !top_boundary(x, tol)
 is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
 
 function mapping(xi, eta)
-  x = xi  + .1 * sin(pi * xi) * sin(pi * eta)
-  y = eta + .1 * sin(pi * xi) * sin(pi * eta)
+  x = xi  + 0.1 * sin(pi * xi) * sin(pi * eta)
+  y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
   return SVector{2}(x, y)
 end
 cells_per_dimension = (16, 16)
