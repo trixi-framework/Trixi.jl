@@ -185,6 +185,7 @@ function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Sym
   return DGMultiMesh{2, GeometricTermsType(TriangulateIO(), dg), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
+# TODO: DGMulti. Make `cells_per_dimension` a non-keyword argument for easier dispatch.
 """
     DGMultiMesh(dg::DGMulti; cells_per_dimension,
                 coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
