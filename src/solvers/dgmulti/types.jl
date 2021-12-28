@@ -122,8 +122,9 @@ struct VertexMapped end # where element geometry is determined by vertices.
 struct Curved end
 
 # type parameters for dispatch using `DGMultiMesh`
-struct Affine end # mesh produces constant geometric terms
-struct NonAffine end # mesh produces non-constant geometric terms
+abstract type GeometricTermsType end
+struct Affine <: GeometricTermsType end # mesh produces constant geometric terms
+struct NonAffine <: GeometricTermsType end # mesh produces non-constant geometric terms
 
 # choose MeshType based on the constructor and element type
 GeometricTermsType(mesh_type, dg::DGMulti) = GeometricTermsType(mesh_type, dg.basis.elementType)
@@ -160,7 +161,7 @@ function DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
   end
 
   md = MeshData(vertex_coordinates, EToV, dg.basis)
-  if NDIMS==1
+  if NDIMS == 1
     md = StartUpDG.make_periodic(md, periodicity...)
   else
     md = StartUpDG.make_periodic(md, periodicity)
@@ -179,7 +180,7 @@ end
   tag with a `Symbol`.
 """
 function DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int};
-                     periodicity=(false, false)) where {NDIMS}
+                     periodicity=(false, false))
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
   md = MeshData(vertex_coordinates, EToV, dg.basis)
   md = StartUpDG.make_periodic(md, periodicity)
@@ -218,7 +219,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
   end
 
   md = MeshData(vertex_coordinates, EToV, dg.basis)
-  if NDIMS==1
+  if NDIMS == 1
     md = StartUpDG.make_periodic(md, periodicity...)
   else
     md = StartUpDG.make_periodic(md, periodicity)
