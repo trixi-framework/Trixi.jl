@@ -189,29 +189,9 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{1})
-  @unpack rxJ = mesh.md
-  return 2 * SVector(rxJ[1, element]) # the 1D contravariant vector reduces to a scaling.
-end
-
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{2})
-  @unpack rxJ, sxJ, ryJ, syJ = mesh.md
-  if orientation == 1
-    return 2 * SVector(rxJ[1, element], ryJ[1, element])
-  else # if orientation == 2
-    return 2 * SVector(sxJ[1, element], syJ[1, element])
-  end
-end
-
-@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{3})
-  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
-  if orientation == 1
-    return 2 * SVector(rxJ[1, element], ryJ[1, element], rzJ[1, element])
-  elseif orientation == 2
-    return 2 * SVector(sxJ[1, element], syJ[1, element], szJ[1, element])
-  else # if orientation == 3
-    return 2 * SVector(txJ[1, element], tyJ[1, element], tzJ[1, element])
-  end
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
+  @unpack rstxyzJ = mesh.md
+  return 2 * SVector{NDIMS}(getindex.(rstxyzJ[orientation, :], 1, element)) # the 1D contravariant vector reduces to a scaling.
 end
 
 # use hybridized SBP operators for general flux differencing schemes.
