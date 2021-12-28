@@ -36,7 +36,8 @@
       # is symmetric).
       if j > i
         u_j = u[j]
-        AF_ij = A[i,j] * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        f_ij = volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        AF_ij = 2 * A[i,j] * f_ij
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -57,7 +58,7 @@ end
     for j in col_ids
       u_j = u[j]
       f_ij = volume_flux(u_i, u_j, orientation, equations)
-      du_i = du_i + A[i,j] * f_ij
+      du_i = du_i + 2 * A[i,j] * f_ij
     end
     du[i] = du_i
   end
@@ -77,7 +78,7 @@ end
       # This is because on curved meshes, nonconservative fluxes are
       # evaluated using both the normal and its average at interfaces.
       f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-      du_i = du_i + A[i,j] * f_ij
+      du_i = du_i + 2 * A[i,j] * f_ij
     end
     du[i] = du_i
   end
@@ -104,7 +105,7 @@ end
       if j > i
         u_j = u[j]
         A_ij = vals[id]
-        AF_ij = A_ij * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        AF_ij = 2 * A_ij * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -139,7 +140,7 @@ end
         # provably entropy stable de-aliasing of geometric terms
         normal_direction = 1/2 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
 
-        AF_ij = A_ij * volume_flux(u_i, u_j, normal_direction, equations)
+        AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -169,7 +170,7 @@ end
       # evaluated using both the normal and its average at interfaces.
       u_j = u[j]
       f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-      du_i = du_i + A_ij * f_ij
+      du_i = du_i + 2 * A_ij * f_ij
     end
     du[i] = du_i
   end
@@ -185,9 +186,8 @@ end
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ = mesh.md
-  scaling = 2 * operator_scaling
   # ignore orientation
-  return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element],))
+  return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element],))
 end
 
 @inline function build_lazy_physical_derivative(element, orientation,
@@ -195,11 +195,10 @@ end
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
-  scaling = 2 * operator_scaling
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element], sxJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element], sxJ[1,element]))
   else # if orientation == 2
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (ryJ[1,element], syJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (ryJ[1,element], syJ[1,element]))
   end
 end
 
@@ -208,13 +207,12 @@ end
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
-  scaling = 2 * operator_scaling
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1, element], sxJ[1, element], txJ[1, element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1, element], sxJ[1, element], txJ[1, element]))
   elseif orientation == 2
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (ryJ[1, element], syJ[1, element], tyJ[1, element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (ryJ[1, element], syJ[1, element], tyJ[1, element]))
   else # if orientation == 3
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rzJ[1, element], szJ[1, element], tzJ[1, element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rzJ[1, element], szJ[1, element], tzJ[1, element]))
   end
 end
 
@@ -229,14 +227,14 @@ end
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
   # 2 * SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
   @unpack rstxyzJ = mesh.md
-  return 2 * SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
+  return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
   # return 2 * SVector{NDIMS}(ntuple(ref_coord_index -> rstxyzJ[ref_coord_index, orientation][1, element], NDIMS))
 end
 
 @inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine()}) where {NDIMS}
   # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
   @unpack rstxyzJ = mesh.md
-  return 2 * SVector{NDIMS}(ntuple(i -> view(rstxyzJ[i, orientation], :, element), NDIMS))
+  return SVector{NDIMS}(ntuple(i -> view(rstxyzJ[i, orientation], :, element), NDIMS))
 end
 
 
