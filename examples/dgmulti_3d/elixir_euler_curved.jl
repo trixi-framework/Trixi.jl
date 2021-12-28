@@ -18,7 +18,7 @@ function mapping(xi, eta, zeta)
   x = xi   + 0.1 * sin(pi * xi) * sin(pi * eta)
   y = eta  + 0.1 * sin(pi * xi) * sin(pi * eta)
   z = zeta + 0.1 * sin(pi * xi) * sin(pi * eta)
-  return SVector{3}(x, y, z)
+  return SVector(x, y, z)
 end
 cells_per_dimension = (4, 4, 4)
 mesh = DGMultiMesh(dg, cells_per_dimension, mapping, is_on_boundary=is_on_boundary)
