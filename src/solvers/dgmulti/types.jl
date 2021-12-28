@@ -265,7 +265,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
   md_curved = @set md_curved.rstxyzJ = rstxyzJ_interpolated
 
   boundary_faces = StartUpDG.tag_boundary_faces(md_curved, is_on_boundary)
-  return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md, boundary_faces)
+  return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md_curved, boundary_faces)
 end
 
 # Todo: DGMulti. Add traits for dispatch on affine/curved meshes here.
