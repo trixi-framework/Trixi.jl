@@ -21,6 +21,11 @@ for human readability.
 - The `VertexMappedMesh` type is removed in favor of the `DGMultiMesh` type.
   The `VertexMappedMesh` constructor is deprecated.
 
+#### Deprecated
+
+- The `DGMultiMesh` constructor which uses a `rd::RefElemData` argument is deprecated in
+  favor of the constructor which uses a `dg::DGMulti` argument instead.
+
 ## Changes when updating to v0.4 from v0.3.x
 
 #### Added
