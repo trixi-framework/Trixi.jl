@@ -77,6 +77,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
+      l2 = [1.0259435706215337e-5, 9.014090233720625e-6, 9.014090233223014e-6, 2.738953587401793e-5],
+      linf = [7.362609083649829e-5, 6.874188055272512e-5, 6.874188052830021e-5, 0.0001912435192696904]
+    )
+  end
+
   @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       l2 = [1.5914065936559232e-5, 1.4757575957005155e-5, 1.4757575956508324e-5, 4.511709781155535e-5],
