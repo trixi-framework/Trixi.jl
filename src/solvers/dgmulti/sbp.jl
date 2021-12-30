@@ -413,7 +413,6 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffPeriodicF
   # for use with flux differencing schemes
   Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
 
-  # Todo: DGMulti. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
   # storage for volume quadrature values, face quadrature values, flux values
   nvars = nvariables(equations)
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
