@@ -67,6 +67,14 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
   return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
 end
 
+function reset_du!(du, dg::DGMulti, cache)
+  @threaded for i in eachindex(du)
+      du[i] = zero(eltype(du))
+  end
+
+  return du
+end
+
 function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, uEltype)
 
   rd = dg.basis
@@ -383,7 +391,7 @@ function rhs!(du, u, t, mesh, equations,
               initial_condition, boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
 
-  @trixi_timeit timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, u, mesh, have_nonconservative_terms(equations), equations,
