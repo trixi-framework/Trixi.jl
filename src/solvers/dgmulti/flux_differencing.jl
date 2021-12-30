@@ -288,7 +288,12 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
+  if rd.approximationType isa AbstractPeriodicDerivativeOperator
+    # periodic SBP operators do not need any surface stuff
+    lift_scalings = nothing
+  else
+    lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
+  end
 
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
