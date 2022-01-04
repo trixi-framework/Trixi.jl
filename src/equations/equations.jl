@@ -289,6 +289,10 @@ include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 
+# "Perturbation Moment System
+abstract type  AbstractPerturbationMomentSystem{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("perturbation_1d.jl")
+
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_1d.jl")

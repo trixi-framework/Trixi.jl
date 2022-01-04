@@ -120,7 +120,7 @@ include("visualization/visualization.jl")
 # export types/functions that define the public API of Trixi
 
 export AcousticPerturbationEquations2D,
-       CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+       CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D, PerturbationMomentSystem1D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
