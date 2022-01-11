@@ -116,7 +116,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      @test_trixi_include(joinpath(examples_dir(), "elixir_euler_fdsbp_periodic.jl"),
         l2 = [1.3333320340010056e-6, 2.044834627970641e-6, 2.044834627855601e-6, 5.282189803559564e-6],
         linf = [2.7000151718858945e-6, 3.988595028259212e-6, 3.9885950273710336e-6, 8.848583042286862e-6]
       )
