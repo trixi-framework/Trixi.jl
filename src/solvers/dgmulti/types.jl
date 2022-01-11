@@ -324,7 +324,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
   x = reshape(tmp_storage, n, n)
   b = reshape(b_in, n, n)
 
-  @tturbo for j in 1:n, i in 1:n
+  @turbo for j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for ii in 1:n
       tmp = tmp + A[i, ii] * x[ii, j]
@@ -332,7 +332,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     b[i, j] = tmp
   end
 
-  @tturbo for j in 1:n, i in 1:n
+  @turbo for j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for jj in 1:n
       tmp = tmp + A[j, jj] * b[i, jj]
@@ -361,7 +361,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
   x = reshape(tmp_storage, n, n, n)
   b = reshape(b_in, n, n, n)
 
-  @tturbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for ii in 1:n
       tmp = tmp + A[i, ii] * x[ii, j, k]
@@ -369,7 +369,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     b[i, j, k] = tmp
   end
 
-  @tturbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for jj in 1:n
       tmp = tmp + A[j, jj] * b[i, jj, k]
@@ -377,7 +377,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     x[i, j, k] = tmp
   end
 
-  @tturbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for kk in 1:n
       tmp = tmp + A[k, kk] * x[i, j, kk]
