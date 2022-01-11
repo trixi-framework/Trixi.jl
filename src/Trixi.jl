@@ -38,7 +38,7 @@ using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
 using IfElse: ifelse
 using LinearMaps: LinearMap
-using LoopVectorization: LoopVectorization, @turbo, indices
+using LoopVectorization: LoopVectorization, @tturbo, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 using MPI: MPI
 using MuladdMacro: @muladd
