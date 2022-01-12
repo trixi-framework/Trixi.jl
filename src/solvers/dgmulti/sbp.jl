@@ -430,10 +430,10 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGMultiFluxDiffPeriodicFDSBP, cache)
 
-  # We expect speedup over the serial version only when using more than two threads
+  # We expect speedup over the serial version only when using two or more threads
   # since the threaded version below does not exploit the symmetry properties,
   # resulting in a performance penalty of 1/2
-  if Threads.nthreads() > 2
+  if Threads.nthreads() > 1
     @unpack inv_wq, Qrst_skew = cache
     @unpack volume_flux = volume_integral
 
