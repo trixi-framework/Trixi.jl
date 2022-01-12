@@ -54,6 +54,19 @@ varnames(::typeof(cons2pot), ::CompressibleDryEulerEquations2D) = ("rho", "v1", 
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux(u, normal_direction::AbstractVector, equations::CompressibleDryEulerEquations2D)
+  rho_e = last(u)
+  rho, v1, v2, p = cons2prim(u, equations)
+
+  v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+  rho_v_normal = rho * v_normal
+  f1 = rho_v_normal
+  f2 = rho_v_normal * v1 + p * normal_direction[1]
+  f3 = rho_v_normal * v2 + p * normal_direction[2]
+  f4 = (rho_e + p) * v_normal
+  return SVector(f1, f2, f3, f4)
+end
+
 
 function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, x, t,
                                       surface_flux_function,
@@ -150,17 +163,18 @@ function initial_condition_gaussian_bubble(x, t, equations::CompressibleDryEuler
 end
 
 
-function source_terms_warm_bubble(u, x, t, equations::CompressibleDryEulerEquations2D)
-  du = zeros(eltype(u[1]), nvariables(equations))
-  source_terms_geopotential!(du, u, equations)
-  return SVector(du[1], du[2], du[3], du[4])
+
+@inline function source_terms_warm_bubble(u, x, t, equations::CompressibleDryEulerEquations2D)
+  return source_terms_geopotential(u, equations)
 end
 
 
-function source_terms_geopotential!(du, u, equations::CompressibleDryEulerEquations2D)
-  du[3] -=  equations.g * u[1]
-  du[4] -=  equations.g * u[3]
-  return nothing
+@inline function source_terms_geopotential(u, equations::CompressibleDryEulerEquations2D)
+  du3 = -equations.g * u[1]
+  du4 = -equations.g * u[3]
+  
+  return SVector(zero(eltype(u)), zero(eltype(u)), du3, 
+                 du4, zero(eltype(u)), zero(eltype(u)))
 end
 
 @inline function flux_LMARS(u_ll, u_rr, orientation::Integer , equations::CompressibleDryEulerEquations2D)
@@ -535,6 +549,105 @@ end
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
+
+@inline function flux_shima_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleDryEulerEquations2D)
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+  v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+  v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg  = 1/2 * ( v1_ll +  v1_rr)
+  v2_avg  = 1/2 * ( v2_ll +  v2_rr)
+  v_dot_n_avg = 1/2 * (v_dot_n_ll + v_dot_n_rr)
+  p_avg   = 1/2 * (  p_ll +   p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on normal_direction
+  f1 = rho_avg * v_dot_n_avg
+  f2 = f1 * v1_avg + p_avg * normal_direction[1]
+  f3 = f1 * v2_avg + p_avg * normal_direction[2]
+  f4 = ( f1 * velocity_square_avg + p_avg * v_dot_n_avg * inv(equations.gamma - 1)
+        + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
+
+  return SVector(f1, f2, f3, f4)
+end
+
+
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleDryEulerEquations2D)
+  rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+  # Calculate normal velocities and sound speed
+  # left
+  v_ll = (  v1_ll * normal_direction[1]
+          + v2_ll * normal_direction[2] )
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+  # right
+  v_rr = (  v1_rr * normal_direction[1]
+          + v2_rr * normal_direction[2] )
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
+end
+
+
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleDryEulerEquations2D)
+
+  norm_ = norm(normal_direction)
+  # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_direction / norm_
+
+  # rotate the internal solution state
+  u_local = rotate_to_x(u_inner, normal, equations)
+
+  # compute the primitive variables
+  rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
+
+  # Get the solution of the pressure Riemann problem
+  # See Section 6.3.3 of
+  # Eleuterio F. Toro (2009)
+  # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Pratical Introduction
+  # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+  if v_normal <= 0.0
+    sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
+    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * inv(equations.kappa))
+  else # v_normal > 0.0
+    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+  end
+
+ # For the slip wall we directly set the flux as the normal velocity is zero
+  return SVector(zero(eltype(u_inner)),
+                 p_star * normal[1],
+                 p_star * normal[2],
+                 zero(eltype(u_inner))) * norm_
+end
+
+
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+  direction, x, t,
+  surface_flux_function,
+  equations::CompressibleDryEulerEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+  boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+                                                x, t, surface_flux_function, equations)
+  else
+  boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+                                             x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
 end
 
 end

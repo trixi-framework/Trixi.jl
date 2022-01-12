@@ -272,6 +272,12 @@ performed by [`pot2cons`](@ref).
 """
 function cons2pot end
 
+function cons2drypot end
+
+function cons2moistpot end
+
+function cons2moist end
+
 function cons2aeqpot end
 
 ####################################################################################################

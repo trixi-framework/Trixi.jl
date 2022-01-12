@@ -46,7 +46,7 @@ using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
-using NLsolve
+@reexport using NLsolve: nlsolve
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
@@ -139,7 +139,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxLMARS,
+       FluxLMARS, flux_LMARS, flux_LMARS_rain
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo
 
@@ -149,7 +149,7 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave,
        initial_condition_gaussian_bubble, source_terms_warm_bubble,
        initial_condition_warm_bubble, source_terms_moist_bubble,
-       initial_condition_moist_bubble, AtmossphereLayers
+       initial_condition_moist_bubble, source_terms_rain
 
 export boundary_condition_periodic,
        BoundaryConditionDirichlet,
@@ -164,9 +164,11 @@ export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, 
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons, cons2pot, cons2aeqpot
-export density, pressure, density_pressure, velocity, global_mean_vars, equilibrium_distribution, waterheight_pressure
-export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity, pottemp_thermodynamic
+       cons2entropy, entropy2cons, cons2drypot, cons2moistpot, cons2aeqpot
+export density, pressure, density_pressure, velocity, global_mean_vars, equilibrium_distribution, waterheight_pressure,
+       density_vapor, density_liquid
+export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity,
+       dry_pottemp_thermodynamic, moist_pottemp_thermodynamic, aequivalent_pottemp_thermodynamic
 export lake_at_rest_error
 export ncomponents, eachcomponent
 

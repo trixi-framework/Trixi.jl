@@ -17,14 +17,15 @@ struct CompressibleMoistEulerEquations2D{RealT<:Real} <: AbstractCompressibleMoi
   g::RealT # gravitation constant
   kappa::RealT # ratio of the gas constand R_d
   gamma::RealT # = inv(kappa- 1); can be used to write slow divisions as fast multiplications
-  a::RealT
   c_r::RealT
   N_0r::RealT
   rho_w::RealT # massdensity of water
-  L_00::RealT # latent evaporation heat at 0 K 
+  L_00::RealT # latent evaporation heat at 0 K
+  a::RealT
+  Rain::Bool
 end
 
-function CompressibleMoistEulerEquations2D(;RealT=Float64)
+function CompressibleMoistEulerEquations2D(;Rain=false, RealT=Float64)
    p_0 = 100000.0
    c_pd = 1004.0
    c_vd = 717.0
@@ -36,73 +37,22 @@ function CompressibleMoistEulerEquations2D(;RealT=Float64)
    g = 9.81
    gamma = c_pd / c_vd # = 1/(1 - kappa)
    kappa = 1 - inv(gamma)
-   a = 360.0
    c_r = 130.0
    N_0r = 8000000.0
    rho_w = 1000.0
    L_00 = 3147620.0
-   return CompressibleMoistEulerEquations2D{RealT}(p_0, c_pd, c_vd, R_d, c_pv, c_vv, R_v, c_pl,  g, kappa, gamma, a, c_r, N_0r, rho_w, L_00)
+   a = 360.0
+   return CompressibleMoistEulerEquations2D{RealT}(p_0, c_pd, c_vd, R_d, c_pv, c_vv, R_v, c_pl,  g, kappa, gamma, c_r, N_0r, rho_w, L_00, a, Rain)
   end
 
 
 varnames(::typeof(cons2cons), ::CompressibleMoistEulerEquations2D) = ("rho", "rho_v1", "rho_v2", "rho_E", "rho_qv", "rho_ql")
 varnames(::typeof(cons2prim), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "p", "qv", "ql")
-varnames(::typeof(cons2pot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "pottemp", "qv", "ql")
+varnames(::typeof(cons2drypot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "drypottemp", "qv", "ql")
+varnames(::typeof(cons2moistpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "moistpottemp", "qv", "ql")
+varnames(::typeof(cons2moist), ::CompressibleMoistEulerEquations2D) = ("rho", "p", "T", "moistpottemp", "H", "ql")
 varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "aeqpottemp", "rv", "rt")
 
-struct AtmossphereLayers{RealT<:Real}
-  equations::CompressibleMoistEulerEquations2D
-  # structure:  1--> i-layer (z = total_hight/precision *(i-1)),  2--> rho, rho_theta, rho_qv, rho_ql
-  LayerData::Matrix{RealT}
-  total_hight::RealT
-  preciseness::Int
-  layers::Int
-  ground_state::NTuple{2, RealT}
-  equivalentpotential_temperature::RealT
-  mixing_ratios::NTuple{2, RealT}
-end
-
-function AtmossphereLayers(equations ; total_hight=10000.0, preciseness=10, ground_state=(1.4, 100000.0), equivalentpotential_temperature=320, mixing_ratios=(0.02, 0.02), RealT=Float64)
-  @unpack kappa, p_0, c_pd, c_vd, c_pv, c_vv, R_d, R_v, c_pl = equations
-  rho0, p0 = ground_state
-  r_t0, r_v0 = mixing_ratios
-  theta_e0 = equivalentpotential_temperature
-
-  rho_qv0 = rho0 * r_v0
-  T0 = theta_e0
-  y0 = [p0, rho0, T0, r_t0, r_v0, rho_qv0, theta_e0]
-
-  n = convert(Int, total_hight / preciseness)
-  dz = 0.01
-  LayerData = zeros(RealT, n+1, 4)
-
-  F = generate_function_of_y(dz, y0, r_t0, theta_e0, equations)
-  sol = nlsolve(F, y0)
-  p, rho, T, r_t, r_v, rho_qv, theta_e = sol.zero
-  
-  rho_d = rho / (1 + r_t)
-  rho_ql = rho - rho_d - rho_qv
-  kappa_M=(R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_ql)
-  rho_theta = rho * (p0 / p)^kappa_M * T * (1 + (R_v / R_d) *r_v) / (1 + r_t) 
-
-  LayerData[1, :] = [rho, rho_theta, rho_qv, rho_ql]
-   for i in (1:n)
-    y0 = deepcopy(sol.zero)
-    dz = preciseness
-    F = generate_function_of_y(dz, y0, r_t0, theta_e0, equations)
-    sol = nlsolve(F, y0)
-    p, rho, T, r_t, r_v, rho_qv, theta_e = sol.zero
-    
-    rho_d = rho / (1 + r_t)
-    rho_ql = rho - rho_d - rho_qv
-    kappa_M=(R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_ql)
-    rho_theta = rho * (p0 / p)^kappa_M * T * (1 + (R_v / R_d) *r_v) / (1 + r_t) 
-
-    LayerData[i+1, :] = [rho, rho_theta, rho_qv, rho_ql]
-   end
-  
-  return AtmossphereLayers{RealT}(equations, LayerData, total_hight, dz, n, ground_state, theta_e0, mixing_ratios)
-end
 
 #=
 # Calculate 1D flux for a single point
@@ -138,25 +88,33 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_pl, Rain = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  p = get_current_condition(u, equations)[1]
-
+  p, T = get_current_condition(u, equations)
   if orientation == 1
-    f1 = rho_v1
+    f1 = rho_v1 
     f2 = rho_v1 * v1 + p
-    f3 = rho_v1 * v2
-    f4 = (rho_E + p) * v1
+    f3 = rho_v1 * v2 
+    f4 = (rho_E + p) * v1 
     f5 = rho_qv * v1
-    f6 = rho_ql * v1
+    f6 = rho_ql * v1 
+  elseif Rain
+    Q_fall = condensation_term(rho_ql, equations)
+    f1 = rho_v2 + Q_fall
+    f2 = rho_v2 * v1 
+    f3 = rho_v2 * v2 + p + Q_fall * v2
+    f4 = (rho_E + p) * v2 + Q_fall * (c_pl * T + 0.5*(v1*v1 + v2*v2))
+    f5 = rho_qv * v2
+    f6 = rho_ql * v2 + Q_fall  
   else
     f1 = rho_v2 
     f2 = rho_v2 * v1
-    f3 = rho_v2 * v2 + p
-    f4 = (rho_E + p) * v2 
+    f3 = rho_v2 * v2 + p 
+    f4 = (rho_E + p) * v2  
     f5 = rho_qv * v2
-    f6 = rho_ql * v2
+    f6 = rho_ql * v2 
   end
   return SVector(f1, f2, f3, f4, f5, f6)
 end
@@ -203,12 +161,12 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
   norm_ = norm(normal_direction)
   # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
   normal = normal_direction / norm_
-
+  
   # rotate the internal solution state
   u_local = rotate_to_x(u_inner, normal, equations)
 
   # compute the primitive variables
-  rho_local, v_normal, v_tangent, p_local, rho_qv_local, rho_ql_local = cons2prim(u_local, equations)
+  rho_local, v_normal, v_tangent, p_local, qv_local, ql_local = cons2prim(u_local, equations)
 
   # Get the solution of the pressure Riemann problem
   # See Section 6.3.3 of
@@ -389,41 +347,6 @@ function PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::Compr
 end
 
 
-function moist_state(y, dz, y0, r_t0, theta_e0, equations::CompressibleMoistEulerEquations2D)
-  @unpack p_0, g, c_pd, c_pv, c_vd, c_vv, R_d, R_v, c_pl, L_00 = equations
-  (p, rho, T, r_t, r_v, rho_qv, theta_e) = y
-  p0 = y0[1]
-
-  F = zeros(7,1)
-  rho_d = rho / (1 + r_t)
-  p_d = R_d * rho_d * T
-  T_C = T - 273.15
-  p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
-  L = L_00 - (c_pl - c_pv) * T
-
-  F[1] = (p - p0) / dz + g * rho 
-  F[2] = p - (R_d * rho_d + R_v * rho_qv) * T
-  # H = 1 is assumed
-  F[3] = (theta_e - T * (p_d / p_0)^(-R_d / (c_pd + c_pl * r_t)) *
-         exp(L * r_v / ((c_pd + c_pl * r_t) * T)))
-  F[4] = r_t - r_t0
-  F[5] = rho_qv - rho_d * r_v
-  F[6] = theta_e - theta_e0
-  a = p_vs / (R_v * T) - rho_qv
-  b = rho - rho_qv - rho_d
-  F[7] = a+b-sqrt(a*a+b*b)
-
-  return F
-end
-
-
-function generate_function_of_y(dz, y0, r_t0, theta_e0, equations::CompressibleMoistEulerEquations2D)
-  function function_of_y(y)
-    return moist_state(y, dz, y0, r_t0, theta_e0, equations)
-  end
-end
-
-
 function initial_density_current(x, t, equations::CompressibleMoistEulerEquations2D)
   @unpack p_0, kappa, g, c_pd, c_vd, R_d, R_v = equations
   xc = 0
@@ -490,6 +413,7 @@ end
                  du4, zero(eltype(u)), zero(eltype(u)))
 end
 
+
 function source_terms_moist_air(du, u, equations::CompressibleMoistEulerEquations2D, dg, cache)
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
@@ -508,15 +432,39 @@ function source_terms_moist_air(du, u, equations::CompressibleMoistEulerEquation
   return nothing
 end
 
+
 @inline function source_terms_moist_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
   return source_terms_geopotential(u, equations) + source_terms_phase_change(u, equations)
 end
+
+@inline function source_terms_rain(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  return source_terms_geopotential(u, equations) + 
+         source_terms_phase_change(u, equations) +
+         source_terms_ground_vapor(u, x, t, equations)
+end
+
 
 @inline function source_terms_phase_change(u, equations::CompressibleMoistEulerEquations2D)
   Q_ph = phase_change_term(u, equations)
 
   return SVector(zero(eltype(u)), zero(eltype(u)), zero(eltype(u)),
                  zero(eltype(u)) , Q_ph , -Q_ph)
+end
+
+
+@inline function source_terms_ground_vapor(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_pv, L_00, g = equations
+  rho, rho_v1, rho_v2, rho_e, Rho_qv, rho_ql = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  Q_v = ground_vapor_term(u, x, t, equations)
+  _, T = get_current_condition(u, equations)
+  K = 0.5 * (v1^2 + v2^2)
+  phi = g * x[2]
+  h_v = c_pv * T + L_00
+
+  return SVector(Q_v, Q_v * v1, Q_v * v1,
+                 Q_v * (h_v + phi + K) , Q_v , zero(eltype(u)))
 end
 
 
@@ -607,31 +555,52 @@ end
 
 
 # This source term models the water vapor generated by the ground topography
-function ground_vapor_source_term(u, equations::CompressibleMoistEulerEquations2D)
+@inline function ground_vapor_term(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  xc, zc = (0, 2400)
+  rho = u[1]
+  f_t = (t-30) / 10
+  f_x = sqrt((x[1] - xc)^2 + (x[2] - zc)^2) / 200
+  0.00025 * exp(-(f_t^2 + f_x^2)) * rho
 
-  return zero(eltype(u))
+  return 0.00025 * exp(-(f_t^2 + f_x^2)) * rho
 end
 
 
 # This source term models the condensed water falling down as rain
-function condensation_source_term(u, equations::CompressibleMoistEulerEquations2D)
+@inline function condensation_term(rho_ql, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_r, rho_w, N_0r = equations
+ 
+  gm = exp(2.45374) # Gamma(4.5)
+  # Parametrisation by Frisius and Wacker
+  if (rho_ql < 0)
+    return 0
+  end
+  W_f = - c_r * gm * inv(6) * (rho_ql * inv(pi * rho_w * N_0r))^(1/8)
 
-  return zero(eltype(u))
+  return rho_ql * W_f
 end
 
 
-@inline function FluxLMARS(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+@inline function flux_LMARS(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
   @unpack a = equations
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
   
   # Unpack left and right state
-  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
-  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
-  
+  p_ll, T_ll = get_current_condition(u_ll, equations)
+  p_rr, T_rr = get_current_condition(u_rr, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+
   # Compute the necessary interface flux components
 
   rho_mean = 0.5 * (rho_ll + rho_rr) # TODO why choose the mean value here?
+
+  
 
   if orientation == 1
 
@@ -641,19 +610,11 @@ end
     p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * a * (v1_rr - v1_ll)
 
     if (v_interface > 0)
-      f1 = rho_ll
-      f2 = rho_v1_ll
-      f3 = rho_v2_ll
-      f4 = rho_e_ll + p_ll
-      f5 = rho_qv_ll
-      f6 = rho_ql_ll
+      f1, f2, f3, f4, f5, f6 = u_ll
+      f4 += p_ll
     else
-      f1 = rho_rr
-      f2 = rho_v1_rr
-      f3 = rho_v2_rr
-      f4 = rho_e_rr + p_rr
-      f5 = rho_qv_rr
-      f6 = rho_ql_rr
+      f1, f2, f3, f4, f5, f6 = u_rr
+      f4 += p_rr
     end
 
     flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 1, 0, 0, 0, 0) * p_interface
@@ -664,20 +625,97 @@ end
     p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
 
     if (v_interface > 0)
-      f1 = rho_ll
-      f2 = rho_v1_ll
-      f3 = rho_v2_ll
-      f4 = rho_e_ll + p_ll
-      f5 = rho_qv_ll
-      f6 = rho_ql_ll
+      f1, f2, f3, f4, f5, f6 = u_ll
+      f4 += p_ll
     else
-      f1 = rho_rr
-      f2 = rho_v1_rr
-      f3 = rho_v2_rr
-      f4 = rho_e_rr + p_rr
-      f5 = rho_qv_rr
-      f6 = rho_ql_rr
+      f1, f2, f3, f4, f5, f6 = u_rr
+      f4 += p_rr
     end
+    #if (v_interface > 0)
+    #  Q_v = condensation_term(u_ll, equations)   
+    #  f1 = rho_ll + Q_v
+    #  f2 = rho_v1_ll
+    #  f3 = rho_v2_ll+ Q_v * v2_ll
+    #  f4 = rho_e_ll + p_ll + Q_v * (equations.c_pl * T_ll + 0.5*(v1_ll^2 + v2_ll^2))
+    #  f5 = rho_qv_ll
+    #  f6 = rho_ql_ll + Q_v
+    #else
+    #  Q_v = condensation_term(u_rr, equations)
+    #  f1 = rho_rr + Q_v
+    #  f2 = rho_v1_rr
+    #  f3 = rho_v2_rr+ Q_v * v2_rr
+    #  f4 = rho_e_rr + p_rr + Q_v * (equations.c_pl * T_rr + 0.5*(v1_rr^2 + v2_rr^2))
+    #  f5 = rho_qv_rr
+    #  f6 = rho_ql_rr + Q_v
+    #end
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 0, 1, 0, 0 ,0 ) * p_interface
+  end
+
+  return flux
+end
+
+@inline function flux_LMARS_rain(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  @unpack a, c_pl = equations
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
+  
+  # Unpack left and right state
+  p_ll, T_ll = get_current_condition(u_ll, equations)
+  p_rr, T_rr = get_current_condition(u_rr, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+
+  # Compute the necessary interface flux components
+
+  rho_mean = 0.5 * (rho_ll + rho_rr) # TODO why choose the mean value here?
+  T_mean = 0.5 * (T_ll + T_rr)
+  rho_ql_avg = 0.5 (rho_ql_ll + rho_ql_rr)
+
+  if orientation == 1
+
+    beta = 1 # diffusion parameter <= 1 
+
+    v_interface = 0.5 * (v1_rr + v1_ll) - beta * inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * a * (v1_rr - v1_ll)
+
+    if (v_interface > 0)
+      f1, f2, f3, f4, f5, f6 = u_ll
+      f4 += p_ll
+    else
+      f1, f2, f3, f4, f5, f6 = u_rr
+      f4 += p_rr
+    end
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 1, 0, 0, 0, 0) * p_interface
+
+  else # orientation = 2
+
+    v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
+
+    if (v_interface > 0)
+      Q_fall = condensation_term(rho_ql_avg, equations)
+      v_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+      f1, f2, f3, f4, f5, f6 = u_ll
+      f4 += p_ll + Q_fall* (c_pl * T_mean + v_square_avg)
+      f1 += Q_fall
+      f6 += Q_fall 
+      f3 += Q_fall * v_interface
+    else
+      Q_fall = condensation_term(rho_ql_avg, equations)
+      v_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+      f1, f2, f3, f4, f5, f6 = u_rr
+      f4 += p_rr + Q_fall * (c_pl * T_mean + v_square_avg)
+      f1 += Q_fall
+      f6 += Q_fall 
+      f3 += Q_fall * v_interface
+    end
+
 
     flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 0, 1, 0, 0 ,0 ) * p_interface
   end
@@ -686,12 +724,17 @@ end
 end
 
 
-@inline function FluxLMARS(u_ll, u_rr, normal_direction::AbstractVector , equations::CompressibleMoistEulerEquations2D)
+@inline function flux_LMARS(u_ll, u_rr, normal_direction::AbstractVector ,equations::CompressibleMoistEulerEquations2D)
   @unpack a = equations
   # Unpack left and right state
-  # Unpack left and right state
-  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
-  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr  = cons2prim(u_rr, equations)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
+  p_ll, T_ll = get_current_condition(u_ll, equations)
+  p_rr, T_rr = get_current_condition(u_rr, equations)
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
 
   v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] 
   v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -704,21 +747,21 @@ end
   norm_ = norm(normal_direction)
 
   rho = 0.5 * (rho_ll + rho_rr)
-  p_interface = 0.5 * (p_ll + p_rr) - 0.5 * a * rho * (v_rr - v_ll) / norm_
-  v_interface = 0.5 * (v_ll + v_rr) - 1 / (2 * a * rho) * (p_rr - p_ll) * norm_
+  p_interface = 0.5 * (p_ll + p_rr) - beta * 0.5 * a * rho * (v_rr - v_ll) / norm_
+  v_interface = 0.5 * (v_ll + v_rr) - beta * 1 / (2 * a * rho) * (p_rr - p_ll) * norm_
 
   if (v_interface > 0)
-    f1, f2, f3, f4, f5, f6 = u_ll
-    f5 += p_ll
+    f1, f2, f3, f4, f5, f6 = u_ll * v_interface
+    f4 += p_ll * v_interface
   else
-    f1, f2, f3, f4, f5, f6 = u_rr
-    f5 += p_rr
+    f1, f2, f3, f4, f5, f6 = u_rr * v_interface
+    f4 += p_rr * v_interface
   end
 
-  flux = (SVector(f1, f2, f3, f4, f5, f6) * v_interface + 
-          SVector(0, normal_direction[1], normal_direction[2], 0, 0, 0) * p_interface)
-
-  return flux
+  return SVector(f1, 
+                 f2 + p_interface * normal_direction[1], 
+                 f3 + p_interface * normal_direction[2], 
+                 f4, f5, f6)  
 end
 
 
@@ -801,7 +844,8 @@ end
   return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
 end
 
-@inline function cons2pot(u, equations::CompressibleMoistEulerEquations2D)
+
+@inline function cons2drypot(u, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
 
   v1 = rho_v1 / rho
@@ -812,8 +856,60 @@ end
   pot1 = rho
   pot2 = v1
   pot3 = v2
-  pot4 = pottemp_thermodynamic(u, equations)
+  pot4 = dry_pottemp_thermodynamic(u, equations)
   pot5 = qv
+  pot6 = ql
+
+  return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
+end
+
+@inline function cons2moistpot(u, equations::CompressibleMoistEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  qv = rho_qv / rho
+  ql = rho_ql / rho
+
+  pot1 = rho
+  pot2 = v1
+  pot3 = v2
+  pot4 = moist_pottemp_thermodynamic(u, equations)
+  pot5 = qv
+  pot6 = ql
+
+  return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
+end
+
+@inline function cons2moist(u, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_pd, c_pv, c_pl, p_0 = equations
+  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  ql = rho_ql / rho
+  p, T = get_current_condition(u, equations)
+ 
+  p_v = rho_qv * R_v * T
+  T_C = T - 273.15
+  p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
+  H = p_v * inv(p_vs) 
+
+  rho_d = rho - (rho_qv + rho_ql)
+  r_v = inv(rho_d) * rho_qv
+  r_l = inv(rho_d) * rho_ql
+
+  # Potential temperature
+  R_m = R_d + r_v * R_v
+  c_pml = c_pd + r_v * c_pv + r_l * c_pl
+  kappa_m =  R_m * inv(c_pml)
+  pot = T * (p_0 / p)^(kappa_m)
+
+  pot1 = rho
+  pot2 = p
+  pot3 = T
+  pot4 = pot
+  pot5 = H
   pot6 = ql
 
   return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
@@ -829,19 +925,19 @@ end
 @inline function density_dry(u, equations::CompressibleMoistEulerEquations2D)
   rho_qd = u[1] - (u[5] + u[6])
   return rho_qd
- end
+end
 
 
- @inline function density_vapor(u, equations::CompressibleMoistEulerEquations2D)
+@inline function density_vapor(u, equations::CompressibleMoistEulerEquations2D)
   rho_qv = u[5] 
   return rho_qv
- end
+end
 
 
- @inline function density_liqid(u, equations::CompressibleMoistEulerEquations2D)
+@inline function density_liquid(u, equations::CompressibleMoistEulerEquations2D)
   rho_ql = u[6]
   return rho_ql
- end
+end
 
 
 @inline function pressure(u, equations::CompressibleMoistEulerEquations2D)
@@ -906,14 +1002,29 @@ end
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
-@inline function pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
+@inline function dry_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, p_0, kappa = equations
   # Pressure
-  p = get_moist_profile(cons, equations)[1]
-
+  p = get_current_condition(cons, equations)[1]
   # Potential temperature
   pot = p_0 * (p / p_0)^(1 - kappa) / (R_d * cons[1])
 
+  return pot
+end
+
+@inline function moist_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_pd, c_pv, c_pl, p_0 = equations
+  # Pressure
+  p, T = get_current_condition(cons, equations)
+  rho_d = cons[1] - (cons[5] + cons[6])
+  r_v = inv(rho_d) * cons[5]
+  r_l = inv(rho_d) * cons[6]
+
+  # Potential temperature
+  R_m = R_d + r_v * R_v
+  c_pml = c_pd + r_v * c_pv + r_l * c_pl
+  kappa_m =  R_m * inv(c_pml)
+  pot = T * (p_0 / p)^(kappa_m)
   return pot
 end
 
@@ -934,7 +1045,6 @@ end
 
   return aeq_pot
 end
-
 
 @inline function cons2aeqpot(cons, equations::CompressibleMoistEulerEquations2D)
   @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, kappa, L_00 = equations
