@@ -78,6 +78,38 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
   return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
 end
 
+
+function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, equations,
+                      volume_integral::VolumeIntegralStaggeredGrid, dg::DG, uEltype)
+  error("VolumeIntegralStaggeredGrid only defined for TreeMesh")
+end
+
+
+function create_cache(mesh::TreeMesh{2}, equations,
+                      volume_integral::VolumeIntegralStaggeredGrid, dg::DG, uEltype)
+
+  have_nonconservative_terms(equations) !== Val(false) && error("VolumeIntegralStaggeredGrid only defined for no nonconservative terms.")
+
+  cache = create_cache(mesh, equations,
+                       VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
+                       dg, uEltype)
+
+  # old structure of staggered grid fluxes
+  # FluxType = SVector{nvariables(equations), uEltype}
+  # fstaggered_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
+
+  A3dp1_x = Array{uEltype, 3}
+  A3dp1_y = Array{uEltype, 3}
+
+  fstaggered1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstaggered1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstaggered2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+  fstaggered2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+
+  return (; cache..., fstaggered1_L_threaded, fstaggered2_L_threaded, fstaggered1_R_threaded, fstaggered2_R_threaded)
+end
+
+
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
@@ -488,6 +520,239 @@ end
 
   return nothing
 end
+
+
+function calc_volume_integral!(du, u,
+                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralStaggeredGrid,
+                               dg::DGSEM, cache)
+  error("VolumeIntegralStaggeredGrid only defined for TreeMesh")
+end
+
+
+function calc_volume_integral!(du, u,
+                               mesh::TreeMesh{2},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralStaggeredGrid,
+                               dg::DGSEM, cache)
+  @threaded for element in eachelement(dg, cache)
+    staggered_grid_kernel!(du, u, element, mesh,
+                           nonconservative_terms, equations,
+                           volume_integral, dg, cache)
+  end
+end
+
+@inline function staggered_grid_kernel!(du, u,
+                                        element, mesh::TreeMesh{2},
+                                        nonconservative_terms, equations,
+                                        volume_integral, dg::DGSEM, cache, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can (hopefully) be optimized away due to constant propagation.
+  @unpack inverse_weights = dg.basis
+  @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
+
+  # high-order dg fluxes
+  @unpack fstaggered1_L_threaded, fstaggered2_L_threaded, fstaggered1_R_threaded, fstaggered2_R_threaded = cache
+
+  fstaggered1_L = fstaggered1_L_threaded[Threads.threadid()]
+  fstaggered2_L = fstaggered2_L_threaded[Threads.threadid()]
+  fstaggered1_R = fstaggered1_R_threaded[Threads.threadid()]
+  fstaggered2_R = fstaggered2_R_threaded[Threads.threadid()]
+  calcflux_staggered!(fstaggered1_L, fstaggered2_L, fstaggered1_R, fstaggered2_R, u, mesh,
+                      nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
+
+  # low-order fv fluxes
+  @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
+
+  fstar1_L = fstar1_L_threaded[Threads.threadid()]
+  fstar2_L = fstar2_L_threaded[Threads.threadid()]
+  fstar1_R = fstar1_R_threaded[Threads.threadid()]
+  fstar2_R = fstar2_R_threaded[Threads.threadid()]
+  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+               nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
+
+
+  # Calculate blending factor alpha_blending
+  alpha_blending = volume_integral.indicator
+
+
+  # Calculate volume integral contribution
+  for j in eachnode(dg), i in eachnode(dg)
+    for v in eachvariable(equations)
+      du[v, i, j, element] += ( (1 - alpha_blending) *
+                                (inverse_weights[i] * (fstaggered1_L[v, i+1, j] - fstaggered1_R[v, i, j]) +
+                                 inverse_weights[j] * (fstaggered2_L[v, i, j+1] - fstaggered2_R[v, i, j])) ) +
+                                ( alpha_blending *
+                                (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
+                                 inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])) )
+
+    end
+  end
+
+  # -----------------------------------------------------------------------------------------------
+  # old version of calculation with fstaggered as Vector of SVectors
+  # (only for one "line", in x or y direction)
+  # @unpack fstaggered_threaded = cache
+
+  # fstaggered = fstaggered_threaded[Threads.threadid()]
+
+  # # x
+  # for j in eachnode(dg)
+  #   # compute local high-order flux
+  #   local_fluxes_1!(fstaggered, u, nonconservative_terms, equations, volume_flux_dg, dg, j, element)
+
+  #   # update volume contribution in locally conservative form
+  #   add_to_node_vars!(du, (1 - alpha_blending) * inverse_weights[1] * fstaggered[1], equations, dg, 1, j, element)
+  #     for i in 2:nnodes(dg)-1
+  #       add_to_node_vars!(du, (1 - alpha_blending) * inverse_weights[i] * (fstaggered[i] - fstaggered[i-1]), equations, dg, i, j, element)
+  #     end
+  #   add_to_node_vars!(du, -(1 - alpha_blending) * inverse_weights[end] * fstaggered[end], equations, dg, nnodes(dg), j, element)
+  # end
+
+  # # y
+  # for i in eachnode(dg)
+  #   # compute local high-order fluxes
+  #   local_fluxes_2!(fstaggered, u, nonconservative_terms, equations, volume_flux_dg, dg, i, element)
+
+  #   # update volume contribution in locally conservative form
+  #   add_to_node_vars!(du, (1 - alpha_blending) * inverse_weights[1] * fstaggered[1], equations, dg, i, 1, element)
+  #     for j in 2:nnodes(dg)-1
+  #       add_to_node_vars!(du, (1 - alpha_blending) * inverse_weights[j] * (fstaggered[j] - fstaggered[j-1]), equations, dg, i, j, element)
+  #     end
+  #   add_to_node_vars!(du, -(1 - alpha_blending) * inverse_weights[end] * fstaggered[end], equations, dg, i, nnodes(dg), element)
+  # end
+
+  return nothing
+end
+
+
+#     calcflux_staggered!(fstaggered1_L, fstaggered2_L, fstaggered1_R, fstaggered2_R, u, mesh,
+#                         nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
+#
+# Calculate the staggered grid volume fluxes inside the elements (**without non-conservative terms**).
+#
+# # Arguments
+# - `fstaggered1_L::AbstractArray{<:Real, 3}`
+# - `fstaggered1_R::AbstractArray{<:Real, 3}`
+# - `fstaggered2_L::AbstractArray{<:Real, 3}`
+# - `fstaggered2_R::AbstractArray{<:Real, 3}`
+@inline function calcflux_staggered!(fstaggered1_L, fstaggered2_L, fstaggered1_R, fstaggered2_R, u::AbstractArray{<:Any,4},
+                                     mesh::TreeMesh{2}, nonconservative_terms::Val{false}, equations,
+                                     volume_flux, dg::DGSEM, element, cache)
+
+  @unpack weights, derivative_split = dg.basis
+
+  fstaggered1_L[:, 1,            :] .= zero(eltype(fstaggered1_L))
+  fstaggered1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstaggered1_L))
+  fstaggered1_R[:, 1,            :] .= zero(eltype(fstaggered1_R))
+  fstaggered1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstaggered1_R))
+
+  for j in eachnode(dg)
+    local_fluxes_1!(fstaggered1_L, fstaggered1_R, u,
+                    nonconservative_terms, equations,
+                    volume_flux, dg, j, element)
+  end
+
+  fstaggered2_L[:, :, 1           ] .= zero(eltype(fstaggered2_L))
+  fstaggered2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstaggered2_L))
+  fstaggered2_R[:, :, 1           ] .= zero(eltype(fstaggered2_R))
+  fstaggered2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstaggered2_R))
+
+  for i in eachnode(dg)
+    local_fluxes_2!(fstaggered2_L, fstaggered2_R, u,
+                    nonconservative_terms, equations,
+                    volume_flux, dg, i, element)
+  end
+
+  return nothing
+end
+
+
+@inline function local_fluxes_1!(fstaggered_L, fstaggered_R, u::AbstractArray{<:Any,4},
+                                 nonconservative_terms::Val{false}, equations,
+                                 volume_flux, dg::DGSEM, j, element)
+  @unpack weights, derivative_split = dg.basis
+
+  for i in 2:nnodes(dg)
+    fstaggered_L[:, i, j] .= zero(eltype(fstaggered_L))
+    fstaggered_R[:, i, j] .= zero(eltype(fstaggered_R))
+    for iip in i:nnodes(dg)
+      uiip = get_node_vars(u, equations, dg, iip, j, element)
+      for iim in 1:i-1
+        uiim = get_node_vars(u, equations, dg, iim, j, element)
+        flux = volume_flux(uiim, uiip, 1, equations)
+        multiply_add_to_node_vars!(fstaggered_L, weights[iim] * derivative_split[iim, iip], flux, equations, dg, i, j)
+        multiply_add_to_node_vars!(fstaggered_R, weights[iim] * derivative_split[iim, iip], flux, equations, dg, i, j)
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+@inline function local_fluxes_2!(fstaggered_L, fstaggered_R, u::AbstractArray{<:Any,4},
+                                 nonconservative_terms::Val{false}, equations,
+                                 volume_flux, dg::DGSEM, i, element)
+  @unpack weights, derivative_split = dg.basis
+  for j in 2:nnodes(dg)
+    fstaggered_L[:, i, j] .= zero(eltype(fstaggered_L))
+    fstaggered_R[:, i, j] .= zero(eltype(fstaggered_R))
+    for jjp in j:nnodes(dg)
+      ujjp = get_node_vars(u, equations, dg, i, jjp, element)
+      for jjm in 1:j-1
+        ujjm = get_node_vars(u, equations, dg, i, jjm, element)
+        flux = volume_flux(ujjm, ujjp, 2, equations)
+        multiply_add_to_node_vars!(fstaggered_L, weights[jjm] * derivative_split[jjm, jjp], flux, equations, dg, i, j)
+        multiply_add_to_node_vars!(fstaggered_R, weights[jjm] * derivative_split[jjm, jjp], flux, equations, dg, i, j)
+      end
+    end
+  end
+
+  return nothing
+end
+
+# functions local_fluxes_1! and local_fluxes_2! for old data structure
+# @inline function local_fluxes_1!(fluxes, u::AbstractArray{<:Any,4},
+#                                  nonconservative_terms::Val{false}, equations,
+#                                  volume_flux, dg::DGSEM, j, element)
+#   @unpack weights, derivative_split = dg.basis
+
+#   for i in eachindex(fluxes)
+#     flux1 = zero(eltype(fluxes))
+#     for iip in i+1:nnodes(dg)
+#       uiip = get_node_vars(u, equations, dg, iip, j, element)
+#       for iim in 1:i
+#         uiim = get_node_vars(u, equations, dg, iim, j, element)
+#         flux1 += weights[iim] * derivative_split[iim,iip] * volume_flux(uiim, uiip, 1, equations)
+#       end
+#     end
+#     fluxes[i] = flux1
+#   end
+
+#   return nothing
+# end
+
+# @inline function local_fluxes_2!(fluxes, u::AbstractArray{<:Any,4},
+#                                  nonconservative_terms::Val{false}, equations,
+#                                  volume_flux, dg::DGSEM, i, element)
+#   @unpack weights, derivative_split = dg.basis
+
+#   for j in eachindex(fluxes)
+#     flux2 = zero(eltype(fluxes))
+#     for jjp in j+1:nnodes(dg)
+#       ujjp = get_node_vars(u, equations, dg, i, jjp, element)
+#       for jjm in 1:j
+#         ujjm = get_node_vars(u, equations, dg, i, jjm, element)
+#         flux2 += weights[jjm] * derivative_split[jjm,jjp] * volume_flux(ujjm, ujjp, 2, equations)
+#       end
+#     end
+#     fluxes[j] = flux2
+#   end
+
+#   return nothing
+# end
 
 
 function prolong2interfaces!(cache, u,

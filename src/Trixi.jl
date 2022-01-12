@@ -174,6 +174,7 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralStaggeredGrid,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        MortarL2
 

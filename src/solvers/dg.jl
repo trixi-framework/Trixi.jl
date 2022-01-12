@@ -142,6 +142,34 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFi
 end
 
 
+struct VolumeIntegralStaggeredGrid{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
+  volume_flux_dg::VolumeFluxDG
+  volume_flux_fv::VolumeFluxFV
+  indicator::Indicator
+end
+
+function VolumeIntegralStaggeredGrid(indicator; volume_flux_dg=flux_ranocha,
+                                                volume_flux_fv=flux_lax_friedrichs)
+  VolumeIntegralStaggeredGrid{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
+    volume_flux_dg, volume_flux_fv, indicator)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralStaggeredGrid)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "volume flux dg" => integral.volume_flux_dg,
+            "volume flux fv" => integral.volume_flux_fv,
+            "indicator" => integral.indicator
+            ]
+    summary_box(io, "VolumeIntegralStaggeredGrid", setup)
+  end
+end
+
+
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
   # call the indicator to get up-to-date values for IO
