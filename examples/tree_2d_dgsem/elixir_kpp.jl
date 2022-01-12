@@ -127,7 +127,8 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 ###############################################################################
 # ODE solvers, callbacks etc.
-ode = semidiscretize(semi, (0.0, 1.0))
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
