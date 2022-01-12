@@ -98,6 +98,110 @@ function AtmossphereLayers(equations ; total_hight=10000.0, preciseness=10, grou
 end
 
 
+function initial_condition_moist_bubble(x, t, equations::CompressibleMoistEulerEquations2D, AtmosphereLayers::AtmossphereLayers)
+  @unpack LayerData, preciseness, total_hight = AtmosphereLayers
+  dz = preciseness
+  z = x[2] 
+  if (z > total_hight && !(isapprox(z, total_hight)))
+    error("The atmossphere does not match the simulation domain")
+  end
+  n = convert(Int, floor(z/dz)) + 1
+  z_l = (n-1) * dz
+  (rho_l, rho_theta_l, rho_qv_l, rho_ql_l) = LayerData[n, :]
+  z_r = n * dz
+  if (z_l == total_hight)
+    z_r = z_l + dz 
+    n = n-1
+  end
+  (rho_r, rho_theta_r, rho_qv_r, rho_ql_r) = LayerData[n+1, :]
+  rho = (rho_r * (z - z_l) + rho_l * (z_r - z)) / dz
+  rho_theta = rho * (rho_theta_r / rho_r * (z - z_l) + rho_theta_l / rho_l * (z_r - z)) / dz
+  rho_qv = rho * (rho_qv_r / rho_r * (z - z_l) + rho_qv_l / rho_l * (z_r - z)) / dz
+  rho_ql = rho * (rho_ql_r / rho_r * (z - z_l) + rho_ql_l / rho_l * (z_r - z)) / dz
+
+  rho, rho_e, rho_qv, rho_ql = PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::CompressibleMoistEulerEquations2D)
+
+  v1 = 0
+  v2 = 0
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_E = rho_e + 1/2 * rho *(v1^2 + v2^2)
+
+
+  return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
+end
+
+
+function PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::CompressibleMoistEulerEquations2D)
+  @unpack kappa, p_0, c_pd, c_vd, c_pv, c_vv, R_d, R_v, c_pl, L_00 = equations
+  xc = 0
+  zc = 2000
+  rc = 2000
+  Δθ = 2
+  
+  r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
+  rho_d = rho - rho_qv - rho_ql
+  kappa_M = (R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_ql)
+  p_loc = p_0 *(R_d * rho_theta / p_0)^(1/(1-kappa_M))
+  T_loc = p_loc / (R_d * rho_d + R_v * rho_qv)
+  rho_e = (c_vd * rho_d + c_vv * rho_qv + c_pl * rho_ql) * T_loc + L_00 * rho_qv
+
+  p_v = rho_qv * R_v * T_loc
+  p_d = p_loc - p_v
+  T_C = T_loc - 273.15
+  p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
+  H = p_v / p_vs
+  r_v = rho_qv / rho_d
+  r_l = rho_ql / rho_d
+  r_t = r_v + r_l
+
+  # Aequivalentpotential temperature
+  a=T_loc * (p_0 / p_d)^(R_d / (c_pd + r_t * c_pl))
+  b=H^(- r_v * R_v /c_pd)
+  L_v = L_00 + (c_pv - c_pl) * T_loc
+  c=exp(L_v * r_v / ((c_pd + r_t * c_pl) * T_loc))
+  aeq_pot = (a * b *c)
+
+  # Assume pressure stays constant
+  if (r < rc && Δθ > 0) 
+    θ_dens = rho_theta / rho * (p_loc / p_0)^(kappa_M - kappa)
+    θ_dens_new = θ_dens * (1 + Δθ * cospi(0.5*r/rc)^2 / 300)
+    rt =(rho_qv + rho_ql) / rho_d 
+    rv = rho_qv / rho_d
+    θ_loc = θ_dens_new * (1 + rt)/(1 + (R_v / R_d) * rv)
+    if rt > 0 
+      while true 
+        T_loc = θ_loc * (p_loc / p_0)^kappa
+        T_C = T_loc - 273.15
+        # SaturVapor
+        pvs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
+        rho_d_new = (p_loc - pvs) / (R_d * T_loc)
+        rvs = pvs / (R_v * rho_d_new * T_loc)
+        θ_new = θ_dens_new * (1 + rt) / (1 + (R_v / R_d) * rvs)
+        if abs(θ_new-θ_loc) <= θ_loc * 1.0e-12
+          break
+        else
+          θ_loc=θ_new
+        end
+      end
+    else
+      rvs = 0
+      T_loc = θ_loc * (p_loc / p_0)^kappa
+      rho_d_new = p_loc / (R_d * T_loc)
+      θ_new = θ_dens_new * (1 + rt) / (1 + (R_v / R_d) * rvs)
+    end
+    rho_qv = rvs * rho_d_new
+    rho_ql = (rt - rvs) * rho_d_new
+    rho = rho_d_new * (1 + rt)
+    rho_d = rho - rho_qv - rho_ql
+    kappa_M = (R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_ql)
+    rho_theta = rho * θ_dens_new * (p_loc / p_0)^(kappa - kappa_M)
+    rho_e = (c_vd * rho_d + c_vv * rho_qv + c_pl * rho_ql) * T_loc + L_00 * rho_qv
+  end
+  return SVector(rho, rho_e, rho_qv, rho_ql)
+end
+
+
 AtmossphereData = AtmossphereLayers(equations)
 
 function initial_condition_moist(x, t, equations)

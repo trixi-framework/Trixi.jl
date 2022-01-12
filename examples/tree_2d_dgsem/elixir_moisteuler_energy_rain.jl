@@ -88,7 +88,7 @@ function generate_function_of_y(dz, y0, H_0, theta_0, r_l0, equations::Compressi
   end
 end
 
-function initial_condition_rain(x, t, equations::CompressibleMoistEulerEquations2D, AtmosphereLayers)
+function initial_condition_rain(x, t, equations::CompressibleMoistEulerEquations2D, AtmosphereLayers::AtmossphereLayers)
   @unpack LayerData, preciseness, total_hight = AtmosphereLayers
   @unpack p_0, c_pd, c_vd, c_pv, c_vv, R_d, R_v, c_pl, L_00 = equations
   dz = preciseness
@@ -144,7 +144,7 @@ source_term = source_terms_rain
 # Get the DG approximation space
 
 
-polydeg = 4
+polydeg = 1
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_LMARS_rain
@@ -163,11 +163,11 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 
 solver = DGSEM(basis, surface_flux)
 
-coordinates_min = (-860.0, 2000.0)
-coordinates_max = (860.0, 3520.0)
+coordinates_min = (-960.0, 1600.0)
+coordinates_max = (960.0, 3320.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
+                initial_refinement_level=6,
                 periodicity=(true, false),
                 n_cells_max=40_000)
 
@@ -181,7 +181,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 40.0)
+tspan = (0.0, 300.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

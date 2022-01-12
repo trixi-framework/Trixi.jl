@@ -23,7 +23,7 @@ source_term = source_terms_warm_bubble
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
-surface_flux = flux_lax_friedrichs
+surface_flux = flux_LMARS
 volume_flux = flux_shima_etal
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -43,7 +43,7 @@ coordinates_min = (-5000.0, 0.0)
 coordinates_max = (5000.0, 10000.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
+                initial_refinement_level=4,
                 periodicity=(true, false),
                 n_cells_max=40_000)
 
@@ -57,13 +57,13 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1000.0)
+tspan = (0.0, 500.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
-solution_variables = cons2pot
+solution_variables = cons2drypot
 
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
@@ -94,7 +94,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-                        amr_callback,
+#                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################
