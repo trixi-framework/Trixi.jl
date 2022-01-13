@@ -103,7 +103,7 @@
 # \underline{u}^{new} = \theta * \underline{u} + (1-\theta) * u_{mean}
 # ```
 # where $\underline{u}$ are the collected pointwise evaluation coefficients in element $e$ and
-# $u_{mean}$ the weighted mean of coefficients in $e$. The new coefficients are a convex combination
+# $u_{mean}$ the integral mean of the quantity in $e$. The new coefficients are a convex combination
 # of these two values with factor
 # ```math
 # \theta = \frac{value_{mean} - \varepsilon}{value_{mean} - value_{min}},
