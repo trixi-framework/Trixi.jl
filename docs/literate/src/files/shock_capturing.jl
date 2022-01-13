@@ -19,16 +19,17 @@
 # directly with the Legendre-Gauss-Lobatto (LGL) nodes already used for the high-order DGSEM.
 # Then, the final method is a convex combination with regulating indicator $\alpha$ of these two methods.
 
-# Since the surface integral equals for both the DG and the FV method, only the volume integral divides
+# Since the surface integral is equal for both the DG and the subcell FV method, only the volume integral divides
 # between the two methods.
 
 # This strategy for the volume integral is implemented in Trixi under the name of
 # [`VolumeIntegralShockCapturingHG`](@ref) with the three parameters of the indicator and the volume fluxes for
-# the DG and the FV method.
+# the DG and the subcell FV method.
 
 # Note, that the DG method is based on the flux differencing formulation. Hence, you have to use a
 # two-point flux, such as [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref), [`flux_chandrashekar`](@ref) or [`flux_kennedy_gruber`](@ref),
-# for the DG volume flux.
+# for the DG volume flux. We would recommend to use the entropy conserving flux `flux_ranocha` by
+# [Ranocha (2018)](https://cuvillier.de/en/shop/publications/7743).
 # ````julia
 # volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 #                                                  volume_flux_dg=volume_flux_dg,
@@ -36,7 +37,7 @@
 # ````
 
 
-# We now focus on a choice of the `indicator_sc` $\alpha$.
+# We now focus on a choice of the shock capturing indicator `indicator_sc`.
 # A possible indicator is $\alpha_{HG}$ presented by Hennemann et al. (p.10), which depends on the
 # current approximation with modal coefficients $\{m_j\}_{j=0}^N$ of a given `variable`.
 
@@ -56,18 +57,22 @@
 # \end{cases}
 # ```
 
-# Moreover, the parameter $\alpha_{max}$ sets a maximal value for $\alpha$. Therefore,
+# Moreover, the parameter $\alpha_{max}$ sets a maximal value for $\alpha$ by
 # ```math
 # \alpha = \min\{\tilde{\alpha}, \alpha_{max}\}.
 # ```
-# The authors of the paper are using $\alpha_{max}=0.5$ for a polynomial order of $N=4$.
+# This allows to control the maximal dissipation.
 
-# The final indicator can be smoothed with all the neighboring elements' indicators. This is activated
-# with `alpha_smooth=true`.
+# To remove numerical artifact the final indicator is smoothed with all the neighboring elements'
+# indicators. This is activated with `alpha_smooth=true`.
 # ```math
 # \alpha_{HG} = \max_E \{ \alpha, 0.5 * \alpha_E\},
 # ```
 # where $E$ are all elements sharing a face with the current element.
+
+# Furthermore, you can specify the variable used for the calculation. For instance you can choose
+# `density`, `pressure` or both with `density_pressure` for the compressible Euler equations.
+# For every equation there is also the option to use the first conservation variable with `first`.
 
 # This indicator is implemented in Trixi and called [`IndicatorHennemannGassner`](@ref) with the parameters
 # `equations`, `basis`, `alpha_max`, `alpha_min`, `alpha_smooth` and `variable`.
@@ -86,7 +91,7 @@
 # Some numerical solutions are physically meaningless, for instance negative values of pressure
 # or density for the compressible Euler equations. This often results in crashed simulations since
 # the calculation of numerical fluxes or stable time steps uses mathematical operations like roots or
-# logarithms. One possibility to regulate the frequency of these cases are positivity preserving limiters.
+# logarithms. One option to avoid these cases are a-posteriori positivity preserving limiters.
 # Trixi provides the fully-discrete positivity-preserving limiter of
 # [Zhang, Shu (2011)](https://doi.org/10.1098/rspa.2011.0153).
 
@@ -107,6 +112,10 @@
 
 # The adapted approximation keeps the exact same mean value, but the relevant variable is now greater
 # or equal the threshold $\varepsilon$ at every node in every element.
+
+# We specify the variables the way we did before for the shock capturing variables. For the
+# compressible Euler equations `density`, `pressure` or the combined variable `density_pressure`
+# are a reasonable choice.
 
 # You can implement the limiter in Trixi using [`PositivityPreservingLimiterZhangShu`](@ref) with parameters
 # `threshold` and `variables`.
@@ -132,8 +141,7 @@ using OrdinaryDiffEq, Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# The initial condition of the Sedov blast wave setup is based on
-# [Flash](http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000).
+# As our initial condition we use the Sedov blast wave setup.
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
   ## Set up polar coordinates
   inicenter = SVector(0.0, 0.0)
