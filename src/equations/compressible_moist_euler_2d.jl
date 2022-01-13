@@ -101,13 +101,13 @@ end
     f5 = rho_qv * v1
     f6 = rho_ql * v1 
   elseif Rain
-    Q_fall = condensation_term(rho_ql, equations)
-    f1 = rho_v2 + Q_fall
+    W_f = fall_speed_rain(rho_ql, rho_ql, equations)
+    f1 = rho_v2 + rho_ql * W_f 
     f2 = rho_v2 * v1 
-    f3 = rho_v2 * v2 + p + Q_fall * v2
-    f4 = (rho_E + p) * v2 + Q_fall * (c_pl * T + 0.5*(v1*v1 + v2*v2))
+    f3 = rho_v2 * v2 + p + rho_ql * W_f * v2
+    f4 = (rho_E + p) * v2 + W_f * rho_ql * (c_pl * T + 0.5*(v1*v1 + v2*v2))
     f5 = rho_qv * v2
-    f6 = rho_ql * v2 + Q_fall  
+    f6 = rho_ql * v2 + rho_ql * W_f   
   else
     f1 = rho_v2 
     f2 = rho_v2 * v1
@@ -302,19 +302,24 @@ end
 
 
 @inline function source_terms_geopotential(u, equations::CompressibleMoistEulerEquations2D)
-  @unpack g = equations
+  @unpack g, Rain = equations
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
+  W_f = 0
+  if Rain
+    W_f = fall_speed_rain(rho_ql, rho_ql, equations)
+  end
 
   return SVector(zero(eltype(u)), zero(eltype(u)),
-                 -g * rho, -g * rho_v2, 
+                 -g * rho, -g * (rho_v2 + rho_ql * W_f), 
                  zero(eltype(u)), zero(eltype(u)))
 end
 
 
 @inline function source_terms_moist_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
 
-  return source_terms_geopotential(u, equations) + source_terms_phase_change(u, equations)
+  return source_terms_geopotential(u, x, t, equations) + source_terms_phase_change(u, equations)
 end
+
 
 @inline function source_terms_rain(u, x, t, equations::CompressibleMoistEulerEquations2D)
   return source_terms_geopotential(u, equations) + 
@@ -340,6 +345,7 @@ end
   _, T = get_current_condition(u, equations)
   K = 0.5 * (v1^2 + v2^2)
   phi = g * x[2]
+  phi = 0 
   h_v = c_pv * T + L_00
 
   return SVector(Q_v, Q_v * v1, Q_v * v1,
@@ -408,17 +414,17 @@ end
 
 
 # This source term models the condensed water falling down as rain
-@inline function condensation_term(rho_ql, equations::CompressibleMoistEulerEquations2D)
+@inline function fall_speed_rain(rho_ql, rho_ql_speed, equations::CompressibleMoistEulerEquations2D)
   @unpack c_r, rho_w, N_0r = equations
  
   gm = exp(2.45374) # Gamma(4.5)
   # Parametrisation by Frisius and Wacker
-  if (rho_ql < 0)
+  if (rho_ql < 0 || rho_ql_speed < 0)
     return 0
   end
-  W_f = - c_r * gm * inv(6) * (rho_ql * inv(pi * rho_w * N_0r))^(1/8)
+  W_f = - c_r * gm * inv(6) * (rho_ql_speed * inv(pi * rho_w * N_0r))^(1/8)
 
-  return rho_ql * W_f
+  return W_f
 end
 
 
@@ -473,7 +479,7 @@ end
       f4 += p_rr
     end
     #if (v_interface > 0)
-    #  Q_v = condensation_term(u_ll, equations)   
+    #  Q_v = fall_speed_rain(u_ll, equations)   
     #  f1 = rho_ll + Q_v
     #  f2 = rho_v1_ll
     #  f3 = rho_v2_ll+ Q_v * v2_ll
@@ -481,7 +487,7 @@ end
     #  f5 = rho_qv_ll
     #  f6 = rho_ql_ll + Q_v
     #else
-    #  Q_v = condensation_term(u_rr, equations)
+    #  Q_v = fall_speed_rain(u_rr, equations)
     #  f1 = rho_rr + Q_v
     #  f2 = rho_v1_rr
     #  f3 = rho_v2_rr+ Q_v * v2_rr
@@ -538,26 +544,101 @@ end
 
     v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * a) * (p_rr - p_ll)
     p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
-    #Q_fall_rr = condensation_term(rho_ql_rr, equations)
-    #Q_fall_ll = condensation_term(rho_ql_ll, equations)
-    #lambda_rql = 0.5 * rho_ql_mean * a * (Q_fall_rr / rho_ql_rr - Q_fall_ll / rho_ql_ll)
-
+    W_f = fall_speed_rain(rho_mean, rho_mean, equations)
+    
+    
     if (v_interface > 0)
-      Q_fall = condensation_term(rho_ql_mean, equations)
+      Q_fall = rho_ql_rr * fall_speed_rain(rho_ql_rr, rho_ql_mean, equations) # rho_qv * W_f
       v_square_mean = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
       f1, f2, f3, f4, f5, f6 = u_ll * v_interface
-      f4 += p_ll * v_interface + Q_fall * (c_pl * T_ll + v_square_mean)
+      f4 += p_ll * v_interface + Q_fall * (c_pl * T_rr + v_square_mean)
       f1 += Q_fall
       f6 += Q_fall 
       f3 += Q_fall * v_interface
     else
-      Q_fall = condensation_term(rho_ql_mean, equations)
+      Q_fall = rho_ql_ll * fall_speed_rain(rho_ql_ll, rho_ql_mean, equations)
       v_square_mean = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
       f1, f2, f3, f4, f5, f6 = u_rr * v_interface
-      f4 += p_rr * v_interface + Q_fall * (c_pl * T_rr + v_square_mean)
+      f4 += p_rr * v_interface + Q_fall * (c_pl * T_ll + v_square_mean)
       f1 += Q_fall
       f6 += Q_fall 
       f3 += Q_fall * v_interface
+    end
+
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) + SVector(0, 0, 1, 0, 0 ,0 ) * p_interface
+  end
+
+  return flux
+end
+
+
+@inline function flux_LMARS_rain1(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  @unpack a, c_pl = equations
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
+  
+  # Unpack left and right state
+  p_ll, T_ll = get_current_condition(u_ll, equations)
+  p_rr, T_rr = get_current_condition(u_rr, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+
+  # Compute the necessary interface flux components
+
+  rho_mean = 0.5 * (rho_ll + rho_rr) # TODO why choose the mean value here?
+  T_mean = 0.5 * (T_ll + T_rr)
+  rho_ql_mean = 0.5 * (rho_ql_ll + rho_ql_rr)
+
+  if orientation == 1
+
+    beta = 1 # diffusion parameter <= 1 
+
+    v_interface = 0.5 * (v1_rr + v1_ll) - beta * inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * a * (v1_rr - v1_ll)
+
+    if (v_interface > 0)
+      f1, f2, f3, f4, f5, f6 = u_ll
+      f4 += p_ll
+    else
+      f1, f2, f3, f4, f5, f6 = u_rr
+      f4 += p_rr
+    end
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 1, 0, 0, 0, 0) * p_interface
+
+  else # orientation = 2
+
+    v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
+    
+    if (v_interface > 0)
+      f1, f2, f3, f4, f5, f6 = u_ll * v_interface
+      f4 += p_ll * v_interface 
+    else
+      f1, f2, f3, f4, f5, f6 = u_rr * v_interface
+      f4 += p_rr * v_interface 
+    end
+
+    W_f = fall_speed_rain(rho_mean, rho_mean, equations)
+    v_liquid_interface = v_interface + W_f
+    v_square_mean = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+    if(v_liquid_interface > 0)
+      W_f = fall_speed_rain(rho_ql_ll, rho_ql_mean, equations)
+      f4 += W_f * rho_ql_ll * (c_pl * T_ll + v_square_mean)
+      f1 += W_f * rho_ql_ll
+      f6 += W_f * rho_ql_ll 
+      f3 += W_f * rho_ql_ll * v_interface
+    else
+      W_f = fall_speed_rain(rho_ql_rr, rho_ql_mean, equations)
+      f4 += W_f * rho_ql_rr * (c_pl * T_rr + v_square_mean)
+      f1 += W_f * rho_ql_rr
+      f6 += W_f * rho_ql_rr 
+      f3 += W_f * rho_ql_rr * v_interface
     end
 
 
@@ -611,11 +692,11 @@ end
 
 @inline function max_abs_speeds(u, equations::CompressibleMoistEulerEquations2D)
   rho, v1, v2, p, qv, ql = cons2prim(u, equations)
-  #@info(u)
-  #@info(cons2prim(u, equations))
+
+  Wf = fall_speed_rain(rho * ql, rho * ql, equations)
 
   c = sqrt(equations.gamma * p / rho)
-  return abs(v1) + c, abs(v2) + c
+  return abs(v1) + c, abs(v2 * (1 - rho * ql * Wf) ) + c
 end
 
 
@@ -990,6 +1071,55 @@ end
     f4 = f1 * ( velocity_square_avg + e ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
     f5 = f1 * qv_avg
     f6 = f1 * ql_avg
+  end
+
+  return SVector(f1, f2, f3, f4, f5, f6)
+end
+
+@inline function flux_ranocha_rain(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
+  # Unpack left and right state
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
+
+  # Compute the necessary mean values
+  rho_mean = ln_mean(rho_ll, rho_rr)
+  # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+  # in exact arithmetic since
+  #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+  #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+  inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  qv_avg = 0.5 * (qv_ll + qv_rr)
+  ql_avg = 0.5 * (ql_ll + ql_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+  qd_avg = (1 - qv_avg - ql_avg)
+  T_interface = inv_rho_p_mean * inv(qd_avg * R_d + qv_avg * R_v)
+  e = (qv_avg * L_00 + 
+       (qd_avg * c_vd + qv_avg * c_vv + ql_avg * c_pl) * T_interface)
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f1 = rho_mean * v1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * ( velocity_square_avg + e ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+    f5 = f1 * qv_avg
+    f6 = f1 * ql_avg
+  else
+    rho_ql = rho_mean * ql_avg 
+    Q_fall = rho_ql * fall_speed_rain(rho_ql, rho_ql, equations)
+    f1 = rho_mean * v2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = f1 * ( velocity_square_avg + e ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+    f5 = f1 * qv_avg
+    f6 = f1 * ql_avg
+    f4 += Q_fall * (c_pl * T_interface + velocity_square_avg)
+    f1 += Q_fall
+    f6 += Q_fall 
+    f3 += Q_fall * v2_avg
   end
 
   return SVector(f1, f2, f3, f4, f5, f6)
