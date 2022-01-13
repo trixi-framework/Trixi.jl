@@ -24,9 +24,9 @@ end
 # Since the KPP problem is a scalar equation, the entropy-conservative flux is uniquely determined
 @inline function Trixi.flux_ec(u_ll, u_rr, orientation::Integer, ::KPPEquation2D)
     if abs(u_ll[1] - u_rr[1]) < 1e-12
-        return 0.5*(flux(u_ll, orientation, KPPEquation2D())+flux(u_rr, orientation, KPPEquation2D()))
+        return 0.5 * (flux(u_ll, orientation, KPPEquation2D()) + flux(u_rr, orientation, KPPEquation2D()))
     else
-        factor = 1.0/(u_rr[1] - u_ll[1])
+        factor = 1.0 / (u_rr[1] - u_ll[1])
         if orientation == 1
             return SVector(factor*(-cos(u_rr[1]) + cos(u_ll[1])))
         else
@@ -63,9 +63,9 @@ Trixi.varnames(::Any, ::KPPEquation2D) = ("u",)
 # Standard KPP test problem with discontinuous initial condition
 function initial_condition_kpp(x, t, ::KPPEquation2D)
     if x[1]^2 + x[2]^2 < 1
-        return SVector(0.25*14.0*pi)
+        return SVector(0.25 * 14.0 * pi)
     else
-        return SVector(0.25*pi)
+        return SVector(0.25 * pi)
     end
 end
 
