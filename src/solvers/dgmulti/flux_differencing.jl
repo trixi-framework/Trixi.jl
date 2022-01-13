@@ -288,12 +288,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  if rd.approximationType isa AbstractPeriodicDerivativeOperator
-    # periodic SBP operators do not need any surface stuff
-    lift_scalings = nothing
-  else
-    lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
-  end
+  lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
   local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg) for _ in 1:Threads.nthreads()]
 
@@ -580,7 +575,7 @@ end
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff{<:Union{Polynomial, GaussSBP}}, cache) where {Source, BC}
 
-  @trixi_timeit timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # this function evaluates the solution at volume and face quadrature points (which was previously
   # done in `prolong2interfaces` and `calc_volume_integral`)
