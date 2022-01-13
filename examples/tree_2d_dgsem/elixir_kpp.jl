@@ -9,6 +9,7 @@ using LinearAlgebra
 # See: Kurganov, A., Petrova, G., and Popov, B. (2007).
 # Adaptive Semidiscrete Central-Upwind Schemes for Nonconvex Hyperbolic Conservation Laws,
 # SIAM Journal on Scientific Computing, 29(6), 2381--2401
+# DOI: https://doi.org/10.1137/040614189
 
 struct KPPEquation2D <: Trixi.AbstractEquations{2, 1} end
 
@@ -23,6 +24,7 @@ end
 
 # Since the KPP problem is a scalar equation, the entropy-conservative flux is uniquely determined
 @inline function Trixi.flux_ec(u_ll, u_rr, orientation::Integer, ::KPPEquation2D)
+    # The tolerance of 1e-12 is based on experience and somewhat arbitrarily chosen
     if abs(u_ll[1] - u_rr[1]) < 1e-12
         return 0.5 * (flux(u_ll, orientation, KPPEquation2D()) + flux(u_rr, orientation, KPPEquation2D()))
     else
@@ -133,7 +135,7 @@ save_solution = SaveSolutionCallback(interval=200,
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        amr_callback, save_solution)
+                        save_solution, amr_callback)
 
 ###############################################################################
 # run the simulation
