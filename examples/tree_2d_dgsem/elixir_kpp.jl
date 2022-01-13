@@ -51,14 +51,7 @@ const kpp_wavespeed = 1.0
 @inline Trixi.cons2prim(u, ::KPPEquation2D) = u
 @inline Trixi.cons2entropy(u, ::KPPEquation2D) = u
 
-# Total energy
-@inline Trixi.energy_total(u::Real, ::KPPEquation2D) = 0.5 * u^2
-@inline Trixi.energy_total(u, equation::KPPEquation2D) = energy_total(u[1], equation)
-
 Trixi.varnames(::Any, ::KPPEquation2D) = ("u",)
-
-# Extract the solution as a scalar, for use in the indicator
-@inline cons_sol(u, ::KPPEquation2D) = u[1]
 
 # Standard KPP test problem with discontinuous initial condition
 function initial_condition_kpp(x, t, ::KPPEquation2D)
@@ -83,7 +76,7 @@ shock_indicator = IndicatorHennemannGassner(equation, basis,
                                             alpha_max=0.5,
                                             alpha_min=0.001,
                                             alpha_smooth=true,
-                                            variable=cons_sol)
+                                            variable=first)
 volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -93,14 +86,11 @@ solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volum
 # Set up the tree mesh (initially a Cartesian grid of [-2,2]^2)
 coordinates_min = (-2.0, -2.0)
 coordinates_max = ( 2.0,  2.0)
-cells_per_dimension = (64, 64)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
                 periodicity=true,
                 n_cells_max=500_000)
-
-dt = 1e-4
 
 ###############################################################################
 # Create the semi discretization object
@@ -112,7 +102,7 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,
                                           alpha_min=0.0001,
                                           alpha_smooth=false,
-                                          variable=cons_sol)
+                                          variable=first)
 
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, shock_indicator,
                                               base_level=2,
