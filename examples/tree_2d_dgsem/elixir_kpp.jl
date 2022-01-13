@@ -106,10 +106,12 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_smooth=false,
                                           variable=first)
 
+max_refinement_level = 8
+
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, shock_indicator,
                                               base_level=2,
                                               med_level=0, med_threshold=0.0003,
-                                              max_level=8, max_threshold=0.003,
+                                              max_level=max_refinement_level, max_threshold=0.003,
                                               max_threshold_secondary=shock_indicator.alpha_max)
 
 amr_callback = AMRCallback(semi, amr_controller,
