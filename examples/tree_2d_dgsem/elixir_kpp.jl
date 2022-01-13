@@ -38,10 +38,10 @@ end
 end
 
 # Wavespeeds
-const kpp_wavespeed = 1.0
-@inline Trixi.max_abs_speeds(u, ::KPPEquation2D) = (kpp_wavespeed, kpp_wavespeed)
-@inline Trixi.max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::KPPEquation2D) = kpp_wavespeed
-@inline Trixi.max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, ::KPPEquation2D) = kpp_wavespeed * norm(normal_direction)
+@inline wavespeed(::KPPEquation2D) = 1.0
+@inline Trixi.max_abs_speeds(u, equation::KPPEquation2D) = (wavespeed(equation), wavespeed(equation))
+@inline Trixi.max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::KPPEquation2D) = wavespeed(equation)
+@inline Trixi.max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::KPPEquation2D) = wavespeed(equation) * norm(normal_direction)
 
 # Compute entropy: we use the square entropy
 @inline Trixi.entropy(u::Real, ::KPPEquation2D) = 0.5 * u^2
