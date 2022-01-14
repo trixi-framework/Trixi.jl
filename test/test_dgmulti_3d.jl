@@ -40,6 +40,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      l2 = [0.017961080040863775, 0.02438643929447948, 0.024389821246679343, 0.01777718061608107, 0.038341344239528286],
+      linf = [0.14862225990775757, 0.28952368161864683, 0.2912054484817035, 0.1456603133854122, 0.3315354586775472]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      approximation_type=GaussSBP(),
+      l2 = [0.0024979831949245874, 0.002767595957893527, 0.0027679562814758533, 0.0025023258886203666, 0.006657643337169548],
+      linf = [0.021424273409065275, 0.02133519628006386, 0.021304710093764, 0.02080983064200792, 0.05344736080482182]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
       # division by sqrt(8.0) corresponds to normalization by the square root of the size of the domain
