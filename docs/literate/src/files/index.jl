@@ -22,9 +22,8 @@
 # ### [2 DGSEM with flux differencing](@ref DGSEM_FluxDiff)
 #-
 # To improve stability often the flux differencing formulation of the DGSEM (split form) is used.
-# We want to present the idea and formulation on a basic 1D level and then, show how this formulation
-# can be implemented in Trixi. We analyse entropy conservation of two different flux and give an
-# exemplary simulation with a weak blast wave for the 2D compressible Euler equation in the end.
+# We want to present the idea and formulation on a basic 1D level. Then, we show how this formulation
+# can be implemented in Trixi and analyse entropy conservation for two different flux combinations.
 
 # ### 3 Adding a new equation
 # #### [3.1 Scalar conservation law](@ref cubic_conservation_law)
