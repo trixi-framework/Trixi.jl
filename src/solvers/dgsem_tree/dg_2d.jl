@@ -524,7 +524,7 @@ end
 
 @inline function staggered_grid_kernel!(du, u,
                                         element, mesh::TreeMesh{2},
-                                        nonconservative_terms, equations,
+                                        nonconservative_terms::Val{false}, equations,
                                         volume_integral, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
@@ -574,7 +574,7 @@ end
 #     calcflux_staggered!(fstaggered1, fstaggered2, u, mesh,
 #                         nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
 #
-# Calculate the staggered grid volume fluxes inside the elements (**without non-conservative terms**).
+# Calculate the staggered volume fluxes inside the elements (**without non-conservative terms**).
 #
 # # Arguments
 # - `fstaggered1::AbstractArray{<:Real, 3}`
@@ -620,7 +620,7 @@ end
         u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
 
         flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-        multiply_add_to_node_vars!(fstaggered2, weights[j] * derivative_split[j, jj],              flux2, equations, dg, i, j+1)
+        multiply_add_to_node_vars!(fstaggered2, weights[j] * derivative_split[j, jj], flux2, equations, dg, i, j+1)
       end
     end
   end
