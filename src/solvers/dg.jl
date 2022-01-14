@@ -142,14 +142,23 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFi
 end
 
 
+"""
+    VolumeIntegralStaggeredGrid
+
+A shock-capturing volume integral type for DG methods based on a subcell blending approach
+with a low-order FV method.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 struct VolumeIntegralStaggeredGrid{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
   volume_flux_dg::VolumeFluxDG
   volume_flux_fv::VolumeFluxFV
   indicator::Indicator
 end
 
-function VolumeIntegralStaggeredGrid(indicator; volume_flux_dg=flux_ranocha,
-                                                volume_flux_fv=flux_lax_friedrichs)
+function VolumeIntegralStaggeredGrid(indicator; volume_flux_dg,
+                                                volume_flux_fv)
   VolumeIntegralStaggeredGrid{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
     volume_flux_dg, volume_flux_fv, indicator)
 end
