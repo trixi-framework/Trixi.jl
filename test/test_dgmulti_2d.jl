@@ -77,6 +77,28 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
+      l2 = [1.0259435706215337e-5, 9.014090233720625e-6, 9.014090233223014e-6, 2.738953587401793e-5],
+      linf = [7.362609083649829e-5, 6.874188055272512e-5, 6.874188052830021e-5, 0.0001912435192696904]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      l2 = [1.5914065936559232e-5, 1.4757575957005155e-5, 1.4757575956508324e-5, 4.511709781155535e-5],
+      linf = [0.00010525416930584619, 0.00010003778091061122, 0.00010003778085621029, 0.00036426282101720275]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      approximation_type = GaussSBP(),
+      l2 = [3.578819171269236e-6, 3.4797454435720057e-6, 3.4797454434088854e-6, 1.0812715223492364e-5],
+      linf = [1.2963211813321607e-5, 1.2570312152959673e-5, 1.2570312227122571e-5, 3.9389540817946767e-5]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2], [4.243843382379403, 4.128314378833922, 4.128314378397532, 4.081366752807379], rtol=0.05)

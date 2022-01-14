@@ -63,7 +63,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # u(x(\xi), t)\big|_{Q_l} \approx u^{Q_l}(\xi, t) = \sum_{j=0}^N u_j^{Q_l}(t) l_j(\xi)
 # ```
 # with $N+1$ coefficients $\{u_j^{Q_l}\}_{j=0}^N$.
-# By contruction the Lagrange basis has some usefull advantages. This basis is defined by $N+1$ nodes, which
+# By contruction the Lagrange basis has some useful advantages. This basis is defined by $N+1$ nodes, which
 # fulfill a Kronecker property at the exact same nodes. Let $\{\xi_i\}_{i=0}^N$ be these nodes.
 # ```math
 # l_j(\xi_i) = \delta_{i,j} =
