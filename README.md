@@ -177,8 +177,6 @@ with the help of Trixi, please cite the following articles:
   number={1},
   pages={77},
   year={2022},
-  month={01},
-  publisher={The Open Journal},
   doi={10.21105/jcon.00077},
   eprint={2108.06476},
   eprinttype={arXiv},
