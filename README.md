@@ -15,10 +15,6 @@
   <img width="300px" src="docs/src/assets/logo.png">
 </p>
 
-**>> Trixi was present at JuliaCon 2021: Watch the talk on
-[YouTube](https://www.youtube.com/watch?v=hoViWRAhCBE) or revisit the
-[live demonstration](https://github.com/trixi-framework/talk-2021-juliacon)! <<**
-
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -171,13 +167,17 @@ using Git. The latest documentation can be accessed either
 If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following articles:
 ```bibtex
-@online{ranocha2021adaptive,
+@article{ranocha2022adaptive,
   title={Adaptive numerical simulations with {T}rixi.jl:
          {A} case study of {J}ulia for scientific computing},
   author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
           and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
-  year={2021},
-  month={08},
+  journal={Proceedings of the JuliaCon Conferences},
+  volume={1},
+  number={1},
+  pages={77},
+  year={2022},
+  doi={10.21105/jcon.00077},
   eprint={2108.06476},
   eprinttype={arXiv},
   eprintclass={cs.MS}
