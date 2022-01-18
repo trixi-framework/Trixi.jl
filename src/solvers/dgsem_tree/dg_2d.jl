@@ -90,11 +90,13 @@ function create_cache(mesh::TreeMesh{2}, equations,
 
   A3dp1_x = Array{uEltype, 3}
   A3dp1_y = Array{uEltype, 3}
+  A3d = Array{uEltype, 3}
 
   fstaggered1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
   fstaggered2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+  flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  return (; cache..., fstaggered1_threaded, fstaggered2_threaded)
+  return (; cache..., fstaggered1_threaded, fstaggered2_threaded, flux_temp_threaded)
 end
 
 
@@ -584,45 +586,64 @@ end
                                      volume_flux, dg::DGSEM, element, cache)
 
   @unpack weights, derivative_split = dg.basis
+  @unpack flux_temp_threaded = cache
 
-  # x
-  fstaggered1[:, 1,            :] .= zero(eltype(fstaggered1))
-  fstaggered1[:, nnodes(dg)+1, :] .= zero(eltype(fstaggered1))
+  flux_temp = flux_temp_threaded[Threads.threadid()]
 
-  for j in eachnode(dg)
-    for i in 1:nnodes(dg)-1
-      for v in eachvariable(equations)
-        fstaggered1[v, i+1, j] = fstaggered1[v, i, j]
-      end
+  # The FV-form fluxes are calculated in a recursive manner, i.e.:
+  # fstaggered_(0,1)   = f_0 + w_0 * FVol_0,
+  # fstaggered_(j,j+1) = fstaggered_(j-1,j) + w_j * FVol_j,   for j=1,...,N-1,
+  # with the split form volume fluxes FVol_j = -2 * sum_i=0^N D_ji f*_(j,i).
 
-      u_node = get_node_vars(u, equations, dg, i, j, element)
-      for ii in eachnode(dg)
-        u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+  # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
+  # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
+  # and saved in in `flux_temp`.
 
-        flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-        multiply_add_to_node_vars!(fstaggered1, weights[i] * derivative_split[i, ii], flux1, equations, dg, i+1, j)
-      end
+  # Split form volume flux in orientation 1: x direction
+  flux_temp .= zero(eltype(flux_temp))
+
+  for j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-poitn flux
+    # computations.
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+      multiply_add_to_node_vars!(flux_temp, derivative_split[i, ii], flux1, equations, dg, i,  j)
+      multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1, equations, dg, ii, j)
     end
   end
 
-  # y
+  # FV-form flux `fstaggered` in x direction
+  fstaggered1[:, 1,            :] .= zero(eltype(fstaggered1))
+  fstaggered1[:, nnodes(dg)+1, :] .= zero(eltype(fstaggered1))
+
+  for j in eachnode(dg), i in 1:nnodes(dg)-1, v in eachvariable(equations)
+    fstaggered1[v, i+1, j] = fstaggered1[v, i, j] + weights[i] * flux_temp[v, i, j]
+  end
+
+  # Split form volume flux in in orientation 2: y direction
+  flux_temp .= zero(eltype(flux_temp))
+
+  for j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    for jj in (j+1):nnodes(dg)
+      u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+      flux2 = volume_flux(u_node, u_node_jj, 2, equations)
+      multiply_add_to_node_vars!(flux_temp, derivative_split[j, jj], flux2, equations, dg, i, j)
+      multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2, equations, dg, i, jj)
+    end
+  end
+
+  # FV-form flux `fstaggered` in y direction
   fstaggered2[:, :, 1           ] .= zero(eltype(fstaggered2))
   fstaggered2[:, :, nnodes(dg)+1] .= zero(eltype(fstaggered2))
 
-  for i in eachnode(dg)
-    for j in 1:nnodes(dg)-1
-      for v in eachvariable(equations)
-        fstaggered2[v, i, j+1] = fstaggered2[v, i, j]
-      end
-
-      u_node = get_node_vars(u, equations, dg, i, j, element)
-      for jj in eachnode(dg)
-        u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
-
-        flux2 = volume_flux(u_node, u_node_jj, 2, equations)
-        multiply_add_to_node_vars!(fstaggered2, weights[j] * derivative_split[j, jj], flux2, equations, dg, i, j+1)
-      end
-    end
+  for j in 1:nnodes(dg)-1, i in eachnode(dg), v in eachvariable(equations)
+    fstaggered2[v, i, j+1] = fstaggered2[v, i, j] + weights[j] * flux_temp[v, i, j]
   end
 
   return nothing
