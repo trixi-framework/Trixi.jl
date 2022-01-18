@@ -145,35 +145,6 @@
     return nothing
   end
 
-  # # For Carpenter-Kennedy Time Integration
-  # function get_usafe!(u_safe, limiter!, integrator)
-  #   @unpack stage = limiter!
-  #   @unpack semi_fv, u_latest_stage, tmp_lates_stage  = limiter!.cache
-  #   @unpack t, dt, uprev, f = integrator
-  #   @unpack k, tmp = integrator.cache
-  #   @unpack A2end, B1, B2end, c2end = integrator.cache.tab
-
-  #   if stage == 1
-  #     f(k, uprev, semi_fv, t)
-  #     # tmp = dt * k
-  #     for i in 1:length(uprev)
-  #       u_safe[i] = uprev[i] + B1 * dt * k[i]
-  #     end
-  #   else
-  #     if stage == 5 
-  #       dt =limiter!.dt
-  #       t = limiter!.t
-  #     end
-  #     f(k, u_latest_stage, semi_fv, t + c2end[stage-1] * dt)
-  #     # tmp_lates_stage += dt * k
-  #     for d in 1:length(u_safe)
-  #       tmp_lates_stage[d] = tmp_lates_stage[d] + dt * k[d]
-  #       u_safe[d] = u_latest_stage[d] + B2end[stage-1] * tmp_lates_stage[d]
-  #     end
-  #   end
-  # end
-
-
   function correct_u!(u::AbstractArray{<:Any,3}, semi, element, u_safe, alpha, cor)
     @unpack solver, equations = semi
     for i in eachnode(solver)
