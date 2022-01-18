@@ -86,11 +86,7 @@
 
 
 # # Exemplary simulation
-# Here, we implement a simple AMR simulation of the 2D linear advection equation for a Gaussian pulse.
-# Some more complicated AMR simulations can be found on Trixi's youtube channel
-# ["Trixi Framework"](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg), for instance an
-# [ideal MHD rotor on unstructured AMR mesh](https://www.youtube.com/watch?v=Iei7e9oQ0hs)
-# and a [purely hyperbolic simulation of a Sedov blast wave with self-gravity](https://www.youtube.com/watch?v=dxgzgteJdOA).
+# Here, we want to implement a simple AMR simulation of the 2D linear advection equation for a Gaussian pulse.
 
 using OrdinaryDiffEq
 using Trixi
@@ -142,3 +138,32 @@ using Plots
 pd = PlotData2D(sol)
 plot(pd)
 plot!(getmesh(pd))
+
+
+# # More examples
+# Some more complicated and interesting AMR simulations can be found below and on Trixi's youtube channel
+# ["Trixi Framework"](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg).
+
+# A numerical simulation of an [ideal MHD rotor on an unstructured AMR mesh](https://www.youtube.com/watch?v=Iei7e9oQ0hs):
+# ```@raw html
+#   <!--
+#   Video details
+#   * Source: https://www.youtube.com/watch?v=Iei7e9oQ0hs
+#   * Author: Andrew R. Winters (https://liu.se/en/employee/andwi94)
+#   * Obtain responsive code by inserting link on https://embedresponsively.com
+#   -->
+#   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/Iei7e9oQ0hs' frameborder='0' allowfullscreen></iframe></div>
+# ```
+
+# And a [purely hyperbolic simulation of a Sedov blast wave with self-gravity](https://www.youtube.com/watch?v=dxgzgteJdOA):
+# ```@raw html
+#   <!--
+#   Video details
+#   * Source: https://www.youtube.com/watch?v=dxgzgteJdOA
+#   * Authors: Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor Gassner
+#   * Setup described in detail in: A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics,
+#     Journal of Computational Physics (2021),(https://doi.org/10.1016/j.jcp.2021.110467).
+#   * Obtain responsive code by inserting link on https://embedresponsively.com
+#   -->
+#   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/dxgzgteJdOA' frameborder='0' allowfullscreen></iframe></div>
+# ```
