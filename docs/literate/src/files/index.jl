@@ -19,6 +19,12 @@
 # a raw version of a discontinuous Galerkin spectral element method (DGSEM). Then, we will show how
 # to use features of Trixi.jl to achieve the same result.
 
+# ### [2 DGSEM with flux differencing](@ref DGSEM_FluxDiff)
+#-
+# To improve stability often the flux differencing formulation of the DGSEM (split form) is used.
+# We want to present the idea and formulation on a basic 1D level. Then, we show how this formulation
+# can be implemented in Trixi and analyse entropy conservation for two different flux combinations.
+
 # ### [3 Shock capturing with flux differencing and stage limiter](@ref shock_capturing)
 #-
 # Using the flux differencing formulation a simple procedure to capture shocks is a hybrid blending
