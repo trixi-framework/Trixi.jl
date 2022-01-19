@@ -84,7 +84,6 @@
         t = limiter!.t
       end
       rhs!(k, u_latest_stage, semi_fv, t + c2end[stage-1] * dt)
-      # tmp_lates_stage += dt * k
       for d in 1:length(u_safe)
         tmp_lates_stage[d] = tmp_lates_stage[d] + dt * k[d]
         u_safe[d] = u_latest_stage[d] + B2end[stage-1] * tmp_lates_stage[d]
