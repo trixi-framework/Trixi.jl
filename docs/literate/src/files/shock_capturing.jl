@@ -29,7 +29,7 @@
 # Note, that the DG method is based on the flux differencing formulation. Hence, you have to use a
 # two-point flux, such as [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref), [`flux_chandrashekar`](@ref) or [`flux_kennedy_gruber`](@ref),
 # for the DG volume flux. We would recommend to use the entropy conserving flux `flux_ranocha` by
-# [Ranocha (2018)](https://cuvillier.de/en/shop/publications/7743).
+# [Ranocha (2018)](https://cuvillier.de/en/shop/publications/7743) for the compressible Euler equations.
 # ````julia
 # volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 #                                                  volume_flux_dg=volume_flux_dg,

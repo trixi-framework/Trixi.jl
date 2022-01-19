@@ -27,7 +27,7 @@
 
 # ### [3 Shock capturing with flux differencing and stage limiter](@ref shock_capturing)
 #-
-# Using the flux differencing formulation a simple procedure to capture shocks is a hybrid blending
+# Using the flux differencing formulation, a simple procedure to capture shocks is a hybrid blending
 # of a high-order DG method and a low-order subcell finite volume (FV) method. We present the idea on a
 # very basic level and show the implementation in Trixi. Then, a positivity preserving limiter is
 # explained and added to an exemplary simulation of the Sedov blast wave with the 2D compressible Euler
