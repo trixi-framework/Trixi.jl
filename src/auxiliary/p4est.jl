@@ -8,8 +8,8 @@
 """
     init_p4est()
 
-Initialize p4est by calling `p4est_init` and setting the log level to `SC_LP_ERROR`.
-This function will check if p4est is already initialized
+Initialize `p4est` by calling `p4est_init` and setting the log level to `SC_LP_ERROR`.
+This function will check if `p4est` is already initialized
 and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_p4est()
@@ -17,7 +17,7 @@ function init_p4est()
     return nothing
   end
 
-  # Initialize p4est with log level ERROR to prevent a lot of output in AMR simulations
+  # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
   p4est_init(C_NULL, SC_LP_ERROR)
 
   return nothing
@@ -42,7 +42,7 @@ function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
 end
 
 
-# Create new p4est from a p4est_connectivity
+# Create new `p4est` from a p4est_connectivity
 # 2D
 function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
   p4est_new_ext(0, # No MPI communicator
@@ -61,7 +61,7 @@ function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
 end
 
 
-# Save p4est data to file
+# Save `p4est` data to file
 # 2D
 function save_p4est!(file, p4est::Ptr{p4est_t})
   # Don't save user data of the quads
@@ -75,7 +75,7 @@ function save_p4est!(file, p8est::Ptr{p8est_t})
 end
 
 
-# Load p4est from file
+# Load `p4est` from file
 # 2D
 function load_p4est(file, ::Val{2})
   conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
@@ -89,28 +89,28 @@ function load_p4est(file, ::Val{3})
 end
 
 
-# Read p4est connectivity from Abaqus mesh file (.inp)
+# Read `p4est` connectivity from Abaqus mesh file (.inp)
 # 2D
 read_inp_p4est(meshfile, ::Val{2}) = p4est_connectivity_read_inp(meshfile)
 # 3D
 read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
 
 
-# Refine p4est if refine_fn_c returns 1
+# Refine `p4est` if refine_fn_c returns 1
 # 2D
 refine_p4est!(p4est::Ptr{p4est_t}, recursive, refine_fn_c, init_fn_c) = p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
 # 3D
 refine_p4est!(p8est::Ptr{p8est_t}, recursive, refine_fn_c, init_fn_c) = p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
 
 
-# Refine p4est if coarsen_fn_c returns 1
+# Refine `p4est` if coarsen_fn_c returns 1
 # 2D
 coarsen_p4est!(p4est::Ptr{p4est_t}, recursive, coarsen_fn_c, init_fn_c) = p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
 # 3D
 coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 
 
-# Let p4est iterate over each cell volume and cell face.
+# Let `p4est` iterate over each cell volume and cell face.
 # Call iter_volume_c for each cell and iter_face_c for each face.
 # 2D
 function iterate_p4est(p4est::Ptr{p4est_t}, user_data;

@@ -58,6 +58,7 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   # but much more efficient due to explicit optimization via `@turbo` from
   # LoopVectorization.jl.
   @unpack gamma, inv_gamma_minus_one = equations
+  gamma_minus_one = gamma - 1
 
   rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
   w1_values, w2_values, w3_values, w4_values = StructArrays.components(projected_entropy_var_values)
@@ -71,7 +72,6 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
     # - See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
     #   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
     # instead of `-rho * s / (gamma - 1)`
-    gamma_minus_one = gamma - 1
     w1 = gamma_minus_one * w1_values[i]
     w2 = gamma_minus_one * w2_values[i]
     w3 = gamma_minus_one * w3_values[i]
@@ -142,6 +142,7 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
   # but much more efficient due to explicit optimization via `@turbo` from
   # LoopVectorization.jl.
   @unpack gamma, inv_gamma_minus_one = equations
+  gamma_minus_one = gamma - 1
 
   rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
   w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(projected_entropy_var_values)
@@ -155,7 +156,6 @@ function entropy2cons!(entropy_projected_u_values  ::StructArray,
     # - See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
     #   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
     # instead of `-rho * s / (gamma - 1)`
-    gamma_minus_one = gamma - 1
     w1 = gamma_minus_one * w1_values[i]
     w2 = gamma_minus_one * w2_values[i]
     w3 = gamma_minus_one * w3_values[i]

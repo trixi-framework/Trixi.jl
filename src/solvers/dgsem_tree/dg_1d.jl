@@ -503,12 +503,21 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
+  # Note that all fluxes have been computed with outward-pointing normal vectors.
+  # Access the factors only once before beginning the loop to increase performance.
+  # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+  # into FMAs (see comment at the top of the file).
+  factor_1 = boundary_interpolation[1,          1]
+  factor_2 = boundary_interpolation[nnodes(dg), 2]
   @threaded for element in eachelement(dg, cache)
     for v in eachvariable(equations)
       # surface at -x
-      du[v, 1,          element] -= surface_flux_values[v, 1, element] * boundary_interpolation[1,          1]
+      du[v, 1,          element] = (
+        du[v, 1,          element] - surface_flux_values[v, 1, element] * factor_1)
+
       # surface at +x
-      du[v, nnodes(dg), element] += surface_flux_values[v, 2, element] * boundary_interpolation[nnodes(dg), 2]
+      du[v, nnodes(dg), element] = (
+        du[v, nnodes(dg), element] + surface_flux_values[v, 2, element] * factor_2)
     end
   end
 

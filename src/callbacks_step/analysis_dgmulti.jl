@@ -6,7 +6,7 @@
 
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::AbstractMeshData{NDIMS}, equations, initial_condition,
+                          mesh::DGMultiMesh{NDIMS}, equations, initial_condition,
                           dg::DGMulti{NDIMS}, cache, cache_analysis) where {NDIMS}
   rd = dg.basis
   md = mesh.md
@@ -18,16 +18,17 @@ function calc_error_norms(func, u, t, analyzer,
   component_l2_errors = zero(eltype(u_values))
   component_linf_errors = zero(eltype(u_values))
   for i in each_quad_node_global(mesh, dg, cache)
-    u_exact = initial_condition(getindex.(md.xyzq, i), t, equations)
+    u_exact = initial_condition(SVector(getindex.(md.xyzq, i)), t, equations)
     error_at_node = func(u_values[i], equations) - func(u_exact, equations)
     component_l2_errors += md.wJq[i] * error_at_node.^2
     component_linf_errors = max.(component_linf_errors, abs.(error_at_node))
   end
-  return sqrt.(component_l2_errors), component_linf_errors
+  total_volume = sum(md.wJq)
+  return sqrt.(component_l2_errors ./ total_volume), component_linf_errors
 end
 
 function integrate(func::Func, u,
-                   mesh::AbstractMeshData,
+                   mesh::DGMultiMesh,
                    equations, dg::DGMulti, cache; normalize=true) where {Func}
   rd = dg.basis
   md = mesh.md
@@ -44,7 +45,7 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::AbstractMeshData, equations, dg::DGMulti, cache)
+                 mesh::DGMultiMesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
@@ -61,7 +62,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
   # property of the L2 projection.
   dS_dt = zero(eltype(first(du)))
   for i in Base.OneTo(length(md.wJq))
-    dS_dt += dot(cons2entropy(u_values[i],equations), du_values[i]) * md.wJq[i]
+    dS_dt += dot(cons2entropy(u_values[i], equations), du_values[i]) * md.wJq[i]
   end
   return dS_dt
 end
@@ -91,7 +92,7 @@ get_component(u::StructArray, i::Int) = StructArrays.component(u, i)
 get_component(u::AbstractArray{<:SVector}, i::Int) = getindex.(u, i)
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
+                 mesh::DGMultiMesh, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
   @unpack md = mesh
   rd = dg.basis
@@ -115,7 +116,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
+                 mesh::DGMultiMesh, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
   B1 = get_component(u, 6)
   B2 = get_component(u, 7)
@@ -134,7 +135,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
   return linf_divB
 end
 
-function create_cache_analysis(analyzer, mesh::AbstractMeshData,
+function create_cache_analysis(analyzer, mesh::DGMultiMesh,
                                equations, dg::DGMulti, cache,
                                RealT, uEltype)
   md = mesh.md
@@ -143,7 +144,7 @@ end
 
 SolutionAnalyzer(rd::RefElemData) = rd
 
-nelements(mesh::AbstractMeshData, solver::DGMulti, cache) = mesh.md.num_elements
+nelements(mesh::DGMultiMesh, solver::DGMulti, cache) = mesh.md.num_elements
 
 
 end # @muladd
