@@ -32,6 +32,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   get_proposed_dt, set_proposed_dt!,
                   terminate!, remake
 using CodeTracking: code_string
+using ConstructionBase: ConstructionBase
 @reexport using EllipsisNotation # ..
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
@@ -56,6 +57,7 @@ using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
+export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack

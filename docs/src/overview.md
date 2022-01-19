@@ -55,13 +55,14 @@ different features on different mesh types.
 | Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex, quadᵃ, hexᵃ    |
 | Adaptive mesh refinement                                     |          ✅         |             ❌            |               ❌              |          ✅          |               ❌            | [`AMRCallback`](@ref)
 | Solver type                                                  |   [`DGSEM`](@ref)  |      [`DGSEM`](@ref)     |        [`DGSEM`](@ref)       |   [`DGSEM`](@ref)   |       [`DGMulti`](@ref)    |
-| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitrary (affine)   |
+| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitraryᵇ   |
 | Weak form                                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralWeakForm`](@ref)
 | Flux differencing                                            |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralFluxDifferencing`](@ref)
 | Shock capturing                                              |          ✅         |             ✅            |               ✅              |          ✅          |               ❌            | [`VolumeIntegralShockCapturingHG`](@ref)
 | Nonconservative equations                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | e.g., GLM MHD or shallow water equations
 
 ᵃ: quad = quadrilateral, hex = hexahedron
+ᵇ: curved meshes supported for `SBP` and `GaussSBP` approximation types for `VolumeIntegralFluxDifferencing` solvers on quadrilateral and hexahedral `DGMultiMesh`es (non-conservative terms not yet supported)
 
 ## Time integration methods
 
