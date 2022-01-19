@@ -75,14 +75,12 @@
         tmp = 0.0
         usafe_node = get_node_vars(u_safe, equations, solver, j, k, element)
         _, _, _, p_safe = cons2prim(usafe_node, equations)
-        # _, _, _, p_safe = cons2prim(u_safe[:,j,k,element], equations)
         if p_safe < 0
           error("safe value for pressure not safe")
         end
 
         u_node = get_node_vars(u, equations, solver, j, k, element)
         _, v1, v2, p_newton = cons2prim(u_node, equations) 
-        # _, v1, v2, p_newton = cons2prim(u[:,j,k,element], equations) 
         α_p = beta * p_safe - p_newton
         if (α_p >  tolerance)
 
