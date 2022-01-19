@@ -28,10 +28,9 @@ function initial_condition_BM_vortex(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_BM_vortex
 
-cells_per_dimension = (16, 16)
-vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
-vertex_coordinates = map(x -> 0.5 .* x, vertex_coordinates) # map domain to [-0.5, 0.5]^2
-mesh = VertexMappedMesh(vertex_coordinates, EToV, dg, is_periodic=(true, true))
+mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16),
+                   coordinates_min=(-0.5, -0.5), coordinates_max=(0.5, 0.5),
+                   periodicity=true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
 tspan = (0.0, 1.0)

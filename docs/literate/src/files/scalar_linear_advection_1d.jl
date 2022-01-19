@@ -63,7 +63,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # u(x(\xi), t)\big|_{Q_l} \approx u^{Q_l}(\xi, t) = \sum_{j=0}^N u_j^{Q_l}(t) l_j(\xi)
 # ```
 # with $N+1$ coefficients $\{u_j^{Q_l}\}_{j=0}^N$.
-# By contruction the Lagrange basis has some usefull advantages. This basis is defined by $N+1$ nodes, which
+# By contruction the Lagrange basis has some useful advantages. This basis is defined by $N+1$ nodes, which
 # fulfill a Kronecker property at the exact same nodes. Let $\{\xi_i\}_{i=0}^N$ be these nodes.
 # ```math
 # l_j(\xi_i) = \delta_{i,j} =
@@ -172,7 +172,7 @@ using LinearAlgebra
 M = diagm(weights)
 # Now, we can write the integral with this new matrix.
 # ```math
-# \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{u}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),
+# \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{l}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),
 # ```
 # where $\underline{\dot{u}} = (\dot{u}_0, ..., \dot{u}_N)^T$ and $\underline{l}$ respectively.
 

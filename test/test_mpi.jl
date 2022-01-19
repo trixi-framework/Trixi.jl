@@ -42,14 +42,16 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       # Expected errors are exactly the same as in the serial test!
       l2   = [4.913300828257469e-5],
-      linf = [0.00045263895394385967])
+      linf = [0.00045263895394385967],
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
       # Expected errors are exactly the same as in the serial test!
       l2   = [3.2207388565869075e-5],
-      linf = [0.0007508059772436404])
+      linf = [0.0007508059772436404],
+      coverage_override = (maxiters=6,))
   end
 
   # Linear scalar advection with AMR
@@ -57,13 +59,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
       l2   = [0.00020547512522578292],
-      linf = [0.007831753383083506])
+      linf = [0.007831753383083506],
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"),
       l2   = [0.0014321062757891826],
-      linf = [0.0253454486893413])
+      linf = [0.0253454486893413],
+      coverage_override = (maxiters=6,))
   end
 
   # Hyperbolic diffusion
@@ -87,8 +91,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @trixi_testset "elixir_hypdiff_godunov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
-      l2   = [5.868147556385677e-6, 3.805179273239753e-5, 3.805179273248075e-5],
-      linf = [3.7019654930525725e-5, 0.00021224229433514097, 0.00021224229433514097])
+      l2   = [5.868147556427088e-6, 3.80517927324465e-5, 3.805179273249344e-5],
+      linf = [3.701965498725812e-5, 0.0002122422943138247, 0.00021224229431116015],
+      atol = 2.0e-12 #= required for CI on macOS =#)
   end
 
 
@@ -106,14 +111,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @trixi_testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
       l2   = [4.8226610349853444e-5, 4.117706709270575e-5, 4.1177067092959676e-5, 0.00012205252427437389],
-      linf = [0.0003543874851490436, 0.0002973166773747593, 0.0002973166773760916, 0.001154106793870291])
-  end
-
-  @trixi_testset "elixir_euler_density_wave.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
-      l2   = [0.0010600778457965205, 0.00010600778457646603, 0.0002120155691588112, 2.6501946142012653e-5],
-      linf = [0.006614198043407127, 0.0006614198043931596, 0.001322839608845383, 0.00016535495117153687],
-      tspan = (0.0, 0.5))
+      linf = [0.0003543874851490436, 0.0002973166773747593, 0.0002973166773760916, 0.001154106793870291],
+      # Let this test run until the end to cover the time-dependent lines
+      # of the indicator and the MPI-specific AMR code.
+      coverage_override = (maxiters=10^5,))
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
@@ -147,7 +148,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
       # Expected errors are exactly the same as in the serial test!
       l2   = [2.120552206480055e-6, 0.003281541473561042, 0.003280625257336616, 0.004645872821313438],
-      linf = [4.500266027052113e-5, 0.031765399304366726, 0.03179340562764421, 0.04563622772500864])
+      linf = [4.500266027052113e-5, 0.031765399304366726, 0.03179340562764421, 0.04563622772500864],
+      coverage_override = (maxiters=6,))
   end
 
   @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
