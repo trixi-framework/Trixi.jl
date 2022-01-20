@@ -304,13 +304,14 @@ end
 @inline function source_terms_geopotential(u, equations::CompressibleMoistEulerEquations2D)
   @unpack g, Rain = equations
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
-  W_f = 0
+  tmp = rho_v2
   if Rain
     W_f = fall_speed_rain(rho_ql, rho_ql, equations)
+    tmp += rho_ql * W_f
   end
 
   return SVector(zero(eltype(u)), zero(eltype(u)),
-                 -g * rho, -g * (rho_v2 + rho_ql * W_f), 
+                 -g * rho, -g * tmp, 
                  zero(eltype(u)), zero(eltype(u)))
 end
 
@@ -344,7 +345,7 @@ end
   Q_v = ground_vapor_term(u, x, t, equations)
   _, T = get_current_condition(u, equations)
   K = 0.5 * (v1^2 + v2^2)
-  phi = g * x[2]
+  #phi = g * x[2]
   phi = 0 
   h_v = c_pv * T + L_00
 
@@ -406,7 +407,7 @@ end
   xc, zc = (0, 2400)
   rho = u[1]
   f_t = (t-30) / 10
-  f_x = sqrt((x[1] - xc)^2 + (x[2] - zc)^2) / 200
+  f_x = sqrt((0.25 * x[1] - xc)^2 + (x[2] - zc)^2) / 200
   0.00025 * exp(-(f_t^2 + f_x^2)) * rho
 
   return 0.00025 * exp(-(f_t^2 + f_x^2)) * rho
@@ -424,7 +425,7 @@ end
   end
   W_f = - c_r * gm * inv(6) * (rho_ql_speed * inv(pi * rho_w * N_0r))^(1/8)
 
-  return W_f
+  return 0.25 * W_f
 end
 
 
@@ -624,10 +625,9 @@ end
       f4 += p_rr * v_interface 
     end
 
-    W_f = fall_speed_rain(rho_mean, rho_mean, equations)
-    v_liquid_interface = v_interface + W_f
+    W_f = fall_speed_rain(rho_ql_mean, rho_ql_mean, equations)
     v_square_mean = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
-    if(v_liquid_interface > 0)
+    if(v_interface + W_f > 0)
       W_f = fall_speed_rain(rho_ql_ll, rho_ql_mean, equations)
       f4 += W_f * rho_ql_ll * (c_pl * T_ll + v_square_mean)
       f1 += W_f * rho_ql_ll
@@ -641,6 +641,153 @@ end
       f3 += W_f * rho_ql_rr * v_interface
     end
 
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) + SVector(0, 0, 1, 0, 0 ,0 ) * p_interface
+  end
+
+  return flux
+end
+
+
+@inline function flux_LMARS_rain2(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  @unpack a, c_pl = equations
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
+  
+  # Unpack left and right state
+  p_ll, T_ll = get_current_condition(u_ll, equations)
+  p_rr, T_rr = get_current_condition(u_rr, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+
+  # Compute the necessary interface flux components
+
+  rho_mean = 0.5 * (rho_ll + rho_rr) # TODO why choose the mean value here?
+  T_mean = 0.5 * (T_ll + T_rr)
+  rho_ql_mean = 0.5 * (rho_ql_ll + rho_ql_rr)
+
+  if orientation == 1
+
+    beta = 1 # diffusion parameter <= 1 
+
+    v_interface = 0.5 * (v1_rr + v1_ll) - beta * inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * a * (v1_rr - v1_ll)
+
+    if (v_interface > 0)
+      f1, f2, f3, f4, f5, f6 = u_ll
+      f4 += p_ll
+    else
+      f1, f2, f3, f4, f5, f6 = u_rr
+      f4 += p_rr
+    end
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 1, 0, 0, 0, 0) * p_interface
+
+  else # orientation = 2
+
+    v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
+    
+    if (v_interface > 0)
+      f1, f2, f3, f4, f5, f6 = u_ll * v_interface
+      f4 += p_ll * v_interface 
+    else
+      f1, f2, f3, f4, f5, f6 = u_rr * v_interface
+      f4 += p_rr * v_interface 
+    end
+
+    W_f = fall_speed_rain(rho_ql_mean, rho_ql_mean, equations)      
+    v_liquid_interface = v_interface + W_f
+    v_square_mean = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+    if(v_liquid_interface > 0)
+      f1 += W_f * rho_ql_ll
+      f3 += W_f * rho_ql_ll * v_interface
+      f4 += W_f * rho_ql_ll * (c_pl * T_ll + v_square_mean)
+      f6 = (W_f + v_interface) * rho_ql_ll
+    else
+      f1 += W_f * rho_ql_rr 
+      f3 += W_f * rho_ql_rr * v_interface
+      f4 += W_f * rho_ql_rr * (c_pl * T_rr + v_square_mean)
+      f6 = (W_f + v_interface) * rho_ql_rr 
+    end
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) + SVector(0, 0, 1, 0, 0 ,0 ) * p_interface
+  end
+
+  return flux
+end
+
+
+@inline function flux_LMARS_rain3(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+  @unpack a, c_pl = equations
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_ql_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_ql_rr = u_rr
+  
+  # Unpack left and right state
+  p_ll, T_ll = get_current_condition(u_ll, equations)
+  p_rr, T_rr = get_current_condition(u_rr, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+
+  # Compute the necessary interface flux components
+
+  rho_mean = 0.5 * (rho_ll + rho_rr) # TODO why choose the mean value here?
+  T_mean = 0.5 * (T_ll + T_rr)
+  rho_ql_mean = 0.5 * (rho_ql_ll + rho_ql_rr)
+
+  if orientation == 1
+
+    beta = 1 # diffusion parameter <= 1 
+
+    v_interface = 0.5 * (v1_rr + v1_ll) - beta * inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - beta * 0.5 * rho_mean * a * (v1_rr - v1_ll)
+
+    if (v_interface > 0)
+      f1, f2, f3, f4, f5, f6 = u_ll
+      f4 += p_ll
+    else
+      f1, f2, f3, f4, f5, f6 = u_rr
+      f4 += p_rr
+    end
+
+    flux = SVector(f1, f2, f3, f4, f5, f6) * v_interface + SVector(0, 1, 0, 0, 0, 0) * p_interface
+
+  else # orientation = 2
+
+    v_interface = 0.5 * (v2_rr + v2_ll) - inv(2 * rho_mean * a) * (p_rr - p_ll)
+    p_interface = 0.5 * (p_rr + p_ll) - 0.5 * rho_mean * a * (v2_rr - v2_ll)
+    
+    if (v_interface > 0)
+      f1, f2, f3, f4, f5, f6 = u_ll * v_interface
+      f4 += p_ll * v_interface 
+    else
+      f1, f2, f3, f4, f5, f6 = u_rr * v_interface
+      f4 += p_rr * v_interface 
+    end
+
+    W_f_ll = fall_speed_rain(rho_ql_ll, rho_ql_ll, equations) 
+    W_f_rr = fall_speed_rain(rho_ql_rr, rho_ql_rr, equations)          
+    v_square_mean = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+    W_f = 0.5 * (W_f_ll + W_f_rr)
+    if (v_interface + W_f) > 0
+      f1 += W_f * rho_ql_ll
+      f3 += W_f * rho_ql_ll * v_interface
+      f4 += W_f * rho_ql_ll * (c_pl * T_ll + v_square_mean)
+      f6 = (W_f + v_interface) * rho_ql_ll
+    else
+      f1 += W_f * rho_ql_rr 
+      f3 += W_f * rho_ql_rr * v_interface
+      f4 += W_f * rho_ql_rr * (c_pl * T_rr + v_square_mean)
+      f6 = (W_f + v_interface) * rho_ql_rr
+    end
 
     flux = SVector(f1, f2, f3, f4, f5, f6) + SVector(0, 0, 1, 0, 0 ,0 ) * p_interface
   end
@@ -696,7 +843,7 @@ end
   Wf = fall_speed_rain(rho * ql, rho * ql, equations)
 
   c = sqrt(equations.gamma * p / rho)
-  return abs(v1) + c, abs(v2 * (1 - rho * ql * Wf) ) + c
+  return abs(v1) + c, abs(v2 * (1 + abs(Wf * v2)) ) + c
 end
 
 
@@ -1165,18 +1312,6 @@ end
 end
 
 
-"""
-    function flux_shima_etal(u_ll, u_rr, orientation, equation::CompressibleMoistEquations2D)
-This flux is is a modification of the original kinetic energy preserving two-point flux by
-Kuya, Totani and Kawai (2018)
-  Kinetic energy and entropy preserving schemes for compressible flows
-  by split convective forms
-  [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
-The modification is in the energy flux to guarantee pressure equilibrium and was developed by
-Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
-  Preventing spurious pressure oscillations in split convective form discretizations for
-  compressible flows
-"""
 @inline function flux_shima_etal(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
   # Unpack left and right state
