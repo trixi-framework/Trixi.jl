@@ -41,7 +41,7 @@ surface_flux =  flux_hllc
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(7)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=1,
+                                         alpha_max=0.5,
                                          alpha_min=0.001,
                                          alpha_smooth=true,
                                          variable=density_pressure)
@@ -96,7 +96,7 @@ step_limiter! = limiter!
                         
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks, maxiters=1e5);
 
