@@ -706,4 +706,21 @@ function apply_jacobian!(du,
 end
 
 
+function total_volume(mesh::Union{StructuredMesh{3}, P4estMesh{3}}, dg, cache)
+  @unpack weights = dg.basis
+
+  total_volume = zero(real(mesh))
+
+  # Use quadrature to numerically integrate over entire domain
+  for element in eachelement(dg, cache)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+      volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
+      total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
+    end
+  end
+
+  return total_volume
+end
+
+
 end # @muladd

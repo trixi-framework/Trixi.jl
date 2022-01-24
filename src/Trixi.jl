@@ -106,6 +106,7 @@ include("solvers/solvers.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
+include("semidiscretization/semidiscretization_coupled.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
@@ -152,7 +153,8 @@ export boundary_condition_periodic,
        BoundaryConditionDirichlet,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
-       boundary_condition_wall
+       boundary_condition_wall,
+       BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic
@@ -186,6 +188,8 @@ export SemidiscretizationEulerAcoustics
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
+
+export SemidiscretizationCoupled
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,

@@ -124,12 +124,13 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 Trixi.pretty_form_utf(::Val{:energy_potential}) = "∑e_potential"
 Trixi.pretty_form_ascii(::Val{:energy_potential}) = "e_potential"
 
-function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t, semi::SemidiscretizationEulerGravity)
-
+function Trixi.analyze(::Val{:energy_potential}, du_ode, u_euler_ode, t, semi::SemidiscretizationEulerGravity)
   u_gravity = Trixi.wrap_array(semi.cache.u_ode, semi.semi_gravity)
 
   mesh, equations_euler, dg, cache = Trixi.mesh_equations_solver_cache(semi.semi_euler)
   _, equations_gravity, _, _ = Trixi.mesh_equations_solver_cache(semi.semi_gravity)
+
+  u_euler = Trixi.wrap_array(u_euler_ode, mesh, equations_euler, dg, cache)
 
   e_potential = Trixi.integrate_via_indices(u_euler, mesh, equations_euler, dg, cache, equations_gravity, u_gravity) do u, i, j, element, equations_euler, dg, equations_gravity, u_gravity
     u_euler_local   = Trixi.get_node_vars(u_euler,   equations_euler,   dg, i, j, element)

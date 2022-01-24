@@ -74,19 +74,35 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   mpi_isroot() && mkpath(solution_callback.output_directory)
 
   semi = integrator.p
-  mesh, _, _, _ = mesh_equations_solver_cache(semi)
-  @trixi_timeit timer() "I/O" begin
-    if mesh.unsaved_changes
-      mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory)
-      mesh.unsaved_changes = false
-    end
-  end
+  @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory)
 
   if solution_callback.save_initial_solution
     solution_callback(integrator)
   end
 
   return nothing
+end
+
+
+function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep=0)
+  mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
+  if mesh.unsaved_changes
+    mesh.current_filename = save_mesh_file(mesh, output_directory, timestep)
+    mesh.unsaved_changes = false
+  end
+end
+
+
+function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep=0)
+  for i in 1:nmeshes(semi)
+    mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
+
+    if mesh.unsaved_changes
+      mesh.current_filename = save_mesh_file(mesh, output_directory, timestep, system=i)
+      mesh.unsaved_changes = false
+    end
+  end
 end
 
 
@@ -108,32 +124,12 @@ end
 # this method is called when the callback is activated
 function (solution_callback::SaveSolutionCallback)(integrator)
   u_ode = integrator.u
-  @unpack t, dt = integrator
-  iter = integrator.destats.naccept
   semi = integrator.p
-  mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
 
   @trixi_timeit timer() "I/O" begin
-    @trixi_timeit timer() "save mesh" if mesh.unsaved_changes
-      mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory, iter)
-      mesh.unsaved_changes = false
-    end
-
-    element_variables = Dict{Symbol, Any}()
-    @trixi_timeit timer() "get element variables" begin
-      get_element_variables!(element_variables, u_ode, semi)
-      callbacks = integrator.opts.callback
-      if callbacks isa CallbackSet
-        for cb in callbacks.continuous_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.destats.naccept)
-        end
-        for cb in callbacks.discrete_callbacks
-          get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.destats.naccept)
-        end
-      end
-    end
-
-    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
+    @trixi_timeit timer() "save mesh" save_mesh(semi, solution_callback.output_directory, integrator.iter)
+    save_solution_file(semi, u_ode, solution_callback, integrator)
   end
 
   # avoid re-evaluating possible FSAL stages
@@ -142,12 +138,47 @@ function (solution_callback::SaveSolutionCallback)(integrator)
 end
 
 
+@inline function save_solution_file(semi::AbstractSemidiscretization, u_ode, solution_callback,
+                                    integrator; system="")
+  @unpack t, dt = integrator
+  iter = integrator.destats.naccept
+
+  element_variables = Dict{Symbol, Any}()
+  @trixi_timeit timer() "get element variables" begin
+    get_element_variables!(element_variables, u_ode, semi)
+    callbacks = integrator.opts.callback
+    if callbacks isa CallbackSet
+      for cb in callbacks.continuous_callbacks
+        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=iter)
+      end
+      for cb in callbacks.discrete_callbacks
+        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=iter)
+      end
+    end
+  end
+
+  @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
+                                                           solution_callback, element_variables,
+                                                           system=system)
+end
+
+
+@inline function save_solution_file(semi::SemidiscretizationCoupled, u_ode, solution_callback, integrator)
+  @unpack semis, u_indices = semi
+
+  for i in 1:nmeshes(semi)
+    save_solution_file(semis[i], u_ode[u_indices[i]], solution_callback, integrator, system=i)
+  end
+end
+
+
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::AbstractSemidiscretization, solution_callback,
-                                    element_variables=Dict{Symbol,Any}())
+                                    element_variables=Dict{Symbol,Any}(); system="")
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback, element_variables)
+  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback,
+                     element_variables; system=system)
 end
 
 

@@ -27,6 +27,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     "UnstructuredMesh" => ("unstructured_2d_dgsem", "elixir_euler_basic.jl"),
     "P4estMesh" => ("p4est_2d_dgsem", "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
     "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
+    "Coupled StructuredMesh" => ("structured_2d_dgsem", "elixir_euler_source_terms_ring_coupled.jl")
   )
 
   @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
@@ -82,39 +83,41 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
 
-    @testset "2D plot recipes" begin
-      pd = PlotData2D(sol)
+    if mesh != "Coupled StructuredMesh"
+      @testset "2D plot recipes" begin
+        pd = PlotData2D(sol)
 
-      @test_nowarn_debug Plots.plot(sol)
-      @test_nowarn_debug Plots.plot(pd)
-      @test_nowarn_debug Plots.plot(pd["p"])
-      @test_nowarn_debug Plots.plot(getmesh(pd))
+        @test_nowarn_debug Plots.plot(sol)
+        @test_nowarn_debug Plots.plot(pd)
+        @test_nowarn_debug Plots.plot(pd["p"])
+        @test_nowarn_debug Plots.plot(getmesh(pd))
 
-      semi = sol.prob.p
-      if mesh == "DGMulti"
-        scalar_data = StructArrays.component(sol.u[end], 1)
-        @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
-      else
-        cache = semi.cache
-        x = view(cache.elements.node_coordinates, 1, :, :, :)
-        @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
+        semi = sol.prob.p
+        if mesh == "DGMulti"
+          scalar_data = StructArrays.component(sol.u[end], 1)
+          @test_nowarn_debug Plots.plot(ScalarPlotData2D(scalar_data, semi))
+        else
+          cache = semi.cache
+          x = view(cache.elements.node_coordinates, 1, :, :, :)
+          @test_nowarn_debug Plots.plot(ScalarPlotData2D(x, semi))
+        end
       end
-    end
 
-    @testset "1D plot from 2D solution" begin
-      if mesh != "DGMulti"
-        @testset "Create 1D plot as slice" begin
-          @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
-          @test_nowarn_debug PlotData1D(sol, slice=:x, point=(0.5, 0.0)) isa PlotData1D
-          pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
-          @test_nowarn_debug Plots.plot(pd1D)
-
-          @testset "Create 1D plot along curve" begin
-            curve = zeros(2, 10)
-            curve[1, :] = range(-1, 1,length=10)
-            @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
-            pd1D = PlotData1D(sol, curve=curve)
+      @testset "1D plot from 2D solution" begin
+        if mesh != "DGMulti"
+          @testset "Create 1D plot as slice" begin
+            @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+            @test_nowarn_debug PlotData1D(sol, slice=:x, point=(0.5, 0.0)) isa PlotData1D
+            pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
             @test_nowarn_debug Plots.plot(pd1D)
+
+            @testset "Create 1D plot along curve" begin
+              curve = zeros(2, 10)
+              curve[1, :] = range(-1, 1,length=10)
+              @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+              pd1D = PlotData1D(sol, curve=curve)
+              @test_nowarn_debug Plots.plot(pd1D)
+            end
           end
         end
       end

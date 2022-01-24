@@ -359,6 +359,12 @@ function wrap_array_native(u_ode, semi::AbstractSemidiscretization)
 end
 
 
+function Base.summary(semi::AbstractSemidiscretization)
+  _, _, solver, _ = mesh_equations_solver_cache(semi)
+  summary(solver)
+end
+
+
 
 # TODO: Taal, document interface?
 # New mesh/solver combinations have to implement

@@ -138,6 +138,7 @@ end
 
 @inline Base.ndims(semi::SemidiscretizationEulerAcoustics) = ndims(semi.semi_acoustics)
 @inline Base.real(semi::SemidiscretizationEulerAcoustics) = real(semi.semi_acoustics)
+@inline nelements(semi::SemidiscretizationEulerAcoustics) = nelements(semi.semi_acoustics.solver, semi.semi_acoustics.cache)
 
 
 # Computes the coefficients of the initial condition

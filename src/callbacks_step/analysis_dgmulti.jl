@@ -7,7 +7,7 @@
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::DGMultiMesh{NDIMS}, equations, initial_condition,
-                          dg::DGMulti{NDIMS}, cache, cache_analysis) where {NDIMS}
+                          dg::DGMulti{NDIMS}, cache, cache_analysis; normalize=false) where {NDIMS}
   rd = dg.basis
   md = mesh.md
   @unpack u_values = cache

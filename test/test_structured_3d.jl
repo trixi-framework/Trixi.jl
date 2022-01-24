@@ -12,7 +12,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "struct
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "Structured mesh" begin
+@testset "StructuredMesh3D" begin
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
@@ -62,8 +62,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_curved.jl"),
-    l2   = [0.0032940531178824463, 0.003275679548217804, 0.0030020672748714084, 0.00324007343451744, 0.005721986362580164],
-    linf = [0.03156756290660656, 0.033597629023726316, 0.02095783702361409, 0.03353574465232212, 0.05873635745032857])
+      l2   = [0.0032940531178824463, 0.003275679548217804, 0.0030020672748714084, 0.00324007343451744, 0.005721986362580164],
+      linf = [0.03156756290660656, 0.033597629023726316, 0.02095783702361409, 0.03353574465232212, 0.05873635745032857])
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin
@@ -72,6 +72,12 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.2761764220925329, 0.20286331858055706, 0.18763944865434593, 0.19313636558790004, 0.707563913727584],
       tspan = (0.0, 0.25),
       coverage_override = (polydeg=3,)) # Prevent long compile time in CI
+  end
+
+  @trixi_testset "elixir_euler_source_terms_cubed_sphere_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_cubed_sphere_coupled.jl"),
+    l2   = [0.0044314085782598146, 0.004171526709906841, 0.00417152670990684, 0.004171526709906819, 0.008005125796951762],
+    linf = [0.030382705156516865, 0.04078360878655585, 0.040783608786581826, 0.02513116520004366, 0.07741587208229639])
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
@@ -83,9 +89,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
-      l2   = [0.009082353036644902, 0.007128360240528109, 0.006970330025996491, 0.006898850266874514,
-              0.03302008823756457, 0.003203389099143526, 0.003077498677885352, 0.0030740006760477624,
-              4.192129696970217e-5],
+      l2   = [0.009082355120108163, 0.00712836187575154, 0.006970331624968278, 0.0068988518494490746,
+              0.033020095812269036, 0.0032033898339909085, 0.0030774993838538736, 0.003074001381213843,
+              4.192130658631602e-5],
       linf = [0.2883946030582689, 0.25956437344015054, 0.2614364943543665, 0.24617277938134657,
               1.1370443512475847, 0.1278041831463388, 0.13347391885068594, 0.1457563463643099,
               0.0021174246048172563],

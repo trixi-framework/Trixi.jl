@@ -7,7 +7,7 @@
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::ParallelTreeMesh{2}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          dg::DGSEM, cache, cache_analysis; normalize=true)
   l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
                                                         mesh, equations, initial_condition,
                                                         dg, cache, cache_analysis)
@@ -43,7 +43,9 @@ function calc_error_norms(func, u, t, analyzer,
 
     # For L2 error, divide by total volume
     total_volume_ = total_volume(mesh)
-    l2_error = @. sqrt(l2_error / total_volume_)
+    if normalize
+      l2_error = @. sqrt(l2_error / total_volume)
+    end
   else
     l2_error = convert(eltype(l2_errors), NaN * zero(eltype(l2_errors)))
     linf_error = convert(eltype(linf_errors), NaN * zero(eltype(linf_errors)))

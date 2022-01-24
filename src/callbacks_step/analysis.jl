@@ -113,6 +113,54 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
 end
 
 
+function AnalysisCallback(semi::SemidiscretizationCoupled; kwargs...)
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
+  AnalysisCallback(semi, equations; kwargs...)
+end
+
+
+# The SemidiscretizationCoupled needs multiple analyzers (one for each mesh)
+function AnalysisCallback(semi::SemidiscretizationCoupled, equations;
+                          interval=0,
+                          save_analysis=false,
+                          output_directory="out",
+                          analysis_filename="analysis.dat",
+                          extra_analysis_errors=Symbol[],
+                          analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
+                          extra_analysis_integrals=(),
+                          analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
+                          RealT=real(semi),
+                          uEltype=eltype(semi),
+                          kwargs...)
+  # when is the callback activated
+  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
+                                                     isfinished(integrator))
+
+  analyzers = map(semi.semis) do semi_
+    _, _, solver, _ = mesh_equations_solver_cache(semi_)
+
+    analyzer = SolutionAnalyzer(solver; kwargs...)
+  end
+
+  caches_analysis = map(semi.semis) do semi_
+    mesh, equations_, solver, cache = mesh_equations_solver_cache(semi_)
+
+    analyzer = SolutionAnalyzer(solver; kwargs...)
+    cache_analysis = create_cache_analysis(analyzer, mesh, equations_, solver, cache, RealT, uEltype)
+  end
+
+  analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
+                                       analyzers,
+                                       analysis_errors, Tuple(analysis_integrals),
+                                       SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
+                                       caches_analysis)
+
+  DiscreteCallback(condition, analysis_callback,
+                   save_positions=(false,false),
+                   initialize=initialize!)
+end
+
+
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
   initial_state_integrals = integrate(u_ode, semi)
@@ -179,7 +227,7 @@ end
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
   @unpack dt, t = integrator
   iter = integrator.destats.naccept
 
@@ -191,7 +239,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println()
     mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(solver))
+    mpi_println(" Simulation running '", get_name(equations), "' with ", summary(semi))
     mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *
@@ -201,10 +249,10 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(mesh, solver, cache)))
+    mpi_println(" #elements:      " * @sprintf("% 14s", nelements(semi)))
 
     # Level information (only show for AMR)
-    print_amr_information(integrator.opts.callback, mesh, solver, cache)
+    print_amr_information(integrator.opts.callback, semi)
     mpi_println()
 
     # Open file for appending and store time step and time information
@@ -220,9 +268,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
     du_ode = first(get_tmp_cache(integrator))
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
-    u  = wrap_array(integrator.u, mesh, equations, solver, cache)
-    du = wrap_array(du_ode,       mesh, equations, solver, cache)
-    l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
+    l2_error, linf_error = analysis_callback(io, du_ode, integrator.u, t, semi)
 
     mpi_println("─"^100)
     mpi_println()
@@ -247,7 +293,7 @@ end
 
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
 # and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
-function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
+function (analysis_callback::AnalysisCallback)(io, du_ode, u_ode, t, semi)
   @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
   cache_analysis = analysis_callback.cache
   _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -310,12 +356,12 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     mpi_print(" max(|Uₜ|):   ")
     for v in eachvariable(equations)
       # Calculate maximum absolute value of Uₜ
-      res = maximum(abs, view(du, v, ..))
+      res = maximum(abs, view(reshape(du_ode, nvariables(equations), :), v, ..))
       if mpi_isparallel()
         # TODO: Debugging, here is a type instability
         global_res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
         if mpi_isroot()
-          res::eltype(du) = global_res[]
+          res::eltype(du_ode) = global_res[]
         end
       end
       if mpi_isroot()
@@ -360,18 +406,22 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   end
 
   # additional integrals
-  analyze_integrals(analysis_integrals, io, du, u, t, semi)
+  analyze_integrals(analysis_integrals, io, du_ode, u_ode, t, semi)
 
   return l2_error, linf_error
 end
 
 
 # Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh, solver, cache)
-
+function print_amr_information(callbacks, semi)
   # Return early if there is nothing to print
   uses_amr(callbacks) || return nothing
 
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  print_amr_information(mesh, equations, solver, cache)
+end
+
+function print_amr_information(mesh::TreeMesh, equations, solver, cache)
   levels = Vector{Int}(undef, nelements(solver, cache))
   min_level = typemax(Int)
   max_level = typemin(Int)
@@ -390,12 +440,7 @@ function print_amr_information(callbacks, mesh, solver, cache)
   return nothing
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
-
-  # Return early if there is nothing to print
-  uses_amr(callbacks) || return nothing
-
+function print_amr_information(mesh::P4estMesh, equations, solver, cache)
   elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
   for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
@@ -415,13 +460,13 @@ end
 
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
-function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi) where {N}
+function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du_ode, u_ode, t, semi) where {N}
 
   # Extract the first analysis integral and process it; keep the remaining to be processed later
   quantity = first(analysis_integrals)
   remaining_quantities = Base.tail(analysis_integrals)
 
-  res = analyze(quantity, du, u, t, semi)
+  res = analyze(quantity, du_ode, u_ode, t, semi)
   if mpi_isroot()
     @printf(" %-12s:", pretty_form_utf(quantity))
     @printf("  % 10.8e", res)
@@ -430,7 +475,7 @@ function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi
   mpi_println()
 
   # Recursively call this method with the unprocessed integrals
-  analyze_integrals(remaining_quantities, io, du, u, t, semi)
+  analyze_integrals(remaining_quantities, io, du_ode, u_ode, t, semi)
   return nothing
 end
 
@@ -455,13 +500,43 @@ end
 # some common analysis_integrals
 # to support another analysis integral, you can overload
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
-function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
+function analyze(quantity, du_ode, u_ode, t, semi::AbstractSemidiscretization)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+  du = wrap_array(du_ode, mesh, equations, solver, cache)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
-function analyze(quantity, du, u, t, mesh, equations, solver, cache)
-  integrate(quantity, u, mesh, equations, solver, cache, normalize=true)
+
+
+function analyze(quantity, du_ode, u_ode, t, semi::SemidiscretizationCoupled; normalize=true)
+  @unpack semis, u_indices = semi
+
+  integral = sum(1:nmeshes(semi)) do i
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+    # In the AnalysisCallback for SemidiscretizationCoupled, u_ode is never wrapped
+    du = wrap_array(du_ode[u_indices[i]], mesh, equations, solver, cache)
+    u = wrap_array(u_ode[u_indices[i]], mesh, equations, solver, cache)
+
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, normalize=false)
+  end
+
+  if normalize
+    # Normalize with total volume
+    total_volume_ = total_volume(semi)
+    integral = integral / total_volume_
+  end
+
+  return integral
 end
+
+
+function analyze(quantity, du, u, t, mesh, equations, solver, cache; normalize=true)
+  integrate(quantity, u, mesh, equations, solver, cache, normalize=normalize)
+end
+
+
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 

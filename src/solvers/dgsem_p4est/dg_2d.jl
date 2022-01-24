@@ -51,8 +51,10 @@ end
     return index_end, 0
   elseif index === :i_forward
     return index_begin, 1
-  else # if index === :i_backward
+  elseif index === :i_backward
     return index_end, -1
+  else
+    error("Invalid identifier $index: Only :begin, :end, :i_forward, :i_backward are valid index identifiers")
   end
 end
 

@@ -53,7 +53,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{2}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          dg::DGSEM, cache, cache_analysis; normalize=true)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
   @unpack u_local, u_tmp1, x_local, x_tmp1 = cache_analysis
@@ -87,9 +87,11 @@ function calc_error_norms(func, u, t, analyzer,
     l2_error += l2_error_local
   end
 
-  # For L2 error, divide by total volume
-  total_volume_ = total_volume(mesh)
-  l2_error = @. sqrt(l2_error / total_volume_)
+  if normalize
+    # For L2 error, divide by total volume
+    total_volume_ = total_volume(mesh)
+    l2_error = @. sqrt(l2_error / total_volume_)
+  end
 
   return l2_error, linf_error
 end
@@ -97,7 +99,7 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}}, equations,
-                          initial_condition, dg::DGSEM, cache, cache_analysis)
+                          initial_condition, dg::DGSEM, cache, cache_analysis; normalize=true)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
   @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
@@ -105,7 +107,6 @@ function calc_error_norms(func, u, t, analyzer,
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
-  total_volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
@@ -122,12 +123,14 @@ function calc_error_norms(func, u, t, analyzer,
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j), equations)
       l2_error += diff.^2 * (weights[i] * weights[j] * jacobian_local[i, j])
       linf_error = @. max(linf_error, abs(diff))
-      total_volume += weights[i] * weights[j] * jacobian_local[i, j]
     end
   end
 
-  # For L2 error, divide by total volume
-  l2_error = @. sqrt(l2_error / total_volume)
+  if normalize
+    # For L2 error, divide by total volume
+    total_volume_ = total_volume(mesh, dg, cache)
+    l2_error = @. sqrt(l2_error / total_volume_)
+  end
 
   return l2_error, linf_error
 end
@@ -165,20 +168,18 @@ function integrate_via_indices(func::Func, u,
 
   # Initialize integral with zeros of the right shape
   integral = zero(func(u, 1, 1, 1, equations, dg, args...))
-  total_volume = zero(real(mesh))
 
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
       integral += volume_jacobian * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
-      total_volume += volume_jacobian * weights[i] * weights[j]
     end
   end
 
   # Normalize with total volume
   if normalize
-    integral = integral / total_volume
+    integral = integral / total_volume(mesh, dg, cache)
   end
 
   return integral
@@ -197,9 +198,9 @@ end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
-                 equations, dg::DG, cache)
+                 equations, dg::DG, cache; normalize=true)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, element, equations, dg, du
+  integrate_via_indices(u, mesh, equations, dg, cache, du; normalize=normalize) do u, i, j, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, element)
     du_node = get_node_vars(du, equations, dg, i, j, element)
     dot(cons2entropy(u_node, equations), du_node)
@@ -210,8 +211,9 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{2},
-                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
-  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
+                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache; normalize=true)
+  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix;
+      normalize=true) do u, i, j, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
     for k in eachnode(dg)
       divb += ( derivative_matrix[i, k] * u[6, k, j, element] +
@@ -224,8 +226,9 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
-                 dg::DG, cache)
-  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
+                 dg::DG, cache; normalize=true)
+  integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix;
+      normalize=normalize) do u, i, j, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
     for k in eachnode(dg)
       divb += ( derivative_matrix[i, k] * u[5, k, j, element] +
@@ -258,7 +261,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2},
-                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
+                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache; normalize=true)
   @unpack derivative_matrix, weights = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors
@@ -280,7 +283,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
-                 dg::DG, cache)
+                 dg::DG, cache; normalize=true)
   @unpack derivative_matrix, weights = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors

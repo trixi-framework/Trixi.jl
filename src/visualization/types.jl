@@ -346,6 +346,44 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
   return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data, variable_names)
 end
 
+
+function PlotData2D(u_ode::AbstractVector, semi::SemidiscretizationCoupled;
+                    solution_variables=nothing, nvisnodes=2*polydeg(semi), kwargs...)
+  @assert ndims(semi) == 2 "unsupported number of dimensions $ndims (must be 2)"
+
+  x_vec = []
+  y_vec = []
+  data_vec = []
+  pd = 0
+
+  @unpack semis, u_indices = semi
+  for i in 1:nmeshes(semi)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semis[i])
+
+    u = wrap_array(u_ode[u_indices[i]], semis[i])
+
+    pd = PlotData2D(u, mesh::Union{StructuredMesh, UnstructuredMesh2D, P4estMesh}, equations, solver, cache;
+                    solution_variables=solution_variables, nvisnodes=nvisnodes)
+
+    push!(x_vec, pd.x)
+    push!(y_vec, pd.y)
+    push!(data_vec, pd.data)
+  end
+
+  xplot = hcat(x_vec...)
+  yplot = hcat(y_vec...)
+  data = hcat(data_vec...)
+
+  t = pd.t
+  xfp = pd.x_face
+  yfp = pd.y_face
+  ufp = pd.face_data
+  variable_names = pd.variable_names
+
+  return PlotData2DTriangulated(xplot, yplot, data, t, xfp, yfp, ufp, variable_names)
+end
+
+
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
 function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
                                 solution_variables=nothing, nvisnodes=2*polydeg(dg))
