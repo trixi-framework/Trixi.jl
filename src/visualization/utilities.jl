@@ -1529,17 +1529,22 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
   if n_points == nothing
     n_points = 64
   end
-  curve = zeros(3, n_points)
+  dimensions = length(point)
+  curve = zeros(dimensions, n_points)
   if slice == :x
     xmin, xmax = extrema(nodes_x)
     curve[1, :] .= range(xmin, xmax, length = n_points)
     curve[2, :] .= point[2]
-    curve[3, :] .= point[3]
+    if dimensions === 3
+      curve[3, :] .= point[3]
+    end
   elseif slice == :y
     ymin, ymax = extrema(nodes_y)
     curve[1, :] .= point[1]
     curve[2, :] .= range(ymin, ymax, length = n_points)
-    curve[3, :] .= point[3]
+    if dimensions === 3
+      curve[3, :] .= point[3]
+    end
   elseif slice == :z
     zmin, zmax = extrema(nodes_z)
     curve[1, :] .= point[1]
@@ -1549,7 +1554,7 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
     @assert false "Input for 'slice' is not supported here."
   end
 
-  return curve[1:length(point),:]
+  return curve
 end
 
 end # @muladd
