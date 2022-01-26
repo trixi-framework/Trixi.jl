@@ -122,6 +122,13 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.0016290067532561904],
       tspan = (0.0, 0.02))
   end
+
+  @trixi_testset "elixir_euler_forward_step.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_forward_step.jl"),
+      l2   = [0.06855664742023791, 0.06684765071727328, 0.011490238878609142, 0.5283450806039764],
+      linf = [3.95047596618716, 4.340113353698306, 4.538695089086252, 31.989720123661193],
+      tspan = (0.0, 0.005))
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
