@@ -38,6 +38,11 @@ boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_mach3_f
 # The bones are here for the subsonic outflow as well. One simply needs to pass the reference pressure
 # to set it from the outside, the rest comes from the internal solution.
 # Once fixed this function should probably move to `compressible_euler_2d.jl`
+# See the reference below for a discussion on inflow/outflow boundary conditions.
+#
+# - Jan-Reneé Carlson (2011)
+#   Inflow/Outflow Boundary Conditions with Application to FUN3D.
+#   [NASA TM 20110022658](https://ntrs.nasa.gov/citations/20110022658)
 @inline function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
                                             surface_flux_function, equations::CompressibleEulerEquations2D)
   # # This would be for the general case where we need to check the magnitude of the local Mach number
