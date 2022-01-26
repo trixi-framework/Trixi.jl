@@ -756,11 +756,11 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 end
 
 # Convert a PlotData2DTriangulate object to a 1d data along given curve.
-function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
+function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
 
   # If no curve is defined, create a axis curve.
   if input_curve === nothing
-    input_curve = axis_curve(pd.x, pd.y, nothing, slice, point)
+    input_curve = axis_curve(pd.x, pd.y, nothing, slice, point, nvisnodes)
   end
 
   @assert size(input_curve, 1) == 2 "Input 'curve' must be 2xn dimensional."

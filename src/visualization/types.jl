@@ -559,7 +559,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
     orientation_x = 1
   elseif ndims(mesh) == 2
     pd = PlotData2DTriangulated(u, mesh, equations, solver, cache; solution_variables, nvisnodes)
-    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point)
+    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point, nvisnodes)
   else # ndims(mesh) == 3
     x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve, slice, point, nvisnodes)
   end
