@@ -4,35 +4,34 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
-abstract type AbstractMeshData{NDIMS, ElemType} end
-
 """
-    VertexMappedMesh{NDIMS, ElemType, Nboundaries, Tv, Ti} <: AbstractMeshData{NDIMS, ElemType}
+    DGMultiMesh{NDIMS, ...}
 
-`VertexMappedMesh` describes a mesh which is constructed by an reference-to-physical
-mapping which can be constructed using only the vertex positions.
-
-Wraps `MeshData` and `boundary_faces` in a dispatchable mesh type.
+`DGMultiMesh` describes a mesh type which wraps `StartUpDG.MeshData` and `boundary_faces` in a
+dispatchable type. This is intended to store geometric data and connectivities for any type of
+mesh (Cartesian, affine, curved, structured/unstructured).
 """
-struct VertexMappedMesh{NDIMS, ElemType, MeshDataT <: MeshData{NDIMS}, Nboundaries} <: AbstractMeshData{NDIMS, ElemType}
+struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
   md::MeshDataT
-  boundary_faces::Dict{Symbol, Vector{Int}}
+  boundary_faces::BoundaryFaceT
 end
 
-Base.ndims(::VertexMappedMesh{NDIMS}) where {NDIMS} = NDIMS
+# enable use of @set and setproperties(...) for DGMultiMesh
+ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {T1, T2, T3, T4} = DGMultiMesh{T1, T2, T3, T4}
 
-function Base.show(io::IO, mesh::VertexMappedMesh{NDIMS, ElemType}) where {NDIMS, ElemType}
+Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
+
+function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
   @nospecialize mesh # reduce precompilation time
-  print(io, "$ElemType VertexMappedMesh with NDIMS = $NDIMS.")
+  print(io, "$MeshType DGMultiMesh with NDIMS = $NDIMS.")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::VertexMappedMesh{NDIMS, ElemType, MeshDataT, Nb}) where {NDIMS, ElemType, MeshDataT, Nb}
+function Base.show(io::IO, ::MIME"text/plain", mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
   @nospecialize mesh # reduce precompilation time
   if get(io, :compact, false)
     show(io, mesh)
   else
-    summary_header(io, "VertexMappedMesh{$NDIMS, $ElemType, $Nb}, ")
+    summary_header(io, "DGMultiMesh{$NDIMS, $MeshType}, ")
     summary_line(io, "number of elements", mesh.md.num_elements)
     summary_line(io, "number of boundaries", length(mesh.boundary_faces))
     for (boundary_name, faces) in mesh.boundary_faces
@@ -40,55 +39,6 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::VertexMappedMesh{NDIMS, Ele
     end
     summary_footer(io)
   end
-end
-
-"""
-    VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV, rd::RefElemData;
-                     is_on_boundary = nothing,
-                     is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv}
-
-- `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
-- `EToV` is a 2D array containing element-to-vertex connectivities for each element
-- `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
-  reference element (e.g., quadrature, basis evaluation, differentiation, etc).
-- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
-- `is_periodic` is a tuple of booleans specifying periodicity = `true`/`false` in the (x,y,z) direction.
-"""
-function VertexMappedMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
-                          is_on_boundary = nothing,
-                          is_periodic::NTuple{NDIMS, Bool} = ntuple(_->false, NDIMS)) where {NDIMS, Tv, Ti}
-
-  md = MeshData(vertex_coordinates, EToV, rd)
-  md = StartUpDG.make_periodic(md, is_periodic)
-  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return VertexMappedMesh{NDIMS, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
-end
-
-# specialization for NDIMS = 1
-function VertexMappedMesh(vertex_coordinates::NTuple{1, Vector{Tv}}, EToV::Array{Ti,2}, rd::RefElemData;
-                          is_on_boundary = nothing,
-                          is_periodic = (false, )) where {Tv, Ti}
-
-  md = MeshData(vertex_coordinates, EToV, rd)
-  md = StartUpDG.make_periodic(md, is_periodic...)
-  boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return VertexMappedMesh{1, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
-end
-
-"""
-    VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
-
-- `triangulateIO` is a `TriangulateIO` mesh representation
-- `rd` is a `RefElemData` from `StartUpDG.jl`, and contains information associated with to the
-reference element (e.g., quadrature, basis evaluation, differentiation, etc).
-- `boundary_dict` is a `Dict{Symbol, Int}` which associates each integer `TriangulateIO` boundary tag with a Symbol
-"""
-function VertexMappedMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
-
-  vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
-  md = MeshData(vertex_coordinates, EToV, rd)
-  boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return VertexMappedMesh{2, typeof(rd.elementType), typeof(md), length(boundary_faces)}(md, boundary_faces)
 end
 
 end # @muladd

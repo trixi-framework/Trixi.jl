@@ -14,32 +14,46 @@
 
 # ### [1 Introduction to DG methods](@ref scalar_linear_advection_1d)
 #-
-# This tutorial gives an introduction to discontinuous Galerkin (DG) methods with the example of the 
-# scalar linear advection equation in 1D. Starting with some theoretical explanations, we first implement 
+# This tutorial gives an introduction to discontinuous Galerkin (DG) methods with the example of the
+# scalar linear advection equation in 1D. Starting with some theoretical explanations, we first implement
 # a raw version of a discontinuous Galerkin spectral element method (DGSEM). Then, we will show how
 # to use features of Trixi.jl to achieve the same result.
 
-# ### 2 Adding a new equation
-# #### [2.1 Scalar conservation law](@ref cubic_conservation_law)
+# ### [2 DGSEM with flux differencing](@ref DGSEM_FluxDiff)
+#-
+# To improve stability often the flux differencing formulation of the DGSEM (split form) is used.
+# We want to present the idea and formulation on a basic 1D level. Then, we show how this formulation
+# can be implemented in Trixi and analyse entropy conservation for two different flux combinations.
+
+# ### [3 Shock capturing with flux differencing and stage limiter](@ref shock_capturing)
+#-
+# Using the flux differencing formulation, a simple procedure to capture shocks is a hybrid blending
+# of a high-order DG method and a low-order subcell finite volume (FV) method. We present the idea on a
+# very basic level and show the implementation in Trixi. Then, a positivity preserving limiter is
+# explained and added to an exemplary simulation of the Sedov blast wave with the 2D compressible Euler
+# equations.
+
+# ### 4 Adding a new equation
+# #### [4.1 Scalar conservation law](@ref cubic_conservation_law)
 #-
 # This tutorial explains how to add a new physics model using the example of the cubic conservation
 # law. First, we define the equation using a `struct` `CubicEquation` and the physical flux. Then,
 # the corresponding standard setup in Trixi.jl (`mesh`, `solver`, `semi` and `ode`) is implemented
 # and the ODE problem is solved by OrdinaryDiffEq's `solve` method.
 
-# #### [2.2 Nonconservative advection](@ref nonconservative_advection)
+# #### [4.2 Nonconservative advection](@ref nonconservative_advection)
 #-
 # In this part, another physics model is implemented, the nonconservative linear advection equation.
 # We run two different simulations with different levels of refinement and compare the resulting errors.
 
-# ### [3 Differentiable programming](@ref differentiable_programming)
+# ### [5 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
 # a few semidiscretizations. Moreover, we calculate an example for propagating errors with Measurement.jl
 # at the end.
 
-# ### [4 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
+# ### [6 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
 #-
 # The purpose of this tutorial is to demonstrate how to use the [`UnstructuredMesh2D`](@ref)
 # functionality of Trixi.jl. This begins by running and visualizing an available unstructured

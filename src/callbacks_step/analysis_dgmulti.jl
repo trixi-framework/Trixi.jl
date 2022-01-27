@@ -6,7 +6,7 @@
 
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::AbstractMeshData{NDIMS}, equations, initial_condition,
+                          mesh::DGMultiMesh{NDIMS}, equations, initial_condition,
                           dg::DGMulti{NDIMS}, cache, cache_analysis) where {NDIMS}
   rd = dg.basis
   md = mesh.md
@@ -28,7 +28,7 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function integrate(func::Func, u,
-                   mesh::AbstractMeshData,
+                   mesh::DGMultiMesh,
                    equations, dg::DGMulti, cache; normalize=true) where {Func}
   rd = dg.basis
   md = mesh.md
@@ -45,7 +45,7 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::AbstractMeshData, equations, dg::DGMulti, cache)
+                 mesh::DGMultiMesh, equations, dg::DGMulti, cache)
 
   rd = dg.basis
   md = mesh.md
@@ -92,7 +92,7 @@ get_component(u::StructArray, i::Int) = StructArrays.component(u, i)
 get_component(u::AbstractArray{<:SVector}, i::Int) = getindex.(u, i)
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
+                 mesh::DGMultiMesh, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
   @unpack md = mesh
   rd = dg.basis
@@ -116,7 +116,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::AbstractMeshData, equations::IdealGlmMhdEquations2D,
+                 mesh::DGMultiMesh, equations::IdealGlmMhdEquations2D,
                  dg::DGMulti, cache)
   B1 = get_component(u, 6)
   B2 = get_component(u, 7)
@@ -135,7 +135,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
   return linf_divB
 end
 
-function create_cache_analysis(analyzer, mesh::AbstractMeshData,
+function create_cache_analysis(analyzer, mesh::DGMultiMesh,
                                equations, dg::DGMulti, cache,
                                RealT, uEltype)
   md = mesh.md
@@ -144,7 +144,7 @@ end
 
 SolutionAnalyzer(rd::RefElemData) = rd
 
-nelements(mesh::AbstractMeshData, solver::DGMulti, cache) = mesh.md.num_elements
+nelements(mesh::DGMultiMesh, solver::DGMulti, cache) = mesh.md.num_elements
 
 
 end # @muladd

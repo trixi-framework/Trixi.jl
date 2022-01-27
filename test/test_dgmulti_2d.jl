@@ -77,6 +77,28 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
+      l2 = [1.0259435706215337e-5, 9.014090233720625e-6, 9.014090233223014e-6, 2.738953587401793e-5],
+      linf = [7.362609083649829e-5, 6.874188055272512e-5, 6.874188052830021e-5, 0.0001912435192696904]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      l2 = [1.5914065936559232e-5, 1.4757575957005155e-5, 1.4757575956508324e-5, 4.511709781155535e-5],
+      linf = [0.00010525416930584619, 0.00010003778091061122, 0.00010003778085621029, 0.00036426282101720275]
+    )
+  end
+
+  @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
+      approximation_type = GaussSBP(),
+      l2 = [3.578819171269236e-6, 3.4797454435720057e-6, 3.4797454434088854e-6, 1.0812715223492364e-5],
+      linf = [1.2963211813321607e-5, 1.2570312152959673e-5, 1.2570312227122571e-5, 3.9389540817946767e-5]
+    )
+  end
+
   @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     mean_convergence = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2], [4.243843382379403, 4.128314378833922, 4.128314378397532, 4.081366752807379], rtol=0.05)
@@ -160,6 +182,41 @@ isdir(outdir) && rm(outdir, recursive=true)
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0014018725496871129, 0.0015887007320868913, 0.001588700732086329, 0.003870926821031202] ./ 2.0,
       linf = [0.0029541996523780867, 0.0034520465226108854, 0.003452046522624652, 0.007677153211004928]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      l2 = [1.3333320340010056e-6, 2.044834627970641e-6, 2.044834627855601e-6, 5.282189803559564e-6],
+      linf = [2.7000151718858945e-6, 3.988595028259212e-6, 3.9885950273710336e-6, 8.848583042286862e-6]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      xmin=-200.0, xmax=100.0 #= parameters for reference interval =#,
+      l2 = [1.333332034149886e-6, 2.0448346280892024e-6, 2.0448346279766305e-6, 5.282189803510037e-6],
+      linf = [2.700015170553627e-6, 3.988595024262409e-6, 3.988595024928543e-6, 8.84858303740188e-6]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      approximation_type = periodic_derivative_operator(
+        derivative_order=1, accuracy_order=4, xmin=-200.0, xmax=100.0, N=100),
+      coordinates_min=(-3.0, -4.0), coordinates_max=(0.0, -1.0),
+      l2 = [0.07318831033918516, 0.10039910610067465, 0.1003991061006748, 0.2642450566234564],
+      linf = [0.36081081739439735, 0.5244468027020845, 0.5244468027020814, 1.2210130256735705]
+    )
+  end
+
+  @trixi_testset "elixir_euler_fdsbp_periodic.jl (CGSEM)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+      approximation_type = SummationByPartsOperators.couple_continuously(
+        SummationByPartsOperators.legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
+        SummationByPartsOperators.UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10)),
+      l2 = [1.5440402410017893e-5, 1.4913189903083485e-5, 1.4913189902797073e-5, 2.6104615985156992e-5],
+      linf = [4.16334345412217e-5, 5.067812788173143e-5, 5.067812786885284e-5, 9.887976803746312e-5]
     )
   end
 

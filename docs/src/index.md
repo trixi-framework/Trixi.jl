@@ -264,13 +264,17 @@ mean      3.90      mean      3.93      mean      3.93      mean      3.94
 If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following articles:
 ```bibtex
-@online{ranocha2021adaptive,
+@article{ranocha2022adaptive,
   title={Adaptive numerical simulations with {T}rixi.jl:
          {A} case study of {J}ulia for scientific computing},
   author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
           and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
-  year={2021},
-  month={08},
+  journal={Proceedings of the JuliaCon Conferences},
+  volume={1},
+  number={1},
+  pages={77},
+  year={2022},
+  doi={10.21105/jcon.00077},
   eprint={2108.06476},
   eprinttype={arXiv},
   eprintclass={cs.MS}
