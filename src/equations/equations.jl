@@ -85,6 +85,18 @@ for the corresponding set of governing `equations`.
 """
 function flux end
 
+"""
+    flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
+
+Enables calling `flux` with a non-integer argument `normal_direction` for one-dimensional
+equations. Returns the value of `flux(u, 1, equations)` scaled by `normal_direction[1]`.
+"""
+@inline function flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})
+  # Call `flux` with `orientation::Int = 1` for dispatch. Note that the actual
+  # `orientation` argument is ignored.
+  return normal_direction[1] * flux(u, 1, equations)
+end
+
 
 """
     rotate_to_x(u, normal, equations)
@@ -201,8 +213,8 @@ function cons2prim#=(u, ::AbstractEquations)=# end
     cons2prim(u, equations)
 
 Convert the conserved variables `u` to the primitive variables for a given set of
-`equations`. `u` is a vector type of the correct length `nvariables(equations)`. 
-Notice the function doesn't include any error checks for the purpose of efficiency, 
+`equations`. `u` is a vector type of the correct length `nvariables(equations)`.
+Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
 The inverse conversion is performed by [`prim2cons`](@ref).
 """
@@ -212,8 +224,8 @@ function cons2prim end
     prim2cons(u, equations)
 
 Convert the primitive variables `u` to the conserved variables for a given set of
-`equations`. `u` is a vector type of the correct length `nvariables(equations)`. 
-Notice the function doesn't include any error checks for the purpose of efficiency, 
+`equations`. `u` is a vector type of the correct length `nvariables(equations)`.
+Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
 The inverse conversion is performed by [`cons2prim`](@ref).
 """
@@ -231,10 +243,10 @@ function entropy end
     cons2entropy(u, equations)
 
 Convert the conserved variables `u` to the entropy variables for a given set of
-`equations` with chosen standard [`entropy`](@ref). 
+`equations` with chosen standard [`entropy`](@ref).
 `u` is a vector type of the correct length `nvariables(equations)`.
-Notice the function doesn't include any error checks for the purpose of efficiency, 
-so please make sure your input is correct. 
+Notice the function doesn't include any error checks for the purpose of efficiency,
+so please make sure your input is correct.
 The inverse conversion is performed by [`entropy2cons`](@ref).
 """
 function cons2entropy end
@@ -243,14 +255,13 @@ function cons2entropy end
     entropy2cons(w, equations)
 
 Convert the entropy variables `w` based on a standard [`entropy`](@ref) to the
-conserved variables for a given set of `equations`. 
-`u` is a vector type of the correct length `nvariables(equations)`. 
-Notice the function doesn't include any error checks for the purpose of efficiency, 
+conserved variables for a given set of `equations`.
+`u` is a vector type of the correct length `nvariables(equations)`.
+Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
 The inverse conversion is performed by [`cons2entropy`](@ref).
 """
 function entropy2cons end
-
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.

@@ -157,9 +157,16 @@ Base.show(io::IO, d::DissipationLocalLaxFriedrichs) = print(io, "DissipationLoca
 
 Simple and fast estimate of the maximal wave speed of the Riemann problem with left and right states
 `u_ll, u_rr`, based only on the local wave speeds associated to `u_ll` and `u_rr`.
+
+For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
+`abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
 """
 function max_abs_speed_naive end
 
+# for non-integer `orientation_or_normal` arguments.
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::AbstractEquations{1})
+  return abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)
+end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central), DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
@@ -238,6 +245,32 @@ Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_spee
 See [`FluxHLL`](@ref).
 """
 const flux_hll = FluxHLL()
+
+
+
+"""
+    flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Equivalent to [`flux_shima_etal`](@ref) except that it may use specialized
+methods, e.g., when used with [`VolumeIntegralFluxDifferencing`](@ref).
+These specialized methods may enable better use of SIMD instructions to
+increase runtime efficiency on modern hardware.
+"""
+@inline function flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+  flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+end
+
+"""
+    flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Equivalent to [`flux_ranocha`](@ref) except that it may use specialized
+methods, e.g., when used with [`VolumeIntegralFluxDifferencing`](@ref).
+These specialized methods may enable better use of SIMD instructions to
+increase runtime efficiency on modern hardware.
+"""
+@inline function flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+  flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
+end
 
 
 end # @muladd

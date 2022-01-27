@@ -93,7 +93,7 @@ relative_maximum = maximum(real, λ) / maximum(abs, λ)
 
 λ, V = eigen(J)
 condition_number = cond(V)
-@test 200 < condition_number < 300 #src
+@test 200 < condition_number < 4000 #src
 
 # If we add dissipation, the maximal real part is still approximately zero.
 

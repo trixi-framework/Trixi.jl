@@ -18,26 +18,30 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: LinearAlgebra, diag, diagm, dot, mul!, norm, cross, normalize, I, UniformScaling
+using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling
 using Printf: @printf, @sprintf, println
+using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros, spzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-using DiffEqBase: @muladd, CallbackSet, DiscreteCallback,
-                  ODEProblem, ODESolution, ODEFunction
-import DiffEqBase: get_du, get_tmp_cache, u_modified!,
-                   AbstractODEIntegrator, init, step!, check_error,
-                   get_proposed_dt, set_proposed_dt!,
-                   terminate!, remake
+using SciMLBase: CallbackSet, DiscreteCallback,
+                 ODEProblem, ODESolution, ODEFunction
+import SciMLBase: get_du, get_tmp_cache, u_modified!,
+                  AbstractODEIntegrator, init, step!, check_error,
+                  get_proposed_dt, set_proposed_dt!,
+                  terminate!, remake
 using CodeTracking: code_string
+using ConstructionBase: ConstructionBase
 @reexport using EllipsisNotation # ..
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
+using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using LoopVectorization.ArrayInterface: static_length
 using MPI: MPI
+using MuladdMacro: @muladd
 using GeometryBasics: GeometryBasics
 using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
@@ -46,24 +50,27 @@ using P4est
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
-using SparseArrays: AbstractSparseMatrix, sparse, droptol!, rowvals, nzrange
-using Static: One
+using Static: Static, One
 @reexport using StaticArrays: SVector
-using StaticArrays: MVector, MArray, SMatrix
+using StaticArrays: MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
+export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 
 # finite difference SBP operators
-using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid
-import SummationByPartsOperators: integrate, left_boundary_weight, right_boundary_weight
+using SummationByPartsOperators: AbstractDerivativeOperator,
+  AbstractNonperiodicDerivativeOperator, DerivativeOperator,
+  AbstractPeriodicDerivativeOperator, PeriodicDerivativeOperator, grid
+import SummationByPartsOperators: integrate, semidiscretize,
+                                  left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
-  SummationByPartsOperators, derivative_operator
+  SummationByPartsOperators, derivative_operator, periodic_derivative_operator
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
@@ -132,7 +139,9 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxRotated
+       FluxLMARS,
+       FluxRotated,
+       flux_shima_etal_turbo, flux_ranocha_turbo
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -197,8 +206,8 @@ export trixi_include, examples_dir, get_examples, default_example, default_examp
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
-export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt
-export GaussSBP
+export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
+export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level

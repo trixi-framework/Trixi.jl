@@ -3,14 +3,34 @@ using Test: @test #src
 
 # If you want to use Trixi for your own research, you might be interested in
 # a new physics model that is not present in Trixi.jl. In this tutorial,
-# we will implement the nonconservative linear advection equation
+# we will implement the nonconservative linear advection equation in a periodic domain
 # ```math
-# \partial_t u(t,x) + a(x) \partial_x u(t,x) = 0
+# \left\{
+# \begin{aligned}&\partial_t u(t,x) + a(x) \partial_x u(t,x) = 0 \\
+# &u(0,x)=\sin(x) \\
+# &u(t,-\pi)=u(t,\pi)
+# \end{aligned}
+# \right.
 # ```
-# in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
+# where $a(x) = 2 + \cos(x)$. The analytic solution is
+# ```math
+# u(t,x)=-\sin \left(2 \tan ^{-1}\left(\sqrt{3} \tan \left(\frac{\sqrt{3} t}{2}-\tan ^{-1}\left(\frac{1}{\sqrt{3}}\tan \left(\frac{x}{2}\right)\right)\right)\right)\right)
+# ```
+# In Trixi.jl, such a mathematical model
 # is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
 
 # ## Basic setup
+
+# Since there is no native support for variable coefficients, we need to transform the PDE to the following system:
+# ```math
+# \left\{
+# \begin{aligned}&\partial_t \begin{pmatrix}u(t,x)\\a(t,x) \end{pmatrix} +\begin{pmatrix} a(t,x) \partial_x u(t,x) \\ 0 \end{pmatrix} = 0 \\
+# &u(0,x)=\sin(x) \\
+# &a(0,x)=2+\cos(x) \\
+# &u(t,-\pi)=u(t,\pi)
+# \end{aligned}
+# \right.
+# ```
 
 ## Define new physics
 using Trixi

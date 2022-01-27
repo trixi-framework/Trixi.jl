@@ -241,8 +241,8 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   # Ignore orientation since it is always "1" in 1D
   pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
   f1 = rho_avg * v1_avg
-  f2 = rho_avg * v1_avg * v1_avg + p_avg
-  f3 = p_avg*v1_avg * equations.inv_gamma_minus_one + rho_avg*v1_avg*kin_avg + pv1_avg
+  f2 = f1 * v1_avg + p_avg
+  f3 = p_avg*v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
 
   return SVector(f1, f2, f3)
 end
@@ -317,7 +317,7 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations1D)
 
 Entropy conserving and kinetic energy preserving two-point flux by
 - Hendrik Ranocha (2018)
@@ -353,6 +353,10 @@ See also
   f3 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
 
   return SVector(f1, f2, f3)
+end
+
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
+  return normal_direction[1] * flux_ranocha(u_ll, u_rr, 1, equations)
 end
 
 

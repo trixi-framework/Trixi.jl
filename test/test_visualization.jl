@@ -102,29 +102,20 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "1D plot from 2D solution" begin
-      if mesh != "DGMulti" && mesh != "P4estMesh"
+      if mesh != "DGMulti"
         @testset "Create 1D plot as slice" begin
           @test_nowarn_debug PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
+          @test_nowarn_debug PlotData1D(sol, slice=:x, point=(0.5, 0.0)) isa PlotData1D
           pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
           @test_nowarn_debug Plots.plot(pd1D)
-        end
-      elseif mesh == "P4estMesh"
-        @testset "Create 1D plot as slice" begin
-          # Plot along slice axis is broken for unstructured meshes.
-          # See https://github.com/trixi-framework/Trixi.jl/issues/893
-          @test_broken PlotData1D(sol, slice=:y, point=(0.5, 0.0)) isa PlotData1D
-          @test_broken pd1D = PlotData1D(sol, slice=:y, point=(0.5, 0.0))
-          @test_broken Plots.plot(pd1D)
-        end
-      end
 
-      if mesh == "TreeMesh"
-        @testset "Create 1D plot along curve" begin
-          curve = zeros(2,10)
-          curve[1,:] = range(-1,-0.5,length=10)
-          @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
-          pd1D = PlotData1D(sol, curve=curve)
-          @test_nowarn_debug Plots.plot(pd1D)
+          @testset "Create 1D plot along curve" begin
+            curve = zeros(2, 10)
+            curve[1, :] = range(-1, 1,length=10)
+            @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+            pd1D = PlotData1D(sol, curve=curve)
+            @test_nowarn_debug Plots.plot(pd1D)
+          end
         end
       end
     end
@@ -208,6 +199,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @timed_testset "PlotData1D (DGMulti)" begin
+    # Test two different approximation types since these use different memory layouts:
+    # - structure of arrays for `Polynomial()`
+    # - array of structures for `SBP()`
+    @test_nowarn_debug trixi_include(@__MODULE__,
+      joinpath(examples_dir(), "dgmulti_1d", "elixir_euler_flux_diff.jl"), tspan=(0.0 ,0.0),
+      approximation_type=Polynomial())
+    @test PlotData1D(sol) isa PlotData1D
+
+    @test_nowarn_debug trixi_include(@__MODULE__,
+      joinpath(examples_dir(), "dgmulti_1d", "elixir_euler_flux_diff.jl"), tspan=(0.0 ,0.0),
+      approximation_type=SBP())
+    @test PlotData1D(sol) isa PlotData1D
+  end
+
   @timed_testset "plot time series" begin
     @test_nowarn_debug trixi_include(@__MODULE__,
                                      joinpath(examples_dir(), "tree_2d_dgsem", "elixir_acoustics_gaussian_source.jl"),
@@ -219,7 +225,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "adapt_to_mesh_level" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"),
-                                     tspan=(0,0.1))
+                                     tspan=(0,0.1), analysis_callback=Trixi.TrivialCallback())
     @test adapt_to_mesh_level(sol, 5) isa Tuple
 
     u_ode_level5, semi_level5 = adapt_to_mesh_level(sol, 5)
@@ -232,19 +238,24 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_basic.jl"),
-                                     tspan=(0,0.1))
+                                     tspan=(0,0.1), analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
+    @test PlotData2D(sol, slice =:yz) isa Trixi.PlotData2DCartesian
+    @test PlotData2D(sol, slice =:xz) isa Trixi.PlotData2DCartesian
 
     @testset "1D plot from 3D solution" begin
       @testset "Create 1D plot as slice" begin
         @test_nowarn_debug PlotData1D(sol) isa PlotData1D
         pd1D = PlotData1D(sol)
         @test_nowarn_debug Plots.plot(pd1D)
+        @test_nowarn_debug PlotData1D(sol, slice=:y, point = (0.5, 0.3, 0.1)) isa PlotData1D
+        @test_nowarn_debug PlotData1D(sol, slice=:z, point = (0.1, 0.3, 0.3)) isa PlotData1D
+
       end
 
       @testset "Create 1D plot along curve" begin
-        curve = zeros(3,10)
-        curve[1,:] = range(-1,-0.5,length=10)
+        curve = zeros(3, 10)
+        curve[1, :] = range(-1.0, -0.5, length=10)
         @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
         pd1D = PlotData1D(sol, curve=curve)
         @test_nowarn_debug Plots.plot(pd1D)
@@ -253,7 +264,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"))
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
+                                     maxiters=1, analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
     @test_nowarn_debug Plots.plot(sol)
   end
 
