@@ -95,6 +95,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.15))
   end
 
+  @trixi_testset "elixir_euler_forward_step.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_forward_step.jl"),
+      l2   = [0.004194875320833303, 0.003785140699353966, 0.0013696609105790351, 0.03265268616046424],
+      linf = [2.0585399781442852, 2.213428805506876, 3.862362410419163, 17.75187237459251],
+      tspan = (0.0, 0.0001))
+  end
+
   @trixi_testset "elixir_eulergravity_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
@@ -123,12 +130,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.02))
   end
 
-  @trixi_testset "elixir_euler_forward_step.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_forward_step.jl"),
-      l2   = [0.06855664742023791, 0.06684765071727328, 0.011490238878609142, 0.5283450806039764],
-      linf = [3.95047596618716, 4.340113353698306, 4.538695089086252, 31.989720123661193],
-      tspan = (0.0, 0.005))
-  end
 end
 
 # Clean up afterwards: delete Trixi output directory

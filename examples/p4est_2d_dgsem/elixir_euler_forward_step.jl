@@ -4,7 +4,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler
+# semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations2D(1.4)
 
@@ -75,15 +75,15 @@ boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_mach3_f
   return flux
 end
 
-boundary_conditions = Dict( :Bottom     => boundary_condition_slip_wall,
-                            :Step_Front => boundary_condition_slip_wall,
-                            :Step_Top   => boundary_condition_slip_wall,
-                            :Top        => boundary_condition_slip_wall,
-                            :Right      => boundary_condition_outflow,
-                            :Left       => boundary_condition_inflow   )
+boundary_conditions = Dict( :Bottom      => boundary_condition_slip_wall,
+                            :Step_Front  => boundary_condition_slip_wall,
+                            :Step_Top    => boundary_condition_slip_wall,
+                            :Top         => boundary_condition_slip_wall,
+                            :Right       => boundary_condition_outflow,
+                            :Left        => boundary_condition_inflow   )
 
-volume_flux = flux_shima_etal
-surface_flux=flux_lax_friedrichs
+volume_flux = flux_ranocha
+surface_flux = flux_lax_friedrichs
 
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
@@ -99,7 +99,7 @@ solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volum
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
 default_mesh_file = joinpath(@__DIR__, "abaqus_forward_step.inp")
-isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/b346ee6aa5446687f128eab8b37d52a7/raw/511917dfffcc2347d844003ec53142c5823bcbe7/abaqus_forward_step.inp",
+isfile(default_mesh_file) || download("https://gist.githubusercontent.com/andrewwinters5000/b346ee6aa5446687f128eab8b37d52a7/raw/cd1e1d43bebd8d2631a07caec45585ec8456ca4c/abaqus_forward_step.inp",
                                       default_mesh_file)
 mesh_file = default_mesh_file
 
@@ -122,12 +122,12 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=500,
+save_solution = SaveSolutionCallback(interval=2000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_indicator = IndicatorLöhner(semi, variable=density)
+amr_indicator = IndicatorLöhner(semi, variable=Trixi.density)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=0,
@@ -151,5 +151,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
 ###############################################################################
 # run the simulation
 sol = solve(ode, SSPRK43(stage_limiter!),
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks,
+            maxiters=999999);
 summary_callback() # print the timer summary
