@@ -253,8 +253,8 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire}
   modal_threaded      = [similar(prototype) for _ in 1:Threads.nthreads()]
   modal_tmp1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
-  network_input = Vector{Float64}(undef, input_size)
-  network_output = Vector{Float64}(undef, 2)
+  network_input = Vector{real(basis)}(undef, input_size)
+  network_output = Vector{real(basis)}(undef, 2)
 
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network_input, network_output)
 end
@@ -274,12 +274,12 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkRayHesthaven}},
   modal_tmp1_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
   neighbor_ids= Array{Int64}(undef, 8)
-  neighbor_mean = Array{Float64}(undef, 4, 3)
+  neighbor_mean = Array{real(basis)}(undef, 4, 3)
 
   c2e = Vector{Int64}()
   X = similar(alpha)
-  network_input = Vector{Float64}(undef, input_size)  
-  network_output = Vector{Float64}(undef, 2)
+  network_input = Vector{real(basis)}(undef, input_size)  
+  network_output = Vector{real(basis)}(undef, 2)
 
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
             neighbor_ids, neighbor_mean, c2e, X,  network_input, network_output)
@@ -300,10 +300,9 @@ function create_cache(::Type{IndicatorNeuralNetwork{NeuralNetworkCNN}},
   nodes,_ = gauss_lobatto_nodes_weights(nnodes(basis))
   cnn_nodes,_= gauss_lobatto_nodes_weights(n_cnn)
   vandermonde = polynomial_interpolation_matrix(nodes, cnn_nodes)
-  network_input = Array{Float32}(undef, n_cnn, n_cnn, 1, 1)
-  network_output = Vector{Float64}(undef, 2)
+  network_input = Array{real(basis)}(undef, n_cnn, n_cnn, 1, 1)
 
-  return (; alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input, network_output)
+  return (; alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -366,16 +365,19 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     network_input[4] = nnodes(dg)
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    for ind in eachindex(network_input)
+      network_input[ind] = network_input[ind] / max(maximum(abs, network_input), one(eltype(network_input)))
+    end
 
-    # use network
+    # # Evaluation of the network allocates a lot of memory.
+    # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
     network_output = network(network_input)[1]
 
     # Compute indicator value
-    probability_to_indicator!(network_output[1], alpha_continuous,
+    probability_to_blending!(network_output, alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)
 
-    alpha[element] = network_output[1]                                              
+    alpha[element] = network_output                                              
   end
 
   if alpha_smooth
@@ -504,14 +506,19 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     end
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
-    network_output = network(network_input)
+    for ind in eachindex(network_input)
+      network_input[ind] = network_input[ind] / max(maximum(abs, network_input), one(eltype(network_input)))
+    end
+
+    # Evaluation of the network allocates a lot of memory.
+    # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
+    network_output = network(network_input)[1]
 
     # Compute indicator value
-    probability_to_indicator!(network_output[1], alpha_continuous,
+    probability_to_blending!(network_output, alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)
 
-    alpha[element] = network_output[1]
+    alpha[element] = network_output
   end
 
   if alpha_smooth
@@ -526,7 +533,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     u, mesh::TreeMesh{2}, equations, dg::DGSEM, cache; kwargs...)
   @unpack indicator_type, alpha_max, alpha_min, alpha_smooth, alpha_continuous, alpha_amr, variable, network = indicator_ann
 
-  @unpack alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input, network_output = indicator_ann.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, nodes, cnn_nodes, vandermonde, network_input = indicator_ann.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -554,14 +561,19 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     end
 
     # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
-    network_output = network(network_input)
+    for ind in eachindex(network_input)
+      network_input[ind] = network_input[ind] / max(maximum(abs, network_input), one(eltype(network_input)))
+    end
+
+    # Evaluation of the network allocates a lot of memory.
+    # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
+    network_output = network(network_input)[1]
 
     # Compute indicator value
-    probability_to_indicator!(network_output[1], alpha_continuous,
+    probability_to_blending!(network_output, alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)
 
-    alpha[element] = network_output[1]                                           
+    alpha[element] = network_output                                           
   end
 
   if alpha_smooth

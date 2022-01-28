@@ -311,7 +311,7 @@ end
 
 
 # Convert probability for troubled cell to indicator value for shockcapturing/AMR
-@inline function probability_to_indicator!(probability_troubled_cell, alpha_continuous, alpha_amr,
+@inline function probability_to_blending!(probability_troubled_cell, alpha_continuous, alpha_amr,
                                           alpha_min, alpha_max)
   # Initialize indicator to zero
   alpha_element = zero(probability_troubled_cell)
