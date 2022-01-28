@@ -95,8 +95,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.15))
   end
 
-  @trixi_testset "elixir_euler_forward_step.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_forward_step.jl"),
+  @trixi_testset "elixir_euler_forward_step_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_forward_step_amr.jl"),
       l2   = [0.004194875320833303, 0.003785140699353966, 0.0013696609105790351, 0.03265268616046424],
       linf = [2.0585399781442852, 2.213428805506876, 3.862362410419163, 17.75187237459251],
       tspan = (0.0, 0.0001))
