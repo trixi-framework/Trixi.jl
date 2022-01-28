@@ -1,55 +1,7 @@
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
-
-
-# Calculate the vorticity on a single node using the derivative matrix from the polynomial basis of
-# a DGSEM solver. `u` is the solution on the whole domain.
-# This function is used for calculating acoustic source terms for coupled Euler-acoustics
-# simulations.
-function calc_vorticity_node(u, mesh::TreeMesh{2}, equations::CompressibleEulerEquations2D,
-                             dg::DGSEM, cache, i, j, element)
-  @unpack derivative_matrix = dg.basis
-
-  v2_x = zero(eltype(u)) # derivative of v2 in x direction
-  for ii in eachnode(dg)
-    rho, _, rho_v2 = get_node_vars(u, equations, dg, ii, j, element)
-    v2 = rho_v2 / rho
-    v2_x = v2_x + derivative_matrix[i, ii] * v2
-  end
-
-  v1_y = zero(eltype(u)) # derivative of v1 in y direction
-  for jj in eachnode(dg)
-    rho, rho_v1 = get_node_vars(u, equations, dg, i, jj, element)
-    v1 = rho_v1 / rho
-    v1_y = v1_y + derivative_matrix[j, jj] * v1
-  end
-
-  return (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
-end
-
-# Convenience function for calculating the vorticity on the whole domain and storing it in a
-# preallocated array
-function calc_vorticity!(vorticity, u, mesh::TreeMesh{2}, equations::CompressibleEulerEquations2D,
-                         dg::DGSEM, cache)
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      vorticity[i, j, element] = calc_vorticity_node(u, mesh, equations, dg, cache, i, j, element)
-    end
-  end
-
-  return nothing
-end
-
-
-end # muladd
-
-
 
 # From here on, this file contains specializations of DG methods on the
-# TreeMesh2D to the compressible Euler equations.
+# curved 3D meshes `StructuredMesh{3}, P4estMesh{3}` to the compressible
+# Euler equations.
 #
 # The specialized methods contain relatively verbose and ugly code in the sense
 # that we do not use the common "pointwise physics" interface of Trixi.jl.
@@ -67,12 +19,14 @@ end # muladd
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
 @inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                    element, mesh::TreeMesh{2},
+                                    element,
+                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                     nonconservative_terms::Val{false},
                                     equations::CompressibleEulerEquations2D,
                                     volume_flux::typeof(flux_shima_etal_turbo),
                                     dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
+  @unpack contravariant_vectors = cache.elements
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, v]` to allow using SIMD instructions.
@@ -94,7 +48,7 @@ end # muladd
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 ))
 
     u_prim[i, j, 1] = rho
     u_prim[i, j, 2] = v1
@@ -122,6 +76,16 @@ end # muladd
   end
   fill!(du_permuted, zero(eltype(du_permuted)))
 
+  # We must also permute the contravariant vectors.
+  contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(undef,
+    (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+     StaticInt(ndims(mesh))))
+
+  @turbo for j in eachnode(dg), i in eachnode(dg)
+    contravariant_vectors_x[j, i, 1] = contravariant_vectors[1, 1, i, j, element]
+    contravariant_vectors_x[j, i, 2] = contravariant_vectors[2, 1, i, j, element]
+  end
+
   # Next, we basically inline the volume flux. To allow SIMD vectorization and
   # still use the symmetry of the volume flux and the derivative matrix, we
   # loop over the triangular part in an outer loop and use a plain inner loop.
@@ -137,19 +101,28 @@ end # muladd
       v2_rr  = u_prim_permuted[j, ii, 3]
       p_rr   = u_prim_permuted[j, ii, 4]
 
+      normal_direction_1 = 0.5 * (
+        contravariant_vectors_x[j, i, 1] + contravariant_vectors_x[j, ii, 1])
+      normal_direction_2 = 0.5 * (
+        contravariant_vectors_x[j, i, 2] + contravariant_vectors_x[j, ii, 2])
+
+      v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
+      v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
+
       # Compute required mean values
       rho_avg = 0.5 * (rho_ll + rho_rr)
       v1_avg  = 0.5 * ( v1_ll +  v1_rr)
       v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+      v_dot_n_avg = 0.5 * (v_dot_n_ll + v_dot_n_rr)
       p_avg   = 0.5 * (  p_ll +   p_rr)
-      kin_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
-      pv1_avg = 0.5 * (p_ll * v1_rr + p_rr * v1_ll)
+      velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
 
-      # Calculate fluxes depending on Cartesian orientation
-      f1 = rho_avg * v1_avg
-      f2 = f1 * v1_avg + p_avg
-      f3 = f1 * v2_avg
-      f4 = p_avg * v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
+      # Calculate fluxes depending on normal_direction
+      f1 = rho_avg * v_dot_n_avg
+      f2 = f1 * v1_avg + p_avg * normal_direction_1
+      f3 = f1 * v2_avg + p_avg * normal_direction_2
+      f4 = ( f1 * velocity_square_avg + p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
+            + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
       # Add scaled fluxes to RHS
       factor_i = alpha * derivative_split[i, ii]
@@ -174,6 +147,16 @@ end # muladd
 
 
   # y direction
+  # We must also permute the contravariant vectors.
+  contravariant_vectors_y = StrideArray{eltype(contravariant_vectors)}(undef,
+    (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+     StaticInt(ndims(mesh))))
+
+  @turbo for j in eachnode(dg), i in eachnode(dg)
+    contravariant_vectors_y[i, j, 1] = contravariant_vectors[1, 2, i, j, element]
+    contravariant_vectors_y[i, j, 2] = contravariant_vectors[2, 2, i, j, element]
+  end
+
   # The memory layout is already optimal for SIMD vectorization in this loop.
   for j in eachnode(dg), jj in (j+1):nnodes(dg)
     @turbo for i in eachnode(dg)
@@ -187,19 +170,28 @@ end # muladd
       v2_rr  = u_prim[i, jj, 3]
       p_rr   = u_prim[i, jj, 4]
 
+      normal_direction_1 = 0.5 * (
+        contravariant_vectors_y[i, j, 1] + contravariant_vectors_y[i, jj, 1])
+      normal_direction_2 = 0.5 * (
+        contravariant_vectors_y[i, j, 2] + contravariant_vectors_y[i, jj, 2])
+
+      v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
+      v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
+
       # Compute required mean values
       rho_avg = 0.5 * (rho_ll + rho_rr)
       v1_avg  = 0.5 * ( v1_ll +  v1_rr)
       v2_avg  = 0.5 * ( v2_ll +  v2_rr)
+      v_dot_n_avg = 0.5 * (v_dot_n_ll + v_dot_n_rr)
       p_avg   = 0.5 * (  p_ll +   p_rr)
-      kin_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
-      pv2_avg = 0.5 * (p_ll * v2_rr + p_rr * v2_ll)
+      velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
 
-      # Calculate fluxes depending on Cartesian orientation
-      f1 = rho_avg * v2_avg
-      f2 = f1 * v1_avg
-      f3 = f1 * v2_avg + p_avg
-      f4 = p_avg*v2_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv2_avg
+      # Calculate fluxes depending on normal_direction
+      f1 = rho_avg * v_dot_n_avg
+      f2 = f1 * v1_avg + p_avg * normal_direction_1
+      f3 = f1 * v2_avg + p_avg * normal_direction_2
+      f4 = ( f1 * velocity_square_avg + p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
+            + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
       # Add scaled fluxes to RHS
       factor_j = alpha * derivative_split[j, jj]
@@ -229,12 +221,14 @@ end
 
 
 @inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                    element, mesh::TreeMesh{2},
+                                    element,
+                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2}},
                                     nonconservative_terms::Val{false},
                                     equations::CompressibleEulerEquations2D,
                                     volume_flux::typeof(flux_ranocha_turbo),
                                     dg::DGSEM, cache, alpha)
   @unpack derivative_split = dg.basis
+  @unpack contravariant_vectors = cache.elements
 
   # Create a temporary array that will be used to store the RHS with permuted
   # indices `[i, j, v]` to allow using SIMD instructions.
@@ -289,6 +283,16 @@ end
   end
   fill!(du_permuted, zero(eltype(du_permuted)))
 
+  # We must also permute the contravariant vectors.
+  contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(undef,
+    (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+     StaticInt(ndims(mesh))))
+
+  @turbo for j in eachnode(dg), i in eachnode(dg)
+    contravariant_vectors_x[j, i, 1] = contravariant_vectors[1, 1, i, j, element]
+    contravariant_vectors_x[j, i, 2] = contravariant_vectors[2, 1, i, j, element]
+  end
+
   # Next, we basically inline the volume flux. To allow SIMD vectorization and
   # still use the symmetry of the volume flux and the derivative matrix, we
   # loop over the triangular part in an outer loop and use a plain inner loop.
@@ -307,6 +311,14 @@ end
       p_rr       = u_prim_permuted[j, ii, 4]
       log_rho_rr = u_prim_permuted[j, ii, 5]
       log_p_rr   = u_prim_permuted[j, ii, 6]
+
+      normal_direction_1 = 0.5 * (
+        contravariant_vectors_x[j, i, 1] + contravariant_vectors_x[j, ii, 1])
+      normal_direction_2 = 0.5 * (
+        contravariant_vectors_x[j, i, 2] + contravariant_vectors_x[j, ii, 2])
+
+      v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
+      v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
 
       # Compute required mean values
       # We inline the logarithmic mean to allow LoopVectorization.jl to optimize
@@ -341,14 +353,15 @@ end
 
       v1_avg = 0.5 * (v1_ll + v1_rr)
       v2_avg = 0.5 * (v2_ll + v2_rr)
-      p_avg  = 0.5 * ( p_ll +  p_rr)
-      velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
+      p_avg  = 0.5 * (p_ll + p_rr)
+      velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
 
-      # Calculate fluxes depending on Cartesian orientation
-      f1 = rho_mean * v1_avg
-      f2 = f1 * v1_avg + p_avg
-      f3 = f1 * v2_avg
-      f4 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+      # Calculate fluxes depending on normal_direction
+      f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+      f2 = f1 * v1_avg + p_avg * normal_direction_1
+      f3 = f1 * v2_avg + p_avg * normal_direction_2
+      f4 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+          + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
       # Add scaled fluxes to RHS
       factor_i = alpha * derivative_split[i, ii]
@@ -373,6 +386,16 @@ end
 
 
   # y direction
+  # We must also permute the contravariant vectors.
+  contravariant_vectors_y = StrideArray{eltype(contravariant_vectors)}(undef,
+    (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+     StaticInt(ndims(mesh))))
+
+  @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    contravariant_vectors_y[i, j, 1] = contravariant_vectors[1, 2, i, j, element]
+    contravariant_vectors_y[i, j, 2] = contravariant_vectors[2, 2, i, j, element]
+  end
+
   # The memory layout is already optimal for SIMD vectorization in this loop.
   for j in eachnode(dg), jj in (j+1):nnodes(dg)
     @turbo for i in eachnode(dg)
@@ -389,6 +412,14 @@ end
       p_rr       = u_prim[i, jj, 4]
       log_rho_rr = u_prim[i, jj, 5]
       log_p_rr   = u_prim[i, jj, 6]
+
+      normal_direction_1 = 0.5 * (
+        contravariant_vectors_y[i, j, 1] + contravariant_vectors_y[i, jj, 1])
+      normal_direction_2 = 0.5 * (
+        contravariant_vectors_y[i, j, 2] + contravariant_vectors_y[i, jj, 2])
+
+      v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
+      v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
 
       # Compute required mean values
       # We inline the logarithmic mean to allow LoopVectorization.jl to optimize
@@ -423,14 +454,15 @@ end
 
       v1_avg = 0.5 * (v1_ll + v1_rr)
       v2_avg = 0.5 * (v2_ll + v2_rr)
-      p_avg  = 0.5 * ( p_ll +  p_rr)
-      velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
+      p_avg  = 0.5 * (p_ll + p_rr)
+      velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
 
-      # Calculate fluxes depending on Cartesian orientation
-      f1 = rho_mean * v2_avg
-      f2 = f1 * v1_avg
-      f3 = f1 * v2_avg + p_avg
-      f4 = f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+      # Calculate fluxes depending on normal_direction
+      f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+      f2 = f1 * v1_avg + p_avg * normal_direction_1
+      f3 = f1 * v2_avg + p_avg * normal_direction_2
+      f4 = ( f1 * ( velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one )
+          + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
       # Add scaled fluxes to RHS
       factor_j = alpha * derivative_split[j, jj]

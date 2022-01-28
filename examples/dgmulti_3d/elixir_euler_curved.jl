@@ -1,9 +1,9 @@
 
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Tet(),
+dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type=SBP(),
              surface_integral = SurfaceIntegralWeakForm(FluxHLL()),
-             volume_integral = VolumeIntegralWeakForm())
+             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
@@ -14,7 +14,14 @@ top_boundary(x, tol=50*eps()) = abs(x[2] - 1) < tol
 rest_of_boundary(x, tol=50*eps()) = !top_boundary(x, tol)
 is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
 
-mesh = DGMultiMesh(dg, cells_per_dimension=(4, 4, 4), is_on_boundary=is_on_boundary)
+function mapping(xi, eta, zeta)
+  x = xi   + 0.1 * sin(pi * xi) * sin(pi * eta)
+  y = eta  + 0.1 * sin(pi * xi) * sin(pi * eta)
+  z = zeta + 0.1 * sin(pi * xi) * sin(pi * eta)
+  return SVector(x, y, z)
+end
+cells_per_dimension = (4, 4, 4)
+mesh = DGMultiMesh(dg, cells_per_dimension, mapping, is_on_boundary=is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :top => boundary_condition_convergence_test,

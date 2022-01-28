@@ -36,7 +36,7 @@
       # is symmetric).
       if j > i
         u_j = u[j]
-        AF_ij = A[i,j] * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        AF_ij = 2 * A[i,j] * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -57,13 +57,12 @@ end
     for j in col_ids
       u_j = u[j]
       f_ij = volume_flux(u_i, u_j, orientation, equations)
-      du_i = du_i + A[i,j] * f_ij
+      du_i = du_i + 2 * A[i,j] * f_ij
     end
     du[i] = du_i
   end
 end
 
-# TODO: DGMulti. Fix for curved meshes.
 @inline function hadamard_sum!(du, A,
                                flux_is_symmetric::Val{false}, volume_flux,
                                normal_direction::AbstractVector, u, equations)
@@ -78,7 +77,7 @@ end
       # This is because on curved meshes, nonconservative fluxes are
       # evaluated using both the normal and its average at interfaces.
       f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-      du_i = du_i + A[i,j] * f_ij
+      du_i = du_i + 2 * A[i,j] * f_ij
     end
     du[i] = du_i
   end
@@ -105,7 +104,42 @@ end
       if j > i
         u_j = u[j]
         A_ij = vals[id]
-        AF_ij = A_ij * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        AF_ij = 2 * A_ij * volume_flux(u_i, u_j, orientation_or_normal_direction, equations)
+        du_i = du_i + AF_ij
+        du[j] = du[j] - AF_ij
+      end
+    end
+    du[i] = du_i
+  end
+end
+
+# Version for sparse operators and symmetric fluxes with curved meshes
+@inline function hadamard_sum!(du, A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC},
+                               flux_is_symmetric::Val{true}, volume_flux,
+                               normal_directions::AbstractVector{<:AbstractVector},
+                               u, equations)
+  A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+  row_ids = axes(A, 2)
+  rows = rowvals(A_base)
+  vals = nonzeros(A_base)
+
+  for i in row_ids
+    u_i = u[i]
+    du_i = du[i]
+    for id in nzrange(A_base, i)
+      j = rows[id]
+      # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+      # We avoid computing the lower-triangular part, and instead accumulate those contributions
+      # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+      # is symmetric).
+      if j > i
+        u_j = u[j]
+        A_ij = vals[id]
+
+        # provably entropy stable de-aliasing of geometric terms
+        normal_direction = 0.5 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
+
+        AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
         du_i = du_i + AF_ij
         du[j] = du[j] - AF_ij
       end
@@ -128,13 +162,14 @@ end
     u_i = u[i]
     du_i = du[i]
     for id in nzrange(A_base, i)
+      A_ij = vals[id]
       j = rows[id]
       # The `normal_direction::AbstractVector` has to be passed in twice.
       # This is because on curved meshes, nonconservative fluxes are
       # evaluated using both the normal and its average at interfaces.
       u_j = u[j]
       f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-      du_i = du_i + A[i,j] * f_ij
+      du_i = du_i + 2 * A_ij * f_ij
     end
     du[i] = du_i
   end
@@ -146,30 +181,37 @@ end
 # We use a lazy evaluation of physical differentiation operators, so that we can compute linear
 # combinations of differentiation operators on-the-fly in an allocation-free manner.
 @inline function build_lazy_physical_derivative(element, orientation,
-                                                mesh::VertexMappedMesh{2}, dg, cache,
+                                                mesh::DGMultiMesh{1}, dg, cache,
+                                                operator_scaling = 1.0)
+  @unpack Qrst_skew = cache
+  @unpack rxJ = mesh.md
+  # ignore orientation
+  return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element],))
+end
+
+@inline function build_lazy_physical_derivative(element, orientation,
+                                                mesh::DGMultiMesh{2}, dg, cache,
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, ryJ, syJ = mesh.md
-  scaling = 2 * operator_scaling
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element], sxJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1,element], sxJ[1,element]))
   else # if orientation == 2
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (ryJ[1,element], syJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (ryJ[1,element], syJ[1,element]))
   end
 end
 
 @inline function build_lazy_physical_derivative(element, orientation,
-                                                mesh::VertexMappedMesh{3}, dg, cache,
+                                                mesh::DGMultiMesh{3}, dg, cache,
                                                 operator_scaling = 1.0)
   @unpack Qrst_skew = cache
   @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
-  scaling = 2 * operator_scaling
   if orientation == 1
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rxJ[1,element], sxJ[1,element], txJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rxJ[1, element], sxJ[1, element], txJ[1, element]))
   elseif orientation == 2
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (ryJ[1,element], syJ[1,element], tyJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (ryJ[1, element], syJ[1, element], tyJ[1, element]))
   else # if orientation == 3
-    return LazyMatrixLinearCombo(Qrst_skew, scaling .* (rzJ[1,element], szJ[1,element], tzJ[1,element]))
+    return LazyMatrixLinearCombo(Qrst_skew, operator_scaling .* (rzJ[1, element], szJ[1, element], tzJ[1, element]))
   end
 end
 
@@ -180,30 +222,23 @@ end
 # and jth reference coordinate, respectively. These are geometric terms which
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
-@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{1})
-  @unpack rxJ = mesh.md
-  return 2 * SVector(rxJ[1, element]) # the 1D contravariant vector reduces to a scaling.
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS}) where {NDIMS}
+  # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
+  # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
+
+  # assumes geometric terms are constant on each element
+  @unpack rstxyzJ = mesh.md
+  return SVector{NDIMS}(getindex.(rstxyzJ[:, orientation], 1, element))
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{2})
-  @unpack rxJ, sxJ, ryJ, syJ = mesh.md
-  if orientation == 1
-    return 2 * SVector(rxJ[1, element], ryJ[1, element])
-  else # if orientation == 2
-    return 2 * SVector(sxJ[1, element], syJ[1, element])
-  end
+@inline function get_contravariant_vector(element, orientation, mesh::DGMultiMesh{NDIMS, NonAffine()}) where {NDIMS}
+  # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
+
+  # assumes geometric terms vary spatially over each element
+  @unpack rstxyzJ = mesh.md
+  return SVector{NDIMS}(view.(rstxyzJ[:, orientation], :, element))
 end
 
-@inline function get_contravariant_vector(element, orientation, mesh::VertexMappedMesh{3})
-  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
-  if orientation == 1
-    return 2 * SVector(rxJ[1, element], ryJ[1, element], rzJ[1, element])
-  elseif orientation == 2
-    return 2 * SVector(sxJ[1, element], syJ[1, element], szJ[1, element])
-  else # if orientation == 3
-    return 2 * SVector(txJ[1, element], tyJ[1, element], tzJ[1, element])
-  end
-end
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
@@ -221,7 +256,7 @@ function compute_flux_differencing_SBP_matrices(dg::DGMulti, sparse_operators)
 end
 
 # use traditional multidimensional SBP operators for SBP approximation types.
-function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiff{<:SBP}, sparse_operators)
+function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiffSBP, sparse_operators)
   rd = dg.basis
   @unpack M, Drst, Pq = rd
   Qrst = map(D -> M * D, Drst)
@@ -235,11 +270,11 @@ end
 
 # For flux differencing SBP-type approximations, store solutions in Matrix{SVector{nvars}}.
 # This results in a slight speedup for `calc_volume_integral!`.
-function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiff{<:SBP})
+function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiffSBP)
   return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:SBP}, RealT, uEltype)
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, RealT, uEltype)
 
   rd = dg.basis
   md = mesh.md
@@ -267,7 +302,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:S
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
-function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
 
   rd = dg.basis
   @unpack md = mesh
@@ -309,7 +344,7 @@ function create_cache(mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff, Re
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
-function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMulti)
+function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
 
   rd = dg.basis
   @unpack Vq = rd
@@ -350,6 +385,10 @@ end
   rd = dg.basis
   return has_sparse_operators(rd.elementType, rd.approximationType)
 end
+
+# The general fallback does not assume sparse operators
+@inline has_sparse_operators(element_type, approximation_type) = Val{false}()
+
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
 @inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
@@ -364,6 +403,9 @@ end
 # more efficient and we use the sparsity structure.
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::AT) where {AT <: SBP} = Val{true}()
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = Val{true}()
+
+# FD SBP methods have sparse operators
+@inline has_sparse_operators(::Union{Line, Quad, Hex}, approx_type::AbstractDerivativeOperator) = Val{true}()
 
 # Todo: DGMulti. Dispatch on curved/non-curved mesh types, this code only works for affine meshes (accessing rxJ[1,e],...)
 # Computes flux differencing contribution from each Cartesian direction over a single element.
@@ -462,7 +504,7 @@ end
 end
 
 
-function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiff{<:Polynomial},
                                cache)
@@ -490,9 +532,9 @@ function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
   end
 end
 
-function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMultiFluxDiff{<:SBP},
+                               volume_integral, dg::DGMultiFluxDiffSBP,
                                cache)
 
   @unpack fluxdiff_local_threaded, inv_wq = cache
@@ -514,9 +556,9 @@ function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
 end
 
 
-# Specialize since `u_values` isn't computed for DGMultiFluxDiff{<:SBP} solvers.
+# Specialize since `u_values` isn't computed for DGMultiFluxDiffSBP solvers.
 function calc_sources!(du, u, t, source_terms,
-                       mesh, equations, dg::DGMultiFluxDiff{<:SBP}, cache)
+                       mesh, equations, dg::DGMultiFluxDiffSBP, cache)
   md = mesh.md
 
   @threaded for e in eachelement(mesh, dg, cache)
@@ -533,7 +575,7 @@ end
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff{<:Union{Polynomial, GaussSBP}}, cache) where {Source, BC}
 
-  @trixi_timeit timer() "reset ∂u/∂t" fill!(du, zero(eltype(du)))
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # this function evaluates the solution at volume and face quadrature points (which was previously
   # done in `prolong2interfaces` and `calc_volume_integral`)

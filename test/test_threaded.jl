@@ -103,15 +103,22 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
         volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
         surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
         approximation_type = SBP(),
-        l2 = [0.01280067571168776, 0.010607599608273158, 0.010607599608239976, 0.026408338014056502],
+        l2 = [0.006400337855843578, 0.005303799804137764, 0.005303799804119745, 0.013204169007030144],
         linf = [0.03798302318566282, 0.05321027922532284, 0.05321027922605448, 0.13392025411839015],
       )
     end
 
     @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
       @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_triangulate_pkg_mesh.jl"),
-        l2 = [4.664661209491976e-6, 3.7033509525940745e-6, 4.794877426562555e-6, 1.2682723101532175e-5],
+        l2 = [2.344080455438114e-6, 1.8610038753097983e-6, 2.4095165666095305e-6, 6.373308158814308e-6],
         linf = [2.5099852761334418e-5, 2.2683684021362893e-5, 2.6180448559287584e-5, 5.5752932611508044e-5]
+      )
+    end
+
+    @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+      @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_fdsbp_periodic.jl"),
+        l2 = [1.3333320340010056e-6, 2.044834627970641e-6, 2.044834627855601e-6, 5.282189803559564e-6],
+        linf = [2.7000151718858945e-6, 3.988595028259212e-6, 3.9885950273710336e-6, 8.848583042286862e-6]
       )
     end
   end

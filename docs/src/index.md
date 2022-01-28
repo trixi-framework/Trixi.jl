@@ -19,6 +19,7 @@ installation and postprocessing procedures. Its features include:
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
+  * Finite difference summation by parts (SBP) methods
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -263,13 +264,17 @@ mean      3.90      mean      3.93      mean      3.93      mean      3.94
 If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following articles:
 ```bibtex
-@online{ranocha2021adaptive,
+@article{ranocha2022adaptive,
   title={Adaptive numerical simulations with {T}rixi.jl:
          {A} case study of {J}ulia for scientific computing},
   author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
           and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
-  year={2021},
-  month={08},
+  journal={Proceedings of the JuliaCon Conferences},
+  volume={1},
+  number={1},
+  pages={77},
+  year={2022},
+  doi={10.21105/jcon.00077},
   eprint={2108.06476},
   eprinttype={arXiv},
   eprintclass={cs.MS}
@@ -326,3 +331,20 @@ community. Please refer to [Contributing](@ref) for more details.
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
+
+
+## Acknowledgments
+This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
+under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
+Dynamics-Geometry-Structure.
+
+This project has benefited from funding from the European Research Council through the
+ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
+Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
+ERC grant agreement no. 714487.
+
+This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden grant
+agreement 2020-03642 VR.
+
+This project has benefited from funding from the United States National Science Foundation under awards
+DMS-1719818 and DMS-1943186.

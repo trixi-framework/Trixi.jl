@@ -436,15 +436,15 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   if orientation == 1
     pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
     f1 = rho_avg * v1_avg
-    f2 = rho_avg * v1_avg * v1_avg + p_avg
-    f3 = rho_avg * v1_avg * v2_avg
-    f4 = p_avg*v1_avg * equations.inv_gamma_minus_one + rho_avg*v1_avg*kin_avg + pv1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = p_avg*v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
   else
     pv2_avg = 1/2 * (p_ll*v2_rr + p_rr*v2_ll)
     f1 = rho_avg * v2_avg
-    f2 = rho_avg * v2_avg * v1_avg
-    f3 = rho_avg * v2_avg * v2_avg + p_avg
-    f4 = p_avg*v2_avg * equations.inv_gamma_minus_one + rho_avg*v2_avg*kin_avg + pv2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = p_avg*v2_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv2_avg
   end
 
   return SVector(f1, f2, f3, f4)

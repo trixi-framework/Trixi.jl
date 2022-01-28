@@ -247,4 +247,30 @@ See [`FluxHLL`](@ref).
 const flux_hll = FluxHLL()
 
 
+
+"""
+    flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Equivalent to [`flux_shima_etal`](@ref) except that it may use specialized
+methods, e.g., when used with [`VolumeIntegralFluxDifferencing`](@ref).
+These specialized methods may enable better use of SIMD instructions to
+increase runtime efficiency on modern hardware.
+"""
+@inline function flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+  flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+end
+
+"""
+    flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Equivalent to [`flux_ranocha`](@ref) except that it may use specialized
+methods, e.g., when used with [`VolumeIntegralFluxDifferencing`](@ref).
+These specialized methods may enable better use of SIMD instructions to
+increase runtime efficiency on modern hardware.
+"""
+@inline function flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
+  flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
+end
+
+
 end # @muladd
