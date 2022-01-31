@@ -860,6 +860,7 @@ end
 
 # Convert 3d unstructured data from a general mesh to 1d data at given curve.
 function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes)
+    # If no curve is defined, create a axis curve.
     if curve === nothing
         curve = axis_curve(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], slice, point, nvisnodes)
     end
