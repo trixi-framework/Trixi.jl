@@ -69,8 +69,8 @@ end
 
 
 # Create element container and initialize element data
-function init_elements(mesh::P4estMesh{NDIMS, IsParallel, RealT}, equations,
-                       basis, ::Type{uEltype}) where {NDIMS, IsParallel, RealT<:Real, uEltype<:Real}
+function init_elements(mesh::P4estMesh{NDIMS, RealT}, equations,
+                       basis, ::Type{uEltype}) where {NDIMS, RealT<:Real, uEltype<:Real}
   nelements = ncells(mesh)
 
   _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
