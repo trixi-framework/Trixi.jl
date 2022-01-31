@@ -272,9 +272,11 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
   return nothing
 end
 
-# TODO: ::Any is a hack. This method is already defined in the TreeMesh
+# TODO: ::Any is a temporary hack. This method is already defined in the TreeMesh
 # code. It uses `mpi_neighbor_mortars` as an argument but not uEltype, thus the number
 # of arguments would be the same without ::Any which would break precompilation.
+# See https://github.com/trixi-framework/Trixi.jl/pull/977#discussion_r793694635 for further
+# discussion.
 function init_mpi_data_structures(mpi_neighbor_interfaces, n_dims, nvars, n_nodes, uEltype, ::Any)
   data_size = nvars * n_nodes^(n_dims - 1)
   mpi_send_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))

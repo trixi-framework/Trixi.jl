@@ -5,7 +5,8 @@
 @muladd begin
 
 
-
+# TODO: Unify this function with the `ParallelTreeMesh` `rhs!` once mortar support has been added
+# to the `ParallelP4estMesh`
 function rhs!(du, u, t,
               mesh::ParallelP4estMesh{2}, equations,
               initial_condition, boundary_conditions, source_terms,
