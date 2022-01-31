@@ -4,8 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-using LinearAlgebra
-
 @inline num_faces(elem::Tri) = 3
 @inline num_faces(elem::Quad) = 4
 
