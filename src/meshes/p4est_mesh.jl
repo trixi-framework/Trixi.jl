@@ -73,9 +73,8 @@ end
 @inline Base.real(::P4estMesh{NDIMS, IsParallel, RealT}) where {NDIMS, IsParallel, RealT} = RealT
 
 @inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count
-@inline ncells(mesh::SerialP4estMesh) = mesh.p4est.global_num_quadrants
 # returns Int32 by default which causes a weird method error when creating the cache
-@inline ncells(mesh::ParallelP4estMesh) = Int(mesh.p4est.local_num_quadrants)
+@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants)
 
 
 function Base.show(io::IO, mesh::P4estMesh)
