@@ -9,6 +9,8 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 """
+    initial_condition_mach3_flow(x, t, equations::CompressibleEulerEquations2D)
+
 Compressible Euler setup for a Mach 3 wind tunnel flow with a forward facing step.
 Results in strong shock interactions as well as Kelvin-Helmholtz instabilities at later times.
 See Section IV b on the paper below for details.
