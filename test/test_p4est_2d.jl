@@ -108,7 +108,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.051359355290192046, 0.4266034859911273, 0.2438304855475594, 4.11487176105527],
       linf = [6.902000373057003, 53.95714139820832, 24.241610279839758, 561.0630401858057],
       tspan = (0.0, 0.0001),
-      coverage_override = (polydeg=3, med_level=2, max_level=4))
+      coverage_override = (polydeg=3, med_level=0, max_level=0))
   end
 
   @trixi_testset "elixir_eulergravity_convergence.jl" begin
