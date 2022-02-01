@@ -103,6 +103,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       skip_coverage=true)
   end
 
+  @trixi_testset "elixir_euler_double_mach_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_amr.jl"),
+      l2   = [0.051359355290192046, 0.4266034859911273, 0.2438304855475594, 4.11487176105527],
+      linf = [6.902000373057003, 53.95714139820832, 24.241610279839758, 561.0630401858057],
+      tspan = (0.0, 0.0001),
+      coverage_override = (polydeg=3, med_level=2, max_level=4))
+  end
+
   @trixi_testset "elixir_eulergravity_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
