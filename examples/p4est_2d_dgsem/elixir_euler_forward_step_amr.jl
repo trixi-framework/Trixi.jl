@@ -70,6 +70,9 @@ boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_mach3_f
   # u_boundary = prim2cons(prim, equations)
   # u_surface = Trixi.rotate_from_x(u_boundary, normal, equations)
 
+  # Compute the flux using the appropriate mixture of internal / external solution states
+  # flux = Trixi.flux(u_surface, normal_direction, equations)
+
   # NOTE: Only for the supersonic outflow is this strategy valid
   # Calculate the boundary flux entirely from the internal solution state
   flux = Trixi.flux(u_inner, normal_direction, equations)
