@@ -15,7 +15,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       max_refinement_level = 6,
       tspan = (0.0, 0.01),
       atol = 1e-6,
-      rtol = 1e-6)
+      rtol = 1e-6,
+      skip_coverage = true)
   end
 end
 
