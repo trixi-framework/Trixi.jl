@@ -570,10 +570,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
     network_output = network(network_input)[1]
 
     # Compute indicator value
-    probability_to_blending!(network_output, alpha_continuous,
-                                              alpha_amr, alpha_min, alpha_max)
-
-    alpha[element] = network_output                                           
+    alpha[element] = probability_to_blending!(network_output, alpha_continuous,
+                                              alpha_amr, alpha_min, alpha_max)                                        
   end
 
   if alpha_smooth
