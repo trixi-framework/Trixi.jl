@@ -533,7 +533,7 @@ end
   @unpack inverse_weights = dg.basis
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
-  # high-order dg fluxes
+  # high-order DG fluxes
   @unpack fstaggered1_threaded, fstaggered2_threaded = cache
 
   fstaggered1 = fstaggered1_threaded[Threads.threadid()]
@@ -541,7 +541,7 @@ end
   calcflux_staggered!(fstaggered1, fstaggered2, u, mesh,
                       nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
 
-  # low-order fv fluxes
+  # low-order FV fluxes
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
 
   fstar1_L = fstar1_L_threaded[Threads.threadid()]
@@ -625,7 +625,7 @@ end
     fstaggered1[v, i+1, j] = fstaggered1[v, i, j] + weights[i] * flux_temp[v, i, j]
   end
 
-  # Split form volume flux in in orientation 2: y direction
+  # Split form volume flux in orientation 2: y direction
   flux_temp .= zero(eltype(flux_temp))
 
   for j in eachnode(dg), i in eachnode(dg)

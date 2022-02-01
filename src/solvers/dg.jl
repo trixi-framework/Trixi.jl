@@ -150,6 +150,8 @@ with a low-order FV method.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
+
+See also: [`VolumeIntegralShockCapturingHG`](@ref)
 """
 struct VolumeIntegralStaggeredGrid{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
   volume_flux_dg::VolumeFluxDG
