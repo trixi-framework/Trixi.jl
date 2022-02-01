@@ -282,6 +282,9 @@ end
 const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
+const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral<:SurfaceIntegralWeakForm, VolumeIntegral<:VolumeIntegralFluxDifferencing}
+
 """
     DGMultiMesh(dg::DGMulti)
 
@@ -349,6 +352,12 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
 # However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
 # based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
@@ -395,3 +404,74 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   @assert nelements(mesh, dg, cache) == 1
   nothing
 end
+
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+
+  rd = dg.basis
+  md = mesh.md
+
+  # for use with flux differencing schemes
+  Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
+
+  # storage for volume quadrature values, face quadrature values, flux values
+  nvars = nvariables(equations)
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+
+  # dummy storage to allow for compatibility with DGMultiFluxDiffSBP
+  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, size(md.xq, 1))]
+
+  return (; md, Qrst_skew, u_values, fluxdiff_local_threaded,
+            invJ = inv.(md.J), inv_wq = inv.(rd.wq),)
+end
+
+# Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGMultiFluxDiffPeriodicFDSBP, cache)
+
+  # We expect speedup over the serial version only when using two or more threads
+  # since the threaded version below does not exploit the symmetry properties,
+  # resulting in a performance penalty of 1/2
+  if Threads.nthreads() > 1
+    @unpack inv_wq, Qrst_skew = cache
+    @unpack volume_flux = volume_integral
+
+    for dim in eachdim(mesh)
+      normal_direction = get_contravariant_vector(1, dim, mesh)
+
+      A = Qrst_skew[dim]
+
+      A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+      row_ids = axes(A, 2)
+      rows = rowvals(A_base)
+      vals = nonzeros(A_base)
+
+      @threaded for i in row_ids
+        u_i = u[i]
+        du_i = du[i]
+        for id in nzrange(A_base, i)
+          j = rows[id]
+          u_j = u[j]
+          A_ij = vals[id]
+          AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
+          du_i = du_i + AF_ij * inv_wq[i]
+        end
+        du[i] = du_i
+      end
+    end
+
+  else # if using two threads or fewer
+
+    # Calls the usual DGMultiFluxDiffSBP `calc_volume_integral!`, which uses symmetry to reduce
+    # flux evaluations. Symmetry is expected to yield about a 2x speedup, so we default to the
+    # symmetry-exploiting volume integral unless we have >2 threads (which should yield >2 speedup).
+    invoke(calc_volume_integral!,
+           Tuple{typeof(du), typeof(u), typeof(mesh), typeof(have_nonconservative_terms),
+                 typeof(equations), typeof(volume_integral), DGMultiFluxDiffSBP, typeof(cache)},
+           du, u, mesh, have_nonconservative_terms, equations, volume_integral, dg, cache)
+
+  end
+end
+
+end # @muladd
