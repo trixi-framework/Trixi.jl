@@ -311,7 +311,7 @@ end
 # Specialized constructor for GaussSBP approximation type on quad elements. Restricting to
 # VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
 # for VolumeIntegralWeakForm yet.
-function DGMulti(element_type::Union{Quad, Hex},
+function DGMulti(element_type::Union{Hex},
                  approximation_type::GaussSBP,
                  volume_integral::VolumeIntegralFluxDifferencing,
                  surface_integral=SurfaceIntegralWeakForm(surface_flux);
@@ -352,8 +352,8 @@ function create_cache(mesh::DGMultiMesh, equations,
                  mesh, equations, dg, RealT, uEltype)
 
   # for change of basis prior to the volume integral and entropy projection
-  r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
-  rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+  r1D, w1D = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
+  rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
   interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
   interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
   NDIMS = ndims(rd.elementType)
@@ -369,6 +369,16 @@ function create_cache(mesh::DGMultiMesh, equations,
   # where `rd.wf` are Gauss node face quadrature weights.
   gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
 
+  # Lift matrix to transfer surface fluxes to the volume
+  # This is also available as dense matrix as `rd.LIFT`. However, we can get
+  # a significant speed-up by using the tensor product structure explicitly,
+  # in particular for higher polynomial degrees such as `polydeg >= 7` in 3D.
+  boundary_nodes = [-one(eltype(r1D)), one(eltype(r1D))]
+  interp_matrix_lobatto_to_face_1d = polynomial_interpolation_matrix(r1D, boundary_nodes)
+  interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, boundary_nodes)
+  # lift_1d = #=interp_matrix_gauss_to_lobatto_1D * diagm(inv.(wq1D)) * interp_matrix_gauss_to_lobatto_1D' *=# interp_matrix_lobatto_to_face_1d'
+  lift_1d = diagm(inv.(wq1D)) * interp_matrix_gauss_to_face_1d'
+
   nvars = nvariables(equations)
   rhs_volume_local_threaded   = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
   gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)  for _ in 1:Threads.nthreads()]
@@ -376,7 +386,8 @@ function create_cache(mesh::DGMultiMesh, equations,
   return (; cache..., Pf, gauss_LIFT, inv_gauss_weights,
          rhs_volume_local_threaded, gauss_volume_local_threaded,
          interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
-         interp_matrix_gauss_to_face)
+         interp_matrix_gauss_to_face,
+         lift_1d, wq_1d=wq1D, interp_matrix_gauss_to_face_1d)
 end
 
 
@@ -496,6 +507,50 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                         view(du, :, e), rhs_volume_local)
   end
 
+end
+
+
+function StartUpDG.RefElemData(elem::Quad, approxType::GaussSBP, N;
+                               quad_rule_vol = StartUpDG.quad_nodes(elem, N),
+                               quad_rule_face = StartUpDG.quad_nodes(StartUpDG.face_type(elem), N),
+                               Nplot = 10)
+
+    fv = StartUpDG.face_vertices(elem)
+
+    # Construct matrices on reference elements
+    r,s = StartUpDG.quad_nodes(elem, N)
+    Fmask = Int[]
+
+    VDM,Vr,Vs = StartUpDG.basis(elem,N,r,s)
+    Dr = Vr/VDM
+    Ds = Vs/VDM
+
+    # low order interpolation nodes
+    r1,s1 = StartUpDG.nodes(elem,1)
+    V1 = StartUpDG.vandermonde(elem,1,r,s)/StartUpDG.vandermonde(elem,1,r1,s1)
+
+    rf,sf,wf,nrJ,nsJ = StartUpDG.init_face_data(elem, N, quad_rule_face = quad_rule_face)
+
+    rq,sq,wq = quad_rule_vol
+    Vq = StartUpDG.vandermonde(elem,N,rq,sq)/VDM
+    M = Vq'*diagm(wq)*Vq
+    Pq = M\(Vq'*diagm(wq))
+
+    Vf = StartUpDG.vandermonde(elem,N,rf,sf)/VDM # interpolates from nodes to face nodes
+    LIFT = M\(Vf'*diagm(wf)) # lift matrix used in rhs evaluation
+
+    # plotting nodes
+    rp, sp = StartUpDG.equi_nodes(elem,Nplot)
+    Vp = StartUpDG.vandermonde(elem,N,rp,sp)/VDM
+
+    Drs = (Dr,Ds)
+
+    return RefElemData(elem, approxType, N, fv, V1,
+                       tuple(r, s), VDM, Fmask,
+                       Nplot, tuple(rp, sp), Vp,
+                       tuple(rq, sq), wq, Vq,
+                       tuple(rf, sf), wf, Vf, tuple(nrJ, nsJ),
+                       M, Pq, Drs, LIFT)
 end
 
 
