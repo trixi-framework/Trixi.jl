@@ -92,29 +92,31 @@ end
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
+  qv = rho_qv / rho
+  ql = rho_ql / rho
   p, T = get_current_condition(u, equations)
   if orientation == 1
     f1 = rho_v1 
     f2 = rho_v1 * v1 + p
     f3 = rho_v1 * v2 
     f4 = (rho_E + p) * v1 
-    f5 = rho_qv * v1
-    f6 = rho_ql * v1 
+    f5 = rho_v1 * qv
+    f6 = rho_v1 * ql 
   elseif Rain
     W_f = fall_speed_rain(rho_ql, rho_ql, equations)
     f1 = rho_v2 + rho_ql * W_f 
     f2 = rho_v2 * v1 
     f3 = rho_v2 * v2 + p + rho_ql * W_f * v2
     f4 = (rho_E + p) * v2 + W_f * rho_ql * (c_pl * T + 0.5*(v1*v1 + v2*v2))
-    f5 = rho_qv * v2
-    f6 = rho_ql * v2 + rho_ql * W_f   
+    f5 = rho_v2 * qv
+    f6 = rho_v2 * ql + rho_ql * W_f   
   else
     f1 = rho_v2 
     f2 = rho_v2 * v1
     f3 = rho_v2 * v2 + p 
     f4 = (rho_E + p) * v2  
-    f5 = rho_qv * v2
-    f6 = rho_ql * v2 
+    f5 = rho_v2 * qv
+    f6 = rho_v2 * ql
   end
   return SVector(f1, f2, f3, f4, f5, f6)
 end
@@ -243,23 +245,114 @@ function solve_for_absolute_temperature(moist_state, H, equations, T_0)
 end
 
 
-function initial_density_current(x, t, equations::CompressibleMoistEulerEquations2D)
+function initial_condition_convergence_test(x, t, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
+  #T = 288
+  #tmp = 1
+  # solution of (1-qv-ql)*R_d + qv*R_v = T
+  #qv = 1/168
+  #ql = 1/8036
+
+  #qv = 1/132
+  #ql = 1/902
+  
+  #qv = 1/51
+  #ql = 1/119
+
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  ini = c + A * sin(ω * (x[1] + x[2] - t))
+
+  qv = 0
+  ql = 0
+  mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
+
+  T = (ini - 1)/ c_vd
+  E = (mu*T + qv*L_00 + 1)
+
+  rho = ini
+  rho_v1 = ini
+  rho_v2 = ini
+  rho_e = E * ini
+  rho_qv = qv * ini 
+  rho_ql = ql * ini
+  
+  return SVector(rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql)
+end
+
+
+@inline function source_terms_convergence_test(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  # Same settings as in `initial_condition`
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
+  #T = 288
+  #tmp = 1
+  # solution of (1-q_v-q_l)*R_d + q_v*R_v = T 
+  #qv = 1/168
+  #ql = 1/8036
+
+  #qv = 1/132
+  #ql = 1/902
+
+  #qv = 1/51
+  #ql = 1/119
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+
+  x1, x2 = x
+  si, co = sincos(ω * (x1 + x2 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
+  
+  qv = 0
+  ql = 0
+  mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
+  xi = ((1 - qv - ql) * R_d + qv * R_v)
+
+  T = (rho - 1)/ c_vd 
+  dT = rho_x / c_vd
+  E = (mu * T + qv * L_00 + 1)
+  dE = E * rho_x + rho * mu * dT
+  dp = xi * (T * rho_x + rho * dT)
+  # Note that d/dt rho = -d/dx rho = -d/dy rho.
+
+
+  du1 = rho_x
+  du2 = rho_x + dp
+  du3 = du2
+  du4 = dE + 2*dp
+  du5 = qv * du1
+  du6 = ql * du1
+
+  return SVector(du1, du2, du3, du4, du5, du6)
+end
+
+
+function initial_condition_gravity_wave(x, t, equations::CompressibleMoistEulerEquations2D)
   @unpack p_0, kappa, g, c_pd, c_vd, R_d, R_v = equations
-  xc = 0
-  zc = 3000
-  rx = 4000
-  rz = 2000
-  θ_ref = 300
-  θ_c = -15
-  Δθ = 0
+  z = x[2]
+  theta_ref = 250
+  T_0 = 250
+  N = g / sqrt(c_pd * T_0)
 
-  r = sqrt((x[1] - xc) * rx^(-2) +(x[2] - zc) * rz^(-2))
+  theta = T_0 * exp(N^2 *z / g)
+  p = p_0(1 + g^2 * inv(c_pd * T_0 * N^2) * (exp(-z * N^2 / g) - 1))^(- kappa)
+  rho = p_0 * inv(theta * R_d) * (p_0 / p)^(inv(gamma))
+  T = p / (R_d * rho)
 
-  if(r <= 1)
-  Δθ = 0.5 * θ_c * (1 + cos( pi * r))
-  end
-
-  return SVector(rho, rho_v1, rho_v2, rho_E,  rho_qv, rho_ql)
+  v1 = 20
+  v2 = 0
+  rho_v1 = rho * v2
+  rho_v2 = rho * v2
+  rho_E = rho * c_vd * T + 1/2 * rho * (v1^2 + v2^2)
+  rho_qv = 0
+  rho_ql = 0
+  return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
 end
 
 
@@ -318,7 +411,7 @@ end
 
 @inline function source_terms_moist_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
 
-  return source_terms_geopotential(u, x, t, equations) + source_terms_phase_change(u, equations)
+  return source_terms_geopotential(u, equations) + source_terms_phase_change(u, equations)
 end
 
 
@@ -354,6 +447,25 @@ end
 end
 
 
+@inline function source_terms_sponge_layer(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_pv, L_00, g = equations
+  rho, rho_v1, rho_v2, rho_e, Rho_qv, rho_ql = u
+  z = x[end]
+  z_s = 
+
+  sponge = zero(eltype(u))
+  zero = zero(eltype(u))
+  if(z > z_s)
+  gamma = 2
+  z_top =
+  alpha =
+  tau_s = alpha * sin(1/2 *(z - z_s / (z_top - z_s)) )^gamma 
+  end
+  
+  return SVector(zero, sponge, zero, zero, zero, zero)
+end
+
+
 @inline function get_current_condition(u, equations::CompressibleMoistEulerEquations2D)
   @unpack c_vd, R_d, c_vv, c_pv, R_v, c_pl, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
@@ -363,10 +475,10 @@ end
   v2 = rho_v2 / rho
   
   # inner energy
-  rho_e = (rho_E - 0.5 * (rho_v1*v1 + rho_v2*v2))
+  rho_e = (rho_E - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
   # Absolute Temperature
-  T = inv(rho_qd * c_vd + rho_qv * c_vv + rho_ql * c_pl) * (rho_e - L_00 * rho_qv)
+  T = (rho_e - L_00 * rho_qv) / (rho_qd * c_vd + rho_qv * c_vv + rho_ql * c_pl)  
       
   # Pressure
   p = (rho_qd * R_d + rho_qv * R_v) * T
@@ -407,7 +519,9 @@ end
   xc, zc = (0, 2400)
   rho = u[1]
   f_t = (t-30) / 10
-  f_x = sqrt((0.25 * x[1] - xc)^2 + (x[2] - zc)^2) / 200
+  #a = 0.25
+  a = 1
+  f_x = sqrt((a * x[1] - xc)^2 + (x[2] - zc)^2) / 200
   0.00025 * exp(-(f_t^2 + f_x^2)) * rho
 
   return 0.00025 * exp(-(f_t^2 + f_x^2)) * rho
@@ -425,7 +539,7 @@ end
   end
   W_f = - c_r * gm * inv(6) * (rho_ql_speed * inv(pi * rho_w * N_0r))^(1/8)
 
-  return 0.25 * W_f
+  return W_f
 end
 
 
@@ -839,11 +953,15 @@ end
 
 @inline function max_abs_speeds(u, equations::CompressibleMoistEulerEquations2D)
   rho, v1, v2, p, qv, ql = cons2prim(u, equations)
+  k = 1
 
+  if equations.Rain
   Wf = fall_speed_rain(rho * ql, rho * ql, equations)
+  k += abs(Wf * v2)
+  end
 
   c = sqrt(equations.gamma * p / rho)
-  return abs(v1) + c, abs(v2 * (1 + abs(Wf * v2)) ) + c
+  return abs(v1) + c, abs(v2 * k) + c
 end
 
 
@@ -869,7 +987,8 @@ end
   v_square = v1^2 + v2^2
   p = (equations.gamma - 1) * (rho_E - 0.5 * rho * v_square)
 
-  s = log(p) - equations.gamma*log(rho)
+  #s = log(p) - equations.gamma*log(rho)
+  s=0
   rho_p = rho / p
 
   w1 = (equations.gamma - s) * inv(equations.gamma - 1) - 0.5 * rho_p * v_square
@@ -1011,6 +1130,20 @@ end
   return rho_ql
 end
 
+@inline function ratio_liquid(u, equations::CompressibleMoistEulerEquations2D)
+  rho = u[1]
+  rho_ql = u[6]
+  ql = rho_ql / rho
+  return ql
+end
+
+@inline function ratio_vapor(u, equations::CompressibleMoistEulerEquations2D)
+  rho = u[1]
+  rho_qv = u[5]
+  qv = rho_qv / rho
+  return qv
+end
+
 
 @inline function pressure(u, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
@@ -1098,6 +1231,22 @@ end
   kappa_m =  R_m * inv(c_pml)
   pot = T * (p_0 / p)^(kappa_m)
   return pot
+end
+
+@inline function temp_error(cons, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_pd, c_pv, c_pl, p_0 = equations
+  # Pressure
+  p, T = get_current_condition(cons, equations)
+  rho_d = cons[1] - (cons[5] + cons[6])
+  r_v = inv(rho_d) * cons[5]
+  r_l = inv(rho_d) * cons[6]
+
+  # Potential temperature
+  R_m = R_d + r_v * R_v
+  c_pml = c_pd + r_v * c_pv + r_l * c_pl
+  kappa_m =  R_m * inv(c_pml)
+  pot = T * (p_0 / p)^(kappa_m)
+  return abs(300 - pot) + 0.5 * sqrt(abs(energy_kinetic(cons, equations)))
 end
 
 @inline function aequivalent_pottemp_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
