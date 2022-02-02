@@ -311,41 +311,42 @@ end
 
 
 # Convert probability for troubled cell to indicator value for shockcapturing/AMR
-@inline function probability_to_blending!(probability_troubled_cell, alpha_continuous, alpha_amr,
+@inline function probability_to_indicator(probability_troubled_cell, alpha_continuous, alpha_amr,
                                           alpha_min, alpha_max)
   # Initialize indicator to zero
   alpha_element = zero(probability_troubled_cell)
 
   if alpha_continuous && !alpha_amr
-
     # Set good cells to 0 and troubled cells to continuous value of the network prediction
-    if probability_troubled_cell < 0.5
-      probability_troubled_cell = 0
+    if probability_troubled_cell > 0.5
+      alpha_element = probability_troubled_cell
+    else
+      alpha_element = zero(probability_troubled_cell)
     end
 
     # Take care of the case close to pure FV
-    if probability_troubled_cell > 1 - alpha_min
-      probability_troubled_cell = 1
+    if alpha_element > 1 - alpha_min
+      alpha_element = one(alpha_element)
     end
 
     # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-    probability_troubled_cell *= alpha_max
-
+    alpha_element *= alpha_max
   elseif !alpha_continuous && !alpha_amr
-
     # Set good cells to 0 and troubled cells to 1
     if probability_troubled_cell > 0.5
-      probability_troubled_cell = alpha_max
+      alpha_element = alpha_max
     else
-      probability_troubled_cell = zero(alpha_max)
+      alpha_element = zero(alpha_max)
     end
-    
   elseif alpha_amr
-
     # The entire continuous output of the neural network is used for AMR
+    alpha_element  = probability_troubled_cell
+
     # Scale the probability for a troubled cell (in [0,1]) to the maximum allowed alpha
-    probability_troubled_cell *= alpha_max
+    alpha_element *= alpha_max
   end
+
+  return alpha_element
 end
 
 

@@ -304,18 +304,18 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     end
 
     # Scale input data
+    norm = max(maximum(abs, network_input), one(eltype(network_input)))
     for ind in eachindex(network_input)
-      network_input[ind] = network_input[ind] / max(maximum(abs, network_input), one(eltype(network_input)))
+      network_input[ind] = network_input[ind] / norm
     end
     
     # Evaluation of the network allocates a lot of memory.
     # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
-    network_output = network(network_input)[1]
+    probability_troubled_cell = network(network_input)[1]
 
     # Compute indicator value
-    probability_to_blending!(network_output, alpha_continuous,
+    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)                                         
-    alpha[element] =  network_output
                                        
   end
 
@@ -400,20 +400,17 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkRayHesthaven})(
     network_input[3] = sum(indicator)/nnodes(dg)
 
     # Scale input data
+    norm = max(maximum(abs, network_input), one(eltype(network_input)))
     for ind in eachindex(network_input)
-      network_input[ind] = network_input[ind] / max(maximum(abs, network_input), one(eltype(network_input)))
+      network_input[ind] = network_input[ind] / norm
     end
 
     # Evaluation of the network allocates a lot of memory.
     # https://discourse.julialang.org/t/allocation-of-memory-while-evaluate-a-model/71064/7
-    network_output = network(network_input)[1]
+    probability_troubled_cell = network(network_input)[1]
 
-
-    # Compute indicator value
-    probability_to_blending!(network_output, alpha_continuous,
+    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
                                               alpha_amr, alpha_min, alpha_max)
-    
-    alpha[element] = network_output
   end
 
   if alpha_smooth
