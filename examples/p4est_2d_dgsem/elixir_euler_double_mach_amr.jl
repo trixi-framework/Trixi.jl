@@ -53,11 +53,11 @@ boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_double_
                                             surface_flux_function, equations::CompressibleEulerEquations2D)
   # NOTE: Only for the supersonic outflow is this strategy valid
   # Calculate the boundary flux entirely from the internal solution state
-  return Trixi.flux(u_inner, normal_direction, equations)
+  return flux(u_inner, normal_direction, equations)
 end
 
 # Special mixed boundary condition type for the :Bottom of the domain.
-# It is Dirchilet when x < 1/6 and a slip wall when x >= 1/6
+# It is Dirichlet when x < 1/6 and a slip wall when x >= 1/6
 @inline function boundary_condition_mixed_dirichlet_wall(u_inner, normal_direction::AbstractVector,
                                                          x, t, surface_flux_function,
                                                          equations::CompressibleEulerEquations2D)
