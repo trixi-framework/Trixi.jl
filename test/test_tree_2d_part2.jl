@@ -24,6 +24,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Compressible Euler coupled with acoustic perturbation equations
   include("test_tree_2d_euleracoustics.jl")
+
+  # KPP problem
+  include("test_tree_2d_kpp.jl")
 end
 
 # Clean up afterwards: delete Trixi output directory
