@@ -12,27 +12,25 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
 # Run basic tests
 @testset "Examples 2D" begin
-  # Note: Tests only run locally due to lack of MPI support in P4est_jll
-
   # Linear scalar advection
-  #@trixi_testset "elixir_advection_basic.jl" begin
-  #  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-  #    # Expected errors are exactly the same as with TreeMesh!
-  #    l2   = [8.311947673061856e-6],
-  #    linf = [6.627000273229378e-5])
-  #end
+  @trixi_testset "elixir_advection_basic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      # Expected errors are exactly the same as with TreeMesh!
+      l2   = [8.311947673061856e-6],
+      linf = [6.627000273229378e-5])
+  end
 
-  #@trixi_testset "elixir_advection_unstructured_flag.jl" begin
-  #  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
-  #    l2   = [0.0005379687442422346],
-  #    linf = [0.007438525029884735])
-  #end
+  @trixi_testset "elixir_advection_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
+      l2   = [0.0005379687442422346],
+      linf = [0.007438525029884735])
+  end
 
-  #@trixi_testset "elixir_advection_restart.jl" begin
-  #  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-  #    l2   = [4.507575525876275e-6],
-  #    linf = [6.21489667023134e-5])
-  #end
+  @trixi_testset "elixir_advection_restart.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+      l2   = [4.507575525876275e-6],
+      linf = [6.21489667023134e-5])
+  end
 end
 
 end # P4estMesh MPI

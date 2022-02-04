@@ -31,7 +31,7 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, NDIMSP2, NNODES} <: 
     end
 
     if mpi_isparallel()
-      if !p4est_has_mpi()
+      if !P4est.uses_mpi()
         error("p4est library does not support MPI")
       end
       is_parallel = Val(true)
