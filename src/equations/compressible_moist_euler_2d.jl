@@ -266,11 +266,14 @@ function initial_condition_convergence_test(x, t, equations::CompressibleMoistEu
   ω = 2 * pi * f
   ini = c + A * sin(ω * (x[1] + x[2] - t))
 
+  #qv = 1/2
+  #ql = 1/10000
   qv = 0
   ql = 0
   mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
 
-  T = (ini - 1)/ c_vd
+  #T = (ini - 1) /mu  
+  T = (ini - 1) / c_vd  
   E = (mu*T + qv*L_00 + 1)
 
   rho = ini
@@ -309,12 +312,16 @@ end
   rho = c + A * si
   rho_x = ω * A * co
   
+  #qv = 1/2
+  #ql = 1/10000
   qv = 0
   ql = 0
   mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
   xi = ((1 - qv - ql) * R_d + qv * R_v)
 
-  T = (rho - 1)/ c_vd 
+  #T = (rho - 1) /mu  
+  #dT = rho_x / mu
+  T = (rho - 1) / c_vd  
   dT = rho_x / c_vd
   E = (mu * T + qv * L_00 + 1)
   dE = E * rho_x + rho * mu * dT
@@ -328,6 +335,76 @@ end
   du4 = dE + 2*dp
   du5 = qv * du1
   du6 = ql * du1
+
+  return SVector(du1, du2, du3, du4, du5, du6)
+end
+
+@inline function source_terms_convergence_test_rain(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  # Same settings as in `initial_condition`
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00, c_r, N_0r, rho_w, Rain = equations
+  #T = 288
+  #tmp = 1
+  # solution of (1-q_v-q_l)*R_d + q_v*R_v = T 
+  #qv = 1/168
+  #ql = 1/8036
+
+  #qv = 1/132
+  #ql = 1/902
+
+  #qv = 1/51
+  #ql = 1/119
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+
+  x1, x2 = x
+  si, co = sincos(ω * (x1 + x2 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
+  
+  #qv = 1/2
+  #ql = 1/10000
+  qv = 0
+  ql = 0
+  mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
+  xi = ((1 - qv - ql) * R_d + qv * R_v)
+
+  #T = (rho - 1) /mu  
+  #dT = rho_x / mu
+  T = (rho - 1) / c_vd  
+  dT = rho_x / c_vd
+  E = (mu * T + qv * L_00 + 1)
+  dE = E * rho_x + rho * mu * dT
+  dp = xi * (T * rho_x + rho * dT)
+
+  Rflux = 0
+  RfluxE = 0
+
+  if Rain
+    # Rain Term
+    e_lp1 = c_pl * T + 1 
+
+    gm = exp(2.45374) # Gamma(4.5)
+    a = - c_r * gm * inv(6)
+    b = pi * rho_w * N_0r
+
+    Wf = a * (ql * rho / b)^(1/8)
+    dWf = a / (8 * b * (ql * rho / b)^(7/8)) * ql * rho_x
+  
+    Rflux = rho * ql * dWf + ql * rho_x * Wf
+    RfluxE = e_lp1 * Rflux + c_pl * dT * ql * rho * Wf
+  end
+
+  # Note that d/dt rho = -d/dx rho = -d/dy rho.
+
+  du1 = rho_x + Rflux
+  du2 = rho_x + dp
+  du3 = du2 + Rflux
+  du4 = dE + 2*dp + RfluxE
+  du5 = qv * rho_x
+  du6 = ql * rho_x + Rflux
 
   return SVector(du1, du2, du3, du4, du5, du6)
 end
