@@ -16,19 +16,22 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [0.00016263963870641478],
-      linf = [0.0014537194925779984])
+      linf = [0.0014537194925779984],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_curved.jl"),
       l2   = [0.0004750004258546538],
-      linf = [0.026527551737137167])
+      linf = [0.026527551737137167],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
       l2   = [0.00253595715323843],
-      linf = [0.016486952252155795])
+      linf = [0.016486952252155795],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
@@ -36,7 +39,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [9.773852895157622e-6],
       linf = [0.0005853874124926162],
-      coverage_override = (maxiters=6, initial_refinement_level=1, base_level=1, med_level=2, max_level=3))
+      coverage_override = (maxiters=6, initial_refinement_level=1, base_level=1, med_level=2, max_level=3),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
@@ -56,28 +60,32 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [0.002590388934758452],
-      linf = [0.01840757696885409])
+      linf = [0.01840757696885409],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
       l2   = [4.070355207909268e-5, 4.4993257426833716e-5, 5.10588457841744e-5, 5.102840924036687e-5, 0.00019986264001630542],
       linf = [0.0016987332417202072, 0.003622956808262634, 0.002029576258317789, 0.0024206977281964193, 0.008526972236273522],
-      tspan = (0.0, 0.01))
+      tspan = (0.0, 0.01),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
       l2   = [0.0015106060984283647, 0.0014733349038567685, 0.00147333490385685, 0.001473334903856929, 0.0028149479453087093],
       linf = [0.008070806335238156, 0.009007245083113125, 0.009007245083121784, 0.009007245083102688, 0.01562861968368434],
-      tspan = (0.0, 1.0))
+      tspan = (0.0, 1.0),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
       l2   = [5.162664597942288e-15, 1.941857343642486e-14, 2.0232366394187278e-14, 2.3381518645408552e-14, 7.083114561232324e-14],
       linf = [7.269740365245525e-13, 3.289868377720495e-12, 4.440087186807773e-12, 3.8686831516088205e-12, 9.412914891981927e-12],
-      tspan = (0.0, 0.03))
+      tspan = (0.0, 0.03),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_free_stream_extruded.jl" begin
@@ -92,7 +100,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.010380390326164493, 0.006192950051354618, 0.005970674274073704, 0.005965831290564327, 0.02628875593094754],
       linf = [0.3326911600075694, 0.2824952141320467, 0.41401037398065543, 0.45574161423218573, 0.8099577682187109],
       tspan = (0.0, 0.2),
-      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
+      coverage_override = (polydeg=3,),
+      skip_coverage = true) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
@@ -100,7 +109,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [7.82070951e-02, 4.33260474e-02, 4.33260474e-02, 4.33260474e-02, 3.75260911e-01],
       linf = [7.45329845e-01, 3.21754792e-01, 3.21754792e-01, 3.21754792e-01, 4.76151527e+00],
       tspan = (0.0, 0.3),
-      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
+      coverage_override = (polydeg=3,),
+      skip_coverage = true) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_source_terms_nonconforming_earth.jl" begin
@@ -109,7 +119,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.00013996924184311865, 0.00013681539559939893, 0.00013681539539733834, 0.00013681539541021692, 0.00016833038543762058],
       # Decrease tolerance of adaptive time stepping to get similar results across different systems
       abstol=1.0e-11, reltol=1.0e-11,
-      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3)) # Prevent long compile time in CI
+      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3),
+      skip_coverage = true) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_circular_wind_nonconforming.jl" begin
@@ -117,7 +128,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [1.573832094977477e-7, 3.863090659429634e-5, 3.867293305754584e-5, 3.686550296950078e-5, 0.05508968493733932],
       linf = [2.2695202613887133e-6, 0.0005314968179916946, 0.0005314969614147458, 0.0005130280733059617, 0.7944959432352334],
       tspan = (0.0, 2e2),
-      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3)) # Prevent long compile time in CI
+      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3),
+      skip_coverage = true) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_baroclinic_instability.jl" begin
@@ -127,7 +139,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 1e2),
       # Decrease tolerance of adaptive time stepping to get similar results across different systems
       abstol=1.0e-9, reltol=1.0e-9,
-      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3)) # Prevent long compile time in CI
+      coverage_override = (trees_per_cube_face=(1, 1), polydeg=3),
+      skip_coverage = true) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh.jl" begin
@@ -145,7 +158,8 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.004626581522263695, 0.006614624811393632, 0.0030068344747734566, 0.008277825749754025,
               1.3475027166309006e-5],
       tspan = (0.0, 0.25),
-      coverage_override = (trees_per_dimension=(1, 1, 1),))
+      coverage_override = (trees_per_dimension=(1, 1, 1),),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_shockcapturing_amr.jl" begin
@@ -157,7 +171,8 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.6858860133405615, 0.15172116633332622, 0.22432820727833747, 0.16805989780225183,
               0.000535219040687628],
       tspan = (0.0, 0.04),
-      coverage_override = (maxiters=6, initial_refinement_level=1, base_level=1, max_level=2))
+      coverage_override = (maxiters=6, initial_refinement_level=1, base_level=1, max_level=2),
+      skip_coverage = true)
   end
 end
 
