@@ -17,7 +17,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (4, 4),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0013536930300254945, 0.0014315603442106193, 0.001431560344211359, 0.0047393341007602625] ./ 2.0,
-      linf = [0.001514260921466004, 0.0020623991944839215, 0.002062399194485476, 0.004897700392503701]
+      linf = [0.001514260921466004, 0.0020623991944839215, 0.002062399194485476, 0.004897700392503701],
+      skip_coverage = true
     )
   end
 
@@ -27,7 +28,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       approximation_type = SBP(),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0074706882014934735, 0.005306220583603261, 0.005306220583613591, 0.014724842607716771] ./ 2.0,
-      linf = [0.021563604940952885, 0.01359397832530762, 0.013593978324845324, 0.03270995869587523]
+      linf = [0.021563604940952885, 0.01359397832530762, 0.013593978324845324, 0.03270995869587523],
+      skip_coverage = true
     )
   end
 
@@ -37,7 +39,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       element_type = Quad(),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.00031892254415307093, 0.00033637562986771894, 0.0003363756298680649, 0.0011100259064243145] ./ 2.0,
-      linf = [0.001073298211445639, 0.0013568139808282087, 0.0013568139808290969, 0.0032249020004324613]
+      linf = [0.001073298211445639, 0.0013568139808282087, 0.0013568139808290969, 0.0032249020004324613],
+      skip_coverage = true
     )
   end
 
@@ -60,7 +63,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       approximation_type = SBP(),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.01280067571168776, 0.010607599608273302, 0.010607599608239775, 0.026408338014056548] ./ 2.0,
-      linf = [0.037983023185674814, 0.05321027922533417, 0.05321027922608157, 0.13392025411844033]
+      linf = [0.037983023185674814, 0.05321027922533417, 0.05321027922608157, 0.13392025411844033],
+      skip_coverage = true
     )
   end
 
@@ -87,7 +91,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       l2 = [1.5914065936559232e-5, 1.4757575957005155e-5, 1.4757575956508324e-5, 4.511709781155535e-5],
-      linf = [0.00010525416930584619, 0.00010003778091061122, 0.00010003778085621029, 0.00036426282101720275]
+      linf = [0.00010525416930584619, 0.00010003778091061122, 0.00010003778085621029, 0.00036426282101720275],
+      skip_coverage = true
     )
   end
 
@@ -124,7 +129,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (32, 32), tspan = (0.0, 0.2),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.11140378947116614, 0.06598161188703612, 0.10448953167839563, 0.16023209181809595] ./ 2.0,
-      linf = [0.24033843177853664, 0.1659992245272325, 0.1235468309508845, 0.26911424973147735]
+      linf = [0.24033843177853664, 0.1659992245272325, 0.1235468309508845, 0.26911424973147735],
+      skip_coverage = true
     )
   end
 
@@ -133,7 +139,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (32, 32), element_type = Quad(), approximation_type=GaussSBP(), tspan = (0.0, 0.2),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.11141270656347146, 0.06598888014584121, 0.1044902203749932, 0.16023037364774995] ./ 2.0,
-      linf = [0.2414760062126462, 0.1662111846065654, 0.12344140473946856, 0.26978428189564774]
+      linf = [0.2414760062126462, 0.1662111846065654, 0.12344140473946856, 0.26978428189564774],
+      skip_coverage = true
     )
   end
 
@@ -141,7 +148,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor_instability.jl"),
       cells_per_dimension = (8, 8), tspan = (0.0, 0.2),
       l2 = [0.0709665896982514, 0.005182828752164663, 0.013832655585206478, 0.03247013800580221],
-      linf = [0.4783963902824797, 0.022527207050681054, 0.040307056293369226, 0.0852365428206836]
+      linf = [0.4783963902824797, 0.022527207050681054, 0.040307056293369226, 0.0852365428206836],
+      skip_coverage = true
     )
   end
 
@@ -149,7 +157,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_brown_minion_vortex.jl"),
       cells_per_dimension = 4, tspan = (0.0, 0.1),
       l2 = [0.006680001611078062, 0.02151676347585447, 0.010696524235364626, 0.15052841129694647],
-      linf = [0.01544756362800248, 0.09517304772476806, 0.021957154972646383, 0.33773439650806303]
+      linf = [0.01544756362800248, 0.09517304772476806, 0.021957154972646383, 0.33773439650806303],
+      skip_coverage = true
     )
   end
 
@@ -164,7 +173,8 @@ isdir(outdir) && rm(outdir, recursive=true)
         xmin=0.0, xmax=1.0, N=12),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0008966318978421226, 0.0011418826379110242, 0.001141882637910878, 0.0030918374335671393] ./ 2.0,
-      linf = [0.0015281525343109337, 0.00162430960401716, 0.0016243096040242655, 0.004447503691245913]
+      linf = [0.0015281525343109337, 0.00162430960401716, 0.0016243096040242655, 0.004447503691245913],
+      skip_coverage = true
     )
   end
 
@@ -181,14 +191,16 @@ isdir(outdir) && rm(outdir, recursive=true)
       surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
       # division by 2.0 corresponds to normalization by the square root of the size of the domain
       l2 = [0.0014018725496871129, 0.0015887007320868913, 0.001588700732086329, 0.003870926821031202] ./ 2.0,
-      linf = [0.0029541996523780867, 0.0034520465226108854, 0.003452046522624652, 0.007677153211004928]
+      linf = [0.0029541996523780867, 0.0034520465226108854, 0.003452046522624652, 0.007677153211004928],
+      skip_coverage = true
     )
   end
 
   @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
       l2 = [1.3333320340010056e-6, 2.044834627970641e-6, 2.044834627855601e-6, 5.282189803559564e-6],
-      linf = [2.7000151718858945e-6, 3.988595028259212e-6, 3.9885950273710336e-6, 8.848583042286862e-6]
+      linf = [2.7000151718858945e-6, 3.988595028259212e-6, 3.9885950273710336e-6, 8.848583042286862e-6],
+      skip_coverage = true
     )
   end
 
@@ -196,7 +208,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
       xmin=-200.0, xmax=100.0 #= parameters for reference interval =#,
       l2 = [1.333332034149886e-6, 2.0448346280892024e-6, 2.0448346279766305e-6, 5.282189803510037e-6],
-      linf = [2.700015170553627e-6, 3.988595024262409e-6, 3.988595024928543e-6, 8.84858303740188e-6]
+      linf = [2.700015170553627e-6, 3.988595024262409e-6, 3.988595024928543e-6, 8.84858303740188e-6],
+      skip_coverage = true
     )
   end
 
@@ -206,7 +219,8 @@ isdir(outdir) && rm(outdir, recursive=true)
         derivative_order=1, accuracy_order=4, xmin=-200.0, xmax=100.0, N=100),
       coordinates_min=(-3.0, -4.0), coordinates_max=(0.0, -1.0),
       l2 = [0.07318831033918516, 0.10039910610067465, 0.1003991061006748, 0.2642450566234564],
-      linf = [0.36081081739439735, 0.5244468027020845, 0.5244468027020814, 1.2210130256735705]
+      linf = [0.36081081739439735, 0.5244468027020845, 0.5244468027020814, 1.2210130256735705],
+      skip_coverage = true
     )
   end
 
@@ -216,7 +230,8 @@ isdir(outdir) && rm(outdir, recursive=true)
         SummationByPartsOperators.legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
         SummationByPartsOperators.UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10)),
       l2 = [1.5440402410017893e-5, 1.4913189903083485e-5, 1.4913189902797073e-5, 2.6104615985156992e-5],
-      linf = [4.16334345412217e-5, 5.067812788173143e-5, 5.067812786885284e-5, 9.887976803746312e-5]
+      linf = [4.16334345412217e-5, 5.067812788173143e-5, 5.067812786885284e-5, 9.887976803746312e-5],
+      skip_coverage = true
     )
   end
 
@@ -240,7 +255,8 @@ isdir(outdir) && rm(outdir, recursive=true)
             0.0009232971979900358],
       linf = [0.16290247390873458, 0.2256891306641319, 0.2256891306641336, 0.09476017042552534,
               0.6906308908961734, 0.05349939593012487, 0.05349939593013042, 0.08830587480616725,
-              0.0029551359803035027]
+              0.0029551359803035027],
+      skip_coverage = true
     )
   end
 
@@ -256,7 +272,8 @@ isdir(outdir) && rm(outdir, recursive=true)
             0.004921676235111545] ./ 2.0,
       linf = [0.1765644464978685, 0.2627803272865769, 0.26358136695848144, 0.12347681727447984,
               0.7733289736898254, 0.06695360844467957, 0.06650382120802623, 0.10885097000919097,
-              0.007212567638078835]
+              0.007212567638078835],
+      skip_coverage = true
     )
   end
 
@@ -272,7 +289,8 @@ isdir(outdir) && rm(outdir, recursive=true)
             0.00617678167062838] ./ 2.0,
       linf = [0.22701306227317952, 0.2905255794821543, 0.2912409425436937, 0.08051361477962096,
               1.0842974228656006, 0.07866000368926784, 0.0786646354518149, 0.1614896380292925,
-              0.010358210347485542]
+              0.010358210347485542],
+      skip_coverage = true
     )
   end
 
@@ -288,7 +306,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       cells_per_dimension = 8, element_type = Tri(), approximation_type = SBP(),
       l2 = [0.004180680322490383, 0.07026192411558974, 0.11815151697006446, 2.329788936151192e-15],
-      linf = [0.02076003852980346, 0.29169601664914424, 0.5674183379872275, 1.1546319456101628e-14]
+      linf = [0.02076003852980346, 0.29169601664914424, 0.5674183379872275, 1.1546319456101628e-14],
+      skip_coverage = true
     )
   end
 
@@ -298,7 +317,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       # The last l2, linf error are the L2 projection error in approximating `b`, so they are not
       # zero for general non-collocated quadrature rules (e.g., for `element_type=Tri()`, `polydeg > 2`).
       l2 = [0.0008309356912456799, 0.01522451288799231, 0.016033969387208476, 1.2820247308150876e-5],
-      linf = [0.001888045014140971, 0.05466838692127718, 0.06345885709961152, 3.3989933098554914e-5]
+      linf = [0.001888045014140971, 0.05466838692127718, 0.06345885709961152, 3.3989933098554914e-5],
+      skip_coverage = true
     )
   end
 
@@ -310,7 +330,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       # a `(polydeg + 1)`-point Gauss quadrature rule in each coordinate (in general, StartUpDG.jl defaults
       # to the quadrature rule with the fewest number of points which exactly integrates the mass matrix).
       l2 = [7.460461950323111e-5, 0.003685589808444905, 0.0039101604749887785, 2.0636891126652983e-15],
-      linf = [0.000259995400729629, 0.0072236204211630906, 0.010364675200833062, 1.021405182655144e-14]
+      linf = [0.000259995400729629, 0.0072236204211630906, 0.010364675200833062, 1.021405182655144e-14],
+      skip_coverage = true
     )
   end
 
