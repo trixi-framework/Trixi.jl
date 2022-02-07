@@ -866,9 +866,10 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
   end
 
   n_points_curve = size(curve, 2)
-  data_on_curve = Array{Float64}(undef, n_points_curve) #variables
+  n_variables = size(data, 1)
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
   for i in 1:n_points_curve
-    data_on_curve[i] = get_value_at_point(curve[:,i], nodes, data)
+    data_on_curve[i, :] = get_value_at_point(curve[:,i], nodes, data)
   end
 
   mesh_vertices_x = nothing
@@ -876,22 +877,22 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
   return calc_arc_length(curve), data_on_curve, mesh_vertices_x
 end
 
-function is_valid_tetrahedron(i, coordinates)
+function is_valid_tetrahedron(i, coordinates; tol=10^-4)
   a = coordinates[:,1]; b = coordinates[:,2]; c = coordinates[:,3]; d = coordinates[:,4];
   if i == 2
-    return !(a==b)
+    return !(isapprox(a, b; atol=tol))
   elseif i == 3
-    return !on_the_same_line(a, b, c)
+    return !on_the_same_line(a, b, c; tol=tol)
   elseif i == 4
     A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :], SVector(1, 1, 1, 1))
-    return !(det(A) == 0)
+    return !isapprox(det(A), 0; atol=tol)
   else
     return true
   end
 end
 
 # Check if three given 3D-points are on the same line.
-function on_the_same_line(a, b, c)
+function on_the_same_line(a, b, c; tol=10^-4)
   # Calculate the intersection of the a-b-axis at x=0.
   if b[1] == 0
     intersect_a_b = b
@@ -904,7 +905,7 @@ function on_the_same_line(a, b, c)
   else
     intersect_a_c = a - c.*(a[1]/c[1])
   end
-  return intersect_a_b == intersect_a_c
+  return isapprox(intersect_a_b, intersect_a_c; atol=tol)
 end
 
 # Interpolate from four corners of a tetrahedron to a single point.
@@ -931,12 +932,12 @@ function distances_from_single_point(nodes, point)
 end
 
 function get_value_at_point(point, nodes, data)
-  _, n_x_nodes, n_y_nodes, n_z_nodes, _ = size(nodes)
+  n_variables, n_x_nodes, n_y_nodes, n_z_nodes, _ = size(data)
   distances = distances_from_single_point(nodes, point)
   maximum_distance = maximum(distances)
 
   coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
-  value_tetrahedron = Array{Float64}(undef, 4)
+  value_tetrahedron = Array{Float64}(undef, n_variables, 4)
 
   index = argmin(distances)
 
@@ -945,7 +946,7 @@ function get_value_at_point(point, nodes, data)
   end
 
   coordinates_tetrahedron[:,1] = nodes[:, index[1], index[2], index[3], index[4]]
-  value_tetrahedron[1] = data[1, index[1], index[2], index[3], index[4]]
+  value_tetrahedron[:, 1] = data[:, index[1], index[2], index[3], index[4]]
 
   closest_element = index[4]
   element_distances = distances[:,:,:,closest_element]
@@ -956,14 +957,19 @@ function get_value_at_point(point, nodes, data)
       element_distances[index[1], index[2], index[3]] = maximum_distance
 
       coordinates_tetrahedron[:,i] = nodes[:, index[1], index[2], index[3], closest_element]
-      value_tetrahedron[i] = data[1, index[1], index[2], index[3], closest_element] # only 1 variable
+      value_tetrahedron[:, i] = data[:, index[1], index[2], index[3], closest_element]
       if is_valid_tetrahedron(i, coordinates_tetrahedron)
         break
       end
     end
   end
 
-  return tetrahedron_interpolation(coordinates_tetrahedron[1, :], coordinates_tetrahedron[2, :], coordinates_tetrahedron[3, :], value_tetrahedron, point)
+  value_at_point = Array{Float64}(undef, n_variables)
+  for v in 1:n_variables
+    value_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :], coordinates_tetrahedron[2, :], coordinates_tetrahedron[3, :], value_tetrahedron[v, :], point)
+  end
+
+  return value_at_point
 end
 
 # Convert 3d unstructured data to 1d slice and interpolate them.
