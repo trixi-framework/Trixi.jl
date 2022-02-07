@@ -16,7 +16,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
       l2   = [0.00010978828464875207, 0.00013010359527356914, 0.00013010359527326057, 0.0002987656724828824],
-      linf = [0.00638626102818618, 0.009804042508242183, 0.009804042508253286, 0.02183139311614468])
+      linf = [0.00638626102818618, 0.009804042508242183, 0.009804042508253286, 0.02183139311614468],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -24,34 +25,39 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [3.3937971107485363e-14, 2.447586447887882e-13, 1.4585205789296455e-13, 4.716993468962946e-13],
       linf = [8.804734719092266e-12, 6.261270668606045e-11, 2.93670088247211e-11, 1.205400224080222e-10],
       tspan = (0.0, 0.1),
-      atol = 3.0e-13)
+      atol = 3.0e-13,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_wall_bc.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc.jl"),
       l2   = [0.040189107976346644, 0.04256154998030852, 0.03734120743842209, 0.10057425897733507],
       linf = [0.24455374304626365, 0.2970686406973577, 0.29339040847600434, 0.5915610037764794],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_basic.jl" begin
     @test_trixi_include(default_example_unstructured(),
       l2   = [0.0007213418215265047, 0.0006752337675043779, 0.0006437485997536973, 0.0014782883071363362],
       linf = [0.004301288971032324, 0.005243995459478956, 0.004685630332338153, 0.01750217718347713],
-      tspan = (0.0, 1.0))
+      tspan = (0.0, 1.0),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_restart.jl"),
       l2   = [0.0007213418215265047, 0.0006752337675043779, 0.0006437485997536973, 0.0014782883071363362],
-      linf = [0.004301288971032324, 0.005243995459478956, 0.004685630332338153, 0.01750217718347713])
+      linf = [0.004301288971032324, 0.005243995459478956, 0.004685630332338153, 0.01750217718347713],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.06594600495903137, 0.10803914821786433, 0.10805946357846291, 0.1738171782368222],
       linf = [0.31880214280781305, 0.3468488554333352, 0.34592958184413264, 0.784555926860546],
-      tspan = (0.0, 1.0))
+      tspan = (0.0, 1.0),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_basic.jl" begin
@@ -64,7 +70,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
       l2   = [2.19945600e-01, 1.71050453e-01, 1.71050453e-01, 1.21719195e+00],
       linf = [7.44218635e-01, 7.02887039e-01, 7.02887039e-01, 6.11732719e+00],
-      tspan = (0.0, 0.3))
+      tspan = (0.0, 0.3),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
@@ -73,7 +80,8 @@ isdir(outdir) && rm(outdir, recursive=true)
               7.175152371650832e-16, 1.4350304743301665e-15, 1.4350304743301665e-15],
       linf = [0.36236334472179443, 0.3690785638275256, 0.8475748723784078, 0.0,
               8.881784197001252e-16, 1.7763568394002505e-15, 1.7763568394002505e-15],
-      tspan = (0.0, 5.0))
+      tspan = (0.0, 5.0),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_ec.jl" begin
@@ -84,7 +92,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.1417000509328017, 0.3210578460652491, 0.335041095545175, 0.22500796423572675,
               0.44230628074326406, 0.16743171716317784, 0.16745989278866702, 0.17700588224362557,
               0.02692320090677309],
-      tspan = (0.0, 0.5))
+      tspan = (0.0, 0.5),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl" begin
@@ -95,49 +104,56 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.00039334982566352483, 0.14144904937275282, 0.14144904937277897, 0.20003315928443416,
               6.826863293230012e-5, 0.14146512909995967, 0.14146512909994702, 0.20006706837452526,
               0.00013645610312810813],
-      tspan = (0.0, 0.5))
+      tspan = (0.0, 0.5),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec.jl"),
       l2   = [0.6106939484178353, 0.48586236867426724, 0.48234490854514356, 0.29467422718511727],
       linf = [2.775979948281604, 3.1721242154451548, 3.5713448319601393, 2.052861364219655],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
       l2   = [1.2164292510839076, 2.6118925543469468e-12, 1.1636046671473883e-12, 1.2164292510839079],
       linf = [1.5138512282315846, 4.998482888288039e-11, 2.0246214978154587e-11, 1.513851228231574],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0011197623982310795, 0.04456344888447023, 0.014317376629669337, 5.089218476758975e-6],
       linf = [0.007835284004819698, 0.3486891284278597, 0.11242778979399048, 2.6407324614119432e-5],
-      tspan = (0.0, 0.025))
+      tspan = (0.0, 0.025),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
       l2   = [1.1577518608940115e-5, 4.867189932537344e-13, 4.647273240470541e-13, 1.1577518608933468e-5],
       linf = [8.394063878602864e-5, 1.1469760027632646e-10, 1.1146619484429974e-10, 8.394063879602065e-5],
-      tspan = (0.0, 2.0))
+      tspan = (0.0, 2.0),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_wall_bc.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_wall_bc.jl"),
       l2   = [0.04443210036005491, 0.14454582374113853, 0.15239799057671485, 6.225080477024867e-8],
       linf = [0.7727399447958347, 2.127376144492187, 3.361677723990531, 3.982097160903919e-7],
-      tspan = (0.0, 0.05))
+      tspan = (0.0, 0.05),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec_shockcapturing.jl"),
       l2   = [0.6124656312639043, 0.504371951785709, 0.49180896200746366, 0.29467422718511727],
       linf = [2.7639232436274392, 3.3985508653311767, 3.3330308209196224, 2.052861364219655],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      skip_coverage = true)
   end
 end
 
