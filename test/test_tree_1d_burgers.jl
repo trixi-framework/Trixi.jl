@@ -12,7 +12,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
   @trixi_testset "elixir_burgers_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_basic.jl"),
       l2   = [2.967470209082194e-5],
-      linf = [0.00016152468882624227])
+      linf = [0.00016152468882624227],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_burgers_linear_stability.jl" begin

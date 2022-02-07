@@ -12,7 +12,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec.jl"),
       l2   = [0.9911807999456177, 0.7340358820001013, 0.7446688375175905, 0.5875351036989047],
       linf = [2.0118414065026426, 2.9946841579032526, 2.6555844309739545, 3.0],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
@@ -26,7 +27,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.001868474306068482, 0.01731687445878443, 0.017649083171490863, 6.274146767717023e-5],
       linf = [0.016962486402209986, 0.08768628853889782, 0.09038488750767648, 0.0001819675955490041],
-      tspan = (0.0, 0.025))
+      tspan = (0.0, 0.025),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin

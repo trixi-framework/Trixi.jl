@@ -12,7 +12,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
   @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
       l2   = [0.00011149543672225127, 5.888242524520296e-6, 5.888242524510072e-6, 8.476931432519067e-6, 1.3160738644036652e-6, 1.2542675002588144e-6, 1.2542675002747718e-6, 1.8705223407238346e-6, 4.651717010670585e-7],
-      linf = [0.00026806333988971254, 1.6278838272418272e-5, 1.627883827305665e-5, 2.7551183488072617e-5, 5.457878055614707e-6, 8.130129322880819e-6, 8.130129322769797e-6, 1.2406302192291552e-5, 2.373765544951732e-6])
+      linf = [0.00026806333988971254, 1.6278838272418272e-5, 1.627883827305665e-5, 2.7551183488072617e-5, 5.457878055614707e-6, 8.130129322880819e-6, 8.130129322769797e-6, 1.2406302192291552e-5, 2.373765544951732e-6],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl with flux_derigs_etal" begin
@@ -32,14 +33,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
   @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [0.03637302248881514, 0.043002991956758996, 0.042987505670836056, 0.02574718055258975, 0.1621856170457943, 0.01745369341302589, 0.017454552320664566, 0.026873190440613117, 5.336243933079389e-16],
-      linf = [0.23623816236321427, 0.3137152204179957, 0.30378397831730597, 0.21500228807094865, 0.9042495730546518, 0.09398098096581875, 0.09470282020962917, 0.15277253978297378, 4.307694418935709e-15])
+      linf = [0.23623816236321427, 0.3137152204179957, 0.30378397831730597, 0.21500228807094865, 0.9042495730546518, 0.09398098096581875, 0.09470282020962917, 0.15277253978297378, 4.307694418935709e-15],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_orszag_tang.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
       l2   = [0.21967600768935716, 0.2643126515795721, 0.31488287201980875, 0.0, 0.5160141621186931, 0.23028914748088603, 0.34413527376463915, 0.0, 0.003178793090381426],
       linf = [1.2749969218080568, 0.6737013368774057, 0.8604154399895696, 0.0, 2.799342099887639, 0.6473347557712643, 0.9691773375490476, 0.0, 0.05729832038724348],
-      tspan = (0.0, 0.09))
+      tspan = (0.0, 0.09),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_orszag_tang.jl with flux_hll" begin
@@ -55,14 +58,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [2.220446049250313e-16, 8.465450562766819e-16, 1.8318679906315083e-15, 1.1102230246251565e-16, 1.4210854715202004e-14, 8.881784197001252e-16, 4.440892098500626e-16, 1.1102230246251565e-16, 4.779017148551244e-16],
       maxiters = 1,
       initial_condition = initial_condition_constant,
-      atol = 2.0e-13)
+      atol = 2.0e-13,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_rotor.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
       l2   = [1.2623319195262743, 1.8273050553090515, 1.7004151198284634, 0.0, 2.2978570581460818, 0.2147235065899803, 0.23558337696054493, 0.0, 0.0032515115395693483],
       linf = [11.003677581472843, 14.70614192714736, 15.687648666952708, 0.0, 17.098104835553823, 1.3283750501377847, 1.4365828094434892, 0.0, 0.07886241196068537],
-      tspan = (0.0, 0.05))
+      tspan = (0.0, 0.05),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_blast_wave.jl" begin
@@ -72,7 +77,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       tspan = (0.0, 0.003),
       # Calling the AnalysisCallback before iteration 9 causes the interpolation
       # of this IC to have negative density/pressure values, crashing the simulation.
-      coverage_override = (maxiters=9,))
+      coverage_override = (maxiters=9,),
+      skip_coverage = true)
   end
 end
 

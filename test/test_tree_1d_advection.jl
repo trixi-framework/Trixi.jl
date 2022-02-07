@@ -12,14 +12,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [6.0388296447998465e-6],
-      linf = [3.217887726258972e-5])
+      linf = [3.217887726258972e-5],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       l2   = [0.3540206249507417],
       linf = [0.9999896603382347],
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin

@@ -17,7 +17,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
               0.016743129714270416, 0.03348625942854083],
       linf = [0.18198258075330706, 0.09136114386311774, 0.09136114386311774, 0.423831369951313,
               1.1102230246251565e-16, 0.09937317613143604, 0.09937317613143604, 0.0157164284712992,
-              0.0314328569425984, 0.0628657138851968])
+              0.0314328569425984, 0.0628657138851968],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhdmulti_ec.jl with flux_derigs_etal" begin
@@ -28,7 +29,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [0.17492544007323832, 0.09029632168248182, 0.09029632168248182, 0.40798609353896564,
               1.1102230246251565e-16, 0.09872923637833075, 0.09872923637833075, 0.01609818847160674,
               0.03219637694321348, 0.06439275388642696],
-      volume_flux = flux_derigs_etal)
+      volume_flux = flux_derigs_etal,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhdmulti_es.jl" begin
@@ -48,7 +50,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
               5.093502025377091e-5, 0.00010187004050754182],
       linf = [3.877554303711845e-5, 0.0012437848638874956, 0.0012437848638876898, 0.00016431262020277781,
               1.1102230246251565e-16, 0.0012443734922607112, 0.001244373492260704, 5.691007974162332e-5,
-              0.00011382015948324664, 0.00022764031896649328])
+              0.00011382015948324664, 0.00022764031896649328],
+      skip_coverage = true)
     end
 
   @trixi_testset "elixir_mhdmulti_briowu_shock_tube.jl" begin
@@ -59,7 +62,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [0.4345551123140612, 1.0874941615375844, 0.0, 1.0493729052116585,
               3.219646771412954e-15, 1.5160434573973656, 0.0, 0.18616213071936066,
               0.3723242614387213],
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6,),
+      skip_coverage = true)
     end
 
 end

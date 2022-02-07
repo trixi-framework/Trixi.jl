@@ -12,19 +12,22 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
   @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.00015687751817403066, 0.001025986772216324, 0.0010259867722164071],
-      linf = [0.001198695637957381, 0.006423873515531753, 0.006423873515533529])
+      linf = [0.001198695637957381, 0.006423873515531753, 0.006423873515533529],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_harmonic_nonperiodic.jl"),
       l2   = [8.618132355121019e-8, 5.619399844384306e-7, 5.619399844844044e-7],
-      linf = [1.1248618588430072e-6, 8.622436487026874e-6, 8.622436487915053e-6])
+      linf = [1.1248618588430072e-6, 8.622436487026874e-6, 8.622436487915053e-6],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [8.523077653954864e-6, 2.8779323653020624e-5, 5.454942769125663e-5],
-      linf = [5.522740952468297e-5, 0.00014544895978971679, 0.00032396328684924924])
+      linf = [5.522740952468297e-5, 0.00014544895978971679, 0.00032396328684924924],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_hypdiff_godunov.jl" begin

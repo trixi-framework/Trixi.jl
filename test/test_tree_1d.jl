@@ -25,7 +25,6 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Hyperbolic diffusion
   include("test_tree_1d_hypdiff.jl")
 
-
   # Compressible Euler
   include("test_tree_1d_euler.jl")
 

@@ -24,26 +24,30 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
   @trixi_testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [0.0011482554820185795, 0.00011482554830363504, 5.741277417754598e-6],
-      linf = [0.004090978306820037, 0.00040909783134346345, 2.0454891732413216e-5])
+      linf = [0.004090978306820037, 0.00040909783134346345, 2.0454891732413216e-5],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_density_wave.jl with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [7.71293052584723e-16, 1.9712947511091717e-14, 7.50672833504266e-15],
       linf = [3.774758283725532e-15, 6.733502644351574e-14, 2.4868995751603507e-14],
-      initial_condition = initial_condition_constant)
+      initial_condition = initial_condition_constant,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
       l2   = [3.8099996914101204e-6, 1.6745575717106341e-6, 7.732189531480852e-6],
-      linf = [1.2971473393186272e-5, 9.270328934274374e-6, 3.092514399671842e-5])
+      linf = [1.2971473393186272e-5, 9.270328934274374e-6, 3.092514399671842e-5],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.11915540925414216, 0.15489191247295198, 0.44543052524765375],
-      linf = [0.2751485868543495, 0.2712764982000735, 0.9951407418216425])
+      linf = [0.2751485868543495, 0.2712764982000735, 0.9951407418216425],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
@@ -79,7 +83,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [0.19228754121840885, 0.2524152253292552, 0.725604944702432],
       maxiters = 10,
       surface_flux = flux_hll,
-      volume_flux = flux_ranocha)
+      volume_flux = flux_ranocha,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_shockcapturing.jl" begin
@@ -92,7 +97,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [1.250005061244617, 0.06878411345533507, 0.9264328311018613],
       linf = [2.9766770877037168, 0.16838100902295852, 2.6655773445485798],
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave_pure_fv.jl" begin
@@ -100,7 +106,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       l2   = [1.075075094036344, 0.06766902169711514, 0.9221426570128292],
       linf = [3.3941512671408542, 0.16862631133303882, 2.6572394126490315],
       # Let this test run longer to cover some lines in flux_hllc
-      coverage_override = (maxiters=10^5, tspan=(0.0, 0.1)))
+      coverage_override = (maxiters=10^5, tspan=(0.0, 0.1)),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave.jl with pressure" begin
@@ -109,7 +116,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [3.1773015255764427, 0.21331831536493773, 2.6650170188241047],
       shock_indicator_variable = pressure,
       cfl = 0.2,
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave.jl with density" begin
@@ -118,7 +126,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [3.1087017048015824, 0.17734706962928956, 2.666689753470263],
       shock_indicator_variable = density,
       cfl = 0.2,
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_positivity.jl" begin
@@ -132,7 +141,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
       l2   = [0.21651329948737183, 0.28091709900008616, 0.5580778880050432],
       linf = [1.513525457073142, 1.5328754303137992, 2.0467706106669556],
-      maxiters = 30)
+      maxiters = 30,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_blast_wave_neuralnetwork_perssonperaire.jl" begin

@@ -15,14 +15,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [8.311947673061856e-6],
       linf = [6.627000273229378e-5],
       # Let the small basic test run to the end
-      coverage_override = (maxiters=10^5,))
+      coverage_override = (maxiters=10^5,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_extended.jl with polydeg=1" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [0.02134571266411136],
       linf = [0.04347734797775926],
-      polydeg=1)
+      polydeg=1,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
@@ -36,7 +38,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
       # Expected errors are exactly the same as in the parallel test!
       l2   = [0.0015188466707237375],
-      linf = [0.008446655719187679])
+      linf = [0.008446655719187679],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
@@ -45,7 +48,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [4.913300828257469e-5],
       linf = [0.00045263895394385967],
       # Let this test run to the end to cover some AMR code
-      coverage_override = (maxiters=10^5,))
+      coverage_override = (maxiters=10^5,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
@@ -110,7 +114,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [9.999985420537649e-5],
       ode_algorithm=Trixi.CarpenterKennedy2N43(),
       cfl = 1.0,
-      maxiters = 1)
+      maxiters = 1,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
@@ -134,13 +139,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [9.977247740793407e-5],
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32(),
       cfl = 1.0,
-      maxiters = 1)
+      maxiters = 1,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_callbacks.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_callbacks.jl"),
       l2   = [8.311947673061856e-6],
-      linf = [6.627000273229378e-5])
+      linf = [6.627000273229378e-5],
+      skip_coverage = true)
   end
 end
 
