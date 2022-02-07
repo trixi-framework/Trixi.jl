@@ -53,7 +53,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
               1.3570400471223966e-5, 1.3570400471221364e-5, 1.3570400471224833e-5,
               1.3570400471224833e-5, 1.4249297322244114e-5],
       tspan=(0.0, 0.1),
-      initial_refinement_level=3)
+      initial_refinement_level=3,
+      skip_coverage = true)
   end
 end
 
