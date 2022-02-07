@@ -118,7 +118,8 @@ jobs:
           TRIXI_TEST: ${{ matrix.trixi_test }}
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: src,examples
+          # Note: We do not check `examples` anymore since most setups don't run with coverage
+          directories: src
       - uses: codecov/codecov-action@v1
         with:
           file: ./lcov.info
