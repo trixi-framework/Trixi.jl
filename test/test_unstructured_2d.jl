@@ -63,7 +63,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [0.00018729339078205488],
-      linf = [0.0018997287705734278])
+      linf = [0.0018997287705734278],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
@@ -80,8 +81,7 @@ isdir(outdir) && rm(outdir, recursive=true)
               7.175152371650832e-16, 1.4350304743301665e-15, 1.4350304743301665e-15],
       linf = [0.36236334472179443, 0.3690785638275256, 0.8475748723784078, 0.0,
               8.881784197001252e-16, 1.7763568394002505e-15, 1.7763568394002505e-15],
-      tspan = (0.0, 5.0),
-      skip_coverage = true)
+      tspan = (0.0, 5.0))
   end
 
   @trixi_testset "elixir_mhd_ec.jl" begin
