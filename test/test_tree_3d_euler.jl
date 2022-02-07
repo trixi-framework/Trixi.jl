@@ -12,7 +12,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
   @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       l2   = [0.010385936842224346, 0.009776048833895767, 0.00977604883389591, 0.009776048833895733, 0.01506687097416608],
-      linf = [0.03285848350791731, 0.0321792316408982, 0.032179231640894645, 0.032179231640895534, 0.0655408023333299])
+      linf = [0.03285848350791731, 0.0321792316408982, 0.032179231640894645, 0.032179231640895534, 0.0655408023333299],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
@@ -25,19 +26,22 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       l2   = [0.010385936842223388, 0.009776048833894784, 0.009776048833894784, 0.009776048833894765, 0.015066870974164096],
       linf = [0.03285848350791687, 0.032179231640897754, 0.0321792316408942, 0.0321792316408982, 0.06554080233333615],
-      volume_integral=VolumeIntegralFluxDifferencing(flux_central))
+      volume_integral=VolumeIntegralFluxDifferencing(flux_central),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
       l2   = [0.0003637241020254405, 0.0003955570866382718, 0.0003955570866383613, 0.00039555708663834417, 0.0007811613481640202],
-      linf = [0.0024000660244674066, 0.0029635410025339315, 0.0029635410025292686, 0.002963541002525938, 0.007191437359396424])
+      linf = [0.0024000660244674066, 0.0029635410025339315, 0.0029635410025292686, 0.002963541002525938, 0.007191437359396424],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mortar.jl"),
       l2   = [0.0019428114665068841, 0.0018659907926698422, 0.0018659907926698589, 0.0018659907926698747, 0.0034549095578444056],
-      linf = [0.011355360771142298, 0.011526889155693887, 0.011526889155689002, 0.011526889155701436, 0.02299726519821288])
+      linf = [0.011355360771142298, 0.011526889155693887, 0.011526889155689002, 0.011526889155701436, 0.02299726519821288],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_amr.jl" begin
@@ -45,20 +49,23 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.0038281920613404716, 0.003828192061340465, 0.0038281920613404694, 0.0038281920613404672, 0.005742288092010652],
       linf = [0.07390396464027349, 0.07390396464027305, 0.07390396464027305, 0.07390396464027305, 0.11085594696041134],
       tspan=(0.0, 0.1),
-      coverage_override = (maxiters=6, initial_refinement_level=0, base_level=0, med_level=0, max_level=1))
+      coverage_override = (maxiters=6, initial_refinement_level=0, base_level=0, med_level=0, max_level=1),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_taylor_green_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
       l2   = [0.00034949871748737876, 0.03133384111621587, 0.03133384111621582, 0.04378599329988925, 0.015796137903453026],
       linf = [0.0013935237751798724, 0.0724080091006194, 0.07240800910061806, 0.12795921224174792, 0.07677156293692633],
-      tspan = (0.0, 0.5))
+      tspan = (0.0, 0.5),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
       l2   = [0.02570137197844877, 0.016179934130642552, 0.01617993413064253, 0.016172648598753545, 0.09261669328795467],
-      linf = [0.3954458125573179, 0.26876916180359345, 0.26876916180359345, 0.26933123042178553, 1.3724137121660251])
+      linf = [0.3954458125573179, 0.26876916180359345, 0.26876916180359345, 0.26933123042178553, 1.3724137121660251],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_shockcapturing_amr.jl" begin
@@ -75,7 +82,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
   @trixi_testset "elixir_euler_density_pulse.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_pulse.jl"),
       l2   = [0.057196526814004715, 0.057196526814004715, 0.05719652681400473, 0.057196526814004736, 0.08579479022100575],
-      linf = [0.27415246703018203, 0.2741524670301829, 0.2741524670301827, 0.27415246703018226, 0.41122870054527816])
+      linf = [0.27415246703018203, 0.2741524670301829, 0.2741524670301827, 0.27415246703018226, 0.41122870054527816],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin
@@ -88,7 +96,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [4.183721551616214e-16, 6.059779958716338e-16, 4.916596221090319e-16, 9.739943366304456e-16, 3.7485908743251566e-15],
       linf = [2.4424906541753444e-15, 3.733124920302089e-15, 4.440892098500626e-15, 5.329070518200751e-15, 2.4868995751603507e-14],
-      initial_condition=initial_condition_constant)
+      initial_condition=initial_condition_constant,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_ec.jl with flux_chandrashekar" begin
@@ -119,7 +128,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       tspan = (0.0, 0.2),
       # Let this test run longer to cover some lines in the positivity preserving limiter
       # and some AMR lines
-      coverage_override = (maxiters=10^5,))
+      coverage_override = (maxiters=10^5,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
@@ -127,7 +137,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       l2   = [0.0007127163978031706, 0.0023166296394624025, 0.002316629639462401, 0.0023166296394624038, 0.010200581509653256],
       linf = [0.06344190883105805, 0.6292607955969378, 0.6292607955969377, 0.6292607955969377, 2.397746252817731],
       maxiters=5, max_level=6,
-      coverage_override = (maxiters=2, initial_refinement_level=1, base_level=1, max_level=3))
+      coverage_override = (maxiters=2, initial_refinement_level=1, base_level=1, max_level=3),
+      skip_coverage = true)
   end
 end
 
