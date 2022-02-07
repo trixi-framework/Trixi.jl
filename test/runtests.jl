@@ -18,7 +18,7 @@ const TRIXI_NTHREADS   = clamp(Sys.CPU_THREADS, 2, 3)
     # There are spurious test failures of Trixi.jl with MPI on Windows, see
     # https://github.com/trixi-framework/Trixi.jl/issues/901
     # To reduce their impact, we do not test MPI with coverage on Windows.
-    # This reduces the chance to hit a speurious test failure by one half.
+    # This reduces the chance to hit a spurious test failure by one half.
     cmd = string(Base.julia_cmd())
     coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none", cmd)
     if !(coverage && Sys.iswindows())
