@@ -64,7 +64,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
       l2   = [2.19945600e-01, 1.71050453e-01, 1.71050453e-01, 1.21719195e+00],
       linf = [7.44218635e-01, 7.02887039e-01, 7.02887039e-01, 6.11732719e+00],
-      tspan = (0.0, 0.3))
+      tspan = (0.0, 0.3),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
@@ -95,7 +96,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.00039334982566352483, 0.14144904937275282, 0.14144904937277897, 0.20003315928443416,
               6.826863293230012e-5, 0.14146512909995967, 0.14146512909994702, 0.20006706837452526,
               0.00013645610312810813],
-      tspan = (0.0, 0.5))
+      tspan = (0.0, 0.5),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_shallowwater_ec.jl" begin
