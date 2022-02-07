@@ -17,7 +17,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [0.00016263963870641478],
-      linf = [0.0014537194925779984])
+      linf = [0.0014537194925779984],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_free_stream.jl" begin
@@ -25,7 +26,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [1.2908196366970896e-14],
       linf = [1.0262901639634947e-12],
       atol = 8e-13, # required to make tests pass on Windows
-      )
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_nonperiodic_curved.jl" begin
@@ -50,20 +51,23 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
       l2   = [2.8815700334367128e-15, 9.361915278236651e-15, 9.95614203619935e-15, 1.6809941842374106e-14, 1.4815037041566735e-14],
-      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 2.0627943797535409e-13, 2.8954616482224083e-13])
+      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 2.0627943797535409e-13, 2.8954616482224083e-13],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_free_stream.jl with FluxRotated(flux_lax_friedrichs)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
       surface_flux=FluxRotated(flux_lax_friedrichs),
       l2   = [2.8815700334367128e-15, 9.361915278236651e-15, 9.95614203619935e-15, 1.6809941842374106e-14, 1.4815037041566735e-14],
-      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 2.0627943797535409e-13, 2.8954616482224083e-13])
+      linf = [4.1300296516055823e-14, 2.0444756998472258e-13, 1.0133560657266116e-13, 2.0627943797535409e-13, 2.8954616482224083e-13],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_source_terms_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_curved.jl"),
     l2   = [0.0032940531178824463, 0.003275679548217804, 0.0030020672748714084, 0.00324007343451744, 0.005721986362580164],
-    linf = [0.03156756290660656, 0.033597629023726316, 0.02095783702361409, 0.03353574465232212, 0.05873635745032857])
+    linf = [0.03156756290660656, 0.033597629023726316, 0.02095783702361409, 0.03353574465232212, 0.05873635745032857],
+    skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_ec.jl" begin
@@ -71,14 +75,16 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [0.011367083018614027, 0.007022020327490176, 0.006759580335962235, 0.006820337637760632, 0.02912659127566544],
       linf = [0.2761764220925329, 0.20286331858055706, 0.18763944865434593, 0.19313636558790004, 0.707563913727584],
       tspan = (0.0, 0.25),
-      coverage_override = (polydeg=3,)) # Prevent long compile time in CI
+      coverage_override = (polydeg=3,),
+      skip_coverage = true) # Prevent long compile time in CI
   end
 
   @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
       l2   = [5.30310390e-02, 2.53167260e-02, 2.64276438e-02, 2.52195992e-02, 3.56830295e-01],
       linf = [6.16356950e-01, 2.50600049e-01, 2.74796377e-01, 2.46448217e-01, 4.77888479e+00],
-      tspan = (0.0, 0.3))
+      tspan = (0.0, 0.3),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_ec.jl" begin
@@ -89,7 +95,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [0.2883946030582689, 0.25956437344015054, 0.2614364943543665, 0.24617277938134657,
               1.1370443512475847, 0.1278041831463388, 0.13347391885068594, 0.1457563463643099,
               0.0021174246048172563],
-      tspan = (0.0, 0.25))
+      tspan = (0.0, 0.25),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl" begin
@@ -101,7 +108,8 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.02200825678588325, 0.03167600959583505, 0.021420957993862344, 0.03386589835999665,
               0.01888303191983353],
       # Use same polydeg as everything else to prevent long compile times in CI
-      coverage_override = (polydeg=3,))
+      coverage_override = (polydeg=3,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl with flux_lax_friedrichs" begin
@@ -114,7 +122,8 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.019488952445771597],
       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
       # Use same polydeg as everything else to prevent long compile times in CI
-      coverage_override = (polydeg=3,))
+      coverage_override = (polydeg=3,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
@@ -127,7 +136,8 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.015138346608166353],
       tspan = (0.0, 0.25),
       # Use same polydeg as everything else to prevent long compile times in CI
-      coverage_override = (polydeg=3,))
+      coverage_override = (polydeg=3,),
+      skip_coverage = true)
   end
 end
 
