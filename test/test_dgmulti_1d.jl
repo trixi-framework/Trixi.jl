@@ -17,7 +17,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (16,),
       # division by sqrt(2.0) corresponds to normalization by the square root of the size of the domain
       l2 = [7.853842541289665e-7, 9.609905503440606e-7, 2.832322219966481e-6] ./ sqrt(2.0),
-      linf = [1.5003758788711963e-6, 1.802998748523521e-6, 4.83599270806323e-6]
+      linf = [1.5003758788711963e-6, 1.802998748523521e-6, 4.83599270806323e-6],
+      skip_coverage = true
     )
   end
 
@@ -31,7 +32,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       cells_per_dimension = (16,),
       approximation_type = SBP(),
       l2 = [6.437827414849647e-6, 2.1840558851820947e-6, 1.3245669629438228e-5],
-      linf = [2.0715843751295537e-5, 8.519520630301258e-6, 4.2642194098885255e-5]
+      linf = [2.0715843751295537e-5, 8.519520630301258e-6, 4.2642194098885255e-5],
+      skip_coverage = true
     )
   end
 
