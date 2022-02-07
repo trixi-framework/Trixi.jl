@@ -13,7 +13,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.001530331609036682, 0.011314177033289238, 0.011314177033289402, 0.011314177033289631],
       linf = [0.02263459033909354, 0.10139777904683545, 0.10139777904683545, 0.10139777904683545],
-      initial_refinement_level=2)
+      initial_refinement_level=2,
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_hypdiff_lax_friedrichs.jl with surface_flux=flux_godunov)" begin
