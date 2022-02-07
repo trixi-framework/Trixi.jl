@@ -70,17 +70,19 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
-                  tspan=(0.0, 0.0), initial_refinement_level=2)
-    A, b = linear_structure(semi)
-    λ = eigvals(Matrix(A))
-    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+    if !coverage
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+      A, b = linear_structure(semi)
+      λ = eigvals(Matrix(A))
+      @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
-    # check whether the user can modify `b` without changing `A`
-    x = vec(ode.u0)
-    Ax = A * x
-    @. b = 2 * b + x
-    @test A * x ≈ Ax
+      # check whether the user can modify `b` without changing `A`
+      x = vec(ode.u0)
+      Ax = A * x
+      @. b = 2 * b + x
+      @test A * x ≈ Ax
+    end
   end
 
 
@@ -102,22 +104,24 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
     end
 
     @timed_testset "Compressible Euler equations" begin
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_density_wave.jl"),
-                    tspan=(0.0, 0.0), initial_refinement_level=1)
+      if !coverage
+        trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_density_wave.jl"),
+                      tspan=(0.0, 0.0), initial_refinement_level=1)
 
-      J = jacobian_ad_forward(semi)
-      λ = eigvals(J)
-      @test maximum(real, λ) < 7.0e-7
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 7.0e-7
 
-      J = jacobian_fd(semi)
-      λ = eigvals(J)
-      @test maximum(real, λ) < 7.0e-3
+        J = jacobian_fd(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 7.0e-3
 
-      # This does not work yet because of the indicators...
-      @test_skip begin
-        trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_shockcapturing.jl"),
-          tspan=(0.0, 0.0), initial_refinement_level=1)
-        jacobian_ad_forward(semi)
+        # This does not work yet because of the indicators...
+        @test_skip begin
+          trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_shockcapturing.jl"),
+            tspan=(0.0, 0.0), initial_refinement_level=1)
+          jacobian_ad_forward(semi)
+        end
       end
 
       @timed_testset "DGMulti (weak form)" begin
@@ -139,117 +143,126 @@ coverage = occursin("--code-coverage", cmd) && !occursin("--code-coverage=none",
         @test maximum(real, λ) < 7.0e-7
       end
 
-      @timed_testset "DGMulti (SBP, flux differencing)" begin
-        gamma = 1.4
-        equations = CompressibleEulerEquations2D(gamma)
-        initial_condition = initial_condition_density_wave
+      if !coverage
+        @timed_testset "DGMulti (SBP, flux differencing)" begin
+          gamma = 1.4
+          equations = CompressibleEulerEquations2D(gamma)
+          initial_condition = initial_condition_density_wave
 
-        solver = DGMulti(polydeg = 5, element_type = Quad(), approximation_type = SBP(),
-                        surface_integral = SurfaceIntegralWeakForm(flux_central),
-                        volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+          solver = DGMulti(polydeg = 5, element_type = Quad(), approximation_type = SBP(),
+                          surface_integral = SurfaceIntegralWeakForm(flux_central),
+                          volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
-         # DGMultiMesh is on [-1, 1]^ndims by default
-        mesh = DGMultiMesh(solver, cells_per_dimension=(2, 2), periodicity=(true, true))
+          # DGMultiMesh is on [-1, 1]^ndims by default
+          mesh = DGMultiMesh(solver, cells_per_dimension=(2, 2), periodicity=(true, true))
 
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+          semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
-        J = jacobian_ad_forward(semi)
-        λ = eigvals(J)
-        @test maximum(real, λ) < 7.0e-7
+          J = jacobian_ad_forward(semi)
+          λ = eigvals(J)
+          @test maximum(real, λ) < 7.0e-7
+        end
       end
     end
 
     @timed_testset "MHD" begin
-      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
-                    tspan=(0.0, 0.0), initial_refinement_level=0)
-      @test_nowarn jacobian_ad_forward(semi)
+      if !coverage
+        trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
+                      tspan=(0.0, 0.0), initial_refinement_level=0)
+        @test_nowarn jacobian_ad_forward(semi)
+      end
     end
   end
 
 
   @timed_testset "Test linear structure (3D)" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_advection_extended.jl"),
-                  tspan=(0.0, 0.0), initial_refinement_level=1)
-    A, b = linear_structure(semi)
-    λ = eigvals(Matrix(A))
-    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+    if !coverage
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_advection_extended.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=1)
+      A, b = linear_structure(semi)
+      λ = eigvals(Matrix(A))
+      @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+    end
   end
 
 
   @timed_testset "Test Jacobian of DG (3D)" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_advection_extended.jl"),
-                  tspan=(0.0, 0.0), initial_refinement_level=1)
-    A, _ = linear_structure(semi)
+    if !coverage
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_advection_extended.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=1)
+      A, _ = linear_structure(semi)
 
-    J = jacobian_ad_forward(semi)
-    @test Matrix(A) ≈ J
+      J = jacobian_ad_forward(semi)
+      @test Matrix(A) ≈ J
 
-    J = jacobian_fd(semi)
-    @test Matrix(A) ≈ J
+      J = jacobian_fd(semi)
+      @test Matrix(A) ≈ J
+    end
   end
 
 
   @testset "AD using ForwardDiff" begin
-    @timed_testset "Euler equations 1D" begin
-      function entropy_at_final_time(k) # k is the wave number of the initial condition
-        equations = CompressibleEulerEquations1D(1.4)
-        mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level=3, n_cells_max=10^4)
-        solver = DGSEM(3, flux_hll, VolumeIntegralFluxDifferencing(flux_ranocha))
-        initial_condition = (x, t, equations) -> begin
-          rho = 2 + sinpi(k * sum(x))
-          v1  = 0.1
-          p   = 10.0
-          return prim2cons(SVector(rho, v1, p), equations)
+    if !coverage
+      @timed_testset "Euler equations 1D" begin
+        function entropy_at_final_time(k) # k is the wave number of the initial condition
+          equations = CompressibleEulerEquations1D(1.4)
+          mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level=3, n_cells_max=10^4)
+          solver = DGSEM(3, flux_hll, VolumeIntegralFluxDifferencing(flux_ranocha))
+          initial_condition = (x, t, equations) -> begin
+            rho = 2 + sinpi(k * sum(x))
+            v1  = 0.1
+            p   = 10.0
+            return prim2cons(SVector(rho, v1, p), equations)
+          end
+          semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                              uEltype=typeof(k))
+          ode = semidiscretize(semi, (0.0, 1.0))
+          summary_callback = SummaryCallback()
+          analysis_interval = 100
+          analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+          alive_callback = AliveCallback(analysis_interval=analysis_interval)
+          callbacks = CallbackSet(
+              summary_callback,
+              analysis_callback,
+              alive_callback
+          )
+          sol = solve(ode, SSPRK43(), callback=callbacks)
+          Trixi.integrate(entropy, sol.u[end], semi)
         end
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                            uEltype=typeof(k))
-        ode = semidiscretize(semi, (0.0, 1.0))
-        summary_callback = SummaryCallback()
-        analysis_interval = 100
-        analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-        alive_callback = AliveCallback(analysis_interval=analysis_interval)
-        callbacks = CallbackSet(
-            summary_callback,
-            analysis_callback,
-            alive_callback
-        )
-        sol = solve(ode, SSPRK43(), callback=callbacks)
-        Trixi.integrate(entropy, sol.u[end], semi)
+        ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
       end
-      ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
-    end
-
-    @timed_testset "Linear advection 2D" begin
-      function energy_at_final_time(k) # k is the wave number of the initial condition
-        equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
-        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
-        solver = DGSEM(3, flux_lax_friedrichs)
-        initial_condition = (x, t, equation) -> begin
-          x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
-          return SVector(sinpi(k * sum(x_trans)))
+      @timed_testset "Linear advection 2D" begin
+        function energy_at_final_time(k) # k is the wave number of the initial condition
+          equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
+          mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
+          solver = DGSEM(3, flux_lax_friedrichs)
+          initial_condition = (x, t, equation) -> begin
+            x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
+            return SVector(sinpi(k * sum(x_trans)))
+          end
+          semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                              uEltype=typeof(k))
+          ode = semidiscretize(semi, (0.0, 1.0))
+          summary_callback = SummaryCallback()
+          analysis_interval = 100
+          analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+          alive_callback = AliveCallback(analysis_interval=analysis_interval)
+          stepsize_callback = StepsizeCallback(cfl=1.6)
+          callbacks = CallbackSet(
+              summary_callback,
+              analysis_callback,
+              alive_callback,
+              stepsize_callback
+          )
+          sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), save_everystep=false, adaptive=false, dt=1.0, callback=callbacks)
+          Trixi.integrate(energy_total, sol.u[end], semi)
         end
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                            uEltype=typeof(k))
-        ode = semidiscretize(semi, (0.0, 1.0))
-        summary_callback = SummaryCallback()
-        analysis_interval = 100
-        analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-        alive_callback = AliveCallback(analysis_interval=analysis_interval)
-        stepsize_callback = StepsizeCallback(cfl=1.6)
-        callbacks = CallbackSet(
-            summary_callback,
-            analysis_callback,
-            alive_callback,
-            stepsize_callback
-        )
-        sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), save_everystep=false, adaptive=false, dt=1.0, callback=callbacks)
-        Trixi.integrate(energy_total, sol.u[end], semi)
+        ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
       end
-      ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
-    end
 
-    @timed_testset "elixir_euler_ad.jl" begin
-      @test_trixi_include(joinpath(examples_dir(), "special_elixirs", "elixir_euler_ad.jl"))
+      @timed_testset "elixir_euler_ad.jl" begin
+        @test_trixi_include(joinpath(examples_dir(), "special_elixirs", "elixir_euler_ad.jl"))
+      end
     end
   end
 end
