@@ -16,19 +16,22 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [8.311947673061856e-6],
-      linf = [6.627000273229378e-5])
+      linf = [6.627000273229378e-5],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_flag.jl"),
       l2   = [3.198940059144588e-5],
-      linf = [0.00030636069494005547])
+      linf = [0.00030636069494005547],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
       l2   = [0.0005379687442422346],
-      linf = [0.007438525029884735])
+      linf = [0.007438525029884735],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
@@ -36,7 +39,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Expected errors are exactly the same as with StructuredMesh!
       l2   = [4.949660644033807e-5],
       linf = [0.0004867846262313763],
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
@@ -55,7 +59,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
     l2   = [0.0034516244508588046, 0.0023420334036925493, 0.0024261923964557187, 0.004731710454271893],
-    linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657])
+    linf = [0.04155789011775046, 0.024772109862748914, 0.03759938693042297, 0.08039824959535657],
+    skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -63,7 +68,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [2.063350241405049e-15, 1.8571016296925367e-14, 3.1769447886391905e-14, 1.4104095258528071e-14],
       linf = [1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
       atol = 2.0e-12, # required to make CI tests pass on macOS
-    )
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
@@ -77,7 +82,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
       l2   = [3.76149952e-01, 2.46970327e-01, 2.46970327e-01, 1.28889042e+00],
       linf = [1.22139001e+00, 1.17742626e+00, 1.17742626e+00, 6.20638482e+00],
-      tspan = (0.0, 0.3))
+      tspan = (0.0, 0.3),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_blast_wave_amr.jl" begin
@@ -85,14 +91,16 @@ isdir(outdir) && rm(outdir, recursive=true)
       l2   = [6.32183914e-01, 3.86914231e-01, 3.86869171e-01, 1.06575688e+00],
       linf = [2.76020890e+00, 2.32659890e+00, 2.32580837e+00, 2.15778188e+00],
       tspan = (0.0, 0.3),
-      coverage_override = (maxiters=6,))
+      coverage_override = (maxiters=6,),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_wall_bc_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
       l2   = [0.020291447969983396, 0.017479614254319948, 0.011387644425613437, 0.0514420126021293],
       linf = [0.3582779022370579, 0.32073537890751663, 0.221818049107692, 0.9209559420400415],
-      tspan = (0.0, 0.15))
+      tspan = (0.0, 0.15),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_euler_forward_step_amr.jl" begin
@@ -115,7 +123,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
       l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
       linf = [0.0015813032944647087, 0.0020494288423820173, 0.0020494288423824614, 0.004793821195083758],
-      tspan = (0.0, 0.1))
+      tspan = (0.0, 0.1),
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_alfven_wave.jl" begin
@@ -125,7 +134,8 @@ isdir(outdir) && rm(outdir, recursive=true)
               4.3382328912336153e-7],
       linf = [4.255466285174592e-5, 1.0029706745823264e-5, 1.0029706747467781e-5, 1.2122265939010224e-5,
               5.4791097160444835e-6, 5.18922042269665e-6, 5.189220422141538e-6, 9.552667261422676e-6,
-              1.4237578427628152e-6])
+              1.4237578427628152e-6],
+      skip_coverage = true)
   end
 
   @trixi_testset "elixir_mhd_rotor.jl" begin
@@ -136,7 +146,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       linf = [10.194181233788775, 18.25472397868819, 10.031307436191334, 0.0,
               19.647239392277378, 1.3938810140985936, 1.8724965294853084, 0.0,
               0.0016290067532561904],
-      tspan = (0.0, 0.02))
+      tspan = (0.0, 0.02),
+      skip_coverage = true)
   end
 
 end
