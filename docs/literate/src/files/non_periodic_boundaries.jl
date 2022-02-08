@@ -93,7 +93,6 @@ using Plots
     plot(sol.u[step], semi, ylim=(-1.5, 1.5), legend=true, label="approximation", title="time t=$(round(sol.t[step], digits=5))")
     scatter!([0.0], [sum(boundary_condition(SVector(0.0), sol.t[step], equations))], label="boundary condition")
 end
-#src # gif(anim, "out/anim.gif", fps = 10)
 
 # As mentioned before, using the `flux_lax_friedrichs` and an advection velocity of `1` for the
 # scalar advection equation yields to an inflow boundary on the left and an outflow on the right.
@@ -109,4 +108,32 @@ end
 # For example, explanations for the `CompressibleEulerEquations2D` can be found [here](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.boundary_condition_slip_wall-Tuple{Any,%20AbstractVector{T}%20where%20T,%20Any,%20Any,%20Any,%20CompressibleEulerEquations2D}),
 # and for the `ShallowWaterEquations2D` [here](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.boundary_condition_slip_wall-Tuple{Any,%20AbstractVector{T}%20where%20T,%20Any,%20Any,%20Any,%20ShallowWaterEquations2D}).
 
-# TODO: Add example for boundary_condition_slip_wall? Which one?
+# # More examples
+# Trixi provides more examples with different boundary conditions, e.g. with [`boundary_condition_slip_wall`](@ref)
+# and self-defined boundary conditions using [`BoundaryConditionDirichlet`](@ref).
+
+# For instance, there is a [Mach 3 flow over forward facing step elixir](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_forward_step_amr.jl)
+# for the 2D compressible Euler equations discretized with an AMR [`P4estMesh`](@ref).
+# ```@raw html
+#   <!--
+#   Video details
+#   * Source: https://www.youtube.com/watch?v=glAug1aIxio
+#   * Author: Andrew R. Winters (https://liu.se/en/employee/andwi94)
+#   * Obtain responsive code by inserting link on https://embedresponsively.com
+#   -->
+#   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/glAug1aIxio' frameborder='0' allowfullscreen></iframe></div>
+# ```
+# Source: Trixi's Youtube channel [`Trixi Framework`](https://www.youtube.com/watch?v=glAug1aIxio).
+
+# The [Woodward and Colella double Mach reflection elixir](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_double_mach_amr.jl)
+# gives an example for a mixed boundary condition at the bottom.
+# ```@raw html
+#   <!--
+#   Video details
+#   * Source: https://www.youtube.com/watch?v=WElqqdMhY4A
+#   * Author: Andrew R. Winters (https://liu.se/en/employee/andwi94)
+#   * Obtain responsive code by inserting link on https://embedresponsively.com
+#   -->
+#   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/WElqqdMhY4A' frameborder='0' allowfullscreen></iframe></div>
+# ```
+# Source: Trixi's Youtube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A).
