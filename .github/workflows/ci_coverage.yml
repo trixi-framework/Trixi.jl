@@ -1,4 +1,4 @@
-name: CI
+name: CI with coverage
 
 on:
   push:
@@ -42,7 +42,6 @@ concurrency:
 
 jobs:
   test:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
     # We could also include the Julia version as in
     # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
     # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
@@ -59,38 +58,8 @@ jobs:
         arch:
           - x64
         trixi_test:
-          - tree_part1
-          - tree_part2
-          - tree_part3
-          - tree_part4
-          - tree_part5
-          - tree_part6
-          - structured
-          - p4est_part1
-          - p4est_part2
-          - unstructured_dgmulti
-          - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2
-          - mpi
-          - threaded
-        include:
-          - version: '1.6'
-            os: macOS-latest
-            arch: x64
-            trixi_test: mpi
-          - version: '1.6'
-            os: macOS-latest
-            arch: x64
-            trixi_test: threaded
-          - version: '1.6'
-            os: windows-latest
-            arch: x64
-            trixi_test: mpi
-          - version: '1.6'
-            os: windows-latest
-            arch: x64
-            trixi_test: threaded
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -102,14 +71,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
-      - name: Run tests without coverage
-        uses: julia-actions/julia-runtest@v1
-        with:
-          coverage: false
-        env:
-          PYTHON: ""
-          TRIXI_TEST: ${{ matrix.trixi_test }}
-      - name: Run tests with coverage
+      - name: Run coverage tests
         uses: julia-actions/julia-runtest@v1
         with:
           coverage: true
@@ -118,7 +80,7 @@ jobs:
           TRIXI_TEST: ${{ matrix.trixi_test }}
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: src,examples
+          directories: src # We do not collect coverage for `examples`
       - uses: codecov/codecov-action@v1
         with:
           file: ./lcov.info
