@@ -81,7 +81,7 @@ callbacks = CallbackSet(analysis_callback,
                         stepsize_callback);
 
 # Nodes for the visualization
-visnodes = range(tspan[1], tspan[2], 300)
+visnodes = range(tspan[1], tspan[2], length=300)
 
 # Run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
