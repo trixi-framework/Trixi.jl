@@ -1,4 +1,4 @@
-module TestExamplesMPIP4estMesh
+module TestExamplesMPIP4estMesh2D
 
 using Test
 using Trixi
@@ -8,7 +8,7 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_2d_dgsem")
 
-@testset "P4estMesh MPI" begin
+@testset "P4estMesh MPI 2D" begin
 
 # Run basic tests
 @testset "Examples 2D" begin
