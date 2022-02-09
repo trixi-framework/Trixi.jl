@@ -20,6 +20,7 @@ macro test_trixi_include(elixir, args...)
   local linf              = get_kwarg(args, :linf, nothing)
   local atol              = get_kwarg(args, :atol, 500*eps())
   local rtol              = get_kwarg(args, :rtol, sqrt(eps()))
+  local skip_coverage     = get_kwarg(args, :skip_coverage, false)
   local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, :()))
   if !(:maxiters in keys(coverage_override))
     # maxiters in coverage_override defaults to 1
@@ -40,6 +41,17 @@ macro test_trixi_include(elixir, args...)
   if coverage
     for key in keys(coverage_override)
       push!(kwargs, Pair(key, coverage_override[key]))
+    end
+  end
+
+  if coverage && skip_coverage
+    return quote
+      if Trixi.mpi_isroot()
+        println("═"^100)
+        println("Skipping coverage test of ", $elixir)
+        println("═"^100)
+        println("\n\n")
+      end
     end
   end
 
