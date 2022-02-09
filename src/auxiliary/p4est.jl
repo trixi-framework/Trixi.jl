@@ -116,9 +116,25 @@ coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_
 
 # Create new ghost layer from p4est, only connections via faces are relevant
 # 2D
-new_ghost_layer_p4est(p4est::Ptr{p4est_t}) = p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
+new_ghost_p4est(p4est::Ptr{p4est_t}) = p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
 # 3D
-new_ghost_layer_p4est(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FACE)
+new_ghost_p4est(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FACE)
+
+# Check if ghost layer is valid
+# 2D
+function ghost_is_valid_p4est(p4est::Ptr{p4est_t}, ghost_layer::Ptr{p4est_ghost_t})
+  return p4est_ghost_is_valid(p4est, ghost_layer)
+end
+# 3D
+function ghost_is_valid_p4est(p4est::Ptr{p8est_t}, ghost_layer::Ptr{p8est_ghost_t})
+  return p8est_ghost_is_valid(p4est, ghost_layer)
+end
+
+# Destroy ghost layer
+# 2D
+ghost_destroy_p4est(ghost_layer::Ptr{p4est_ghost_t}) = p4est_ghost_destroy(ghost_layer)
+# 3D
+ghost_destroy_p4est(ghost_layer::Ptr{p8est_ghost_t}) = p8est_ghost_destroy(ghost_layer)
 
 
 # Let `p4est` iterate over each cell volume and cell face.
@@ -147,7 +163,7 @@ function iterate_p4est(p4est::Ptr{p4est_t}, user_data; ghost_layer=C_NULL,
 end
 
 # 3D
-function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
+function iterate_p4est(p8est::Ptr{p8est_t}, user_data; ghost_layer=C_NULL,
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL
     user_data_ptr = user_data
@@ -159,7 +175,7 @@ function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
 
   GC.@preserve user_data begin
     p8est_iterate(p8est,
-                  C_NULL, # ghost layer
+                  ghost_layer,
                   user_data_ptr,
                   iter_volume_c, # iter_volume
                   iter_face_c, # iter_face
