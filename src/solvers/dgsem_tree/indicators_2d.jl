@@ -190,6 +190,72 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4},
 end
 
 
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+
+  A = Array{real(basis), ndims(equations)}
+  var_max_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  var_min_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  P_plus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  P_minus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  alpha_plus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  alpha_minus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+  alpha_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  alpha_prov_threaded = similar(alpha_threaded)
+
+  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+  # modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  # modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
+  return (; var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
+            alpha_plus_threaded, alpha_minus_threaded, alpha_threaded, alpha_prov_threaded,
+            indicator_threaded)
+end
+
+function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4},
+                                      mesh, equations, dg::DGSEM,
+                                      element, cache;
+                                      kwargs...)
+  @unpack var_max_threaded, var_min_threaded, indicator_threaded = indicator_IDP.cache
+
+  var_max = var_max_threaded[Threads.threadid()]
+  var_min = var_min_threaded[Threads.threadid()]
+  indicator = indicator_threaded[Threads.threadid()]
+
+  # Calculate indicator variables at Gauss-Lobatto nodes
+  for j in eachnode(dg), i in eachnode(dg)
+    u_local = get_node_vars(u, equations, dg, i, j, element)
+    indicator[i, j] = indicator_IDP.variable(u_local, equations)
+  end
+
+  # Calculate max and min of variable at Gauss-Lobatto nodes
+  var_max[1, 1], var_min[1, 1] = extrema((indicator[1, 1], indicator[1, 2], indicator[2, 1]))
+  var_max[1, nnodes(dg)], var_min[1, nnodes(dg)] = extrema((indicator[1, nnodes(dg)], indicator[1, nnodes(dg)-1], indicator[2, nnodes(dg)]))
+  var_max[nnodes(dg), 1], var_min[nnodes(dg), 1] = extrema((indicator[nnodes(dg), 1], indicator[nnodes(dg), 2], indicator[nnodes(dg)-1, 1]))
+  var_max[nnodes(dg), nnodes(dg)], var_min[nnodes(dg), nnodes(dg)] = extrema((indicator[nnodes(dg), nnodes(dg)], indicator[nnodes(dg)-1, nnodes(dg)], indicator[nnodes(dg), nnodes(dg)-1]))
+  for i in 2:nnodes(dg)-1
+    var_max[i, 1], var_min[i, 1] = extrema((indicator[i, 1], indicator[i, 2], indicator[i+1, 1], indicator[i-1, 1]))
+    var_max[1, i], var_min[1, i] = extrema((indicator[1, i], indicator[2, i], indicator[1, i+1], indicator[1, i-1]))
+    var_max[i, nnodes(dg)], var_min[i, nnodes(dg)] = extrema((indicator[i, nnodes(dg)], indicator[i, nnodes(dg)-1], indicator[i+1, nnodes(dg)], indicator[i-1, nnodes(dg)]))
+    var_max[nnodes(dg), i], var_min[nnodes(dg), i] = extrema((indicator[nnodes(dg), i], indicator[nnodes(dg)-1, i], indicator[nnodes(dg), i+1], indicator[nnodes(dg), i-1]))
+  end
+  for j in 2:nnodes(dg)-1, i in 2:nnodes(dg)-1
+    var_max[i, j], var_min[i, j] = extrema((indicator[i, j], indicator[i, j-1], indicator[i, j+1], indicator[i+1, j], indicator[i-1, j]))
+  end
+
+  @unpack P_plus_threaded, P_minus_threaded = indicator_IDP.cache
+  P_plus  = P_plus_threaded[Threads.threadid()]
+  P_minus = P_minus_threaded[Threads.threadid()]
+
+  @unpack alpha_threaded = indicator_IDP.cache
+  alpha = alpha_threaded[Threads.threadid()]
+
+
+  return alpha
+end
+
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)

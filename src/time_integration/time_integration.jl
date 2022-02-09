@@ -15,6 +15,7 @@ end
 
 include("methods_2N.jl")
 include("methods_3Sstar.jl")
+include("methods_SSP.jl")
 
 
 end # @muladd

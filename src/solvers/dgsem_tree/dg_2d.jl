@@ -96,7 +96,13 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fstaggered2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  return (; cache..., fstaggered1_threaded, fstaggered2_threaded, flux_temp_threaded)
+  # TODO: flux_antidiffusive needs to be saved for all elements at once. Here we don't have nelements since we don't have the normal cache...
+  A4dp1_x = Array{uEltype, 4}
+  A4dp1_y = Array{uEltype, 4}
+  # flux_antidiffusive1_threaded = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nelements(dg, )) for _ in 1:Threads.nthreads()]
+  # flux_antidiffusive2_threaded = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nelements()) for _ in 1:Threads.nthreads()]
+
+  return (; cache..., fstaggered1_threaded, fstaggered2_threaded, flux_temp_threaded, )#flux_antidiffusive1_threaded, flux_antidiffusive2_threaded)
 end
 
 
@@ -517,6 +523,12 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralStaggeredGrid,
                                dg::DGSEM, cache)
+
+  # A4dp1_x = Array{uEltype, 4}
+  # A4dp1_y = Array{uEltype, 4}
+  # flux_antidiffusive1_threaded = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nelements(dg, cache)) for _ in 1:Threads.nthreads()]
+  # flux_antidiffusive2_threaded = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nelements(dg, cache)) for _ in 1:Threads.nthreads()]
+  # cache = (cache..., flux_antidiffusive1_threaded, flux_antidiffusive2_threaded)
   @threaded for element in eachelement(dg, cache)
     staggered_grid_kernel!(du, u, element, mesh,
                            nonconservative_terms, equations,
@@ -553,19 +565,22 @@ end
 
 
   # Calculate blending factor alpha_blending
-  alpha_blending = volume_integral.indicator
+  # @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
+
+  # flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
+  # flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
+  # calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fstaggered1, fstaggered2, fstar1_L, fstar2_L, u, mesh,
+  #                         nonconservative_terms, equations, dg, element, cache)
 
 
   # Calculate volume integral contribution
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
-      du[v, i, j, element] += ( (1 - alpha_blending) *
-                                (inverse_weights[i] * (fstaggered1[v, i+1, j] - fstaggered1[v, i, j]) +
-                                 inverse_weights[j] * (fstaggered2[v, i, j+1] - fstaggered2[v, i, j])) ) +
-                                ( alpha_blending *
-                                (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
-                                 inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])) )
-
+      du[v, i, j, element] += (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
+                               inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j]))
+                              #  ( (1 - alpha_blending) *
+                              #   (inverse_weights[i] * (fstaggered1[v, i+1, j] - fstaggered1[v, i, j]) +
+                              #    inverse_weights[j] * (fstaggered2[v, i, j+1] - fstaggered2[v, i, j])) )
     end
   end
 
@@ -644,6 +659,21 @@ end
 
   for j in 1:nnodes(dg)-1, i in eachnode(dg), v in eachvariable(equations)
     fstaggered2[v, i, j+1] = fstaggered2[v, i, j] + weights[j] * flux_temp[v, i, j]
+  end
+
+  return nothing
+end
+
+function calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fstaggered1, fstaggered2, fstar1, fstar2, u, mesh,
+                                 nonconservative_terms, equations, dg, element, cache)
+  @unpack inverse_weights = dg.basis
+  inverse_jacobian = cache.elements.inverse_jacobian[element]
+
+  for j in eachnode(dg), i in eachnode(dg)
+    for v in eachvariable(equations)
+      flux_antidiffusive1[v, i, j, element] = inverse_jacobian * inverse_weights[i] * (fstaggered1[v, i, j] - fstar1[v, i, j])
+      flux_antidiffusive2[v, i, j, element] = inverse_jacobian * inverse_weights[j] * (fstaggered2[v, i, j] - fstar2[v, i, j])
+    end
   end
 
   return nothing

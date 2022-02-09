@@ -151,6 +151,41 @@ const IndicatorLoehner = IndicatorLöhner
 end
 
 
+"""
+    IndicatorIDP
+
+Indicator used for subcell shock-capturing used by Rueda-Ramírez, Pazner, Gassner.
+"""
+struct IndicatorIDP{Variable, Cache} <: AbstractIndicator
+  # alpha_max::RealT
+  # alpha_min::RealT
+  # alpha_smooth::Bool
+  variable::Variable
+  cache::Cache
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorIDP(equations::AbstractEquations, basis;
+                      # alpha_max=0.5,
+                      # alpha_min=0.001,
+                      # alpha_smooth=true,
+                      variable)
+  # alpha_max, alpha_min = promote(alpha_max, alpha_min)
+  cache = create_cache(IndicatorIDP, equations, basis)
+  IndicatorIDP{typeof(variable), typeof(cache)}(variable, cache)
+end
+
+function Base.show(io::IO, indicator::IndicatorIDP)
+  @nospecialize indicator # reduce precompilation time
+
+  print(io, "IndicatorIDP(")
+  print(io, indicator.variable)
+  # print(io, ", alpha_max=", indicator.alpha_max)
+  # print(io, ", alpha_min=", indicator.alpha_min)
+  # print(io, ", alpha_smooth=", indicator.alpha_smooth)
+  print(io, ")")
+end
+
 
 struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   variable::Variable
