@@ -188,14 +188,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       variable_names = string.('a':'e')
       mesh_vertices_x1d = [x[begin], x[end]]
       fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d, 0)
-      @test_nowarn_debug Plots.plot(fake1d)
+      @test_nowarn_mod Plots.plot(fake1d)
 
       y = x
       data2d = [rand(11,11) for _ in 1:5]
       mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
       mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
       fake2d = Trixi.PlotData2DCartesian(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
-      @test_nowarn_debug Plots.plot(fake2d)
+      @test_nowarn_mod Plots.plot(fake2d)
     end
   end
 
@@ -264,8 +264,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @timed_testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
-                                     maxiters=1, analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
+                        maxiters=1, analysis_callback=Trixi.TrivialCallback(),
+                        initial_refinement_level=1)
     @test_nowarn_debug Plots.plot(sol)
   end
 

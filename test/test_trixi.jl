@@ -173,8 +173,9 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
           #       deprecated stuff is fixed upstream.
           "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
           "WARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n",
+          r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
         ]
-        append!(ignore_content, additional_ignore_content)
+        append!(ignore_content, $additional_ignore_content)
         for pattern in ignore_content
           stderr_content = replace(stderr_content, pattern => "")
         end
