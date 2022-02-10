@@ -62,6 +62,15 @@ function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
   return getfield(integrator, field)
 end
 
+function create_cache(cache, equations, dg, uEltype)
+  A4dp1_x = Array{uEltype, 4}
+  A4dp1_y = Array{uEltype, 4}
+  flux_antidiffusive1_threaded = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nelements(dg, cache)) for _ in 1:Threads.nthreads()]
+  flux_antidiffusive2_threaded = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nelements(dg, cache)) for _ in 1:Threads.nthreads()]
+
+  return (; flux_antidiffusive1_threaded, flux_antidiffusive2_threaded)
+end
+
 """
     solve_IDP()
 
@@ -71,6 +80,7 @@ SSP Runge-Kutta method of
     Shu, Osher (1988) Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes, eq. 2.18.
 """
 function solve_IDP(ode::ODEProblem, semi; dt, callback=nothing, kwargs...)
+  # TODO: Maybe add alg to dependency
   alg = SSPRK33_ShuOsher()
 
   u = copy(ode.u0)
@@ -114,18 +124,23 @@ function solve!(integrator::SimpleIntegratorSSP)
       terminate!(integrator)
     end
 
+    @trixi_timeit timer() "RK stage" begin
     prob.f(integrator.du, integrator.u, integrator.p, integrator.t)
     integrator.u_tmp = integrator.u + integrator.dt * integrator.du
+    end
+    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_tmp, integrator.u, integrator.dt, integrator.p)
 
+    @trixi_timeit timer() "RK stage" begin
     prob.f(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.dt)
     integrator.u_tmp = 3/4 * integrator.u + 1/4 * integrator.u_tmp + 1/4 * integrator.dt * integrator.du
+    end
+    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_tmp, 3/4 * integrator.u + 1/4 * integrator.u_tmp, 1/4 * integrator.dt, integrator.p)
 
+    @trixi_timeit timer() "RK stage" begin
     prob.f(integrator.du, integrator.u_tmp, integrator.p, integrator.t + 1/2 * integrator.dt)
     integrator.u = 1/3 * integrator.u + 2/3 * integrator.u_tmp + 2/3 * integrator.dt * integrator.du
-
-    @unpack alpha_threaded = integrator.p.solver.volume_integral.indicator.cache
-
-    # calcalpha_blending!(alpha_blending, volume_integral.indicator(u, mesh, equations, dg, element, cache)
+    end
+    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u, 1/3 * integrator.u + 2/3 * integrator.u_tmp, 2/3 * integrator.dt, integrator.p)
 
     integrator.iter += 1
     integrator.t += integrator.dt

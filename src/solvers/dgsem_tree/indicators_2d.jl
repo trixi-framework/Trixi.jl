@@ -201,8 +201,9 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   alpha_plus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   alpha_minus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
-  alpha_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  alpha_prov_threaded = similar(alpha_threaded)
+  alpha1_threaded = [A(undef, nnodes(basis)+1, nnodes(basis), ) for _ in 1:Threads.nthreads()]
+  alpha2_threaded = [A(undef, nnodes(basis), nnodes(basis)+1, ) for _ in 1:Threads.nthreads()]
+  alpha_prov_threaded = [A(undef, nnodes(basis), nnodes(basis), ) for _ in 1:Threads.nthreads()]
 
   indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
@@ -210,32 +211,35 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   # modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   return (; var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
-            alpha_plus_threaded, alpha_minus_threaded, alpha_threaded, alpha_prov_threaded,
+            alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded, alpha_prov_threaded,
             indicator_threaded)
 end
 
-function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4},
+function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
                                       mesh, equations, dg::DGSEM,
-                                      element, cache;
+                                      dt, element, cache;
                                       kwargs...)
-  @unpack var_max_threaded, var_min_threaded, indicator_threaded = indicator_IDP.cache
+  @unpack indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded, alpha_plus_threaded, alpha_minus_threaded = indicator_IDP.cache
+  @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
 
-  var_max = var_max_threaded[Threads.threadid()]
-  var_min = var_min_threaded[Threads.threadid()]
-  indicator = indicator_threaded[Threads.threadid()]
+  @unpack alpha_prov_threaded, alpha1_threaded, alpha2_threaded = indicator_IDP.cache
 
   # Calculate indicator variables at Gauss-Lobatto nodes
+  indicator = indicator_threaded[Threads.threadid()]
   for j in eachnode(dg), i in eachnode(dg)
-    u_local = get_node_vars(u, equations, dg, i, j, element)
+    u_local = get_node_vars(u_old, equations, dg, i, j, element)
     indicator[i, j] = indicator_IDP.variable(u_local, equations)
   end
 
   # Calculate max and min of variable at Gauss-Lobatto nodes
+  var_max = var_max_threaded[Threads.threadid()]
+  var_min = var_min_threaded[Threads.threadid()]
+  # corners
   var_max[1, 1], var_min[1, 1] = extrema((indicator[1, 1], indicator[1, 2], indicator[2, 1]))
   var_max[1, nnodes(dg)], var_min[1, nnodes(dg)] = extrema((indicator[1, nnodes(dg)], indicator[1, nnodes(dg)-1], indicator[2, nnodes(dg)]))
   var_max[nnodes(dg), 1], var_min[nnodes(dg), 1] = extrema((indicator[nnodes(dg), 1], indicator[nnodes(dg), 2], indicator[nnodes(dg)-1, 1]))
   var_max[nnodes(dg), nnodes(dg)], var_min[nnodes(dg), nnodes(dg)] = extrema((indicator[nnodes(dg), nnodes(dg)], indicator[nnodes(dg)-1, nnodes(dg)], indicator[nnodes(dg), nnodes(dg)-1]))
-  for i in 2:nnodes(dg)-1
+  for i in 2:nnodes(dg)-1 # first colomn/row, last colomn/row
     var_max[i, 1], var_min[i, 1] = extrema((indicator[i, 1], indicator[i, 2], indicator[i+1, 1], indicator[i-1, 1]))
     var_max[1, i], var_min[1, i] = extrema((indicator[1, i], indicator[2, i], indicator[1, i+1], indicator[1, i-1]))
     var_max[i, nnodes(dg)], var_min[i, nnodes(dg)] = extrema((indicator[i, nnodes(dg)], indicator[i, nnodes(dg)-1], indicator[i+1, nnodes(dg)], indicator[i-1, nnodes(dg)]))
@@ -245,15 +249,60 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4},
     var_max[i, j], var_min[i, j] = extrema((indicator[i, j], indicator[i, j-1], indicator[i, j+1], indicator[i+1, j], indicator[i-1, j]))
   end
 
-  @unpack P_plus_threaded, P_minus_threaded = indicator_IDP.cache
+  # Calculate P_plus and P_minus
   P_plus  = P_plus_threaded[Threads.threadid()]
   P_minus = P_minus_threaded[Threads.threadid()]
+  flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
+  flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
 
-  @unpack alpha_threaded = indicator_IDP.cache
-  alpha = alpha_threaded[Threads.threadid()]
+  @unpack inverse_weights = dg.basis
+  inverse_jacobian = cache.elements.inverse_jacobian[element]
+  for j in eachnode(dg), i in eachnode(dg)
+    val_flux1_local     = inverse_jacobian * inverse_weights[i] * indicator_IDP.variable(get_node_vars(flux_antidiffusive1, equations, dg, i,   j,   element), equations)
+    val_flux1_local_ip1 = inverse_jacobian * inverse_weights[i] * indicator_IDP.variable(get_node_vars(flux_antidiffusive1, equations, dg, i+1, j,   element), equations)
+    val_flux2_local     = inverse_jacobian * inverse_weights[j] * indicator_IDP.variable(get_node_vars(flux_antidiffusive2, equations, dg, i,   j,   element), equations)
+    val_flux2_local_jp1 = inverse_jacobian * inverse_weights[j] * indicator_IDP.variable(get_node_vars(flux_antidiffusive2, equations, dg, i,   j+1, element), equations)
 
+    P_plus[i, j]  = dt * ((max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1)) +
+                          (max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)))
+    P_minus[i, j] = dt * ((min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1)) +
+                          (min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)))
+  end
 
-  return alpha
+  # Calculate alpha_plus and alpha_minus
+  alpha_plus  = alpha_plus_threaded[Threads.threadid()]
+  alpha_minus = alpha_plus_threaded[Threads.threadid()]
+  for j in eachnode(dg), i in eachnode(dg)
+    u_local = get_node_vars(u, equations, dg, i, j, element)
+    var = indicator_IDP.variable(u_local, equations)
+    alpha_plus[i, j]  = 1 - min(1.0, max(0.0, (var_max[i, j] - var) / P_plus[i, j]))
+    alpha_minus[i, j] = 1 - min(1.0, max(0.0, (var_min[i, j] - var) / P_minus[i, j]))
+    isnan(alpha_plus[i, j]) && (alpha_plus[i, j] = 0.0)
+    isnan(alpha_minus[i, j]) && (alpha_minus[i, j] = 0.0)
+    # TODO: Added max(0.0, ...) and last two lines to make sure alpha_plus/minus is not -Inf, Inf or NaN
+  end
+
+  # Calculate alpha_prov
+  alpha_prov = alpha_prov_threaded[Threads.threadid()]
+  for j in eachnode(dg), i in eachnode(dg)
+    alpha_prov[i, j] = max(alpha_plus[i, j], alpha_minus[i, j])
+  end
+
+  # Calculate alpha1 and alpha2
+  alpha1 = alpha1_threaded[Threads.threadid()]
+  alpha2 = alpha2_threaded[Threads.threadid()]
+  for j in eachnode(dg), i in 2:nnodes(dg)
+    alpha1[i, j] = max(alpha_prov[i-1, j], alpha_prov[i, j])
+  end
+  for j in 2:nnodes(dg), i in eachnode(dg)
+    alpha2[i, j] = max(alpha_prov[i, j-1], alpha_prov[i, j])
+  end
+  alpha1[1, :] .= 0
+  alpha1[nnodes(dg)+1, :] .= 0
+  alpha2[:, 1] .= 0
+  alpha2[:, nnodes(dg)+1] .= 0
+
+  return alpha1, alpha2
 end
 
 
