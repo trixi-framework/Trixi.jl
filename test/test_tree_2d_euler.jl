@@ -180,8 +180,11 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr_neuralnetwork_perssonperaire.jl"),
-      l2   = [0.0009823702998067061, 0.004943231496200673, 0.0048604522073091815, 0.00496983530893294],
-      linf = [0.00855717053383187, 0.02087422420794427, 0.017121993783086185, 0.02720703869972585],
+      # This stuff is experimental and annoying to test. In the future, we plan
+      # to move it to another repository. Thus, we save developer time right now
+      # and do not run these tests anymore.
+      # l2   = [0.0009823702998067061, 0.004943231496200673, 0.0048604522073091815, 0.00496983530893294],
+      # linf = [0.00855717053383187, 0.02087422420794427, 0.017121993783086185, 0.02720703869972585],
       maxiters = 30,
       coverage_override = (maxiters=2,))
   end
