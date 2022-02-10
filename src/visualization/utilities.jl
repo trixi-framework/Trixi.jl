@@ -869,7 +869,7 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
   n_variables = size(data, 1)
   data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
   for i in 1:n_points_curve
-    data_on_curve[i, :] = get_value_at_point(curve[:,i], nodes, data)
+    data_on_curve[i, :] .= get_value_at_point(curve[:,i], nodes, data)
   end
 
   mesh_vertices_x = nothing
