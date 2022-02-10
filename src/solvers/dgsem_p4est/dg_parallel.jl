@@ -171,7 +171,7 @@ function init_mpi_neighbor_connectivity(mpi_interfaces, mesh::ParallelP4estMesh)
   user_data = InitNeighborRankConnectivityIterFaceUserData(mpi_interfaces, mesh)
 
   # Ghost layer is required to determine owner ranks of quadrants on neighboring processes
-  ghost_layer = new_ghost_p4est(mesh.p4est)
+  ghost_layer = ghost_new_p4est(mesh.p4est)
   @assert ghost_is_valid_p4est(mesh.p4est, ghost_layer) == 1
   iterate_p4est(mesh.p4est, user_data; ghost_layer=ghost_layer, iter_face_c=iter_face_c)
   ghost_destroy_p4est(ghost_layer)
