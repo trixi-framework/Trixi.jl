@@ -98,7 +98,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fstaggered2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  return (; cache..., fstaggered1_threaded, fstaggered2_threaded, flux_temp_threaded, )#flux_antidiffusive1_threaded, flux_antidiffusive2_threaded)
+  return (; cache..., fstaggered1_threaded, fstaggered2_threaded, flux_temp_threaded, )
 end
 
 
