@@ -21,6 +21,10 @@ for human readability.
 - The `VertexMappedMesh` type is removed in favor of the `DGMultiMesh` type.
   The `VertexMappedMesh` constructor is deprecated.
 
+#### Changed
+
+- The required Julia version is updated to v1.7.
+
 #### Deprecated
 
 - The `DGMultiMesh` constructor which uses a `rd::RefElemData` argument is deprecated in
