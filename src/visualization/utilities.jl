@@ -865,11 +865,14 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
     curve = axis_curve(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], slice, point, nvisnodes)
   end
 
+  # Set up data structure.
   n_points_curve = size(curve, 2)
   n_variables = size(data, 1)
   data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+
+  # Iterate over every point on the curve and determine the solutions value at given point.
   for i in 1:n_points_curve
-    data_on_curve[i, :] .= get_value_at_point(curve[:,i], nodes, data)
+    @views data_on_curve[i, :] .= get_value_at_point(curve[:,i], nodes, data)
   end
 
   mesh_vertices_x = nothing
@@ -877,16 +880,17 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
   return calc_arc_length(curve), data_on_curve, mesh_vertices_x
 end
 
-function is_valid_tetrahedron(i, coordinates; tol=10^-4)
+# Check if the first 'amount'-many points can still form a valid tetrahedron.
+function is_valid_tetrahedron(amount, coordinates; tol=10^-4)
   a = coordinates[:,1]; b = coordinates[:,2]; c = coordinates[:,3]; d = coordinates[:,4];
-  if i == 2
+  if amount == 2 # If two points are the same, then no tetrahedron can be formed.
     return !(isapprox(a, b; atol=tol))
-  elseif i == 3
+  elseif amount == 3 # Check if three points are on the same line.
     return !on_the_same_line(a, b, c; tol=tol)
-  elseif i == 4
+  elseif amount == 4 # Check if four points form a tetrahedron.
     A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :], SVector(1, 1, 1, 1))
     return !isapprox(det(A), 0; atol=tol)
-  else
+  else # With one point a tetrahedron can always be formed.
     return true
   end
 end
@@ -915,6 +919,7 @@ function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordin
   return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3] * coordinate_out[3] + c[4]
 end
 
+# Calculate the distances from every entry in node to given point.
 function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
   shifted_data = nodes.-point
@@ -931,7 +936,9 @@ function distances_from_single_point(nodes, point)
   return distances
 end
 
+# Interpolate the data on given nodes to a single value at given point.
 function get_value_at_point(point, nodes, data)
+  # Set up ata structures.
   n_variables, n_x_nodes, n_y_nodes, n_z_nodes, _ = size(data)
   distances = distances_from_single_point(nodes, point)
   maximum_distance = maximum(distances)
@@ -941,29 +948,36 @@ function get_value_at_point(point, nodes, data)
 
   index = argmin(distances)
 
+  # If the point sits exactly on a node, no interpolation is needed.
   if nodes[:, index[1], index[2], index[3], index[4]] == point
     return data[1, index[1], index[2], index[3], index[4]]
   end
 
-  coordinates_tetrahedron[:,1] = nodes[:, index[1], index[2], index[3], index[4]]
-  value_tetrahedron[:, 1] = data[:, index[1], index[2], index[3], index[4]]
+  @views coordinates_tetrahedron[:,1] = nodes[:, index[1], index[2], index[3], index[4]]
+  @views value_tetrahedron[:, 1] = data[:, index[1], index[2], index[3], index[4]]
 
+  # Restrict the interpolation to the closest element only.
   closest_element = index[4]
-  element_distances = distances[:,:,:,closest_element]
+  @views element_distances = distances[:,:,:,closest_element]
 
+  # Find a tetrahedron, which is given by four corners, to interpolate from.
   for i in 1:4
+    # Iterate until a valid tetrahedron is found.
     while true
       index = argmin(element_distances)
       element_distances[index[1], index[2], index[3]] = maximum_distance
 
-      coordinates_tetrahedron[:,i] = nodes[:, index[1], index[2], index[3], closest_element]
-      value_tetrahedron[:, i] = data[:, index[1], index[2], index[3], closest_element]
+      @views coordinates_tetrahedron[:,i] = nodes[:, index[1], index[2], index[3], closest_element]
+      @views value_tetrahedron[:, i] = data[:, index[1], index[2], index[3], closest_element]
+
+      # Look for another point if current tetrahedron is not valid.
       if is_valid_tetrahedron(i, coordinates_tetrahedron)
         break
       end
     end
   end
 
+  # Interpolate from tetrahedron to given point.
   value_at_point = Array{Float64}(undef, n_variables)
   for v in 1:n_variables
     value_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :], coordinates_tetrahedron[2, :], coordinates_tetrahedron[3, :], value_tetrahedron[v, :], point)
