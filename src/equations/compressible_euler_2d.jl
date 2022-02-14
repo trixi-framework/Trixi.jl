@@ -900,22 +900,22 @@ of the numerical flux.
   [DOI: 10.1016/0021-9991(91)90211-3](https://doi.org/10.1016/0021-9991(91)90211-3)
 """
 function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
-  # Calculate primitive variables, enthlapy and speed of sound
+  # Calculate primitive variables, enthalpy and speed of sound
   rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
   rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
-  # u_ll[4] is total energy on the left rho_e_ll
+  # `u_ll[4]` is total energy `rho_e_ll` on the left
   H_ll = (u_ll[4] + p_ll) / rho_ll
   c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
-  # u_rr[4] is total energy on the left rho_e_rr
+  # `u_rr[4]` is total energy `rho_e_rr` on the right
   H_rr = (u_rr[4] + p_rr) / rho_rr
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   # Compute Roe averages
   sqrt_rho_ll = sqrt(rho_ll)
   sqrt_rho_rr = sqrt(rho_rr)
-  inv_sum_sqrt_rho = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
+  inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
 
   v1_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr) * inv_sum_sqrt_rho
   v2_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr) * inv_sum_sqrt_rho

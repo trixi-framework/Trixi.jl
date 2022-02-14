@@ -1,4 +1,4 @@
-# Compressible Euler flow around a cylinder at Mach 3
+# Channel flow around a cylinder at Mach 3
 #
 # Boundary conditions are supersonic Mach 3 inflow at the left portion of the domain
 # and supersonic outflow at the right portion of the domain. The top and bottom of the
@@ -11,7 +11,7 @@
 #   Second-Order Invariant Domain Preserving Approximation of the Euler Equations using Convex Limiting.
 #   [DOI: 10.1137/17M1149961](https://doi.org/10.1137/17M1149961)
 #
-# Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation
+# Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
 using Downloads: download
 using OrdinaryDiffEq
@@ -90,12 +90,11 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions)
 
 ###############################################################################
-# ODE solvers with workaround to catch location of any negative density and/or pressure
+# ODE solvers
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
-###############################################################################
 # Callbacks
 
 summary_callback = SummaryCallback()
