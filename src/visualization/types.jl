@@ -437,6 +437,8 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
                                 x_face, y_face, face_data, variable_name)
 end
 
+# TEST COMMENT PLEASE IGNORE
+
 function ScalarPlotData2D(u, mesh, equations, dg::DGSEM, cache; variable_name=nothing, nvisnodes=2*nnodes(dg))
 
   n_nodes_2d = nnodes(dg)^ndims(mesh)
