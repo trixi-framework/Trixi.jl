@@ -146,6 +146,8 @@ end
 
 # 2D
 cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{2}) = @cfunction(init_surfaces_iter_face_parallel, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+# 3D
+cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{3}) = @cfunction(init_surfaces_iter_face_parallel, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 
 # Function barrier for type stability, overload for parallel P4estMesh
 function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIterFaceUserData)
@@ -219,11 +221,11 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
   mpi_interfaces.local_element_ids[mpi_interface_id] = local_quad_id + 1
   mpi_interfaces.local_sides[mpi_interface_id] = local_side
 
-  # Local face at which the interface lies
-  local_face = sides[local_side].face
+  # Face at which the interface lies
+  faces = (sides[1].face, sides[2].face)
 
   # Save mpi_interfaces.node_indices dimension specific in containers_[23]d_parallel.jl
-  init_mpi_interface_node_indices!(mpi_interfaces, local_face, local_side, info.orientation,
+  init_mpi_interface_node_indices!(mpi_interfaces, faces, local_side, info.orientation,
                                    mpi_interface_id)
 
   return nothing
@@ -274,6 +276,8 @@ end
 
 # 2D
 cfunction(::typeof(count_surfaces_iter_face_parallel), ::Val{2}) = @cfunction(count_surfaces_iter_face_parallel, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+# 3D
+cfunction(::typeof(count_surfaces_iter_face_parallel), ::Val{3}) = @cfunction(count_surfaces_iter_face_parallel, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 
 function count_required_surfaces(mesh::ParallelP4estMesh)
   # Let p4est iterate over all interfaces and call count_surfaces_iter_face_parallel

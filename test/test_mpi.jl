@@ -14,8 +14,9 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   include("test_mpi_tree.jl")
 
   # P4estMesh tests
-  include("test_mpi_p4est.jl")
-end # MPI 2D
+  include("test_mpi_p4est_2d.jl")
+  include("test_mpi_p4est_3d.jl")
+end # MPI
 
 # Clean up afterwards: delete Trixi output directory
 Trixi.mpi_isroot() && @test_nowarn rm(outdir, recursive=true)
