@@ -112,8 +112,8 @@ isdir(outdir) && rm(outdir, recursive=true)
       skip_coverage=true)
   end
 
-  @trixi_testset "elixir_euler_supersonic_cylinder_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_supersonic_cylinder_amr.jl"),
+  @trixi_testset "elixir_euler_supersonic_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_supersonic_cylinder.jl"),
       l2   = [0.026798021911954406, 0.05118546368109259, 0.03206703583774831, 0.19680026567208672],
       linf = [3.653905721692421, 4.285035711361009, 6.8544353186357645, 31.748244912257533],
       tspan = (0.0, 0.001),
