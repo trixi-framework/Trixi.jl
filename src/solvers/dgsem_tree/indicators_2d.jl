@@ -207,13 +207,11 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
 
   alpha1_threaded = [A(undef, nnodes(basis)+1, nnodes(basis), ) for _ in 1:Threads.nthreads()]
   alpha2_threaded = [A(undef, nnodes(basis), nnodes(basis)+1, ) for _ in 1:Threads.nthreads()]
-  alpha_prov_threaded = [A(undef, nnodes(basis), nnodes(basis), ) for _ in 1:Threads.nthreads()]
 
-  alpha_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()] # TODO: Save for all elements
+  alpha_prov = A(undef, nnodes(basis), nnodes(basis), ) # TODO: Save for all elements
 
   return (; indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
-            alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded, alpha_prov_threaded,
-            alpha_threaded)
+            alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded, alpha_prov)
 end
 
 function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
@@ -223,7 +221,7 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   @unpack indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded, alpha_plus_threaded, alpha_minus_threaded = indicator_IDP.cache
   @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
 
-  @unpack alpha_prov_threaded, alpha1_threaded, alpha2_threaded, alpha_threaded = indicator_IDP.cache
+  @unpack alpha_prov, alpha1_threaded, alpha2_threaded = indicator_IDP.cache
 
   # Calculate indicator variables at Gauss-Lobatto nodes
   indicator = indicator_threaded[Threads.threadid()]
@@ -298,7 +296,6 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   end
 
   # Calculate alpha_prov
-  alpha_prov = alpha_prov_threaded[Threads.threadid()]
   for j in eachnode(dg), i in eachnode(dg)
     alpha_prov[i, j] = max(alpha_plus[i, j], alpha_minus[i, j])
   end

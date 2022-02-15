@@ -30,6 +30,8 @@ function create_cache(mesh::TreeMesh{2}, equations,
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
+  # TODO: Just defined for VolumeIntegralShockCapturingSubcell.
+  # It adds flux_antidiffusive, which should save data for alle element
   cache = (;cache..., create_cache(cache, equations, dg, uEltype)...)
 
   return cache
