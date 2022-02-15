@@ -194,10 +194,14 @@ end
 function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
   A = Array{real(basis), ndims(equations)}
+  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
   var_max_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   var_min_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
   P_plus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   P_minus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+
   alpha_plus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   alpha_minus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
@@ -205,24 +209,21 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   alpha2_threaded = [A(undef, nnodes(basis), nnodes(basis)+1, ) for _ in 1:Threads.nthreads()]
   alpha_prov_threaded = [A(undef, nnodes(basis), nnodes(basis), ) for _ in 1:Threads.nthreads()]
 
-  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  alpha_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()] # TODO: Save for all elements
 
-  # modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  # modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-  return (; var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
+  return (; indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
             alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded, alpha_prov_threaded,
-            indicator_threaded)
+            alpha_threaded)
 end
 
 function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
-                                      mesh, equations, dg::DGSEM,
-                                      dt, element, cache;
-                                      kwargs...)
+                                       mesh, equations, dg::DGSEM,
+                                       dt, element, cache;
+                                       kwargs...)
   @unpack indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded, alpha_plus_threaded, alpha_minus_threaded = indicator_IDP.cache
   @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
 
-  @unpack alpha_prov_threaded, alpha1_threaded, alpha2_threaded = indicator_IDP.cache
+  @unpack alpha_prov_threaded, alpha1_threaded, alpha2_threaded, alpha_threaded = indicator_IDP.cache
 
   # Calculate indicator variables at Gauss-Lobatto nodes
   indicator = indicator_threaded[Threads.threadid()]
@@ -234,19 +235,26 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   # Calculate max and min of variable at Gauss-Lobatto nodes
   var_max = var_max_threaded[Threads.threadid()]
   var_min = var_min_threaded[Threads.threadid()]
-  # corners
-  var_max[1, 1], var_min[1, 1] = extrema((indicator[1, 1], indicator[1, 2], indicator[2, 1]))
-  var_max[1, nnodes(dg)], var_min[1, nnodes(dg)] = extrema((indicator[1, nnodes(dg)], indicator[1, nnodes(dg)-1], indicator[2, nnodes(dg)]))
-  var_max[nnodes(dg), 1], var_min[nnodes(dg), 1] = extrema((indicator[nnodes(dg), 1], indicator[nnodes(dg), 2], indicator[nnodes(dg)-1, 1]))
-  var_max[nnodes(dg), nnodes(dg)], var_min[nnodes(dg), nnodes(dg)] = extrema((indicator[nnodes(dg), nnodes(dg)], indicator[nnodes(dg)-1, nnodes(dg)], indicator[nnodes(dg), nnodes(dg)-1]))
-  for i in 2:nnodes(dg)-1 # first colomn/row, last colomn/row
-    var_max[i, 1], var_min[i, 1] = extrema((indicator[i, 1], indicator[i, 2], indicator[i+1, 1], indicator[i-1, 1]))
-    var_max[1, i], var_min[1, i] = extrema((indicator[1, i], indicator[2, i], indicator[1, i+1], indicator[1, i-1]))
-    var_max[i, nnodes(dg)], var_min[i, nnodes(dg)] = extrema((indicator[i, nnodes(dg)], indicator[i, nnodes(dg)-1], indicator[i+1, nnodes(dg)], indicator[i-1, nnodes(dg)]))
-    var_max[nnodes(dg), i], var_min[nnodes(dg), i] = extrema((indicator[nnodes(dg), i], indicator[nnodes(dg)-1, i], indicator[nnodes(dg), i+1], indicator[nnodes(dg), i-1]))
-  end
-  for j in 2:nnodes(dg)-1, i in 2:nnodes(dg)-1
-    var_max[i, j], var_min[i, j] = extrema((indicator[i, j], indicator[i, j-1], indicator[i, j+1], indicator[i+1, j], indicator[i-1, j]))
+
+  for j in eachnode(dg), i in eachnode(dg)
+    var_min[i, j] = indicator[i, j]
+    var_max[i, j] = indicator[i, j]
+    if j > 1
+      var_min[i, j] = min(var_min[i, j], indicator[i, j-1])
+      var_max[i, j] = max(var_max[i, j], indicator[i, j-1])
+    end
+    if j < nnodes(dg)
+      var_min[i, j] = min(var_min[i, j], indicator[i, j+1])
+      var_max[i, j] = max(var_max[i, j], indicator[i, j+1])
+    end
+    if i > 1
+      var_min[i, j] = min(var_min[i, j], indicator[i-1, j])
+      var_max[i, j] = max(var_max[i, j], indicator[i-1, j])
+    end
+    if i < nnodes(dg)
+      var_min[i, j] = min(var_min[i, j], indicator[i+1, j])
+      var_max[i, j] = max(var_max[i, j], indicator[i+1, j])
+    end
   end
 
   # Calculate P_plus and P_minus
@@ -258,28 +266,33 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   @unpack inverse_weights = dg.basis
   inverse_jacobian = cache.elements.inverse_jacobian[element]
   for j in eachnode(dg), i in eachnode(dg)
-    val_flux1_local     = inverse_jacobian * inverse_weights[i] * indicator_IDP.variable(get_node_vars(flux_antidiffusive1, equations, dg, i,   j,   element), equations)
-    val_flux1_local_ip1 = inverse_jacobian * inverse_weights[i] * indicator_IDP.variable(get_node_vars(flux_antidiffusive1, equations, dg, i+1, j,   element), equations)
-    val_flux2_local     = inverse_jacobian * inverse_weights[j] * indicator_IDP.variable(get_node_vars(flux_antidiffusive2, equations, dg, i,   j,   element), equations)
-    val_flux2_local_jp1 = inverse_jacobian * inverse_weights[j] * indicator_IDP.variable(get_node_vars(flux_antidiffusive2, equations, dg, i,   j+1, element), equations)
+    # Note: Boundaries of flux_antidiffusive1/2 are constant 0, so they make no difference here.
+    val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(flux_antidiffusive1, equations, dg, i,   j,   element), equations)
+    val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(flux_antidiffusive1, equations, dg, i+1, j,   element), equations)
+    val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(flux_antidiffusive2, equations, dg, i,   j,   element), equations)
+    val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(flux_antidiffusive2, equations, dg, i,   j+1, element), equations)
 
-    P_plus[i, j]  = dt * ((max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1)) +
-                          (max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)))
-    P_minus[i, j] = dt * ((min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1)) +
-                          (min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)))
+    P_plus[i, j]  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
+                    max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
+    P_minus[i, j] = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+                    min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
   end
 
   # Calculate alpha_plus and alpha_minus
   alpha_plus  = alpha_plus_threaded[Threads.threadid()]
-  alpha_minus = alpha_plus_threaded[Threads.threadid()]
+  alpha_minus = alpha_minus_threaded[Threads.threadid()]
   for j in eachnode(dg), i in eachnode(dg)
     u_local = get_node_vars(u, equations, dg, i, j, element)
     var = indicator_IDP.variable(u_local, equations)
-    alpha_plus[i, j]  = 1 - min(1.0, max(0.0, (var_max[i, j] - var) / P_plus[i, j]))
-    alpha_minus[i, j] = 1 - min(1.0, max(0.0, (var_min[i, j] - var) / P_minus[i, j]))
-    isnan(alpha_plus[i, j]) && (alpha_plus[i, j] = 0.0)
-    isnan(alpha_minus[i, j]) && (alpha_minus[i, j] = 0.0)
-    # TODO: Added max(0.0, ...) and last two lines to make sure alpha_plus/minus is not -Inf, Inf or NaN
+
+    frac_plus  = (var_max[i, j] - var) / P_plus[i, j]
+    frac_minus = (var_min[i, j] - var) / P_minus[i, j]
+    # min(Int, NaN) seems to be Int. To avoid this, set fraction to 1.0 if NaN
+    isnan(frac_plus) && (frac_plus = 1.0)
+    isnan(frac_minus) && (frac_minus = 1.0)
+
+    alpha_plus[i, j]  = 1 - min(1.0, max(0.0, frac_plus))
+    alpha_minus[i, j] = 1 - min(1.0, max(0.0, frac_minus))
   end
 
   # Calculate alpha_prov
@@ -297,12 +310,17 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   for j in 2:nnodes(dg), i in eachnode(dg)
     alpha2[i, j] = max(alpha_prov[i, j-1], alpha_prov[i, j])
   end
-  alpha1[1, :] .= 0
-  alpha1[nnodes(dg)+1, :] .= 0
-  alpha2[:, 1] .= 0
-  alpha2[:, nnodes(dg)+1] .= 0
+  alpha1[1, :] .= zero(eltype(alpha1))
+  alpha1[nnodes(dg)+1, :] .= zero(eltype(alpha1))
+  alpha2[:, 1] .= zero(eltype(alpha2))
+  alpha2[:, nnodes(dg)+1] .= zero(eltype(alpha2))
 
-  return alpha1, alpha2
+  alpha = alpha_threaded[Threads.threadid()]
+  for j in eachnode(dg), i in eachnode(dg)
+    alpha[i, j] = max(alpha1[i, j], alpha1[i+1, j], alpha2[i, j], alpha2[i, j+1])
+  end
+
+  return alpha
 end
 
 

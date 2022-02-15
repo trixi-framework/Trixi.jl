@@ -11,7 +11,7 @@ initial_condition = initial_condition_weak_blast_wave
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 volume_flux = flux_ranocha
-indicator_sc = IndicatorIDP(equations, basis; variable=density)
+indicator_sc = IndicatorIDP(equations, basis; variable=Trixi.density)
 volume_integral=VolumeIntegralStaggeredGrid(indicator_sc; volume_flux_dg=volume_flux,
                                                           volume_flux_fv=volume_flux)
 solver = DGSEM(basis, flux_ranocha, volume_integral)
