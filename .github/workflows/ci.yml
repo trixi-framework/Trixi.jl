@@ -72,6 +72,7 @@ jobs:
           - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2
+          - misc_part3
           - mpi
           - threaded
         include:
