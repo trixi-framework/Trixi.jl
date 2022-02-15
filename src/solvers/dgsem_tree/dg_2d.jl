@@ -685,7 +685,7 @@ end
   @threaded for element in eachelement(solver, ode.cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
-    @trixi_timeit timer() "alpha calculation" alpha = ode.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, element, cache)
+    @trixi_timeit timer() "alpha calculation" alpha1, alpha2 = ode.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, element, cache)
 
     flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
     flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
@@ -694,11 +694,10 @@ end
     # Note: flux_antidiffusive1[v, i, xi, element] = flux_antidiffusive2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
     for j in eachnode(solver), i in eachnode(solver)
       for v in eachvariable(equations)
-        u[v, i, j, element] += (1.0 - alpha[i, j]) * dt * inverse_jacobian *
-                                  (inverse_weights[i] * (flux_antidiffusive1[v, i+1, j, element] -
-                                                         flux_antidiffusive1[v, i,   j, element]) +
-                                   inverse_weights[j] * (flux_antidiffusive2[v, i, j+1, element] -
-                                                         flux_antidiffusive2[v, i,   j, element]) )
+        u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * ((1.0 - alpha1[i+1, j]) * flux_antidiffusive1[v, i+1, j, element] -
+                                                                              (1.0 - alpha1[i,   j]) * flux_antidiffusive1[v, i,   j, element]) +
+                                                        inverse_weights[j] * ((1.0 - alpha2[i, j+1]) * flux_antidiffusive2[v, i, j+1, element] -
+                                                                              (1.0 - alpha2[i,   j]) * flux_antidiffusive2[v, i,   j, element]) )
       end
     end
   end

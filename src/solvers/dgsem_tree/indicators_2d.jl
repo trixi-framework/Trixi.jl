@@ -285,14 +285,16 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
     u_local = get_node_vars(u, equations, dg, i, j, element)
     var = indicator_IDP.variable(u_local, equations)
 
-    frac_plus  = (var_max[i, j] - var) / P_plus[i, j]
-    frac_minus = (var_min[i, j] - var) / P_minus[i, j]
-    # min(Int, NaN) seems to be Int. To avoid this, set fraction to 1.0 if NaN
-    isnan(frac_plus) && (frac_plus = 1.0)
-    isnan(frac_minus) && (frac_minus = 1.0)
+    if abs(var_max[i, j] - var) < sqrt(eps())
+      alpha_plus[i, j] = 0.0
+      alpha_minus[i, j] = 0.0
+    else
+      frac_plus  = (var_max[i, j] - var) / P_plus[i, j]
+      frac_minus = (var_min[i, j] - var) / P_minus[i, j]
 
-    alpha_plus[i, j]  = 1 - min(1.0, max(0.0, frac_plus))
-    alpha_minus[i, j] = 1 - min(1.0, max(0.0, frac_minus))
+      alpha_plus[i, j]  = 1 - min(1.0, max(0.0, frac_plus))
+      alpha_minus[i, j] = 1 - min(1.0, max(0.0, frac_minus))
+    end
   end
 
   # Calculate alpha_prov
@@ -320,7 +322,7 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
     alpha[i, j] = max(alpha1[i, j], alpha1[i+1, j], alpha2[i, j], alpha2[i, j+1])
   end
 
-  return alpha
+  return alpha1, alpha2
 end
 
 
