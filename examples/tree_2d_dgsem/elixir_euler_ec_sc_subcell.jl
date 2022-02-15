@@ -12,8 +12,8 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 volume_flux = flux_ranocha
 indicator_sc = IndicatorIDP(equations, basis; variable=Trixi.density)
-volume_integral=VolumeIntegralStaggeredGrid(indicator_sc; volume_flux_dg=volume_flux,
-                                                          volume_flux_fv=volume_flux)
+volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
+                                                                  volume_flux_fv=volume_flux)
 solver = DGSEM(basis, flux_ranocha, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
@@ -61,5 +61,4 @@ callbacks = CallbackSet(summary_callback, save_solution,
 sol = Trixi.solve_IDP(ode, semi;
             dt=0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
-
 summary_callback() # print the timer summary

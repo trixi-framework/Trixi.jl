@@ -82,9 +82,7 @@ end
 
 
 function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::VolumeIntegralStaggeredGrid, dg::DG, uEltype)
-
-  have_nonconservative_terms(equations) !== Val(false) && error("VolumeIntegralStaggeredGrid only defined for no nonconservative terms.")
+                      volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
 
   cache = create_cache(mesh, equations,
                        VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
@@ -94,11 +92,11 @@ function create_cache(mesh::TreeMesh{2}, equations,
   A3dp1_y = Array{uEltype, 3}
   A3d = Array{uEltype, 3}
 
-  fstaggered1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
-  fstaggered2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+  fhat1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  return (; cache..., fstaggered1_threaded, fstaggered2_threaded, flux_temp_threaded, )
+  return (; cache..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
 end
 
 
@@ -517,33 +515,32 @@ end
 function calc_volume_integral!(du, u,
                                mesh::TreeMesh{2},
                                nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralStaggeredGrid,
+                               volume_integral::VolumeIntegralShockCapturingSubcell,
                                dg::DGSEM, cache)
   @threaded for element in eachelement(dg, cache)
-    staggered_grid_kernel!(du, u, element, mesh,
-                           nonconservative_terms, equations,
-                           volume_integral, dg, cache)
+    subcell_DG_FV_kernel!(du, u, element, mesh,
+                          nonconservative_terms, equations,
+                          volume_integral, dg, cache)
   end
 end
 
-@inline function staggered_grid_kernel!(du, u,
-                                        element, mesh::TreeMesh{2},
-                                        nonconservative_terms::Val{false}, equations,
-                                        volume_integral, dg::DGSEM, cache, alpha=true)
+@inline function subcell_DG_FV_kernel!(du, u,
+                                       element, mesh::TreeMesh{2},
+                                       nonconservative_terms::Val{false}, equations,
+                                       volume_integral, dg::DGSEM, cache, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can (hopefully) be optimized away due to constant propagation.
   @unpack inverse_weights = dg.basis
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
   # high-order DG fluxes
-  @unpack fstaggered1_threaded, fstaggered2_threaded = cache
+  @unpack fhat1_threaded, fhat2_threaded = cache
 
-  fstaggered1 = fstaggered1_threaded[Threads.threadid()]
-  fstaggered2 = fstaggered2_threaded[Threads.threadid()]
-  @trixi_timeit timer() "calculation fstaggered" begin
-  calcflux_staggered!(fstaggered1, fstaggered2, u, mesh,
-                      nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
-  end
+  fhat1 = fhat1_threaded[Threads.threadid()]
+  fhat2 = fhat2_threaded[Threads.threadid()]
+  calcflux_fhat!(fhat1, fhat2, u, mesh,
+                 nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
+
   # low-order FV fluxes
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
 
@@ -562,14 +559,14 @@ end
   flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
   flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
   @trixi_timeit timer() "calculation flux_antidiffusive" begin
-  calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fstaggered1, fstaggered2, fstar1_L, fstar2_L, u, mesh,
+  calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
                           nonconservative_terms, equations, dg, element, cache)
   end
   # Calculate volume integral contribution
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
-      du[v, i, j, element] += (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
-                               inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j]))
+      du[v, i, j, element] += inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
+                              inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])
 
     end
   end
@@ -578,17 +575,18 @@ end
 end
 
 
-#     calcflux_staggered!(fstaggered1, fstaggered2, u, mesh,
+#     calcflux_fhat!(fhat1, fhat2, u, mesh,
 #                         nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
 #
-# Calculate the staggered volume fluxes inside the elements (**without non-conservative terms**).
+# Calculate the FV-form staggered volume fluxes `fhat` inside the elements
+# (**without non-conservative terms**).
 #
 # # Arguments
-# - `fstaggered1::AbstractArray{<:Real, 3}`
-# - `fstaggered2::AbstractArray{<:Real, 3}`
-@inline function calcflux_staggered!(fstaggered1, fstaggered2, u,
-                                     mesh::TreeMesh{2}, nonconservative_terms::Val{false}, equations,
-                                     volume_flux, dg::DGSEM, element, cache)
+# - `fhat1::AbstractArray{<:Real, 3}`
+# - `fhat2::AbstractArray{<:Real, 3}`
+@inline function calcflux_fhat!(fhat1, fhat2, u,
+                                mesh::TreeMesh{2}, nonconservative_terms::Val{false}, equations,
+                                volume_flux, dg::DGSEM, element, cache)
 
   @unpack weights, derivative_split = dg.basis
   @unpack flux_temp_threaded = cache
@@ -596,8 +594,8 @@ end
   flux_temp = flux_temp_threaded[Threads.threadid()]
 
   # The FV-form fluxes are calculated in a recursive manner, i.e.:
-  # fstaggered_(0,1)   = f_0 + w_0 * FVol_0,
-  # fstaggered_(j,j+1) = fstaggered_(j-1,j) + w_j * FVol_j,   for j=1,...,N-1,
+  # fhat_(0,1)   = f_0 + w_0 * FVol_0,
+  # fhat_(j,j+1) = fhat_(j-1,j) + w_j * FVol_j,   for j=1,...,N-1,
   # with the split form volume fluxes FVol_j = -2 * sum_i=0^N D_ji f*_(j,i).
 
   # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
@@ -622,12 +620,12 @@ end
     end
   end
 
-  # FV-form flux `fstaggered` in x direction
-  fstaggered1[:, 1,            :] .= zero(eltype(fstaggered1))
-  fstaggered1[:, nnodes(dg)+1, :] .= zero(eltype(fstaggered1))
+  # FV-form flux `fhat` in x direction
+  fhat1[:, 1,            :] .= zero(eltype(fhat1))
+  fhat1[:, nnodes(dg)+1, :] .= zero(eltype(fhat1))
 
   for j in eachnode(dg), i in 1:nnodes(dg)-1, v in eachvariable(equations)
-    fstaggered1[v, i+1, j] = fstaggered1[v, i, j] + weights[i] * flux_temp[v, i, j]
+    fhat1[v, i+1, j] = fhat1[v, i, j] + weights[i] * flux_temp[v, i, j]
   end
 
   # Split form volume flux in orientation 2: y direction
@@ -643,25 +641,25 @@ end
     end
   end
 
-  # FV-form flux `fstaggered` in y direction
-  fstaggered2[:, :, 1           ] .= zero(eltype(fstaggered2))
-  fstaggered2[:, :, nnodes(dg)+1] .= zero(eltype(fstaggered2))
+  # FV-form flux `fhat` in y direction
+  fhat2[:, :, 1           ] .= zero(eltype(fhat2))
+  fhat2[:, :, nnodes(dg)+1] .= zero(eltype(fhat2))
 
   for j in 1:nnodes(dg)-1, i in eachnode(dg), v in eachvariable(equations)
-    fstaggered2[v, i, j+1] = fstaggered2[v, i, j] + weights[j] * flux_temp[v, i, j]
+    fhat2[v, i, j+1] = fhat2[v, i, j] + weights[j] * flux_temp[v, i, j]
   end
 
   return nothing
 end
 
-@inline function calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fstaggered1, fstaggered2, fstar1, fstar2, u, mesh,
+@inline function calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, dg, element, cache)
   @unpack inverse_weights = dg.basis
 
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
-      flux_antidiffusive1[v, i, j, element] = (fstaggered1[v, i, j] - fstar1[v, i, j])
-      flux_antidiffusive2[v, i, j, element] = (fstaggered2[v, i, j] - fstar2[v, i, j])
+      flux_antidiffusive1[v, i, j, element] = (fhat1[v, i, j] - fstar1[v, i, j])
+      flux_antidiffusive2[v, i, j, element] = (fhat2[v, i, j] - fstar2[v, i, j])
     end
   end
 

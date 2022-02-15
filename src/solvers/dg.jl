@@ -143,7 +143,7 @@ end
 
 
 """
-    VolumeIntegralStaggeredGrid
+    VolumeIntegralShockCapturingSubcell
 
 A shock-capturing volume integral type for DG methods based on a subcell blending approach
 with a low-order FV method.
@@ -153,19 +153,19 @@ with a low-order FV method.
 
 See also: [`VolumeIntegralShockCapturingHG`](@ref)
 """
-struct VolumeIntegralStaggeredGrid{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
+struct VolumeIntegralShockCapturingSubcell{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
   volume_flux_dg::VolumeFluxDG
   volume_flux_fv::VolumeFluxFV
   indicator::Indicator
 end
 
-function VolumeIntegralStaggeredGrid(indicator; volume_flux_dg,
-                                                volume_flux_fv)
-  VolumeIntegralStaggeredGrid{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
+function VolumeIntegralShockCapturingSubcell(indicator; volume_flux_dg,
+                                                        volume_flux_fv)
+  VolumeIntegralShockCapturingSubcell{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
     volume_flux_dg, volume_flux_fv, indicator)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralStaggeredGrid)
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralShockCapturingSubcell)
   @nospecialize integral # reduce precompilation time
 
   if get(io, :compact, false)
@@ -176,7 +176,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralStaggered
             "volume flux fv" => integral.volume_flux_fv,
             "indicator" => integral.indicator
             ]
-    summary_box(io, "VolumeIntegralStaggeredGrid", setup)
+    summary_box(io, "VolumeIntegralShockCapturingSubcell", setup)
   end
 end
 
