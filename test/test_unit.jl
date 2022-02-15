@@ -550,6 +550,17 @@ Cassette.@context Ctx
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
   end
 
+  @timed_testset "Consistency check for HLLE flux" begin
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquations2D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 5.5)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+  end
+
   @testset "FluxRotated vs. direct implementation" begin
     @timed_testset "CompressibleEulerEquations2D" begin
       equations = CompressibleEulerEquations2D(1.4)
