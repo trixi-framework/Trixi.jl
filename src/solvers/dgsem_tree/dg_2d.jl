@@ -578,9 +578,9 @@ end
 
 
 #     calcflux_fhat!(fhat1, fhat2, u, mesh,
-#                         nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
+#                    nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
 #
-# Calculate the FV-form staggered volume fluxes `fhat` inside the elements
+# Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**without non-conservative terms**).
 #
 # # Arguments
