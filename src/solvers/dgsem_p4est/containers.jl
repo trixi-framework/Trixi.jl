@@ -672,5 +672,6 @@ include("containers_2d.jl")
 include("containers_3d.jl")
 include("containers_parallel.jl")
 include("containers_parallel_2d.jl")
+include("containers_parallel_3d.jl")
 
 end # @muladd

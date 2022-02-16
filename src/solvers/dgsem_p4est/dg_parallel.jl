@@ -92,9 +92,9 @@ function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cach
       last  = (index - 1) * data_size + data_size
 
       if cache.mpi_interfaces.local_sides[interface] == 1 # local element on primary side
-        @views vec(cache.mpi_interfaces.u[2, :, :, interface]) .= recv_buffer[first:last]
+        @views vec(cache.mpi_interfaces.u[2, .., interface]) .= recv_buffer[first:last]
       else # local element at secondary side
-        @views vec(cache.mpi_interfaces.u[1, :, :, interface]) .= recv_buffer[first:last]
+        @views vec(cache.mpi_interfaces.u[1, .., interface]) .= recv_buffer[first:last]
       end
     end
 
@@ -171,10 +171,10 @@ function init_mpi_neighbor_connectivity(mpi_interfaces, mesh::ParallelP4estMesh)
   user_data = InitNeighborRankConnectivityIterFaceUserData(mpi_interfaces, mesh)
 
   # Ghost layer is required to determine owner ranks of quadrants on neighboring processes
-  ghost_layer = new_ghost_layer_p4est(mesh.p4est)
-  @assert p4est_ghost_is_valid(mesh.p4est, ghost_layer) == 1
+  ghost_layer = ghost_new_p4est(mesh.p4est)
+  @assert ghost_is_valid_p4est(mesh.p4est, ghost_layer) == 1
   iterate_p4est(mesh.p4est, user_data; ghost_layer=ghost_layer, iter_face_c=iter_face_c)
-  p4est_ghost_destroy(ghost_layer)
+  ghost_destroy_p4est(ghost_layer)
 
   # Build proper connectivity data structures from information gathered by iterating over p4est
   @unpack global_interface_ids, neighbor_ranks_interface = user_data
@@ -220,6 +220,8 @@ end
 
 # 2D
 cfunction(::typeof(init_neighbor_rank_connectivity_iter_face), ::Val{2}) = @cfunction(init_neighbor_rank_connectivity_iter_face, Cvoid, (Ptr{p4est_iter_face_info_t}, Ptr{Cvoid}))
+# 3D
+cfunction(::typeof(init_neighbor_rank_connectivity_iter_face), ::Val{3}) = @cfunction(init_neighbor_rank_connectivity_iter_face, Cvoid, (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 
 # Function barrier for type stability
 function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
@@ -294,5 +296,6 @@ end
 
 
 include("dg_2d_parallel.jl")
+include("dg_3d_parallel.jl")
 
 end # muladd
