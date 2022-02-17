@@ -550,20 +550,17 @@ end
   fstar2_L = fstar2_L_threaded[Threads.threadid()]
   fstar1_R = fstar1_R_threaded[Threads.threadid()]
   fstar2_R = fstar2_R_threaded[Threads.threadid()]
-  @trixi_timeit timer() "calculation fstar"  begin
   calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
                nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
-  end
 
   # Calculate blending factor alpha_blending
   @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
 
   flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
   flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
-  @trixi_timeit timer() "calculation flux_antidiffusive" begin
   calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
                           nonconservative_terms, equations, dg, element, cache)
-  end
+
   # Calculate volume integral contribution
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)

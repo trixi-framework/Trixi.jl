@@ -154,7 +154,15 @@ end
 """
     IndicatorIDP
 
-Indicator used for subcell shock-capturing used by Rueda-Ramírez, Pazner, Gassner.
+Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturingSubcell`](@ref) proposed by
+- Rueda-Ramírez, Pazner, Gassner (2022)
+  "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
+- Pazner (2020)
+  "Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting"
+  [arXiv:2004.08503](https://doi.org/10.1016/j.cma.2021.113876)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 struct IndicatorIDP{Variable, Cache} <: AbstractIndicator
   # alpha_max::RealT

@@ -143,10 +143,13 @@ end
 
 
 """
-    VolumeIntegralShockCapturingSubcell
+    VolumeIntegralShockCapturingSubcell(indicator;
+                                        volume_flux_dg, volume_flux_fv)
 
 A shock-capturing volume integral type for DG methods based on a subcell blending approach
-with a low-order FV method.
+with a low-order FV method from the preprint paper
+- Rueda-Ramíreza, Pazner, Gassner (2022)
+  "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
