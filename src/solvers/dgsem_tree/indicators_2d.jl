@@ -219,7 +219,7 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
                                        dt, element, cache;
                                        kwargs...)
   @unpack indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded, alpha_plus_threaded, alpha_minus_threaded = indicator_IDP.cache
-  @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   @unpack alpha_prov, alpha1_threaded, alpha2_threaded = indicator_IDP.cache
 

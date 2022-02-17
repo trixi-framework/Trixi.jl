@@ -148,7 +148,7 @@ end
 
 A shock-capturing volume integral type for DG methods based on a subcell blending approach
 with a low-order FV method from the preprint paper
-- Rueda-Ramíreza, Pazner, Gassner (2022)
+- Rueda-Ramírez, Pazner, Gassner (2022)
   "Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods"
 
 !!! warning "Experimental implementation"
