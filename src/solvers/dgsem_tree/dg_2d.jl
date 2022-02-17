@@ -30,10 +30,6 @@ function create_cache(mesh::TreeMesh{2}, equations,
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
-  # TODO: Just defined for VolumeIntegralShockCapturingSubcell.
-  # It adds flux_antidiffusive, which should save data for alle element
-  cache = (;cache..., create_cache(cache, equations, dg, uEltype)...)
-
   return cache
 end
 
@@ -98,7 +94,9 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  return (; cache..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
+  ContainerFCT2D = Trixi.ContainerFCT2D{uEltype}(0, nvariables(equations), nnodes(dg))
+
+  return (; cache..., fhat1_threaded, fhat2_threaded, flux_temp_threaded, ContainerFCT2D)
 end
 
 
@@ -554,11 +552,9 @@ end
                nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
 
   # Calculate blending factor alpha_blending
-  @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
-  flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
-  flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
-  calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
+  calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
                           nonconservative_terms, equations, dg, element, cache)
 
   # Calculate volume integral contribution
@@ -676,7 +672,7 @@ end
   @unpack inverse_weights = solver.basis
   @unpack alpha1_threaded, alpha2_threaded = solver.volume_integral.indicator.cache
 
-  @unpack flux_antidiffusive1_threaded, flux_antidiffusive2_threaded = cache
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   u_old = wrap_array(u_old_ode, mesh, equations, solver, cache)
   u     = wrap_array(u_ode,     mesh, equations, solver, cache)
@@ -686,17 +682,14 @@ end
 
     @trixi_timeit timer() "alpha calculation" alpha1, alpha2 = ode.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, element, cache)
 
-    flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
-    flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
-
     # Calculate volume integral contribution
     # Note: flux_antidiffusive1[v, i, xi, element] = flux_antidiffusive2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
     for j in eachnode(solver), i in eachnode(solver)
       for v in eachvariable(equations)
-        u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * ((1.0 - alpha1[i+1, j]) * flux_antidiffusive1[v, i+1, j, element] -
-                                                                              (1.0 - alpha1[i,   j]) * flux_antidiffusive1[v, i,   j, element]) +
-                                                        inverse_weights[j] * ((1.0 - alpha2[i, j+1]) * flux_antidiffusive2[v, i, j+1, element] -
-                                                                              (1.0 - alpha2[i,   j]) * flux_antidiffusive2[v, i,   j, element]) )
+        u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * ((1.0 - alpha1[i+1, j]) * antidiffusive_flux1[v, i+1, j, element] -
+                                                                              (1.0 - alpha1[i,   j]) * antidiffusive_flux1[v, i,   j, element]) +
+                                                        inverse_weights[j] * ((1.0 - alpha2[i, j+1]) * antidiffusive_flux2[v, i, j+1, element] -
+                                                                              (1.0 - alpha2[i,   j]) * antidiffusive_flux2[v, i,   j, element]) )
       end
     end
   end

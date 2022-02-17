@@ -63,15 +63,6 @@ function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
   return getfield(integrator, field)
 end
 
-function create_cache(cache, equations, dg, uEltype)
-  A4dp1_x = Array{uEltype, 4}
-  A4dp1_y = Array{uEltype, 4}
-  flux_antidiffusive1_threaded = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nelements(dg, cache)) for _ in 1:Threads.nthreads()]
-  flux_antidiffusive2_threaded = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nelements(dg, cache)) for _ in 1:Threads.nthreads()]
-
-  return (; flux_antidiffusive1_threaded, flux_antidiffusive2_threaded)
-end
-
 """
     solve_IDP(ode, semi; dt, callbacks, kwargs...)
 
@@ -94,6 +85,9 @@ function solve_IDP(ode::ODEProblem, semi; dt, callback=nothing, kwargs...)
   integrator = SimpleIntegratorSSP(u, du, u_tmp, u_old, t, dt, zero(dt), iter, ode.p,
                   (prob=ode,), alg,
                   SimpleIntegratorSSPOptions(callback, ode.tspan; kwargs...), false)
+
+  # Resize antidiffusive fluxes
+  resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
 
   if callback isa CallbackSet
     for cb in callback.continuous_callbacks
@@ -126,6 +120,9 @@ function solve!(integrator::SimpleIntegratorSSP)
       integrator.dt = t_end - integrator.t
       terminate!(integrator)
     end
+
+    # Resize antidiffusive fluxes, TODO: Only necessary after every AMR step.
+    resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
 
     @trixi_timeit timer() "RK stage" begin
       prob.f(integrator.du, integrator.u, integrator.p, integrator.t)

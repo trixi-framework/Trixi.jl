@@ -1248,6 +1248,63 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
 end
 
 
+# Container data structure (structure-of-arrays style) for FCT-type antidiffusive fluxes
+#                             (i, j+1)
+#                                |
+#                            flux2(i, j+1)
+#                                |
+# (i+1, j) ---flux1(i-1, j)--- (i, j) ---flux1(i, j)--- (i+1, j)
+#                                |
+#                            flux2(i, j-1)
+#                                |
+#                             (i, j-1)
+mutable struct ContainerFCT2D{uEltype<:Real}
+  antidiffusive_flux1::Array{uEltype, 4} # [variables, i, j, elements]
+  antidiffusive_flux2::Array{uEltype, 4} # [variables, i, j, elements]
+   # internal `resize!`able storage
+  _antidiffusive_flux1::Vector{uEltype}
+  _antidiffusive_flux2::Vector{uEltype}
+end
+
+function ContainerFCT2D{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
+  nan_uEltype = convert(uEltype, NaN)
+
+  # Initialize fields with defaults
+  _antidiffusive_flux1 = fill(nan_uEltype, n_variables * (n_nodes+1) * n_nodes * capacity)
+  antidiffusive_flux1 = unsafe_wrap(Array, pointer(_antidiffusive_flux1),
+                                    (n_variables, n_nodes+1, n_nodes, capacity))
+
+  _antidiffusive_flux2 = fill(nan_uEltype, n_variables * n_nodes * (n_nodes+1) * capacity)
+  antidiffusive_flux2 = unsafe_wrap(Array, pointer(_antidiffusive_flux2),
+                                    (n_variables, n_nodes, n_nodes+1, capacity))
+
+  return ContainerFCT2D{uEltype}(antidiffusive_flux1, antidiffusive_flux2,
+                                 _antidiffusive_flux1, _antidiffusive_flux2)
+end
+
+nvariables(fluxes::ContainerFCT2D) = size(fluxes.antidiffusive_flux1, 1)
+nnodes(fluxes::ContainerFCT2D) = size(fluxes.antidiffusive_flux1, 3)
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(fluxes::ContainerFCT2D, capacity)
+  n_nodes = nnodes(fluxes)
+  n_variables = nvariables(fluxes)
+
+  @unpack _antidiffusive_flux1, _antidiffusive_flux2 = fluxes
+
+  resize!(_antidiffusive_flux1, n_variables * (n_nodes+1) * n_nodes * capacity)
+  fluxes.antidiffusive_flux1 = unsafe_wrap(Array, pointer(_antidiffusive_flux1),
+                                           (n_variables, n_nodes+1, n_nodes, capacity))
+  resize!(_antidiffusive_flux2, n_variables * n_nodes * (n_nodes+1) * capacity)
+  fluxes.antidiffusive_flux2 = unsafe_wrap(Array, pointer(_antidiffusive_flux2),
+                                           (n_variables, n_nodes, n_nodes+1, capacity))
+
+  return nothing
+end
 
 
 end # @muladd
