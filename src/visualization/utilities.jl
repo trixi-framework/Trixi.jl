@@ -924,6 +924,8 @@ function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
   shifted_data = nodes.-point
   distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
+    
+  # Iterate over every entry.
   for element in 1:n_elements
     for x in 1:n_nodes
       for y in 1:n_nodes
