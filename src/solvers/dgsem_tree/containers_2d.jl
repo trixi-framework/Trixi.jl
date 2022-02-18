@@ -1249,15 +1249,15 @@ end
 
 
 # Container data structure (structure-of-arrays style) for FCT-type antidiffusive fluxes
-#                             (i, j+1)
-#                                |
-#                            flux2(i, j+1)
-#                                |
-# (i+1, j) ---flux1(i-1, j)--- (i, j) ---flux1(i, j)--- (i+1, j)
-#                                |
-#                            flux2(i, j-1)
-#                                |
-#                             (i, j-1)
+#                            (i, j+1)
+#                               |
+#                          flux2(i, j+1)
+#                               |
+# (i-1, j) ---flux1(i, j)--- (i, j) ---flux1(i+1, j)--- (i+1, j)
+#                               |
+#                          flux2(i, j)
+#                               |
+#                            (i, j-1)
 mutable struct ContainerFCT2D{uEltype<:Real}
   antidiffusive_flux1::Array{uEltype, 4} # [variables, i, j, elements]
   antidiffusive_flux2::Array{uEltype, 4} # [variables, i, j, elements]
@@ -1302,6 +1302,49 @@ function Base.resize!(fluxes::ContainerFCT2D, capacity)
   resize!(_antidiffusive_flux2, n_variables * n_nodes * (n_nodes+1) * capacity)
   fluxes.antidiffusive_flux2 = unsafe_wrap(Array, pointer(_antidiffusive_flux2),
                                            (n_variables, n_nodes, n_nodes+1, capacity))
+
+  return nothing
+end
+
+mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
+  alpha::Array{uEltype, 3} # [i, j, elements]
+  # internal `resize!`able storage
+  _alpha::Vector{uEltype}
+
+  alpha_max::Vector{uEltype} # [elements]
+  alpha_mean::Vector{uEltype} # [elements]
+end
+
+function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes) where uEltype<:Real
+  nan_uEltype = convert(uEltype, NaN)
+
+  # Initialize fields with defaults
+  _alpha = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+  alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
+
+  alpha_max  = fill(nan_uEltype, capacity)
+  alpha_mean = fill(nan_uEltype, capacity)
+
+  return ContainerShockCapturingIndicator{uEltype}(alpha, _alpha, alpha_max, alpha_mean)
+end
+
+nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(indicator::ContainerShockCapturingIndicator, capacity)
+  n_nodes = nnodes(indicator)
+
+  @unpack _alpha, alpha, alpha_max, alpha_mean = indicator
+
+  resize!(_alpha, n_nodes * n_nodes * capacity)
+  indicator.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
+
+  resize!(alpha_max, capacity)
+  resize!(alpha_mean, capacity)
 
   return nothing
 end

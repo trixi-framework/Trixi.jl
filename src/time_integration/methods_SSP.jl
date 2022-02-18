@@ -88,6 +88,13 @@ function solve_IDP(ode::ODEProblem, semi; dt, callback=nothing, kwargs...)
 
   # Resize antidiffusive fluxes
   resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
+  # Resize alpha, alpha_max, alpha_mean
+  resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator,
+              nelements(integrator.p.solver, integrator.p.cache))
+
+  # Reset alpha_max, alpha_mean
+  integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max .= 0.0
+  integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean .= 0.0
 
   if callback isa CallbackSet
     for cb in callback.continuous_callbacks
@@ -119,10 +126,18 @@ function solve!(integrator::SimpleIntegratorSSP)
     if integrator.t + integrator.dt > t_end || isapprox(integrator.t + integrator.dt, t_end)
       integrator.dt = t_end - integrator.t
       terminate!(integrator)
+      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  integrator.iter+1)
+      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
     end
 
     # Resize antidiffusive fluxes, TODO: Only necessary after every AMR step.
     resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
+    # Resize alpha, alpha_max, alpha_mean
+    resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, nelements(integrator.p.solver, integrator.p.cache))
+
+    # Reset alpha_max and alpha_mean
+    integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max .= 0.0
+    integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean .= 0.0
 
     @trixi_timeit timer() "RK stage" begin
       prob.f(integrator.du, integrator.u, integrator.p, integrator.t)
@@ -144,6 +159,12 @@ function solve!(integrator::SimpleIntegratorSSP)
       @. integrator.u = integrator.u_old + 2/3 * integrator.dt * integrator.du
     end
     @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u, integrator.u_old, 2/3 * integrator.dt, integrator.p)
+
+    integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
+        maximum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max)
+    integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
+        1/length(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean) *
+             sum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean)
 
     integrator.iter += 1
     integrator.t += integrator.dt

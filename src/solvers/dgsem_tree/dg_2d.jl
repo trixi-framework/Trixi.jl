@@ -647,22 +647,22 @@ end
   return nothing
 end
 
-@inline function calcflux_antidiffusive!(flux_antidiffusive1, flux_antidiffusive2, fhat1, fhat2, fstar1, fstar2, u, mesh,
+@inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, dg, element, cache)
   @unpack inverse_weights = dg.basis
 
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
-      flux_antidiffusive1[v, i, j, element] = (fhat1[v, i, j] - fstar1[v, i, j])
-      flux_antidiffusive2[v, i, j, element] = (fhat2[v, i, j] - fstar2[v, i, j])
+      antidiffusive_flux1[v, i, j, element] = (fhat1[v, i, j] - fstar1[v, i, j])
+      antidiffusive_flux2[v, i, j, element] = (fhat2[v, i, j] - fstar2[v, i, j])
     end
   end
 
-  flux_antidiffusive1[:, 1,            :, element] .= zero(eltype(flux_antidiffusive1))
-  flux_antidiffusive1[:, nnodes(dg)+1, :, element] .= zero(eltype(flux_antidiffusive1))
+  antidiffusive_flux1[:, 1,            :, element] .= zero(eltype(antidiffusive_flux1))
+  antidiffusive_flux1[:, nnodes(dg)+1, :, element] .= zero(eltype(antidiffusive_flux1))
 
-  flux_antidiffusive2[:, :, 1,            element] .= zero(eltype(flux_antidiffusive2))
-  flux_antidiffusive2[:, :, nnodes(dg)+1, element] .= zero(eltype(flux_antidiffusive2))
+  antidiffusive_flux2[:, :, 1,            element] .= zero(eltype(antidiffusive_flux2))
+  antidiffusive_flux2[:, :, nnodes(dg)+1, element] .= zero(eltype(antidiffusive_flux2))
 
   return nothing
 end
@@ -680,10 +680,10 @@ end
   @threaded for element in eachelement(solver, ode.cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
-    @trixi_timeit timer() "alpha calculation" alpha1, alpha2 = ode.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, element, cache)
+    alpha1, alpha2 = @trixi_timeit timer() "alpha calculation" ode.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, element, cache)
 
     # Calculate volume integral contribution
-    # Note: flux_antidiffusive1[v, i, xi, element] = flux_antidiffusive2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
+    # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
     for j in eachnode(solver), i in eachnode(solver)
       for v in eachvariable(equations)
         u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * ((1.0 - alpha1[i+1, j]) * antidiffusive_flux1[v, i+1, j, element] -

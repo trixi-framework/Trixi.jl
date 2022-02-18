@@ -39,7 +39,7 @@ summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_solution = SaveSolutionCallback(interval=5,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
@@ -60,6 +60,9 @@ callbacks = CallbackSet(summary_callback,
 #                dt=0.01, callback=callbacks)
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = Trixi.solve_IDP(ode, semi;
-            dt=0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
+
+using Plots
+plot(indicator_sc.cache.alpha_mean_per_timestep, legend=false, ylabel="mean(alpha)", xlabel="timestep", ylims=(0, 1))

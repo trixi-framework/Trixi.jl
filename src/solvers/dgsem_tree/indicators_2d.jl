@@ -208,10 +208,17 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   alpha1_threaded = [A(undef, nnodes(basis)+1, nnodes(basis), ) for _ in 1:Threads.nthreads()]
   alpha2_threaded = [A(undef, nnodes(basis), nnodes(basis)+1, ) for _ in 1:Threads.nthreads()]
 
-  alpha_prov = A(undef, nnodes(basis), nnodes(basis), ) # TODO: Save for all elements
+  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis))
+
+  # TODO: Nice way to set a maximal length? (typemax(Int)=maxiter is too big)
+  # Maybe resize it if too many timesteps
+  alpha_max_per_timestep = zeros(real(basis), 5_000)
+  alpha_mean_per_timestep = zeros(real(basis), 5_000)
 
   return (; indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
-            alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded, alpha_prov)
+            alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded,
+            ContainerShockCapturingIndicator,
+            alpha_max_per_timestep, alpha_mean_per_timestep)
 end
 
 function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
@@ -221,7 +228,8 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   @unpack indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded, alpha_plus_threaded, alpha_minus_threaded = indicator_IDP.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
-  @unpack alpha_prov, alpha1_threaded, alpha2_threaded = indicator_IDP.cache
+  @unpack alpha1_threaded, alpha2_threaded = indicator_IDP.cache
+  @unpack alpha, alpha_max, alpha_mean = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   # Calculate indicator variables at Gauss-Lobatto nodes
   indicator = indicator_threaded[Threads.threadid()]
@@ -258,17 +266,15 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   # Calculate P_plus and P_minus
   P_plus  = P_plus_threaded[Threads.threadid()]
   P_minus = P_minus_threaded[Threads.threadid()]
-  flux_antidiffusive1 = flux_antidiffusive1_threaded[Threads.threadid()]
-  flux_antidiffusive2 = flux_antidiffusive2_threaded[Threads.threadid()]
 
   @unpack inverse_weights = dg.basis
   inverse_jacobian = cache.elements.inverse_jacobian[element]
   for j in eachnode(dg), i in eachnode(dg)
-    # Note: Boundaries of flux_antidiffusive1/2 are constant 0, so they make no difference here.
-    val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(flux_antidiffusive1, equations, dg, i,   j,   element), equations)
-    val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(flux_antidiffusive1, equations, dg, i+1, j,   element), equations)
-    val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(flux_antidiffusive2, equations, dg, i,   j,   element), equations)
-    val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(flux_antidiffusive2, equations, dg, i,   j+1, element), equations)
+    # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+    val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
+    val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
+    val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
+    val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
 
     P_plus[i, j]  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
                     max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
@@ -295,29 +301,28 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
     end
   end
 
-  # Calculate alpha_prov
+  # Calculate alpha at nodes
   for j in eachnode(dg), i in eachnode(dg)
-    alpha_prov[i, j] = max(alpha_plus[i, j], alpha_minus[i, j])
+    alpha[i, j, element] = max(alpha_plus[i, j], alpha_minus[i, j])
   end
 
   # Calculate alpha1 and alpha2
   alpha1 = alpha1_threaded[Threads.threadid()]
   alpha2 = alpha2_threaded[Threads.threadid()]
   for j in eachnode(dg), i in 2:nnodes(dg)
-    alpha1[i, j] = max(alpha_prov[i-1, j], alpha_prov[i, j])
+    alpha1[i, j] = max(alpha[i-1, j, element], alpha[i, j, element])
   end
   for j in 2:nnodes(dg), i in eachnode(dg)
-    alpha2[i, j] = max(alpha_prov[i, j-1], alpha_prov[i, j])
+    alpha2[i, j] = max(alpha[i, j-1, element], alpha[i, j, element])
   end
   alpha1[1, :] .= zero(eltype(alpha1))
   alpha1[nnodes(dg)+1, :] .= zero(eltype(alpha1))
   alpha2[:, 1] .= zero(eltype(alpha2))
   alpha2[:, nnodes(dg)+1] .= zero(eltype(alpha2))
 
-  alpha = alpha_threaded[Threads.threadid()]
-  for j in eachnode(dg), i in eachnode(dg)
-    alpha[i, j] = max(alpha1[i, j], alpha1[i+1, j], alpha2[i, j], alpha2[i, j+1])
-  end
+  # Calculate maximal alpha per element
+  alpha_max[element] = max(alpha_max[element], maximum(alpha1))
+  alpha_mean[element] += 1/3 * 1/(nnodes(dg)^2) * sum(alpha1)
 
   return alpha1, alpha2
 end
