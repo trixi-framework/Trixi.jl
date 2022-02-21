@@ -88,13 +88,13 @@ function solve_IDP(ode::ODEProblem, semi; dt, callback=nothing, kwargs...)
 
   # Resize antidiffusive fluxes
   resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
-  # Resize alpha, alpha_max, alpha_mean
+  # Resize alpha, alpha_max_per_element, alpha_mean_per_element
   resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator,
               nelements(integrator.p.solver, integrator.p.cache))
 
-  # Reset alpha_max, alpha_mean
-  integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max .= 0.0
-  integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean .= 0.0
+  # Reset alpha_max_per_element, alpha_mean_per_element
+  integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max_per_element .= 0.0
+  integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean_per_element .= 0.0
 
   if callback isa CallbackSet
     for cb in callback.continuous_callbacks
@@ -126,18 +126,11 @@ function solve!(integrator::SimpleIntegratorSSP)
     if integrator.t + integrator.dt > t_end || isapprox(integrator.t + integrator.dt, t_end)
       integrator.dt = t_end - integrator.t
       terminate!(integrator)
-      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  integrator.iter+1)
-      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
     end
 
-    # Resize antidiffusive fluxes, TODO: Only necessary after every AMR step.
-    resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
-    # Resize alpha, alpha_max, alpha_mean
-    resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, nelements(integrator.p.solver, integrator.p.cache))
-
-    # Reset alpha_max and alpha_mean
-    integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max .= 0.0
-    integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean .= 0.0
+    # Reset alpha_max_per_element and alpha_mean_per_element
+    integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max_per_element .= 0.0
+    integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean_per_element .= 0.0
 
     @trixi_timeit timer() "RK stage" begin
       prob.f(integrator.du, integrator.u, integrator.p, integrator.t)
@@ -160,11 +153,17 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
     @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u, integrator.u_old, 2/3 * integrator.dt, integrator.p)
 
+    if integrator.iter == length(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep)
+      new_length = length(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep) + 200
+      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  new_length)
+      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, new_length)
+    end
+
     integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
-        maximum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max)
+        maximum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_max_per_element)
     integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
-        1/length(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean) *
-             sum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean)
+        1/length(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean_per_element) *
+             sum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha_mean_per_element)
 
     integrator.iter += 1
     integrator.t += integrator.dt
@@ -192,7 +191,7 @@ end
 
 # get a cache where the RHS can be stored
 get_du(integrator::SimpleIntegratorSSP) = integrator.du
-get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
+get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp, integrator.u_old)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
@@ -206,6 +205,24 @@ end
 function terminate!(integrator::SimpleIntegratorSSP)
   integrator.finalstep = true
   empty!(integrator.opts.tstops)
+
+  resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  integrator.iter+1)
+  resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
+end
+
+# used for AMR
+function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
+  resize!(integrator.u, new_size)
+  resize!(integrator.du, new_size)
+  resize!(integrator.u_tmp, new_size)
+  resize!(integrator.u_old, new_size)
+
+  # Resize antidiffusive fluxes
+  resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
+  # Resize alpha, alpha_max_per_element, alpha_mean_per_element
+  resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator,
+              nelements(integrator.p.solver, integrator.p.cache))
+
 end
 
 

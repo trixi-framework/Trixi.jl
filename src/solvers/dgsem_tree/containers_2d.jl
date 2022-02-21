@@ -1311,8 +1311,8 @@ mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
   # internal `resize!`able storage
   _alpha::Vector{uEltype}
 
-  alpha_max::Vector{uEltype} # [elements]
-  alpha_mean::Vector{uEltype} # [elements]
+  alpha_max_per_element::Vector{uEltype} # [elements]
+  alpha_mean_per_element::Vector{uEltype} # [elements]
 end
 
 function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes) where uEltype<:Real
@@ -1322,10 +1322,10 @@ function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes) w
   _alpha = fill(nan_uEltype, n_nodes * n_nodes * capacity)
   alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
 
-  alpha_max  = fill(nan_uEltype, capacity)
-  alpha_mean = fill(nan_uEltype, capacity)
+  alpha_max_per_element  = fill(nan_uEltype, capacity)
+  alpha_mean_per_element = fill(nan_uEltype, capacity)
 
-  return ContainerShockCapturingIndicator{uEltype}(alpha, _alpha, alpha_max, alpha_mean)
+  return ContainerShockCapturingIndicator{uEltype}(alpha, _alpha, alpha_max_per_element, alpha_mean_per_element)
 end
 
 nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)
@@ -1338,13 +1338,13 @@ nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)
 function Base.resize!(indicator::ContainerShockCapturingIndicator, capacity)
   n_nodes = nnodes(indicator)
 
-  @unpack _alpha, alpha, alpha_max, alpha_mean = indicator
+  @unpack _alpha, alpha, alpha_max_per_element, alpha_mean_per_element = indicator
 
   resize!(_alpha, n_nodes * n_nodes * capacity)
   indicator.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
 
-  resize!(alpha_max, capacity)
-  resize!(alpha_mean, capacity)
+  resize!(alpha_max_per_element,  capacity)
+  resize!(alpha_mean_per_element, capacity)
 
   return nothing
 end

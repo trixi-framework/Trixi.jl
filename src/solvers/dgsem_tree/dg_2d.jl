@@ -653,8 +653,8 @@ end
 
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
-      antidiffusive_flux1[v, i, j, element] = (fhat1[v, i, j] - fstar1[v, i, j])
-      antidiffusive_flux2[v, i, j, element] = (fhat2[v, i, j] - fstar2[v, i, j])
+      antidiffusive_flux1[v, i, j, element] = fhat1[v, i, j] - fstar1[v, i, j]
+      antidiffusive_flux2[v, i, j, element] = fhat2[v, i, j] - fstar2[v, i, j]
     end
   end
 
@@ -670,7 +670,6 @@ end
 @inline function antidiffusive_stage!(u_ode, u_old_ode, dt, ode)
   mesh, equations, solver, cache = mesh_equations_solver_cache(ode)
   @unpack inverse_weights = solver.basis
-  @unpack alpha1_threaded, alpha2_threaded = solver.volume_integral.indicator.cache
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
@@ -685,11 +684,14 @@ end
     # Calculate volume integral contribution
     # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
     for j in eachnode(solver), i in eachnode(solver)
+      alpha_flux1     = (1.0 - alpha1[i,   j]) * get_node_vars(antidiffusive_flux1, equations, solver, i,   j, element)
+      alpha_flux1_ip1 = (1.0 - alpha1[i+1, j]) * get_node_vars(antidiffusive_flux1, equations, solver, i+1, j, element)
+      alpha_flux2     = (1.0 - alpha2[i,   j]) * get_node_vars(antidiffusive_flux2, equations, solver, i,   j, element)
+      alpha_flux2_jp1 = (1.0 - alpha2[i, j+1]) * get_node_vars(antidiffusive_flux2, equations, solver, i, j+1, element)
+
       for v in eachvariable(equations)
-        u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * ((1.0 - alpha1[i+1, j]) * antidiffusive_flux1[v, i+1, j, element] -
-                                                                              (1.0 - alpha1[i,   j]) * antidiffusive_flux1[v, i,   j, element]) +
-                                                        inverse_weights[j] * ((1.0 - alpha2[i, j+1]) * antidiffusive_flux2[v, i, j+1, element] -
-                                                                              (1.0 - alpha2[i,   j]) * antidiffusive_flux2[v, i,   j, element]) )
+        u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * (alpha_flux1_ip1[v] - alpha_flux1[v]) +
+                                                        inverse_weights[j] * (alpha_flux2_jp1[v] - alpha_flux2[v]) )
       end
     end
   end

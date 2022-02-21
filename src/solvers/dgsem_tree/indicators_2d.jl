@@ -210,10 +210,9 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
 
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis))
 
-  # TODO: Nice way to set a maximal length? (typemax(Int)=maxiter is too big)
-  # Maybe resize it if too many timesteps
-  alpha_max_per_timestep = zeros(real(basis), 5_000)
-  alpha_mean_per_timestep = zeros(real(basis), 5_000)
+  # TODO: Nicer way to set a length?
+  alpha_max_per_timestep  = zeros(real(basis), 200)
+  alpha_mean_per_timestep = zeros(real(basis), 200)
 
   return (; indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
             alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded,
@@ -229,7 +228,7 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   @unpack alpha1_threaded, alpha2_threaded = indicator_IDP.cache
-  @unpack alpha, alpha_max, alpha_mean = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha_max_per_element, alpha_mean_per_element = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   # Calculate indicator variables at Gauss-Lobatto nodes
   indicator = indicator_threaded[Threads.threadid()]
@@ -321,8 +320,8 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   alpha2[:, nnodes(dg)+1] .= zero(eltype(alpha2))
 
   # Calculate maximal alpha per element
-  alpha_max[element] = max(alpha_max[element], maximum(alpha1))
-  alpha_mean[element] += 1/3 * 1/(nnodes(dg)^2) * sum(alpha1)
+  alpha_max_per_element[element] = max(alpha_max_per_element[element], maximum(alpha1))
+  alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * sum(alpha1)
 
   return alpha1, alpha2
 end
