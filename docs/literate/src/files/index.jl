@@ -35,27 +35,31 @@
 # explained and added to an exemplary simulation of the Sedov blast wave with the 2D compressible Euler
 # equations.
 
-# ### 4 Adding a new equation
-# #### [4.1 Scalar conservation law](@ref cubic_conservation_law)
+# ### [4 Curved structured mesh with mapping](@ref structured_mesh_mapping)
+#-
+# TODO
+
+# ### 5 Adding a new equation
+# #### [5.1 Scalar conservation law](@ref cubic_conservation_law)
 #-
 # This tutorial explains how to add a new physics model using the example of the cubic conservation
 # law. First, we define the equation using a `struct` `CubicEquation` and the physical flux. Then,
 # the corresponding standard setup in Trixi.jl (`mesh`, `solver`, `semi` and `ode`) is implemented
 # and the ODE problem is solved by OrdinaryDiffEq's `solve` method.
 
-# #### [4.2 Nonconservative advection](@ref nonconservative_advection)
+# #### [5.2 Nonconservative advection](@ref nonconservative_advection)
 #-
 # In this part, another physics model is implemented, the nonconservative linear advection equation.
 # We run two different simulations with different levels of refinement and compare the resulting errors.
 
-# ### [5 Differentiable programming](@ref differentiable_programming)
+# ### [6 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
 # a few semidiscretizations. Moreover, we calculate an example for propagating errors with Measurement.jl
 # at the end.
 
-# ### [6 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
+# ### [7 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
 #-
 # The purpose of this tutorial is to demonstrate how to use the [`UnstructuredMesh2D`](@ref)
 # functionality of Trixi.jl. This begins by running and visualizing an available unstructured

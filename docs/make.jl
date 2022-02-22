@@ -32,6 +32,7 @@ files = [
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
     "Shock capturing with flux differencing and stage limiter" => "shock_capturing.jl",
+    "Structured mesh with mapping" => "structured_mesh_mapping.jl",
     "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations", "cubic_conservation_law.jl"),
                                 "Nonconservative equation" => ("adding_new_equations", "nonconservative_advection.jl")],
     "Differentiable programming" => "differentiable_programming.jl",
