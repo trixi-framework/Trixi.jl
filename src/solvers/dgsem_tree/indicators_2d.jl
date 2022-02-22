@@ -305,6 +305,12 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
     alpha[i, j, element] = max(alpha_plus[i, j], alpha_minus[i, j])
   end
 
+  # Clip the maximum amount of FV allowed
+  @unpack alpha_maxIDP = indicator_IDP
+  for j in eachnode(dg), i in eachnode(dg)
+    alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
+  end
+
   # Calculate alpha1 and alpha2
   alpha1 = alpha1_threaded[Threads.threadid()]
   alpha2 = alpha2_threaded[Threads.threadid()]

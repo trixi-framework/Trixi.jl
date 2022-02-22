@@ -169,23 +169,18 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{Variable, Cache} <: AbstractIndicator
-  # alpha_max::RealT
-  # alpha_min::RealT
-  # alpha_smooth::Bool
+struct IndicatorIDP{RealT<:Real, Variable, Cache} <: AbstractIndicator
+  alpha_maxIDP::RealT
   variable::Variable
   cache::Cache
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      # alpha_max=0.5,
-                      # alpha_min=0.001,
-                      # alpha_smooth=true,
+                      alpha_maxIDP=1.0,
                       variable)
-  # alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorIDP, equations, basis)
-  IndicatorIDP{typeof(variable), typeof(cache)}(variable, cache)
+  IndicatorIDP{typeof(alpha_maxIDP), typeof(variable), typeof(cache)}(alpha_maxIDP, variable, cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -193,9 +188,7 @@ function Base.show(io::IO, indicator::IndicatorIDP)
 
   print(io, "IndicatorIDP(")
   print(io, indicator.variable)
-  # print(io, ", alpha_max=", indicator.alpha_max)
-  # print(io, ", alpha_min=", indicator.alpha_min)
-  # print(io, ", alpha_smooth=", indicator.alpha_smooth)
+  print(io, ", alpha_maxIDP=", indicator.alpha_maxIDP)
   print(io, ")")
 end
 

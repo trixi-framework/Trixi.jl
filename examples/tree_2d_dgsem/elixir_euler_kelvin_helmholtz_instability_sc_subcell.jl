@@ -37,8 +37,7 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            alpha_max=0.2,
-                            alpha_min=0.0001,
+                            alpha_maxIDP=1.0,
                             variable=Trixi.density)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=volume_flux)
