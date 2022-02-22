@@ -325,9 +325,11 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   alpha2[:, 1] .= zero(eltype(alpha2))
   alpha2[:, nnodes(dg)+1] .= zero(eltype(alpha2))
 
-  # Calculate maximal alpha per element
-  alpha_max_per_element[element] = max(alpha_max_per_element[element], maximum(alpha1))
-  alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * sum(alpha1)
+  # Calculate maximum and mean alpha per element
+  for j in eachnode(dg), i in eachnode(dg)
+    alpha_max_per_element[element] = max(alpha_max_per_element[element], alpha[i, j, element])
+    alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * alpha[i, j, element]
+  end
 
   return alpha1, alpha2
 end
