@@ -146,6 +146,20 @@ function iplot(pd::PlotData2DTriangulated{<:ScalarData};
   fig
   return fig_axis_plt
 end
+            
+function iplot(pd::PlotData3DTriangulated{<:ScalarData};
+               show_axis=false, colormap=default_Makie_colormap(), plot_mesh=false)
+  fig = Makie.Figure()
+
+  # Create a zoomable interactive axis object on top of which to plot the solution.
+  ax = Makie.LScene(fig[1, 1], scenekw=(show_axis=show_axis,))
+
+  # plot the user-defined ScalarData
+  fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap=colormap, plot_mesh=plot_mesh)
+
+  fig
+  return fig_axis_plt
+end
 
 function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
                 pd::PlotData2DTriangulated{<:ScalarData};
