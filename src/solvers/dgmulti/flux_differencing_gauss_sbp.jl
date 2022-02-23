@@ -442,7 +442,7 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
 end
 
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::Val{false}, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiff{<:GaussSBP},
                                cache)
 
