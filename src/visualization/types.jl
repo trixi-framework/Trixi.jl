@@ -102,6 +102,19 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType, Va
   face_data::FaceDataType
   variable_names::VariableNames
 end
+        
+struct PlotData3DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType, VariableNames, PlottingTriangulation}
+  x::NodeType # physical nodal coordinates, size (num_plotting_nodes x num_elements)
+  y::NodeType
+  z::NodeType
+  data::DataType
+  t::PlottingTriangulation
+  x_face::FaceNodeType
+  y_face::FaceNodeType
+  z_face::FaceNodeType
+  face_data::FaceDataType
+  variable_names::VariableNames
+end
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData2DTriangulated)
