@@ -7,7 +7,7 @@
 
 # Initialize node_indices of MPI interface container
 @inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{2},
-                                                  local_face, local_side, orientation,
+                                                  faces, local_side, orientation,
                                                   mpi_interface_id)
   # Align interface in positive coordinate direction of primary element.
   # For orientation == 1, the secondary element needs to be indexed backwards
@@ -20,16 +20,16 @@
     i = :i_backward
   end
 
-  if local_face == 0
+  if faces[local_side] == 0
     # Index face in negative x-direction
     mpi_interfaces.node_indices[mpi_interface_id] = (:begin, i)
-  elseif local_face == 1
+  elseif faces[local_side] == 1
     # Index face in positive x-direction
     mpi_interfaces.node_indices[mpi_interface_id] = (:end, i)
-  elseif local_face == 2
+  elseif faces[local_side] == 2
     # Index face in negative y-direction
     mpi_interfaces.node_indices[mpi_interface_id] = (i, :begin)
-  else # local_face == 3
+  else # faces[local_side] == 3
     # Index face in positive y-direction
     mpi_interfaces.node_indices[mpi_interface_id] = (i, :end)
   end

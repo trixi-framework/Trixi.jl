@@ -924,11 +924,13 @@ function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
   shifted_data = nodes.-point
   distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
+    
+  # Iterate over every entry.
   for element in 1:n_elements
     for x in 1:n_nodes
       for y in 1:n_nodes
         for z in 1:n_nodes
-          distances[x,y,z,element] = sqrt(sum((shifted_data[:,x,y,z,element]).^2))
+          distances[x,y,z,element] = norm(shifted_data[:,x,y,z,element])
         end
       end
     end
