@@ -250,7 +250,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
       divb += ( derivative_matrix[i, k] * (Ja11 * u[6, k, j, element] + Ja12 * u[7, k, j, element]) +
                 derivative_matrix[j, k] * (Ja21 * u[6, i, k, element] + Ja22 * u[7, i, k, element]) )
     end
-    divb *= cache.elements.inverse_jacobian[element]
+    divb *= cache.elements.inverse_jacobian[i, j, element]
     divb^2
   end |> sqrt
 end
@@ -319,7 +319,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
         divb += ( derivative_matrix[i, k] * (Ja11 * u[6, k, j, element] + Ja12 * u[7, k, j, element]) +
                   derivative_matrix[j, k] * (Ja21 * u[6, i, k, element] + Ja22 * u[7, i, k, element]) )
       end
-      divb *= cache.elements.inverse_jacobian[element]
+      divb *= cache.elements.inverse_jacobian[i, j, element]
       linf_divb = max(linf_divb, abs(divb))
     end
   end
