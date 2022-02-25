@@ -243,7 +243,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test PlotData2D(sol, slice =:yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice =:xz) isa Trixi.PlotData2DCartesian
 
-    @testset "1D plot from 3D solution" begin
+    @testset "1D plot from 3D solution and Tree-mesh" begin
       @testset "Create 1D plot as slice" begin
         @test_nowarn_debug PlotData1D(sol) isa PlotData1D
         pd1D = PlotData1D(sol)
@@ -256,6 +256,28 @@ isdir(outdir) && rm(outdir, recursive=true)
       @testset "Create 1D plot along curve" begin
         curve = zeros(3, 10)
         curve[1, :] = range(-1.0, -0.5, length=10)
+        @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+        pd1D = PlotData1D(sol, curve=curve)
+        @test_nowarn_debug Plots.plot(pd1D)
+      end
+    end
+
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "structured_3d_dgsem", "elixir_advection_basic.jl"),
+                                     tspan=(0,0.1))
+
+    @testset "1D plot from 3D solution and general mesh" begin
+      @testset "Create 1D plot as slice" begin
+        @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+        pd1D = PlotData1D(sol)
+        @test_nowarn_debug Plots.plot(pd1D)
+        @test_nowarn_debug PlotData1D(sol, slice=:y, point = (0.5, 0.3, 0.1)) isa PlotData1D
+        @test_nowarn_debug PlotData1D(sol, slice=:z, point = (0.1, 0.3, 0.3)) isa PlotData1D
+
+      end
+
+      @testset "Create 1D plot along curve" begin
+        curve = zeros(3, 10)
+        curve[1, :] = range(-1.0, 1.0, length=10)
         @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
         pd1D = PlotData1D(sol, curve=curve)
         @test_nowarn_debug Plots.plot(pd1D)

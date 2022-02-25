@@ -557,9 +557,13 @@ function PlotData1D(u, mesh, equations, solver, cache;
   if ndims(mesh) == 1
     x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data, nvisnodes)
     orientation_x = 1
-  else # ndims(mesh) == 2
+  elseif ndims(mesh) == 2
+    # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
     pd = PlotData2DTriangulated(u, mesh, equations, solver, cache; solution_variables, nvisnodes)
-    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point)
+    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point, nvisnodes)
+  else # ndims(mesh) == 3
+    # Extract the information required to create a PlotData1D object.
+    x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve, slice, point, nvisnodes)
   end
 
   return PlotData1D(x, data, variable_names, mesh_vertices_x,
