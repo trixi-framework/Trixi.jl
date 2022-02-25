@@ -199,12 +199,6 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   var_max_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   var_min_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
-  P_plus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  P_minus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-  alpha_plus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  alpha_minus_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
   alpha1_threaded = [A(undef, nnodes(basis)+1, nnodes(basis), ) for _ in 1:Threads.nthreads()]
   alpha2_threaded = [A(undef, nnodes(basis), nnodes(basis)+1, ) for _ in 1:Threads.nthreads()]
 
@@ -214,8 +208,7 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
 
-  return (; indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded,
-            alpha_plus_threaded, alpha_minus_threaded, alpha1_threaded, alpha2_threaded,
+  return (; indicator_threaded, var_max_threaded, var_min_threaded, alpha1_threaded, alpha2_threaded,
             ContainerShockCapturingIndicator,
             alpha_max_per_timestep, alpha_mean_per_timestep)
 end
@@ -224,11 +217,16 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
                                        mesh, equations, dg::DGSEM,
                                        dt, element, cache;
                                        kwargs...)
-  @unpack indicator_threaded, var_max_threaded, var_min_threaded, P_plus_threaded, P_minus_threaded, alpha_plus_threaded, alpha_minus_threaded = indicator_IDP.cache
+  @unpack indicator_threaded, var_max_threaded, var_min_threaded = indicator_IDP.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   @unpack alpha1_threaded, alpha2_threaded = indicator_IDP.cache
   @unpack alpha, alpha_max_per_element, alpha_mean_per_element = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  @unpack inverse_weights = dg.basis
+  inverse_jacobian = cache.elements.inverse_jacobian[element]
+
+  @unpack alpha_maxIDP = indicator_IDP
 
   # Calculate indicator variables at Gauss-Lobatto nodes
   indicator = indicator_threaded[Threads.threadid()]
@@ -237,11 +235,11 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
     indicator[i, j] = indicator_IDP.variable(u_local, equations)
   end
 
-  # Calculate max and min of variable at Gauss-Lobatto nodes
   var_max = var_max_threaded[Threads.threadid()]
   var_min = var_min_threaded[Threads.threadid()]
 
   for j in eachnode(dg), i in eachnode(dg)
+    # Calculate max and min of variable at Gauss-Lobatto nodes
     var_min[i, j] = indicator[i, j]
     var_max[i, j] = indicator[i, j]
     if j > 1
@@ -262,53 +260,41 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
     end
   end
 
-  # Calculate P_plus and P_minus
-  P_plus  = P_plus_threaded[Threads.threadid()]
-  P_minus = P_minus_threaded[Threads.threadid()]
-
-  @unpack inverse_weights = dg.basis
-  inverse_jacobian = cache.elements.inverse_jacobian[element]
-  for j in eachnode(dg), i in eachnode(dg)
-    # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-    val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
-    val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
-    val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
-    val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
-
-    P_plus[i, j]  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
-                    max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
-    P_minus[i, j] = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
-                    min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
-  end
-
-  # Calculate alpha_plus and alpha_minus
-  alpha_plus  = alpha_plus_threaded[Threads.threadid()]
-  alpha_minus = alpha_minus_threaded[Threads.threadid()]
   for j in eachnode(dg), i in eachnode(dg)
     u_local = get_node_vars(u, equations, dg, i, j, element)
     var = indicator_IDP.variable(u_local, equations)
-
-    if abs(var_max[i, j] - var) < sqrt(eps())
-      alpha_plus[i, j] = 0.0
-      alpha_minus[i, j] = 0.0
+    if abs(var_max[i, j] - var) < sqrt(eps()) || abs(var_min[i, j] - var) < sqrt(eps())
+      alpha[i, j, element] = 0.0
     else
-      frac_plus  = (var_max[i, j] - var) / P_plus[i, j]
-      frac_minus = (var_min[i, j] - var) / P_minus[i, j]
+      # Calculate P_plus and P_minus
+      # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+      val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
+      val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
+      val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
+      val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
 
-      alpha_plus[i, j]  = 1 - min(1.0, max(0.0, frac_plus))
-      alpha_minus[i, j] = 1 - min(1.0, max(0.0, frac_minus))
+      P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
+                max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
+      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+
+      # Calculate alpha_plus and alpha_minus
+      frac_plus  = (var_max[i, j] - var) / P_plus
+      frac_minus = (var_min[i, j] - var) / P_minus
+
+      alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
+      alpha_minus = 1 - min(1.0, max(0.0, frac_minus))
+
+      # Calculate alpha at nodes
+      alpha[i, j, element] = max(alpha_plus, alpha_minus)
+
+      # Clip the maximum amount of FV allowed
+      alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
     end
-  end
 
-  # Calculate alpha at nodes
-  for j in eachnode(dg), i in eachnode(dg)
-    alpha[i, j, element] = max(alpha_plus[i, j], alpha_minus[i, j])
-  end
-
-  # Clip the maximum amount of FV allowed
-  @unpack alpha_maxIDP = indicator_IDP
-  for j in eachnode(dg), i in eachnode(dg)
-    alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
+    # Calculate maximum and mean alpha per element
+    alpha_max_per_element[element] = max(alpha_max_per_element[element], alpha[i, j, element])
+    alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * alpha[i, j, element]
   end
 
   # Calculate alpha1 and alpha2
@@ -324,12 +310,6 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   alpha1[nnodes(dg)+1, :] .= zero(eltype(alpha1))
   alpha2[:, 1] .= zero(eltype(alpha2))
   alpha2[:, nnodes(dg)+1] .= zero(eltype(alpha2))
-
-  # Calculate maximum and mean alpha per element
-  for j in eachnode(dg), i in eachnode(dg)
-    alpha_max_per_element[element] = max(alpha_max_per_element[element], alpha[i, j, element])
-    alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * alpha[i, j, element]
-  end
 
   return alpha1, alpha2
 end

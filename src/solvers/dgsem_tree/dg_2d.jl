@@ -527,9 +527,7 @@ end
 @inline function subcell_DG_FV_kernel!(du, u,
                                        element, mesh::TreeMesh{2},
                                        nonconservative_terms::Val{false}, equations,
-                                       volume_integral, dg::DGSEM, cache, alpha=true)
-  # true * [some floating point value] == [exactly the same floating point value]
-  # This can (hopefully) be optimized away due to constant propagation.
+                                       volume_integral, dg::DGSEM, cache)
   @unpack inverse_weights = dg.basis
   @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
@@ -538,8 +536,8 @@ end
 
   fhat1 = fhat1_threaded[Threads.threadid()]
   fhat2 = fhat2_threaded[Threads.threadid()]
-  calcflux_fhat!(fhat1, fhat2, u, mesh,
-                 nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
+  @trixi_timeit timer() "high-order flux" calcflux_fhat!(fhat1, fhat2, u, mesh,
+      nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
 
   # low-order FV fluxes
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -548,14 +546,14 @@ end
   fstar2_L = fstar2_L_threaded[Threads.threadid()]
   fstar1_R = fstar1_R_threaded[Threads.threadid()]
   fstar2_R = fstar2_R_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-               nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
+  @trixi_timeit timer() "low-order flux" calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+      nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
 
   # Calculate blending factor alpha_blending
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
-  calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
-                          nonconservative_terms, equations, dg, element, cache)
+  @trixi_timeit timer() "antidiffusive flux" calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
+      nonconservative_terms, equations, dg, element, cache)
 
   # Calculate volume integral contribution
   for j in eachnode(dg), i in eachnode(dg)
@@ -589,7 +587,7 @@ end
   flux_temp = flux_temp_threaded[Threads.threadid()]
 
   # The FV-form fluxes are calculated in a recursive manner, i.e.:
-  # fhat_(0,1)   = f_0 + w_0 * FVol_0,
+  # fhat_(0,1)   = w_0 * FVol_0,
   # fhat_(j,j+1) = fhat_(j-1,j) + w_j * FVol_j,   for j=1,...,N-1,
   # with the split form volume fluxes FVol_j = -2 * sum_i=0^N D_ji f*_(j,i).
 
@@ -658,28 +656,33 @@ end
     end
   end
 
-  antidiffusive_flux1[:, 1,            :, element] .= zero(eltype(antidiffusive_flux1))
-  antidiffusive_flux1[:, nnodes(dg)+1, :, element] .= zero(eltype(antidiffusive_flux1))
+  for i in eachnode(dg)
+    for v in eachvariable(equations)
+      antidiffusive_flux1[v, 1,            i, element] = zero(eltype(antidiffusive_flux1))
+      antidiffusive_flux1[v, nnodes(dg)+1, i, element] = zero(eltype(antidiffusive_flux1))
 
-  antidiffusive_flux2[:, :, 1,            element] .= zero(eltype(antidiffusive_flux2))
-  antidiffusive_flux2[:, :, nnodes(dg)+1, element] .= zero(eltype(antidiffusive_flux2))
+      antidiffusive_flux2[v, i, 1,            element] = zero(eltype(antidiffusive_flux2))
+      antidiffusive_flux2[v, i, nnodes(dg)+1, element] = zero(eltype(antidiffusive_flux2))
+    end
+  end
 
   return nothing
 end
 
-@inline function antidiffusive_stage!(u_ode, u_old_ode, dt, ode)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(ode)
+@inline function antidiffusive_stage!(u_ode, u_old_ode, dt, semi)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack inverse_weights = solver.basis
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  # @unpack alpha1_threaded, alpha2_threaded = solver.volume_integral.indicator.cache
 
   u_old = wrap_array(u_old_ode, mesh, equations, solver, cache)
   u     = wrap_array(u_ode,     mesh, equations, solver, cache)
 
-  @threaded for element in eachelement(solver, ode.cache)
+  @threaded for element in eachelement(solver, semi.cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
-    alpha1, alpha2 = @trixi_timeit timer() "alpha calculation" ode.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, element, cache)
+    alpha1, alpha2 = @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, element, cache)
 
     # Calculate volume integral contribution
     # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
