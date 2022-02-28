@@ -15,11 +15,17 @@ for human readability.
 - Support for (periodic and non-periodic) SBP operators of
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
   as approximation type in `DGMulti` solvers
+- Basic support for MPI-based parallel simulations using conforming meshes of type `P4estMesh`
+  in 2D and 3D
 
 #### Removed
 
 - The `VertexMappedMesh` type is removed in favor of the `DGMultiMesh` type.
   The `VertexMappedMesh` constructor is deprecated.
+
+#### Changed
+
+- The required Julia version is updated to v1.7.
 
 #### Deprecated
 

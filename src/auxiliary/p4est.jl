@@ -45,7 +45,8 @@ end
 # Create new `p4est` from a p4est_connectivity
 # 2D
 function new_p4est(conn::Ptr{p4est_connectivity_t}, initial_refinement_level)
-  p4est_new_ext(0, # No MPI communicator
+  comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi's MPI communicator if p4est supports MPI
+  p4est_new_ext(comm,
                 conn,
                 0, # No minimum initial qudrants per processor
                 initial_refinement_level,
@@ -57,7 +58,8 @@ end
 
 # 3D
 function new_p4est(conn::Ptr{p8est_connectivity_t}, initial_refinement_level)
-  p8est_new_ext(0, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
+  comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi's MPI communicator if p4est supports MPI
+  p8est_new_ext(comm, conn, 0, initial_refinement_level, true, 2 * sizeof(Int), C_NULL, C_NULL)
 end
 
 
@@ -79,13 +81,15 @@ end
 # 2D
 function load_p4est(file, ::Val{2})
   conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
-  p4est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+  comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi's MPI communicator if p4est supports MPI
+  p4est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
 end
 
 # 3D
 function load_p4est(file, ::Val{3})
   conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
-  p8est_load(file, C_NULL, 0, false, C_NULL, pointer(conn_vec))
+  comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi's MPI communicator if p4est supports MPI
+  p8est_load(file, comm, 0, false, C_NULL, pointer(conn_vec))
 end
 
 
@@ -110,10 +114,33 @@ coarsen_p4est!(p4est::Ptr{p4est_t}, recursive, coarsen_fn_c, init_fn_c) = p4est_
 coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 
 
+# Create new ghost layer from p4est, only connections via faces are relevant
+# 2D
+ghost_new_p4est(p4est::Ptr{p4est_t}) = p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
+# 3D
+ghost_new_p4est(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FACE)
+
+# Check if ghost layer is valid
+# 2D
+function ghost_is_valid_p4est(p4est::Ptr{p4est_t}, ghost_layer::Ptr{p4est_ghost_t})
+  return p4est_ghost_is_valid(p4est, ghost_layer)
+end
+# 3D
+function ghost_is_valid_p4est(p4est::Ptr{p8est_t}, ghost_layer::Ptr{p8est_ghost_t})
+  return p8est_ghost_is_valid(p4est, ghost_layer)
+end
+
+# Destroy ghost layer
+# 2D
+ghost_destroy_p4est(ghost_layer::Ptr{p4est_ghost_t}) = p4est_ghost_destroy(ghost_layer)
+# 3D
+ghost_destroy_p4est(ghost_layer::Ptr{p8est_ghost_t}) = p8est_ghost_destroy(ghost_layer)
+
+
 # Let `p4est` iterate over each cell volume and cell face.
 # Call iter_volume_c for each cell and iter_face_c for each face.
 # 2D
-function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
+function iterate_p4est(p4est::Ptr{p4est_t}, user_data; ghost_layer=C_NULL,
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL
     user_data_ptr = user_data
@@ -125,7 +152,7 @@ function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
 
   GC.@preserve user_data begin
     p4est_iterate(p4est,
-                  C_NULL, # ghost layer
+                  ghost_layer,
                   user_data_ptr,
                   iter_volume_c, # iter_volume
                   iter_face_c, # iter_face
@@ -136,7 +163,7 @@ function iterate_p4est(p4est::Ptr{p4est_t}, user_data;
 end
 
 # 3D
-function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
+function iterate_p4est(p8est::Ptr{p8est_t}, user_data; ghost_layer=C_NULL,
                        iter_volume_c=C_NULL, iter_face_c=C_NULL)
   if user_data === C_NULL
     user_data_ptr = user_data
@@ -148,7 +175,7 @@ function iterate_p4est(p8est::Ptr{p8est_t}, user_data;
 
   GC.@preserve user_data begin
     p8est_iterate(p8est,
-                  C_NULL, # ghost layer
+                  ghost_layer,
                   user_data_ptr,
                   iter_volume_c, # iter_volume
                   iter_face_c, # iter_face

@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6'
+          - '1.7'
           # - 'nightly'
         os:
           - ubuntu-latest
@@ -72,22 +72,23 @@ jobs:
           - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2
+          - misc_part3
           - mpi
           - threaded
         include:
-          - version: '1.6'
+          - version: '1.7'
             os: macOS-latest
             arch: x64
             trixi_test: mpi
-          - version: '1.6'
+          - version: '1.7'
             os: macOS-latest
             arch: x64
             trixi_test: threaded
-          - version: '1.6'
+          - version: '1.7'
             os: windows-latest
             arch: x64
             trixi_test: mpi
-          - version: '1.6'
+          - version: '1.7'
             os: windows-latest
             arch: x64
             trixi_test: threaded

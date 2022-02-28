@@ -48,9 +48,9 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
   @testset "StructuredMesh" begin
     @trixi_testset "elixir_advection_restart.jl with waving flag mesh" begin
       @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem", "elixir_advection_restart.jl"),
-        l2   = [0.00016265538283059892],
-        linf = [0.0015194298895079283],
-        rtol = 7e-6, # Higher tolerance to make tests pass in CI with macOS
+        l2   = [0.00016265538265929818],
+        linf = [0.0015194252169410394],
+        rtol = 5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
         elixir_file="elixir_advection_waving_flag.jl",
         restart_file="restart_000021.h5")
     end

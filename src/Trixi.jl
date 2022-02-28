@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling
+using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros, spzeros
 
@@ -130,7 +130,7 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations2D
 
-export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
+export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
@@ -229,7 +229,7 @@ function __init__()
   end
 
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-    using Flux: params
+    using .Flux: params
   end
 
   # FIXME upstream. This is a hacky workaround for
