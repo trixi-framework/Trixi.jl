@@ -571,7 +571,7 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkCNN})(
 
     # Compute indicator value
     alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
-                                            alpha_amr, alpha_min, alpha_max)
+                                              alpha_amr, alpha_min, alpha_max)
   end
 
   if alpha_smooth
