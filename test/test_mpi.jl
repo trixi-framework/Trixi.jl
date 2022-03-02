@@ -13,7 +13,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 # is the case here. We use GitHub actions, so we can check whether we run CI
 # in the cloud with Windows as follows, see also
 # https://docs.github.com/en/actions/learn-github-actions/environment-variables
-CI_ON_WINDOWS = get(ENV, "GITHUB_ACTIONS", false) && Sys.iswindows()
+CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 
 @testset "MPI" begin
   # TreeMesh tests
