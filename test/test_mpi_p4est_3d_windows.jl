@@ -1,0 +1,61 @@
+module TestExamplesMPIP4estMesh3D
+
+using Test
+using Trixi
+
+include("test_trixi.jl")
+
+# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "p4est_3d_dgsem")
+
+@testset "P4estMesh MPI 3D" begin
+
+# Run basic tests
+@testset "Examples 3D" begin
+  # Linear scalar advection
+  @trixi_testset "elixir_advection_basic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      trees_per_dimension=(2 ,2, 2),
+      # Expected errors are exactly the same as with TreeMesh!
+      l2   = [0.00016263963870641478],
+      linf = [0.0014537194925779984])
+  end
+
+  # @trixi_testset "elixir_advection_restart.jl" begin
+  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+  #     l2   = [0.002590388934758452],
+  #     linf = [0.01840757696885409])
+  # end
+
+  # @trixi_testset "elixir_advection_cubed_sphere.jl" begin
+  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
+  #     l2   = [0.002006918015656413],
+  #     linf = [0.027655117058380085])
+  # end
+
+  # # Compressible Euler
+  # @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+  #     l2   = [0.0015106060984283647, 0.0014733349038567685, 0.00147333490385685, 0.001473334903856929, 0.0028149479453087093],
+  #     linf = [0.008070806335238156, 0.009007245083113125, 0.009007245083121784, 0.009007245083102688, 0.01562861968368434],
+  #     tspan = (0.0, 1.0))
+  # end
+
+  # @trixi_testset "elixir_euler_ec.jl" begin
+  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+  #     l2   = [0.010380390326164493, 0.006192950051354618, 0.005970674274073704, 0.005965831290564327, 0.02628875593094754],
+  #     linf = [0.3326911600075694, 0.2824952141320467, 0.41401037398065543, 0.45574161423218573, 0.8099577682187109],
+  #     tspan = (0.0, 0.2),
+  #     coverage_override = (polydeg=3,)) # Prevent long compile time in CI
+  # end
+
+  # @trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh.jl" begin
+  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic_hohqmesh.jl"),
+  #     l2   = [0.0042023406458005464, 0.004122532789279737, 0.0042448149597303616, 0.0036361316700401765, 0.007389845952982495],
+  #     linf = [0.04530610539892499, 0.02765695110527666, 0.05670295599308606, 0.048396544302230504, 0.1154589758186293])
+  # end
+end
+
+end # P4estMesh MPI
+
+end # module

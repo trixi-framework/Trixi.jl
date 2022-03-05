@@ -21,7 +21,9 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 
   # P4estMesh tests
   include("test_mpi_p4est_2d.jl")
-  if !CI_ON_WINDOWS # see comment on `!CI_ON_WINDOWS` above
+  if CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` above
+    include("test_mpi_p4est_3d_windows.jl")
+  else
     include("test_mpi_p4est_3d.jl")
   end
 end # MPI
