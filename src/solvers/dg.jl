@@ -194,7 +194,7 @@ end
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralShockCapturingSubcell, dg, cache)
   # call the indicator to get up-to-date values for IO
-  volume_integral.indicator(u, u, mesh, equations, dg, 0.0, 1, cache)
+  volume_integral.indicator(u, u, mesh, equations, dg, 0.0, cache)
   get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
 end
 

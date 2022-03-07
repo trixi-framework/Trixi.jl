@@ -199,119 +199,168 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   var_max_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   var_min_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
-  alpha1_threaded = [A(undef, nnodes(basis)+1, nnodes(basis), ) for _ in 1:Threads.nthreads()]
-  alpha2_threaded = [A(undef, nnodes(basis), nnodes(basis)+1, ) for _ in 1:Threads.nthreads()]
-
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis))
 
   # TODO: Nicer way to set a length?
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
 
-  return (; indicator_threaded, var_max_threaded, var_min_threaded, alpha1_threaded, alpha2_threaded,
+  return (; indicator_threaded, var_max_threaded, var_min_threaded,
             ContainerShockCapturingIndicator,
             alpha_max_per_timestep, alpha_mean_per_timestep)
 end
 
 function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
                                        mesh, equations, dg::DGSEM,
-                                       dt, element, cache;
+                                       dt, cache;
                                        kwargs...)
   @unpack indicator_threaded, var_max_threaded, var_min_threaded = indicator_IDP.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
-  @unpack alpha1_threaded, alpha2_threaded = indicator_IDP.cache
-  @unpack alpha, alpha_max_per_element, alpha_mean_per_element = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha1, alpha2, alpha_max_per_element, alpha_mean_per_element = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   @unpack inverse_weights = dg.basis
-  inverse_jacobian = cache.elements.inverse_jacobian[element]
 
   @unpack alpha_maxIDP = indicator_IDP
 
-  # Calculate indicator variables at Gauss-Lobatto nodes
-  indicator = indicator_threaded[Threads.threadid()]
-  for j in eachnode(dg), i in eachnode(dg)
-    u_local = get_node_vars(u_old, equations, dg, i, j, element)
-    indicator[i, j] = indicator_IDP.variable(u_local, equations)
+  # Construct cell -> element mapping for easier algorithm implementation
+  c2e = zeros(Int, length(mesh.tree))
+  for element in eachelement(dg, cache)
+    c2e[cache.elements.cell_ids[element]] = element
   end
 
-  var_max = var_max_threaded[Threads.threadid()]
-  var_min = var_min_threaded[Threads.threadid()]
+  @threaded for element in eachelement(dg, cache)
+    inverse_jacobian = cache.elements.inverse_jacobian[element]
 
-  for j in eachnode(dg), i in eachnode(dg)
-    # Calculate max and min of variable at Gauss-Lobatto nodes
-    var_min[i, j] = indicator[i, j]
-    var_max[i, j] = indicator[i, j]
-    if j > 1
-      var_min[i, j] = min(var_min[i, j], indicator[i, j-1])
-      var_max[i, j] = max(var_max[i, j], indicator[i, j-1])
+    cell_id = cache.elements.cell_ids[element]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    indicator = indicator_threaded[Threads.threadid()]
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u_old, equations, dg, i, j, element)
+      indicator[i, j] = indicator_IDP.variable(u_local, equations)
     end
-    if j < nnodes(dg)
-      var_min[i, j] = min(var_min[i, j], indicator[i, j+1])
-      var_max[i, j] = max(var_max[i, j], indicator[i, j+1])
+
+    var_max = var_max_threaded[Threads.threadid()]
+    var_min = var_min_threaded[Threads.threadid()]
+
+    for j in eachnode(dg), i in eachnode(dg)
+      # Calculate max and min of variable at Gauss-Lobatto nodes
+      var_min[i, j] = indicator[i, j]
+      var_max[i, j] = indicator[i, j]
+      if i > 1
+        var_min[i, j] = min(var_min[i, j], indicator[i-1, j])
+        var_max[i, j] = max(var_max[i, j], indicator[i-1, j])
+      elseif has_neighbor(mesh.tree, cell_id, 1)
+        neighbor_cell_id = mesh.tree.neighbor_ids[1, cell_id]
+        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
+          u_local = get_node_vars(u_old, equations, dg, nnodes(dg), j, c2e[neighbor_cell_id])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        else # Higher level neighbor TODO: interpolate values
+          u_local = get_node_vars(u_old, equations, dg, nnodes(dg), j, c2e[neighbor_cell_id + 2])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        end
+        var_min[i, j] = min(var_min[i, j], var_neighbor)
+        var_max[i, j] = max(var_max[i, j], var_neighbor)
+      end # TODO: lower level neighbor
+      if i < nnodes(dg)
+        var_min[i, j] = min(var_min[i, j], indicator[i+1, j])
+        var_max[i, j] = max(var_max[i, j], indicator[i+1, j])
+      elseif has_neighbor(mesh.tree, cell_id, 2)
+        neighbor_cell_id = mesh.tree.neighbor_ids[2, cell_id]
+        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
+          u_local = get_node_vars(u_old, equations, dg, 1, j, c2e[neighbor_cell_id])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        else # Higher level neighbor TODO: interpolate values
+          u_local = get_node_vars(u_old, equations, dg, 1, j, c2e[neighbor_cell_id + 1])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        end
+        var_min[i, j] = min(var_min[i, j], var_neighbor)
+        var_max[i, j] = max(var_max[i, j], var_neighbor)
+      end # TODO: lower level neighbor
+      if j > 1
+        var_min[i, j] = min(var_min[i, j], indicator[i, j-1])
+        var_max[i, j] = max(var_max[i, j], indicator[i, j-1])
+      elseif has_neighbor(mesh.tree, cell_id, 3)
+        neighbor_cell_id = mesh.tree.neighbor_ids[3, cell_id]
+        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
+          u_local = get_node_vars(u_old, equations, dg, i, nnodes(dg), c2e[neighbor_cell_id])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        else # Higher level neighbor TODO: interpolate values
+          u_local = get_node_vars(u_old, equations, dg, i, nnodes(dg), c2e[neighbor_cell_id + 3])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        end
+        var_min[i, j] = min(var_min[i, j], var_neighbor)
+        var_max[i, j] = max(var_max[i, j], var_neighbor)
+      end # TODO: lower level neighbor
+      if j < nnodes(dg)
+        var_min[i, j] = min(var_min[i, j], indicator[i, j+1])
+        var_max[i, j] = max(var_max[i, j], indicator[i, j+1])
+      elseif has_neighbor(mesh.tree, cell_id, 4)
+        neighbor_cell_id = mesh.tree.neighbor_ids[4, cell_id]
+        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
+          u_local = get_node_vars(u_old, equations, dg, i, 1, c2e[neighbor_cell_id])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        else # Higher level neighbor TODO: interpolate values
+          u_local = get_node_vars(u_old, equations, dg, i, 1, c2e[neighbor_cell_id + 1])
+          var_neighbor = indicator_IDP.variable(u_local, equations)
+        end
+        var_min[i, j] = min(var_min[i, j], var_neighbor)
+        var_max[i, j] = max(var_max[i, j], var_neighbor)
+      end # TODO: lower level neighbor
     end
-    if i > 1
-      var_min[i, j] = min(var_min[i, j], indicator[i-1, j])
-      var_max[i, j] = max(var_max[i, j], indicator[i-1, j])
+
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      var = indicator_IDP.variable(u_local, equations)
+      if abs(var_max[i, j] - var) < sqrt(eps()) || abs(var_min[i, j] - var) < sqrt(eps())
+        alpha[i, j, element] = 0.0
+      else
+        # Calculate P_plus and P_minus
+        # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+        val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
+        val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
+        val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
+        val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
+
+        P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
+                  max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
+        P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+                  min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+
+        # Calculate alpha_plus and alpha_minus
+        frac_plus  = (var_max[i, j] - var) / P_plus
+        frac_minus = (var_min[i, j] - var) / P_minus
+
+        alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
+        alpha_minus = 1 - min(1.0, max(0.0, frac_minus))
+
+        # Calculate alpha at nodes
+        alpha[i, j, element] = max(alpha_plus, alpha_minus)
+
+        # Clip the maximum amount of FV allowed
+        alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
+      end
+
+      # Calculate maximum and mean alpha per element
+      alpha_max_per_element[element] = max(alpha_max_per_element[element], alpha[i, j, element])
+      alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * alpha[i, j, element]
     end
-    if i < nnodes(dg)
-      var_min[i, j] = min(var_min[i, j], indicator[i+1, j])
-      var_max[i, j] = max(var_max[i, j], indicator[i+1, j])
+
+    # Calculate alpha1 and alpha2
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      alpha1[i, j, element] = max(alpha[i-1, j, element], alpha[i, j, element])
     end
+    for j in 2:nnodes(dg), i in eachnode(dg)
+      alpha2[i, j, element] = max(alpha[i, j-1, element], alpha[i, j, element])
+    end
+    alpha1[1, :, element] .= zero(eltype(alpha1))
+    alpha1[nnodes(dg)+1, :, element] .= zero(eltype(alpha1))
+    alpha2[:, 1, element] .= zero(eltype(alpha2))
+    alpha2[:, nnodes(dg)+1, element] .= zero(eltype(alpha2))
   end
 
-  for j in eachnode(dg), i in eachnode(dg)
-    u_local = get_node_vars(u, equations, dg, i, j, element)
-    var = indicator_IDP.variable(u_local, equations)
-    if abs(var_max[i, j] - var) < sqrt(eps()) || abs(var_min[i, j] - var) < sqrt(eps())
-      alpha[i, j, element] = 0.0
-    else
-      # Calculate P_plus and P_minus
-      # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-      val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
-      val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
-      val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
-      val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
-
-      P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
-                max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
-      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
-                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
-
-      # Calculate alpha_plus and alpha_minus
-      frac_plus  = (var_max[i, j] - var) / P_plus
-      frac_minus = (var_min[i, j] - var) / P_minus
-
-      alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
-      alpha_minus = 1 - min(1.0, max(0.0, frac_minus))
-
-      # Calculate alpha at nodes
-      alpha[i, j, element] = max(alpha_plus, alpha_minus)
-
-      # Clip the maximum amount of FV allowed
-      alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
-    end
-
-    # Calculate maximum and mean alpha per element
-    alpha_max_per_element[element] = max(alpha_max_per_element[element], alpha[i, j, element])
-    alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * alpha[i, j, element]
-  end
-
-  # Calculate alpha1 and alpha2
-  alpha1 = alpha1_threaded[Threads.threadid()]
-  alpha2 = alpha2_threaded[Threads.threadid()]
-  for j in eachnode(dg), i in 2:nnodes(dg)
-    alpha1[i, j] = max(alpha[i-1, j, element], alpha[i, j, element])
-  end
-  for j in 2:nnodes(dg), i in eachnode(dg)
-    alpha2[i, j] = max(alpha[i, j-1, element], alpha[i, j, element])
-  end
-  alpha1[1, :] .= zero(eltype(alpha1))
-  alpha1[nnodes(dg)+1, :] .= zero(eltype(alpha1))
-  alpha2[:, 1] .= zero(eltype(alpha2))
-  alpha2[:, nnodes(dg)+1] .= zero(eltype(alpha2))
-
-  return alpha1, alpha2
+  return nothing
 end
 
 

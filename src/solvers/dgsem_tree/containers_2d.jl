@@ -1308,8 +1308,13 @@ end
 
 mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
   alpha::Array{uEltype, 3} # [i, j, elements]
+  alpha1::Array{uEltype, 3}
+  alpha2::Array{uEltype, 3}
   # internal `resize!`able storage
   _alpha::Vector{uEltype}
+  _alpha1::Vector{uEltype}
+  _alpha2::Vector{uEltype}
+
 
   alpha_max_per_element::Vector{uEltype} # [elements]
   alpha_mean_per_element::Vector{uEltype} # [elements]
@@ -1321,11 +1326,15 @@ function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes) w
   # Initialize fields with defaults
   _alpha = fill(nan_uEltype, n_nodes * n_nodes * capacity)
   alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
+  _alpha1 = fill(nan_uEltype, (n_nodes+1) * n_nodes * capacity)
+  alpha1 = unsafe_wrap(Array, pointer(_alpha), (n_nodes+1, n_nodes, capacity))
+  _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes+1) * capacity)
+  alpha2 = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes+1, capacity))
 
   alpha_max_per_element  = fill(nan_uEltype, capacity)
   alpha_mean_per_element = fill(nan_uEltype, capacity)
 
-  return ContainerShockCapturingIndicator{uEltype}(alpha, _alpha, alpha_max_per_element, alpha_mean_per_element)
+  return ContainerShockCapturingIndicator{uEltype}(alpha, alpha1, alpha2, _alpha, _alpha1, _alpha2, alpha_max_per_element, alpha_mean_per_element)
 end
 
 nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)
@@ -1338,10 +1347,14 @@ nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)
 function Base.resize!(indicator::ContainerShockCapturingIndicator, capacity)
   n_nodes = nnodes(indicator)
 
-  @unpack _alpha, alpha, alpha_max_per_element, alpha_mean_per_element = indicator
+  @unpack _alpha, alpha, _alpha1, alpha1, _alpha2, alpha2, alpha_max_per_element, alpha_mean_per_element = indicator
 
   resize!(_alpha, n_nodes * n_nodes * capacity)
   indicator.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
+  resize!(_alpha1, (n_nodes + 1) * n_nodes * capacity)
+  indicator.alpha1 = unsafe_wrap(Array, pointer(_alpha1), (n_nodes + 1, n_nodes, capacity))
+  resize!(_alpha2, n_nodes * (n_nodes + 1) * capacity)
+  indicator.alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
 
   resize!(alpha_max_per_element,  capacity)
   resize!(alpha_mean_per_element, capacity)
