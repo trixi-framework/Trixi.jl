@@ -11,8 +11,9 @@
 An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
 """
-mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
+mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
   p4est                 ::P # Either Ptr{p4est_t} or Ptr{p8est_t}
+  is_parallel           ::IsParallel
   # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
   # This specifies the geometry interpolation for each tree.
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
@@ -29,8 +30,17 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh
       @assert p4est isa Ptr{p8est_t}
     end
 
-    mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(p4est), NDIMS+2, length(nodes)}(
-      p4est, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes)
+    if mpi_isparallel()
+      if !P4est.uses_mpi()
+        error("p4est library does not support MPI")
+      end
+      is_parallel = Val(true)
+    else
+      is_parallel = Val(false)
+    end
+
+    mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel), typeof(p4est), NDIMS+2, length(nodes)}(
+      p4est, is_parallel, tree_node_coordinates, nodes, boundary_names, current_filename, unsaved_changes)
 
     # Destroy `p4est` structs when the mesh is garbage collected
     finalizer(destroy_mesh, mesh)
@@ -38,6 +48,12 @@ mutable struct P4estMesh{NDIMS, RealT<:Real, P, NDIMSP2, NNODES} <: AbstractMesh
     return mesh
   end
 end
+
+const SerialP4estMesh{NDIMS}   = P4estMesh{NDIMS, <:Real, <:Val{false}}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:Val{true}}
+
+@inline mpi_parallel(mesh::SerialP4estMesh) = Val(false)
+@inline mpi_parallel(mesh::ParallelP4estMesh) = Val(true)
 
 
 function destroy_mesh(mesh::P4estMesh{2})
@@ -57,7 +73,8 @@ end
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count
-@inline ncells(mesh::P4estMesh) = mesh.p4est.global_num_quadrants
+# returns Int32 by default which causes a weird method error when creating the cache
+@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants)
 
 
 function Base.show(io::IO, mesh::P4estMesh)
@@ -1398,6 +1415,11 @@ end
 
 function balance!(mesh::P4estMesh{3}, init_fn=C_NULL)
   p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
+end
+
+
+function partition!(mesh::ParallelP4estMesh{2}; allow_coarsening=true, weight_fn=C_NULL)
+  p4est_partition(mesh.p4est, Int(allow_coarsening), weight_fn)
 end
 
 
