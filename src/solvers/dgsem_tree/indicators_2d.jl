@@ -196,16 +196,13 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   A = Array{real(basis), ndims(equations)}
   indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
-  var_max_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  var_min_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis))
 
   # TODO: Nicer way to set a length?
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
 
-  return (; indicator_threaded, var_max_threaded, var_min_threaded,
+  return (; indicator_threaded,
             ContainerShockCapturingIndicator,
             alpha_max_per_timestep, alpha_mean_per_timestep)
 end
@@ -214,25 +211,16 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
                                        mesh, equations, dg::DGSEM,
                                        dt, cache;
                                        kwargs...)
-  @unpack indicator_threaded, var_max_threaded, var_min_threaded = indicator_IDP.cache
+  @unpack indicator_threaded = indicator_IDP.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
-  @unpack alpha, alpha1, alpha2, alpha_max_per_element, alpha_mean_per_element = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha1, alpha2, var_max, var_min, alpha_max_per_element, alpha_mean_per_element = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   @unpack inverse_weights = dg.basis
 
   @unpack alpha_maxIDP = indicator_IDP
 
-  # Construct cell -> element mapping for easier algorithm implementation
-  c2e = zeros(Int, length(mesh.tree))
-  for element in eachelement(dg, cache)
-    c2e[cache.elements.cell_ids[element]] = element
-  end
-
   @threaded for element in eachelement(dg, cache)
-    inverse_jacobian = cache.elements.inverse_jacobian[element]
-
-    cell_id = cache.elements.cell_ids[element]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     indicator = indicator_threaded[Threads.threadid()]
@@ -241,79 +229,202 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
       indicator[i, j] = indicator_IDP.variable(u_local, equations)
     end
 
-    var_max = var_max_threaded[Threads.threadid()]
-    var_min = var_min_threaded[Threads.threadid()]
-
     for j in eachnode(dg), i in eachnode(dg)
       # Calculate max and min of variable at Gauss-Lobatto nodes
-      var_min[i, j] = indicator[i, j]
-      var_max[i, j] = indicator[i, j]
+      var_min[i, j, element] = indicator[i, j]
+      var_max[i, j, element] = indicator[i, j]
       if i > 1
-        var_min[i, j] = min(var_min[i, j], indicator[i-1, j])
-        var_max[i, j] = max(var_max[i, j], indicator[i-1, j])
-      elseif has_neighbor(mesh.tree, cell_id, 1)
-        neighbor_cell_id = mesh.tree.neighbor_ids[1, cell_id]
-        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
-          u_local = get_node_vars(u_old, equations, dg, nnodes(dg), j, c2e[neighbor_cell_id])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        else # Higher level neighbor TODO: interpolate values
-          u_local = get_node_vars(u_old, equations, dg, nnodes(dg), j, c2e[neighbor_cell_id + 2])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        end
-        var_min[i, j] = min(var_min[i, j], var_neighbor)
-        var_max[i, j] = max(var_max[i, j], var_neighbor)
-      end # TODO: lower level neighbor
+        var_min[i, j, element] = min(var_min[i, j, element], indicator[i-1, j])
+        var_max[i, j, element] = max(var_max[i, j, element], indicator[i-1, j])
+      end
       if i < nnodes(dg)
-        var_min[i, j] = min(var_min[i, j], indicator[i+1, j])
-        var_max[i, j] = max(var_max[i, j], indicator[i+1, j])
-      elseif has_neighbor(mesh.tree, cell_id, 2)
-        neighbor_cell_id = mesh.tree.neighbor_ids[2, cell_id]
-        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
-          u_local = get_node_vars(u_old, equations, dg, 1, j, c2e[neighbor_cell_id])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        else # Higher level neighbor TODO: interpolate values
-          u_local = get_node_vars(u_old, equations, dg, 1, j, c2e[neighbor_cell_id + 1])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        end
-        var_min[i, j] = min(var_min[i, j], var_neighbor)
-        var_max[i, j] = max(var_max[i, j], var_neighbor)
-      end # TODO: lower level neighbor
+        var_min[i, j, element] = min(var_min[i, j, element], indicator[i+1, j])
+        var_max[i, j, element] = max(var_max[i, j, element], indicator[i+1, j])
+      end
       if j > 1
-        var_min[i, j] = min(var_min[i, j], indicator[i, j-1])
-        var_max[i, j] = max(var_max[i, j], indicator[i, j-1])
-      elseif has_neighbor(mesh.tree, cell_id, 3)
-        neighbor_cell_id = mesh.tree.neighbor_ids[3, cell_id]
-        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
-          u_local = get_node_vars(u_old, equations, dg, i, nnodes(dg), c2e[neighbor_cell_id])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        else # Higher level neighbor TODO: interpolate values
-          u_local = get_node_vars(u_old, equations, dg, i, nnodes(dg), c2e[neighbor_cell_id + 3])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        end
-        var_min[i, j] = min(var_min[i, j], var_neighbor)
-        var_max[i, j] = max(var_max[i, j], var_neighbor)
-      end # TODO: lower level neighbor
+        var_min[i, j, element] = min(var_min[i, j, element], indicator[i, j-1])
+        var_max[i, j, element] = max(var_max[i, j, element], indicator[i, j-1])
+      end
       if j < nnodes(dg)
-        var_min[i, j] = min(var_min[i, j], indicator[i, j+1])
-        var_max[i, j] = max(var_max[i, j], indicator[i, j+1])
-      elseif has_neighbor(mesh.tree, cell_id, 4)
-        neighbor_cell_id = mesh.tree.neighbor_ids[4, cell_id]
-        if !has_children(mesh.tree, neighbor_cell_id) # Same level neighbor
-          u_local = get_node_vars(u_old, equations, dg, i, 1, c2e[neighbor_cell_id])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        else # Higher level neighbor TODO: interpolate values
-          u_local = get_node_vars(u_old, equations, dg, i, 1, c2e[neighbor_cell_id + 1])
-          var_neighbor = indicator_IDP.variable(u_local, equations)
-        end
-        var_min[i, j] = min(var_min[i, j], var_neighbor)
-        var_max[i, j] = max(var_max[i, j], var_neighbor)
-      end # TODO: lower level neighbor
+        var_min[i, j, element] = min(var_min[i, j, element], indicator[i, j+1])
+        var_max[i, j, element] = max(var_max[i, j, element], indicator[i, j+1])
+      end
     end
+  end
+
+  # Loop over interfaces
+  for interface in eachinterface(dg, cache)
+    # Get neighboring element ids
+    left  = cache.interfaces.neighbor_ids[1, interface]
+    right = cache.interfaces.neighbor_ids[2, interface]
+
+    orientation = cache.interfaces.orientations[interface]
+
+    for i in eachnode(dg)
+      if orientation == 1
+        index_left  = (nnodes(dg), i, left)
+        index_right = (1,          i, right)
+      else
+        index_left  = (i, nnodes(dg), left)
+        index_right = (i,          1, right)
+      end
+      u_local_left  = get_node_vars(u_old, equations, dg, index_left...)
+      u_local_right = get_node_vars(u_old, equations, dg, index_right...)
+      var_neighbor_left  = indicator_IDP.variable(u_local_left,  equations)
+      var_neighbor_right = indicator_IDP.variable(u_local_right, equations)
+
+      var_min[index_right...] = min(var_min[index_right...], var_neighbor_left)
+      var_max[index_right...] = max(var_max[index_right...], var_neighbor_left)
+
+      var_min[index_left...] = min(var_min[index_left...], var_neighbor_right)
+      var_max[index_left...] = max(var_max[index_left...], var_neighbor_right)
+    end
+  end
+
+  # Loop over L2 mortars
+  for mortar in eachmortar(dg, cache)
+    # Get neighboring element ids
+    lower = cache.mortars.neighbor_ids[1, mortar]
+    upper = cache.mortars.neighbor_ids[2, mortar]
+    large = cache.mortars.neighbor_ids[3, mortar]
+
+    # buffer variables. TODO: Spare these unnecessary allocations
+    u_tmp_upper  = similar(view(u_old, :, 1, :, large))
+    u_tmp_lower  = similar(u_tmp_upper)
+    u_tmp_large1 = similar(u_tmp_upper)
+    u_tmp_large2 = similar(u_tmp_upper)
+
+    # Interpolate element face data to adjacent interface locations and use for var_max/min
+    if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
+      if cache.mortars.orientations[mortar] == 1
+        # L2 mortars in x-direction
+        u_large = view(u_old, :, nnodes(dg), :, large)
+        u_upper = view(u_old, :,          1, :, upper)
+        u_lower = view(u_old, :,          1, :, lower)
+
+        multiply_dimensionwise!(u_tmp_upper, dg.mortar.forward_upper, u_large)
+        multiply_dimensionwise!(u_tmp_lower, dg.mortar.forward_lower, u_large)
+
+        multiply_dimensionwise!(u_tmp_large1, dg.mortar.reverse_upper, u_upper)
+        multiply_dimensionwise!(u_tmp_large2, dg.mortar.reverse_lower, u_lower)
+
+        for i in eachnode(dg)
+          # large to small
+          var_min[1, i, upper] = min(var_min[1, i, upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+          var_max[1, i, upper] = max(var_max[1, i, upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+
+          var_min[1, i, lower] = min(var_min[1, i, lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+          var_max[1, i, lower] = max(var_max[1, i, lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+
+          # small to large
+          if i <= nnodes(dg)/2
+            var_min[nnodes(dg), i, large] = min(var_min[nnodes(dg), i, large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+            var_max[nnodes(dg), i, large] = max(var_max[nnodes(dg), i, large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+          else
+            var_min[nnodes(dg), i, large] = min(var_min[nnodes(dg), i, large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+            var_max[nnodes(dg), i, large] = max(var_max[nnodes(dg), i, large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+          end
+        end
+      else
+        # L2 mortars in y-direction
+        u_large = view(u_old, :, :, nnodes(dg), large)
+        u_upper = view(u_old, :, :,          1, upper)
+        u_lower = view(u_old, :, :,          1, lower)
+
+        multiply_dimensionwise!(u_tmp_upper, dg.mortar.forward_upper, u_large)
+        multiply_dimensionwise!(u_tmp_lower, dg.mortar.forward_lower, u_large)
+
+        multiply_dimensionwise!(u_tmp_large1, dg.mortar.reverse_upper, u_upper)
+        multiply_dimensionwise!(u_tmp_large2, dg.mortar.reverse_lower, u_lower)
+
+        for i in eachnode(dg)
+          # large to small
+          var_min[i, 1, upper] = min(var_min[i, 1, upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+          var_max[i, 1, upper] = max(var_max[i, 1, upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+
+          var_min[i, 1, lower] = min(var_min[i, 1, lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+          var_max[i, 1, lower] = max(var_max[i, 1, lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+
+          # small to large
+          if i <= nnodes(dg)/2
+            var_min[i, nnodes(dg), large] = min(var_min[i, nnodes(dg), large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+            var_max[i, nnodes(dg), large] = max(var_max[i, nnodes(dg), large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+          else
+            var_min[i, nnodes(dg), large] = min(var_min[i, nnodes(dg), large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+            var_max[i, nnodes(dg), large] = max(var_max[i, nnodes(dg), large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+          end
+        end
+      end
+    else # large_sides[mortar] == 2 -> large element on right side
+      if cache.mortars.orientations[mortar] == 1
+        # L2 mortars in x-direction
+        u_large = view(u_old, :,          1, :, large)
+        u_upper = view(u_old, :, nnodes(dg), :, upper)
+        u_lower = view(u_old, :, nnodes(dg), :, lower)
+
+        multiply_dimensionwise!(u_tmp_upper, dg.mortar.forward_upper, u_large)
+        multiply_dimensionwise!(u_tmp_lower, dg.mortar.forward_lower, u_large)
+
+        multiply_dimensionwise!(u_tmp_large1, dg.mortar.reverse_upper, u_upper)
+        multiply_dimensionwise!(u_tmp_large2, dg.mortar.reverse_lower, u_lower)
+
+        for i in eachnode(dg)
+          # large to small
+          var_min[nnodes(dg), i, upper] = min(var_min[nnodes(dg), i, upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+          var_max[nnodes(dg), i, upper] = max(var_max[nnodes(dg), i, upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+
+          var_min[nnodes(dg), i, lower] = min(var_min[nnodes(dg), i, lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+          var_max[nnodes(dg), i, lower] = max(var_max[nnodes(dg), i, lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+
+          # small to large
+          if i <= nnodes(dg)/2
+            var_min[1, i, large] = min(var_min[1, i, large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+            var_max[1, i, large] = max(var_max[1, i, large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+          else
+            var_min[1, i, large] = min(var_min[1, i, large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+            var_max[1, i, large] = max(var_max[1, i, large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+          end
+        end
+      else
+        # L2 mortars in y-direction
+        u_large = view(u_old, :, :,          1, large)
+        u_upper = view(u_old, :, :, nnodes(dg), upper)
+        u_lower = view(u_old, :, :, nnodes(dg), lower)
+
+        multiply_dimensionwise!(u_tmp_upper, dg.mortar.forward_upper, u_large)
+        multiply_dimensionwise!(u_tmp_lower, dg.mortar.forward_lower, u_large)
+
+        multiply_dimensionwise!(u_tmp_large1, dg.mortar.reverse_upper, u_upper)
+        multiply_dimensionwise!(u_tmp_large2, dg.mortar.reverse_lower, u_lower)
+
+        for i in eachnode(dg)
+          # large to small
+          var_min[i, nnodes(dg), upper] = min(var_min[i, nnodes(dg), upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+          var_max[i, nnodes(dg), upper] = max(var_max[i, nnodes(dg), upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+
+          var_min[i, nnodes(dg), lower] = min(var_min[i, nnodes(dg), lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+          var_max[i, nnodes(dg), lower] = max(var_max[i, nnodes(dg), lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+
+          # small to large
+          if i <= nnodes(dg)/2
+            var_min[i, 1, large] = min(var_min[i, 1, large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+            var_max[i, 1, large] = max(var_max[i, 1, large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+          else
+            var_min[i, 1, large] = min(var_min[i, 1, large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+            var_max[i, 1, large] = max(var_max[i, 1, large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+          end
+        end
+      end
+    end
+  end
+
+  @threaded for element in eachelement(dg, cache)
+    inverse_jacobian = cache.elements.inverse_jacobian[element]
 
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
       var = indicator_IDP.variable(u_local, equations)
-      if abs(var_max[i, j] - var) < sqrt(eps()) || abs(var_min[i, j] - var) < sqrt(eps())
+      if abs(var_max[i, j, element] - var) < sqrt(eps()) || abs(var_min[i, j, element] - var) < sqrt(eps())
         alpha[i, j, element] = 0.0
       else
         # Calculate P_plus and P_minus
@@ -329,8 +440,8 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
                   min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
 
         # Calculate alpha_plus and alpha_minus
-        frac_plus  = (var_max[i, j] - var) / P_plus
-        frac_minus = (var_min[i, j] - var) / P_minus
+        frac_plus  = (var_max[i, j, element] - var) / P_plus
+        frac_minus = (var_min[i, j, element] - var) / P_minus
 
         alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
         alpha_minus = 1 - min(1.0, max(0.0, frac_minus))

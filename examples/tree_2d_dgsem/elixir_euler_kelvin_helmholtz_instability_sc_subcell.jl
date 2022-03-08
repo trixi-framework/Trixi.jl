@@ -40,7 +40,7 @@ indicator_sc = IndicatorIDP(equations, basis;
                             alpha_maxIDP=1.0,
                             variable=Trixi.density)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
-                                                                  volume_flux_fv=volume_flux)
+                                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
@@ -53,7 +53,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 3.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -76,13 +76,13 @@ amr_indicator = IndicatorHennemannGassner(semi,
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=4,
                                       med_level=0, med_threshold=0.0003, # med_level = current level
-                                      max_level=7, max_threshold=0.03)
+                                      max_level=7, max_threshold=0.003)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.1)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -96,5 +96,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = Trixi.solve_IDP(ode, semi,
                       dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                      save_everystep=false, callback=callbacks);
+                      callback=callbacks);
 summary_callback() # print the timer summary
