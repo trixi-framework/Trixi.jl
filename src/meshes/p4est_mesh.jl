@@ -11,10 +11,10 @@
 An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
 """
-mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, G, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
+mutable struct P4estMesh{NDIMS, RealT<:Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <: AbstractMesh{NDIMS}
   p4est                 ::P # Either Ptr{p4est_t} or Ptr{p8est_t}
   is_parallel           ::IsParallel
-  ghost                 ::G # Either Ptr{p4est_ghost_t} or Ptr{p8est_ghost_t}
+  ghost                 ::Ghost # Either Ptr{p4est_ghost_t} or Ptr{p8est_ghost_t}
   # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
   # This specifies the geometry interpolation for each tree.
   tree_node_coordinates ::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
