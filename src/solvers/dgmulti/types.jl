@@ -318,13 +318,13 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
 
   # copy `x_in` to `tmp_storage` to avoid mutating the input
   @assert length(tmp_storage) == length(x_in)
-  for i in eachindex(tmp_storage)
+  @turbo thread=true for i in eachindex(tmp_storage)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n)
   b = reshape(b_in, n, n)
 
-  @turbo for j in 1:n, i in 1:n
+  @turbo thread=true for j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for ii in 1:n
       tmp = tmp + A[i, ii] * x[ii, j]
@@ -332,7 +332,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     b[i, j] = tmp
   end
 
-  @turbo for j in 1:n, i in 1:n
+  @turbo thread=true for j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for jj in 1:n
       tmp = tmp + A[j, jj] * b[i, jj]
@@ -340,7 +340,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     x[i, j] = tmp
   end
 
-  @turbo for i in eachindex(b_in)
+  @turbo thread=true for i in eachindex(b_in)
     b_in[i] = x[i]
   end
 
@@ -355,13 +355,13 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
   n = size(A, 2)
 
   # copy `x_in` to `tmp_storage` to avoid mutating the input
-  for i in eachindex(tmp_storage)
+  @turbo thread=true for i in eachindex(tmp_storage)
     tmp_storage[i] = x_in[i]
   end
   x = reshape(tmp_storage, n, n, n)
   b = reshape(b_in, n, n, n)
 
-  @turbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo thread=true for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for ii in 1:n
       tmp = tmp + A[i, ii] * x[ii, j, k]
@@ -369,7 +369,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     b[i, j, k] = tmp
   end
 
-  @turbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo thread=true for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for jj in 1:n
       tmp = tmp + A[j, jj] * b[i, jj, k]
@@ -377,7 +377,7 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     x[i, j, k] = tmp
   end
 
-  @turbo for k in 1:n, j in 1:n, i in 1:n
+  @turbo thread=true for k in 1:n, j in 1:n, i in 1:n
     tmp = zero(eltype(x))
     for kk in 1:n
       tmp = tmp + A[k, kk] * x[i, j, kk]
