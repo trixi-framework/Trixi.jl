@@ -42,7 +42,7 @@ solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
 # We want to define a circular cylinder as physical domain. It contains of an inner semicircle with
 # radius `r0` and an outer semicircle of radius `r1`.
 
-# TODO: add picture
+# ![](https://objects.githubusercontent.com/github-production-repository-file-5c1aeb/288376573/8224450?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220310%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220310T150855Z&X-Amz-Expires=300&X-Amz-Signature=4fb3540bcb10831cd387afb4c131532a05f99a03ef8916847269f9393f2ef3a1&X-Amz-SignedHeaders=host&actor_id=74359358&key_id=0&repo_id=288376573&response-content-disposition=attachment%3Bfilename%3Dpicture.pdf&response-content-type=application%2Fpdf)
 
 #src # \documentclass{standalone}
 #src # \usepackage{tikz}
