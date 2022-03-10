@@ -32,6 +32,21 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.007438525029884735])
   end
 
+  @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
+      # Expected errors are exactly the same as with TreeMesh!
+      l2   = [4.949660644033807e-5],
+      linf = [0.0004867846262313763],
+      coverage_override = (maxiters=6,))
+  end
+
+  @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_flag.jl"),
+      l2   = [0.0012766060609964525],
+      linf = [0.01750280631586159],
+      coverage_override = (maxiters=6,))
+  end
+
   @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [4.507575525876275e-6],
