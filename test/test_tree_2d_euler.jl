@@ -103,7 +103,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       l2   = [0.4795795496408325, 0.2125148972465021, 0.21311260934645868, 0.7033388737692883],
       linf = [1.8295385992182336, 0.9687795218482794, 0.9616033072376108, 2.9513245978047133],
       initial_refinement_level = 4,
-      maxiters = 50)
+      maxiters = 50,
+      rtol = 1.0e-7)
   end
 
   @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin

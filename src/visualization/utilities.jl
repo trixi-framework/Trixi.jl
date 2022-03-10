@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-
 @inline num_faces(elem::Tri) = 3
 @inline num_faces(elem::Quad) = 4
 
@@ -755,11 +754,11 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 end
 
 # Convert a PlotData2DTriangulate object to a 1d data along given curve.
-function unstructured_2d_to_1d_curve(pd, input_curve, slice, point)
+function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
 
   # If no curve is defined, create a axis curve.
   if input_curve === nothing
-    input_curve = axis_curve(pd, slice, point)
+    input_curve = axis_curve(pd.x, pd.y, nothing, slice, point, nvisnodes)
   end
 
   @assert size(input_curve, 1) == 2 "Input 'curve' must be 2xn dimensional."
@@ -857,6 +856,136 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
   end
 
   return arc_length, data_on_curve, nothing
+end
+
+# Convert 3d unstructured data from a general mesh to 1d data at given curve.
+function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes)
+  # If no curve is defined, create a axis curve.
+  if curve === nothing
+    curve = axis_curve(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], slice, point, nvisnodes)
+  end
+
+  # Set up data structure.
+  n_points_curve = size(curve, 2)
+  n_variables = size(data, 1)
+  data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+
+  # Iterate over every point on the curve and determine the solutions value at given point.
+  for i in 1:n_points_curve
+    @views data_on_curve[i, :] .= get_value_at_point(curve[:,i], nodes, data)
+  end
+
+  mesh_vertices_x = nothing
+
+  return calc_arc_length(curve), data_on_curve, mesh_vertices_x
+end
+
+# Check if the first 'amount'-many points can still form a valid tetrahedron.
+function is_valid_tetrahedron(amount, coordinates; tol=10^-4)
+  a = coordinates[:,1]; b = coordinates[:,2]; c = coordinates[:,3]; d = coordinates[:,4];
+  if amount == 2 # If two points are the same, then no tetrahedron can be formed.
+    return !(isapprox(a, b; atol=tol))
+  elseif amount == 3 # Check if three points are on the same line.
+    return !on_the_same_line(a, b, c; tol=tol)
+  elseif amount == 4 # Check if four points form a tetrahedron.
+    A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :], SVector(1, 1, 1, 1))
+    return !isapprox(det(A), 0; atol=tol)
+  else # With one point a tetrahedron can always be formed.
+    return true
+  end
+end
+
+# Check if three given 3D-points are on the same line.
+function on_the_same_line(a, b, c; tol=10^-4)
+  # Calculate the intersection of the a-b-axis at x=0.
+  if b[1] == 0
+    intersect_a_b = b
+  else
+    intersect_a_b = a - b.*(a[1]/b[1])
+  end
+  # Calculate the intersection of the a-c-axis at x=0.
+  if c[1] == 0
+    intersect_a_c = c
+  else
+    intersect_a_c = a - c.*(a[1]/c[1])
+  end
+  return isapprox(intersect_a_b, intersect_a_c; atol=tol)
+end
+
+# Interpolate from four corners of a tetrahedron to a single point.
+function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordinates_in, values_in, coordinate_out)
+  A = hcat(x_coordinates_in, y_coordinates_in, z_coordinates_in, SVector(1, 1, 1, 1))
+  c = A \ values_in
+  return c[1] * coordinate_out[1] + c[2] * coordinate_out[2] + c[3] * coordinate_out[3] + c[4]
+end
+
+# Calculate the distances from every entry in node to given point.
+function distances_from_single_point(nodes, point)
+  _, n_nodes, _, _, n_elements = size(nodes)
+  shifted_data = nodes.-point
+  distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
+    
+  # Iterate over every entry.
+  for element in 1:n_elements
+    for x in 1:n_nodes
+      for y in 1:n_nodes
+        for z in 1:n_nodes
+          distances[x,y,z,element] = norm(shifted_data[:,x,y,z,element])
+        end
+      end
+    end
+  end
+  return distances
+end
+
+# Interpolate the data on given nodes to a single value at given point.
+function get_value_at_point(point, nodes, data)
+  # Set up ata structures.
+  n_variables, n_x_nodes, n_y_nodes, n_z_nodes, _ = size(data)
+  distances = distances_from_single_point(nodes, point)
+  maximum_distance = maximum(distances)
+
+  coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
+  value_tetrahedron = Array{Float64}(undef, n_variables, 4)
+
+  index = argmin(distances)
+
+  # If the point sits exactly on a node, no interpolation is needed.
+  if nodes[:, index[1], index[2], index[3], index[4]] == point
+    return data[1, index[1], index[2], index[3], index[4]]
+  end
+
+  @views coordinates_tetrahedron[:,1] = nodes[:, index[1], index[2], index[3], index[4]]
+  @views value_tetrahedron[:, 1] = data[:, index[1], index[2], index[3], index[4]]
+
+  # Restrict the interpolation to the closest element only.
+  closest_element = index[4]
+  @views element_distances = distances[:,:,:,closest_element]
+
+  # Find a tetrahedron, which is given by four corners, to interpolate from.
+  for i in 1:4
+    # Iterate until a valid tetrahedron is found.
+    while true
+      index = argmin(element_distances)
+      element_distances[index[1], index[2], index[3]] = maximum_distance
+
+      @views coordinates_tetrahedron[:,i] = nodes[:, index[1], index[2], index[3], closest_element]
+      @views value_tetrahedron[:, i] = data[:, index[1], index[2], index[3], closest_element]
+
+      # Look for another point if current tetrahedron is not valid.
+      if is_valid_tetrahedron(i, coordinates_tetrahedron)
+        break
+      end
+    end
+  end
+
+  # Interpolate from tetrahedron to given point.
+  value_at_point = Array{Float64}(undef, n_variables)
+  for v in 1:n_variables
+    value_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :], coordinates_tetrahedron[2, :], coordinates_tetrahedron[3, :], value_tetrahedron[v, :], point)
+  end
+
+  return value_at_point
 end
 
 # Convert 3d unstructured data to 1d slice and interpolate them.
@@ -1409,7 +1538,7 @@ function find_element(point, pd)
   end
 end
 
-# Interpolate form three corners of a triangle to a single point.
+# Interpolate from three corners of a triangle to a single point.
 function triangle_interpolation(x_coordinates_in, y_coordinates_in, values_in, coordinate_out)
   A = hcat(x_coordinates_in, y_coordinates_in, SVector(1, 1, 1))
   c = A \ values_in
@@ -1417,16 +1546,33 @@ function triangle_interpolation(x_coordinates_in, y_coordinates_in, values_in, c
 end
 
 # Create an axis.
-function axis_curve(pd, slice, point; n_points=1000)
-  curve = zeros(2, n_points)
+function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
+  if n_points == nothing
+    n_points = 64
+  end
+  dimensions = length(point)
+  curve = zeros(dimensions, n_points)
   if slice == :x
-    xmin, xmax = extrema(pd.x)
+    xmin, xmax = extrema(nodes_x)
     curve[1, :] .= range(xmin, xmax, length = n_points)
     curve[2, :] .= point[2]
+    if dimensions === 3
+      curve[3, :] .= point[3]
+    end
   elseif slice == :y
-    ymin, ymax = extrema(pd.y)
+    ymin, ymax = extrema(nodes_y)
     curve[1, :] .= point[1]
     curve[2, :] .= range(ymin, ymax, length = n_points)
+    if dimensions === 3
+      curve[3, :] .= point[3]
+    end
+  elseif slice == :z
+    zmin, zmax = extrema(nodes_z)
+    curve[1, :] .= point[1]
+    curve[2, :] .= point[2]
+    curve[3, :] .= range(zmin, zmax, length = n_points)
+  else
+    @assert false "Input for 'slice' is not supported here."
   end
 
   return curve
