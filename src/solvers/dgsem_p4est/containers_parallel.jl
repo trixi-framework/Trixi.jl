@@ -22,11 +22,11 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
   @unpack _u, local_element_ids, node_indices, local_sides = mpi_interfaces
 
   n_dims = ndims(mpi_interfaces)
-  n_nodes = size(interfaces.u, 3)
-  n_variables = size(interfaces.u, 2)
+  n_nodes = size(mpi_interfaces.u, 3)
+  n_variables = size(mpi_interfaces.u, 2)
 
   resize!(_u, 2 * n_variables * n_nodes^(n_dims-1) * capacity)
-  interfaces.u = unsafe_wrap(Array, pointer(_u),
+  mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
     (2, n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
   resize!(local_element_ids, capacity)
@@ -94,21 +94,27 @@ end
 @inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where NDIMS = NDIMS
 
 function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
-  @unpack _u, _node_indices = mpi_mortars
+  @unpack _u, _node_indices, _normal_directions = mpi_mortars
 
   n_dims = ndims(mpi_mortars)
   n_nodes = size(mpi_mortars.u, 4)
   n_variables = size(mpi_mortars.u, 2)
 
   resize!(_u, 2 * n_variables * 2^(n_dims-1) * n_nodes^(n_dims-1) * capacity)
-  mortars.u = unsafe_wrap(Array, pointer(_u),
+  mpi_mortars.u = unsafe_wrap(Array, pointer(_u),
     (2, n_variables, 2^(n_dims-1), ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
-  resize!(local_element_ids, capacity)
-  resize!(local_element_positions, capacity)
+  resize!(mpi_mortars.local_element_ids, capacity)
+  resize!(mpi_mortars.local_element_positions, capacity)
 
   resize!(_node_indices, 2 * capacity)
-  mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
+  mpi_mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
+
+  resize!(_normal_directions, n_dims * n_nodes^(n_dims-1) * 2^(n_dims-1) * capacity)
+  mpi_mortars.normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
+    (n_dims, ntuple(_ -> n_nodes, n_dims-1)..., 2^(n_dims-1), capacity))
+
+  return nothing
 end
 
 
@@ -212,8 +218,14 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
   init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
 
   # re-initialize mpi cache
-  init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces,
+  @unpack mpi_cache = cache
+  init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
                   nvariables(equations), nnodes(dg), eltype(elements))
+
+  # re-initialize and distribute normal directions of mpi mortars; requires mpi communication, so
+  # the mpi cache must be re-initialized before
+  init_normal_directions!(mpi_mortars, dg.basis, elements)
+  exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 end
 
 

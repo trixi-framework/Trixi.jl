@@ -207,9 +207,9 @@ function create_cache(mesh::ParallelP4estMesh, equations::AbstractEquations, dg:
 end
 
 
-function init_mpi_cache(mesh::ParallelP4estMesh, elements, mpi_interfaces, nvars, nnodes, uEltype)
+function init_mpi_cache(mesh::ParallelP4estMesh, mpi_interfaces, mpi_mortars, nvars, nnodes, uEltype)
   mpi_cache = P4estMPICache(uEltype)
-  init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnodes, uEltype)
+  init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars, nvars, nnodes, uEltype)
 
   return mpi_cache
 end
