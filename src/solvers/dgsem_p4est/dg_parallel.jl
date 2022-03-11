@@ -63,6 +63,7 @@ function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
     # data exists
     interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces[d]) * data_size
     mortars_data_size = length(mpi_cache.mpi_neighbor_mortars[d]) * n_small_elements * 2 * data_size
+    # `NaN |> eltype(...)` ensures that the NaN's are of the appropriate floating point type
     send_buffer[interfaces_data_size+1:interfaces_data_size+mortars_data_size] .= NaN |> eltype(mpi_cache)
 
     for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[d])
