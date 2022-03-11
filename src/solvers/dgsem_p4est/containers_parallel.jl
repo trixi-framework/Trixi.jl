@@ -268,7 +268,11 @@ cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{3}) = @cfunction(ini
 # Function barrier for type stability, overload for parallel P4estMesh
 function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIterFaceUserData)
   @unpack interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars = user_data
-
+  # This function is called during `init_surfaces!`, more precisely it is called for each face
+  # while p4est iterates over the forest. Since `init_surfaces!` can be used to initialize all
+  # surfaces at once or any subset of them, some of the unpacked values above may be `nothing` if
+  # they're not supposed to be initialized during this call. That is why we need additional
+  # `!== nothing` checks below before initializing individual faces.
   if info.sides.elem_count == 2
     # Two neighboring elements => Interface or mortar
 
@@ -291,7 +295,9 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
       if (mortars !== nothing && ndims(mortars) == 3) || (mpi_mortars !== nothing && ndims(mpi_mortars) == 3)
         error("ParallelP4estMesh does not support non-conforming meshes in 3D.")
       end
-      # Check if one of the sides is ghost
+      # First, we check which side is hanging, i.e., on which side we have the refined cells.
+      # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
+      # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
       if sides[1].is_hanging == true
         @assert sides[2].is_hanging == false
         if any(sides[1].is.hanging.is_ghost .== 1) || sides[2].is.full.is_ghost == 1
@@ -299,7 +305,7 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
         else
           face_has_ghost_side = false
         end
-      else # sides[2].is_hanging == 1
+      else # sides[2].is_hanging == true
         @assert sides[1].is_hanging == false
         if sides[1].is.full.is_ghost == 1 || any(sides[2].is.hanging.is_ghost .== 1)
           face_has_ghost_side = true
@@ -461,7 +467,9 @@ function count_surfaces_iter_face_parallel(info, user_data)
       end
     else
       # Hanging nodes => mortar or MPI mortar
-      # Check if one of the sides is ghost
+      # First, we check which side is hanging, i.e., on which side we have the refined cells.
+      # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
+      # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
       if sides[1].is_hanging == true
         @assert sides[2].is_hanging == false
         if any(sides[1].is.hanging.is_ghost .== 1) || sides[2].is.full.is_ghost == 1
