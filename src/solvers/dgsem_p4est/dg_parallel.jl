@@ -156,10 +156,10 @@ end
 
 
 # Return a tuple `indices` where indices[position] is a `(first, last)` tuple for accessing the
-# data associated with the element at `position` of a mortar in an MPI buffer. The data must begin
-# at `index_base`+1 in the MPI buffer. `data_size` is the data size for each small element
-# (i.e. position 1 or 2). The data corresponding to the large element (i.e. position 3) has size
-# `2 * data_size`.
+# data corresponding to the `position` part of a mortar in an MPI buffer. The mortar data must begin
+# at `index_base`+1 in the MPI buffer. `data_size` is the data size associated with each small
+# position (i.e. position 1 or 2). The data corresponding to the large side (i.e. position 3) has
+# size `2 * data_size`.
 @inline function buffer_mortar_indices(mesh::ParallelP4estMesh{2}, index_base, data_size)
   return (
     # first, last for local element in position 1 (small element)
