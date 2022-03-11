@@ -1,9 +1,9 @@
 #src # Structured mesh with mapping
 
-# Here, we want to introduce another mesh type than
-# [Trixi](https://github.com/trixi-framework/Trixi.jl)'s standard mesh [`TreeMesh`](@ref).
-# More precisely, this tutorial is about the curved mesh type [`StructuredMesh`](@ref) which supports
-# fully curved meshes created for instance by an input mapping.
+# Here, we want to introduce another mesh type than the Cartesian [`TreeMesh`](@ref)
+# of [Trixi](https://github.com/trixi-framework/Trixi.jl) used in most tutorials so far.
+# More precisely, this tutorial is about the curved mesh type [`StructuredMesh`](@ref) supporting
+# curved meshes.
 
 # # Creating a curved mesh
 # There are two basic options to define a curved [`StructuredMesh`](@ref) in Trixi. You can

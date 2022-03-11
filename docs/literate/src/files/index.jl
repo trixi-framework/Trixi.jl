@@ -37,7 +37,7 @@
 
 # ### [4 Curved structured mesh with mapping](@ref structured_mesh_mapping)
 #-
-# In this tutorial, the use of Trixi's structured curved mesh type `StructuredMesh` is explained.
+# In this tutorial, the use of Trixi's structured curved mesh type [`StructuredMesh`](@ref) is explained.
 # We present the two basic option to initialize such a mesh. First, the curved domain boundaries
 # of a circular cylinder are set by explicit boundary functions. Then, a fully curved mesh is
 # defined by passing the transformation mapping.
