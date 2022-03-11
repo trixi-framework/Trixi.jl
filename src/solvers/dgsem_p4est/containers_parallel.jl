@@ -217,13 +217,13 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
   # the number of iterations over the mesh in p4est
   init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
 
-  # re-initialize mpi cache
+  # re-initialize MPI cache
   @unpack mpi_cache = cache
   init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
                   nvariables(equations), nnodes(dg), eltype(elements))
 
-  # re-initialize and distribute normal directions of mpi mortars; requires mpi communication, so
-  # the mpi cache must be re-initialized before
+  # re-initialize and distribute normal directions of MPI mortars; requires MPI communication, so
+  # the MPI cache must be re-initialized before
   init_normal_directions!(mpi_mortars, dg.basis, elements)
   exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 end

@@ -155,9 +155,9 @@ end
 
 
 # Returns a tuple `indices` where indices[position] is a (first, last) pair for accessing the
-# data corresponding to the `position` part of a mortar in an mpi buffer. `data_size` is the size of
+# data corresponding to the `position` part of a mortar in an MPI buffer. `data_size` is the size of
 # the data corresponding to each small position and the data associated with the mortar must begin
-# at `index_base`+1 in the mpi buffer.
+# at `index_base`+1 in the MPI buffer.
 @inline function buffer_mortar_indices(mesh::ParallelP4estMesh{2}, index_base, data_size)
   return (
     # first, last for local element in position 1 (small element)
@@ -343,7 +343,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       proc_offsets = unsafe_wrap(Array, info.ghost_layer.proc_offsets, mpi_nranks() + 1)
       ghost_id = sides[remote_side].is.full.quadid # indexes the ghost layer, 0-based
       neighbor_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
-                                1:mpi_nranks()) - 1 # mpi ranks are 0-based
+                                1:mpi_nranks()) - 1 # MPI ranks are 0-based
       neighbor_ranks_interface[interface_id] = neighbor_rank
 
       # Global interface id is the globally unique quadrant id of the quadrant on the primary
@@ -385,14 +385,14 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       ghost_ids = map(pos -> sides[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
       neighbor_ranks = map(ghost_ids) do ghost_id
         return findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
-                         1:mpi_nranks()) - 1 # mpi ranks are 0-based
+                         1:mpi_nranks()) - 1 # MPI ranks are 0-based
       end
       # Determine global quad id of large element to determine global MPI mortar id
       # Furthermore, if large element is ghost, add its owner rank to neighbor_ranks
       if sides[full_side].is.full.is_ghost == 1
         ghost_id = sides[full_side].is.full.quadid
         large_quad_owner_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
-                                          1:mpi_nranks()) - 1 # mpi ranks are 0-based
+                                          1:mpi_nranks()) - 1 # MPI ranks are 0-based
         push!(neighbor_ranks, large_quad_owner_rank)
 
         offset = unsafe_load(mesh.p4est.global_first_quadrant, large_quad_owner_rank + 1) # one-based indexing
@@ -436,8 +436,8 @@ function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars,
 end
 
 
-# Exchange normal directions of small elements of the mpi mortars. They are needed on all involved
-# mpi ranks to calculate the mortar fluxes.
+# Exchange normal directions of small elements of the MPI mortars. They are needed on all involved
+# MPI ranks to calculate the mortar fluxes.
 function exchange_normal_directions!(mpi_mortars, mpi_cache, mesh::ParallelP4estMesh, n_nodes)
   RealT = real(mesh)
   n_dims = ndims(mesh)
