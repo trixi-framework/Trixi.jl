@@ -279,9 +279,9 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
     # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
-    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+    if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface or MPI interface
-      if sides[1].is.full.is_ghost == 1 || sides[2].is.full.is_ghost == 1 # remote side => MPI interface
+      if sides[1].is.full.is_ghost == true || sides[2].is.full.is_ghost == true # remote side => MPI interface
         if mpi_interfaces !== nothing
           init_mpi_interfaces_iter_face_inner(info, sides, user_data)
         end
@@ -300,14 +300,14 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
       # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
       if sides[1].is_hanging == true
         @assert sides[2].is_hanging == false
-        if any(sides[1].is.hanging.is_ghost .== 1) || sides[2].is.full.is_ghost == 1
+        if any(sides[1].is.hanging.is_ghost .== true) || sides[2].is.full.is_ghost == true
           face_has_ghost_side = true
         else
           face_has_ghost_side = false
         end
       else # sides[2].is_hanging == true
         @assert sides[1].is_hanging == false
-        if sides[1].is.full.is_ghost == 1 || any(sides[2].is.hanging.is_ghost .== 1)
+        if sides[1].is.full.is_ghost == true || any(sides[2].is.hanging.is_ghost .== true)
           face_has_ghost_side = true
         else
           face_has_ghost_side = false
@@ -348,9 +348,9 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
   @unpack mpi_interfaces, mpi_interface_id, mesh = user_data
   user_data.mpi_interface_id += 1
 
-  if sides[1].is.full.is_ghost == 1
+  if sides[1].is.full.is_ghost == true
     local_side = 2
-  elseif sides[2].is.full.is_ghost == 1
+  elseif sides[2].is.full.is_ghost == true
     local_side = 1
   else
     error("should not happen")
@@ -403,7 +403,7 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
   @assert sides[hanging_side].is_hanging == true
 
   # Find small quads that are locally available
-  local_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== 0)
+  local_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== false)
 
   # Get id of local small quadrants within their tree
   # Indexing CBinding.Caccessor via a Vector does not work here -> use map instead
@@ -411,7 +411,7 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
   local_small_quad_ids = offsets[hanging_side] .+ tree_small_quad_ids # ids cumulative over local trees
 
   # Determine if large quadrant is available and if yes, determine its id
-  if sides[full_side].is.full.is_ghost == 0
+  if sides[full_side].is.full.is_ghost == false
     local_large_quad_id = offsets[full_side] + sides[full_side].is.full.quadid
   else
     local_large_quad_id = -1 # large quad is ghost
@@ -454,7 +454,7 @@ function count_surfaces_iter_face_parallel(info, user_data)
 
     if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface or MPI interface
-      if sides[1].is.full.is_ghost == 1 || sides[2].is.full.is_ghost == 1 # remote side => MPI interface
+      if sides[1].is.full.is_ghost == true || sides[2].is.full.is_ghost == true # remote side => MPI interface
         # Unpack user_data = [mpi_interface_count] and increment mpi_interface_count
         ptr = Ptr{Int}(user_data)
         id = unsafe_load(ptr, 4)
@@ -472,14 +472,14 @@ function count_surfaces_iter_face_parallel(info, user_data)
       # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
       if sides[1].is_hanging == true
         @assert sides[2].is_hanging == false
-        if any(sides[1].is.hanging.is_ghost .== 1) || sides[2].is.full.is_ghost == 1
+        if any(sides[1].is.hanging.is_ghost .== true) || sides[2].is.full.is_ghost == true
           face_has_ghost_side = true
         else
           face_has_ghost_side = false
         end
-      else # sides[2].is_hanging == 1
+      else # sides[2].is_hanging == true
         @assert sides[1].is_hanging == false
-        if sides[1].is.full.is_ghost == 1 || any(sides[2].is.hanging.is_ghost .== 1)
+        if sides[1].is.full.is_ghost == true || any(sides[2].is.hanging.is_ghost .== true)
           face_has_ghost_side = true
         else
           face_has_ghost_side = false

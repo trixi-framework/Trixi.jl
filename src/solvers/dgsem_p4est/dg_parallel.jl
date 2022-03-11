@@ -323,11 +323,11 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
     # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
-    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0 # No hanging nodes for MPI interfaces
-      if sides[1].is.full.is_ghost == 1
+    if sides[1].is_hanging == false && sides[2].is_hanging == false # No hanging nodes for MPI interfaces
+      if sides[1].is.full.is_ghost == true
         remote_side = 1
         local_side = 2
-      elseif sides[2].is.full.is_ghost == 1
+      elseif sides[2].is.full.is_ghost == true
         remote_side = 2
         local_side = 1
       else # both sides are on this rank -> skip since it's a regular interface
@@ -360,7 +360,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
 
       user_data.interface_id += 1
     else # hanging node
-      if sides[1].is_hanging == 1
+      if sides[1].is_hanging == true
         hanging_side = 1
         full_side = 2
       else
@@ -368,10 +368,10 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
         full_side = 1
       end
       # Verify before accessing is.full / is.hanging
-      @assert sides[hanging_side].is_hanging == 1 && sides[full_side].is_hanging == 0
+      @assert sides[hanging_side].is_hanging == true && sides[full_side].is_hanging == false
 
       # If all quadrants are locally available, this is a regular mortar -> skip
-      if sides[full_side].is.full.is_ghost == 0 && all(sides[hanging_side].is.hanging.is_ghost .== 0)
+      if sides[full_side].is.full.is_ghost == false && all(sides[hanging_side].is.hanging.is_ghost .== false)
         return nothing
       end
 
@@ -379,7 +379,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
                unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
 
       # Find small quads that are remote and determine which rank owns them
-      remote_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== 1)
+      remote_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== true)
       proc_offsets = unsafe_wrap(Array, info.ghost_layer.proc_offsets, mpi_nranks() + 1)
       # indices of small remote quads inside the ghost layer, 0-based
       ghost_ids = map(pos -> sides[hanging_side].is.hanging.quadid[pos], remote_small_quad_positions)
@@ -389,7 +389,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       end
       # Determine global quad id of large element to determine global MPI mortar id
       # Furthermore, if large element is ghost, add its owner rank to neighbor_ranks
-      if sides[full_side].is.full.is_ghost == 1
+      if sides[full_side].is.full.is_ghost == true
         ghost_id = sides[full_side].is.full.quadid
         large_quad_owner_rank = findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
                                           1:mpi_nranks()) - 1 # MPI ranks are 0-based
