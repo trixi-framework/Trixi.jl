@@ -125,7 +125,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   semi = integrator.p
 
   if integrator isa SimpleIntegratorSSP
-    println("WARNING: The TVD-property can not be guaranteed when using a non-conforming mesh (i.e. with AMR).\n")
+    println("WARNING: The TVD property of IDP-FV-DG subcell blending shock-capturing methods is not guaranteed when using a non-conforming mesh (i.e. with AMR).\n")
   end
 
   @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition

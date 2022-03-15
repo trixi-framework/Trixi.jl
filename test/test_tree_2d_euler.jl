@@ -64,6 +64,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [0.18527440131928286, 0.2404798030563736, 0.23269573860381076, 0.6874012187446894])
   end
 
+  @trixi_testset "elixir_euler_shockcapturing_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_subcell.jl"),
+      l2   = [0.0553929262398195, 0.04893322397478265, 0.048963817832536935, 0.20274672386802076],
+      linf = [0.24421260611907802, 0.3304859275088113, 0.3305295968021732, 0.8829660515342019])
+  end
+
   @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
       l2   = [0.14170569763947993, 0.11647068900798814, 0.11647072556898294, 0.3391989213659599],
@@ -175,6 +181,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
       l2   = [0.05569452733654995, 0.033107109983417926, 0.05223609622852158, 0.08007777597488817],
       linf = [0.2535807803900303, 0.17397028249895308, 0.12321616095649354, 0.269046666668995],
+      tspan = (0.0, 0.2),
+      coverage_override = (maxiters=2,))
+  end
+
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
+      l2   = [0.05815738785949766, 0.03556776269333907, 0.050648761230924, 0.07841750042670147],
+      linf = [0.3593491373564508, 0.22403042619291816, 0.15284799979856273, 0.2892795213007946],
       tspan = (0.0, 0.2),
       coverage_override = (maxiters=2,))
   end
