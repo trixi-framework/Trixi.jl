@@ -124,6 +124,10 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   amr_callback = cb.affect!
   semi = integrator.p
 
+  if integrator isa SimpleIntegratorSSP
+    println("WARNING: The TVD-property can not be guaranteed when using a non-conforming mesh (i.e. with AMR).\n")
+  end
+
   @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
     has_changed = amr_callback(integrator,
