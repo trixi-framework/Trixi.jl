@@ -11,6 +11,10 @@ function refine!(u_ode::AbstractVector, adaptor,
                  equations, dg::DGSEM, cache, elements_to_refine)
   # Return early if there is nothing to do
   if isempty(elements_to_refine)
+    if mpi_isparallel()
+      # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      reinitialize_containers!(mesh, equations, dg, cache)
+    end
     return
   end
 
@@ -52,7 +56,7 @@ function refine!(u_ode::AbstractVector, adaptor,
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
@@ -144,6 +148,10 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                   equations, dg::DGSEM, cache, elements_to_remove)
   # Return early if there is nothing to do
   if isempty(elements_to_remove)
+    if mpi_isparallel()
+      # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      reinitialize_containers!(mesh, equations, dg, cache)
+    end
     return
   end
 
@@ -196,7 +204,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 

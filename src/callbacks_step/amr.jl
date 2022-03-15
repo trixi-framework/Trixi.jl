@@ -131,6 +131,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
     while has_changed
       compute_coefficients!(integrator.u, t, semi)
       u_modified!(integrator, true)
+
       has_changed = amr_callback(integrator,
                                  only_refine=amr_callback.adapt_initial_condition_only_refine)
     end
@@ -778,6 +779,7 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
 end
 
 
+include("amr_dg.jl")
 include("amr_dg1d.jl")
 include("amr_dg2d.jl")
 include("amr_dg3d.jl")
