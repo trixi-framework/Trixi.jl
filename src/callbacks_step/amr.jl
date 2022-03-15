@@ -419,11 +419,25 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     coarsened_original_cells = Int[]
   end
 
-  # Store whether there were any cells coarsened or refined
+  # Store whether there were any cells coarsened or refined and perform load balancing
   has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+  # Check if mesh changed on other processes
+  if mpi_isparallel()
+    has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
+  end
+
   if has_changed # TODO: Taal decide, where shall we set this?
     # don't set it to has_changed since there can be changes from earlier calls
     mesh.unsaved_changes = true
+
+    if mpi_isparallel() && amr_callback.dynamic_load_balancing
+      @trixi_timeit timer() "dynamic load balancing" begin
+        global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+        old_global_first_quadrant = copy(global_first_quadrant)
+        partition!(mesh)
+        rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)
+      end
+    end
 
     reinitialize_boundaries!(semi.boundary_conditions, cache)
   end
