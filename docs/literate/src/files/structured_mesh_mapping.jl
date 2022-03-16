@@ -1,16 +1,15 @@
-#src # Structured mesh with mapping
+#src # Structured mesh with curvilinear mapping
 
-# Here, we want to introduce another mesh type than the Cartesian [`TreeMesh`](@ref)
-# of [Trixi](https://github.com/trixi-framework/Trixi.jl) used in most tutorials so far.
+# Here, we want to introduce another mesh type of [Trixi](https://github.com/trixi-framework/Trixi.jl).
 # More precisely, this tutorial is about the curved mesh type [`StructuredMesh`](@ref) supporting
 # curved meshes.
 
 # # Creating a curved mesh
 # There are two basic options to define a curved [`StructuredMesh`](@ref) in Trixi. You can
-# implement functions for the boundaries, or alternatively, set up the complete transformation mapping.
-# We now present one short example each.
+# implement curves for the domain boundaries, or alternatively, set up directly the complete
+# transformation mapping. We now present one short example each.
 
-# ## Mesh defined by boundary functions
+# ## Mesh defined by domain boundary curves
 # Both examples are based on a semdiscretization of the 2D compressible Euler equations.
 
 using OrdinaryDiffEq
@@ -34,12 +33,12 @@ initial_condition = initial_condition_pressure_perturbation
 # Initialize every boundary as a [`boundary_condition_slip_wall`](@ref).
 boundary_conditions = boundary_condition_slip_wall
 
-# The approximation setup is a split-form DG method and `polydeg=4`. We are using the two
-# fluxes [`flux_ranocha`](@ref) and [`flux_lax_friedrichs`](@ref).
+# The approximation setup is an entropy-stable split-form DG method with `polydeg=4`. We are using
+# the two fluxes [`flux_ranocha`](@ref) and [`flux_lax_friedrichs`](@ref).
 solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha))
 
-# We want to define a circular cylinder as physical domain. It contains of an inner semicircle with
+# We want to define a circular cylinder as physical domain. It contains an inner semicircle with
 # radius `r0` and an outer semicircle of radius `r1`.
 
 # ![](https://user-images.githubusercontent.com/74359358/158571800-db71f18a-b4b0-4ca1-b76d-13f68ebf002c.png)
@@ -70,11 +69,11 @@ solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
 #src # \end{document}
 
 
-# The boundary functions with variables in $[-1,1]$ are sorted in the presented way.
+# The domain boundary curves with curve parameter in $[-1,1]$ are sorted as shown in the sketch.
 # They always are orientated from negative to positive coordinate, such that the corners have to
 # fit like this $f1(+1) = f4(-1)$ and $f3(+1) = f2(-1)$.
 
-# In our case we can define the boundary functions as follows:
+# In our case we can define the domain boundary curves as follows:
 r0 = 0.5 # inner radius
 r1 = 5.0 # outer radius
 f1(xi)  = SVector( r0 + 0.5 * (r1 - r0) * (xi + 1), 0.0) # right line
@@ -82,11 +81,11 @@ f2(xi)  = SVector(-r0 - 0.5 * (r1 - r0) * (xi + 1), 0.0) # left line
 f3(eta) = SVector(r0 * cos(0.5 * pi * (eta + 1)), r0 * sin(0.5 * pi * (eta + 1))) # inner circle
 f4(eta) = SVector(r1 * cos(0.5 * pi * (eta + 1)), r1 * sin(0.5 * pi * (eta + 1))) # outer circle
 
-# We create a curved mesh with 16 x 16 elements. The defined boundary functions are passed as a tuple.
+# We create a curved mesh with 16 x 16 elements. The defined domain boundary curves are passed as a tuple.
 cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4), periodicity=false)
 
-# Then, we define the simulation with `T=3` with `semi`, `ode` and `callbacks` aqs for the `TreeMesh`.
+# Then, we define the simulation with endtime `T=3` with `semi`, `ode` and `callbacks`.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions)
 
@@ -98,7 +97,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(analysis_callback,
                         alive_callback,
@@ -117,10 +116,11 @@ plot(pd["p"])
 plot!(getmesh(pd))
 
 
-# ## Mesh defined by mapping
-# As mentioned, you can also define the domain for a `StructuredMesh` by set up a transformation
-# mapping. Here, we want to present a nice mapping, which is often used to test free-stream
-# preservation. It is the reduced 2D version of a mapping described in
+# ## Mesh directly defined by the transformation mapping
+# As mentioned before, you can also define the domain for a `StructuredMesh` by directly setting up
+# a transformation mapping. Here, we want to present a nice mapping, which is often used to test
+# free-stream preservation. Exact free-stream preservation is a crucial property of any numerical
+# method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in
 # [Rueda-Ramírez et al. (2021), p.18](https://arxiv.org/abs/2012.12040).
 
 using OrdinaryDiffEq
@@ -165,7 +165,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl=2.0)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(analysis_callback, alive_callback,
                         stepsize_callback)
@@ -179,6 +179,9 @@ pd = PlotData2D(sol)
 plot(pd["rho"])
 plot!(getmesh(pd))
 
+#src # Plot lösung -1 in 10er log
+
+# TODO: Revise next sentence when plot is changed
 # Besides the expected constant solution for density, we see the nice mesh structure resulting from
 # our transformation mapping.
 

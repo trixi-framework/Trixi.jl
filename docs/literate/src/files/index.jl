@@ -35,7 +35,7 @@
 # explained and added to an exemplary simulation of the Sedov blast wave with the 2D compressible Euler
 # equations.
 
-# ### [4 Curved structured mesh with mapping](@ref structured_mesh_mapping)
+# ### [4 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
 #-
 # In this tutorial, the use of Trixi's structured curved mesh type [`StructuredMesh`](@ref) is explained.
 # We present the two basic option to initialize such a mesh. First, the curved domain boundaries
