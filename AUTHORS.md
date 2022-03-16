@@ -12,7 +12,7 @@ provided substantial additions or modifications. Together, these two groups form
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
-  University of Münster, Germany
+  University of Hamburg, Germany
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
 * [Jesse Chan](https://jlchan.github.io),
