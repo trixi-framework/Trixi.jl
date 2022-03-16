@@ -8,8 +8,10 @@
 # via the icons ![](https://mybinder.org/badge_logo.svg) and ![](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)
 # in the respective tutorial.
 # You can download the raw notebooks from GitHub via ![](https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e).
+
 # **Note:** To improve responsiveness via caching, the notebooks are updated only once a week. They are only
 # available for the latest stable release of Trixi at the time of caching.
+
 # There are tutorials for the following topics:
 
 # ### [1 Introduction to DG methods](@ref scalar_linear_advection_1d)
@@ -66,3 +68,13 @@
 # quadrilateral mesh example. Then, the tutorial will demonstrate how to conceptualize a problem
 # with curved boundaries, generate a curvilinear mesh using the available [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
 # software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.
+
+
+# ## Examples in Trixi
+# Trixi already contains several more coding examples, the so-called `elixirs`. You can find them
+# in the folder [`examples`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/).
+# They are structured by the underlying mesh type and the respective number of spatial dimensions.
+# The name of an elixir is composed of the underlying system of conservation equations (for instance
+# `advection` or `euler`) and other special characteristics like the initial condition
+# (e.g. `gauss`, `astro_jet`, `blast_wave`) or the included simulation features
+# (e.g. `amr`, `shockcapturing`).

@@ -6,7 +6,7 @@
 
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh},
+                           mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
                            equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
@@ -46,7 +46,7 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 
-function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh},
+function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
                            equations, dg::DG, cache, restart_file)
 
   # allocate memory
@@ -86,7 +86,7 @@ end
 
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::ParallelTreeMesh, equations, dg::DG, cache,
+                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
 
@@ -142,7 +142,7 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 
-function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, restart_file)
+function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache, restart_file)
 
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)

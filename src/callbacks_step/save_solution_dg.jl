@@ -6,7 +6,7 @@
 
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh},
+                            mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
                             equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
@@ -75,7 +75,7 @@ end
 
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::ParallelTreeMesh, equations, dg::DG, cache,
+                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
   @unpack output_directory, solution_variables = solution_callback

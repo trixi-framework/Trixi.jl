@@ -442,7 +442,7 @@ function init_surfaces_iter_face_inner(info, user_data)
     # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
-    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+    if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface
       if interfaces !== nothing
         init_interfaces_iter_face_inner(info, sides, user_data)
@@ -603,7 +603,7 @@ function count_surfaces_iter_face(info, user_data)
     # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
-    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+    if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface
       # Unpack user_data = [interface_count] and increment interface_count
       ptr = Ptr{Int}(user_data)
@@ -670,6 +670,8 @@ end
 
 include("containers_2d.jl")
 include("containers_3d.jl")
-
+include("containers_parallel.jl")
+include("containers_parallel_2d.jl")
+include("containers_parallel_3d.jl")
 
 end # @muladd
