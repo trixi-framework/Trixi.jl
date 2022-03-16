@@ -8,12 +8,13 @@
 # TODO: Maybe add a useful source for AMR?
 
 # # Implementation in Trixi
-# In [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) AMR is possible for the mesh types
+# In [Trixi.jl](https://github.com/trixi-framework/Trixi.jl), AMR is possible for the mesh types
 # [`TreeMesh`](@ref) and [`P4estMesh`](@ref). Both meshes are organized in a tree structure
-# and therefore, each element can be refined independently.
+# and therefore, each element can be refined independently. In Trixi, AMR is restricted
+# to a 2:1 refinement ratio between neighboring elements.
 
 # The implementation of AMR is divided into different steps. The basic refinement setting contains
-# an indicator and a controller. These are added to the simulation using an AMR callback.
+# an indicator and a controller. These are added to the simulation by using an AMR callback.
 
 # ### Indicators
 # An indicator delivers a specific measure for the current approximation. It dicides which regions
@@ -29,8 +30,7 @@
 
 # `IndicatorHennemannGassner`, also used as an shock-capturing indicator, was developed by
 # [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935) and is explained in detail
-# in the [tutorial about shock-capturing](@ref shock_capturing). It can be implemented in the
-# following way.
+# in the [tutorial about shock-capturing](@ref shock_capturing). It can be implemented as follows.
 # ````julia
 # amr_indicator = IndicatorHennemannGassner(semi,
 #                                           alpha_max=0.5,
@@ -56,13 +56,14 @@
 # ### Controllers
 # The spatial discretization into elements is binary tree based for both AMR supporting mesh types `TreeMesh`
 # and `P4estMesh`, that means the higher the level in the tree the higher the level of refinement.
-# For instance, an element of level `3` has double resolution in each direction compared to another
+# For instance, a cell of level `3` has double resolution in each direction compared to another
 # with level `2`.
 
 # To transfer specific indicator values to a specific level of refinement, Trixi uses controllers.
 # They are build in three levels, which means there is a base level of refinement `base_level`.
-# Then, there is a medium level `med_level` for indicator values above the threshold `med_threshold`
-# and equally, a maximal level `max_level` for values above `max_threshold`.
+# Then, there is a medium level `med_level`, which corresponds to the initial level of refinement,
+# for indicator values above the threshold `med_threshold` and equally, a maximal level `max_level`
+# for values above `max_threshold`.
 # This variant of controller is called [`ControllerThreeLevel`](@ref) in Trixi.
 # ````julia
 # amr_controller = ControllerThreeLevel(semi, amr_indicator;
@@ -72,8 +73,8 @@
 # ````
 
 # An extension is [`ControllerThreeLevelCombined`](@ref), which uses two different indicators.
-# The primary indicator works in the same way like the sole indicator for `ControllerThreeLevel`.
-# The second indicator with own maximum threshold adds the property, that the target level is set to
+# The primary indicator works the same as the sole indicator for `ControllerThreeLevel`.
+# The second indicator with its own maximum threshold adds the property, that the target level is set to
 # `max_level` additionally if this indicator's value is greater than `max_threshold_secondary`.
 # ````julia
 # amr_controller = ControllerThreeLevelCombined(semi, indicator_primary, indicator_secondary;
@@ -89,8 +90,8 @@
 # It contains a semidiscretization `semi`, the controller `amr_controller` and the parameters `interval`,
 # `adapt_initial_condition` and `adapt_initial_condition_only_refine`.
 
-# Adaptive mesh refinement will be performed every `interval` time steps. `adapt_initial_condition` says
-# that the initial condition already should be adapted before the first time step. And with
+# Adaptive mesh refinement will be performed every `interval` time steps. `adapt_initial_condition` indicates
+# if the initial condition already should be adapted before the first time step. And with
 # `adapt_initial_condition_only_refine=true` the mesh is only refined at the beginning but not coarsened.
 # ````julia
 # amr_callback = AMRCallback(semi, amr_controller,
@@ -125,7 +126,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan);
 
-# To get the best understanding about indicators and controller, we use the simple AMR indicator
+# For the best understanding about indicators and controller, we use the simple AMR indicator
 # `IndicatorMax`. As decribed before, it returns the maximal value of the specified variable
 # (here the only conservation variable). Therefore, regions with a high maximum are refined.
 # This is no really useful numerical application, but a nice demonstration example.
@@ -161,7 +162,7 @@ plot!(getmesh(pd))
 
 
 # # More examples
-# Some more interesting but complicated AMR simulations can be found below and on Trixi's youtube channel
+# Some more interesting but more complicated AMR simulations can be found below and on Trixi's youtube channel
 # ["Trixi Framework"](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg).
 
 # First, we give a [purely hyperbolic simulation of a Sedov blast wave with self-gravity](https://www.youtube.com/watch?v=dxgzgteJdOA).
