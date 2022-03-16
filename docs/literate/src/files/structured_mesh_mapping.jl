@@ -8,7 +8,7 @@
 # # Creating a curved mesh
 # There are two basic options to define a curved [`StructuredMesh`](@ref) in Trixi. You can
 # implement functions for the boundaries, or alternatively, set up the complete transformation mapping.
-# We now present a short example each.
+# We now present one short example each.
 
 # ## Mesh defined by boundary functions
 # Both examples are based on a semdiscretization of the 2D compressible Euler equations.
@@ -42,7 +42,7 @@ solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
 # We want to define a circular cylinder as physical domain. It contains of an inner semicircle with
 # radius `r0` and an outer semicircle of radius `r1`.
 
-# ![](https://objects.githubusercontent.com/github-production-repository-file-5c1aeb/288376573/8224450?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220310%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220310T150855Z&X-Amz-Expires=300&X-Amz-Signature=4fb3540bcb10831cd387afb4c131532a05f99a03ef8916847269f9393f2ef3a1&X-Amz-SignedHeaders=host&actor_id=74359358&key_id=0&repo_id=288376573&response-content-disposition=attachment%3Bfilename%3Dpicture.pdf&response-content-type=application%2Fpdf)
+# ![](https://objects.githubusercontent.com/github-production-repository-file-5c1aeb/288376573/8224450?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220316%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220316T102233Z&X-Amz-Expires=300&X-Amz-Signature=8cfcf9b5b34211ed35bdfb59c991e05d98de8118b9d6f20853a21f6ba180bfe3&X-Amz-SignedHeaders=host&actor_id=74359358&key_id=0&repo_id=288376573&response-content-disposition=attachment%3Bfilename%3Dpicture.pdf&response-content-type=application%2Fpdf)
 
 #src # \documentclass{standalone}
 #src # \usepackage{tikz}
@@ -71,10 +71,10 @@ solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
 
 
 # The boundary functions with variables in $[-1,1]$ are sorted in the presented way.
-# Their orientation always is from negative to positive coordinate, such that the corners have to
+# They always are orientated from negative to positive coordinate, such that the corners have to
 # fit like this $f1(+1) = f4(-1)$ and $f3(+1) = f2(-1)$.
 
-# In our case we can define the boundary function as followed:
+# In our case we can define the boundary functions as follows:
 r0 = 0.5 # inner radius
 r1 = 5.0 # outer radius
 f1(xi)  = SVector( r0 + 0.5 * (r1 - r0) * (xi + 1), 0.0) # right line
@@ -82,12 +82,11 @@ f2(xi)  = SVector(-r0 - 0.5 * (r1 - r0) * (xi + 1), 0.0) # left line
 f3(eta) = SVector(r0 * cos(0.5 * pi * (eta + 1)), r0 * sin(0.5 * pi * (eta + 1))) # inner circle
 f4(eta) = SVector(r1 * cos(0.5 * pi * (eta + 1)), r1 * sin(0.5 * pi * (eta + 1))) # outer circle
 
-
-# Create curved mesh with 16 x 16 elements. The defined boundary functions are passed as a tuple.
+# We create a curved mesh with 16 x 16 elements. The defined boundary functions are passed as a tuple.
 cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4), periodicity=false)
 
-# We define a simulation with `T=3` in the classical way with `semi`, `ode` and `callbacks`.
+# Then, we define the simulation with `T=3` with `semi`, `ode` and `callbacks` aqs for the `TreeMesh`.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions)
 
@@ -119,22 +118,24 @@ plot!(getmesh(pd))
 
 
 # ## Mesh defined by mapping
-# As mentioned, you can also define the domain for a `StructuredMesh` by set up the mapping. Here,
-# we want to present a nice mapping, which is often used to test free-stream preservation. It is the
-# reduced 2D version of a mapping described in [Rueda-Ramírez et al. (2021), p.18](https://arxiv.org/abs/2012.12040).
+# As mentioned, you can also define the domain for a `StructuredMesh` by set up a transformation
+# mapping. Here, we want to present a nice mapping, which is often used to test free-stream
+# preservation. It is the reduced 2D version of a mapping described in
+# [Rueda-Ramírez et al. (2021), p.18](https://arxiv.org/abs/2012.12040).
 
 using OrdinaryDiffEq
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# This mapping is used for testing free-stream preservation. So, we use a constant initial condition.
+# As mentioned, this mapping is used for testing free-stream preservation. So, we use a constant
+# initial condition.
 initial_condition = initial_condition_constant
 
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-# Transformation mapping with variables in $[-1, 1]$ as described in Rueda-Ramírez et al. (2021),
-# p.18 (reduced to 2D):
+# We define the transformation mapping with variables in $[-1, 1]$ as described in
+# Rueda-Ramírez et al. (2021), p.18 (reduced to 2D):
 function mapping(xi_, eta_)
   ## Transform input variables between -1 and 1 onto [0,3]
   xi = 1.5 * xi_ + 1.5
@@ -151,6 +152,7 @@ end
 
 cells_per_dimension = (16, 16)
 
+# Instead of a tuple of boundary functions, the `mesh` now has the mapping as its parameter.
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -184,12 +186,12 @@ plot!(getmesh(pd))
 # ```julia
 # mapping(xi, eta) = SVector(xi + x, eta + y)
 # ```
-# or rotations with rotation matrix $T$
+# or rotations with a rotation matrix $T$
 # ```julia
 # mapping(xi, eta) = T * SVector(xi, eta).
 # ```
 
-# For more curved mesh mappings, please have a look in some
+# For more curved mesh mappings, please have a look at some
 # [elixirs for `StructuredMesh`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples).
 # For another curved mesh type, there is a [tutorial](@ref hohqmesh_tutorial) about Trixi's
 # unstructured mesh type [`UnstructuredMesh2D`] and its use of the
