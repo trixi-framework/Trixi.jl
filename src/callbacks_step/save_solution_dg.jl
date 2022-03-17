@@ -14,9 +14,9 @@ function save_solution_file(u, time, dt, timestep,
 
   # Filename without extension based on current time step
   if isempty(system)
-    filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
+    filename = joinpath(output_directory, @sprintf("solution_%09d.h5", timestep))
   else
-    filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
+    filename = joinpath(output_directory, @sprintf("solution_%s_%09d.h5", system, timestep))
   end
 
   # Convert to different set of variables if requested
