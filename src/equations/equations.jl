@@ -283,6 +283,10 @@ include("inviscid_burgers_1d.jl")
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("shallow_water_2d.jl")
 
+# Shallow water Exner equations
+abstract type AbstractShallowWaterExnerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("shallow_water_exner_2d.jl")
+
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_1d.jl")
