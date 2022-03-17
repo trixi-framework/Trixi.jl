@@ -42,7 +42,6 @@
 # simulations. This tutorial presents the implementation strategy of AMR in Trixi, including the use of
 # different indicators and controllers.
 
-
 # ### 5 Adding a new equation
 # #### [5.1 Scalar conservation law](@ref cubic_conservation_law)
 #-
