@@ -1,10 +1,5 @@
 #src # Non-periodic boundary conditions
 
-# Besides the typical periodic boundary condition [`boundary_condition_periodic`](@ref), which is the
-# default boundary condition in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl), there are
-# some non-periodic BC as well.
-
-
 # # Dirichlet boundary condition
 # First, let's look at the Dirichlet boundary condition [`BoundaryConditionDirichlet`](@ref).
 # ```julia
@@ -14,8 +9,16 @@
 # is used to set the values at the boundary. It can be used to create a boundary condition that sets
 # exact boundary values by passing the exact solution of the equation.
 
+# It is important to note, that standard Dirichlet boundary conditions for hyperbolic PDEs do not
+# make sense in most cases. However, we are using a special weak form of the Dirichlet boundary
+# condition, based on the application of the numerical surface flux. The numerical surface flux
+# takes the solution value from inside the domain and the prescribed value of the outer boundary
+# state as arguments, and solves an approximate Riemann problem to introduce dissipation (and
+# hence stabilization) at the boundary. Hence, the performance of the Dirichlet BC depends on the
+# fidelity of the numerical surface flux.
+
 # The passed boundary value function is called with the same arguments as an initial condition
-# function, i.e., as
+# function, i.e.
 # ```julia
 # boundary_value_function(x, t, equations)
 # ```
@@ -39,8 +42,10 @@ using Plots
 plot(x -> sum(initial_condition(x, 0.0, equations)), label="initial condition", ylim=(-1.5, 1.5))
 
 # Using an advection velocity of `1.0` and the (local) Lax-Friedrichs/Rusanov flux
-# [`FluxLaxFriedrichs`](@ref), we create an inflow boundary on the left and an outflow boundary
-# on the right. To define the inflow values, we initialize a `boundary_value_function`.
+# [`FluxLaxFriedrichs`](@ref) as a numerical surface flux, we are able to create an inflow boundary
+# on the left and an outflow boundary on the right, as the Lax-Friedrichs flux is in this case an
+# exact characteristics Riemann solver. We note that for more complex PDEs different strategies for
+# inflow/outflow boundaries are necessary. To define the inflow values, we initialize a `boundary_value_function`.
 function boundary_condition_sine_sector(x, t, equation::LinearScalarAdvectionEquation1D)
     if 1.0 <= t <= 3.0
         scalar = sin(2 * pi * sum(t - 1.0))
@@ -59,6 +64,9 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (0.0,)
 coordinates_max = (2.0,)
+
+# For the mesh type `TreeMesh` the parameter `periodicity` must be set to `false` in the
+# corresponding direction.
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000,
@@ -75,7 +83,7 @@ ode = semidiscretize(semi, tspan)
 
 analysis_callback = AnalysisCallback(semi, interval=100,)
 
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(analysis_callback,
                         stepsize_callback);
@@ -94,26 +102,18 @@ using Plots
     scatter!([0.0], [sum(boundary_condition(SVector(0.0), sol.t[step], equations))], label="boundary condition")
 end
 
-# As mentioned before, using the `flux_lax_friedrichs` and an advection velocity of `1` for the
-# scalar advection equation yields to an inflow boundary on the left and an outflow on the right.
-# This can be observed nicely in this animation.
 
-
-
-# # Slip wall boundary condition
+# # Other available example elixirs with non-trivial BC
 # Moreover, there are other boundary conditions in Trixi. For instance, you can use the slip wall
-# boundary condition [`boundary_condition_slip_wall`](@ref). It is defined for various equations
-# and different mesh types. Each combination requires its own formulation.
+# boundary condition [`boundary_condition_slip_wall`](@ref).
 
-# For example, explanations for the `CompressibleEulerEquations2D` can be found [here](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.boundary_condition_slip_wall-Tuple{Any,%20AbstractVector{T}%20where%20T,%20Any,%20Any,%20Any,%20CompressibleEulerEquations2D}),
-# and for the `ShallowWaterEquations2D` [here](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.boundary_condition_slip_wall-Tuple{Any,%20AbstractVector{T}%20where%20T,%20Any,%20Any,%20Any,%20ShallowWaterEquations2D}).
+# Trixi provides some interesting examples with different combinations of boundary conditions, e.g.
+# using [`boundary_condition_slip_wall`](@ref) and other self-defined boundary conditions using
+# [`BoundaryConditionDirichlet`](@ref).
 
-# # More examples
-# Trixi provides more examples with different boundary conditions, e.g. with [`boundary_condition_slip_wall`](@ref)
-# and other self-defined boundary conditions using [`BoundaryConditionDirichlet`](@ref).
-
-# For instance, there is a [Mach 3 flow over forward facing step elixir](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_forward_step_amr.jl)
-# for the 2D compressible Euler equations discretized with an AMR [`P4estMesh`](@ref).
+# For instance, there is a 2D compressible Euler setup for a Mach 3 wind tunnel flow with a forward
+# facing step in the elixir [`elixir_euler_forward_step_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_forward_step_amr.jl)
+# discretized with an AMR [`P4estMesh`](@ref).
 # ```@raw html
 #   <!--
 #   Video details
@@ -123,10 +123,12 @@ end
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/glAug1aIxio' frameborder='0' allowfullscreen></iframe></div>
 # ```
-# Source: Trixi's Youtube channel [`Trixi Framework`](https://www.youtube.com/watch?v=glAug1aIxio).
+# Source: [`Video`](https://www.youtube.com/watch?v=glAug1aIxio) on Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
 
-# The [Woodward and Colella double Mach reflection elixir](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_double_mach_amr.jl)
-# gives an example for a mixed boundary condition at the bottom.
+# A double Mach reflection problem for the 2D compressible Euler equations
+# [`elixir_euler_double_mach_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_double_mach_amr.jl)
+# exercises a special boundary conditions along the bottom of the domain that is a mixture of
+# Dirichlet and slip wall.
 # ```@raw html
 #   <!--
 #   Video details
@@ -136,4 +138,20 @@ end
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/WElqqdMhY4A' frameborder='0' allowfullscreen></iframe></div>
 # ```
-# Source: Trixi's Youtube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A).
+# Source: [`Video`](https://www.youtube.com/watch?v=WElqqdMhY4A) on Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
+
+# A channel flow around a cylinder at Mach 3
+# [`elixir_euler_supersonic_cylinder.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_supersonic_cylinder.jl)
+# contains supersonic Mach 3 inflow at the left portion of the domain and supersonic outflow at the
+# right portion of the domain. The top and bottom of the channel as well as the cylinder are treated
+# as Euler slip wall boundaries.
+# ```@raw html
+#   <!--
+#   Video details
+#   * Source: https://www.youtube.com/watch?v=w0A9X38cSe4
+#   * Author: Andrew R. Winters (https://liu.se/en/employee/andwi94)
+#   * Obtain responsive code by inserting link on https://embedresponsively.com
+#   -->
+#   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/w0A9X38cSe4' frameborder='0' allowfullscreen></iframe></div>
+# ```
+# Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
