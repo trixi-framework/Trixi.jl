@@ -165,7 +165,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl=0.9)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(analysis_callback, alive_callback,
                         stepsize_callback)
@@ -174,16 +174,20 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 
+# Now, we want to verify the free-stream preservation property and plot the mesh. For the verification,
+# we calculate the absolute difference of the first conservation variable density `u[1]` and `1.0`.
+# To plot this error and the mesh, we are using the visualization feature `solution_variables`, where
+# you can define your own plotting variables, explained in [visualization](@ref visualization).
+@inline cons2denserror(u, ::CompressibleEulerEquations2D) = SVector(abs(u[1] - 1.0), u[2:4]...)
+Trixi.varnames(::typeof(cons2denserror), ::CompressibleEulerEquations2D) = ("error_density", "rho_v1", "rho_v2", "rho_e")
+pd = PlotData2D(sol; solution_variables=cons2denserror)
+
 using Plots
-pd = PlotData2D(sol)
-plot(pd["rho"])
+plot(pd["error_density"], title="Error in density")
 plot!(getmesh(pd))
 
-#src # Plot lösung -1 in 10er log
-
-# TODO: Revise next sentence when plot is changed
-# Besides the expected constant solution for density, we see the nice mesh structure resulting from
-# our transformation mapping.
+# We observe that the errors in the variable `density` are at the level of machine accuracy.
+# Moreover, the plot shows the mesh structure resulting from our transformation mapping.
 
 # Of course, you can also use other mappings as for instance shifts by $(x, y)$
 # ```julia
