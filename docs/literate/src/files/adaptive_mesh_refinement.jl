@@ -128,7 +128,7 @@ tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan);
 
 # For the best understanding about indicators and controller, we use the simple AMR indicator
-# `IndicatorMax`. As decribed before, it returns the maximal value of the specified variable
+# `IndicatorMax`. As described before, it returns the maximal value of the specified variable
 # (here the only conservation variable). Therefore, regions with a high maximum are refined.
 # This is no really useful numerical application, but a nice demonstration example.
 amr_indicator = IndicatorMax(semi, variable=first)
@@ -146,7 +146,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=1.6)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(amr_callback, stepsize_callback);
 
@@ -185,6 +185,7 @@ plot!(getmesh(pd))
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/dxgzgteJdOA' frameborder='0' allowfullscreen></iframe></div>
 # ```
+# Source: Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg)
 
 # The next example is a numerical simulation of an [ideal MHD rotor on an unstructured AMR mesh](https://www.youtube.com/watch?v=Iei7e9oQ0hs).
 # The used mesh type is a `P4estMesh`.
@@ -197,5 +198,6 @@ plot!(getmesh(pd))
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/Iei7e9oQ0hs' frameborder='0' allowfullscreen></iframe></div>
 # ```
+# Source: Trixi's YouTube channel [`Trixi Framework`](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg)
 
 # For more information, please have a look at the respective links.
