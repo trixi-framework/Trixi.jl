@@ -181,7 +181,15 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
            "Start time" => first(integrator.sol.prob.tspan),
            "Final time" => last(integrator.sol.prob.tspan),
            "time integrator" => integrator.alg |> typeof |> nameof,
+           "adaptive" => integrator.opts.adaptive,
           ]
+  if integrator.opts.adaptive
+    push!(setup,
+      "abstol" => integrator.opts.abstol,
+      "reltol" => integrator.opts.reltol,
+      "controller" => integrator.opts.controller,
+    )
+  end
   summary_box(io, "Time integration", setup)
   println()
 

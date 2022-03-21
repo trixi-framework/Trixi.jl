@@ -56,7 +56,7 @@ function refine!(u_ode::AbstractVector, adaptor,
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
@@ -204,7 +204,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
   end # GC.@preserve old_u_ode
 
   # Sanity check
-  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 && !mpi_isparallel()
+  if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
     @assert ninterfaces(cache.interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 

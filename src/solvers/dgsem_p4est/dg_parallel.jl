@@ -414,7 +414,6 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
         return findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r+1],
                          1:mpi_nranks()) - 1 # MPI ranks are 0-based
       end
-
       # Determine global quad id of large element to determine global MPI mortar id
       # Furthermore, if large element is ghost, add its owner rank to neighbor_ranks
       if sides[full_side].is.full.is_ghost == true
