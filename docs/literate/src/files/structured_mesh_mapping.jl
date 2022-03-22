@@ -41,26 +41,26 @@ solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
 # We want to define a circular cylinder as physical domain. It contains an inner semicircle with
 # radius `r0` and an outer semicircle of radius `r1`.
 
-# ![](https://user-images.githubusercontent.com/74359358/158571800-db71f18a-b4b0-4ca1-b76d-13f68ebf002c.png)
+# ![](https://user-images.githubusercontent.com/74359358/159492083-1709510f-8ba4-4416-9fb1-e2ed2a11c62c.png)
 
-#src # \documentclass{standalone}
+#src # \documentclass[border=0.2cm]{standalone}
 #src # \usepackage{tikz}
 #src # \begin{document}
 #src #   \begin{tikzpicture}
 #src #     % Circular cylinder
-#src #     \draw[->] (0.5,0) -- node[above] {$\textbf{f1}$} (5,0);
-#src #     \draw[<-] (-5,0)  -- node[above] {$\textbf{f2}$} (-0.5,0);
-#src #     \draw[->] (0.5,0) arc (0:180:0.5); \node at (0, 0.8) {$\textbf{f3}$};
-#src #     \draw[->] (5,0)   arc (0:180:5);   \node at (0, 4.7) {$\textbf{f4}$};
-#src #     \draw[dashed] (-5, -0.5)   -- node[below] {$\textbf{r}_1$} (0, -0.5);
+#src #     \draw[<-] (-5,0) -- node[above] {$\textbf{f}_2$} (-0.5,0);
+#src #     \draw[->] (0.5,0) -- node[above] {$\textbf{f}_1$} (5,0);
+#src #     \draw[->] (0.5,0) arc (0:180:0.5); \node at (0, 0.8) {$\textbf{f}_3$};
+#src #     \draw[->] (5,0) arc (0:180:5); \node at (0, 4.7) {$\textbf{f}_4$};
+#src #     \draw[dashed] (-5, -0.5) -- node[below] {$\textbf{r}_1$} (0, -0.5);
 #src #     \draw[dashed] (-0.5, -0.7) -- node[below] {$\textbf{r}_0$} (0, -0.7);
 #src #     % Arrow
 #src #     \draw[line width=0.1cm, ->, bend angle=30, bend left] (4, 2) to (8,3);
 #src #     % Right Square
-#src #     \draw[->] (7,0)  -- node[below] {$\textbf{f1}$} (12,0);
-#src #     \draw[->] (7,5)  -- node[above] {$\textbf{f2}$} (12,5);
-#src #     \draw[->] (7,0)  -- node[left]  {$\textbf{f3}$} (7,5);
-#src #     \draw[->] (12,0) -- node[right] {$\textbf{f4}$} (12,5);
+#src #     \draw[->] (7,0)  -- node[below] {$\textbf{f}_1$} (12,0);
+#src #     \draw[->] (7,5)  -- node[above] {$\textbf{f}_2$} (12,5);
+#src #     \draw[->] (7,0)  -- node[left]  {$\textbf{f}_3$} (7,5);
+#src #     \draw[->] (12,0) -- node[right] {$\textbf{f}_4$} (12,5);
 #src #     % Pressure perturbation
 #src #     \draw[fill] (1.6, 0) arc (0:180:0.1);
 #src #     \draw (1.7, 0) arc (0:180:0.2);
@@ -71,7 +71,7 @@ solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs,
 
 # The domain boundary curves with curve parameter in $[-1,1]$ are sorted as shown in the sketch.
 # They always are orientated from negative to positive coordinate, such that the corners have to
-# fit like this $f1(+1) = f4(-1)$ and $f3(+1) = f2(-1)$.
+# fit like this $f_1(+1) = f_4(-1)$, $f_3(+1) = f_2(-1)$, etc.
 
 # In our case we can define the domain boundary curves as follows:
 r0 = 0.5 # inner radius
@@ -101,7 +101,7 @@ stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(analysis_callback,
                         alive_callback,
-                        stepsize_callback)
+                        stepsize_callback);
 
 # Running the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
@@ -150,9 +150,8 @@ function mapping(xi_, eta_)
   return SVector(x, y)
 end
 
-cells_per_dimension = (16, 16)
-
 # Instead of a tuple of boundary functions, the `mesh` now has the mapping as its parameter.
+cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -160,14 +159,11 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
-analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=250)
 
 stepsize_callback = StepsizeCallback(cfl=0.8)
 
-callbacks = CallbackSet(analysis_callback, alive_callback,
+callbacks = CallbackSet(analysis_callback,
                         stepsize_callback)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
@@ -178,8 +174,8 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 # we calculate the absolute difference of the first conservation variable density `u[1]` and `1.0`.
 # To plot this error and the mesh, we are using the visualization feature `solution_variables`, where
 # you can define your own plotting variables, explained in [visualization](@ref visualization).
-@inline cons2denserror(u, ::CompressibleEulerEquations2D) = SVector(abs(u[1] - 1.0), u[2:4]...)
-Trixi.varnames(::typeof(cons2denserror), ::CompressibleEulerEquations2D) = ("error_density", "rho_v1", "rho_v2", "rho_e")
+@inline cons2denserror(u, ::CompressibleEulerEquations2D) = SVector(abs(u[1] - 1.0), u...)
+Trixi.varnames(::typeof(cons2denserror), ::CompressibleEulerEquations2D) = ("error_density", "rho", "rho_v1", "rho_v2", "rho_e")
 pd = PlotData2D(sol; solution_variables=cons2denserror)
 
 using Plots
