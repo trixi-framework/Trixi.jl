@@ -427,7 +427,6 @@ end
   for (element, position) in zip(local_element_ids[mortar], local_element_positions[mortar])
     if position == 5 # -> large element
       # Project small fluxes to large element.
-      # Project small fluxes to large element.
       multiply_dimensionwise!(
         u_buffer,
         mortar_l2.reverse_lower, mortar_l2.reverse_lower,
