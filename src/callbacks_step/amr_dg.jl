@@ -15,6 +15,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equat
     # Global ids of first and last local quadrants are the same for newly partitioned mesh so the
     # solver does not need to be rebalanced on this rank.
     # Container init uses all-to-all communication -> reinitialize even if there is nothing to do
+    # locally (there are other MPI ranks that need to be rebalanced if this function is called)
     reinitialize_containers!(mesh, equations, dg, cache)
     return
   end

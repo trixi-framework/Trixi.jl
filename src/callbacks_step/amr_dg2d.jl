@@ -12,6 +12,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # Cell ids of the current elements are the same as the local leaf cells of the
     # newly partitioned mesh, so the solver doesn't need to be rebalanced on this rank.
     # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+    # locally (there are other MPI ranks that need to be rebalanced if this function is called)
     reinitialize_containers!(mesh, equations, dg, cache)
     return
   end
@@ -78,6 +79,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
   if isempty(elements_to_refine)
     if mpi_isparallel()
       # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      # locally (there still might be other MPI ranks that have refined elements)
       reinitialize_containers!(mesh, equations, dg, cache)
     end
     return
@@ -201,6 +203,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4est
   if isempty(elements_to_remove)
     if mpi_isparallel()
       # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+      # locally (there still might be other MPI ranks that have coarsened elements)
       reinitialize_containers!(mesh, equations, dg, cache)
     end
     return
