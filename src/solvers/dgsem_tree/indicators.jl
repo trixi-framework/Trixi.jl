@@ -16,12 +16,6 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
   return nothing
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralShockCapturingSubcell)
-  element_variables[:indicator_shock_capturing_max]  = indicator.cache.ContainerShockCapturingIndicator.alpha_max_per_element
-  element_variables[:indicator_shock_capturing_mean] = indicator.cache.ContainerShockCapturingIndicator.alpha_mean_per_element
-  return nothing
-end
-
 
 """
     IndicatorHennemannGassner

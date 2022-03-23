@@ -214,7 +214,7 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
   @unpack indicator_threaded = indicator_IDP.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
-  @unpack alpha, alpha1, alpha2, var_max, var_min, alpha_max_per_element, alpha_mean_per_element = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack alpha, alpha1, alpha2, var_max, var_min = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   @unpack inverse_weights = dg.basis
 
@@ -328,36 +328,32 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
       var = indicator_IDP.variable(u_local, equations)
       if abs(var_max[i, j, element] - var) < sqrt(eps()) || abs(var_min[i, j, element] - var) < sqrt(eps())
         alpha[i, j, element] = 0.0
-      else
-        # Calculate P_plus and P_minus
-        # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-        val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
-        val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
-        val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
-        val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
-
-        P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
-                  max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
-        P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
-                  min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
-
-        # Calculate alpha_plus and alpha_minus
-        frac_plus  = (var_max[i, j, element] - var) / P_plus
-        frac_minus = (var_min[i, j, element] - var) / P_minus
-
-        alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
-        alpha_minus = 1 - min(1.0, max(0.0, frac_minus))
-
-        # Calculate alpha at nodes
-        alpha[i, j, element] = max(alpha_plus, alpha_minus)
-
-        # Clip the maximum amount of FV allowed
-        alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
+        continue
       end
+      # Calculate P_plus and P_minus
+      # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+      val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
+      val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
+      val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
+      val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
 
-      # Calculate maximum and mean alpha per element
-      alpha_max_per_element[element] = max(alpha_max_per_element[element], alpha[i, j, element])
-      alpha_mean_per_element[element] += 1/3 * 1/(nnodes(dg)^2) * alpha[i, j, element]
+      P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
+                max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
+      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+
+      # Calculate alpha_plus and alpha_minus
+      frac_plus  = (var_max[i, j, element] - var) / P_plus
+      frac_minus = (var_min[i, j, element] - var) / P_minus
+
+      alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
+      alpha_minus = 1 - min(1.0, max(0.0, frac_minus))
+
+      # Calculate alpha at nodes
+      alpha[i, j, element] = max(alpha_plus, alpha_minus)
+
+      # Clip the maximum amount of FV allowed
+      alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
     end
 
     # Calculate alpha1 and alpha2
