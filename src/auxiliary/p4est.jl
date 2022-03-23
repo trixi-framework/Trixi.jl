@@ -118,13 +118,22 @@ coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_
 # 2D
 ghost_new_p4est(p4est::Ptr{p4est_t}) = p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
 # 3D
-# We need `P8EST_CONNECT_FULL` here, otherwise the ghost layer does not always hold all
-# the quadrants that it should hold. If `P8EST_CONNECT_FACE` is used instead, running the 3D elixir
-# `elixir_advection_amr_unstructured_curved.jl` with 3 MPI processes results in errors because
-# after a few time steps, reinitializing the MPI connectivity data structures fails because
-# the reported quadid of a small remote element belonging to an MPI mortar is -1. p4est does this
-# when the associated quadrant should be present but could not be found in the ghost layer
-# (see https://github.com/cburstedde/p4est/blob/439bc9aae849555256ddfe4b03d1f9fe8d18ff0e/src/p8est_iterate.h#L66-L72)
+# In 3D it is not sufficient to use `P8EST_CONNECT_FACE`. Consider the neighbor elements of a mortar
+# in 3D. We have to determine which MPI ranks are involved in this mortar.
+# ┌─────────────┬─────────────┐  ┌───────────────────────────┐
+# │             │             │  │                           │
+# │    small    │    small    │  │                           │
+# │      3      │      4      │  │                           │
+# │             │             │  │           large           │
+# ├─────────────┼─────────────┤  │             5             │
+# │             │             │  │                           │
+# │    small    │    small    │  │                           │
+# │      1      │      2      │  │                           │
+# │             │             │  │                           │
+# └─────────────┴─────────────┘  └───────────────────────────┘
+# Suppose one process only owns element 1. Since element 4 is not connected to element 1 via a face,
+# there is no guarantee that element 4 will be in the ghost layer, if it is constructed with
+# `P8EST_CONNECT_FACE`. But if it is not in the ghost layer, we cannot determine its MPI rank.
 ghost_new_p4est(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
 
 # Check if ghost layer is valid
