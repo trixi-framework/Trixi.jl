@@ -25,7 +25,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [9.773852895157622e-6],
       linf = [0.0005853874124926162],
-      coverage_override = (maxiters=6, initial_refinement_level=1, base_level=1, med_level=2, max_level=3))
+      # override values are different from the serial tests to ensure each process holds at least
+      # one element, otherwise OrdinaryDiffEq fails during initialization
+      coverage_override = (maxiters=6, initial_refinement_level=2, base_level=2, med_level=3, max_level=4))
   end
 
   @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
