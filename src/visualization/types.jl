@@ -348,58 +348,69 @@ end
 
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
 function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
-                                solution_variables=nothing, nvisnodes=2*polydeg(dg))
-
-  @assert ndims(mesh) == 2 "Input must be two-dimensional."
-
-  n_nodes_2d = nnodes(dg)^ndims(mesh)
-  n_elements = nelements(dg, cache)
-
-  # build nodes on reference element (seems to be the right ordering)
-  r, s = reference_node_coordinates_2d(dg)
-
-  # reference plotting nodes
-  if nvisnodes == 0 || nvisnodes === nothing
-    nvisnodes = polydeg(dg) + 1
-  end
-  plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
-
-  # create triangulation for plotting nodes
-  r_plot, s_plot = (x->plotting_interp_matrix*x).((r, s)) # interpolate dg nodes to plotting nodes
-
-  # construct a triangulation of the plotting nodes
-  t = reference_plotting_triangulation((r_plot, s_plot))
-
-  # extract x,y coordinates and solutions on each element
-  uEltype = eltype(u)
-  nvars = nvariables(equations)
-  x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d, n_elements)
-  y = reshape(view(cache.elements.node_coordinates, 2, :, :, :), n_nodes_2d, n_elements)
-  u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x, (n_nodes_2d, n_elements)), nvars))
-  for element in eachelement(dg, cache)
-    sk = 1
-    for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, j, element)
-      u_extracted[sk, element] = u_node
-      sk += 1
-    end
-  end
-
-  # interpolate to volume plotting points
-  xplot, yplot = plotting_interp_matrix*x, plotting_interp_matrix*y
-  uplot = StructArray{SVector{nvars, uEltype}}(map(x->plotting_interp_matrix*x,
-                                                   StructArrays.components(u_extracted)))
-
-  xfp, yfp, ufp = mesh_plotting_wireframe(u_extracted, mesh, equations, dg, cache; nvisnodes=nvisnodes)
+                                solution_variables=nothing, nvisnodes=nothing,
+                                elevations=nothing, slice=:yz, point=[0,0,0])
 
   # convert variables based on solution_variables mapping
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
 
-  transform_to_solution_variables!(uplot, solution_variables_, equations)
-  transform_to_solution_variables!(ufp, solution_variables_, equations)
+  if ndims(mesh) == 2
+    n_nodes_2d = nnodes(dg)^ndims(mesh)
+    n_elements = nelements(dg, cache)
 
-  return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+    # build nodes on reference element (seems to be the right ordering)
+    r, s = reference_node_coordinates_2d(dg)
+
+    # reference plotting nodes
+    if nvisnodes == nothing
+      nvisnodes=2*polydeg(dg)
+    else nvisnodes == 0
+      nvisnodes = polydeg(dg) + 1
+    end
+    plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
+
+    # create triangulation for plotting nodes
+    r_plot, s_plot = (x->plotting_interp_matrix*x).((r, s)) # interpolate dg nodes to plotting nodes
+
+    # construct a triangulation of the plotting nodes
+    t = reference_plotting_triangulation((r_plot, s_plot))
+
+    # extract x,y coordinates and solutions on each element
+    uEltype = eltype(u)
+    nvars = nvariables(equations)
+    x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d, n_elements)
+    y = reshape(view(cache.elements.node_coordinates, 2, :, :, :), n_nodes_2d, n_elements)
+    u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_->similar(x, (n_nodes_2d, n_elements)), nvars))
+    for element in eachelement(dg, cache)
+      sk = 1
+      for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        u_extracted[sk, element] = u_node
+        sk += 1
+      end
+    end
+    # interpolate to volume plotting points
+    xplot, yplot = plotting_interp_matrix*x, plotting_interp_matrix*y
+    uplot = StructArray{SVector{nvars, uEltype}}(map(x->plotting_interp_matrix*x,
+                                                   StructArrays.components(u_extracted)))
+
+    xfp, yfp, ufp = mesh_plotting_wireframe(u_extracted, mesh, equations, dg, cache; nvisnodes=nvisnodes)
+
+    transform_to_solution_variables!(uplot, solution_variables_, equations)
+    transform_to_solution_variables!(ufp, solution_variables_, equations)
+
+    return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+  elseif ndims(mesh) == 3
+    if nvisnodes == nothing
+      nvisnodes = 32
+    end
+    nodes = cache.elements.node_coordinates
+    data_on_plane, plane = unstructured_3d_to_2d_plane(nodes, u; elevations, slice, point, nvisnodes)
+    return PlotData2DCartesian(vec(plane[1, 1, :]), vec(plane[2, :, 1]), [data_on_plane], variable_names, nothing, nothing, 0, 0)
+  else
+    @assert false "Input must be two- or three-dimensional."
+  end
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
