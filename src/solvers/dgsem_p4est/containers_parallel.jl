@@ -6,20 +6,20 @@
 
 
 mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
-  u                ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
-  local_element_ids::Vector{Int}                   # [interface]
-  node_indices     ::Vector{NTuple{NDIMS, Symbol}} # [interface]
-  local_sides      ::Vector{Int}                   # [interface]
+  u                 ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
+  local_neighbor_ids::Vector{Int}                   # [interface]
+  node_indices      ::Vector{NTuple{NDIMS, Symbol}} # [interface]
+  local_sides       ::Vector{Int}                   # [interface]
 
   # internal `resize!`able storage
-  _u           ::Vector{uEltype}
+  _u                ::Vector{uEltype}
 end
 
 @inline nmpiinterfaces(interfaces::P4estMPIInterfaceContainer) = length(interfaces.local_sides)
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where NDIMS = NDIMS
 
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
-  @unpack _u, local_element_ids, node_indices, local_sides = mpi_interfaces
+  @unpack _u, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
 
   n_dims = ndims(mpi_interfaces)
   n_nodes = size(mpi_interfaces.u, 3)
@@ -29,7 +29,7 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
   mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
     (2, n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
-  resize!(local_element_ids, capacity)
+  resize!(local_neighbor_ids, capacity)
 
   resize!(node_indices, capacity)
 
@@ -51,14 +51,14 @@ function init_mpi_interfaces(mesh::ParallelP4estMesh, equations, basis, elements
   u = unsafe_wrap(Array, pointer(_u),
     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mpi_interfaces))
 
-  local_element_ids = Vector{Int}(undef, n_mpi_interfaces)
+  local_neighbor_ids = Vector{Int}(undef, n_mpi_interfaces)
 
   node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_mpi_interfaces)
 
   local_sides = Vector{Int}(undef, n_mpi_interfaces)
 
   mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS+2}(
-    u, local_element_ids, node_indices, local_sides, _u)
+    u, local_neighbor_ids, node_indices, local_sides, _u)
 
   init_mpi_interfaces!(mpi_interfaces, mesh)
 
@@ -75,22 +75,22 @@ end
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 #
 # Similar to `P4estMortarContainer`. The field `neighbor_ids` has been split up into
-# `local_element_ids` and `local_element_positions` to describe the ids and positions of the locally
+# `local_neighbor_ids` and `local_neighbor_positions` to describe the ids and positions of the locally
 # available elements belonging to a particular MPI mortar. Furthermore, `normal_directions` holds
 # the normal vectors on the surface of the small elements for each mortar.
 mutable struct P4estMPIMortarContainer{NDIMS, uEltype<:Real, RealT<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
-  u                      ::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
-  local_element_ids      ::Vector{Vector{Int}} # [mortar]
-  local_element_positions::Vector{Vector{Int}} # [mortar]
-  node_indices           ::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
-  normal_directions      ::Array{RealT, NDIMSP2} # [dimension, i, j, position, mortar]
+  u                       ::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
+  local_neighbor_ids      ::Vector{Vector{Int}} # [mortar]
+  local_neighbor_positions::Vector{Vector{Int}} # [mortar]
+  node_indices            ::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+  normal_directions       ::Array{RealT, NDIMSP2} # [dimension, i, j, position, mortar]
   # internal `resize!`able storage
-  _u                     ::Vector{uEltype}
-  _node_indices          ::Vector{NTuple{NDIMS, Symbol}}
-  _normal_directions     ::Vector{RealT}
+  _u                      ::Vector{uEltype}
+  _node_indices           ::Vector{NTuple{NDIMS, Symbol}}
+  _normal_directions      ::Vector{RealT}
 end
 
-@inline nmpimortars(mpi_mortars::P4estMPIMortarContainer) = length(mpi_mortars.local_element_ids)
+@inline nmpimortars(mpi_mortars::P4estMPIMortarContainer) = length(mpi_mortars.local_neighbor_ids)
 @inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where NDIMS = NDIMS
 
 function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
@@ -104,8 +104,8 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
   mpi_mortars.u = unsafe_wrap(Array, pointer(_u),
     (2, n_variables, 2^(n_dims-1), ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
-  resize!(mpi_mortars.local_element_ids, capacity)
-  resize!(mpi_mortars.local_element_positions, capacity)
+  resize!(mpi_mortars.local_neighbor_ids, capacity)
+  resize!(mpi_mortars.local_neighbor_positions, capacity)
 
   resize!(_node_indices, 2 * capacity)
   mpi_mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
@@ -132,8 +132,8 @@ function init_mpi_mortars(mesh::ParallelP4estMesh, equations, basis, elements)
   u = unsafe_wrap(Array, pointer(_u),
     (2, nvariables(equations), 2^(NDIMS-1), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mpi_mortars))
 
-  local_element_ids = fill(Vector{Int}(), n_mpi_mortars)
-  local_element_positions = fill(Vector{Int}(), n_mpi_mortars)
+  local_neighbor_ids = fill(Vector{Int}(), n_mpi_mortars)
+  local_neighbor_positions = fill(Vector{Int}(), n_mpi_mortars)
 
   _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mpi_mortars)
   node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mpi_mortars))
@@ -143,7 +143,7 @@ function init_mpi_mortars(mesh::ParallelP4estMesh, equations, basis, elements)
     (NDIMS, ntuple(_ -> nnodes(basis), NDIMS-1)..., 2^(NDIMS-1), n_mpi_mortars))
 
   mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS+1, NDIMS+2, NDIMS+3}(
-    u, local_element_ids, local_element_positions, node_indices, normal_directions,
+    u, local_neighbor_ids, local_neighbor_positions, node_indices, normal_directions,
     _u, _node_indices, _normal_directions)
 
   if n_mpi_mortars > 0
@@ -362,7 +362,7 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
   local_quad_id = offset + tree_quad_id
 
   # p4est uses zero-based indexing, convert to one-based indexing
-  mpi_interfaces.local_element_ids[mpi_interface_id] = local_quad_id + 1
+  mpi_interfaces.local_neighbor_ids[mpi_interface_id] = local_quad_id + 1
   mpi_interfaces.local_sides[mpi_interface_id] = local_side
 
   # Face at which the interface lies
@@ -416,16 +416,16 @@ function init_mpi_mortars_iter_face_inner(info, sides, user_data)
 
   # Write data to mortar container, convert to 1-based indexing
   # Start with small elements
-  local_element_ids = local_small_quad_ids .+ 1
-  local_element_positions = local_small_quad_positions
+  local_neighbor_ids = local_small_quad_ids .+ 1
+  local_neighbor_positions = local_small_quad_positions
   # Add large element information if it is locally available
   if local_large_quad_id > -1
-    push!(local_element_ids, local_large_quad_id + 1) # convert to 1-based index
-    push!(local_element_positions, 2^(ndims(mesh)-1) + 1)
+    push!(local_neighbor_ids, local_large_quad_id + 1) # convert to 1-based index
+    push!(local_neighbor_positions, 2^(ndims(mesh)-1) + 1)
   end
 
-  mpi_mortars.local_element_ids[mpi_mortar_id] = local_element_ids
-  mpi_mortars.local_element_positions[mpi_mortar_id] = local_element_positions
+  mpi_mortars.local_neighbor_ids[mpi_mortar_id] = local_neighbor_ids
+  mpi_mortars.local_neighbor_positions[mpi_mortar_id] = local_neighbor_positions
 
   # init_mortar_node_indices! expects side 1 to contain small elements
   faces = (sides[hanging_side].face, sides[full_side].face)
