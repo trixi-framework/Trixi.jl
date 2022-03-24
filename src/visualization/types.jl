@@ -355,6 +355,7 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
   solution_variables_ = digest_solution_variables(equations, solution_variables)
   variable_names = SVector(varnames(solution_variables_, equations))
 
+  # In the 2D-case create a 'PlotData2DTriangulated' object.
   if ndims(mesh) == 2
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
@@ -401,12 +402,19 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     transform_to_solution_variables!(ufp, solution_variables_, equations)
 
     return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+
+  # In the 3D-case a 'PlotData2DCartesian' object is created.
   elseif ndims(mesh) == 3
+
+    # Set nvisnodes to 32 on default.
     if nvisnodes == nothing
       nvisnodes = 32
     end
+
+    # Convert data.
     nodes = cache.elements.node_coordinates
     data_on_plane, plane = unstructured_3d_to_2d_plane(nodes, u; elevations, slice, point, nvisnodes)
+
     return PlotData2DCartesian(vec(plane[1, 1, :]), vec(plane[2, :, 1]), [data_on_plane], variable_names, nothing, nothing, 0, 0)
   else
     @assert false "Input must be two- or three-dimensional."

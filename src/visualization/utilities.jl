@@ -1612,7 +1612,7 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
   return curve
 end
 
-# Create a grid consisting of the matrices holding coordinates of a plane in 3D-space.
+# Create a grid consisting of three matrices holding the x, y and z coordinates of a plane in 3D-space.
 function create_plane(nodes_x, nodes_y, nodes_z, point, nvisnodes, slice_dimension, other_dimensions)
   node_extrema = [extrema(nodes_x), extrema(nodes_y), extrema(nodes_z)]
   plane = zeros(3, nvisnodes, nvisnodes)
