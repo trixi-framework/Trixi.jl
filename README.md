@@ -13,7 +13,7 @@
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 
 <p align="center">
-  <img width="300px" src="docs/src/assets/logo.png">
+  <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation

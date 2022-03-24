@@ -174,6 +174,31 @@ end
   )
 end
 
+# Return a tuple `indices` where indices[position] is a `(first, last)` tuple for accessing the
+# data corresponding to the `position` part of a mortar in an MPI buffer. The mortar data must begin
+# at `index_base`+1 in the MPI buffer. `data_size` is the data size associated with each small
+# position (i.e. position 1 to 4). The data corresponding to the large side (i.e. position 5) has
+# size `4 * data_size`.
+@inline function buffer_mortar_indices(mesh::ParallelP4estMesh{3}, index_base, data_size)
+  return (
+    # first, last for local element in position 1 (small element)
+    (index_base + 1,
+     index_base + 1 * data_size),
+    # first, last for local element in position 2 (small element)
+    (index_base + 1 * data_size + 1,
+     index_base + 2 * data_size),
+    # first, last for local element in position 3 (small element)
+    (index_base + 2 * data_size + 1,
+     index_base + 3 * data_size),
+    # first, last for local element in position 4 (small element)
+    (index_base + 3 * data_size + 1,
+     index_base + 4 * data_size),
+    # first, last for local element in position 5 (large element)
+    (index_base + 4 * data_size + 1,
+     index_base + 8 * data_size),
+  )
+end
+
 
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
@@ -272,7 +297,7 @@ function init_mpi_neighbor_connectivity(mpi_interfaces, mpi_mortars, mesh::Paral
   end
 
   # Check that all interfaces were counted exactly once
-  @assert sum(length(v) for v in mpi_neighbor_interfaces) == nmpiinterfaces(mpi_interfaces)
+  @assert mapreduce(length, +, mpi_neighbor_interfaces; init=0) == nmpiinterfaces(mpi_interfaces)
 
   return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
