@@ -15,9 +15,7 @@ for human readability.
 - Support for (periodic and non-periodic) SBP operators of
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
   as approximation type in `DGMulti` solvers
-- Basic support for MPI-based parallel simulations using conforming meshes of type `P4estMesh`
-  in 2D and 3D
-- Basic support for MPI-based parallel simulations using non-conforming meshes of type `P4estMesh`
+- Initial support for MPI-based parallel simulations using non-conforming meshes of type `P4estMesh`
   in 2D and 3D including adaptive mesh refinement
 
 #### Removed
