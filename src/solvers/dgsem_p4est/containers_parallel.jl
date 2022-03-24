@@ -292,9 +292,6 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
       end
     else
       # Hanging nodes => mortar or MPI mortar
-      if (mortars !== nothing && ndims(mortars) == 3) || (mpi_mortars !== nothing && ndims(mpi_mortars) == 3)
-        error("ParallelP4estMesh does not support non-conforming meshes in 3D.")
-      end
       # First, we check which side is hanging, i.e., on which side we have the refined cells.
       # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
       # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
