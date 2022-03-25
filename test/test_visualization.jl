@@ -266,11 +266,11 @@ isdir(outdir) && rm(outdir, recursive=true)
                                      tspan=(0,0.1))
         
     @testset "Create 2D plot from 3D solution and general mesh" begin
-      @test_nowarn_debug PlotData2D(sol) isa PlotData2DCartesian
+      @test_nowarn_debug PlotData2D(sol) isa Trixi.PlotData2DCartesian
       pd2D = PlotData2D(sol)
       @test_nowarn_debug Plots.plot(pd2D)
-      @test_nowarn_debug PlotData2D(sol, slice=:xz, point = (0.5, 0.3, 0.1)) isa PlotData2DCartesian
-      @test_nowarn_debug PlotData1D(sol, slice=:xy, point = (0.1, 0.3, 0.3)) isa PlotData2DCartesian
+      @test_nowarn_debug PlotData2D(sol, slice=:xz, point = (0.5, 0.3, 0.1)) isa Trixi.PlotData2DCartesian
+      @test_nowarn_debug PlotData1D(sol, slice=:xy, point = (0.1, 0.3, 0.3)) isa Trixi.PlotData2DCartesian
     end
 
         
