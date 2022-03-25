@@ -264,7 +264,16 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "structured_3d_dgsem", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
+        
+    @testset "Create 2D plot from 3D solution and general mesh" begin
+      @test_nowarn_debug PlotData2D(sol) isa PlotData2DCartesian
+      pd2D = PlotData2D(sol)
+      @test_nowarn_debug Plots.plot(pd2D)
+      @test_nowarn_debug PlotData2D(sol, slice=:xz, point = (0.5, 0.3, 0.1)) isa PlotData2DCartesian
+      @test_nowarn_debug PlotData1D(sol, slice=:xy, point = (0.1, 0.3, 0.3)) isa PlotData2DCartesian
+    end
 
+        
     @testset "1D plot from 3D solution and general mesh" begin
       @testset "Create 1D plot as slice" begin
         @test_nowarn_debug PlotData1D(sol) isa PlotData1D
