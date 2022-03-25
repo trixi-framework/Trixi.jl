@@ -1,7 +1,7 @@
 #src # Adaptive mesh refinement
 
 # Adaptive mesh refinement (AMR) is a method of adapting the resolution of the numerical method
-# to the solution feature, such as e.g. turbulent regions or shocks. In those critical regions
+# to the solution features such as turbulent regions or shocks. In those critical regions
 # of the domain, we want the simulation to use elements with smaller mesh sizes compared to other
 # regions. This should be automatically and dynamically adapted during the run of the simulation.
 
@@ -9,7 +9,7 @@
 # In [Trixi.jl](https://github.com/trixi-framework/Trixi.jl), AMR is possible for the mesh types
 # [`TreeMesh`](@ref) and [`P4estMesh`](@ref). Both meshes are organized in a tree structure
 # and therefore, each element can be refined independently. In Trixi, AMR is restricted
-# to a 2:1 refinement ratio between neighbor elements, this means that the maximum resolution
+# to a 2:1 refinement ratio between neighbor elements. This means that the maximum resolution
 # difference of neighboring elements is a factor of two.
 
 # The implementation of AMR is divided into different steps. The basic refinement setting contains
@@ -32,9 +32,9 @@
 # conservation variable with `first` for any equations. This might be a good choice for a starting
 # example.
 
-# `IndicatorHennemannGassner`, also used as an shock-capturing indicator, was developed by
+# `IndicatorHennemannGassner`, also used as a shock-capturing indicator, was developed by
 # [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935) and is explained in detail
-# in the [tutorial about shock-capturing](@ref shock_capturing). It can be implemented as follows.
+# in the [tutorial about shock-capturing](@ref shock_capturing). It can be constructed as follows.
 # ````julia
 # amr_indicator = IndicatorHennemannGassner(semi,
 #                                           alpha_max=0.5,
@@ -44,18 +44,18 @@
 # ````
 
 # Another indicator is the very basic `IndicatorMax`. It indicates the maximal value of a variable
-# and is therefore mostly for verification and testing. But it might be useful for the basic understanding
-# of the implementation of indicators and AMR in Trixi.
+# and is therefore mostly used for verification and testing. But it might be useful for the basic
+# understanding of the implementation of indicators and AMR in Trixi.
 # ````julia
 # amr_indicator = IndicatorMax(semi, variable=variable)
 # ````
 
 
 # ### Controllers
-# The spatial discretization into elements is tree based for both AMR supporting mesh types `TreeMesh`
-# and `P4estMesh`, that means the higher the level in the tree the higher the level of refinement.
-# For instance, a mesh elements of level `3` has double resolution in each direction compared to
-# another with level `2`.
+# The spatial discretization into elements is tree-based for both AMR supporting mesh types `TreeMesh`
+# and `P4estMesh`. Thus, the higher the level in the tree the higher the level of refinement.
+# For instance, a mesh element of level `3` has double resolution in each direction compared to
+# another element with level `2`.
 
 # To map specific indicator values to a desired level of refinement, Trixi uses controllers.
 # They are build in three levels: There is a base level of refinement `base_level`, which is the
@@ -69,9 +69,11 @@
 #                                       med_level=5, med_threshold=0.1,
 #                                       max_level=6, max_threshold=0.6)
 # ````
+# You can also set `med_level=0` to use the current level as target, see the docstring of
+# [`ControllerThreeLevel`](@ref).
 
 # An extension is [`ControllerThreeLevelCombined`](@ref), which uses two different indicators.
-# The primary indicator works the same as the sole indicator for `ControllerThreeLevel`.
+# The primary indicator works the same as the single indicator for `ControllerThreeLevel`.
 # The second indicator with its own maximum threshold adds the property, that the target level is set to
 # `max_level` additionally if this indicator's value is greater than `max_threshold_secondary`.
 # This is for instance used to assure that a shock has always the maximum refinement level.
@@ -87,12 +89,12 @@
 
 
 # ### Callback
-# The defined indicator and controller are added to the simulation through the callback [`AMRCallback`](@ref).
+# The AMR indicator and controller are added to the simulation through the callback [`AMRCallback`](@ref).
 # It contains a semidiscretization `semi`, the controller `amr_controller` and the parameters `interval`,
-# `adapt_initial_condition` and `adapt_initial_condition_only_refine`.
+# `adapt_initial_condition`, and `adapt_initial_condition_only_refine`.
 
 # Adaptive mesh refinement will be performed every `interval` time steps. `adapt_initial_condition` indicates
-# if the initial condition already should be adapted before the first time step. And with
+# whether the initial condition already should be adapted before the first time step. And with
 # `adapt_initial_condition_only_refine=true` the mesh is only refined at the beginning but not coarsened.
 # ````julia
 # amr_callback = AMRCallback(semi, amr_controller,
@@ -120,20 +122,19 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=30_000)
 
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan);
 
-# For the best understanding about indicators and controller, we use the simple AMR indicator
+# For the best understanding about indicators and controllers, we use the simple AMR indicator
 # `IndicatorMax`. As described before, it returns the maximal value of the specified variable
-# (here the only conservation variable). Therefore, regions with a high maximum are refined.
-# This is no really useful numerical application, but a nice demonstration example.
+# (here the only conserved variable). Therefore, regions with a high maximum are refined.
+# This is not really useful numerical application, but a nice demonstration example.
 amr_indicator = IndicatorMax(semi, variable=first)
 
-# These values are transferred to a refinement level with the `ControllerThreeLevel`, such as
+# These values are transferred to a refinement level with the `ControllerThreeLevel`, such that
 # every element with maximal value greater than `0.1` is refined once and elements with maximum
 # above `0.6` are refined twice.
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
