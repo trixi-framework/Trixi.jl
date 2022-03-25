@@ -141,7 +141,6 @@ function code_string(f, t)
   try
     return CodeTracking.code_string(f, t)
   catch e
-    @warn "code_string threw an error" e
     return ""
   end
 end

@@ -99,7 +99,7 @@ function start_mpi_send!(mpi_cache::MPICache, mesh, equations, dg, cache)
          index_base + 4 * data_size),
       )
 
-      for position in cache.mpi_mortars.local_element_positions[mortar]
+      for position in cache.mpi_mortars.local_neighbor_positions[mortar]
         # Determine whether the data belongs to the left or right side
         if cache.mpi_mortars.large_sides[mortar] == 1 # large element on left side
           if position in (1, 2) # small element
@@ -329,8 +329,8 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, m
         direction = 4
       end
     end
-    local_element_id = mpi_interfaces.local_element_ids[interface_id]
-    local_cell_id = elements.cell_ids[local_element_id]
+    local_neighbor_id = mpi_interfaces.local_neighbor_ids[interface_id]
+    local_cell_id = elements.cell_ids[local_neighbor_id]
     remote_cell_id = tree.neighbor_ids[direction, local_cell_id]
     neighbor_ranks_interface[interface_id] = tree.mpi_ranks[remote_cell_id]
     if local_cell_id < remote_cell_id
@@ -357,13 +357,13 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars, m
     large_side = mpi_mortars.large_sides[mortar]
     direction = (orientation - 1) * 2 + large_side
 
-    local_element_ids = mpi_mortars.local_element_ids[mortar]
-    local_element_positions = mpi_mortars.local_element_positions[mortar]
-    if 3 in local_element_positions # large element is on this rank
-      large_element_id = local_element_ids[findfirst(pos -> pos == 3, local_element_positions)]
+    local_neighbor_ids = mpi_mortars.local_neighbor_ids[mortar]
+    local_neighbor_positions = mpi_mortars.local_neighbor_positions[mortar]
+    if 3 in local_neighbor_positions # large element is on this rank
+      large_element_id = local_neighbor_ids[findfirst(pos -> pos == 3, local_neighbor_positions)]
       large_cell_id = elements.cell_ids[large_element_id]
     else # large element is remote
-      cell_id = elements.cell_ids[first(local_element_ids)]
+      cell_id = elements.cell_ids[first(local_neighbor_ids)]
       large_cell_id = tree.neighbor_ids[direction, tree.parent_ids[cell_id]]
     end
 
@@ -540,7 +540,7 @@ function prolong2mpiinterfaces!(cache, u,
   @unpack mpi_interfaces = cache
 
   @threaded for interface in eachmpiinterface(dg, cache)
-    local_element = mpi_interfaces.local_element_ids[interface]
+    local_element = mpi_interfaces.local_neighbor_ids[interface]
 
     if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
       if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
@@ -575,10 +575,10 @@ function prolong2mpimortars!(cache, u,
   @unpack mpi_mortars = cache
 
   @threaded for mortar in eachmpimortar(dg, cache)
-    local_elements = mpi_mortars.local_element_ids[mortar]
-    local_element_positions = mpi_mortars.local_element_positions[mortar]
+    local_neighbor_ids = mpi_mortars.local_neighbor_ids[mortar]
+    local_neighbor_positions = mpi_mortars.local_neighbor_positions[mortar]
 
-    for (element, position) in zip(local_elements, local_element_positions)
+    for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
       if position in (1, 2) # Current element is small
         # Copy solution small to small
         if mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
@@ -684,11 +684,11 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                   nonconservative_terms::Val{false}, equations,
                                   surface_integral, dg::DG, cache)
   @unpack surface_flux = surface_integral
-  @unpack u, local_element_ids, orientations, remote_sides = cache.mpi_interfaces
+  @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
 
   @threaded for interface in eachmpiinterface(dg, cache)
     # Get local neighboring element
-    element = local_element_ids[interface]
+    element = local_neighbor_ids[interface]
 
     # Determine interface direction with respect to element:
     if orientations[interface] == 1 # interface in x-direction
@@ -753,10 +753,10 @@ end
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache,
                                                 mortar, fstar_upper, fstar_lower)
-  local_element_ids = cache.mpi_mortars.local_element_ids[mortar]
-  local_element_positions = cache.mpi_mortars.local_element_positions[mortar]
+  local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
+  local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
-  for (element, position) in zip(local_element_ids, local_element_positions)
+  for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
     if position in (1, 2) # Current element is small
       # Copy flux small to small
       if cache.mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side

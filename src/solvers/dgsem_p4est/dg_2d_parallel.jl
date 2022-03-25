@@ -111,7 +111,7 @@ function prolong2mpiinterfaces!(cache, u,
     # "aligned at the primary element", i.e., the index of the primary side
     # will always run forwards.
     local_side = mpi_interfaces.local_sides[interface]
-    local_element = mpi_interfaces.local_element_ids[interface]
+    local_element = mpi_interfaces.local_neighbor_ids[interface]
     local_indices = mpi_interfaces.node_indices[interface]
 
     i_element_start, i_element_step = index_to_start_step_2d(local_indices[1], index_range)
@@ -136,14 +136,14 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelP4estMesh{2},
                                   nonconservative_terms,
                                   equations, surface_integral, dg::DG, cache)
-  @unpack local_element_ids, node_indices, local_sides = cache.mpi_interfaces
+  @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
   @unpack contravariant_vectors = cache.elements
   index_range = eachnode(dg)
   index_end = last(index_range)
 
   @threaded for interface in eachmpiinterface(dg, cache)
     # Get element and side index information on the local element
-    local_element = local_element_ids[interface]
+    local_element = local_neighbor_ids[interface]
     local_indices = node_indices[interface]
     local_direction = indices2direction(local_indices)
     local_side = local_sides[interface]
@@ -223,8 +223,8 @@ function prolong2mpimortars!(cache, u,
   index_range = eachnode(dg)
 
   @threaded for mortar in eachmpimortar(dg, cache)
-    local_elements = cache.mpi_mortars.local_element_ids[mortar]
-    local_element_positions = cache.mpi_mortars.local_element_positions[mortar]
+    local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
+    local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
     # Get start value and step size for indices on both sides to get the correct face
     # and orientation
@@ -236,7 +236,7 @@ function prolong2mpimortars!(cache, u,
     i_large_start, i_large_step = index_to_start_step_2d(large_indices[1], index_range)
     j_large_start, j_large_step = index_to_start_step_2d(large_indices[2], index_range)
 
-    for (element, position) in zip(local_elements, local_element_positions)
+    for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
       if position == 3 # -> large element
         # Buffer to copy solution values of the large element in the correct orientation
         # before interpolating
@@ -283,7 +283,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                nonconservative_terms, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
-  @unpack local_element_ids, local_element_positions, node_indices = cache.mpi_mortars
+  @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
   @unpack contravariant_vectors = cache.elements
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
   index_range = eachnode(dg)
@@ -352,14 +352,14 @@ end
                                                 mesh::ParallelP4estMesh{2}, equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache, mortar, fstar, u_buffer)
-  @unpack local_element_ids, local_element_positions, node_indices = cache.mpi_mortars
+  @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
 
   small_indices   = node_indices[1, mortar]
   small_direction = indices2direction(small_indices)
   large_indices   = node_indices[2, mortar]
   large_direction = indices2direction(large_indices)
 
-  for (element, position) in zip(local_element_ids[mortar], local_element_positions[mortar])
+  for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
     if position == 3 # -> large element
       # Project small fluxes to large element.
       multiply_dimensionwise!(u_buffer,
