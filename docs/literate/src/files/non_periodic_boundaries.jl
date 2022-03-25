@@ -5,11 +5,11 @@
 # ```julia
 # BoundaryConditionDirichlet(boundary_value_function)
 # ```
-# In Trixi, this creates a Dirichlet boundary condition where the function `boundary_value_function`
+# In Trixi.jl, this creates a Dirichlet boundary condition where the function `boundary_value_function`
 # is used to set the values at the boundary. It can be used to create a boundary condition that sets
 # exact boundary values by passing the exact solution of the equation.
 
-# It is important to note, that standard Dirichlet boundary conditions for hyperbolic PDEs do not
+# It is important to note that standard Dirichlet boundary conditions for hyperbolic PDEs do not
 # make sense in most cases. However, we are using a special weak form of the Dirichlet boundary
 # condition, based on the application of the numerical surface flux. The numerical surface flux
 # takes the solution value from inside the domain and the prescribed value of the outer boundary
@@ -26,7 +26,7 @@
 # corresponding system of equations.
 
 
-# We want to give a short example for a simulation with a Dirichlet BC.
+# We want to give a short example for a simulation with such a Dirichlet BC.
 
 # Consider the one-dimensional linear advection equation with domain $\Omega=[0, 2]$ and a constant
 # zero initial condition.
@@ -47,10 +47,10 @@ plot(x -> sum(initial_condition(x, 0.0, equations)), label="initial condition", 
 # exact characteristics Riemann solver. We note that for more complex PDEs different strategies for
 # inflow/outflow boundaries are necessary. To define the inflow values, we initialize a `boundary_value_function`.
 function boundary_condition_sine_sector(x, t, equation::LinearScalarAdvectionEquation1D)
-    if 1.0 <= t <= 3.0
-        scalar = sin(2 * pi * sum(t - 1.0))
+    if 1 <= t <= 3
+        scalar = sin(2 * pi * sum(t - 1))
     else
-        scalar = 0.0
+        scalar = zero(t)
     end
     return SVector(scalar)
 end
@@ -107,13 +107,13 @@ end
 # Moreover, there are other boundary conditions in Trixi. For instance, you can use the slip wall
 # boundary condition [`boundary_condition_slip_wall`](@ref).
 
-# Trixi provides some interesting examples with different combinations of boundary conditions, e.g.
+# Trixi.jl provides some interesting examples with different combinations of boundary conditions, e.g.
 # using [`boundary_condition_slip_wall`](@ref) and other self-defined boundary conditions using
 # [`BoundaryConditionDirichlet`](@ref).
 
 # For instance, there is a 2D compressible Euler setup for a Mach 3 wind tunnel flow with a forward
 # facing step in the elixir [`elixir_euler_forward_step_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/p4est_2d_dgsem/elixir_euler_forward_step_amr.jl)
-# discretized with an AMR [`P4estMesh`](@ref).
+# discretized with a [`P4estMesh`](@ref) using adaptive mesh refinement (AMR).
 # ```@raw html
 #   <!--
 #   Video details
