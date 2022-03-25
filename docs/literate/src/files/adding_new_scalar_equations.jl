@@ -132,6 +132,11 @@ plot(sol)
 # - to experiment with shock-capturing volume integrals [`VolumeIntegralShockCapturingHG`](@ref)
 #   and adaptive mesh refinement [`AMRCallback`](@ref)
 
+# For further reading, Trixi provides another example on adding a scalar equation. In the
+# [elixir about the KPP problem](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_kpp.jl),
+# the 2D scalar "KPP equation" from [Kurganov, Petrova, Popov (2007)](https://doi.org/10.1137/040614189) is
+# implemented.
+
 
 # ## Summary of the code
 
