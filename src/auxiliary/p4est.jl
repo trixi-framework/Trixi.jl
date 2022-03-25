@@ -89,7 +89,7 @@ end
 function load_p4est(file, ::Val{3})
   conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
   comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi's MPI communicator if p4est supports MPI
-  p8est_load(file, comm, 0, false, C_NULL, pointer(conn_vec))
+  p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
 end
 
 
@@ -118,7 +118,25 @@ coarsen_p4est!(p8est::Ptr{p8est_t}, recursive, coarsen_fn_c, init_fn_c) = p8est_
 # 2D
 ghost_new_p4est(p4est::Ptr{p4est_t}) = p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
 # 3D
-ghost_new_p4est(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FACE)
+# In 3D it is not sufficient to use `P8EST_CONNECT_FACE`. Consider the neighbor elements of a mortar
+# in 3D. We have to determine which MPI ranks are involved in this mortar.
+# ┌─────────────┬─────────────┐  ┌───────────────────────────┐
+# │             │             │  │                           │
+# │    small    │    small    │  │                           │
+# │      3      │      4      │  │                           │
+# │             │             │  │           large           │
+# ├─────────────┼─────────────┤  │             5             │
+# │             │             │  │                           │
+# │    small    │    small    │  │                           │
+# │      1      │      2      │  │                           │
+# │             │             │  │                           │
+# └─────────────┴─────────────┘  └───────────────────────────┘
+# Suppose one process only owns element 1. Since element 4 is not connected to element 1 via a face,
+# there is no guarantee that element 4 will be in the ghost layer, if it is constructed with
+# `P8EST_CONNECT_FACE`. But if it is not in the ghost layer, it will not be available in
+# `iterate_p4est` and thus we cannot determine its MPI rank
+# (see https://github.com/cburstedde/p4est/blob/439bc9aae849555256ddfe4b03d1f9fe8d18ff0e/src/p8est_iterate.h#L66-L72).
+ghost_new_p4est(p8est::Ptr{p8est_t}) = p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
 
 # Check if ghost layer is valid
 # 2D

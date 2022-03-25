@@ -70,7 +70,7 @@ function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
       index_base = interfaces_data_size + (index - 1) * n_small_elements * 2 * data_size
       indices = buffer_mortar_indices(mesh, index_base, data_size)
 
-      for position in cache.mpi_mortars.local_element_positions[mortar]
+      for position in cache.mpi_mortars.local_neighbor_positions[mortar]
         first, last = indices[position]
         if position > n_small_elements # large element
           @views send_buffer[first:last] .= vec(cache.mpi_mortars.u[2, :, :, .., mortar])
@@ -174,6 +174,31 @@ end
   )
 end
 
+# Return a tuple `indices` where indices[position] is a `(first, last)` tuple for accessing the
+# data corresponding to the `position` part of a mortar in an MPI buffer. The mortar data must begin
+# at `index_base`+1 in the MPI buffer. `data_size` is the data size associated with each small
+# position (i.e. position 1 to 4). The data corresponding to the large side (i.e. position 5) has
+# size `4 * data_size`.
+@inline function buffer_mortar_indices(mesh::ParallelP4estMesh{3}, index_base, data_size)
+  return (
+    # first, last for local element in position 1 (small element)
+    (index_base + 1,
+     index_base + 1 * data_size),
+    # first, last for local element in position 2 (small element)
+    (index_base + 1 * data_size + 1,
+     index_base + 2 * data_size),
+    # first, last for local element in position 3 (small element)
+    (index_base + 2 * data_size + 1,
+     index_base + 3 * data_size),
+    # first, last for local element in position 4 (small element)
+    (index_base + 3 * data_size + 1,
+     index_base + 4 * data_size),
+    # first, last for local element in position 5 (large element)
+    (index_base + 4 * data_size + 1,
+     index_base + 8 * data_size),
+  )
+end
+
 
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
@@ -272,7 +297,7 @@ function init_mpi_neighbor_connectivity(mpi_interfaces, mpi_mortars, mesh::Paral
   end
 
   # Check that all interfaces were counted exactly once
-  @assert sum(length(v) for v in mpi_neighbor_interfaces) == nmpiinterfaces(mpi_interfaces)
+  @assert mapreduce(length, +, mpi_neighbor_interfaces; init=0) == nmpiinterfaces(mpi_interfaces)
 
   return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
@@ -339,7 +364,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
       # Sanity check, current face should belong to current MPI interface
       local_tree = unsafe_load_tree(mesh.p4est, sides[local_side].treeid + 1) # one-based indexing
       local_quad_id = local_tree.quadrants_offset + sides[local_side].is.full.quadid
-      @assert interfaces.local_element_ids[interface_id] == local_quad_id + 1 # one-based indexing
+      @assert interfaces.local_neighbor_ids[interface_id] == local_quad_id + 1 # one-based indexing
 
       # Get neighbor ID from ghost layer
       proc_offsets = unsafe_wrap(Array, info.ghost_layer.proc_offsets, mpi_nranks() + 1)
@@ -466,7 +491,7 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache, mesh::ParallelP4est
     for (index, mortar) in enumerate(mpi_neighbor_mortars[d])
       index_base = (index - 1) * n_small_elements * data_size
       indices = buffer_mortar_indices(mesh, index_base, data_size)
-      for position in mpi_mortars.local_element_positions[mortar]
+      for position in mpi_mortars.local_neighbor_positions[mortar]
         if position <= n_small_elements # element is small
           first, last = indices[position]
           @views send_buffer[first:last] .= vec(mpi_mortars.normal_directions[:, .., position, mortar])

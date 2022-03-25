@@ -41,7 +41,7 @@ end
 # Normal directions of small element surfaces are needed to calculate the mortar fluxes. Initialize
 # them for locally available small elements.
 function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis, elements)
-  @unpack local_element_ids, local_element_positions, node_indices = mpi_mortars
+  @unpack local_neighbor_ids, local_neighbor_positions, node_indices = mpi_mortars
   @unpack contravariant_vectors = elements
   index_range = eachnode(basis)
 
@@ -52,7 +52,7 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis,
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-    for (element, position) in zip(local_element_ids[mortar], local_element_positions[mortar])
+    for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
       # ignore large elements
       if position == 3
         continue
