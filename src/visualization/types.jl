@@ -415,7 +415,12 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     nodes = cache.elements.node_coordinates
     data_on_plane, plane = unstructured_3d_to_2d_plane(nodes, u; elevations, slice, point, nvisnodes)
 
-    return PlotData2DCartesian(vec(plane[1, 1, :]), vec(plane[2, :, 1]), [data_on_plane], variable_names, nothing, nothing, 0, 0)
+    data_out = [data_on_plane[:, :, 1]]
+    for v in 2:size(variable_names,1)
+      append!(data_out, [data_on_plane[:, :, v]])
+    end
+
+    return PlotData2DCartesian(vec(plane[1, 1, :]), vec(plane[2, :, 1]), data_out, variable_names, nothing, nothing, 0, 0)
   else
     @assert false "Input must be two- or three-dimensional."
   end
@@ -579,7 +584,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
   elseif ndims(mesh) == 2
     # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
     pd = PlotData2DTriangulated(u, mesh, equations, solver, cache; solution_variables, nvisnodes)
-    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point, nvisnodes)
+    x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point[1:2], nvisnodes)
   else # ndims(mesh) == 3
     # Extract the information required to create a PlotData1D object.
     x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve, slice, point, nvisnodes)

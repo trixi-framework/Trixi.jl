@@ -904,11 +904,12 @@ function unstructured_3d_to_2d_plane(nodes, data; elevations=nothing, slice=:yz,
     plane = create_plane(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], point, nvisnodes, slice_dimension, other_dimensions)
   end
 
-  data_on_plane = zeros(nvisnodes, nvisnodes)
+  n_variables = size(data, 1)
+  data_on_plane = zeros(nvisnodes, nvisnodes, n_variables)
 
   for i in 1:nvisnodes
     for j in 1:nvisnodes
-      data_on_plane[i, j] = Trixi.get_value_at_point(plane[:, i, j], nodes, data)[1]
+      data_on_plane[i, j, :] .= get_value_at_point(plane[:, i, j], nodes, data)
     end
   end
 
