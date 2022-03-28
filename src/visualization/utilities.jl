@@ -882,6 +882,7 @@ end
 
 # Convert 3d unstructured data from a general mesh to 2d data at a plane.
 function unstructured_3d_to_2d_plane(nodes, data; elevations=nothing, slice=:yz, point=[0,0,0], nvisnodes=8)
+  # Set dimensions according to 'slice'.
   if slice === :yz
     slice_dimension = 1
     other_dimensions = [2, 3]
