@@ -881,7 +881,7 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
 end
 
 # Convert 3d unstructured data from a general mesh to 2d data at a plane.
-function unstructured_3d_to_2d_plane(nodes, data; elevations=nothing, slice=:yz, point=(0,0,0), nvisnodes=8)
+function unstructured_3d_to_2d_plane(nodes, data; elevations=nothing, slice=:yz, point=(0,0,0), nvisnodes=32)
   # Set dimensions according to 'slice'.
   if slice === :yz
     slice_dimension = 1
