@@ -364,9 +364,9 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     r, s = reference_node_coordinates_2d(dg)
 
     # reference plotting nodes
-    if nvisnodes == nothing
-      nvisnodes=2*polydeg(dg)
-    else nvisnodes == 0
+    if nvisnodes === nothing
+      nvisnodes = 2 * polydeg(dg)
+    elseif nvisnodes == 0
       nvisnodes = polydeg(dg) + 1
     end
     plotting_interp_matrix = plotting_interpolation_matrix(dg; nvisnodes=nvisnodes)
