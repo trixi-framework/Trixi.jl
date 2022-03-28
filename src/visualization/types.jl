@@ -349,7 +349,7 @@ end
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
 function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
                                 solution_variables=nothing, nvisnodes=nothing,
-                                elevations=nothing, slice=:yz, point=[0,0,0])
+                                elevations=nothing, slice=:yz, point=(0,0,0))
 
   # convert variables based on solution_variables mapping
   solution_variables_ = digest_solution_variables(equations, solution_variables)
