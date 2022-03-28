@@ -893,7 +893,7 @@ function unstructured_3d_to_2d_plane(nodes, data; elevations=nothing, slice=:yz,
     slice_dimension = 3
     other_dimensions = [1, 2]
   else
-    error("illegal dimension '$slice', supported dimensions are :yz, :xz, and :xy")
+    throw(ArgumentError("illegal dimension '$slice', supported dimensions are :yz, :xz, and :xy"))
   end
 
   if elevations !== nothing
