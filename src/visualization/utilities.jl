@@ -897,7 +897,7 @@ function unstructured_3d_to_2d_plane(nodes, data; elevations=nothing, slice=:yz,
   end
 
   if elevations !== nothing
-    nvisnodes = size(elevations,1)
+    nvisnodes = size(elevations, 1)
     plane = create_plane(nodes[1,:,:,:,:], nodes[2,:,:,:,:], nodes[3,:,:,:,:], point, nvisnodes, slice_dimension, other_dimensions)
     plane[slice_dimension, :, :] = elevations
   else
