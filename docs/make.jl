@@ -33,11 +33,12 @@ files = [
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
     "Shock capturing with flux differencing and stage limiter" => "shock_capturing.jl",
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
+    "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
+    "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
+    "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
-    "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations", "cubic_conservation_law.jl"),
-                                "Nonconservative equation" => ("adding_new_equations", "nonconservative_advection.jl")],
-    "Differentiable programming" => "differentiable_programming.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
+    "Differentiable programming" => "differentiable_programming.jl",
     ]
 tutorials = create_tutorials(files)
 
