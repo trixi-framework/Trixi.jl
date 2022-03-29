@@ -24,7 +24,7 @@ end
 
 
 """
-    StructuredMesh(cells_per_dimension, mapping, RealT; unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
+    StructuredMesh(cells_per_dimension, mapping; RealT=Float64, unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -65,7 +65,7 @@ end
 
 
 """
-    StructuredMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
+    StructuredMesh(cells_per_dimension, faces; RealT=Float64, unsaved_changes=true, faces_as_string=faces2string(faces))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -106,7 +106,7 @@ end
 
 
 """
-    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
 
 Create a StructuredMesh that represents a uncurved structured mesh with a rectangular domain.
 
