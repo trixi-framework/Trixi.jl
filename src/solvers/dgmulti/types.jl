@@ -224,9 +224,10 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
   end
 
   md = MeshData(vertex_coordinates, EToV, dg.basis)
-  if NDIMS == 1
-    md = StartUpDG.make_periodic(md, periodicity...)
-  else
+  if NDIMS == 1 && first(periodicity) == true
+    md = StartUpDG.make_periodic(md)
+  end
+  if NDIMS > 1
     md = StartUpDG.make_periodic(md, periodicity)
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
