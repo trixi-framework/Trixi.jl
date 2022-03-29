@@ -666,6 +666,16 @@ Cassette.@context Ctx
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
   end
 
+  @testset "1D non-periodic DGMultiMesh" begin
+    # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
+    dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
+                 surface_integral = SurfaceIntegralWeakForm(flux_central),
+                 volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    mesh = DGMultiMesh(dg, cells_per_dimension=(1,), periodicity=false)
+
+    @test mesh.boundary_faces[:entire_boundary] == [1, 2]
+  end
+
 end
 
 
