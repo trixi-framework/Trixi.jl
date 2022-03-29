@@ -224,7 +224,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
   end
 
   md = MeshData(vertex_coordinates, EToV, dg.basis)
-  if NDIMS == 1 && first(periodicity)==true
+  if NDIMS == 1 && first(periodicity) == true
     md = StartUpDG.make_periodic(md)
   end
   if NDIMS > 1
