@@ -5,5 +5,5 @@ CurrentModule = Trixi
 ```
 
 ```@autodocs
-Modules = [Trixi]
+Modules = [Trixi, Trixi.TrixiMPIArrays]
 ```
