@@ -25,6 +25,7 @@ using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, dropt
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
+using ArrayInterface: static_length
 using SciMLBase: CallbackSet, DiscreteCallback,
                  ODEProblem, ODESolution, ODEFunction
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
@@ -39,7 +40,6 @@ using HDF5: h5open, attributes
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
-using LoopVectorization.ArrayInterface: static_length
 using MPI: MPI
 using MuladdMacro: @muladd
 using GeometryBasics: GeometryBasics
@@ -99,6 +99,7 @@ include("basic_types.jl")
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
+include("auxiliary/mpi_arrays.jl")
 include("auxiliary/p4est.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
