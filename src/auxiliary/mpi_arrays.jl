@@ -8,7 +8,7 @@ using MPI: MPI
 
 import ..Trixi: mpi_comm, mpi_rank
 
-export TrixiMPIArray
+export TrixiMPIArray, local_length
 
 
 """
@@ -132,6 +132,16 @@ end
 #            Alternatively, we could specialize `length` to return a global
 #            length and make sure that all local behavior is still working as
 #            expected (if we use `eachindex` instead of `1:length` etc.).
+# TODO: Document and describe this stuff
+Base.eachindex(u::TrixiMPIArray) = eachindex(parent(u))
+
+function Base.length(u::TrixiMPIArray)
+  local_length = length(parent(u))
+  return MPI.Allreduce(local_length, +, mpi_comm(u))
+end
+
+local_length(u) = length(u)
+local_length(u::TrixiMPIArray) = length(parent(u))
 
 
 end # module

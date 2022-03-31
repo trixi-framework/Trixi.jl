@@ -167,7 +167,7 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
     has_changed = amr_callback(u_ode, semi,
                                integrator.t, integrator.iter; kwargs...)
     if has_changed
-      resize!(integrator, length(u_ode))
+      resize!(integrator, local_length(u_ode))
       u_modified!(integrator, true)
     end
   end
