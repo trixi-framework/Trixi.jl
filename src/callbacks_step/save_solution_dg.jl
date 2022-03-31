@@ -6,7 +6,7 @@
 
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh},
+                            mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
                             equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
@@ -73,10 +73,11 @@ function save_solution_file(u, time, dt, timestep,
   return filename
 end
 
-
-function save_solution_file(u::TrixiMPIArray, time, dt, timestep,
-                            mesh::Union{TreeMesh, P4estMesh},
-                            equations, dg::DG, cache,
+# Note that we cannot dispatch on `u::TrixiMPIArray` since we use
+# `wrap_array_native` before calling this method, loosing the MPI array
+# wrapper type.
+function save_solution_file(u, time, dt, timestep,
+                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
   @unpack output_directory, solution_variables = solution_callback

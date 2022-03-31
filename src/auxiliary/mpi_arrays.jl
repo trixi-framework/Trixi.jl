@@ -339,9 +339,3 @@ julia> mpi_sol = solve(mpi_ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4, s
 
 =#
 
-
-#=
-
-Same tests in parallel
-
-=#
