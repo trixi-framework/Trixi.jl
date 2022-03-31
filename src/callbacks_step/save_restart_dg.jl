@@ -85,8 +85,8 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, Unstructu
 end
 
 
-function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
+function save_restart_file(u::TrixiMPIArray, time, dt, timestep,
+                           mesh::Union{TreeMesh, P4estMesh}, equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
 

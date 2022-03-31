@@ -6,7 +6,7 @@
 
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
+                            mesh::Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh},
                             equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
@@ -74,8 +74,9 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 
-function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
+function save_solution_file(u::TrixiMPIArray, time, dt, timestep,
+                            mesh::Union{TreeMesh, P4estMesh},
+                            equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
   @unpack output_directory, solution_variables = solution_callback

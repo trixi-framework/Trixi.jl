@@ -50,9 +50,17 @@ end
 # TODO: MPI. Adapt
 # - wrap_array - done
 # - wrap_array_native - should not be changed since it should return a plain `Array`
-# - return type of initialization stuff when setting an IC with MPI
+# - return type of initialization stuff when setting an IC with MPI - handled
+#   by allocate_coefficients, done
 # - dispatch on this array type instead of parallel trees etc. and use
 #   `parent(u)` to get local versions instead of `invoke`
+#   TODO: MPI. When do we want to dispatch on `u::TrixiMPIArray` and when on
+#              an MPI parallel mesh type? Right now, we dispatch a lot on
+#              something like `mesh::ParallelTreeMesh{2}`, which can be nice
+#              since it is consistent with dispatch on `mesh::TreeMesh{2}`
+#              in the general case. At first, I just dispatched on TrixiMPIArray
+#              a few times, in particular when using `parent` instead of `invoke`
+#              machinery.
 
 
 # Custom interface and general Base interface not covered by other parts below
@@ -328,5 +336,12 @@ julia> mpi_sol = solve(mpi_ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4, s
    ~I/O~                        7   13.9μs    0.0%  1.98μs   5.20KiB    0.1%     761B
    save mesh                    6    482ns    0.0%  80.3ns     0.00B    0.0%    0.00B
  ────────────────────────────────────────────────────────────────────────────────────
+
+=#
+
+
+#=
+
+Same tests in parallel
 
 =#

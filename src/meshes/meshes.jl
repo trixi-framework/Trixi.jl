@@ -4,6 +4,8 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
+# Default value - meshes supporting parallelization via MPI must opt-in
+mpi_parallel(mesh::AbstractMesh) = Val{false}()
 
 include("tree_mesh.jl")
 include("structured_mesh.jl")

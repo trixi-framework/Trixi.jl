@@ -5,8 +5,8 @@
 @muladd begin
 
 
-function calc_error_norms(func, u, t, analyzer,
-                          mesh::ParallelP4estMesh{3}, equations,
+function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
+                          mesh::P4estMesh{3}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -39,9 +39,9 @@ function calc_error_norms(func, u, t, analyzer,
   # Accumulate local results on root process
   global_l2_error = Vector(l2_error)
   global_linf_error = Vector(linf_error)
-  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
+  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm(u))
+  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm(u))
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
   if mpi_isroot()
     l2_error   = convert(typeof(l2_error),   global_l2_error)
     linf_error = convert(typeof(linf_error), global_linf_error)
@@ -56,8 +56,8 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u,
-                               mesh::ParallelP4estMesh{3}, equations,
+function integrate_via_indices(func::Func, u::TrixiMPIArray,
+                               mesh::P4estMesh{3}, equations,
                                dg::DGSEM, cache, args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -74,8 +74,8 @@ function integrate_via_indices(func::Func, u,
     end
   end
 
-  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
+  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm(u))
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
   if mpi_isroot()
     integral = convert(typeof(integral), global_integral[])
   else

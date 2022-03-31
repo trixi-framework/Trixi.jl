@@ -5,8 +5,8 @@
 @muladd begin
 
 
-function calc_error_norms(func, u, t, analyzer,
-                          mesh::ParallelTreeMesh{2}, equations, initial_condition,
+function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
+                          mesh::TreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
                                                         mesh, equations, initial_condition,
@@ -24,11 +24,11 @@ function calc_error_norms(func, u, t, analyzer,
     n_elements_by_rank = parent(cache.mpi_cache.n_elements_by_rank) # convert OffsetArray to Array
     l2_buf = MPI.VBuffer(global_l2_errors, n_elements_by_rank)
     linf_buf = MPI.VBuffer(global_linf_errors, n_elements_by_rank)
-    MPI.Gatherv!(l2_errors, l2_buf, mpi_root(), mpi_comm())
-    MPI.Gatherv!(linf_errors, linf_buf, mpi_root(), mpi_comm())
+    MPI.Gatherv!(l2_errors, l2_buf, mpi_root(), mpi_comm(u))
+    MPI.Gatherv!(linf_errors, linf_buf, mpi_root(), mpi_comm(u))
   else
-    MPI.Gatherv!(l2_errors, nothing, mpi_root(), mpi_comm())
-    MPI.Gatherv!(linf_errors, nothing, mpi_root(), mpi_comm())
+    MPI.Gatherv!(l2_errors, nothing, mpi_root(), mpi_comm(u))
+    MPI.Gatherv!(linf_errors, nothing, mpi_root(), mpi_comm(u))
   end
 
   # Aggregate element error norms on root process
@@ -52,8 +52,8 @@ function calc_error_norms(func, u, t, analyzer,
   return l2_error, linf_error
 end
 
-function calc_error_norms_per_element(func, u, t, analyzer,
-                                      mesh::ParallelTreeMesh{2}, equations, initial_condition,
+function calc_error_norms_per_element(func, u::TrixiMPIArray, t, analyzer,
+                                      mesh::TreeMesh{2}, equations, initial_condition,
                                       dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -85,8 +85,8 @@ function calc_error_norms_per_element(func, u, t, analyzer,
 end
 
 
-function calc_error_norms(func, u, t, analyzer,
-                          mesh::ParallelP4estMesh{2}, equations,
+function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
+                          mesh::P4estMesh{2}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -119,9 +119,9 @@ function calc_error_norms(func, u, t, analyzer,
   # Accumulate local results on root process
   global_l2_error = Vector(l2_error)
   global_linf_error = Vector(linf_error)
-  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
+  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm(u))
+  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm(u))
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
   if mpi_isroot()
     l2_error   = convert(typeof(l2_error),   global_l2_error)
     linf_error = convert(typeof(linf_error), global_linf_error)
@@ -136,20 +136,19 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u,
-                               mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
+function integrate_via_indices(func::Func, u::TrixiMPIArray,
+                               mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
-  # call the method accepting a general `mesh::TreeMesh{2}`
-  # TODO: MPI, we should improve this; maybe we should dispatch on `u`
-  #       and create some MPI array type, overloading broadcasting and mapreduce etc.
-  #       Then, this specific array type should also work well with DiffEq etc.
-  local_integral = invoke(integrate_via_indices,
-    Tuple{typeof(func), typeof(u), TreeMesh{2}, typeof(equations),
-          typeof(dg), typeof(cache), map(typeof, args)...},
-    func, u, mesh, equations, dg, cache, args..., normalize=normalize)
+  # call the method for the local degrees of freedom and perform a global
+  # MPI reduction afterwards
+  # Note that the simple `TreeMesh` implements an efficient way to compute
+  # the global volume without requiring communication. This global volume is
+  # already used when `normalize=true`.
+  local_integral = integrate_via_indices(func, parent(u), mesh, equations, dg,
+                                         cache, args...; normalize)
 
   # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
-  global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
+  global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm(u))
   if mpi_isroot()
     integral = convert(typeof(local_integral), global_integral[])
   else
@@ -160,8 +159,8 @@ function integrate_via_indices(func::Func, u,
 end
 
 
-function integrate_via_indices(func::Func, u,
-                               mesh::ParallelP4estMesh{2}, equations,
+function integrate_via_indices(func::Func, u::TrixiMPIArray,
+                               mesh::P4estMesh{2}, equations,
                                dg::DGSEM, cache, args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -178,8 +177,8 @@ function integrate_via_indices(func::Func, u,
     end
   end
 
-  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
+  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm(u))
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
   if mpi_isroot()
     integral = convert(typeof(integral), global_integral[])
   else
