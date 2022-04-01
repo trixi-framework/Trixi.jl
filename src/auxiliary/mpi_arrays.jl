@@ -1,16 +1,31 @@
 
-# TODO: MPI. Keep this module inside Trixi or move it to another repo as
-#            external dependency with simple test suite and documentation?
+# TODO: MPI. We keep this module inside Trixi for now. When it stabilizes and
+#            turns out to be generally useful, we can consider moving it to a
+#            separate package with simple test suite and documentation.
 module TrixiMPIArrays
 
 using ArrayInterface: ArrayInterface
 using MPI: MPI
 
-import ..Trixi: mpi_comm, mpi_rank
+using ..Trixi: Trixi, mpi_comm
 
 export TrixiMPIArray, local_length, local_copy
 
 
+# Dispatch etc.
+# The following functions have special dispatch behavior for `TrixiMPIArray`s.
+# - `wrap_array`:
+#   the wrapped array is wrapped again in a `TrixiMPIArray`
+# - `wrap_array_native`:
+#   should not be changed since it should return a plain `Array`
+# - `allocate_coefficients`:
+#   this handles the return type of initialization stuff when setting an IC
+#   with MPI
+# Besides these, we usually dispatch on MPI mesh types such as
+# `mesh::ParallelTreeMesh` or ``mesh::ParallelP4eestMesh`, since this is
+# consistent with other dispatches on the mesh type. However, we dispatch on
+# `u::TrixiMPIArray` whenever this allows simplifying some code, e.g., because
+# we can call a basic function on `parent(u)` and add some MPI stuff on top.
 """
     TrixiMPIArray{T, N} <: AbstractArray{T, N}
 
@@ -29,63 +44,30 @@ struct TrixiMPIArray{T, N, Parent<:AbstractArray{T, N}} <: AbstractArray{T, N}
   u_local::Parent
   mpi_comm::MPI.Comm
   mpi_rank::Int
-  # TODO: MPI. Shall we also include something like the following fields
-  #       and remove them from the global state? Do we ever need something
-  #       from the global MPI state without having a state vector `u`? Does
-  #       including these fields here have a performance impact since it
-  #       increases the size of these arrays?
-  # mpi_size::Int
-  # mpi_isroot::Bool
-  # mpi_isparallel::Bool
+  mpi_size::Int
 end
 
 function TrixiMPIArray(u_local::AbstractArray{T, N}) where {T, N}
   # TODO: MPI. Hard-coded to MPI.COMM_WORLD for now
   mpi_comm = MPI.COMM_WORLD
-  mpi_rank = MPI.Comm_rank(MPI.COMM_WORLD)
-  TrixiMPIArray{T, N, typeof(u_local)}(u_local, mpi_comm, mpi_rank)
+  mpi_rank = MPI.Comm_rank(mpi_comm)
+  mpi_size = MPI.Comm_size(mpi_comm)
+  TrixiMPIArray{T, N, typeof(u_local)}(u_local, mpi_comm, mpi_rank, mpi_size)
 end
-
-
-# Specializations of Base.show without global communication via a global `length`
-# This is necessary when `show`ing `TrixiMPIArray`s only on some ranks, e.g.,
-# for development. 
-function Base.show(io::IO, u::TrixiMPIArray)
-  print(io, "TrixiMPIArray wrapping ", parent(u))
-end
-
-function Base.show(io::IO, mime::MIME"text/plain", u::TrixiMPIArray)
-  print(io, "TrixiMPIArray wrapping ")
-  show(io, mime, parent(u))
-end
-
-
-# TODO: MPI. Adapt
-# - wrap_array - done
-# - wrap_array_native - should not be changed since it should return a plain `Array`
-# - return type of initialization stuff when setting an IC with MPI - handled
-#   by allocate_coefficients, done
-# - dispatch on this array type instead of parallel trees etc. and use
-#   `parent(u)` to get local versions instead of `invoke`
-#   TODO: MPI. When do we want to dispatch on `u::TrixiMPIArray` and when on
-#              an MPI parallel mesh type? Right now, we dispatch a lot on
-#              something like `mesh::ParallelTreeMesh{2}`, which can be nice
-#              since it is consistent with dispatch on `mesh::TreeMesh{2}`
-#              in the general case. At first, I just dispatched on TrixiMPIArray
-#              a few times, in particular when using `parent` instead of `invoke`
-#              machinery.
 
 
 # Custom interface and general Base interface not covered by other parts below
 Base.parent(u::TrixiMPIArray) = u.u_local
 Base.resize!(u::TrixiMPIArray, new_size) = resize!(parent(u), new_size)
-Base.copy(u::TrixiMPIArray) = TrixiMPIArray(copy(parent(u)), u.mpi_comm, u.mpi_rank)
+function Base.copy(u::TrixiMPIArray)
+  return TrixiMPIArray(copy(parent(u)), u.mpi_comm, u.mpi_rank, u.mpi_size)
+end
 
-mpi_comm(u::TrixiMPIArray) = u.mpi_comm
-mpi_rank(u::TrixiMPIArray) = u.mpi_rank
-# TODO: MPI. What about the following interface functions?
-# mpi_nranks(u::TrixiMPIArray) = MPI_SIZE[]
-# mpi_isparallel(u::TrixiMPIArray) = MPI_IS_PARALLEL[]
+Trixi.mpi_comm(u::TrixiMPIArray) = u.mpi_comm
+Trixi.mpi_rank(u::TrixiMPIArray) = u.mpi_rank
+Trixi.mpi_nranks(u::TrixiMPIArray) = u.mpi_size
+# TODO: MPI. What about the following interface?
+# Trixi.mpi_isparallel(u::TrixiMPIArray) = u.mpi_isparallel
 
 
 # Implementation of the abstract array interface of Base
@@ -94,14 +76,18 @@ Base.size(u::TrixiMPIArray) = size(parent(u))
 Base.getindex(u::TrixiMPIArray, idx) = getindex(parent(u), idx)
 Base.setindex!(u::TrixiMPIArray, v, idx) = setindex!(parent(u), v, idx)
 Base.IndexStyle(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = IndexStyle(Parent)
-Base.similar(u::TrixiMPIArray, ::Type{S}, dims::NTuple{N, Int}) where {S, N}	= TrixiMPIArray(similar(parent(u), S, dims), u.mpi_comm, u.mpi_rank)
+function Base.similar(u::TrixiMPIArray, ::Type{S}, dims::NTuple{N, Int}) where {S, N}
+  return TrixiMPIArray(similar(parent(u), S, dims), u.mpi_comm, u.mpi_rank, u.mpi_size)
+end
 Base.axes(u::TrixiMPIArray)	= axes(parent(u))
 
 
 # Implementation of the strided array interface of Base
 # See https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-strided-arrays
 Base.strides(u::TrixiMPIArray) = strides(parent(u))
-Base.unsafe_convert(::Type{Ptr{T}}, u::TrixiMPIArray{T}) where {T} = Base.unsafe_convert(Ptr{T}, parent(u))
+function Base.unsafe_convert(::Type{Ptr{T}}, u::TrixiMPIArray{T}) where {T}
+  return Base.unsafe_convert(Ptr{T}, parent(u))
+end
 Base.elsize(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = elsize(Parent)
 
 
@@ -116,7 +102,9 @@ Base.elsize(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = elsize(P
 ArrayInterface.parent_type(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = Parent
 
 
-# TODO: MPI. Do we need LinearAlgebra methods such as `norm` or `dot`?
+# TODO: MPI. For now, we do not implement specializations of LinearAlgebra
+#            functions such as `norm` or `dot`. We might revisit this again
+#            in the future.
 
 
 # `mapreduce` functionality from Base using global reductions via MPI communication
@@ -150,7 +138,11 @@ end
 # `1:length` etc.). This means that `eachindex(u) != Base.OneTo(length(u))` for
 # `u::TrixiMPIArray` in general, even if `u` and its underlying array use
 # one-based indexing.
+# Some consequences are that we need to implement specializations of `show`,
+# since the default ones call `length`. However, this doesn't work if not all
+# ranks call the same method, e.g., when showing an array only on one rank.
 Base.eachindex(u::TrixiMPIArray) = eachindex(parent(u))
+
 
 function Base.length(u::TrixiMPIArray)
   local_length = length(parent(u))
@@ -166,18 +158,6 @@ local_length(u) = length(u)
 local_length(u::TrixiMPIArray) = length(parent(u))
 
 
-# There are some issues when calling `similar` or `copy` only on a single rank,
-# e.g., when using AMR. This reduces to constructing a `TrixiMPIArray` only on
-# a single rank, even if all fields are passed explicitly. For example,
-# ```julia
-# julia> using Trixi
-
-# julia> if Trixi.mpi_isroot()
-#            Trixi.TrixiMPIArray{Float64, 1, Vector{Float64}}(zeros(7,), Trixi.MPI.COMM_WORLD, 5)
-#        end
-# ```
-# works on the second rank but not on the first rank when running with
-# `tmpi 2 julia --threads=1`.
 """
     local_copy(u)
 
@@ -186,6 +166,19 @@ Like `copy(u)`, but returns an unwrapped copy of the local data `parent(u)` for
 """
 local_copy(u) = copy(u)
 local_copy(u::TrixiMPIArray) = copy(parent(u))
+
+
+# Specializations of Base.show without global communication via a global `length`
+# This is necessary when `show`ing `TrixiMPIArray`s only on some ranks, e.g.,
+# for development.
+function Base.show(io::IO, u::TrixiMPIArray)
+  print(io, "TrixiMPIArray wrapping ", parent(u))
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", u::TrixiMPIArray)
+  print(io, "TrixiMPIArray wrapping ")
+  show(io, mime, parent(u))
+end
 
 
 end # module
