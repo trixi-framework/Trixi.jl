@@ -125,6 +125,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
       linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
 
+    # test error-based step size control
     sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
                 save_everystep=false, callback=callbacks); summary_callback()
     errors = analysis_callback(sol)
