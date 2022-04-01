@@ -47,6 +47,19 @@ function TrixiMPIArray(u_local::AbstractArray{T, N}) where {T, N}
 end
 
 
+# Specializations of Base.show without global communication via a global `length`
+# This is necessary when `show`ing `TrixiMPIArray`s only on some ranks, e.g.,
+# for development. 
+function Base.show(io::IO, u::TrixiMPIArray)
+  print(io, "TrixiMPIArray wrapping ", parent(u))
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", u::TrixiMPIArray)
+  print(io, "TrixiMPIArray wrapping ")
+  show(io, mime, parent(u))
+end
+
+
 # TODO: MPI. Adapt
 # - wrap_array - done
 # - wrap_array_native - should not be changed since it should return a plain `Array`
