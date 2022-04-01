@@ -38,4 +38,42 @@
 end
 
 
+# Normal directions of small element surfaces are needed to calculate the mortar fluxes. Initialize
+# them for locally available small elements.
+function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis, elements)
+  @unpack local_neighbor_ids, local_neighbor_positions, node_indices = mpi_mortars
+  @unpack contravariant_vectors = elements
+  index_range = eachnode(basis)
+
+  @threaded for mortar in 1:nmpimortars(mpi_mortars)
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+
+    for (element, position) in zip(local_neighbor_ids[mortar], local_neighbor_positions[mortar])
+      # ignore large elements
+      if position == 3
+        continue
+      end
+
+      i_small = i_small_start
+      j_small = j_small_start
+      for node in eachnode(basis)
+        # Get the normal direction on the small element.
+        # Note, contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards. This is handled by `get_normal_direction`.
+        normal_direction = get_normal_direction(small_direction, contravariant_vectors,
+                                                i_small, j_small, element)
+        @views mpi_mortars.normal_directions[:, node, position, mortar] .= normal_direction
+
+        i_small += i_small_step
+        j_small += j_small_step
+      end
+    end
+  end
+end
+
+
 end # muladd
