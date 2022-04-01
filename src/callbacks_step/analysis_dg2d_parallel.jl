@@ -24,11 +24,11 @@ function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
     n_elements_by_rank = parent(cache.mpi_cache.n_elements_by_rank) # convert OffsetArray to Array
     l2_buf = MPI.VBuffer(global_l2_errors, n_elements_by_rank)
     linf_buf = MPI.VBuffer(global_linf_errors, n_elements_by_rank)
-    MPI.Gatherv!(l2_errors, l2_buf, mpi_root(), mpi_comm(u))
-    MPI.Gatherv!(linf_errors, linf_buf, mpi_root(), mpi_comm(u))
+    MPI.Gatherv!(l2_errors, l2_buf, mpi_root(), mpi_comm())
+    MPI.Gatherv!(linf_errors, linf_buf, mpi_root(), mpi_comm())
   else
-    MPI.Gatherv!(l2_errors, nothing, mpi_root(), mpi_comm(u))
-    MPI.Gatherv!(linf_errors, nothing, mpi_root(), mpi_comm(u))
+    MPI.Gatherv!(l2_errors, nothing, mpi_root(), mpi_comm())
+    MPI.Gatherv!(linf_errors, nothing, mpi_root(), mpi_comm())
   end
 
   # Aggregate element error norms on root process
@@ -119,9 +119,9 @@ function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
   # Accumulate local results on root process
   global_l2_error = Vector(l2_error)
   global_linf_error = Vector(linf_error)
-  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm(u))
-  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm(u))
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
+  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
+  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
   if mpi_isroot()
     l2_error   = convert(typeof(l2_error),   global_l2_error)
     linf_error = convert(typeof(linf_error), global_linf_error)
@@ -148,7 +148,7 @@ function integrate_via_indices(func::Func, u::TrixiMPIArray,
                                          cache, args...; normalize)
 
   # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
-  global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm(u))
+  global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
   if mpi_isroot()
     integral = convert(typeof(local_integral), global_integral[])
   else
@@ -177,8 +177,8 @@ function integrate_via_indices(func::Func, u::TrixiMPIArray,
     end
   end
 
-  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm(u))
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
+  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
   if mpi_isroot()
     integral = convert(typeof(integral), global_integral[])
   else

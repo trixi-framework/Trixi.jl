@@ -39,9 +39,9 @@ function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
   # Accumulate local results on root process
   global_l2_error = Vector(l2_error)
   global_linf_error = Vector(linf_error)
-  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm(u))
-  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm(u))
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
+  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
+  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
   if mpi_isroot()
     l2_error   = convert(typeof(l2_error),   global_l2_error)
     linf_error = convert(typeof(linf_error), global_linf_error)
@@ -74,8 +74,8 @@ function integrate_via_indices(func::Func, u::TrixiMPIArray,
     end
   end
 
-  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm(u))
-  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm(u))
+  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+  total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
   if mpi_isroot()
     integral = convert(typeof(integral), global_integral[])
   else

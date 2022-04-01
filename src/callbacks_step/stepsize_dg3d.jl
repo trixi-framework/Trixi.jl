@@ -114,7 +114,7 @@ function max_dt(u::TrixiMPIArray, t, mesh::P4estMesh{3},
   # call the method for the local degrees of freedom and perform a global
   # MPI reduction afterwards
   dt = max_dt(parent(u), t, mesh, constant_speed, equations, dg, cache)
-  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm(u))[]
+  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
 
   return dt
 end
@@ -125,7 +125,7 @@ function max_dt(u::TrixiMPIArray, t, mesh::P4estMesh{3},
   # call the method for the local degrees of freedom and perform a global
   # MPI reduction afterwards
   dt = max_dt(parent(u), t, mesh, constant_speed, equations, dg, cache)
-  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm(u))[]
+  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
 
   return dt
 end
