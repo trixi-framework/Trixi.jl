@@ -25,7 +25,7 @@ function refine!(u_ode::AbstractVector, adaptor,
 
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
-  old_u_ode = copy(u_ode)
+  old_u_ode = local_copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
@@ -163,7 +163,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
 
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
-  old_u_ode = copy(u_ode)
+  old_u_ode = local_copy(u_ode)
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 

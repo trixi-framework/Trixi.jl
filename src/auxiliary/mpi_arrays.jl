@@ -8,7 +8,7 @@ using MPI: MPI
 
 import ..Trixi: mpi_comm, mpi_rank
 
-export TrixiMPIArray, local_length
+export TrixiMPIArray, local_length, local_copy
 
 
 """
@@ -66,6 +66,7 @@ end
 # Custom interface and general Base interface not covered by other parts below
 Base.parent(u::TrixiMPIArray) = u.u_local
 Base.resize!(u::TrixiMPIArray, new_size) = resize!(parent(u), new_size)
+Base.copy(u::TrixiMPIArray) = TrixiMPIArray(copy(parent(u)), u.mpi_comm, u.mpi_rank)
 
 mpi_comm(u::TrixiMPIArray) = u.mpi_comm
 mpi_rank(u::TrixiMPIArray) = u.mpi_rank
@@ -80,7 +81,7 @@ Base.size(u::TrixiMPIArray) = size(parent(u))
 Base.getindex(u::TrixiMPIArray, idx) = getindex(parent(u), idx)
 Base.setindex!(u::TrixiMPIArray, v, idx) = setindex!(parent(u), v, idx)
 Base.IndexStyle(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = IndexStyle(Parent)
-Base.similar(u::TrixiMPIArray, ::Type{S}, dims::NTuple{N, Int}) where {S, N}	= TrixiMPIArray(similar(parent(u), S, dims))
+Base.similar(u::TrixiMPIArray, ::Type{S}, dims::NTuple{N, Int}) where {S, N}	= TrixiMPIArray(similar(parent(u), S, dims), u.mpi_comm, u.mpi_rank)
 Base.axes(u::TrixiMPIArray)	= axes(parent(u))
 
 
@@ -143,10 +144,37 @@ function Base.length(u::TrixiMPIArray)
   return MPI.Allreduce(local_length, +, mpi_comm(u))
 end
 
+"""
+    local_length(u)
+
+Like `length(u)`, but returns the length of the local data for `u::TrixiMPIArray`.
+"""
 local_length(u) = length(u)
 local_length(u::TrixiMPIArray) = length(parent(u))
 
 
+# There are some issues when calling `similar` or `copy` only on a single rank,
+# e.g., when using AMR. This reduces to constructing a `TrixiMPIArray` only on
+# a single rank, even if all fields are passed explicitly. For example,
+# ```julia
+# julia> using Trixi
+
+# julia> if Trixi.mpi_isroot()
+#            Trixi.TrixiMPIArray{Float64, 1, Vector{Float64}}(zeros(7,), Trixi.MPI.COMM_WORLD, 5)
+#        end
+# ```
+# works on the second rank but not on the first rank when running with
+# `tmpi 2 julia --threads=1`.
+"""
+    local_copy(u)
+
+Like `copy(u)`, but returns an unwrapped copy of the local data `parent(u)` for
+`u::TrixiMPIArray`.
+"""
+local_copy(u) = copy(u)
+local_copy(u::TrixiMPIArray) = copy(parent(u))
+
+
 end # module
 
-using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, local_length
+using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, local_length, local_copy
