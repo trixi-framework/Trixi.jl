@@ -5,8 +5,8 @@
 @muladd begin
 
 
-function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
-                          mesh::P4estMesh{3}, equations,
+function calc_error_norms(func, u, t, analyzer,
+                          mesh::ParallelP4estMesh{3}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -56,8 +56,8 @@ function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u::TrixiMPIArray,
-                               mesh::P4estMesh{3}, equations,
+function integrate_via_indices(func::Func, u,
+                               mesh::ParallelP4estMesh{3}, equations,
                                dg::DGSEM, cache, args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 

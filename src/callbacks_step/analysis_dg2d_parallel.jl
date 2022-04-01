@@ -5,8 +5,8 @@
 @muladd begin
 
 
-function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
-                          mesh::TreeMesh{2}, equations, initial_condition,
+function calc_error_norms(func, u, t, analyzer,
+                          mesh::ParallelTreeMesh{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
                                                         mesh, equations, initial_condition,
@@ -52,8 +52,8 @@ function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
   return l2_error, linf_error
 end
 
-function calc_error_norms_per_element(func, u::TrixiMPIArray, t, analyzer,
-                                      mesh::TreeMesh{2}, equations, initial_condition,
+function calc_error_norms_per_element(func, u, t, analyzer,
+                                      mesh::ParallelTreeMesh{2}, equations, initial_condition,
                                       dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -85,8 +85,8 @@ function calc_error_norms_per_element(func, u::TrixiMPIArray, t, analyzer,
 end
 
 
-function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
-                          mesh::P4estMesh{2}, equations,
+function calc_error_norms(func, u, t, analyzer,
+                          mesh::ParallelP4estMesh{2}, equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -136,8 +136,8 @@ function calc_error_norms(func, u::TrixiMPIArray, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u::TrixiMPIArray,
-                               mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
+function integrate_via_indices(func::Func, u,
+                               mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   # call the method for the local degrees of freedom and perform a global
   # MPI reduction afterwards
@@ -159,8 +159,8 @@ function integrate_via_indices(func::Func, u::TrixiMPIArray,
 end
 
 
-function integrate_via_indices(func::Func, u::TrixiMPIArray,
-                               mesh::P4estMesh{2}, equations,
+function integrate_via_indices(func::Func, u,
+                               mesh::ParallelP4estMesh{2}, equations,
                                dg::DGSEM, cache, args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
