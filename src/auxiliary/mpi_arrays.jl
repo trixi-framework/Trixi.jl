@@ -43,16 +43,12 @@ fixed step sizes or adaptive step sizes based on CFL or error estimates.
 struct TrixiMPIArray{T, N, Parent<:AbstractArray{T, N}} <: AbstractArray{T, N}
   u_local::Parent
   mpi_comm::MPI.Comm
-  mpi_rank::Int
-  mpi_size::Int
 end
 
 function TrixiMPIArray(u_local::AbstractArray{T, N}) where {T, N}
   # TODO: MPI. Hard-coded to MPI.COMM_WORLD for now
   mpi_comm = MPI.COMM_WORLD
-  mpi_rank = MPI.Comm_rank(mpi_comm)
-  mpi_size = MPI.Comm_size(mpi_comm)
-  TrixiMPIArray{T, N, typeof(u_local)}(u_local, mpi_comm, mpi_rank, mpi_size)
+  TrixiMPIArray{T, N, typeof(u_local)}(u_local, mpi_comm)
 end
 
 
@@ -60,12 +56,10 @@ end
 Base.parent(u::TrixiMPIArray) = u.u_local
 Base.resize!(u::TrixiMPIArray, new_size) = resize!(parent(u), new_size)
 function Base.copy(u::TrixiMPIArray)
-  return TrixiMPIArray(copy(parent(u)), u.mpi_comm, u.mpi_rank, u.mpi_size)
+  return TrixiMPIArray(copy(parent(u)), u.mpi_comm)
 end
 
 Trixi.mpi_comm(u::TrixiMPIArray) = u.mpi_comm
-Trixi.mpi_rank(u::TrixiMPIArray) = u.mpi_rank
-Trixi.mpi_nranks(u::TrixiMPIArray) = u.mpi_size
 
 
 # Implementation of the abstract array interface of Base
@@ -75,7 +69,7 @@ Base.getindex(u::TrixiMPIArray, idx) = getindex(parent(u), idx)
 Base.setindex!(u::TrixiMPIArray, v, idx) = setindex!(parent(u), v, idx)
 Base.IndexStyle(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = IndexStyle(Parent)
 function Base.similar(u::TrixiMPIArray, ::Type{S}, dims::NTuple{N, Int}) where {S, N}
-  return TrixiMPIArray(similar(parent(u), S, dims), u.mpi_comm, u.mpi_rank, u.mpi_size)
+  return TrixiMPIArray(similar(parent(u), S, dims), u.mpi_comm)
 end
 Base.axes(u::TrixiMPIArray)	= axes(parent(u))
 

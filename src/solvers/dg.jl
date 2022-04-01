@@ -426,7 +426,7 @@ end
   end
 
   if u_ode isa TrixiMPIArray
-    return TrixiMPIArray(u, u_ode.mpi_comm, u_ode.mpi_rank, u_ode.mpi_size)
+    return TrixiMPIArray(u, u_ode.mpi_comm)
   else
     return u
   end
