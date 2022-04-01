@@ -18,12 +18,13 @@
 # We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
-@inline function split_form_kernel!(_du::PtrArray, u_cons::PtrArray,
+@inline function split_form_kernel!(_du::Union{PtrArray, TrixiMPIArray{T, N, <:PtrArray}},
+                                    u_cons::Union{PtrArray, TrixiMPIArray{T, N, <:PtrArray}},
                                     element, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                     nonconservative_terms::Val{false},
                                     equations::CompressibleEulerEquations3D,
                                     volume_flux::typeof(flux_shima_etal_turbo),
-                                    dg::DGSEM, cache, alpha)
+                                    dg::DGSEM, cache, alpha) where {T, N}
   @unpack derivative_split = dg.basis
   @unpack contravariant_vectors = cache.elements
 

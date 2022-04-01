@@ -96,10 +96,6 @@ Base.elsize(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = elsize(P
 # See https://docs.julialang.org/en/v1/manual/interfaces/#man-interfaces-broadcasting
 
 
-# TODO: MPI. How shall we handle specializations such as `split_form_kernel!(_du::PtrArray, u_cons::PtrArray,`
-#            for `flux_ranocha_turbo` and `flux_shima_etal_turbo`?
-
-
 # Implementation of methods from ArrayInterface.jl for use with
 # LoopVectorization.jl etc.
 # See https://juliaarrays.github.io/ArrayInterface.jl/stable/
