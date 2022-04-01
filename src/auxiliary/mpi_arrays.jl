@@ -56,7 +56,7 @@ end
 Base.parent(u::TrixiMPIArray) = u.u_local
 Base.resize!(u::TrixiMPIArray, new_size) = resize!(parent(u), new_size)
 function Base.copy(u::TrixiMPIArray)
-  return TrixiMPIArray(copy(parent(u)), u.mpi_comm)
+  return TrixiMPIArray(copy(parent(u)), mpi_comm(u))
 end
 
 Trixi.mpi_comm(u::TrixiMPIArray) = u.mpi_comm
@@ -69,7 +69,7 @@ Base.getindex(u::TrixiMPIArray, idx) = getindex(parent(u), idx)
 Base.setindex!(u::TrixiMPIArray, v, idx) = setindex!(parent(u), v, idx)
 Base.IndexStyle(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = IndexStyle(Parent)
 function Base.similar(u::TrixiMPIArray, ::Type{S}, dims::NTuple{N, Int}) where {S, N}
-  return TrixiMPIArray(similar(parent(u), S, dims), u.mpi_comm)
+  return TrixiMPIArray(similar(parent(u), S, dims), mpi_comm(u))
 end
 Base.axes(u::TrixiMPIArray)	= axes(parent(u))
 
