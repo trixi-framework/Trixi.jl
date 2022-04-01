@@ -168,7 +168,7 @@ local_copy(u) = copy(u)
 local_copy(u::TrixiMPIArray) = copy(parent(u))
 
 
-# Specializations of Base.show without global communication via a global `length`
+# Specializations of `show` without global communication via a global `length`.
 # This is necessary when `show`ing `TrixiMPIArray`s only on some ranks, e.g.,
 # for development.
 function Base.show(io::IO, u::TrixiMPIArray)
@@ -179,6 +179,11 @@ function Base.show(io::IO, mime::MIME"text/plain", u::TrixiMPIArray)
   print(io, "TrixiMPIArray wrapping ")
   show(io, mime, parent(u))
 end
+
+
+# Specialization of `view`. Without these, `view`s of arrays returned by
+# `wrap_array` with multiple conserved variables do not always work.
+Base.view(u::TrixiMPIArray, idx::Vararg{Any,N}) where {N} = view(parent(u), idx...)
 
 
 end # module
