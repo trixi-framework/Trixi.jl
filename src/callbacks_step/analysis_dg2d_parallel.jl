@@ -136,11 +136,13 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u,
-                               mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
+# We need to dispatch on `u::TrixiMPIArray` instead of `mesh::TreeMesh{2}` to
+# simply use `parent(u)` instead of some `invoke` call.
+function integrate_via_indices(func::Func, u::TrixiMPIArray,
+                               mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
-  # call the method for the local degrees of freedom and perform a global
-  # MPI reduction afterwards
+  # Call the method for the local degrees of freedom and perform a global
+  # MPI reduction afterwards.
   # Note that the simple `TreeMesh` implements an efficient way to compute
   # the global volume without requiring communication. This global volume is
   # already used when `normalize=true`.
