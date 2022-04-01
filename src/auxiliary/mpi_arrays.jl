@@ -9,7 +9,7 @@ using MPI: MPI
 
 using ..Trixi: Trixi, mpi_comm
 
-export TrixiMPIArray, local_length, local_copy
+export TrixiMPIArray, local_length
 
 
 # Dispatch etc.
@@ -155,16 +155,6 @@ local_length(u) = length(u)
 local_length(u::TrixiMPIArray) = length(parent(u))
 
 
-"""
-    local_copy(u)
-
-Like `copy(u)`, but returns an unwrapped copy of the local data `parent(u)` for
-`u::TrixiMPIArray`.
-"""
-local_copy(u) = copy(u)
-local_copy(u::TrixiMPIArray) = copy(parent(u))
-
-
 # Specializations of `show` without global communication via a global `length`.
 # This is necessary when `show`ing `TrixiMPIArray`s only on some ranks, e.g.,
 # for development.
@@ -186,4 +176,4 @@ Base.view(u::TrixiMPIArray, idx::Vararg{Any,N}) where {N} = view(parent(u), idx.
 
 end # module
 
-using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, local_length, local_copy
+using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, local_length
