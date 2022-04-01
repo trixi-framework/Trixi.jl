@@ -66,8 +66,6 @@ end
 Trixi.mpi_comm(u::TrixiMPIArray) = u.mpi_comm
 Trixi.mpi_rank(u::TrixiMPIArray) = u.mpi_rank
 Trixi.mpi_nranks(u::TrixiMPIArray) = u.mpi_size
-# TODO: MPI. What about the following interface?
-# Trixi.mpi_isparallel(u::TrixiMPIArray) = u.mpi_isparallel
 
 
 # Implementation of the abstract array interface of Base
@@ -91,9 +89,13 @@ end
 Base.elsize(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = elsize(Parent)
 
 
-# TODO: MPI. Do we need customized broadcasting? What about FastBroadcast.jl and
-#            threaded execution with `@.. thread=true`?
-# See https://docs.julialang.org/en/v1/manual/interfaces/#man-interfaces-broadcasting
+# We do probably not need to customize broadcasting.  First tests suggest that
+# this version also works with FastBroadcast.jl and threaded execution with
+# `@.. thread=true`, e.g., when calling a threaded RK algorithm of the form
+# `SSPRK43(thread=OrdinaryDiffEq.True())`.
+# See also
+# https://github.com/YingboMa/FastBroadcast.jl
+# https://docs.julialang.org/en/v1/manual/interfaces/#man-interfaces-broadcasting
 
 
 # Implementation of methods from ArrayInterface.jl for use with
@@ -182,7 +184,8 @@ end
 
 
 # Specialization of `view`. Without these, `view`s of arrays returned by
-# `wrap_array` with multiple conserved variables do not always work.
+# `wrap_array` with multiple conserved variables do not always work...
+# This may also be related to the use of a global `length`?
 Base.view(u::TrixiMPIArray, idx::Vararg{Any,N}) where {N} = view(parent(u), idx...)
 
 
