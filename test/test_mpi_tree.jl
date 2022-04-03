@@ -130,8 +130,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
                 save_everystep=false, callback=callbacks); summary_callback()
     errors = analysis_callback(sol)
     if Trixi.mpi_isroot()
-      @test errors.l2 ≈ [0.061653630426688116, 0.05006930431098764, 0.05007694316484242, 0.22550689872331683]
-      @test errors.linf ≈ [0.28516937484583693, 0.2983633696512788, 0.297812036335975, 1.027368795517512]
+      @test errors.l2 ≈ [0.061653630426688116, 0.05006930431098764, 0.05007694316484242, 0.22550689872331683]   rtol=1.0e-4
+      @test errors.linf ≈ [0.28516937484583693, 0.2983633696512788, 0.297812036335975, 1.027368795517512] rtol=1.0e-4
     end
   end
 

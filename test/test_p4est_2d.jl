@@ -17,15 +17,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [8.311947673061856e-6],
       linf = [6.627000273229378e-5])
-
-    # test error-based step size control
-    sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
-                save_everystep=false, callback=callbacks); summary_callback()
-    errors = analysis_callback(sol)
-    if Trixi.mpi_isroot()
-      @test errors.l2 ≈ [3.3022040342579066e-5]
-      @test errors.linf ≈ [0.00011787417954578494]
-    end
   end
 
   @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
