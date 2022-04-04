@@ -127,7 +127,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
     @testset "error-based step size control" begin
       sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
-                  save_everystep=false, callback=callbacks); summary_callback()
+                  save_everystep=false, callback=callbacks,
+                  internalnorm=Trixi.ode_norm,
+                  unstable_check=Trixi.ode_unstable_check); summary_callback()
       errors = analysis_callback(sol)
       if Trixi.mpi_isroot()
         @test errors.l2   ≈ [0.061653630426688116, 0.05006930431098764, 0.05007694316484242, 0.22550689872331683] rtol=1.0e-4

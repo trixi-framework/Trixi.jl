@@ -9,7 +9,7 @@ using MPI: MPI
 
 using ..Trixi: Trixi, mpi_comm
 
-export TrixiMPIArray, local_length, ode_norm, ode_unstable_check
+export TrixiMPIArray, ode_norm, ode_unstable_check
 
 
 # Dispatch etc.
@@ -49,6 +49,17 @@ function TrixiMPIArray(u_local::AbstractArray{T, N}) where {T, N}
   # TODO: MPI. Hard-coded to MPI.COMM_WORLD for now
   mpi_comm = MPI.COMM_WORLD
   TrixiMPIArray{T, N, typeof(u_local)}(u_local, mpi_comm)
+end
+
+
+# `Base.show` with additional helpful information
+function Base.show(io::IO, u::TrixiMPIArray)
+  print(io, "TrixiMPIArray wrapping ", parent(u))
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", u::TrixiMPIArray)
+  print(io, "TrixiMPIArray wrapping ")
+  show(io, mime, parent(u))
 end
 
 
@@ -130,14 +141,15 @@ function Base.mapreduce(f::F, op::Op, u::TrixiMPIArray; kwargs...) where {F, Op}
 end
 
 
-# TODO: MPI. Default settings of OrdinaryDiffEq etc.
+# Default settings of OrdinaryDiffEq etc.
 # Interesting options could be
 # - ODE_DEFAULT_UNSTABLE_CHECK
-# - ODE_DEFAULT_ISOUTOFDOMAIN
+# - ODE_DEFAULT_ISOUTOFDOMAIN (disabled by default)
 # - ODE_DEFAULT_NORM
 # See https://github.com/SciML/DiffEqBase.jl/blob/master/src/common_defaults.jl
-
-# Problems and inconsistencies with TrixiMPIArrays
+#
+# Problems and inconsistencies with possible global `length`s of TrixiMPIArrays
+#
 # A basic question is how to handle `length`. We want `TrixiMPIArray`s to behave
 # like regular `Array`s in most code, e.g., when looping over an array (which
 # should use `eachindex`). At the same time, we want to be able to use adaptive
@@ -148,55 +160,26 @@ end
 # DiffEqBase.jl (instead of SciMLBase.jl). Alternatively, we could implement
 # this via Requires.jl, but that will prevent precompilation and maybe trigger
 # invalidations. Alternatively, could implement our own norm and pass that as
-# `internalnorm`. Here, we decide to use the least intrusive approach for now
+# `internalnorm`. We could also try to use the least intrusive approach for now
 # and specialize `length` to return a global length while making sure that all
 # local behavior is still working as expected (if using `eachindex` instead of
-# `1:length` etc.). This means that `eachindex(u) != Base.OneTo(length(u))` for
-# `u::TrixiMPIArray` in general, even if `u` and its underlying array use
-# one-based indexing.
+# `1:length` etc.). This means that we would have
+# `eachindex(u) != Base.OneTo(length(u))` for `u::TrixiMPIArray` in general,
+# even if `u` and its underlying array use one-based indexing.
 # Some consequences are that we need to implement specializations of `show`,
 # since the default ones call `length`. However, this doesn't work if not all
 # ranks call the same method, e.g., when showing an array only on one rank.
-Base.eachindex(u::TrixiMPIArray) = eachindex(parent(u))
-
-
-function Base.length(u::TrixiMPIArray)
-  local_length = length(parent(u))
-  return MPI.Allreduce(local_length, +, mpi_comm(u))
-end
-
-"""
-    local_length(u)
-
-Like `length(u)`, but returns the length of the local data for `u::TrixiMPIArray`.
-"""
-local_length(u) = length(u)
-local_length(u::TrixiMPIArray) = length(parent(u))
-
-
-# Specializations of `show` without global communication via a global `length`.
-# This is necessary when `show`ing `TrixiMPIArray`s only on some ranks, e.g.,
-# for development.
-function Base.show(io::IO, u::TrixiMPIArray)
-  print(io, "TrixiMPIArray wrapping ", parent(u))
-end
-
-function Base.show(io::IO, mime::MIME"text/plain", u::TrixiMPIArray)
-  print(io, "TrixiMPIArray wrapping ")
-  show(io, mime, parent(u))
-end
+# Moreover, we would need to specialize `copyto!` and probably many other
+# functions. Since this can lead to hard-to-find bugs and problems in MPI code,
+# we use a more verbose approach. Thus, we let `length` be a local `length` and
+# provide a new function `Trixi.ode_norm` to be passed as `internalnorm` of
+# OrdinaryDiffEq's `solve` function.
 
 
 # Specialization of `view`. Without these, `view`s of arrays returned by
 # `wrap_array` with multiple conserved variables do not always work...
 # This may also be related to the use of a global `length`?
 Base.view(u::TrixiMPIArray, idx::Vararg{Any,N}) where {N} = view(parent(u), idx...)
-
-# Specialization of `copyto!` calling `length` under the hood...
-function Base.copyto!(dest::TrixiMPIArray, src::TrixiMPIArray)
-  copyto!(parent(dest), parent(src))
-  return dest
-end
 
 
 """
@@ -242,4 +225,4 @@ ode_unstable_check(dt, u, semi, t) = isnan(dt)
 
 end # module
 
-using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, local_length, ode_norm, ode_unstable_check
+using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, ode_norm, ode_unstable_check
