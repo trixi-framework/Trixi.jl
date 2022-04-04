@@ -203,7 +203,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
       "#MPI ranks" => mpi_nranks(),
     )
   end
-  summary_box(io, "Technical details", setup)
+  summary_box(io, "Environment information", setup)
   println()
 
   reset_timer!(timer())
