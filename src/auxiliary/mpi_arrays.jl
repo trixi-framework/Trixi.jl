@@ -91,7 +91,7 @@ Base.strides(u::TrixiMPIArray) = strides(parent(u))
 function Base.unsafe_convert(::Type{Ptr{T}}, u::TrixiMPIArray{T}) where {T}
   return Base.unsafe_convert(Ptr{T}, parent(u))
 end
-Base.elsize(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = elsize(Parent)
+Base.elsize(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Parent} = Base.elsize(Parent)
 
 
 # We need to customize broadcasting since broadcasting expressions allocating

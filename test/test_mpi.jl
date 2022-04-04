@@ -16,6 +16,9 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 
 @testset "MPI" begin
+  # TrixiMPIArray tests
+  include("test_mpi_arrays.jl")
+
   # TreeMesh tests
   include("test_mpi_tree.jl")
 
