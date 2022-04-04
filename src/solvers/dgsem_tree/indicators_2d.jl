@@ -326,10 +326,12 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
       var = indicator_IDP.variable(u_local, equations)
-      if abs(var_max[i, j, element] - var) < sqrt(eps()) || abs(var_min[i, j, element] - var) < sqrt(eps())
+
+      if maximum(abs.((var_max[i, j, element] - var, var_min[i, j, element] - var))) < eps()
         alpha[i, j, element] = 0.0
         continue
       end
+
       # Calculate P_plus and P_minus
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
       val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
@@ -342,9 +344,16 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
       P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
                 min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
 
+      if maximum(abs.((P_plus, P_minus))) < eps()
+        alpha[i, j, element] = 0.0
+        continue
+      end
+
       # Calculate alpha_plus and alpha_minus
-      frac_plus  = (var_max[i, j, element] - var) / P_plus
-      frac_minus = (var_min[i, j, element] - var) / P_minus
+      # Note: If P_plus or P_minus is 0.0, eventually frac_plus/minus = -Inf and then alpha = 1.
+      # So, add maschine precision to values.
+      frac_plus  = (var_max[i, j, element] - var) / (P_plus + eps())
+      frac_minus = (var_min[i, j, element] - var) / (P_minus - eps())
 
       alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
       alpha_minus = 1 - min(1.0, max(0.0, frac_minus))

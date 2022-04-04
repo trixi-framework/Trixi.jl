@@ -88,6 +88,3 @@ sol = Trixi.solve_IDP(ode, semi;
                       dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                       save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
-
-using Plots
-plot(indicator_sc.cache.alpha_mean_per_timestep, legend=false, ylabel="mean(alpha)", xlabel="timestep")

@@ -9,13 +9,14 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
+surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorIDP(equations, basis; variable=Trixi.density)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
-                                                      volume_flux_fv=volume_flux)
-solver = DGSEM(basis, volume_flux, volume_integral)
+                                                      volume_flux_fv=surface_flux)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = ( 2.0,  2.0)
@@ -45,7 +46,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
                         save_solution,
