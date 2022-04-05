@@ -20,6 +20,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.0014537194925779984])
 
     @testset "error-based step size control" begin
+      Trixi.mpi_isroot() && println("-"^100)
+      Trixi.mpi_isroot() && println("elixir_advection_basic.jl with error-based step size control")
+
       sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
                   save_everystep=false, callback=callbacks,
                   internalnorm=Trixi.ode_norm,
