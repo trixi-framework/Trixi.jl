@@ -76,10 +76,10 @@ Implementation of the weighted L2 norm of Hairer and Wanner used for error-based
 step size control in OrdinaryDiffEq.jl. This function is aware of MPI and uses
 global MPI communication when running in parallel.
 
-You must pass this function as keyword argument
+You must pass this function as a keyword argument
 `internalnorm=ode_norm`
-of `solve` when using error-based step size control with MPI parallel execution
-of Trixi.jl.
+to OrdinaryDiffEq.jl's `solve` when using error-based step size control with MPI
+parallel execution of Trixi.jl.
 
 See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control)
 
@@ -122,10 +122,10 @@ Instead of checking something like `any(isnan, u)`, this function just checks
 `isnan(dt)`. This helps when using MPI parallelization, since no additional
 global communication is required and all ranks will return the same result.
 
-You should pass this function as keyword argument
+You should pass this function as a keyword argument
 `unstable_check=ode_unstable_check`
-of `solve` when using error-based step size control with MPI parallel execution
-of Trixi.jl.
+to OrdinaryDiffEq.jl's  `solve` when using error-based step size control with MPI
+parallel execution of Trixi.jl.
 
 See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous)
 
