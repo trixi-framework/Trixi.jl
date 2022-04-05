@@ -205,9 +205,7 @@ ode_norm(u::AbstractArray, t) = sqrt(sum(abs2, u) / length(u))
 function ode_norm(u::TrixiMPIArray, t)
   local_sumabs2 = sum(abs2, parent(u))
   local_length  = length(parent(u))
-  # TODO: MPI. This could be fused into one call to improve parallel performance.
-  global_sumabs2 = MPI.Allreduce(local_sumabs2, +, mpi_comm(u))
-  global_length  = MPI.Allreduce(local_length,  +, mpi_comm(u))
+  global_sumabs2, global_length = MPI.Allreduce([local_sumabs2, local_length], +, mpi_comm(u))
   return sqrt(global_sumabs2 / global_length)
 end
 
