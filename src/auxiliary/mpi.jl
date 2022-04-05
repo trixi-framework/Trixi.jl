@@ -98,6 +98,11 @@ function ode_norm(u::AbstractArray, t)
   end
 end
 
+# Recursive `sum(abs2, ...)` and `length(...)` are required when dealing with
+# arrays of arrays, e.g., when using `DGMulti` solvers with an array-of-structs
+# (`Array{SVector}`) or a structure-of-arrays (`StructArray`). We need to take
+# care of these situations when allowing to use `ode_norm` as default norm in
+# OrdinaryDiffEq.jl throughout all applications of Trixi.jl.
 recursive_sum_abs2(u::Number) = abs2(u)
 recursive_sum_abs2(u::AbstractArray) = sum(recursive_sum_abs2, u)
 
