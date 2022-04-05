@@ -29,7 +29,7 @@ export TrixiMPIArray, ode_norm, ode_unstable_check
 # stuff on top.
 """
     TrixiMPIArray{T, N} <: AbstractArray{T, N}
-    TrixiMPIAray(u::AbstractArray{T, N})::TrixiMPIArray{T, N}
+    TrixiMPIArray(u::AbstractArray{T, N})::TrixiMPIArray{T, N}
 
 A thin wrapper of arrays distributed via MPI used in Trixi.jl. The idea is that
 these arrays behave as much as possible as plain arrays would in an SPMD-style
@@ -201,6 +201,9 @@ of `solve` when using error-based step size control with MPI parallel execution
 of Trixi.jl.
 
 See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control)
+
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
 """
 ode_norm(u, t) = @fastmath abs(u)
 ode_norm(u::AbstractArray, t) = sqrt(sum(abs2, u) / length(u))
@@ -226,6 +229,9 @@ of `solve` when using error-based step size control with MPI parallel execution
 of Trixi.jl.
 
 See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous)
+
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
 """
 ode_unstable_check(dt, u, semi, t) = isnan(dt)
 
