@@ -110,6 +110,7 @@ Base.BroadcastStyle(::Type{<:TrixiMPIArray}) = Broadcast.ArrayStyle{TrixiMPIArra
 function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{TrixiMPIArray}}, ::Type{ElType}) where ElType
   # Scan the inputs for the first TrixiMPIArray and use that to create a `similar`
   # output array with MPI information
+  # See also https://docs.julialang.org/en/v1/manual/interfaces/#Selecting-an-appropriate-output-array
   A = find_mpi_array(bc)
   similar(A, axes(bc))
 end
@@ -135,6 +136,8 @@ ArrayInterface.parent_type(::Type{TrixiMPIArray{T, N, Parent}}) where {T, N, Par
 
 # `mapreduce` functionality from Base using global reductions via MPI communication
 # for use in, e.g., error-based step size control in OrdinaryDiffEq.jl
+# OBS! This makes reductions a global, blocking operation that will stall unless
+#      executed on all MPI ranks simultaneously
 function Base.mapreduce(f::F, op::Op, u::TrixiMPIArray; kwargs...) where {F, Op}
   local_value = mapreduce(f, op, parent(u); kwargs...)
   return MPI.Allreduce(local_value, op, mpi_comm(u))
