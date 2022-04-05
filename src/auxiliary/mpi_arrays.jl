@@ -14,20 +14,22 @@ export TrixiMPIArray, ode_norm, ode_unstable_check
 
 # Dispatch etc.
 # The following functions have special dispatch behavior for `TrixiMPIArray`s.
-# - `wrap_array`:
+# - `Trixi.wrap_array`:
 #   the wrapped array is wrapped again in a `TrixiMPIArray`
-# - `wrap_array_native`:
+# - `Trixi.wrap_array_native`:
 #   should not be changed since it should return a plain `Array`
-# - `allocate_coefficients`:
+# - `Trixi.allocate_coefficients`:
 #   this handles the return type of initialization stuff when setting an IC
 #   with MPI
 # Besides these, we usually dispatch on MPI mesh types such as
-# `mesh::ParallelTreeMesh` or ``mesh::ParallelP4eestMesh`, since this is
-# consistent with other dispatches on the mesh type. However, we dispatch on
-# `u::TrixiMPIArray` whenever this allows simplifying some code, e.g., because
-# we can call a basic function on `parent(u)` and add some MPI stuff on top.
+# `mesh::ParallelTreeMesh` or ``mesh::ParallelP4eestMesh` in Trixi.jl, since
+# this is consistent with other dispatches on the mesh type. However, we
+# dispatch on `u::TrixiMPIArray` whenever this allows simplifying some code,
+# e.g., because we can call a basic function on `parent(u)` and add some MPI
+# stuff on top.
 """
     TrixiMPIArray{T, N} <: AbstractArray{T, N}
+    TrixiMPIAray(u::AbstractArray{T, N})::TrixiMPIArray{T, N}
 
 A thin wrapper of arrays distributed via MPI used in Trixi.jl. The idea is that
 these arrays behave as much as possible as plain arrays would in an SPMD-style
