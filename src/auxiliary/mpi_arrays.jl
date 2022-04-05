@@ -172,7 +172,7 @@ end
 # Moreover, we would need to specialize `copyto!` and probably many other
 # functions. Since this can lead to hard-to-find bugs and problems in MPI code,
 # we use a more verbose approach. Thus, we let `length` be a local `length` and
-# provide a new function `Trixi.ode_norm` to be passed as `internalnorm` of
+# provide a new function `ode_norm` to be passed as `internalnorm` of
 # OrdinaryDiffEq's `solve` function.
 
 
@@ -191,9 +191,11 @@ step size control in OrdinaryDiffEq.jl. This function is aware of
 communication.
 
 You must pass this function as keyword argument
-`internalnorm=Trixi.ode_norm`
+`internalnorm=ode_norm`
 of `solve` when using error-based step size control with MPI parallel execution
 of Trixi.jl.
+
+See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control)
 """
 ode_norm(u, t) = @fastmath abs(u)
 ode_norm(u::AbstractArray, t) = sqrt(sum(abs2, u) / length(u))
@@ -216,13 +218,15 @@ Instead of checking something like `any(isnan, u)`, this function just checks
 global communication is required and all ranks will return the same result.
 
 You should pass this function as keyword argument
-`unstable_check=Trixi.ode_unstable_check`
+`unstable_check=ode_unstable_check`
 of `solve` when using error-based step size control with MPI parallel execution
 of Trixi.jl.
+
+See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous)
 """
 ode_unstable_check(dt, u, semi, t) = isnan(dt)
 
 
 end # module
 
-using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, ode_norm, ode_unstable_check
+@reexport using .TrixiMPIArrays: TrixiMPIArrays, TrixiMPIArray, ode_norm, ode_unstable_check

@@ -25,8 +25,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
       sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
                   save_everystep=false, callback=callbacks,
-                  internalnorm=Trixi.ode_norm,
-                  unstable_check=Trixi.ode_unstable_check); summary_callback()
+                  internalnorm=ode_norm,
+                  unstable_check=ode_unstable_check); summary_callback()
       errors = analysis_callback(sol)
       if Trixi.mpi_isroot()
         @test errors.l2 ≈ [3.3022040342579066e-5]    rtol=1.0e-4
