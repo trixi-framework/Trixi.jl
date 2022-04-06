@@ -74,5 +74,3 @@ TriplotBase = "981d1d27-644d-49a2-9326-4793e63143c3"
 TriplotRecipes = "808ab39a-a642-4abf-81ff-4cb34ebbffa3"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
-[extras]
-CPUSummary = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
