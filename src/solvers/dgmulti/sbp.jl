@@ -298,7 +298,7 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   rd = dg.basis
 
-  e = One{eltype(rd.r)}(size(rd.r))
+  e = Ones{eltype(rd.r)}(size(rd.r))
   z = Zeros{eltype(rd.r)}(size(rd.r))
 
   VXYZ = ntuple(_ -> [], NDIMS)
