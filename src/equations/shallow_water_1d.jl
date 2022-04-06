@@ -86,7 +86,6 @@ function initial_condition_convergence_test(x, t, equations::ShallowWaterEquatio
   return prim2cons(SVector(H, v, b), equations)
 end
 
-### Hier noch anpassen!!! ###
 """
     source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations1D)
 
@@ -99,7 +98,6 @@ This manufactured solution source term is specifically designed for the bottom t
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 
-### Hier noch anpassen!!! ###
 @inline function source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations1D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
   # this manufactured solution velocities are taken to be constants
@@ -128,26 +126,21 @@ as defined in [`initial_condition_convergence_test`](@ref).
   return SVector(du1, du2, 0.0)
 end
 
-### Hier noch anpassen!!! ###
 """
     initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations1D)
 
 A weak blast wave discontinuity useful for testing, e.g., total energy conservation.
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
-### Hier noch anpassen!!! ###
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations1D)
-  # Set up polar coordinates
-  inicenter = SVector(0.7, 0.7)
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-  phi = atan(y_norm, x_norm)
-  sin_phi, cos_phi = sincos(phi)
+  
+  inicenter = 0.7
+  x_norm = x[1] - inicenter
+  r = abs(x_norm)
 
   # Calculate primitive variables
   H = r > 0.5 ? 3.25 : 4.0
-  v = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v = r > 0.5 ? 0.0 : 0.1882
   b = 0.0 # by default assume there is no bottom topography
 
   return prim2cons(SVector(H, v, b), equations)
