@@ -298,8 +298,8 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   rd = dg.basis
 
-  e = ones(size(rd.r))
-  z = zero(e)
+  e = Ones{eltype(rd.r)}(size(rd.r))
+  z = Zeros{eltype(rd.r)}(size(rd.r))
 
   VXYZ = ntuple(_ -> [], NDIMS)
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
