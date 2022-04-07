@@ -75,7 +75,13 @@
 # with curved boundaries, generate a curvilinear mesh using the available [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
 # software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.
 
-# ### [10 Differentiable programming](@ref differentiable_programming)
+# ### [10 Explicit time stepping](@ref time_stepping)
+# -
+# This tutorial is about time integration using [`OrdinaryDiffEq.jl`](https://github.com/SciML/OrdinaryDiffEq.jl).
+# It explains, how you can call such a solving function and divides between two types of time
+# integration algorithms - with error-based and CFL-based adaptive step size control.
+
+# ### [11 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
