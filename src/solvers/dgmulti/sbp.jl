@@ -244,6 +244,57 @@ function StartUpDG.RefElemData(element_type::Hex,
     M, Pq, Drst, LIFT)
 end
 
+function StartUpDG.RefElemData(element_type::Hex,
+                               D::AbstractPeriodicDerivativeOperator;
+                               tol = 100*eps())
+
+  approximation_type = D
+  N = SummationByPartsOperators.accuracy_order(D) # kind of polynomial degree
+
+  # 1D operators
+  nodes_1d, weights_1d, D_1d, I_1d = construct_1d_operators(D, tol)
+
+  # volume
+  s, r, t = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d, nodes_1d, nodes_1d))
+  rq = r; sq = s; tq = t
+  wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d, weights_1d))
+  wq = wr .* ws .* wt
+  Dr = kron(I_1d, I_1d, D_1d)
+  Ds = kron(I_1d, D_1d, I_1d)
+  Dt = kron(D_1d, I_1d, I_1d)
+  M = Diagonal(wq)
+  Pq = LinearAlgebra.I
+  Vq = LinearAlgebra.I
+
+  VDM = nothing # unused generalized Vandermonde matrix
+
+  rst = (r, s, t)
+  rstq = (rq, sq, tq)
+  Drst = (Dr, Ds, Dt)
+
+  # face
+  face_vertices = ntuple(_ -> nothing, 3)
+  face_mask = nothing
+  wf = nothing
+  rstf = ntuple(_ -> nothing, 3)
+  nrstJ = ntuple(_ -> nothing, 3)
+
+  Vf = nothing
+  LIFT = nothing
+
+  # low order interpolation nodes
+  V1 = nothing # do not need to store V1, since we specialize StartUpDG.MeshData to avoid using it.
+
+  return RefElemData(
+    element_type, approximation_type, N,
+    face_vertices, V1,
+    rst, VDM, face_mask,
+    N, rst, LinearAlgebra.I, # plotting
+    rstq, wq, Vq, # quadrature
+    rstf, wf, Vf, nrstJ, # faces
+    M, Pq, Drst, LIFT)
+end
+
 
 function Base.show(io::IO, mime::MIME"text/plain", rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
   @nospecialize rd
