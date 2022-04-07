@@ -18,6 +18,21 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [0.00016263963870641478],
       linf = [0.0014537194925779984])
+
+    @testset "error-based step size control" begin
+      Trixi.mpi_isroot() && println("-"^100)
+      Trixi.mpi_isroot() && println("elixir_advection_basic.jl with error-based step size control")
+
+      sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
+                  save_everystep=false, callback=callbacks,
+                  internalnorm=ode_norm,
+                  unstable_check=ode_unstable_check); summary_callback()
+      errors = analysis_callback(sol)
+      if Trixi.mpi_isroot()
+        @test errors.l2 ≈ [0.00016800412839949264]  rtol=1.0e-4
+        @test errors.linf ≈ [0.0014548839020096516] rtol=1.0e-4
+      end
+    end
   end
 
   @trixi_testset "elixir_advection_amr.jl" begin
