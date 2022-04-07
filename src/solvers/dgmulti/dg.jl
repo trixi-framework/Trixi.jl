@@ -110,6 +110,18 @@ function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
   return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg)
 end
 
+# interpolate solution for nodal SBP approximation types
+function compute_coefficients!(u, initial_condition, t,
+                               mesh::DGMultiMesh, equations,
+                               dg::DGMultiSBP, cache)
+  md = mesh.md
+
+  # evaluate the initial condition at quadrature points
+  @threaded for i in each_quad_node_global(mesh, dg, cache)
+    u[i] = initial_condition(SVector(getindex.(md.xyz, i)), t, equations)
+  end
+end
+
 function compute_coefficients!(u, initial_condition, t,
                                mesh::DGMultiMesh, equations, dg::DGMulti, cache)
   md = mesh.md
