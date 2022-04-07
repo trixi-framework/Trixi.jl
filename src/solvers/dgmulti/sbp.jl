@@ -457,7 +457,10 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
 end
 
 function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
-  return (; )
+  # storage for volume quadrature values, face quadrature values, flux values
+  nvars = nvariables(equations)
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+  return (; u_values)
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
