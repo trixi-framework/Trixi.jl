@@ -1,9 +1,3 @@
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
-
 
 """
     init_mpi()
@@ -75,4 +69,67 @@ end
 end
 
 
-end # @muladd
+"""
+    ode_norm(u, t)
+
+Implementation of the weighted L2 norm of Hairer and Wanner used for error-based
+step size control in OrdinaryDiffEq.jl. This function is aware of MPI and uses
+global MPI communication when running in parallel.
+
+You must pass this function as a keyword argument
+`internalnorm=ode_norm`
+to OrdinaryDiffEq.jl's `solve` when using error-based step size control with MPI
+parallel execution of Trixi.jl.
+
+See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#advanced_adaptive_stepsize_control)
+
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
+"""
+ode_norm(u::Number, t) = @fastmath abs(u)
+function ode_norm(u::AbstractArray, t)
+  local_sumabs2 = recursive_sum_abs2(u) # sum(abs2, u)
+  local_length  = recursive_length(u)   # length(u)
+  if mpi_isparallel()
+    global_sumabs2, global_length = MPI.Allreduce([local_sumabs2, local_length], +, mpi_comm())
+    return sqrt(global_sumabs2 / global_length)
+  else
+    return sqrt(local_sumabs2 / local_length)
+  end
+end
+
+# Recursive `sum(abs2, ...)` and `length(...)` are required when dealing with
+# arrays of arrays, e.g., when using `DGMulti` solvers with an array-of-structs
+# (`Array{SVector}`) or a structure-of-arrays (`StructArray`). We need to take
+# care of these situations when allowing to use `ode_norm` as default norm in
+# OrdinaryDiffEq.jl throughout all applications of Trixi.jl.
+recursive_sum_abs2(u::Number) = abs2(u)
+recursive_sum_abs2(u::AbstractArray) = sum(recursive_sum_abs2, u)
+
+recursive_length(u::Number) = length(u)
+recursive_length(u::AbstractArray{<:Number}) = length(u)
+recursive_length(u::AbstractArray{<:AbstractArray}) = sum(recursive_length, u)
+function recursive_length(u::AbstractArray{<:StaticArrays.StaticArray{S, <:Number}}) where {S}
+  prod(StaticArrays.Size(eltype(u))) * length(u)
+end
+
+
+"""
+    ode_unstable_check(dt, u, semi, t)
+
+Implementation of the basic check for instability used in OrdinaryDiffEq.jl.
+Instead of checking something like `any(isnan, u)`, this function just checks
+`isnan(dt)`. This helps when using MPI parallelization, since no additional
+global communication is required and all ranks will return the same result.
+
+You should pass this function as a keyword argument
+`unstable_check=ode_unstable_check`
+to OrdinaryDiffEq.jl's  `solve` when using error-based step size control with MPI
+parallel execution of Trixi.jl.
+
+See [`https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous`](https://diffeq.sciml.ai/stable/basics/common_solver_opts/#Miscellaneous)
+
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
+"""
+ode_unstable_check(dt, u, semi, t) = isnan(dt)
