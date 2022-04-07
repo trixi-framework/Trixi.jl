@@ -30,7 +30,9 @@ const DGMultiSBP{ApproxType, ElemType} =
 # these are necessary for pretty printing
 polydeg(dg::DGMulti) = dg.basis.N
 Base.summary(io::IO, dg::DG) where {DG <: DGMulti} = print(io, "DGMulti(polydeg=$(polydeg(dg)))")
-Base.real(rd::RefElemData{NDIMS, Elem, ApproxType, Nfaces, RealT}) where {NDIMS, Elem, ApproxType, Nfaces, RealT} = RealT
+
+# real(rd) is the eltype of the nodes `rd.r`.
+Base.real(rd::RefElemData{NDIMS, Elem, ApproxType}) where {NDIMS, Elem, ApproxType} = eltype(rd.r)
 
 """
     DGMulti(; polydeg::Integer,
