@@ -457,22 +457,7 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
 end
 
 function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
-
-  rd = dg.basis
-  md = mesh.md
-
-  # for use with flux differencing schemes
-  Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
-
-  # storage for volume quadrature values, face quadrature values, flux values
-  nvars = nvariables(equations)
-  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-
-  # dummy storage to allow for compatibility with DGMultiFluxDiffSBP
-  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, size(md.xq, 1))]
-
-  return (; md, Qrst_skew, u_values, fluxdiff_local_threaded,
-            invJ = inv.(md.J), inv_wq = inv.(rd.wq),)
+  return (; )
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
@@ -485,13 +470,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
   # since the threaded version below does not exploit the symmetry properties,
   # resulting in a performance penalty of 1/2
   if Threads.nthreads() > 1
-    @unpack inv_wq, Qrst_skew = cache
     @unpack volume_flux = volume_integral
 
     for dim in eachdim(mesh)
       normal_direction = get_contravariant_vector(1, dim, mesh)
 
-      A = Qrst_skew[dim]
+      A = dg.basis.Drst[dim]
 
       A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
       row_ids = axes(A, 2)
@@ -506,7 +490,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
           u_j = u[j]
           A_ij = vals[id]
           AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
-          du_i = du_i + AF_ij * inv_wq[i]
+          du_i = du_i + AF_ij
         end
         du[i] = du_i
       end
@@ -514,13 +498,20 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
   else # if using two threads or fewer
 
-    # Calls the usual DGMultiFluxDiffSBP `calc_volume_integral!`, which uses symmetry to reduce
-    # flux evaluations. Symmetry is expected to yield about a 2x speedup, so we default to the
-    # symmetry-exploiting volume integral unless we have >2 threads (which should yield >2 speedup).
-    invoke(calc_volume_integral!,
-           Tuple{typeof(du), typeof(u), typeof(mesh), typeof(have_nonconservative_terms),
-                 typeof(equations), typeof(volume_integral), DGMultiFluxDiffSBP, typeof(cache)},
-           du, u, mesh, have_nonconservative_terms, equations, volume_integral, dg, cache)
+    # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
+    # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
+    # volume integral unless we have >2 threads (which should yield >2 speedup).
+    for dim in eachdim(mesh)
+      normal_direction = get_contravariant_vector(1, dim, mesh)
+
+      A = dg.basis.Drst[dim]
+
+      # since has_nonconservative_terms::Val{false},
+      # the volume flux is symmetric.
+      flux_is_symmetric = Val{true}
+      hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
+                    normal_direction, u, equations)
+    end
 
   end
 end
