@@ -472,11 +472,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGMultiFluxDiffPeriodicFDSBP, cache)
 
+  @unpack volume_flux = volume_integral
+
   # We expect speedup over the serial version only when using two or more threads
   # since the threaded version below does not exploit the symmetry properties,
   # resulting in a performance penalty of 1/2
   if Threads.nthreads() > 1
-    @unpack volume_flux = volume_integral
 
     for dim in eachdim(mesh)
       normal_direction = get_contravariant_vector(1, dim, mesh)
