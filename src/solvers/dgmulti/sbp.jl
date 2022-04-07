@@ -458,9 +458,13 @@ end
 
 function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
-  # can alias u_values memory for nodal approximations since interpolation
-  # and projection operators are UniformScalings.
-  return (; u_values = u)
+
+  md = mesh.md
+
+  # storage for volume quadrature values, face quadrature values, flux values
+  nvars = nvariables(equations)
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+  return (; u_values, invJ = inv.(md.J) )
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
