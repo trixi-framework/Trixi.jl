@@ -278,7 +278,6 @@ function StartUpDG.RefElemData(element_type::Hex,
   wf = nothing
   rstf = ntuple(_ -> nothing, 3)
   nrstJ = ntuple(_ -> nothing, 3)
-
   Vf = nothing
   LIFT = nothing
 
