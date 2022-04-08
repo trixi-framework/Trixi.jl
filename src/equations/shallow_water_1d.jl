@@ -116,7 +116,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
   # fixed in time such that H_t = (h+b)_t = h_t + 0
   H_t = -omega_t * cosX * sinT
 
-  # bottom topography and its gradient
+  # bottom topography and its spatial derivative
   b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
   b_x = 0.5 * omega_b * cos(omega_b * x[1])
 
