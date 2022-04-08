@@ -251,6 +251,7 @@ function StartUpDG.RefElemData(element_type::Hex,
   nodes_1d, weights_1d, D_1d, I_1d = construct_1d_operators(D, tol)
 
   # volume
+  # to match ordering of nrstJ
   s, r, t = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d, nodes_1d, nodes_1d))
   rq = r; sq = s; tq = t
   wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d, weights_1d))
