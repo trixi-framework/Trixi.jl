@@ -291,8 +291,8 @@ and for curvilinear 2D case in the paper:
   z = zero(eltype(u_ll))
 
   f = SVector(z,
-          equations.gravity * h_ll * b_ll + equations.gravity * h_average * b_jump,
-          z)
+              equations.gravity * h_ll * b_ll + equations.gravity * h_average * b_jump,
+              z)
 
   return f
 end
