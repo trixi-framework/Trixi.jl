@@ -531,7 +531,7 @@ end
   c_ll = sqrt(equations.gravity * h_ll)
   c_rr = sqrt(equations.gravity * h_rr)
 
-  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations2D)

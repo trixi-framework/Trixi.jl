@@ -52,7 +52,7 @@ function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::
   # Set the background values
   H = 4.25
   v = 0.0
-  b = 0.0
+  b = sin(x[1]) # arbitrary continuous function
 
   # setup the discontinuous water height and velocity
   if element_id == 10

@@ -140,7 +140,7 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
   # Calculate primitive variables
   H = r > 0.5 ? 3.25 : 4.0
   v = r > 0.5 ? 0.0 : 0.1882
-  b = 0.0 # by default assume there is no bottom topography
+  b = sin(x[1]) # arbitrary continuous function
 
   return prim2cons(SVector(H, v, b), equations)
 end
@@ -301,24 +301,7 @@ end
                                                       normal_direction_ll::AbstractVector,
                                                       normal_direction_average::AbstractVector,
                                                       equations::ShallowWaterEquations1D)
-  # Pull the necessary left and right state information
-  h_ll, _, b_ll = u_ll
-  h_rr, _, b_rr = u_rr
-
-  h_average = 0.5 * (h_ll + h_rr)
-  b_jump = b_rr - b_ll
-
-  # Includes two parts:
-  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-  #        cross-averaging across a discontinuous bottom topography
-  #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-  z = zero(eltype(u_ll))
-
-  f = SVector(z,
-          equations.gravity * h_ll * b_ll + equations.gravity * h_average * b_jump,
-          z)
-
-  return f
+  return normal_direction_average[1] * flux_nonconservative_fjordholm_etal(u_ll, u_rr, 1, equations)
 end
 
 
@@ -355,22 +338,7 @@ Details are available in Eq. (4.1) in the paper:
 end
 
 @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
-  # Unpack left and right state
-  h_ll = waterheight(u_ll, equations)
-  v_ll = velocity(u_ll, equations)
-  h_rr = waterheight(u_rr, equations)
-  v_rr = velocity(u_rr, equations)
-
-  # Average each factor of products in flux
-  h_avg = 0.5 * (h_ll   + h_rr  )
-  v_avg = 0.5 * (v_ll  + v_rr )
-  p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
-
-  # Calculate fluxes depending on orientation
-  f1 = h_avg * v_avg
-  f2 = f1 * v_avg + p_avg
-
-  return SVector(f1, f2, zero(eltype(u_ll)))
+  return normal_direction[1] * flux_fjordholm_etal(u_ll, u_rr, 1, equations)
 end
 
 
@@ -409,23 +377,7 @@ Further details are available in Theorem 1 of the paper:
 end
 
 @inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
-    # Unpack left and right state
-    h_ll, h_v_ll, _ = u_ll
-    h_rr, h_v_rr, _ = u_rr
-  
-    # Get the velocities on either side
-    v_ll = velocity(u_ll, equations)
-    v_rr = velocity(u_rr, equations)
-  
-    # Average each factor of products in flux
-    v_avg = 0.5 * (v_ll + v_rr)
-    p_avg = 0.5 * equations.gravity * h_ll * h_rr
-  
-    # Calculate fluxes depending on orientation
-    f1 = 0.5 * (h_v_ll + h_v_rr)
-    f2 = f1 * v_avg + p_avg
-
-    return SVector(f1, f2, zero(eltype(u_ll)))
+  return normal_direction[1] * flux_wintermeyer_etal(u_ll, u_rr, 1, equations)
 end
 
 
@@ -442,7 +394,7 @@ end
   c_ll = sqrt(equations.gravity * h_ll)
   c_rr = sqrt(equations.gravity * h_rr)
 
-  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) # hier war vorher kein return statement, lediglich λ_max = 
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
@@ -456,7 +408,7 @@ end
   c_ll = sqrt(equations.gravity * h_ll)
   c_rr = sqrt(equations.gravity * h_rr)
 
-  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) # hier war vorher kein return statement, lediglich λ_max = 
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 
@@ -507,15 +459,7 @@ end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                       equations::ShallowWaterEquations1D)
-  h_ll = waterheight(u_ll, equations)
-  v_ll = velocity(u_ll, equations)
-  h_rr = waterheight(u_rr, equations)
-  v_rr = velocity(u_rr, equations)
-
-  λ_min = v_ll - sqrt(equations.gravity * h_ll)
-  λ_max = v_rr + sqrt(equations.gravity * h_rr)
-
-  return λ_min, λ_max
+  return normal_direction[1] * min_max_speed_naive(u_ll, u_rr, 1, equations)
 end
 
 
@@ -524,7 +468,7 @@ end
   v = velocity(u, equations)
 
   c = equations.gravity * sqrt(h)
-  return abs(v) + c
+  return (abs(v) + c,)
 end
 
 
