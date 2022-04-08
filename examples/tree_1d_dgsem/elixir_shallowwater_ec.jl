@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the shallow water equations with a discontinuous
+# Semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81)
