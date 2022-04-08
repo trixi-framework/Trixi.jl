@@ -219,12 +219,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     wf = wr .* ws
     StartUpDG.init_face_data(element_type, quad_rule_face=(rf, sf, wf))
   end
-  if D isa AbstractPeriodicDerivativeOperator
-    # we do not need any face stuff for periodic operators
-    Vf = spzeros(length(wf), length(wq))
-  else
-    Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
-  end
+  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf, sf, tf)
