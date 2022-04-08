@@ -32,7 +32,7 @@ polydeg(dg::DGMulti) = dg.basis.N
 Base.summary(io::IO, dg::DG) where {DG <: DGMulti} = print(io, "DGMulti(polydeg=$(polydeg(dg)))")
 
 # real(rd) is the eltype of the nodes `rd.r`.
-Base.real(rd::RefElemData{NDIMS, Elem, ApproxType}) where {NDIMS, Elem, ApproxType} = eltype(rd.r)
+Base.real(rd::RefElemData) = eltype(rd.r)
 
 """
     DGMulti(; polydeg::Integer,
