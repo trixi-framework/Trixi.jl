@@ -419,7 +419,7 @@ end
   
     # Average each factor of products in flux
     v_avg = 0.5 * (v_ll + v_rr)
-    p_avg  = 0.5 * equations.gravity * h_ll * h_rr
+    p_avg = 0.5 * equations.gravity * h_ll * h_rr
   
     # Calculate fluxes depending on orientation
     f1 = 0.5 * (h_v_ll + h_v_rr)
