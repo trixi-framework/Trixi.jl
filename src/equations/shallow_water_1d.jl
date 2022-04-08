@@ -8,7 +8,7 @@
 @doc raw"""
     ShallowWaterEquations1D(gravity, H0)
 
-Shallow water equations (SWE) in two space dimensions. The equations are given by
+Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
 \begin{aligned}
   \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}(h v) &= 0 \\
