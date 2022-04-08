@@ -239,6 +239,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     M, Pq, Drst, LIFT)
 end
 
+# specialized Hex constructor in 3D to reduce memory usage.
 function StartUpDG.RefElemData(element_type::Hex,
                                D::AbstractPeriodicDerivativeOperator;
                                tol = 100*eps())
