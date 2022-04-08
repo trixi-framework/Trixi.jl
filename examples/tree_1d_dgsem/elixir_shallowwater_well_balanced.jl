@@ -55,7 +55,7 @@ ode = semidiscretize(semi, tspan)
 # alternative version of the initial conditinon used to setup a truly discontinuous
 # bottom topography function for this academic testcase of well-balancedness.
 # The errors from the analysis callback are not important but the error for this lake at rest test case
-# `∑|H0-(h+b)|` should be around machine roundoff
+# `∑|H0-(h+b)|` should be around machine roundoff.
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
 # only for the TreeMesh1D with initial_refinement_level=2.
