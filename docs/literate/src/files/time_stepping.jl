@@ -1,18 +1,21 @@
 #src # Explicit time stepping
 
-
 # For the time integration, [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) uses the package
-# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) from the DiffEq ecosystem.
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) from the SciML ecosystem.
 # The interface to this package is the `solve(...)` function. It always requires an ODE problem and
 # a time integration algorithm as input parameters.
 # ````julia
 # solve(ode, alg; kwargs)
 # ````
 # In Trixi, the ODE problem is created by `semidiscretize(semi, tspan)` for a semidiscretization
-# `semi` and the time span `tspan`.
+# `semi` and the time span `tspan`. In particular, [`semidiscretize`](@ref) returns an `ODEProblem`
+# used by OrdinaryDiffEq.jl.
 
 # OrdinaryDiffEq.jl provides many integration algorithms, which are summarized in
 # the [documentation](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Full-List-of-Methods).
+# Particularly interesting for Trixi.jl are their
+# [strong stability preserving (SSP) methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
+# and [low-storage methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Low-Storage-Methods).
 # There are some differences regarding the choice of the used time step.
 
 # # Error-based adaptive step sizes
@@ -23,11 +26,13 @@
 # Other error-based adaptive integration algorithms are for instance `RDPK3SpFSAL35`, `RDPK3Sp35`,
 # `RDPK3SpFSAL49`, `RDPK3Sp49`, `RDPK3SpFSAL510`, `RDPK3Sp510`.
 
-# They already contain an error-based adaptive step size control.
+# They already contain an error-based adaptive step size control and heuristics to guess
+# a starting step size. If this heuristic fails in your case, you can specify an appropriately
+# small initial step size as keyword argument `dt=...` of `solve`.
 
 
 # # CFL-based step size control
-# The DiffEq ecosystem also provides time integration algorithms without adaptive time stepping on
+# The SciML ecosystem also provides time integration algorithms without adaptive time stepping on
 # their own, such as `CarpenterKennedy2N54`. Moreover, you also can deactivate the automatic adaptivity
 # of adaptive integration algorithms by passing `adaptive=false` in the `solve` function.
 

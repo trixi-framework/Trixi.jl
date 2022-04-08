@@ -77,9 +77,9 @@
 
 # ### [10 Explicit time stepping](@ref time_stepping)
 # -
-# This tutorial is about time integration using [`OrdinaryDiffEq.jl`](https://github.com/SciML/OrdinaryDiffEq.jl).
-# It explains, how you can call such a solving function and divides between two types of time
-# integration algorithms - with error-based and CFL-based adaptive step size control.
+# This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+# It explains how to use their algorithms and presents two types of time step choices - with error-based
+# and CFL-based adaptive step size control.
 
 # ### [11 Differentiable programming](@ref differentiable_programming)
 #-
