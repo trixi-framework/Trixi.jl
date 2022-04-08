@@ -8,7 +8,7 @@
 @doc raw"""
     ShallowWaterEquations1D(gravity, H0)
 
-Shallow water equations (SWE) in two space dimensions. The equations are given by
+Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
 \begin{aligned}
   \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}(h v) &= 0 \\
@@ -100,7 +100,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
 
 @inline function source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations1D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
-  # this manufactured solution velocities are taken to be constants
+  # this manufactured solution velocity is taken to be constant
   c  = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
   omega_t = 2.0 * pi
@@ -116,10 +116,9 @@ as defined in [`initial_condition_convergence_test`](@ref).
   # fixed in time such that H_t = (h+b)_t = h_t + 0
   H_t = -omega_t * cosX * sinT
 
-  # bottom topography and its gradient
+  # bottom topography and its spatial derivative
   b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
-  tmp1 = 0.5 * omega_b
-  b_x = tmp1 * cos(omega_b * x[1])
+  b_x = 0.5 * omega_b * cos(omega_b * x[1])
 
   du1 = H_t + v * (H_x - b_x)
   du2 = v * du1 + equations.gravity * (H - b) * H_x
@@ -167,7 +166,7 @@ For details see Section 9.2.5 of the book:
 
   # create the "external" boundary solution state
   u_boundary = SVector(u_inner[1],
-                        (-1)*u_inner[2],
+                        -u_inner[2],
                         u_inner[3])
 
   # calculate the boundary flux
@@ -196,15 +195,7 @@ end
 # Note, this directional vector is not normalized and the bottom topography has no flux
 # Actually we do not need this flux, but we left it in for consistency with the other dimensions
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
-    h, h_v, _ = u
-    v = velocity(u, equations)
-  
-    p = 0.5 * equations.gravity * h^2
-
-    f1 = h_v
-    f2 = h_v * v + p
-    
-    return SVector(f1, f2, zero(eltype(u)))
+  return normal_direction[1] * flux(u, 1, equations)
 end
 
 
@@ -248,16 +239,7 @@ end
                                                         normal_direction_ll::AbstractVector,
                                                         normal_direction_average::AbstractVector,
                                                         equations::ShallowWaterEquations1D)
-  # Pull the necessary left and right state information
-  h_ll = waterheight(u_ll, equations)
-  b_rr = u_rr[3]
-
-  z = zero(eltype(u_ll))
-  
-  # Bottom gradient nonconservative term: (0, g h b_x, 0)
-  f = SVector(z, equations.gravity * h_ll * b_rr, z)
-
-  return f
+  return normal_direction_average[1] * flux_nonconservative_wintermeyer_etal(u_ll, u_rr, 1, equations)
 end
 
 
@@ -309,8 +291,8 @@ and for curvilinear 2D case in the paper:
   z = zero(eltype(u_ll))
 
   f = SVector(z,
-          equations.gravity * h_ll * b_ll + equations.gravity * h_average * b_jump,
-          z)
+              equations.gravity * h_ll * b_ll + equations.gravity * h_average * b_jump,
+              z)
 
   return f
 end
@@ -361,9 +343,9 @@ Details are available in Eq. (4.1) in the paper:
   v_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
-  h_avg  = 0.5 * (h_ll   + h_rr  )
+  h_avg = 0.5 * (h_ll   + h_rr  )
   v_avg = 0.5 * (v_ll  + v_rr )
-  p_avg  = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+  p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
 
   # Calculate fluxes depending on orientation
   f1 = h_avg * v_avg
@@ -380,9 +362,9 @@ end
   v_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
-  h_avg  = 0.5 * (h_ll   + h_rr  )
+  h_avg = 0.5 * (h_ll   + h_rr  )
   v_avg = 0.5 * (v_ll  + v_rr )
-  p_avg  = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+  p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
 
   # Calculate fluxes depending on orientation
   f1 = h_avg * v_avg
@@ -417,7 +399,7 @@ Further details are available in Theorem 1 of the paper:
 
   # Average each factor of products in flux
   v_avg = 0.5 * (v_ll + v_rr)
-  p_avg  = 0.5 * equations.gravity * h_ll * h_rr
+  p_avg = 0.5 * equations.gravity * h_ll * h_rr
 
   # Calculate fluxes depending on orientation
   f1 = 0.5 * (h_v_ll + h_v_rr)
@@ -437,7 +419,7 @@ end
   
     # Average each factor of products in flux
     v_avg = 0.5 * (v_ll + v_rr)
-    p_avg  = 0.5 * equations.gravity * h_ll * h_rr
+    p_avg = 0.5 * equations.gravity * h_ll * h_rr
   
     # Calculate fluxes depending on orientation
     f1 = 0.5 * (h_v_ll + h_v_rr)
@@ -573,9 +555,8 @@ end
   h, h_v, b = u
 
   v = velocity(u, equations)
-  v_square = v^2
 
-  w1 = equations.gravity * (h + b) - 0.5 * v_square
+  w1 = equations.gravity * (h + b) - 0.5 * v^2
   w2 = v
   
   return SVector(w1, w2, b)
@@ -586,7 +567,7 @@ end
 @inline function entropy2cons(w, equations::ShallowWaterEquations1D)
   w1, w2, b = w
 
-  h = (w1 + 0.5 * (w2^2)) / equations.gravity - b
+  h = (w1 + 0.5 * w2^2) / equations.gravity - b
   h_v = h * w2
   return SVector(h, h_v, b)
 end

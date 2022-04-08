@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the shallow water equations with a discontinuous
+# Semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81)
@@ -45,19 +45,16 @@ ode = semidiscretize(semi, tspan)
 # The errors from the analysis callback are not important but `∑∂S/∂U ⋅ Uₜ` should be around machine roundoff
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
-# only for the TreeMesh1D with initial_refinement_level=2.
+# only for the TreeMesh1D with `initial_refinement_level=2`.
 function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::ShallowWaterEquations1D)
 
-  inicenter = 0.7
-  x_norm = x[1] - inicenter
-  r = abs(x_norm)
 
   # Set the background values
   H = 4.25
   v = 0.0
   b = 0.0
 
-  # setup the discontinuous water height and velocities
+  # setup the discontinuous water height and velocity
   if element_id == 10
     H = 5.0
     v = 0.1882
