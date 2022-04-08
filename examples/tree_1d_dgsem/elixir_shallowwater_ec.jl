@@ -45,7 +45,7 @@ ode = semidiscretize(semi, tspan)
 # The errors from the analysis callback are not important but `∑∂S/∂U ⋅ Uₜ` should be around machine roundoff
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
-# only for the TreeMesh1D with initial_refinement_level=2.
+# only for the TreeMesh1D with `initial_refinement_level=2`.
 function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::ShallowWaterEquations1D)
 
   inicenter = 0.7
