@@ -48,9 +48,6 @@ ode = semidiscretize(semi, tspan)
 # only for the TreeMesh1D with `initial_refinement_level=2`.
 function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::ShallowWaterEquations1D)
 
-  inicenter = 0.7
-  x_norm = x[1] - inicenter
-  r = abs(x_norm)
 
   # Set the background values
   H = 4.25
