@@ -270,6 +270,8 @@ function StartUpDG.RefElemData(element_type::Hex,
   Drst = (Dr, Ds, Dt)
 
   # face
+  # We do not need any face data for periodic operators. Thus, we just
+  # pass `nothing` to save memory.
   face_vertices = ntuple(_ -> nothing, 3)
   face_mask = nothing
   wf = nothing
