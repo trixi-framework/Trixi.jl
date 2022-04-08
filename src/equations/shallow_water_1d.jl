@@ -555,7 +555,6 @@ end
   h, h_v, b = u
 
   v = velocity(u, equations)
-  v_square = v^2
 
   w1 = equations.gravity * (h + b) - 0.5 * v_square
   w2 = v
