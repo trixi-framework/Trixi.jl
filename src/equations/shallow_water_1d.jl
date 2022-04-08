@@ -195,15 +195,7 @@ end
 # Note, this directional vector is not normalized and the bottom topography has no flux
 # Actually we do not need this flux, but we left it in for consistency with the other dimensions
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
-    h, h_v, _ = u
-    v = velocity(u, equations)
-  
-    p = 0.5 * equations.gravity * h^2
-
-    f1 = h_v
-    f2 = h_v * v + p
-    
-    return SVector(f1, f2, zero(eltype(u)))
+  return normal_direction[1] * flux(u, 1, equations)
 end
 
 
