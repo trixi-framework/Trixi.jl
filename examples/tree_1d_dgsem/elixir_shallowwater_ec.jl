@@ -54,7 +54,7 @@ function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::
   v = 0.0
   b = 0.0
 
-  # setup the discontinuous water height and velocities
+  # setup the discontinuous water height and velocity
   if element_id == 10
     H = 5.0
     v = 0.1882
