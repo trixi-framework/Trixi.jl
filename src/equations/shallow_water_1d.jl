@@ -118,8 +118,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
 
   # bottom topography and its gradient
   b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
-  tmp1 = 0.5 * omega_b
-  b_x = tmp1 * cos(omega_b * x[1])
+  b_x = 0.5 * omega_b * cos(omega_b * x[1])
 
   du1 = H_t + v * (H_x - b_x)
   du2 = v * du1 + equations.gravity * (H - b) * H_x
