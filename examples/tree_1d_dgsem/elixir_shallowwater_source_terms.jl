@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# Semidiscretization of the shalow water equations
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81)
 
