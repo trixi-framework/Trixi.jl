@@ -58,7 +58,7 @@ ode = semidiscretize(semi, tspan)
 # `∑|H0-(h+b)|` should be around machine roundoff.
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
-# only for the TreeMesh1D with initial_refinement_level=2.
+# only for the TreeMesh1D with `initial_refinement_level=2`.
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations1D)
   # Set the background values
   H = equations.H0
