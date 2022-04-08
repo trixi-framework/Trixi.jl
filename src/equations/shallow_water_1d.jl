@@ -362,9 +362,9 @@ end
   v_rr = velocity(u_rr, equations)
 
   # Average each factor of products in flux
-  h_avg  = 0.5 * (h_ll   + h_rr  )
+  h_avg = 0.5 * (h_ll   + h_rr  )
   v_avg = 0.5 * (v_ll  + v_rr )
-  p_avg  = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+  p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
 
   # Calculate fluxes depending on orientation
   f1 = h_avg * v_avg
