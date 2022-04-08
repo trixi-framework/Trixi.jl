@@ -166,7 +166,7 @@ For details see Section 9.2.5 of the book:
 
   # create the "external" boundary solution state
   u_boundary = SVector(u_inner[1],
-                        (-1)*u_inner[2],
+                        -u_inner[2],
                         u_inner[3])
 
   # calculate the boundary flux
