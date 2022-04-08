@@ -556,7 +556,7 @@ end
 
   v = velocity(u, equations)
 
-  w1 = equations.gravity * (h + b) - 0.5 * v_square
+  w1 = equations.gravity * (h + b) - 0.5 * v^2
   w2 = v
   
   return SVector(w1, w2, b)
