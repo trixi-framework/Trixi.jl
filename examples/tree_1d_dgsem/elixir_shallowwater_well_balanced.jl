@@ -15,8 +15,8 @@ function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquati
   # Set the background values
   H = equations.H0
   v = 0.0
-  # bottom topography inspired by from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
 
+  # bottom topography inspired by from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
   b = (  1.5 / exp( 0.5 * ((x[1] - 1.0)^2) )
        + 0.75 / exp( 0.5 * ((x[1] + 1.0)^2 ) ) )
   return prim2cons(SVector(H, v, b), equations)
