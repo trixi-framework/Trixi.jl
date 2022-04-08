@@ -7,7 +7,7 @@ using Trixi
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81)
 
-initial_condition = initial_condition_convergence_test # MMS EOC test
+initial_condition = initial_condition_convergence_test
 
 
 ###############################################################################
