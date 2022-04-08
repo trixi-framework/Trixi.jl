@@ -100,7 +100,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
 
 @inline function source_terms_convergence_test(u, x, t, equations::ShallowWaterEquations1D)
   # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
-  # this manufactured solution velocities are taken to be constants
+  # this manufactured solution velocity is taken to be constant
   c  = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
   omega_t = 2.0 * pi
