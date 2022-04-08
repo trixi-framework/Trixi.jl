@@ -481,6 +481,14 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     for dim in eachdim(mesh)
       normal_direction = get_contravariant_vector(1, dim, mesh)
 
+      # These are strong-form operators of the form `D = M \ Q` where `M` is diagonal
+      # and `Q` is skew-symmetric. Since `M` is diagonal, `inv(M)` scales the rows of `Q`.
+      # Then, `1 / M[i,i] * ∑_j Q[i,j] * volume_flux(u[i], u[j])` is equivalent to
+      #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
+      #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
+      # TODO: DGMulti.
+      # This would have to be changed if `has_nonconservative_terms = Val{false}()`
+      # because then `volume_flux` is non-symmetric.
       A = dg.basis.Drst[dim]
 
       A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
