@@ -239,16 +239,7 @@ end
                                                         normal_direction_ll::AbstractVector,
                                                         normal_direction_average::AbstractVector,
                                                         equations::ShallowWaterEquations1D)
-  # Pull the necessary left and right state information
-  h_ll = waterheight(u_ll, equations)
-  b_rr = u_rr[3]
-
-  z = zero(eltype(u_ll))
-  
-  # Bottom gradient nonconservative term: (0, g h b_x, 0)
-  f = SVector(z, equations.gravity * h_ll * b_rr, z)
-
-  return f
+  return normal_direction_average[1] * flux_nonconservative_wintermeyer_etal(u_ll, u_rr, 1, equations)
 end
 
 
