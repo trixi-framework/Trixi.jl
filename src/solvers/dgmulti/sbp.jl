@@ -515,7 +515,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
       # since has_nonconservative_terms::Val{false},
       # the volume flux is symmetric.
-      flux_is_symmetric = Val{true}
+      flux_is_symmetric = Val{true}()
       hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
                     normal_direction, u, equations)
     end
