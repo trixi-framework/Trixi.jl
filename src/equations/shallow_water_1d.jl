@@ -567,7 +567,7 @@ end
 @inline function entropy2cons(w, equations::ShallowWaterEquations1D)
   w1, w2, b = w
 
-  h = (w1 + 0.5 * (w2^2)) / equations.gravity - b
+  h = (w1 + 0.5 * w2^2) / equations.gravity - b
   h_v = h * w2
   return SVector(h, h_v, b)
 end
