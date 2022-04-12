@@ -1,7 +1,7 @@
 authors = ["Michael Schlottke-Lakemper <m.schlottke-lakemper@hlrs.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>", "Jesse Chan <jesse.chan@rice.edu>"]
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
-version = "0.4.30-pre"
+version = "0.4.31-pre"
 
 [compat]
 CodeTracking = "1.0.5"
@@ -25,7 +25,7 @@ Reexport = "1.0"
 Requires = "1.1"
 SciMLBase = "1.21"
 Setfield = "0.8"
-StartUpDG = "0.12.5"
+StartUpDG = "0.13.1"
 Static = "0.3, 0.4, 0.5, 0.6"
 StaticArrays = "1.0"
 StrideArrays = "0.1.12"
