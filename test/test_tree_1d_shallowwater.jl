@@ -10,30 +10,30 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
 @testset "Shallow Water" begin
   @trixi_testset "elixir_shallowwater_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec.jl"),
-      l2   = [1.10855390, 4.75051966e-01, 5.22183534e-01],
-      linf = [1.84147098, 7.52800000e-01, 8.41470985e-01],
-      tspan = (0.0, 2.0))
+      l2   = [0.7916241311980453, 0.4101269104970603, 4.279166584958072e-7],
+      linf = [1.0000007386737142, 0.7062385748682828, 7.38673714334448e-7],
+      tspan = (0.0, 0.25))
   end
 
   @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-      l2   = [1.36330288, 3.70601713e-12, 1.36330288],
-      linf = [1.61891148, 3.72525608e-12, 1.61891148],
-      tspan = (0.0, 100.0))
+      l2   = [1.3633028849754976, 1.0332499675061871e-14, 1.3633028849754982],
+      linf = [1.6189114814413754, 1.266865149831811e-14, 1.6189114814413768],
+      tspan = (0.0, 0.25))
   end
 
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
-      l2   = [1.72639378e-03, 1.51395693e-02, 4.43649173e-05],
-      linf = [6.63829803e-03, 4.74841543e-02, 9.09837978e-05],
-      tspan = (0.0, 1.0))
+      l2   = [0.0022363707373868713, 0.01576799981934617, 4.436491725585346e-5],
+      linf = [0.00893601803417754, 0.05939797350246456, 9.098379777405796e-5],
+      tspan = (0.0, 0.025))
   end
 
   @trixi_testset "elixir_shallowwater_source_terms.jl with flux_hll" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
-      l2   = [1.73837899e-03, 1.51869435e-02, 4.43649173e-05],
-      linf = [6.16810476e-03, 4.50883562e-02, 9.09837978e-05],
-      tspan = (0.0, 1.0), surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
+      l2   = [0.0022758146627220154, 0.015864082886204556, 4.436491725585346e-5],
+      linf = [0.008457195427364006, 0.057201667446161064, 9.098379777405796e-5],
+      tspan = (0.0, 0.025), surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
   end
 end
 
