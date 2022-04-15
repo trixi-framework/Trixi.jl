@@ -36,6 +36,7 @@ using ConstructionBase: ConstructionBase
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
+using GridVisualize: GridVisualize
 using HDF5: h5open, attributes
 using IfElse: ifelse
 using LinearMaps: LinearMap
@@ -56,6 +57,7 @@ using Static: Static, One
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
+using TetGen: TetGen
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
 export TriangulateIO # for type parameter in DGMultiMesh
