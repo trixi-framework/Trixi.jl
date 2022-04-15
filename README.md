@@ -13,7 +13,7 @@
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 
 <p align="center">
-  <img width="300px" src="docs/src/assets/logo.png">
+  <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
@@ -223,7 +223,7 @@ Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
 (University of Stuttgart, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Münster, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).

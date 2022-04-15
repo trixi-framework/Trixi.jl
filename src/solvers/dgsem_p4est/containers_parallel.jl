@@ -6,30 +6,30 @@
 
 
 mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype<:Real, NDIMSP2} <: AbstractContainer
-  u                ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
-  local_element_ids::Vector{Int}                   # [interface]
-  node_indices     ::Vector{NTuple{NDIMS, Symbol}} # [interface]
-  local_sides      ::Vector{Int}                   # [interface]
+  u                 ::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
+  local_neighbor_ids::Vector{Int}                   # [interface]
+  node_indices      ::Vector{NTuple{NDIMS, Symbol}} # [interface]
+  local_sides       ::Vector{Int}                   # [interface]
 
   # internal `resize!`able storage
-  _u           ::Vector{uEltype}
+  _u                ::Vector{uEltype}
 end
 
 @inline nmpiinterfaces(interfaces::P4estMPIInterfaceContainer) = length(interfaces.local_sides)
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where NDIMS = NDIMS
 
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
-  @unpack _u, local_element_ids, node_indices, local_sides = mpi_interfaces
+  @unpack _u, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
 
   n_dims = ndims(mpi_interfaces)
-  n_nodes = size(interfaces.u, 3)
-  n_variables = size(interfaces.u, 2)
+  n_nodes = size(mpi_interfaces.u, 3)
+  n_variables = size(mpi_interfaces.u, 2)
 
   resize!(_u, 2 * n_variables * n_nodes^(n_dims-1) * capacity)
-  interfaces.u = unsafe_wrap(Array, pointer(_u),
+  mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
     (2, n_variables, ntuple(_ -> n_nodes, n_dims-1)..., capacity))
 
-  resize!(local_element_ids, capacity)
+  resize!(local_neighbor_ids, capacity)
 
   resize!(node_indices, capacity)
 
@@ -51,14 +51,14 @@ function init_mpi_interfaces(mesh::ParallelP4estMesh, equations, basis, elements
   u = unsafe_wrap(Array, pointer(_u),
     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mpi_interfaces))
 
-  local_element_ids = Vector{Int}(undef, n_mpi_interfaces)
+  local_neighbor_ids = Vector{Int}(undef, n_mpi_interfaces)
 
   node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_mpi_interfaces)
 
   local_sides = Vector{Int}(undef, n_mpi_interfaces)
 
   mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS+2}(
-    u, local_element_ids, node_indices, local_sides, _u)
+    u, local_neighbor_ids, node_indices, local_sides, _u)
 
   init_mpi_interfaces!(mpi_interfaces, mesh)
 
@@ -66,27 +66,126 @@ function init_mpi_interfaces(mesh::ParallelP4estMesh, equations, basis, elements
 end
 
 function init_mpi_interfaces!(mpi_interfaces, mesh::ParallelP4estMesh)
-  init_surfaces!(nothing, nothing, nothing, mpi_interfaces, mesh)
+  init_surfaces!(nothing, nothing, nothing, mpi_interfaces, nothing, mesh)
 
   return mpi_interfaces
 end
 
-# Overload init! function for boundaries and regular interfaces since it must call the appropriate
-# init_surfaces! function for parallel p4est meshes
+
+# Container data structure (structure-of-arrays style) for DG L2 mortars
+#
+# Similar to `P4estMortarContainer`. The field `neighbor_ids` has been split up into
+# `local_neighbor_ids` and `local_neighbor_positions` to describe the ids and positions of the locally
+# available elements belonging to a particular MPI mortar. Furthermore, `normal_directions` holds
+# the normal vectors on the surface of the small elements for each mortar.
+mutable struct P4estMPIMortarContainer{NDIMS, uEltype<:Real, RealT<:Real, NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractContainer
+  u                       ::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
+  local_neighbor_ids      ::Vector{Vector{Int}} # [mortar]
+  local_neighbor_positions::Vector{Vector{Int}} # [mortar]
+  node_indices            ::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+  normal_directions       ::Array{RealT, NDIMSP2} # [dimension, i, j, position, mortar]
+  # internal `resize!`able storage
+  _u                      ::Vector{uEltype}
+  _node_indices           ::Vector{NTuple{NDIMS, Symbol}}
+  _normal_directions      ::Vector{RealT}
+end
+
+@inline nmpimortars(mpi_mortars::P4estMPIMortarContainer) = length(mpi_mortars.local_neighbor_ids)
+@inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where NDIMS = NDIMS
+
+function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
+  @unpack _u, _node_indices, _normal_directions = mpi_mortars
+
+  n_dims = ndims(mpi_mortars)
+  n_nodes = size(mpi_mortars.u, 4)
+  n_variables = size(mpi_mortars.u, 2)
+
+  resize!(_u, 2 * n_variables * 2^(n_dims-1) * n_nodes^(n_dims-1) * capacity)
+  mpi_mortars.u = unsafe_wrap(Array, pointer(_u),
+    (2, n_variables, 2^(n_dims-1), ntuple(_ -> n_nodes, n_dims-1)..., capacity))
+
+  resize!(mpi_mortars.local_neighbor_ids, capacity)
+  resize!(mpi_mortars.local_neighbor_positions, capacity)
+
+  resize!(_node_indices, 2 * capacity)
+  mpi_mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
+
+  resize!(_normal_directions, n_dims * n_nodes^(n_dims-1) * 2^(n_dims-1) * capacity)
+  mpi_mortars.normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
+    (n_dims, ntuple(_ -> n_nodes, n_dims-1)..., 2^(n_dims-1), capacity))
+
+  return nothing
+end
+
+
+# Create MPI mortar container and initialize MPI mortar data
+function init_mpi_mortars(mesh::ParallelP4estMesh, equations, basis, elements)
+  NDIMS = ndims(mesh)
+  RealT = real(mesh)
+  uEltype = eltype(elements)
+
+  # Initialize container
+  n_mpi_mortars = count_required_surfaces(mesh).mpi_mortars
+
+  _u = Vector{uEltype}(undef,
+    2 * nvariables(equations) * 2^(NDIMS-1) * nnodes(basis)^(NDIMS-1) * n_mpi_mortars)
+  u = unsafe_wrap(Array, pointer(_u),
+    (2, nvariables(equations), 2^(NDIMS-1), ntuple(_ -> nnodes(basis), NDIMS-1)..., n_mpi_mortars))
+
+  local_neighbor_ids = fill(Vector{Int}(), n_mpi_mortars)
+  local_neighbor_positions = fill(Vector{Int}(), n_mpi_mortars)
+
+  _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mpi_mortars)
+  node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mpi_mortars))
+
+  _normal_directions = Vector{RealT}(undef, NDIMS * nnodes(basis)^(NDIMS-1) * 2^(NDIMS-1) * n_mpi_mortars)
+  normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
+    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS-1)..., 2^(NDIMS-1), n_mpi_mortars))
+
+  mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS+1, NDIMS+2, NDIMS+3}(
+    u, local_neighbor_ids, local_neighbor_positions, node_indices, normal_directions,
+    _u, _node_indices, _normal_directions)
+
+  if n_mpi_mortars > 0
+    init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
+  end
+
+  return mpi_mortars
+end
+
+function init_mpi_mortars!(mpi_mortars, mesh::ParallelP4estMesh, basis, elements)
+  init_surfaces!(nothing, nothing, nothing, nothing, mpi_mortars, mesh)
+  init_normal_directions!(mpi_mortars, basis, elements)
+
+  return mpi_mortars
+end
+
+
+# Overload init! function for regular interfaces, regular mortars and boundaries since they must
+# call the appropriate init_surfaces! function for parallel p4est meshes
 function init_interfaces!(interfaces, mesh::ParallelP4estMesh)
-  init_surfaces!(interfaces, nothing, nothing, nothing, mesh)
+  init_surfaces!(interfaces, nothing, nothing, nothing, nothing, mesh)
 
   return interfaces
 end
 
+function init_mortars!(mortars, mesh::ParallelP4estMesh)
+  init_surfaces!(nothing, mortars, nothing, nothing, nothing, mesh)
+
+  return mortars
+end
+
 function init_boundaries!(boundaries, mesh::ParallelP4estMesh)
-  init_surfaces!(nothing, nothing, boundaries, nothing, mesh)
+  init_surfaces!(nothing, nothing, boundaries, nothing, nothing, mesh)
 
   return boundaries
 end
 
 
 function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM, cache)
+  # Make sure to re-create ghost layer before reinitializing MPI-related containers
+  update_ghost_layer!(mesh)
+
   # Re-initialize elements container
   @unpack elements = cache
   resize!(elements, ncells(mesh))
@@ -110,14 +209,28 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
   @unpack mpi_interfaces = cache
   resize!(mpi_interfaces, required.mpi_interfaces)
 
+  # resize mpi_mortars container
+  @unpack mpi_mortars = cache
+  resize!(mpi_mortars, required.mpi_mortars)
+
   # re-initialize containers together to reduce
   # the number of iterations over the mesh in p4est
-  init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mesh)
+  init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
+
+  # re-initialize MPI cache
+  @unpack mpi_cache = cache
+  init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
+                  nvariables(equations), nnodes(dg), eltype(elements))
+
+  # re-initialize and distribute normal directions of MPI mortars; requires MPI communication, so
+  # the MPI cache must be re-initialized before
+  init_normal_directions!(mpi_mortars, dg.basis, elements)
+  exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 end
 
 
 # A helper struct used in initialization methods below
-mutable struct ParallelInitSurfacesIterFaceUserData{Interfaces, Mortars, Boundaries, MPIInterfaces, Mesh}
+mutable struct ParallelInitSurfacesIterFaceUserData{Interfaces, Mortars, Boundaries, MPIInterfaces, MPIMortars, Mesh}
   interfaces      ::Interfaces
   interface_id    ::Int
   mortars         ::Mortars
@@ -126,13 +239,16 @@ mutable struct ParallelInitSurfacesIterFaceUserData{Interfaces, Mortars, Boundar
   boundary_id     ::Int
   mpi_interfaces  ::MPIInterfaces
   mpi_interface_id::Int
+  mpi_mortars     ::MPIMortars
+  mpi_mortar_id   ::Int
   mesh            ::Mesh
 end
 
-function ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mpi_interfaces, mesh)
+function ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries,
+                                              mpi_interfaces, mpi_mortars, mesh)
   return ParallelInitSurfacesIterFaceUserData{
-    typeof(interfaces), typeof(mortars), typeof(boundaries), typeof(mpi_interfaces), typeof(mesh)}(
-      interfaces, 1, mortars, 1, boundaries, 1, mpi_interfaces, 1, mesh)
+    typeof(interfaces), typeof(mortars), typeof(boundaries), typeof(mpi_interfaces), typeof(mpi_mortars), typeof(mesh)}(
+      interfaces, 1, mortars, 1, boundaries, 1, mpi_interfaces, 1, mpi_mortars, 1, mesh)
 end
 
 
@@ -151,17 +267,21 @@ cfunction(::typeof(init_surfaces_iter_face_parallel), ::Val{3}) = @cfunction(ini
 
 # Function barrier for type stability, overload for parallel P4estMesh
 function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIterFaceUserData)
-  @unpack interfaces, boundaries, mpi_interfaces = user_data
-
+  @unpack interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars = user_data
+  # This function is called during `init_surfaces!`, more precisely it is called for each face
+  # while p4est iterates over the forest. Since `init_surfaces!` can be used to initialize all
+  # surfaces at once or any subset of them, some of the unpacked values above may be `nothing` if
+  # they're not supposed to be initialized during this call. That is why we need additional
+  # `!== nothing` checks below before initializing individual faces.
   if info.sides.elem_count == 2
     # Two neighboring elements => Interface or mortar
 
     # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
-    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+    if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface or MPI interface
-      if sides[1].is.full.is_ghost == 1 || sides[2].is.full.is_ghost == 1 # remote side => MPI interface
+      if sides[1].is.full.is_ghost == true || sides[2].is.full.is_ghost == true # remote side => MPI interface
         if mpi_interfaces !== nothing
           init_mpi_interfaces_iter_face_inner(info, sides, user_data)
         end
@@ -171,8 +291,31 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
         end
       end
     else
-      # Hanging nodes => mortar
-      error("ParallelP4estMesh does not support non-conforming meshes.")
+      # Hanging nodes => mortar or MPI mortar
+      # First, we check which side is hanging, i.e., on which side we have the refined cells.
+      # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
+      # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
+      if sides[1].is_hanging == true
+        @assert sides[2].is_hanging == false
+        if any(sides[1].is.hanging.is_ghost .== true) || sides[2].is.full.is_ghost == true
+          face_has_ghost_side = true
+        else
+          face_has_ghost_side = false
+        end
+      else # sides[2].is_hanging == true
+        @assert sides[1].is_hanging == false
+        if sides[1].is.full.is_ghost == true || any(sides[2].is.hanging.is_ghost .== true)
+          face_has_ghost_side = true
+        else
+          face_has_ghost_side = false
+        end
+      end
+      # Initialize mortar or MPI mortar
+      if face_has_ghost_side && mpi_mortars !== nothing
+        init_mpi_mortars_iter_face_inner(info, sides, user_data)
+      elseif !face_has_ghost_side && mortars !== nothing
+        init_mortars_iter_face_inner(info, sides, user_data)
+      end
     end
   elseif info.sides.elem_count == 1
     # One neighboring elements => boundary
@@ -184,13 +327,14 @@ function init_surfaces_iter_face_inner(info, user_data::ParallelInitSurfacesIter
   return nothing
 end
 
-function init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mesh::ParallelP4estMesh)
+function init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars,
+                        mesh::ParallelP4estMesh)
   # Let p4est iterate over all interfaces and call init_surfaces_iter_face
   iter_face_c = cfunction(init_surfaces_iter_face_parallel, Val(ndims(mesh)))
-  user_data = ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mpi_interfaces,
-                                                   mesh)
+  user_data = ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries,
+                                                   mpi_interfaces, mpi_mortars, mesh)
 
-  iterate_p4est(mesh.p4est, user_data; iter_face_c=iter_face_c)
+  iterate_p4est(mesh.p4est, user_data; ghost_layer=mesh.ghost, iter_face_c=iter_face_c)
 
   return nothing
 end
@@ -201,9 +345,9 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
   @unpack mpi_interfaces, mpi_interface_id, mesh = user_data
   user_data.mpi_interface_id += 1
 
-  if sides[1].is.full.is_ghost == 1
+  if sides[1].is.full.is_ghost == true
     local_side = 2
-  elseif sides[2].is.full.is_ghost == 1
+  elseif sides[2].is.full.is_ghost == true
     local_side = 1
   else
     error("should not happen")
@@ -218,7 +362,7 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
   local_quad_id = offset + tree_quad_id
 
   # p4est uses zero-based indexing, convert to one-based indexing
-  mpi_interfaces.local_element_ids[mpi_interface_id] = local_quad_id + 1
+  mpi_interfaces.local_neighbor_ids[mpi_interface_id] = local_quad_id + 1
   mpi_interfaces.local_sides[mpi_interface_id] = local_side
 
   # Face at which the interface lies
@@ -232,11 +376,71 @@ function init_mpi_interfaces_iter_face_inner(info, sides, user_data)
 end
 
 
+# Initialization of MPI mortars after the function barrier
+function init_mpi_mortars_iter_face_inner(info, sides, user_data)
+  @unpack mpi_mortars, mpi_mortar_id, mesh = user_data
+  user_data.mpi_mortar_id += 1
+
+  # Get Tuple of adjacent trees, one-based indexing
+  trees = (unsafe_load_tree(mesh.p4est, sides[1].treeid + 1),
+           unsafe_load_tree(mesh.p4est, sides[2].treeid + 1))
+  # Quadrant numbering offsets of the quadrants at this mortar
+  offsets = SVector(trees[1].quadrants_offset,
+                    trees[2].quadrants_offset)
+
+  if sides[1].is_hanging == true
+    hanging_side = 1
+    full_side = 2
+  else # sides[2].is_hanging == true
+    hanging_side = 2
+    full_side = 1
+  end
+  # Just be sure before accessing is.full or is.hanging later
+  @assert sides[full_side].is_hanging == false
+  @assert sides[hanging_side].is_hanging == true
+
+  # Find small quads that are locally available
+  local_small_quad_positions = findall(sides[hanging_side].is.hanging.is_ghost .== false)
+
+  # Get id of local small quadrants within their tree
+  # Indexing CBinding.Caccessor via a Vector does not work here -> use map instead
+  tree_small_quad_ids = map(p->sides[hanging_side].is.hanging.quadid[p], local_small_quad_positions)
+  local_small_quad_ids = offsets[hanging_side] .+ tree_small_quad_ids # ids cumulative over local trees
+
+  # Determine if large quadrant is available and if yes, determine its id
+  if sides[full_side].is.full.is_ghost == false
+    local_large_quad_id = offsets[full_side] + sides[full_side].is.full.quadid
+  else
+    local_large_quad_id = -1 # large quad is ghost
+  end
+
+  # Write data to mortar container, convert to 1-based indexing
+  # Start with small elements
+  local_neighbor_ids = local_small_quad_ids .+ 1
+  local_neighbor_positions = local_small_quad_positions
+  # Add large element information if it is locally available
+  if local_large_quad_id > -1
+    push!(local_neighbor_ids, local_large_quad_id + 1) # convert to 1-based index
+    push!(local_neighbor_positions, 2^(ndims(mesh)-1) + 1)
+  end
+
+  mpi_mortars.local_neighbor_ids[mpi_mortar_id] = local_neighbor_ids
+  mpi_mortars.local_neighbor_positions[mpi_mortar_id] = local_neighbor_positions
+
+  # init_mortar_node_indices! expects side 1 to contain small elements
+  faces = (sides[hanging_side].face, sides[full_side].face)
+  init_mortar_node_indices!(mpi_mortars, faces, info.orientation, mpi_mortar_id)
+
+  return nothing
+end
+
+
 # Iterate over all interfaces and count
 # - (inner) interfaces
 # - mortars
 # - boundaries
 # - (MPI) interfaces at subdomain boundaries
+# - (MPI) mortars at subdomain boundaries
 # and collect the numbers in `user_data` in this order.
 function count_surfaces_iter_face_parallel(info, user_data)
   if info.sides.elem_count == 2
@@ -245,9 +449,9 @@ function count_surfaces_iter_face_parallel(info, user_data)
     # Extract surface data
     sides = (unsafe_load_side(info, 1), unsafe_load_side(info, 2))
 
-    if sides[1].is_hanging == 0 && sides[2].is_hanging == 0
+    if sides[1].is_hanging == false && sides[2].is_hanging == false
       # No hanging nodes => normal interface or MPI interface
-      if sides[1].is.full.is_ghost == 1 || sides[2].is.full.is_ghost == 1 # remote side => MPI interface
+      if sides[1].is.full.is_ghost == true || sides[2].is.full.is_ghost == true # remote side => MPI interface
         # Unpack user_data = [mpi_interface_count] and increment mpi_interface_count
         ptr = Ptr{Int}(user_data)
         id = unsafe_load(ptr, 4)
@@ -259,8 +463,36 @@ function count_surfaces_iter_face_parallel(info, user_data)
         unsafe_store!(ptr, id + 1, 1)
       end
     else
-      # Hanging nodes => mortar
-      error("ParallelP4estMesh does not support non-conforming meshes.")
+      # Hanging nodes => mortar or MPI mortar
+      # First, we check which side is hanging, i.e., on which side we have the refined cells.
+      # Then we check if any of the refined cells or the coarse cell are "ghost" cells, i.e., they
+      # belong to another rank. That way we can determine if this is a regular mortar or MPI mortar
+      if sides[1].is_hanging == true
+        @assert sides[2].is_hanging == false
+        if any(sides[1].is.hanging.is_ghost .== true) || sides[2].is.full.is_ghost == true
+          face_has_ghost_side = true
+        else
+          face_has_ghost_side = false
+        end
+      else # sides[2].is_hanging == true
+        @assert sides[1].is_hanging == false
+        if sides[1].is.full.is_ghost == true || any(sides[2].is.hanging.is_ghost .== true)
+          face_has_ghost_side = true
+        else
+          face_has_ghost_side = false
+        end
+      end
+      if face_has_ghost_side
+        # Unpack user_data = [mpi_mortar_count] and increment mpi_mortar_count
+        ptr = Ptr{Int}(user_data)
+        id = unsafe_load(ptr, 5)
+        unsafe_store!(ptr, id + 1, 5)
+      else
+        # Unpack user_data = [mortar_count] and increment mortar_count
+        ptr = Ptr{Int}(user_data)
+        id = unsafe_load(ptr, 2)
+        unsafe_store!(ptr, id + 1, 2)
+      end
     end
   elseif info.sides.elem_count == 1
     # One neighboring elements => boundary
@@ -283,16 +515,17 @@ function count_required_surfaces(mesh::ParallelP4estMesh)
   # Let p4est iterate over all interfaces and call count_surfaces_iter_face_parallel
   iter_face_c = cfunction(count_surfaces_iter_face_parallel, Val(ndims(mesh)))
 
-  # interfaces, mortars, boundaries, mpi_interfaces
-  user_data = [0, 0, 0, 0]
+  # interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars
+  user_data = [0, 0, 0, 0, 0]
 
-  iterate_p4est(mesh.p4est, user_data; iter_face_c=iter_face_c)
+  iterate_p4est(mesh.p4est, user_data; ghost_layer=mesh.ghost, iter_face_c=iter_face_c)
 
   # Return counters
   return (interfaces     = user_data[1],
           mortars        = user_data[2],
           boundaries     = user_data[3],
-          mpi_interfaces = user_data[4])
+          mpi_interfaces = user_data[4],
+          mpi_mortars    = user_data[5])
 end
 
 
