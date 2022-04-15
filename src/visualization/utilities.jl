@@ -924,7 +924,7 @@ function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
   shifted_data = nodes.-point
   distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-    
+
   # Iterate over every entry.
   for element in 1:n_elements
     for x in 1:n_nodes
@@ -1407,12 +1407,12 @@ function global_plotting_triangulation_makie(pds::PlotDataSeries{<:PlotData2DTri
 end
 
 # 3D isosurface case for global_plotting_triangulation_makie function
-function global_plotting_triangulation_makie(plot_data, level)
+function global_plotting_triangulation_makie(plot_data::PlotData3DTriangulated{<:ScalarData}, level)
 
   xp = plot_data.x
   yp = plot_data.y
   zp = plot_data.z
-  func = plot_data.data
+  func = plot_data.data.data
   connectivity = plot_data.t
 
   plotting_coordinates = zeros(3, size(xp, 1))
@@ -1438,7 +1438,7 @@ function global_plotting_triangulation_makie(plot_data, level)
       # add newly found mesh to list of meshes
       list_of_meshes[sk] = iso_mesh
       sk += 1
-    end    
+    end
   end
 
   plotting_mesh = merge(list_of_meshes[1:sk-1])
