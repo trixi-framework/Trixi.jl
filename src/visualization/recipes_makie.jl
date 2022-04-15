@@ -133,7 +133,7 @@ iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs..
 iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
 
 # Interactive visualization of user-defined ScalarData.
-function iplot(pd::PlotData2DTriangulated{<:ScalarData};
+function iplot(pd::Union{PlotData2DTriangulated{<:ScalarData}, PlotData3DTriangulated{<:ScalarData}};
                show_axis=false, colormap=default_Makie_colormap(), plot_mesh=false)
   fig = Makie.Figure()
 
@@ -166,6 +166,27 @@ function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
     Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
     Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
   end
+
+  # Add a colorbar to the rightmost part of the layout
+  Makie.Colorbar(fig[1, end+1], plt)
+
+  fig
+  return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
+                pd::PlotData3DTriangulated{<:ScalarData};
+                colormap=default_Makie_colormap(), plot_mesh=false)
+
+  # destructure first two fields of either FigureAndAxes or Makie.FigureAxisPlot
+  fig, ax = fig_axis
+
+  # create triangulation of the scalar data to plot
+  # TODO add levels as a keyword argument earlier
+  level = [-.5]
+  plotting_mesh = global_plotting_triangulation_makie(pd, level)
+  solution_z = getindex.(plotting_mesh.position, 3)
+  plt = Makie.mesh!(ax, plotting_mesh; color=solution_z, shading=false, colormap)
 
   # Add a colorbar to the rightmost part of the layout
   Makie.Colorbar(fig[1, end+1], plt)
