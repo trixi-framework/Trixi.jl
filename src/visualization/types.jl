@@ -490,6 +490,33 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGSEM, cache; variable_name=no
                                 x_face, y_face, face_data, variable_name)
 end
 
+ScalarPlotData3D(u, semi::AbstractSemidiscretization; kwargs...) =
+  ScalarPlotData3D(u, mesh_equations_solver_cache(semi)...; kwargs...)
+
+# Returns an `PlotData3DTriangulated` which is used to visualize a single scalar field
+function ScalarPlotData3D(u, mesh, equations, dg::DGMulti, cache;
+                          variable_name=nothing)
+
+  rd = dg.basis
+  md = mesh.md
+
+  # Vp = the interpolation matrix from nodal points to plotting points
+  @unpack Vp = rd
+
+  # interpolate nodal coordinates and solution field to plotting points
+  x_plot, y_plot, z_plot = map(x->Vp * x, md.xyz) # md.xyz is a tuple of arrays containing nodal coordinates
+  u_plot = Vp * u
+
+  # construct a tetrahedralization of the reference plotting nodes
+  input = TetGen.RawTetGenIO{Cdouble}(pointlist=vcat(transpose.(rd.rstp)...)) # rd.rstp = reference coordinates of plotting points
+  triangulation = TetGen.tetrahedralize(input, "Q")
+  t = triangulation.tetrahedronlist # connectivity matrix
+
+  # wrap solution in ScalarData struct for recipe dispatch
+  return PlotData3DTriangulated(x_plot, y_plot, z_plot, ScalarData(u_plot), t,
+                                nothing, nothing, nothing, nothing, # these are face data - ignore for now
+                                variable_name)
+end
 
 """
     PlotData1D(u, semi [or mesh, equations, solver, cache];
