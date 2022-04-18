@@ -296,7 +296,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       v_norm = @. v1^2 + v2^2 + v3^3
       pd = ScalarPlotData3D(v_norm, semi)
       @test pd isa PlotData3DTriangulated
-      @test_nowarn_debug iplot(pd, levels = [.5; .25])
+      @test_nowarn_debug iplot(pd, levels = [.7; .6], colorrange=[.5, 1])
     end
 
   end
