@@ -176,6 +176,8 @@ end
 
 
 # Interactive isosurface visualization of user-defined ScalarData.
+# levels = Vector of isosurface values
+# colorrange = vector or tuple of the range for plot colors.
 function iplot(pd::PlotData3DTriangulated{<:ScalarData};
                levels = [0.0], colorrange=extrema(levels),
                show_axis=false, colormap=default_Makie_colormap())
