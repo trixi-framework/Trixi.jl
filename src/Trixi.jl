@@ -216,7 +216,7 @@ export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
 export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
 
 # Visualization-related exports
-export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
+export PlotData1D, PlotData2D, ScalarPlotData2D, ScalarPlotData3D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
 function __init__()
   init_mpi()
