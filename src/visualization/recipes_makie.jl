@@ -177,14 +177,16 @@ end
 
 # Interactive isosurface visualization of user-defined ScalarData.
 function iplot(pd::PlotData3DTriangulated{<:ScalarData};
-               levels = [0.0], show_axis=false, colormap=default_Makie_colormap())
+               levels = [0.0], colorrange=extrema(levels),
+               show_axis=false, colormap=default_Makie_colormap())
   fig = Makie.Figure()
 
   # Create a zoomable interactive axis object on top of which to plot the solution.
   ax = Makie.LScene(fig[1, 1], scenekw=(show_axis=show_axis,))
 
   # plot the user-defined ScalarData
-  fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap=colormap, levels=levels)
+  fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap=colormap,
+                        levels=levels, colorrange=colorrange)
 
   fig
   return fig_axis_plt
@@ -192,17 +194,20 @@ end
 
 function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
                 pd::PlotData3DTriangulated{<:ScalarData};
-                levels, colormap=default_Makie_colormap())
+                levels, colorrange=extrema(levels), colormap=default_Makie_colormap())
 
   # destructure first two fields of either FigureAndAxes or Makie.FigureAxisPlot
   fig, ax = fig_axis
 
   # create triangulation of the scalar data to plot
   plotting_mesh, isosurface_values = global_plotting_triangulation_makie(pd, levels)
-  plt = Makie.mesh!(ax, plotting_mesh; color=isosurface_values, shading=false, colormap)
+  plt = Makie.mesh!(ax, plotting_mesh; color=isosurface_values, shading=false,
+                    colormap, colorrange=colorrange)
 
-  # Add a colorbar to the rightmost part of the layout
-  Makie.Colorbar(fig[1, end+1], plt)
+  # Add a colorbar to the rightmost part of the layout if we have more than 1 isosurface
+  if length(levels) > 1
+    Makie.Colorbar(fig[1, end+1], plt)
+  end
 
   fig
   return Makie.FigureAxisPlot(fig, ax, plt)
