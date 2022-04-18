@@ -1418,6 +1418,7 @@ function global_plotting_triangulation_makie(plot_data::PlotData3DTriangulated{<
   plotting_coordinates = zeros(3, size(xp, 1))
   num_elements = size(xp, 2)
   list_of_meshes = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
+  isosurface_values = Float32[]
   sk = 1
   planes = []
 
@@ -1432,17 +1433,18 @@ function global_plotting_triangulation_makie(plot_data::PlotData3DTriangulated{<
 
     #output mesh that encompasses isosurface
     if length(pts) > 0
-      makie_triangles = Makie.to_triangles(hcat((getindex.(trngls,i) for i in 1:3)...))
+      makie_triangles = Makie.to_triangles(hcat((getindex.(trngls, i) for i in 1:3)...))
       iso_mesh = GeometryBasics.normal_mesh(Makie.to_vertices(pts), makie_triangles)
 
       # add newly found mesh to list of meshes
       list_of_meshes[sk] = iso_mesh
+      append!(isosurface_values, fvals)
       sk += 1
     end
   end
 
   plotting_mesh = merge(list_of_meshes[1:sk-1])
-  return plotting_mesh
+  return plotting_mesh, isosurface_values
 end
 
 # Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"

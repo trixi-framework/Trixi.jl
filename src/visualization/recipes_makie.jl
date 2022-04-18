@@ -133,7 +133,7 @@ iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs..
 iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
 
 # Interactive visualization of user-defined ScalarData.
-function iplot(pd::Union{PlotData2DTriangulated{<:ScalarData}, PlotData3DTriangulated{<:ScalarData}};
+function iplot(pd::PlotData2DTriangulated{<:ScalarData};
                show_axis=false, colormap=default_Makie_colormap(), plot_mesh=false)
   fig = Makie.Figure()
 
@@ -174,19 +174,32 @@ function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
   return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
+
+# Interactive isosurface visualization of user-defined ScalarData.
+function iplot(pd::PlotData3DTriangulated{<:ScalarData};
+               levels = [0.0], show_axis=false, colormap=default_Makie_colormap())
+  fig = Makie.Figure()
+
+  # Create a zoomable interactive axis object on top of which to plot the solution.
+  ax = Makie.LScene(fig[1, 1], scenekw=(show_axis=show_axis,))
+
+  # plot the user-defined ScalarData
+  fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap=colormap, levels=levels)
+
+  fig
+  return fig_axis_plt
+end
+
 function iplot!(fig_axis::Union{FigureAndAxes, Makie.FigureAxisPlot},
                 pd::PlotData3DTriangulated{<:ScalarData};
-                colormap=default_Makie_colormap(), plot_mesh=false)
+                levels, colormap=default_Makie_colormap())
 
   # destructure first two fields of either FigureAndAxes or Makie.FigureAxisPlot
   fig, ax = fig_axis
 
   # create triangulation of the scalar data to plot
-  # TODO add levels as a keyword argument earlier
-  level = [-.5]
-  plotting_mesh = global_plotting_triangulation_makie(pd, level)
-  solution_z = getindex.(plotting_mesh.position, 3)
-  plt = Makie.mesh!(ax, plotting_mesh; color=solution_z, shading=false, colormap)
+  plotting_mesh, isosurface_values = global_plotting_triangulation_makie(pd, levels)
+  plt = Makie.mesh!(ax, plotting_mesh; color=isosurface_values, shading=false, colormap)
 
   # Add a colorbar to the rightmost part of the layout
   Makie.Colorbar(fig[1, end+1], plt)
