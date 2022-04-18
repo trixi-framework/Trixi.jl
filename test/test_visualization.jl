@@ -283,6 +283,22 @@ isdir(outdir) && rm(outdir, recursive=true)
         @test_nowarn_debug Plots.plot(pd1D)
       end
     end
+
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "dgmulti_3d", "elixir_euler_taylor_green_vortex.jl"),
+                                     tspan=(0,0.01))
+
+    @testset "3D isosurface plot for DGMulti" begin
+      # variables for compressible Euler
+      rho, rho_v1, rho_v2, rho_v3, E = StructArrays.components(sol.u[end])
+      v1 = rho_v1 ./ rho
+      v2 = rho_v2 ./ rho
+      v3 = rho_v3 ./ rho
+      v_norm = @. v1^2 + v2^2 + v3^3
+      pd = ScalarPlotData3D(v_norm, semi)
+      @test pd isa PlotData3DTriangulated
+      @test_nowarn_debug iplot(pd, levels = [.5; .25])
+    end
+
   end
 
   @timed_testset "plotting TimeIntegratorSolution" begin
