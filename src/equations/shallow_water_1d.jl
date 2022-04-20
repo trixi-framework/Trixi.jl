@@ -159,7 +159,8 @@ For details see Section 9.2.5 of the book:
   1st edition
   ISBN 0471987662
 """
-@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+
+@inline function boundary_condition_slip_wall(u_inner, orientations::Integer, direction,
                                               x, t,
                                               surface_flux_function,
                                               equations::ShallowWaterEquations1D)
@@ -170,11 +171,10 @@ For details see Section 9.2.5 of the book:
                         u_inner[3])
 
   # calculate the boundary flux
-  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+  flux = surface_flux_function(u_inner, u_boundary, 1, equations)
 
   return flux
 end
-
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography has no flux
