@@ -163,26 +163,52 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT<:Real, Variable, Cache} <: AbstractIndicator
+struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
   alpha_maxIDP::RealT
-  variable::Variable
+  IDPPositivity::Bool
+  IDPDensityTVD::Bool
+  IDPPressureTVD::Bool
+  IDPSpecEntropy::Bool
+  IDPMathEntropy::Bool
   cache::Cache
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
                       alpha_maxIDP=1.0,
-                      variable)
-  cache = create_cache(IndicatorIDP, equations, basis)
-  IndicatorIDP{typeof(alpha_maxIDP), typeof(variable), typeof(cache)}(alpha_maxIDP, variable, cache)
+                      IDPPositivity=false,
+                      IDPDensityTVD=false,
+                      IDPPressureTVD=false,
+                      IDPSpecEntropy=false,
+                      IDPMathEntropy=false)
+
+  if IDPMathEntropy && IDPSpecEntropy
+    error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
+  end
+
+  if !(IDPPositivity || IDPDensityTVD || IDPPressureTVD || IDPSpecEntropy || IDPMathEntropy)
+    println("No limiter selected. Default: use IDPSpecEntropy")
+    IDPSpecEntropy = true
+  end
+
+  cache = create_cache(IndicatorIDP, equations, basis) # , 2 * (IDPDensityTVD + IDPPressureTVD + IDPPositivity) + IDPMathEntropy + IDPSpecEntropy)
+  IndicatorIDP{typeof(alpha_maxIDP), typeof(cache)}(alpha_maxIDP,
+      IDPPositivity, IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy,
+      cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
 
   print(io, "IndicatorIDP(")
-  print(io, indicator.variable)
-  print(io, ", alpha_maxIDP=", indicator.alpha_maxIDP)
+  print(io, "limiter=(")
+  indicator.IDPPositivity  && print(io, "IDPPositivity, ")
+  indicator.IDPDensityTVD  && print(io, "IDPDensityTVD, ")
+  indicator.IDPPressureTVD && print(io, "IDPPressureTVD, ")
+  indicator.IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
+  indicator.IDPMathEntropy && print(io, "IDPMathEntropy, ")
+  print(io, "), ")
+  print(io, "alpha_maxIDP=", indicator.alpha_maxIDP)
   print(io, ")")
 end
 

@@ -211,43 +211,185 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
                                        mesh, equations, dg::DGSEM,
                                        dt, cache;
                                        kwargs...)
-  @unpack indicator_threaded = indicator_IDP.cache
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack alpha = indicator_IDP.cache.ContainerShockCapturingIndicator
+  alpha .= 0.0
 
-  @unpack alpha, alpha1, alpha2, var_max, var_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  indicator_IDP.IDPDensityTVD  &&
+    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
+  indicator_IDP.IDPPressureTVD &&
+    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
+  indicator_IDP.IDPPositivity  &&
+    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u,        equations, dg, dt, cache)
+  indicator_IDP.IDPSpecEntropy &&
+    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u,        equations, dg, dt, cache)
+  indicator_IDP.IDPMathEntropy &&
+    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u,        equations, dg, dt, cache)
 
-  @unpack inverse_weights = dg.basis
-
+  # Clip the maximum amount of FV allowed (default: alpha_maxIDP = 1.0)
   @unpack alpha_maxIDP = indicator_IDP
+  if alpha_maxIDP != 1.0
+    @threaded for element in eachelement(dg, cache)
+      for j in eachnode(dg), i in eachnode(dg)
+        alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
+      end
+    end
+  end
 
+  # Calculate alpha1 and alpha2
+  @unpack alpha1, alpha2 = indicator_IDP.cache.ContainerShockCapturingIndicator
   @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in 2:nnodes(dg)
+      alpha1[i, j, element] = max(alpha[i-1, j, element], alpha[i, j, element])
+    end
+    for j in 2:nnodes(dg), i in eachnode(dg)
+      alpha2[i, j, element] = max(alpha[i, j-1, element], alpha[i, j, element])
+    end
+    alpha1[1, :, element] .= zero(eltype(alpha1))
+    alpha1[nnodes(dg)+1, :, element] .= zero(eltype(alpha1))
+    alpha2[:, 1, element] .= zero(eltype(alpha2))
+    alpha2[:, nnodes(dg)+1, element] .= zero(eltype(alpha2))
+  end
 
+  return nothing
+end
+
+@inline function IDP_densityTVD!(alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
+  @unpack rho_max, rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  # calculate_max_min_values!(rho_max, rho_min, u_safe, indicator_IDP, density, equations, dg, cache)
+  @unpack indicator_threaded = indicator_IDP.cache
+  @threaded for element in eachelement(dg, cache)
     # Calculate indicator variables at Gauss-Lobatto nodes
     indicator = indicator_threaded[Threads.threadid()]
     for j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u_old, equations, dg, i, j, element)
-      indicator[i, j] = indicator_IDP.variable(u_local, equations)
+      indicator[i, j] = u_old[1, i, j, element]
     end
 
     for j in eachnode(dg), i in eachnode(dg)
       # Calculate max and min of variable at Gauss-Lobatto nodes
-      var_min[i, j, element] = indicator[i, j]
-      var_max[i, j, element] = indicator[i, j]
+      rho_min[i, j, element] = indicator[i, j]
+      rho_max[i, j, element] = indicator[i, j]
       if i > 1
-        var_min[i, j, element] = min(var_min[i, j, element], indicator[i-1, j])
-        var_max[i, j, element] = max(var_max[i, j, element], indicator[i-1, j])
+        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i-1, j])
+        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i-1, j])
       end
       if i < nnodes(dg)
-        var_min[i, j, element] = min(var_min[i, j, element], indicator[i+1, j])
-        var_max[i, j, element] = max(var_max[i, j, element], indicator[i+1, j])
+        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i+1, j])
+        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i+1, j])
       end
       if j > 1
-        var_min[i, j, element] = min(var_min[i, j, element], indicator[i, j-1])
-        var_max[i, j, element] = max(var_max[i, j, element], indicator[i, j-1])
+        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i, j-1])
+        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i, j-1])
       end
       if j < nnodes(dg)
-        var_min[i, j, element] = min(var_min[i, j, element], indicator[i, j+1])
-        var_max[i, j, element] = max(var_max[i, j, element], indicator[i, j+1])
+        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i, j+1])
+        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i, j+1])
+      end
+    end
+  end
+
+  # Loop over interfaces
+  for interface in eachinterface(dg, cache)
+    # Get neighboring element ids
+    left  = cache.interfaces.neighbor_ids[1, interface]
+    right = cache.interfaces.neighbor_ids[2, interface]
+
+    orientation = cache.interfaces.orientations[interface]
+
+    for i in eachnode(dg)
+      if orientation == 1
+        index_left  = (nnodes(dg), i, left)
+        index_right = (1,          i, right)
+      else
+        index_left  = (i, nnodes(dg), left)
+        index_right = (i,          1, right)
+      end
+      rho_neighbor_left  = u_old[1, index_left...]
+      rho_neighbor_right = u_old[1, index_right...]
+
+      rho_min[index_right...] = min(rho_min[index_right...], rho_neighbor_left)
+      rho_max[index_right...] = max(rho_max[index_right...], rho_neighbor_left)
+
+      rho_min[index_left...] = min(rho_min[index_left...], rho_neighbor_right)
+      rho_max[index_left...] = max(rho_max[index_left...], rho_neighbor_right)
+    end
+  end
+
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack inverse_weights = dg.basis
+  @threaded for element in eachelement(dg, cache)
+    inverse_jacobian = cache.elements.inverse_jacobian[element]
+
+    for j in eachnode(dg), i in eachnode(dg)
+      var = u[1, i, j, element]
+
+      # Calculate P_plus and P_minus
+      # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+      val_flux1_local     =  inverse_weights[i] * antidiffusive_flux1[1,   i,   j, element]
+      val_flux1_local_ip1 = -inverse_weights[i] * antidiffusive_flux1[1, i+1,   j, element]
+      val_flux2_local     =  inverse_weights[j] * antidiffusive_flux2[1,   i,   j, element]
+      val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[1,   i, j+1, element]
+
+      P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
+                max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
+      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+      P_plus  = dt * inverse_jacobian * P_plus
+      P_minus = dt * inverse_jacobian * P_minus
+
+      # Calculate alpha_plus and alpha_minus
+      if P_plus == 0.0
+        frac_plus = 1.0
+      else
+        frac_plus = max(0.0, rho_max[i, j, element] - var) / P_plus
+      end
+      if P_minus == 0.0
+        frac_minus = 1.0
+      else
+        frac_minus = min(0.0, rho_min[i, j, element] - var) / P_minus
+      end
+
+      # Calculate alpha at nodes
+      alpha[i, j, element]  = 1 - min(1.0, frac_plus, frac_minus)
+    end
+  end
+
+  return nothing
+end
+
+@inline function IDP_pressureTVD!(alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
+  @unpack p_max, p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  # calculate_max_min_values!(p_max, p_min, u_safe, indicator_IDP, pressure, equations, dg, cache)
+  @unpack indicator_threaded = indicator_IDP.cache
+
+  @threaded for element in eachelement(dg, cache)
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    indicator = indicator_threaded[Threads.threadid()]
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u_old, equations, dg, i, j, element)
+      indicator[i, j] = pressure(u_local, equations)
+    end
+
+    for j in eachnode(dg), i in eachnode(dg)
+      # Calculate max and min of variable at Gauss-Lobatto nodes
+      p_min[i, j, element] = indicator[i, j]
+      p_max[i, j, element] = indicator[i, j]
+      if i > 1
+        p_min[i, j, element] = min(p_min[i, j, element], indicator[i-1, j])
+        p_max[i, j, element] = max(p_max[i, j, element], indicator[i-1, j])
+      end
+      if i < nnodes(dg)
+        p_min[i, j, element] = min(p_min[i, j, element], indicator[i+1, j])
+        p_max[i, j, element] = max(p_max[i, j, element], indicator[i+1, j])
+      end
+      if j > 1
+        p_min[i, j, element] = min(p_min[i, j, element], indicator[i, j-1])
+        p_max[i, j, element] = max(p_max[i, j, element], indicator[i, j-1])
+      end
+      if j < nnodes(dg)
+        p_min[i, j, element] = min(p_min[i, j, element], indicator[i, j+1])
+        p_max[i, j, element] = max(p_max[i, j, element], indicator[i, j+1])
       end
     end
   end
@@ -270,159 +412,331 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
       end
       u_local_left  = get_node_vars(u_old, equations, dg, index_left...)
       u_local_right = get_node_vars(u_old, equations, dg, index_right...)
-      var_neighbor_left  = indicator_IDP.variable(u_local_left,  equations)
-      var_neighbor_right = indicator_IDP.variable(u_local_right, equations)
+      p_neighbor_left  = pressure(u_local_left,  equations)
+      p_neighbor_right = pressure(u_local_right, equations)
 
-      var_min[index_right...] = min(var_min[index_right...], var_neighbor_left)
-      var_max[index_right...] = max(var_max[index_right...], var_neighbor_left)
+      p_min[index_right...] = min(p_min[index_right...], p_neighbor_left)
+      p_max[index_right...] = max(p_max[index_right...], p_neighbor_left)
 
-      var_min[index_left...] = min(var_min[index_left...], var_neighbor_right)
-      var_max[index_left...] = max(var_max[index_left...], var_neighbor_right)
+      p_min[index_left...] = min(p_min[index_left...], p_neighbor_right)
+      p_max[index_left...] = max(p_max[index_left...], p_neighbor_right)
     end
   end
 
-  # Loop over L2 mortars
-  for mortar in eachmortar(dg, cache)
-    # Get neighboring element ids
-    lower = cache.mortars.neighbor_ids[1, mortar]
-    upper = cache.mortars.neighbor_ids[2, mortar]
-    large = cache.mortars.neighbor_ids[3, mortar]
-
-    # Interpolate element face data to adjacent interface locations and use for var_max/min
-    if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
-      if cache.mortars.orientations[mortar] == 1
-        # L2 mortars in x-direction
-        index_large = i -> (nnodes(dg), i)
-        index_small = i -> (1, i)
-        element_solutions_to_mortars!(u_old, indicator_IDP, dg, equations,
-                                      large, upper, lower, index_large, index_small)
-      else
-        # L2 mortars in y-direction
-        index_large = i -> (i, nnodes(dg))
-        index_small = i -> (i, 1)
-        element_solutions_to_mortars!(u_old, indicator_IDP, dg, equations,
-                                      large, upper, lower, index_large, index_small)
-      end
-    else # large_sides[mortar] == 2 -> large element on right side
-      if cache.mortars.orientations[mortar] == 1
-        # L2 mortars in x-direction
-        index_large = i -> (1, i)
-        index_small = i -> (nnodes(dg), i)
-        element_solutions_to_mortars!(u_old, indicator_IDP, dg, equations,
-                                      large, upper, lower, index_large, index_small)
-      else
-        # L2 mortars in y-direction
-        index_large = i -> (i, 1)
-        index_small = i -> (i, nnodes(dg))
-        element_solutions_to_mortars!(u_old, indicator_IDP, dg, equations,
-                                      large, upper, lower, index_large, index_small)
-      end
-    end
-  end
-
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack inverse_weights = dg.basis
   @threaded for element in eachelement(dg, cache)
     inverse_jacobian = cache.elements.inverse_jacobian[element]
 
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
-      var = indicator_IDP.variable(u_local, equations)
-
-      if maximum(abs.((var_max[i, j, element] - var, var_min[i, j, element] - var))) < eps()
-        alpha[i, j, element] = 0.0
-        continue
-      end
+      var = pressure(u_local, equations)
 
       # Calculate P_plus and P_minus
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-      val_flux1_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i,   j,   element), equations)
-      val_flux1_local_ip1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j,   element), equations)
-      val_flux2_local     = indicator_IDP.variable( dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j,   element), equations)
-      val_flux2_local_jp1 = indicator_IDP.variable(-dt * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i,   j+1, element), equations)
+      v1 = u[2, i, j, element] / u[1, i, j, element]
+      v2 = u[3, i, j, element] / u[1, i, j, element]
+      # vel = get_node_vars(u, equations, dg, i, j, element)[2:3] / u[1, i, j, element]
+      v2s2 = 0.5 * sum(v1^2 + v2^2)
+      gamma_m1 = equations.gamma - 1.0
+      val_flux1_local     = gamma_m1 * (antidiffusive_flux1[4, i, j, element] + v2s2 * antidiffusive_flux1[1, i, j, element] -
+                                          v1 * antidiffusive_flux1[2, i, j, element] - v2 * antidiffusive_flux1[3, i, j, element])
+      val_flux1_local_ip1 = gamma_m1 * (antidiffusive_flux1[4, i+1, j, element] + v2s2 * antidiffusive_flux1[1, i+1, j, element] -
+                                          v1 * antidiffusive_flux1[2, i+1, j, element] - v2 * antidiffusive_flux1[3, i+1, j, element])
+      val_flux2_local     = gamma_m1 * (antidiffusive_flux2[4, i, j, element] + v2s2 * antidiffusive_flux2[1, i, j, element] -
+                                          v1 * antidiffusive_flux2[2, i, j, element] - v2 * antidiffusive_flux2[3, i, j, element])
+      val_flux2_local_jp1 = gamma_m1 * (antidiffusive_flux2[4, i, j+1, element] + v2s2 * antidiffusive_flux2[1, i, j+1, element] -
+                                          v1 * antidiffusive_flux2[2, i, j+1, element] - v2 * antidiffusive_flux2[3, i, j+1, element])
 
-      P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
-                max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
-      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
-                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
-
-      if maximum(abs.((P_plus, P_minus))) < eps()
-        alpha[i, j, element] = 0.0
-        continue
-      end
+      P_plus  = max(0.0, inverse_weights[i] * val_flux1_local) + max(0.0, -inverse_weights[i] * val_flux1_local_ip1) +
+                max(0.0, inverse_weights[j] * val_flux2_local) + max(0.0, -inverse_weights[j] * val_flux2_local_jp1)
+      P_minus = min(0.0, inverse_weights[i] * val_flux1_local) + min(0.0, -inverse_weights[i] * val_flux1_local_ip1) +
+                min(0.0, inverse_weights[j] * val_flux2_local) + min(0.0, -inverse_weights[j] * val_flux2_local_jp1)
+      P_plus  = dt * inverse_jacobian * P_plus
+      P_minus = dt * inverse_jacobian * P_minus
 
       # Calculate alpha_plus and alpha_minus
-      # Note: If P_plus or P_minus is 0.0, eventually frac_plus/minus = -Inf and then alpha = 1.
-      # So, add maschine precision to values.
-      frac_plus  = (var_max[i, j, element] - var) / (P_plus + eps())
-      frac_minus = (var_min[i, j, element] - var) / (P_minus - eps())
-
-      alpha_plus  = 1 - min(1.0, max(0.0, frac_plus))
-      alpha_minus = 1 - min(1.0, max(0.0, frac_minus))
+      if P_plus == 0.0
+        frac_plus = 1.0
+      else
+        frac_plus = max(0.0, p_max[i, j, element] - var) / P_plus
+      end
+      if P_minus == 0.0
+        frac_minus = 1.0
+      else
+        frac_minus = min(0.0, p_min[i, j, element] - var) / P_minus
+      end
 
       # Calculate alpha at nodes
-      alpha[i, j, element] = max(alpha_plus, alpha_minus)
-
-      # Clip the maximum amount of FV allowed
-      alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
+      alpha[i, j, element]  = max(alpha[i, j, element], 1 - min(1.0, frac_plus, frac_minus))
     end
-
-    # Calculate alpha1 and alpha2
-    for j in eachnode(dg), i in 2:nnodes(dg)
-      alpha1[i, j, element] = max(alpha[i-1, j, element], alpha[i, j, element])
-    end
-    for j in 2:nnodes(dg), i in eachnode(dg)
-      alpha2[i, j, element] = max(alpha[i, j-1, element], alpha[i, j, element])
-    end
-    alpha1[1, :, element] .= zero(eltype(alpha1))
-    alpha1[nnodes(dg)+1, :, element] .= zero(eltype(alpha1))
-    alpha2[:, 1, element] .= zero(eltype(alpha2))
-    alpha2[:, nnodes(dg)+1, element] .= zero(eltype(alpha2))
   end
 
   return nothing
 end
 
+@inline function IDP_specEntropy!(alpha, indicator_IDP, u, equations, dg, dt, cache)
+  @unpack s_min = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-@inline function element_solutions_to_mortars!(u_old::AbstractArray{<:Any,4}, indicator_IDP, dg, equations,
-                                               large, upper, lower,
-                                               index_large, index_small)
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
 
-  @unpack var_max, var_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+      # Get limit states; no neighbors.
+      s_min[i, j, element] = specEntropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      if i > 1
+        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i-1, j, element), equations))
+      end
+      if i < nnodes(dg)
+        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i+1, j, element), equations))
+      end
+      if j > 1
+        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i, j-1, element), equations))
+      end
+      if j < nnodes(dg)
+        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i, j+1, element), equations))
+      end
 
-  u_tmp_upper  = similar(view(u_old, :, 1, :, large))
-  u_tmp_lower  = similar(u_tmp_upper)
-  u_tmp_large1 = similar(u_tmp_upper)
-  u_tmp_large2 = similar(u_tmp_upper)
+      # Get current alpha # TODO: delta alpha?
+      # new_alpha = alpha[i, j, element]
 
-  u_large = view(u_old, :, index_large(:)..., large)
-  u_upper = view(u_old, :, index_small(:)..., upper)
-  u_lower = view(u_old, :, index_small(:)..., lower)
+      # Perform Newton's bisection method to find new alpha
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
+                          specEntropy_goal, specEntropy_dGoal_dbeta, specEntropy_initialCheck, standard_finalCheck,
+                          equations, dg, dt, cache)
 
-  multiply_dimensionwise!(u_tmp_upper, dg.mortar.forward_upper, u_large)
-  multiply_dimensionwise!(u_tmp_lower, dg.mortar.forward_lower, u_large)
+      # Update alpha
+      # alpha[i, j, element] = max(alpha[i, j, element], new_alpha)
+    end
+  end
 
-  multiply_dimensionwise!(u_tmp_large1, dg.mortar.reverse_upper, u_upper)
-  multiply_dimensionwise!(u_tmp_large2, dg.mortar.reverse_lower, u_lower)
+  return nothing
+end
 
-  for i in eachnode(dg)
-    # large to small
-    var_min[index_small(i)..., upper] = min(var_min[index_small(i)..., upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
-    var_max[index_small(i)..., upper] = max(var_max[index_small(i)..., upper], indicator_IDP.variable(view(u_tmp_upper, :, i), equations))
+specEntropy_goal(bound, u, equations) = bound - specEntropy(u, equations)
+specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2specentropy(u, equations), dt * antidiffusive_flux)
+specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol, abs(bound) * newton_abstol)
 
-    var_min[index_small(i)..., lower] = min(var_min[index_small(i)..., lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
-    var_max[index_small(i)..., lower] = max(var_max[index_small(i)..., lower], indicator_IDP.variable(view(u_tmp_lower, :, i), equations))
+@inline function IDP_mathEntropy!(alpha, indicator_IDP, u, equations, dg, dt, cache)
+  @unpack s_max = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-    # small to large
-    if i <= nnodes(dg)/2
-      var_min[index_large(i)..., large] = min(var_min[index_large(i)..., large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
-      var_max[index_large(i)..., large] = max(var_max[index_large(i)..., large], indicator_IDP.variable(view(u_tmp_large2, :, i), equations))
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+
+      # Get limit states; no neighbors.
+      s_max[i, j, element] = mathEntropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      if i > 1
+        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i-1, j, element), equations))
+      end
+      if i < nnodes(dg)
+        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i+1, j, element), equations))
+      end
+      if j > 1
+        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i, j-1, element), equations))
+      end
+      if j < nnodes(dg)
+        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i, j+1, element), equations))
+      end
+
+      # Get current alpha # TODO: delta alpha?
+      # new_alpha = alpha[i, j, element]
+
+      # Perform Newton's bisection method to find new alpha
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
+                          mathEntropy_goal, mathEntropy_dGoal_dbeta, mathEntropy_initialCheck, standard_finalCheck,
+                          equations, dg, dt, cache)
+
+      # Update alpha
+      # alpha[i, j, element] = max(alpha[i, j, element], new_alpha)
+    end
+  end
+
+  return nothing
+end
+
+mathEntropy_goal(bound, u, equations) = bound - entropy_math(u, equations)
+mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy(u, equations), dt * antidiffusive_flux)
+mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_abstol, abs(bound) * newton_abstol)
+
+@inline function IDP_positivity!(alpha, indicator_IDP, u_safe, equations, dg, dt, cache)
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack inverse_weights = dg.basis
+
+  positCorrFactor = 0.1 # The correction factor for IDPPositivity # TODO
+
+  # Correct density
+  @unpack rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  for element in eachelement(dg, cache)
+    inverse_jacobian = cache.elements.inverse_jacobian[element]
+    for j in eachnode(dg), i in eachnode(dg)
+
+      # Compute bound
+      if indicator_IDP.IDPDensityTVD
+        rho_min[i, j, element] = max(rho_min[i, j, element], positCorrFactor * u_safe[1, i, j, element])
+      else
+        rho_min[i, j, element] = positCorrFactor * u_safe[1, i, j, element]
+      end
+
+      # Real one-sided Zalesak-type limiter
+      frac_minus = min(0.0, (rho_min[i, j, element] - u_safe[1, i, j, element]) / dt)
+
+      # Calculate P_minus
+      # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+      val_flux1_local     =  inverse_weights[i] * antidiffusive_flux1[1,   i,   j, element]
+      val_flux1_local_ip1 = -inverse_weights[i] * antidiffusive_flux1[1, i+1,   j, element]
+      val_flux2_local     =  inverse_weights[j] * antidiffusive_flux2[1,   i,   j, element]
+      val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[1,   i, j+1, element]
+
+      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+      P_minus = inverse_jacobian * P_minus
+
+      if P_minus < 0.0
+        frac_minus = min(1.0, frac_minus / P_minus)
+      else
+        frac_minus = 1.0
+      end
+
+      # Calculate alpha
+      # TODO: Respect current alpha. Is it enough to just use: alpha = max(alpha, 1-frac_minus)?
+      alpha[i, j, element]  = max(alpha[i, j, element], 1 - frac_minus)
+    end
+  end
+
+  # Correct pressure
+  @unpack p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+
+      # Compute bound
+      u_local = get_node_vars(u_safe, equations, dg, i, j, element)
+      p_safe = pressure(u_local, equations)
+      if p_safe < 0.0
+        println("Error: safe pressure is not safe. element=$element, node: $i $j, pressure=$p_safe")
+      end
+      if indicator_IDP.IDPPressureTVD
+        p_min[i, j, element] = max(p_min[i, j, element], positCorrFactor * p_safe)
+      else
+        p_min[i, j, element] = positCorrFactor * p_safe
+      end
+
+      # Get current alpha # TODO: delta alpha?
+      # new_alpha = alpha[i, j, element]
+
+      # Perform Newton's bisection method to find new alpha
+      newton_loops_alpha!(alpha, p_min[i, j, element], u_local, i, j, element, pressure_goal, pressure_dgoal_dbeta, pressure_initialCheck, pressure_finalCheck, equations, dg, dt, cache)
+
+      # Update alpha
+      # alpha[i, j, element] = max(alpha[i, j, element], new_alpha)
+    end
+  end
+
+  return nothing
+end
+
+pressure_goal(bound, u, equations) = bound - pressure(u, equations)
+pressure_dgoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(dpdu(u, equations), dt * antidiffusive_flux)
+pressure_initialCheck(bound, goal, newton_abstol) = goal <= 0.0
+pressure_finalCheck(bound, goal, newton_abstol) = (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
+
+@inline function newton_loops_alpha!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dg, dt, cache)
+  @unpack inverse_weights = dg.basis
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  inverse_jacobian = cache.elements.inverse_jacobian[element]
+
+  IDPgamma = 4.0 # Constant for the subcell limiting of convex (nonlinear) constraints (must be IDPgamma>=2*d, where d is the number of dimensions of the problem)
+
+  # negative xi direction
+  antidiffusive_flux = IDPgamma * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i, j, element)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+
+  # positive xi direction
+  antidiffusive_flux = -IDPgamma * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j, element)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+
+  # negative eta direction
+  antidiffusive_flux = IDPgamma * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i, j, element)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+
+  # positive eta direction
+  antidiffusive_flux = -IDPgamma * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i, j+1, element)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+
+  return nothing
+end
+
+@inline function newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+  beta = 1.0 - alpha[i, j, element]
+
+  beta_L = 0.0  # alpha = 1
+  beta_R = beta # No higher beta (lower alpha) than the current one
+
+  u_curr = u_safe + beta * dt * antidiffusive_flux
+
+  # Perform initial Check
+  as = goal_fct(bound, u_curr, equations)
+
+  # TODO: save tolerances somewhere
+  newton_reltol = 1.0e-12 # Relative tolerance to exit Newton loop
+  newton_abstol = 1.0e-14 # Absolute tolerance (with respect to the value of the entropy goal, tol = NEWTON_ABSTOL*s_goal)
+  initialCheck(bound, as, newton_abstol) && return nothing
+
+  # Newton iterations
+  IDPMaxIter = 10 # TODO: save somewhere
+  for iter in 1:IDPMaxIter
+    beta_old = beta
+
+    # Evaluate d(goal)/d(beta)
+    dSdbeta = dgoal_fct(u_curr, dt, antidiffusive_flux, equations)
+
+    if dSdbeta != 0.0
+      # Update beta with Newton's method
+      beta = beta - as / dSdbeta
+    end
+
+    # Check bounds
+    if (beta < beta_L) || (beta > beta_R) || (dSdbeta == 0.0) || isnan(beta)
+      # Out of bounds, do a bisection step
+      beta = 0.5 * (beta_L + beta_R)
+      # Get new u
+      u_curr = u_safe + beta * dt * antidiffusive_flux
+      # Check new beta for condition and update bounds
+      as = goal_fct(bound, u_curr, equations)
+      if initialCheck(bound, as, newton_abstol)
+        beta_L = beta
+      else
+        beta_R = beta
+      end
     else
-      var_min[index_large(i)..., large] = min(var_min[index_large(i)..., large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
-      var_max[index_large(i)..., large] = max(var_max[index_large(i)..., large], indicator_IDP.variable(view(u_tmp_large1, :, i), equations))
+      # Get new u
+      u_curr = u_safe + beta * dt * antidiffusive_flux
+      # Evaluate goal function
+      as = goal_fct(bound, u_curr, equations)
     end
+
+    # Check relative tolerance
+    if abs(beta_old - beta) <= newton_reltol
+      break
+    end
+
+    # Check absolute tolerance
+    if finalCheck(bound, as, newton_abstol)
+      break
+    end
+  end
+
+  new_alpha = 1.0 - beta
+  if alpha[i, j, element] > new_alpha + newton_abstol
+    error("Alpha is getting smaller. old: $(alpha[i, j, element]), new: $new_alpha")
+  else
+    alpha[i, j, element] = new_alpha
   end
 
   return nothing
 end
+
+standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals

@@ -1003,6 +1003,42 @@ end
   return SVector(w1, w2, w3, w4)
 end
 
+# Transformation from conservative variables u to entropy vector dSdu, S = -rho*s/(gamma-1), s=ln(p)-gamma*ln(rho)
+@inline function cons2specentropy(u, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_square = v1^2 + v2^2
+  srho_gammap1 = (1/rho)^(equations.gamma + 1.0)
+
+  # The derivative vector for the modified specific entropy of Guermond et al.
+  w1 = srho_gammap1 * (0.5 * rho * v_square - equations.gamma * rho_e)
+  w2 = -rho_v1 * srho_gammap1
+  w3 = -rho_v2 * srho_gammap1
+  w4 = (1/rho)^equations.gamma
+
+  # The derivative vector for other specific entropy
+  # sp = 1.0/(gammam1 * (rho_e - 0.5 * rho * v_square)
+  # w1 = gammam1 * 0.5 * v_square * sp - gamma / rho
+  # w2 = -gammam1 * v1 * sp
+  # w3 = -gammam1 * v2 * sp
+  # w4 = gammam1 * sp
+
+  return SVector(w1, w2, w3, w4)
+end
+
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function dpdu(u, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_square = v1^2 + v2^2
+
+  return (equations.gamma - 1.0) * SVector(0.5 * v_square, -v1, -v2, 1.0)
+end
+
 @inline function entropy2cons(w, equations::CompressibleEulerEquations2D)
   # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
   # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
@@ -1101,6 +1137,21 @@ end
   S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_one
 
   return S
+end
+
+@inline function specEntropy(u, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_square = v1^2 + v2^2
+
+  # Modified specific entropy from Guermond et al. (2019)
+  return (rho_e - 0.5 * rho * v_square) * (1/rho)^equations.gamma
+
+  # Other specific entropy
+  # rho_sp = rho/((equations.gamma - 1.0) * (rho_e - 0.5 * rho * v_square))
+  # return - log(rho_sp * rho^equations.gamma)
 end
 
 

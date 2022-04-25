@@ -40,9 +40,9 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
 mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegratorSSPOptions}
-  u::uType #
+  u::uType
   du::uType
-  u_tmp::uType
+  u_safe::uType
   u_old::uType
   t::RealT
   dt::RealT # current time step
@@ -79,11 +79,11 @@ function solve_IDP(ode::ODEProblem, semi; dt, callback=nothing, kwargs...)
 
   u = copy(ode.u0)
   du = similar(u)
-  u_tmp = similar(u)
+  u_safe = similar(u)
   u_old = similar(u)
   t = first(ode.tspan)
   iter = 0
-  integrator = SimpleIntegratorSSP(u, du, u_tmp, u_old, t, dt, zero(dt), iter, ode.p,
+  integrator = SimpleIntegratorSSP(u, du, u_safe, u_old, t, dt, zero(dt), iter, ode.p,
                   (prob=ode,), alg,
                   SimpleIntegratorSSPOptions(callback, ode.tspan; kwargs...), false)
 
@@ -127,21 +127,20 @@ function solve!(integrator::SimpleIntegratorSSP)
 
     @trixi_timeit timer() "RK stage" begin
       prob.f(integrator.du, integrator.u, integrator.p, integrator.t)
-      @. integrator.u_old = integrator.u
-      @. integrator.u_tmp = integrator.u_old + integrator.dt * integrator.du
+      @. integrator.u_safe = integrator.u + integrator.dt * integrator.du
     end
-    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_tmp, integrator.u_old, integrator.dt, integrator.p)
+    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u, integrator.dt, integrator.p)
 
     @trixi_timeit timer() "RK stage" begin
-      prob.f(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.dt)
-      @. integrator.u_old = 3/4 * integrator.u + 1/4 * integrator.u_tmp
-      @. integrator.u_tmp = integrator.u_old + 1/4 * integrator.dt * integrator.du
+      prob.f(integrator.du, integrator.u_safe, integrator.p, integrator.t + integrator.dt)
+      @. integrator.u_old = 3/4 * integrator.u + 1/4 * integrator.u_safe
+      @. integrator.u_safe = integrator.u_old + 1/4 * integrator.dt * integrator.du
     end
-    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_tmp, integrator.u_old, 1/4 * integrator.dt, integrator.p)
+    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, 1/4 * integrator.dt, integrator.p)
 
     @trixi_timeit timer() "RK stage" begin
-      prob.f(integrator.du, integrator.u_tmp, integrator.p, integrator.t + 1/2 * integrator.dt)
-      @. integrator.u_old = 1/3 * integrator.u + 2/3 * integrator.u_tmp
+      prob.f(integrator.du, integrator.u_safe, integrator.p, integrator.t + 1/2 * integrator.dt)
+      @. integrator.u_old = 1/3 * integrator.u + 2/3 * integrator.u_safe
       @. integrator.u = integrator.u_old + 2/3 * integrator.dt * integrator.du
     end
     @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u, integrator.u_old, 2/3 * integrator.dt, integrator.p)
@@ -184,7 +183,7 @@ end
 
 # get a cache where the RHS can be stored
 get_du(integrator::SimpleIntegratorSSP) = integrator.du
-get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp, integrator.u_old)
+get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_safe, integrator.u_old)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
