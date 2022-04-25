@@ -482,39 +482,33 @@ end
     for j in eachnode(dg), i in eachnode(dg)
 
       # Get limit states; no neighbors.
-      s_min[i, j, element] = specEntropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      s_min[i, j, element] = entropy_spec(get_node_vars(u, equations, dg, i, j, element), equations)
       if i > 1
-        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i-1, j, element), equations))
+        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i-1, j, element), equations))
       end
       if i < nnodes(dg)
-        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i+1, j, element), equations))
+        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i+1, j, element), equations))
       end
       if j > 1
-        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i, j-1, element), equations))
+        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i, j-1, element), equations))
       end
       if j < nnodes(dg)
-        s_min[i, j, element] = min(s_min[i, j, element], specEntropy(get_node_vars(u, equations, dg, i, j+1, element), equations))
+        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i, j+1, element), equations))
       end
-
-      # Get current alpha # TODO: delta alpha?
-      # new_alpha = alpha[i, j, element]
 
       # Perform Newton's bisection method to find new alpha
       u_local = get_node_vars(u, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
                           specEntropy_goal, specEntropy_dGoal_dbeta, specEntropy_initialCheck, standard_finalCheck,
                           equations, dg, dt, cache)
-
-      # Update alpha
-      # alpha[i, j, element] = max(alpha[i, j, element], new_alpha)
     end
   end
 
   return nothing
 end
 
-specEntropy_goal(bound, u, equations) = bound - specEntropy(u, equations)
-specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2specentropy(u, equations), dt * antidiffusive_flux)
+specEntropy_goal(bound, u, equations) = bound - entropy_spec(u, equations)
+specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy_spec(u, equations), dt * antidiffusive_flux)
 specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol, abs(bound) * newton_abstol)
 
 @inline function IDP_mathEntropy!(alpha, indicator_IDP, u, equations, dg, dt, cache)
@@ -538,17 +532,11 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
         s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i, j+1, element), equations))
       end
 
-      # Get current alpha # TODO: delta alpha?
-      # new_alpha = alpha[i, j, element]
-
       # Perform Newton's bisection method to find new alpha
       u_local = get_node_vars(u, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
                           mathEntropy_goal, mathEntropy_dGoal_dbeta, mathEntropy_initialCheck, standard_finalCheck,
                           equations, dg, dt, cache)
-
-      # Update alpha
-      # alpha[i, j, element] = max(alpha[i, j, element], new_alpha)
     end
   end
 
@@ -599,7 +587,6 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
       end
 
       # Calculate alpha
-      # TODO: Respect current alpha. Is it enough to just use: alpha = max(alpha, 1-frac_minus)?
       alpha[i, j, element]  = max(alpha[i, j, element], 1 - frac_minus)
     end
   end
@@ -621,14 +608,10 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
         p_min[i, j, element] = positCorrFactor * p_safe
       end
 
-      # Get current alpha # TODO: delta alpha?
-      # new_alpha = alpha[i, j, element]
-
       # Perform Newton's bisection method to find new alpha
-      newton_loops_alpha!(alpha, p_min[i, j, element], u_local, i, j, element, pressure_goal, pressure_dgoal_dbeta, pressure_initialCheck, pressure_finalCheck, equations, dg, dt, cache)
-
-      # Update alpha
-      # alpha[i, j, element] = max(alpha[i, j, element], new_alpha)
+      newton_loops_alpha!(alpha, p_min[i, j, element], u_local, i, j, element,
+                          pressure_goal, pressure_dgoal_dbeta, pressure_initialCheck, pressure_finalCheck,
+                          equations, dg, dt, cache)
     end
   end
 
