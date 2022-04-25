@@ -1010,12 +1010,12 @@ end
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v_square = v1^2 + v2^2
-  srho_gammap1 = (1/rho)^(equations.gamma + 1.0)
+  inv_rho_gammap1 = (1/rho)^(equations.gamma + 1.0)
 
   # The derivative vector for the modified specific entropy of Guermond et al.
-  w1 = srho_gammap1 * (0.5 * rho * v_square - equations.gamma * rho_e)
-  w2 = -rho_v1 * srho_gammap1
-  w3 = -rho_v2 * srho_gammap1
+  w1 = inv_rho_gammap1 * (0.5 * rho * v_square - equations.gamma * rho_e)
+  w2 = -rho_v1 * inv_rho_gammap1
+  w3 = -rho_v2 * inv_rho_gammap1
   w4 = (1/rho)^equations.gamma
 
   # The derivative vector for other specific entropy
@@ -1143,16 +1143,13 @@ end
 @inline function entropy_spec(u, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
 
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  v_square = v1^2 + v2^2
-
   # Modified specific entropy from Guermond et al. (2019)
-  return (rho_e - 0.5 * rho * v_square) * (1/rho)^equations.gamma
+  s = (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho) * (1/rho)^equations.gamma
 
   # Other specific entropy
   # rho_sp = rho/((equations.gamma - 1.0) * (rho_e - 0.5 * rho * v_square))
-  # return - log(rho_sp * rho^equations.gamma)
+  # s = log(p) - (equaions.gamma + 1) * log(rho)
+  return s
 end
 
 

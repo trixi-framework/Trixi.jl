@@ -193,17 +193,13 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
-  A = Array{real(basis), ndims(equations)}
-  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis))
 
   # TODO: Nicer way to set a length?
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
 
-  return (; indicator_threaded,
-            ContainerShockCapturingIndicator,
+  return (; ContainerShockCapturingIndicator,
             alpha_max_per_timestep, alpha_mean_per_timestep)
 end
 
@@ -256,34 +252,31 @@ end
 @inline function IDP_densityTVD!(alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
   @unpack rho_max, rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  # calculate_max_min_values!(rho_max, rho_min, u_safe, indicator_IDP, density, equations, dg, cache)
-  @unpack indicator_threaded = indicator_IDP.cache
+  # Calculate bound: rho_min, rho_max
   @threaded for element in eachelement(dg, cache)
+    rho_min[:, :, element] .= typemax(eltype(rho_min))
+    rho_max[:, :, element] .= typemin(eltype(rho_max))
     # Calculate indicator variables at Gauss-Lobatto nodes
-    indicator = indicator_threaded[Threads.threadid()]
     for j in eachnode(dg), i in eachnode(dg)
-      indicator[i, j] = u_old[1, i, j, element]
-    end
+      rho = u_old[1, i, j, element]
+      rho_min[i, j, element] = min(rho_min[i, j, element], rho)
+      rho_max[i, j, element] = max(rho_max[i, j, element], rho)
 
-    for j in eachnode(dg), i in eachnode(dg)
-      # Calculate max and min of variable at Gauss-Lobatto nodes
-      rho_min[i, j, element] = indicator[i, j]
-      rho_max[i, j, element] = indicator[i, j]
       if i > 1
-        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i-1, j])
-        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i-1, j])
+        rho_min[i-1, j, element] = min(rho_min[i-1, j, element], rho)
+        rho_max[i-1, j, element] = max(rho_max[i-1, j, element], rho)
       end
       if i < nnodes(dg)
-        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i+1, j])
-        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i+1, j])
+        rho_min[i+1, j, element] = min(rho_min[i+1, j, element], rho)
+        rho_max[i+1, j, element] = max(rho_max[i+1, j, element], rho)
       end
       if j > 1
-        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i, j-1])
-        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i, j-1])
+        rho_min[i, j-1, element] = min(rho_min[i, j-1, element], rho)
+        rho_max[i, j-1, element] = max(rho_max[i, j-1, element], rho)
       end
       if j < nnodes(dg)
-        rho_min[i, j, element] = min(rho_min[i, j, element], indicator[i, j+1])
-        rho_max[i, j, element] = max(rho_max[i, j, element], indicator[i, j+1])
+        rho_min[i, j+1, element] = min(rho_min[i, j+1, element], rho)
+        rho_max[i, j+1, element] = max(rho_max[i, j+1, element], rho)
       end
     end
   end
@@ -360,36 +353,32 @@ end
 @inline function IDP_pressureTVD!(alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
   @unpack p_max, p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
 
-  # calculate_max_min_values!(p_max, p_min, u_safe, indicator_IDP, pressure, equations, dg, cache)
-  @unpack indicator_threaded = indicator_IDP.cache
-
+  # Calculate bound: p_min, p_max
   @threaded for element in eachelement(dg, cache)
+    p_min[:, :, element] .= typemax(eltype(p_min))
+    p_max[:, :, element] .= typemin(eltype(p_max))
     # Calculate indicator variables at Gauss-Lobatto nodes
-    indicator = indicator_threaded[Threads.threadid()]
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u_old, equations, dg, i, j, element)
-      indicator[i, j] = pressure(u_local, equations)
-    end
+      p = pressure(u_local, equations)
+      p_min[i, j, element] = min(p_min[i, j, element], p)
+      p_max[i, j, element] = max(p_max[i, j, element], p)
 
-    for j in eachnode(dg), i in eachnode(dg)
-      # Calculate max and min of variable at Gauss-Lobatto nodes
-      p_min[i, j, element] = indicator[i, j]
-      p_max[i, j, element] = indicator[i, j]
       if i > 1
-        p_min[i, j, element] = min(p_min[i, j, element], indicator[i-1, j])
-        p_max[i, j, element] = max(p_max[i, j, element], indicator[i-1, j])
+        p_min[i-1, j, element] = min(p_min[i-1, j, element], p)
+        p_max[i-1, j, element] = max(p_max[i-1, j, element], p)
       end
       if i < nnodes(dg)
-        p_min[i, j, element] = min(p_min[i, j, element], indicator[i+1, j])
-        p_max[i, j, element] = max(p_max[i, j, element], indicator[i+1, j])
+        p_min[i+1, j, element] = min(p_min[i+1, j, element], p)
+        p_max[i+1, j, element] = max(p_max[i+1, j, element], p)
       end
       if j > 1
-        p_min[i, j, element] = min(p_min[i, j, element], indicator[i, j-1])
-        p_max[i, j, element] = max(p_max[i, j, element], indicator[i, j-1])
+        p_min[i, j-1, element] = min(p_min[i, j-1, element], p)
+        p_max[i, j-1, element] = max(p_max[i, j-1, element], p)
       end
       if j < nnodes(dg)
-        p_min[i, j, element] = min(p_min[i, j, element], indicator[i, j+1])
-        p_max[i, j, element] = max(p_max[i, j, element], indicator[i, j+1])
+        p_min[i, j+1, element] = min(p_min[i, j+1, element], p)
+        p_max[i, j+1, element] = max(p_max[i, j+1, element], p)
       end
     end
   end
@@ -478,25 +467,33 @@ end
 @inline function IDP_specEntropy!(alpha, indicator_IDP, u, equations, dg, dt, cache)
   @unpack s_min = indicator_IDP.cache.ContainerShockCapturingIndicator
 
+  # Calculate bound: s_min
   @threaded for element in eachelement(dg, cache)
+    s_min[:, :, element] .= typemax(eltype(s_min))
     for j in eachnode(dg), i in eachnode(dg)
 
       # Get limit states; no neighbors.
-      s_min[i, j, element] = entropy_spec(get_node_vars(u, equations, dg, i, j, element), equations)
+      s = entropy_spec(get_node_vars(u, equations, dg, i, j, element), equations)
+      s_min[i, j, element] = min(s_min[i, j, element], s)
       if i > 1
-        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i-1, j, element), equations))
+        s_min[i-1, j, element] = min(s_min[i-1, j, element], s)
       end
       if i < nnodes(dg)
-        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i+1, j, element), equations))
+        s_min[i+1, j, element] = min(s_min[i+1, j, element], s)
       end
       if j > 1
-        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i, j-1, element), equations))
+        s_min[i, j-1, element] = min(s_min[i, j-1, element], s)
       end
       if j < nnodes(dg)
-        s_min[i, j, element] = min(s_min[i, j, element], entropy_spec(get_node_vars(u, equations, dg, i, j+1, element), equations))
+        s_min[i, j+1, element] = min(s_min[i, j+1, element], s)
       end
+    end
+  end
 
-      # Perform Newton's bisection method to find new alpha
+  # Perform Newton's bisection method to find new alpha
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+
       u_local = get_node_vars(u, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
                           specEntropy_goal, specEntropy_dGoal_dbeta, specEntropy_initialCheck, standard_finalCheck,
@@ -514,25 +511,32 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
 @inline function IDP_mathEntropy!(alpha, indicator_IDP, u, equations, dg, dt, cache)
   @unpack s_max = indicator_IDP.cache.ContainerShockCapturingIndicator
 
+  # Calculate bound: s_max
   @threaded for element in eachelement(dg, cache)
+    s_max[:, :, element] .= typemin(eltype(s_max))
     for j in eachnode(dg), i in eachnode(dg)
 
       # Get limit states; no neighbors.
-      s_max[i, j, element] = mathEntropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      s = entropy_math(get_node_vars(u, equations, dg, i, j, element), equations)
+      s_max[i, j, element] = max(s_max[i, j, element], s)
       if i > 1
-        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i-1, j, element), equations))
+        s_max[i-1, j, element] = max(s_max[i-1, j, element], s)
       end
       if i < nnodes(dg)
-        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i+1, j, element), equations))
+        s_max[i+1, j, element] = max(s_max[i+1, j, element], s)
       end
       if j > 1
-        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i, j-1, element), equations))
+        s_max[i, j-1, element] = max(s_max[i, j-1, element], s)
       end
       if j < nnodes(dg)
-        s_max[i, j, element] = max(s_max[i, j, element], mathEntropy(get_node_vars(u, equations, dg, i, j+1, element), equations))
+        s_max[i, j+1, element] = max(s_max[i, j+1, element], s)
       end
+    end
+  end
 
-      # Perform Newton's bisection method to find new alpha
+  # Perform Newton's bisection method to find new alpha
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
                           mathEntropy_goal, mathEntropy_dGoal_dbeta, mathEntropy_initialCheck, standard_finalCheck,
