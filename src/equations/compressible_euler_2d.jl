@@ -1013,7 +1013,7 @@ end
   inv_rho_gammap1 = (1/rho)^(equations.gamma + 1.0)
 
   # The derivative vector for the modified specific entropy of Guermond et al.
-  w1 = inv_rho_gammap1 * (0.5 * rho * v_square - equations.gamma * rho_e)
+  w1 = inv_rho_gammap1 * (0.5 * rho * (equations.gamma + 1.0) * v_square - equations.gamma * rho_e)
   w2 = -rho_v1 * inv_rho_gammap1
   w3 = -rho_v2 * inv_rho_gammap1
   w4 = (1/rho)^equations.gamma
