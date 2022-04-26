@@ -41,33 +41,40 @@
 # non-periodic boundaries. This tutorial presents the implementation of the classical Dirichlet
 # boundary condition with a following example. Then, other non-periodic boundaries are mentioned.
 
-# ### [5 Adding a new scalar conservation law](@ref adding_new_scalar_equations)
+# ### [5 `DGMulti` solver and mesh](@ref DGMulti_solver_mesh)
+#-
+# This tutorial is about the more general DG solver [`DGMulti`](@ref), introduced [here](@ref DGMulti).
+# We are showing some examples for this solver, for instance with discretization nodes by Gauss or
+# triangular elements. Moreover, we present a simple way to include pre-defined triangulate meshes for
+# non-Cartesian domains using the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
+
+# ### [6 Adding a new scalar conservation law](@ref adding_new_scalar_equations)
 #-
 # This tutorial explains how to add a new physics model using the example of the cubic conservation
 # law. First, we define the equation using a `struct` `CubicEquation` and the physical flux. Then,
 # the corresponding standard setup in Trixi.jl (`mesh`, `solver`, `semi` and `ode`) is implemented
 # and the ODE problem is solved by OrdinaryDiffEq's `solve` method.
 
-# #### [6 Adding a non-conservative equation](@ref adding_nonconservative_equation)
+# #### [7 Adding a non-conservative equation](@ref adding_nonconservative_equation)
 #-
 # In this part, another physics model is implemented, the nonconservative linear advection equation.
 # We run two different simulations with different levels of refinement and compare the resulting errors.
 
-# ### [7 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
+# ### [8 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
 #-
 # Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbolent regions while
 # not wasting ressources for less interesting parts of the domain. This leads to much more efficient
 # simulations. This tutorial presents the implementation strategy of AMR in Trixi, including the use of
 # different indicators and controllers.
 
-# ### [8 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
+# ### [9 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
 #-
 # In this tutorial, the use of Trixi's structured curved mesh type [`StructuredMesh`](@ref) is explained.
 # We present the two basic option to initialize such a mesh. First, the curved domain boundaries
 # of a circular cylinder are set by explicit boundary functions. Then, a fully curved mesh is
 # defined by passing the transformation mapping.
 
-# ### [9 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
+# ### [10 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
 #-
 # The purpose of this tutorial is to demonstrate how to use the [`UnstructuredMesh2D`](@ref)
 # functionality of Trixi.jl. This begins by running and visualizing an available unstructured
@@ -75,7 +82,7 @@
 # with curved boundaries, generate a curvilinear mesh using the available [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
 # software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.
 
-# ### [10 Differentiable programming](@ref differentiable_programming)
+# ### [11 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
