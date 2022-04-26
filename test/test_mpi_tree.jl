@@ -124,6 +124,21 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.061751715597716854, 0.05018223615408711, 0.05018989446443463, 0.225871559730513],
       linf = [0.29347582879608825, 0.31081249232844693, 0.3107380389947736, 1.0540358049885143])
+
+    @testset "error-based step size control" begin
+      Trixi.mpi_isroot() && println("-"^100)
+      Trixi.mpi_isroot() && println("elixir_euler_ec.jl with error-based step size control")
+
+      sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
+                  save_everystep=false, callback=callbacks,
+                  internalnorm=ode_norm,
+                  unstable_check=ode_unstable_check); summary_callback()
+      errors = analysis_callback(sol)
+      if Trixi.mpi_isroot()
+        @test errors.l2   ≈ [0.061653630426688116, 0.05006930431098764, 0.05007694316484242, 0.22550689872331683] rtol=1.0e-4
+        @test errors.linf ≈ [0.28516937484583693, 0.2983633696512788, 0.297812036335975, 1.027368795517512]       rtol=1.0e-4
+      end
+    end
   end
 
   @trixi_testset "elixir_euler_vortex.jl" begin

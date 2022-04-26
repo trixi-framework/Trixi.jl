@@ -245,27 +245,27 @@ mean      3.99
 
 An example with multiple variables looks like this:
 ```julia
-julia> convergence_test(joinpath(examples_dir(), "2d", "elixir_euler_source_terms.jl"), 3)
+julia> convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms.jl"), 3)
 ```
 ```
 [...]
 l2
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
-8.52e-07  -         1.24e-06  -         1.24e-06  -         4.28e-06  -
-6.49e-08  3.71      8.38e-08  3.88      8.38e-08  3.88      2.96e-07  3.85
-4.33e-09  3.91      5.39e-09  3.96      5.39e-09  3.96      1.93e-08  3.94
+9.32e-07  -         1.42e-06  -         1.42e-06  -         4.82e-06  -
+7.03e-08  3.73      9.53e-08  3.90      9.53e-08  3.90      3.30e-07  3.87
+4.65e-09  3.92      6.09e-09  3.97      6.09e-09  3.97      2.12e-08  3.96
 
-mean      3.81      mean      3.92      mean      3.92      mean      3.90
+mean      3.82      mean      3.93      mean      3.93      mean      3.91
 --------------------------------------------------------------------------------
 linf
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
-8.36e-06  -         1.03e-05  -         1.03e-05  -         4.50e-05  -
-5.58e-07  3.90      6.58e-07  3.97      6.58e-07  3.97      2.92e-06  3.94
-3.77e-08  3.89      4.42e-08  3.90      4.42e-08  3.90      1.91e-07  3.93
+9.58e-06  -         1.17e-05  -         1.17e-05  -         4.89e-05  -
+6.23e-07  3.94      7.48e-07  3.97      7.48e-07  3.97      3.22e-06  3.92
+4.05e-08  3.94      4.97e-08  3.91      4.97e-08  3.91      2.10e-07  3.94
 
-mean      3.90      mean      3.93      mean      3.93      mean      3.94
+mean      3.94      mean      3.94      mean      3.94      mean      3.93
 --------------------------------------------------------------------------------
 ```
 

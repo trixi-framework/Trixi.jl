@@ -761,7 +761,7 @@ end
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
 mutable struct MPIInterfaceContainer2D{uEltype<:Real} <: AbstractContainer
   u::Array{uEltype, 4}           # [leftright, variables, i, interfaces]
-  local_element_ids::Vector{Int} # [interfaces]
+  local_neighbor_ids::Vector{Int} # [interfaces]
   orientations::Vector{Int}      # [interfaces]
   remote_sides::Vector{Int}      # [interfaces]
   # internal `resize!`able storage
@@ -776,13 +776,13 @@ Base.eltype(mpi_interfaces::MPIInterfaceContainer2D) = eltype(mpi_interfaces.u)
 function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
   n_nodes = nnodes(mpi_interfaces)
   n_variables = nvariables(mpi_interfaces)
-  @unpack _u, local_element_ids, orientations, remote_sides = mpi_interfaces
+  @unpack _u, local_neighbor_ids, orientations, remote_sides = mpi_interfaces
 
   resize!(_u, 2 * n_variables * n_nodes * capacity)
   mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
                                  (2, n_variables, n_nodes, capacity))
 
-  resize!(local_element_ids, capacity)
+  resize!(local_neighbor_ids, capacity)
 
   resize!(orientations, capacity)
 
@@ -800,14 +800,14 @@ function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables, n_node
   u = unsafe_wrap(Array, pointer(_u),
                   (2, n_variables, n_nodes, capacity))
 
-  local_element_ids = fill(typemin(Int), capacity)
+  local_neighbor_ids = fill(typemin(Int), capacity)
 
   orientations = fill(typemin(Int), capacity)
 
   remote_sides = fill(typemin(Int), capacity)
 
   return MPIInterfaceContainer2D{uEltype}(
-    u, local_element_ids, orientations, remote_sides,
+    u, local_neighbor_ids, orientations, remote_sides,
     _u)
 end
 
@@ -900,7 +900,7 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
 
       # Create interface between elements
       count += 1
-      mpi_interfaces.local_element_ids[count] = element
+      mpi_interfaces.local_neighbor_ids[count] = element
 
       if iseven(direction) # element is "left" of interface, remote cell is "right" of interface
         mpi_interfaces.remote_sides[count] = 2
@@ -935,8 +935,8 @@ end
 mutable struct MPIL2MortarContainer2D{uEltype<:Real} <: AbstractContainer
   u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
   u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
-  local_element_ids::Vector{Vector{Int}}       # [mortars]
-  local_element_positions::Vector{Vector{Int}} # [mortars]
+  local_neighbor_ids::Vector{Vector{Int}}       # [mortars]
+  local_neighbor_positions::Vector{Vector{Int}} # [mortars]
   # Large sides: left -> 1, right -> 2
   large_sides::Vector{Int}  # [mortars]
   orientations::Vector{Int} # [mortars]
@@ -953,7 +953,7 @@ Base.eltype(mpi_mortars::MPIL2MortarContainer2D) = eltype(mpi_mortars.u_upper)
 function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
   n_nodes = nnodes(mpi_mortars)
   n_variables = nvariables(mpi_mortars)
-  @unpack _u_upper, _u_lower, local_element_ids, local_element_positions,
+  @unpack _u_upper, _u_lower, local_neighbor_ids, local_neighbor_positions,
           large_sides, orientations = mpi_mortars
 
   resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
@@ -964,8 +964,8 @@ function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
   mpi_mortars.u_lower = unsafe_wrap(Array, pointer(_u_lower),
                                     (2, n_variables, n_nodes, capacity))
 
-  resize!(local_element_ids, capacity)
-  resize!(local_element_positions, capacity)
+  resize!(local_neighbor_ids, capacity)
+  resize!(local_neighbor_positions, capacity)
 
   resize!(large_sides, capacity)
 
@@ -987,15 +987,15 @@ function MPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables, n_nodes
   u_lower = unsafe_wrap(Array, pointer(_u_lower),
                         (2, n_variables, n_nodes, capacity))
 
-  local_element_ids = fill(Vector{Int}(), capacity)
-  local_element_positions = fill(Vector{Int}(), capacity)
+  local_neighbor_ids = fill(Vector{Int}(), capacity)
+  local_neighbor_positions = fill(Vector{Int}(), capacity)
 
   large_sides = fill(typemin(Int), capacity)
 
   orientations = fill(typemin(Int), capacity)
 
   return MPIL2MortarContainer2D{uEltype}(
-    u_upper, u_lower, local_element_ids, local_element_positions, large_sides, orientations,
+    u_upper, u_lower, local_neighbor_ids, local_neighbor_positions, large_sides, orientations,
     _u_upper, _u_lower)
 end
 
@@ -1206,23 +1206,23 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
       # 3 -> large element
       count += 1
 
-      local_element_ids = Vector{Int}()
-      local_element_positions = Vector{Int}()
+      local_neighbor_ids = Vector{Int}()
+      local_neighbor_positions = Vector{Int}()
       if is_own_cell(mesh.tree, lower_cell_id)
-        push!(local_element_ids, c2e[lower_cell_id])
-        push!(local_element_positions, 1)
+        push!(local_neighbor_ids, c2e[lower_cell_id])
+        push!(local_neighbor_positions, 1)
       end
       if is_own_cell(mesh.tree, upper_cell_id)
-        push!(local_element_ids, c2e[upper_cell_id])
-        push!(local_element_positions, 2)
+        push!(local_neighbor_ids, c2e[upper_cell_id])
+        push!(local_neighbor_positions, 2)
       end
       if is_own_cell(mesh.tree, large_cell_id)
-        push!(local_element_ids, c2e[large_cell_id])
-        push!(local_element_positions, 3)
+        push!(local_neighbor_ids, c2e[large_cell_id])
+        push!(local_neighbor_positions, 3)
       end
 
-      mpi_mortars.local_element_ids[count] = local_element_ids
-      mpi_mortars.local_element_positions[count] = local_element_positions
+      mpi_mortars.local_neighbor_ids[count] = local_neighbor_ids
+      mpi_mortars.local_neighbor_positions[count] = local_neighbor_positions
 
       # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
       # To prevent double counting, the mortars are always identified from the point of view of

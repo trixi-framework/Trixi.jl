@@ -782,6 +782,7 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
 end
 
 
+include("amr_dg.jl")
 include("amr_dg1d.jl")
 include("amr_dg2d.jl")
 include("amr_dg3d.jl")

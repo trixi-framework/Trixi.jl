@@ -18,6 +18,39 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # Expected errors are exactly the same as with TreeMesh!
       l2   = [0.00016263963870641478],
       linf = [0.0014537194925779984])
+
+    @testset "error-based step size control" begin
+      Trixi.mpi_isroot() && println("-"^100)
+      Trixi.mpi_isroot() && println("elixir_advection_basic.jl with error-based step size control")
+
+      sol = solve(ode, RDPK3SpFSAL35(), abstol=1.0e-4, reltol=1.0e-4,
+                  save_everystep=false, callback=callbacks,
+                  internalnorm=ode_norm,
+                  unstable_check=ode_unstable_check); summary_callback()
+      errors = analysis_callback(sol)
+      if Trixi.mpi_isroot()
+        @test errors.l2 ≈ [0.00016800412839949264]  rtol=1.0e-4
+        @test errors.linf ≈ [0.0014548839020096516] rtol=1.0e-4
+      end
+    end
+  end
+
+  @trixi_testset "elixir_advection_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
+      # Expected errors are exactly the same as with TreeMesh!
+      l2   = [9.773852895157622e-6],
+      linf = [0.0005853874124926162],
+      # override values are different from the serial tests to ensure each process holds at least
+      # one element, otherwise OrdinaryDiffEq fails during initialization
+      coverage_override = (maxiters=6, initial_refinement_level=2, base_level=2, med_level=3, max_level=4))
+  end
+
+  @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_unstructured_curved.jl"),
+      l2   = [1.6236411810065552e-5],
+      linf = [0.0010554006923731395],
+      tspan = (0.0, 1.0),
+      coverage_override = (maxiters=6, initial_refinement_level=0, base_level=0, med_level=1, max_level=2))
   end
 
   @trixi_testset "elixir_advection_restart.jl" begin
@@ -33,6 +66,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   # Compressible Euler
+  @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+      l2   = [4.070355207909268e-5, 4.4993257426833716e-5, 5.10588457841744e-5, 5.102840924036687e-5, 0.00019986264001630542],
+      linf = [0.0016987332417202072, 0.003622956808262634, 0.002029576258317789, 0.0024206977281964193, 0.008526972236273522],
+      tspan = (0.0, 0.01))
+  end
+
   @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
       l2   = [0.0015106060984283647, 0.0014733349038567685, 0.00147333490385685, 0.001473334903856929, 0.0028149479453087093],
