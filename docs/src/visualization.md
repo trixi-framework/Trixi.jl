@@ -410,6 +410,7 @@ pd = ScalarPlotData3D(Q_criteria, semi)
 iplot(pd, levels = [-.5; -.25; .1; .25])
 ```
 This gives us the following plot:
+<img width="1031" alt="Screen Shot 2022-04-26 at 1 49 40 PM" src="https://user-images.githubusercontent.com/1156048/165372561-2762f86c-b8c9-4c40-ba4a-71b46388d0b3.png">
 
 ### Visualizing results during a simulation
 To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
