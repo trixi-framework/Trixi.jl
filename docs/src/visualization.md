@@ -16,7 +16,8 @@ to use Plots.jl together with Trixi:
 3. [Plotting a 3D solution as a 2D plot](@ref)
 4. [Creating a 1D plot](@ref)
 5. [Plotting a 2D or 3D solutions as a 1D plot](@ref)
-6. [Visualizing results during a simulation](@ref)
+6. [Plotting a 3D isosurface](@ref)
+7. [Visualizing results during a simulation](@ref)
 
 !!! note
     Plotting via Plots.jl is still considered an experimental feature and might
@@ -350,6 +351,79 @@ This gives you the following plot:
 Creating a plot like this has its downsides. For one, it is unclear what to put on the abscissa
 of the plot. By default, the arc length of the given curve is used.
 Also, with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
+
+### Plotting a 3D isosurface
+To plot a 3D isosurface, the [`ScalarPlotData3D`](@ref) and [`iplot`](@ref) functions can be used.
+Our example below will demonstrate how to use these functions to plot isosurfaces over 
+a given domain. First, we will run a Trixi simulation and find Q-criteria data over which to run our plotting methods.
+```julia
+trixi_include("/Users/jessechan/.julia/dev/Trixi/examples/dgmulti_3d/elixir_euler_taylor_green_vortex.jl", tspan=(0, 0.5), polydeg=4)
+
+rd = solver.basis
+md = mesh.md
+
+function derivative(u, coordinate, rd, md)
+  @unpack Dr, Ds, Dt = rd
+  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ, J = md
+  if coordinate==1
+    # du/dx = du/dr * dr/dx + du/ds * ds/dx + du/dt * dt/dx
+    return (rxJ .* (Dr * u) + sxJ .* (Ds * u) + txJ .* (Dt * u)) ./ J
+  elseif coordinate==2
+    return (ryJ .* (Dr * u) + syJ .* (Ds * u) + tyJ .* (Dt * u)) ./ J
+  else #if coordinate==3
+    return (rzJ .* (Dr * u) + szJ .* (Ds * u) + tzJ .* (Dt * u)) ./ J
+  end
+end
+
+rho, rho_v1, rho_v2, rho_v3, E = StructArrays.components(sol.u[end])
+v1 = rho_v1 ./ rho
+v2 = rho_v2 ./ rho
+v3 = rho_v3 ./ rho
+
+dudx = derivative(v1, 1, rd, md)
+dudy = derivative(v1, 2, rd, md)
+dudz = derivative(v1, 3, rd, md)
+dvdx = derivative(v2, 1, rd, md)
+dvdy = derivative(v2, 2, rd, md)
+dvdz = derivative(v2, 3, rd, md)
+dwdx = derivative(v3, 1, rd, md)
+dwdy = derivative(v3, 2, rd, md)
+dwdz = derivative(v3, 3, rd, md)
+
+Q_criteria = zeros(size(dudx))
+omega = zeros(3,3)
+S = zeros(3,3)
+for j = 1:size(dudx, 2)
+    for i = 1:size(dudx, 1)
+        omega[1,2] = 0.5 * (dudy[i,j] - dvdx[i,j])
+        omega[1,3] = 0.5 * (dudz[i,j] - dwdx[i,j])
+        omega[2,1] = 0.5 * (dvdx[i,j] - dudy[i,j])
+        omega[2,3] = 0.5 * (dvdz[i,j] - dwdx[i,j])
+        omega[3,1] = 0.5 * (dwdx[i,j] - dudz[i,j])
+        omega[3,2] = 0.5 * (dwdy[i,j] - dvdz[i,j])
+
+        S[1,1] = dudx[i,j]
+        S[1,2] = 0.5 * (dudy[i,j]-dvdx[i,j])
+        S[1,3] = 0.5 * (dudz[i,j]-dwdx[i,j])
+        S[2,1] = 0.5 * (dvdx[i,j]-dudy[i,j])
+        S[2,2] = dvdy[i,j]
+        S[2,3] = 0.5 * (dvdz[i,j]-dwdx[i,j])
+        S[3,1] = 0.5 * (dwdx[i,j]-dudz[i,j])
+        S[3,2] = 0.5 * (dwdy[i,j]-dvdz[i,j])
+        S[3,3] = dwdz[i,j]
+
+        Q = 0.5 * (norm(omega)^2 - norm(S)^2)
+        Q_criteria[i,j] = Q
+    end
+end
+```
+Next, we use the [`ScalarPlotData3D`](@ref) and [`iplot`](@ref) functions to find and plot
+the isosurfaces. Our [`levels`](@ref) input is vector of isosurfaces of interest.
+```julia
+pd = ScalarPlotData3D(Q_criteria, semi)
+iplot(pd, levels = [-.5; -.25; -.6])
+```
+This gives us the following plot: (ADD PLOT)
 
 ### Visualizing results during a simulation
 To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
