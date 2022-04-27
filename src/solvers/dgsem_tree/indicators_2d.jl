@@ -282,7 +282,7 @@ end
   end
 
   # Loop over interfaces
-  for interface in eachinterface(dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
     right = cache.interfaces.neighbor_ids[2, interface]
@@ -384,7 +384,7 @@ end
   end
 
   # Loop over interfaces
-  for interface in eachinterface(dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
     right = cache.interfaces.neighbor_ids[2, interface]
@@ -559,7 +559,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
 
   # Correct density
   @unpack rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
-  for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     inverse_jacobian = cache.elements.inverse_jacobian[element]
     for j in eachnode(dg), i in eachnode(dg)
 
@@ -571,7 +571,9 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
       end
 
       # Real one-sided Zalesak-type limiter
-      frac_minus = min(0.0, (rho_min[i, j, element] - u_safe[1, i, j, element]) / dt)
+      # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+      #       for each interface, not each node
+      frac_minus = min(0.0, rho_min[i, j, element] - u_safe[1, i, j, element])
 
       # Calculate P_minus
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
@@ -582,7 +584,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
 
       P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
                 min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
-      P_minus = inverse_jacobian * P_minus
+      P_minus = dt * inverse_jacobian * P_minus
 
       if P_minus < 0.0
         frac_minus = min(1.0, frac_minus / P_minus)
@@ -597,7 +599,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
 
   # Correct pressure
   @unpack p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
-  for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
 
       # Compute bound

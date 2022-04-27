@@ -191,7 +191,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     IDPSpecEntropy = true
   end
 
-  cache = create_cache(IndicatorIDP, equations, basis) # , 2 * (IDPDensityTVD + IDPPressureTVD + IDPPositivity) + IDPMathEntropy + IDPSpecEntropy)
+  cache = create_cache(IndicatorIDP, equations, basis)
   IndicatorIDP{typeof(alpha_maxIDP), typeof(cache)}(alpha_maxIDP,
       IDPPositivity, IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy,
       cache)

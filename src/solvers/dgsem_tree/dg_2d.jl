@@ -536,7 +536,7 @@ end
 
   fhat1 = fhat1_threaded[Threads.threadid()]
   fhat2 = fhat2_threaded[Threads.threadid()]
-  @trixi_timeit timer() "high-order flux" calcflux_fhat!(fhat1, fhat2, u, mesh,
+  calcflux_fhat!(fhat1, fhat2, u, mesh,
       nonconservative_terms, equations, volume_flux_dg, dg, element, cache)
 
   # low-order FV fluxes
@@ -546,16 +546,16 @@ end
   fstar2_L = fstar2_L_threaded[Threads.threadid()]
   fstar1_R = fstar1_R_threaded[Threads.threadid()]
   fstar2_R = fstar2_R_threaded[Threads.threadid()]
-  @trixi_timeit timer() "low-order flux" calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
       nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
 
-  # Calculate blending factor alpha_blending
+  # Calculate antidiffusive flux
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
-  @trixi_timeit timer() "antidiffusive flux" calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
+  calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
       nonconservative_terms, equations, dg, element, cache)
 
-  # Calculate volume integral contribution
+  # Calculate volume integral contribution of low-order FV flux
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
       du[v, i, j, element] += inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
@@ -647,7 +647,6 @@ end
 
 @inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, dg, element, cache)
-  @unpack inverse_weights = dg.basis
 
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
