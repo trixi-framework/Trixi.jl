@@ -35,6 +35,27 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       linf = [0.008457195427364006, 0.057201667446161064, 9.098379777405796e-5],
       tspan = (0.0, 0.025), surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal))
   end
+
+  @trixi_testset "elixir_shallowwater_source_terms_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms_dirichlet.jl"),
+      l2   = [0.0022851099219788917, 0.01560453773635554, 4.43649172558535e-5],
+      linf = [0.008934615705174398, 0.059403169140869405, 9.098379777405796e-5],
+      tspan = (0.0, 0.025))
+  end
+
+  @trixi_testset "elixir_shallowwater_well_balanced_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_dirichlet.jl"),
+      l2   = [1.725899137127366e-8, 1.1512085503302704e-11, 1.7259643530442137e-8],
+      linf = [3.8441519967236104e-8, 8.090437427720617e-11, 3.844551077492042e-8],
+      tspan = (0.0, 0.25))
+  end
+
+  @trixi_testset "elixir_shallowwater_well_balanced_wall.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced_wall.jl"),
+      l2   = [1.7260068570339833e-8, 1.4941809669598456e-11, 1.7259643530442137e-8],
+      linf = [3.844082008264138e-8, 1.0528167468443592e-10, 3.844551077492042e-8],
+      tspan = (0.0, 0.25))
+  end
 end
 
 end # module

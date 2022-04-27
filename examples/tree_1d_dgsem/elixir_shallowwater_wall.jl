@@ -19,7 +19,7 @@ function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations1D)
     
     b = (  1.5 / exp( 0.5 * ((x[1] - 1.0)^2 ) )
        + 0.75 / exp( 0.5 * ((x[1] + 1.0)^2 ) ) )
-  
+    
     return prim2cons(SVector(H, v, b), equations)
 end
   
@@ -40,7 +40,7 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_hll, flux_nonconservative_fjordholm
 coordinates_min = -3.0
 coordinates_max = 3.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=3,
                 n_cells_max=10_000,
                 periodicity=false)
 

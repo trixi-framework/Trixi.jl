@@ -94,7 +94,7 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the bottom topography function
-`b(x) = 2 + 0.5 * sin(sqrt(2)*pi*x)`
+`b(x) = 2.0 + 0.5 * sin(sqrt(2.0)*pi*x[1])`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 
@@ -197,7 +197,9 @@ end
 
 # Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized and the bottom topography has no flux
-# Actually we do not need this flux, but we left it in for consistency with the other dimensions
+# This flux is not necessary for 1D Problems and therefore only refers to the previuos flux
+# function. It was left inside the code for consistency with the 2 dimensional case.
+# NOTE: This has been done for alle functions using the normal_direction AbstractVector
 @inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
   return normal_direction[1] * flux(u, 1, equations)
 end
