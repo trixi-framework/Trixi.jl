@@ -41,7 +41,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Compressible Euler with self-gravity
   include("test_tree_1d_eulergravity.jl")
 
-  # Shallow Water Equations
+  # Shallow water 
   include("test_tree_1d_shallowwater.jl")
 end
 

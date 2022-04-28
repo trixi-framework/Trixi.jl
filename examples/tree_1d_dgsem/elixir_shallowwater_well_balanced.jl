@@ -37,7 +37,7 @@ solver = DGSEM(polydeg=4, surface_flux=(flux_fjordholm_etal, flux_nonconservativ
 coordinates_min = -1.0
 coordinates_max =  1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=3,
                 n_cells_max=10_000)
 
 # Create the semi discretization object
@@ -58,7 +58,7 @@ ode = semidiscretize(semi, tspan)
 # `∑|H0-(h+b)|` should be around machine roundoff.
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
-# only for the TreeMesh1D with `initial_refinement_level=2`.
+# only for the TreeMesh1D with `initial_refinement_level=3`.
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations1D)
   # Set the background values
   H = equations.H0
