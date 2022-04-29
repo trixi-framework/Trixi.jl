@@ -146,7 +146,7 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
 end
 
 """
-    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+    boundary_condition_slip_wall(u_inner, orientation_or_normal, x, t, surface_flux_function,
                                   equations::ShallowWaterEquations1D)
 
 Create a boundary state by reflecting the normal velocity component and keep
@@ -194,32 +194,12 @@ end
   return SVector(f1, f2, zero(eltype(u)))
 end
 
-
-# Calculate 1D flux for a single point in the normal direction
-# Note, this directional vector is not normalized and the bottom topography has no flux
-# This flux is not necessary for 1D Problems and therefore only refers to the previuos flux
-# function. It was left inside the code for consistency with the 2 dimensional case.
-# NOTE: This has been done for alle functions using the normal_direction AbstractVector
-@inline function flux(u, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
-  return normal_direction[1] * flux(u, 1, equations)
-end
-
-
 """
     flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::ShallowWaterEquations1D)
-    flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                          normal_direction_ll     ::AbstractVector,
-                                          normal_direction_average::AbstractVector,
                                           equations::ShallowWaterEquations1D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
-
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
 
 Further details are available in the paper:
 - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
@@ -241,29 +221,12 @@ Further details are available in the paper:
   return f
 end
 
-@inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                        normal_direction_ll::AbstractVector,
-                                                        normal_direction_average::AbstractVector,
-                                                        equations::ShallowWaterEquations1D)
-  return normal_direction_average[1] * flux_nonconservative_wintermeyer_etal(u_ll, u_rr, 1, equations)
-end
-
-
 """
     flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
                                         equations::ShallowWaterEquations1D)
-    flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                        normal_direction_ll     ::AbstractVector,
-                                        normal_direction_average::AbstractVector,
-                                        equations::ShallowWaterEquations1D)
-
+    
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
 that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
-
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
 
 This contains additional terms compared to [`flux_nonconservative_wintermeyer_etal`](@ref)
 that account for possible discontinuities in the bottom topography function.
@@ -303,16 +266,9 @@ and for curvilinear 2D case in the paper:
   return f
 end
 
-@inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                      normal_direction_ll::AbstractVector,
-                                                      normal_direction_average::AbstractVector,
-                                                      equations::ShallowWaterEquations1D)
-  return normal_direction_average[1] * flux_nonconservative_fjordholm_etal(u_ll, u_rr, 1, equations)
-end
-
 
 """
-    flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction,
+    flux_fjordholm_etal(u_ll, u_rr, orientation,
                         equations::ShallowWaterEquations1D)
 
 Total energy conservative (mathematical entropy for shallow water equations). When the bottom topography
@@ -343,13 +299,8 @@ Details are available in Eq. (4.1) in the paper:
   return SVector(f1, f2, zero(eltype(u_ll)))
 end
 
-@inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
-  return normal_direction[1] * flux_fjordholm_etal(u_ll, u_rr, 1, equations)
-end
-
-
 """
-    flux_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction,
+    flux_wintermeyer_etal(u_ll, u_rr, orientation,
                           equations::ShallowWaterEquations1D)
 
 Total energy conservative (mathematical entropy for shallow water equations) split form.
@@ -382,28 +333,9 @@ Further details are available in Theorem 1 of the paper:
   return SVector(f1, f2, zero(eltype(u_ll)))
 end
 
-@inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
-  return normal_direction[1] * flux_wintermeyer_etal(u_ll, u_rr, 1, equations)
-end
-
-
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations1D)
-  # Get the velocity quantities
-  v_ll = velocity(u_ll, equations)
-  v_rr = velocity(u_rr, equations)
-
-  # Calculate the wave celerity on the left and right
-  h_ll = waterheight(u_ll, equations)
-  h_rr = waterheight(u_rr, equations)
-  c_ll = sqrt(equations.gravity * h_ll)
-  c_rr = sqrt(equations.gravity * h_rr)
-
-  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
-end
-
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::ShallowWaterEquations1D)
   # Get the velocity quantities
   v_ll = velocity(u_ll, equations)
   v_rr = velocity(u_rr, equations)
@@ -461,11 +393,6 @@ end
   λ_max = v_rr + sqrt(equations.gravity * h_rr)
 
   return λ_min, λ_max
-end
-
-@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
-                                      equations::ShallowWaterEquations1D)
-  return normal_direction[1] * min_max_speed_naive(u_ll, u_rr, 1, equations)
 end
 
 
