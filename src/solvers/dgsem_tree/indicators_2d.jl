@@ -195,7 +195,6 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
 
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis))
 
-  # TODO: Nicer way to set a length?
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
 
@@ -425,9 +424,9 @@ end
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
       v1 = u[2, i, j, element] / u[1, i, j, element]
       v2 = u[3, i, j, element] / u[1, i, j, element]
-      # vel = get_node_vars(u, equations, dg, i, j, element)[2:3] / u[1, i, j, element]
-      v2s2 = 0.5 * sum(v1^2 + v2^2)
+      v2s2 = 0.5 * (v1^2 + v2^2)
       gamma_m1 = equations.gamma - 1.0
+
       val_flux1_local     = gamma_m1 * (antidiffusive_flux1[4, i, j, element] + v2s2 * antidiffusive_flux1[1, i, j, element] -
                                           v1 * antidiffusive_flux1[2, i, j, element] - v2 * antidiffusive_flux1[3, i, j, element])
       val_flux1_local_ip1 = gamma_m1 * (antidiffusive_flux1[4, i+1, j, element] + v2s2 * antidiffusive_flux1[1, i+1, j, element] -
@@ -555,13 +554,21 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
   @unpack inverse_weights = dg.basis
 
-  positCorrFactor = 0.1 # The correction factor for IDPPositivity # TODO
+  positCorrFactor = 0.1 # The correction factor for IDPPositivity
 
-  # Correct density
   @unpack rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+
   @threaded for element in eachelement(dg, cache)
     inverse_jacobian = cache.elements.inverse_jacobian[element]
     for j in eachnode(dg), i in eachnode(dg)
+
+      #######################
+      # Correct density
+      #######################
+      if u_safe[1, i, j, element] < 0.0
+        println("Error: safe density is not safe. element=$element, node: $i $j, density=$(u_safe[1, i, j, element])")
+      end
 
       # Compute bound
       if indicator_IDP.IDPDensityTVD
@@ -594,13 +601,10 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
 
       # Calculate alpha
       alpha[i, j, element]  = max(alpha[i, j, element], 1 - frac_minus)
-    end
-  end
 
-  # Correct pressure
-  @unpack p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
+      #######################
+      # Correct pressure
+      #######################
 
       # Compute bound
       u_local = get_node_vars(u_safe, equations, dg, i, j, element)
@@ -666,13 +670,12 @@ end
   # Perform initial Check
   as = goal_fct(bound, u_curr, equations)
 
-  # TODO: save tolerances somewhere
   newton_reltol = 1.0e-12 # Relative tolerance to exit Newton loop
   newton_abstol = 1.0e-14 # Absolute tolerance (with respect to the value of the entropy goal, tol = NEWTON_ABSTOL*s_goal)
   initialCheck(bound, as, newton_abstol) && return nothing
 
   # Newton iterations
-  IDPMaxIter = 10 # TODO: save somewhere
+  IDPMaxIter = 10
   for iter in 1:IDPMaxIter
     beta_old = beta
 

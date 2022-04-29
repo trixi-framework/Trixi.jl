@@ -74,7 +74,6 @@ method [`SimpleSSPRK33`](@ref).
     This is an experimental feature and may change in future releases.
 """
 function solve_IDP(ode::ODEProblem, semi; dt, callback=nothing, kwargs...)
-  # TODO: Maybe add alg to dependency
   alg = SimpleSSPRK33()
 
   u = copy(ode.u0)

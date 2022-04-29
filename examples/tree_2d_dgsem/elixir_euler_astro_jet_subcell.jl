@@ -44,11 +44,9 @@ basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=true,
+                            IDPDensityTVD=false,
                             IDPPressureTVD=true,
-                            IDPPositivity=true,
-                            IDPSpecEntropy=false,
-                            IDPMathEntropy=false)
+                            IDPPositivity=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -65,26 +63,30 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.001)
+tspan = (0.0, 2.5e-6) # simulation with end time T=0.001 in the restart file
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 5000
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
+# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
+save_restart = SaveRestartCallback(interval=5000,
+                                   save_final_restart=true)
+
 save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=true,
-                                     save_final_solution=true,
+                                     save_final_solution=false,
                                      solution_variables=cons2prim)
 
 stepsize_callback = StepsizeCallback(cfl=0.004)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
+                        save_restart, save_solution,
                         stepsize_callback)
 
 ###############################################################################
