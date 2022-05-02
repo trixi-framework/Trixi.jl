@@ -46,7 +46,9 @@
 # This tutorial is about the more general DG solver [`DGMulti`](@ref), introduced [here](@ref DGMulti).
 # We are showing some examples for this solver, for instance with discretization nodes by Gauss or
 # triangular elements. Moreover, we present a simple way to include pre-defined triangulate meshes for
-# non-Cartesian domains using the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
+# non-Cartesian domains using the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) and
+# show other types of methods such as finite differences and CGSEM via the package
+# [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl).
 
 # ### [6 Adding a new scalar conservation law](@ref adding_new_scalar_equations)
 #-

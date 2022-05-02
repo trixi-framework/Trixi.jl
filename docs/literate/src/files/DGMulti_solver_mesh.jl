@@ -89,14 +89,11 @@ analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-      callback=callbacks, save_everystep=false);
+            callback=callbacks, save_everystep=false);
 #-
 using Plots
 pd = PlotData2D(sol)
 plot(pd)
-#-
-plot(pd["rho"])
-plot!(getmesh(pd)) # TODO BB weglassen?
 
 
 # ## Simulation with triangular elements
@@ -113,13 +110,13 @@ dg = DGMulti(polydeg = 3,
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 mesh = DGMultiMesh(dg,
-             cells_per_dimension=(32, 32), # initial_refinement_level = 5
-             coordinates_min=(-2.0, -2.0),
-             coordinates_max=( 2.0,  2.0),
-             periodicity=true)
+                   cells_per_dimension=(32, 32), # initial_refinement_level = 5
+                   coordinates_min=(-2.0, -2.0),
+                   coordinates_max=( 2.0,  2.0),
+                   periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                              boundary_conditions=boundary_condition_periodic)
+                                    boundary_conditions=boundary_condition_periodic)
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
@@ -140,7 +137,7 @@ plot!(getmesh(pd))
 
 # ## Triangular meshes on non-Cartesian domains
 # To use triangulate meshes on a non-Cartesian domain, Trixi uses the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
-# The following example is based on [`elixir_euler_triangulate_pkg_mesh.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_triangulate_pkg_mesh.jl))
+# The following example is based on [`elixir_euler_triangulate_pkg_mesh.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_triangulate_pkg_mesh.jl)
 # and uses a pre-defined mesh from StartUpDG.jl.
 using Trixi, OrdinaryDiffEq
 
@@ -189,9 +186,35 @@ pd = PlotData2D(sol)
 plot(pd["rho"])
 plot!(getmesh(pd))
 
-# For more information please have a look in the [StartUpDG.jl documentation](https://jlchan.github.io/StartUpDG.jl/stable/).
+# For more information, please have a look in the [StartUpDG.jl documentation](https://jlchan.github.io/StartUpDG.jl/stable/).
 
 
-# ## "Esoteric" methods such as `FD SBP`, `CGSEM` and `GaussSBP`
-# ### Methods via SummationByPartsOperators.jl
-# [`elixir_euler_fdsbp_periodic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_fdsbp_periodic.jl)
+# ## Other methods via [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
+# The `DGMulti` solver also supports other methods than DGSEM. The important property a method has to
+# fulfill is the summation-by-parts property (SBP). The package [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
+# provides such methods, like an SBP finite differences (FD SBP) scheme. You can select it by
+# setting the argument
+# ```julia
+# approximation_type = periodic_derivative_operator(derivative_order, accuracy_order, ...)
+# ```
+# in the `DGMulti` solver. This method approximates the `derivative_order`-th derivative with an
+# order of accuracy `accuracy_order`. An example using an FD method is implemented in
+# [`elixir_euler_fdsbp_periodic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_fdsbp_periodic.jl).
+# For all parameters and other calling options, please have a look in the
+# [documentation of SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).
+
+# Another possible method is for instance a continuous Galerkin (CGSEM) method. You can use such a
+# method with polynomial degree of `3` (`N=4` Legendre Lobatto nodes on `[0, 1]`) coupled continuously
+# on a uniform mesh with `Nx=10` elements by setting `approximation_type` to
+# ```julia
+# SummationByPartsOperators.couple_continuously(SummationByPartsOperators.legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
+#                                               SummationByPartsOperators.UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10)).
+# ```
+
+# To choose a discontinuous coupling (DGSEM), use `couple_discontinuously()` instead of `couple_continuously()`.
+
+# TODO: Explanations about parameters xmin, xmax,...; Coupled with 1DMesh, just used in every direction for 2D or 3D?
+# TODO: More or less about `couple_discontinuously()`?
+
+# For more information and other SBP operators, see the documentations of [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
+# and [SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).
