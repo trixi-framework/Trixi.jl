@@ -71,26 +71,11 @@ save_solution = SaveSolutionCallback(interval=50,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max=1.0,
-                                          alpha_min=0.0001,
-                                          alpha_smooth=false,
-                                          variable=Trixi.density)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4,
-                                      med_level=0, med_threshold=0.0003, # med_level = current level
-                                      max_level=7, max_threshold=0.003)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval=1,
-                           adapt_initial_condition=true,
-                           adapt_initial_condition_only_refine=true)
-
 stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
-                        amr_callback,
                         stepsize_callback)
 
 

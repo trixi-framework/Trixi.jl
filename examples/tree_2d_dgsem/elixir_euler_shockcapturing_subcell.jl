@@ -12,7 +12,10 @@ initial_condition = initial_condition_weak_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
-indicator_sc = IndicatorIDP(equations, basis; variable=Trixi.density)
+indicator_sc = IndicatorIDP(equations, basis;
+                            IDPDensityTVD=true,
+                            IDPPressureTVD=true,
+                            IDPPositivity=false)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
                                                       volume_flux_fv=surface_flux)
