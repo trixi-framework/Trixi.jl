@@ -1,6 +1,6 @@
 #src # `DGMulti` solver and mesh
 
-# The basic idea and implementation of the solver [`DGMulti`](@ref) is already explained in
+# The basic idea and implementation of the [`DGMulti`](@ref) solver is already explained in
 # section ["Meshes"](@ref DGMulti).
 # Here, we want to give some examples and a quick overview about the options with `DGMulti`.
 
@@ -9,7 +9,7 @@
 # 2D compressible Euler equations [`CompressibleEulerEquations2D`](@ref) and used the DG formulation
 # with flux differencing using volume flux [`flux_ranocha`](@ref) and surface flux [`flux_lax_friedrichs`](@ref).
 
-# Here, we want to implement the equivalent example, only now using the solver `DGMulti`
+# Here, we want to implement the equivalent example, only now using the `DGMulti` solver
 # instead of [`DGSEM`](@ref).
 
 using Trixi, OrdinaryDiffEq
@@ -54,8 +54,10 @@ plot(pd["rho"])
 plot!(getmesh(pd))
 
 # This simulation is not as fast as the equivalent with `TreeMesh` since the functions are not
-# implemented that efficient. On the other hand, the functions are more general and thus we
-# have more option we can choose from.
+# implemented that efficiently. Figure 4 in ["Efficient implementation of modern entropy stable
+# and kinetic energy preserving discontinuous Galerkin methods for conservation laws"](https://arxiv.org/abs/2112.10517)
+# (2021) provides a nice runtime comparison between the different mesh types. On the other hand,
+# the functions are more general and thus we have more option we can choose from.
 
 
 # ## Simulation with Gauss nodes
@@ -102,7 +104,9 @@ using Trixi, OrdinaryDiffEq
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_weak_blast_wave
 
-# We are using Gauss-Lobatto nodes again, so `approximation_type = SBP()`.
+# Since there is no direct equivalent to Gauss-Lobatto nodes on triangles, the approximation type
+# `SBP()` now uses Gauss-Lobatto nodes on faces. More details can be found in the documentation of
+# [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/RefElemData/#RefElemData-based-on-SBP-finite-differences).
 dg = DGMulti(polydeg = 3,
              element_type = Tri(),
              approximation_type = SBP(),
@@ -136,7 +140,7 @@ plot!(getmesh(pd))
 
 
 # ## Triangular meshes on non-Cartesian domains
-# To use triangulate meshes on a non-Cartesian domain, Trixi uses the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
+# To use triangular meshes on a non-Cartesian domain, Trixi uses the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
 # The following example is based on [`elixir_euler_triangulate_pkg_mesh.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_triangulate_pkg_mesh.jl)
 # and uses a pre-defined mesh from StartUpDG.jl.
 using Trixi, OrdinaryDiffEq
@@ -191,14 +195,27 @@ plot!(getmesh(pd))
 
 # ## Other methods via [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
 # The `DGMulti` solver also supports other methods than DGSEM. The important property a method has to
-# fulfill is the summation-by-parts property (SBP). The package [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
-# provides such methods, like an SBP finite differences (FD SBP) scheme. You can select it by
-# setting the argument
-# ```julia
-# approximation_type = periodic_derivative_operator(derivative_order, accuracy_order, ...)
-# ```
-# in the `DGMulti` solver. This method approximates the `derivative_order`-th derivative with an
-# order of accuracy `accuracy_order`. An example using an FD method is implemented in
+# fulfill is the summation-by-parts (SBP) property. The package [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
+# provides such methods, like a finite difference SBP (FD SBP) scheme. To do this,
+# you need create an SBP derivative operator and pass that as `approximation_type`
+# to the `DGMulti` constructor. For example, the classical second-order FD SBP operator
+# can be created as
+using SummationByPartsOperators
+D = derivative_operator(MattssonNordström2004(), derivative_order=1, accuracy_order=2,
+                        xmin=0.0, xmax=1.0, N=11)
+# Here, the arguments `xmin` and `xmax` do not matter beyond setting the real type
+# used for the operator - they just set a reference element and are rescaled on the
+# physical elements. The parameter `N` determines the number of finite difference nodes.
+# Then, `D` can be used as `approximation_type` like `SBP()` in a multi-block fashion.
+# In multiple dimensions, such a 1D SBP operator will be used in a tensor product fashion,
+# i.e., in each coordinate direction. In particular, you can use them only on 1D, 2D `Quad()`,
+# and 3D `Hex()` elements.
+#
+# You can also use fully periodic single-block FD methods by creating a periodic SBP
+# operator. For example, a fully periodic FD operator can be constructed as
+D = periodic_derivative_operator(derivative_order=1, accuracy_order=2,
+                                 xmin=0.0, xmax=1.0, N=11)
+# An example using such an FD method is implemented in
 # [`elixir_euler_fdsbp_periodic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_fdsbp_periodic.jl).
 # For all parameters and other calling options, please have a look in the
 # [documentation of SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).
@@ -206,15 +223,11 @@ plot!(getmesh(pd))
 # Another possible method is for instance a continuous Galerkin (CGSEM) method. You can use such a
 # method with polynomial degree of `3` (`N=4` Legendre Lobatto nodes on `[0, 1]`) coupled continuously
 # on a uniform mesh with `Nx=10` elements by setting `approximation_type` to
-# ```julia
-# SummationByPartsOperators.couple_continuously(SummationByPartsOperators.legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
-#                                               SummationByPartsOperators.UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10)).
-# ```
+using SummationByPartsOperators
+D = couple_continuously(legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
+                        UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10))
 
 # To choose a discontinuous coupling (DGSEM), use `couple_discontinuously()` instead of `couple_continuously()`.
-
-# TODO: Explanations about parameters xmin, xmax,...; Coupled with 1DMesh, just used in every direction for 2D or 3D?
-# TODO: More or less about `couple_discontinuously()`?
 
 # For more information and other SBP operators, see the documentations of [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
 # and [SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).

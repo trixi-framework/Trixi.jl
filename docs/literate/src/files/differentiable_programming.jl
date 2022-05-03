@@ -178,7 +178,7 @@ solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranoc
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex, solver)
 
-u0_ode = compute_coefficients(0.0, semi)
+u0_ode = Trixi.compute_coefficients(0.0, semi)
 size(u0_ode)
 @test size(u0_ode) == (1024,) #src
 
