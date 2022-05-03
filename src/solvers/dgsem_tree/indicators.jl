@@ -171,6 +171,11 @@ struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
   IDPSpecEntropy::Bool
   IDPMathEntropy::Bool
   cache::Cache
+  positCorrFactor::RealT          # Correction factor for IDPPositivity
+  IDPMaxIter::Int                 # Maximal number of iterations for Newton's method
+  newton_tol::Tuple{RealT, RealT} # Relative and absolute tolerances for Newton's method
+  IDPgamma::RealT                 # Constant for the subcell limiting of convex (nonlinear) constraints
+                                  # (must be IDPgamma>=2*d, where d is the number of dimensions of the problem)
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -180,7 +185,9 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                       IDPDensityTVD=false,
                       IDPPressureTVD=false,
                       IDPSpecEntropy=false,
-                      IDPMathEntropy=false)
+                      IDPMathEntropy=false,
+                      positCorrFactor=0.1, IDPMaxIter=10,
+                      newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations))
 
   if IDPMathEntropy && IDPSpecEntropy
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
@@ -194,7 +201,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   cache = create_cache(IndicatorIDP, equations, basis)
   IndicatorIDP{typeof(alpha_maxIDP), typeof(cache)}(alpha_maxIDP,
       IDPPositivity, IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy,
-      cache)
+      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)

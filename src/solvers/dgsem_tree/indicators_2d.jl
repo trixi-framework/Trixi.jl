@@ -492,11 +492,10 @@ end
   # Perform Newton's bisection method to find new alpha
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-
       u_local = get_node_vars(u, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
                           specEntropy_goal, specEntropy_dGoal_dbeta, specEntropy_initialCheck, standard_finalCheck,
-                          equations, dg, dt, cache)
+                          equations, dg, dt, cache, indicator_IDP)
     end
   end
 
@@ -539,7 +538,7 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
       u_local = get_node_vars(u, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
                           mathEntropy_goal, mathEntropy_dGoal_dbeta, mathEntropy_initialCheck, standard_finalCheck,
-                          equations, dg, dt, cache)
+                          equations, dg, dt, cache, indicator_IDP)
     end
   end
 
@@ -553,8 +552,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
 @inline function IDP_positivity!(alpha, indicator_IDP, u_safe, equations, dg, dt, cache)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
   @unpack inverse_weights = dg.basis
-
-  positCorrFactor = 0.1 # The correction factor for IDPPositivity
+  @unpack positCorrFactor = indicator_IDP
 
   @unpack rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
   @unpack p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
@@ -621,7 +619,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
       # Perform Newton's bisection method to find new alpha
       newton_loops_alpha!(alpha, p_min[i, j, element], u_local, i, j, element,
                           pressure_goal, pressure_dgoal_dbeta, pressure_initialCheck, pressure_finalCheck,
-                          equations, dg, dt, cache)
+                          equations, dg, dt, cache, indicator_IDP)
     end
   end
 
@@ -633,33 +631,37 @@ pressure_dgoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(dpdu(u, equati
 pressure_initialCheck(bound, goal, newton_abstol) = goal <= 0.0
 pressure_finalCheck(bound, goal, newton_abstol) = (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 
-@inline function newton_loops_alpha!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dg, dt, cache)
+@inline function newton_loops_alpha!(alpha, bound, u_safe, i, j, element,
+                                     goal_fct, dgoal_fct, initialCheck, finalCheck,
+                                     equations, dg, dt, cache, indicator_IDP)
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
   inverse_jacobian = cache.elements.inverse_jacobian[element]
 
-  IDPgamma = 4.0 # Constant for the subcell limiting of convex (nonlinear) constraints (must be IDPgamma>=2*d, where d is the number of dimensions of the problem)
+  @unpack IDPgamma = indicator_IDP
 
   # negative xi direction
   antidiffusive_flux = IDPgamma * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i, j, element)
-  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, indicator_IDP, antidiffusive_flux)
 
   # positive xi direction
   antidiffusive_flux = -IDPgamma * inverse_jacobian * inverse_weights[i] * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j, element)
-  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, indicator_IDP, antidiffusive_flux)
 
   # negative eta direction
   antidiffusive_flux = IDPgamma * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i, j, element)
-  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, indicator_IDP, antidiffusive_flux)
 
   # positive eta direction
   antidiffusive_flux = -IDPgamma * inverse_jacobian * inverse_weights[j] * get_node_vars(antidiffusive_flux2, equations, dg, i, j+1, element)
-  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+  newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, indicator_IDP, antidiffusive_flux)
 
   return nothing
 end
 
-@inline function newton_loop!(alpha, bound, u_safe, i, j, element, goal_fct, dgoal_fct, initialCheck, finalCheck, equations, dt, antidiffusive_flux)
+@inline function newton_loop!(alpha, bound, u_safe, i, j, element,
+                              goal_fct, dgoal_fct, initialCheck, finalCheck,
+                              equations, dt, indicator_IDP, antidiffusive_flux)
   beta = 1.0 - alpha[i, j, element]
 
   beta_L = 0.0  # alpha = 1
@@ -670,13 +672,11 @@ end
   # Perform initial Check
   as = goal_fct(bound, u_curr, equations)
 
-  newton_reltol = 1.0e-12 # Relative tolerance to exit Newton loop
-  newton_abstol = 1.0e-14 # Absolute tolerance (with respect to the value of the entropy goal, tol = NEWTON_ABSTOL*s_goal)
+  newton_reltol, newton_abstol = indicator_IDP.newton_tol
   initialCheck(bound, as, newton_abstol) && return nothing
 
   # Newton iterations
-  IDPMaxIter = 10
-  for iter in 1:IDPMaxIter
+  for iter in 1:indicator_IDP.IDPMaxIter
     beta_old = beta
 
     # Evaluate d(goal)/d(beta)
