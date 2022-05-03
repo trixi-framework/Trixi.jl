@@ -200,7 +200,7 @@ plot!(getmesh(pd))
 # you need create an SBP derivative operator and pass that as `approximation_type`
 # to the `DGMulti` constructor. For example, the classical second-order FD SBP operator
 # can be created as
-using SummationByPartsOperators
+using Trixi.SummationByPartsOperators # or add SummationByPartsOperators to your project and use it directly
 D = derivative_operator(MattssonNordström2004(), derivative_order=1, accuracy_order=2,
                         xmin=0.0, xmax=1.0, N=11)
 # Here, the arguments `xmin` and `xmax` do not matter beyond setting the real type
@@ -223,7 +223,7 @@ D = periodic_derivative_operator(derivative_order=1, accuracy_order=2,
 # Another possible method is for instance a continuous Galerkin (CGSEM) method. You can use such a
 # method with polynomial degree of `3` (`N=4` Legendre Lobatto nodes on `[0, 1]`) coupled continuously
 # on a uniform mesh with `Nx=10` elements by setting `approximation_type` to
-using SummationByPartsOperators
+using Trixi.SummationByPartsOperators # or add SummationByPartsOperators to your project and use it directly
 D = couple_continuously(legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
                         UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10))
 
