@@ -157,19 +157,17 @@ dg = DGMulti(polydeg = 3, element_type = Tri(),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 # StartUpDG.jl provides for instance a pre-defined Triangulate geometry for a rectangular domain with
-# hole. Other pre-defined Triangulate geometries are e.g., `SquareDomain`, `RectangularDomainWithHole`,
+# hole `RectangularDomainWithHole`. Other pre-defined Triangulate geometries are e.g., `SquareDomain`,
 # `Scramjet`, and `CircularDomain`.
 meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole());
 
 # The pre-defined Triangulate geometry in StartUpDG has integer boundary tags. With [`DGMultiMesh`](@ref)
 # we assign boundary faces based on these integer boundary tags and create a mesh compatible with Trixi.
-mesh = DGMultiMesh(meshIO, dg, Dict(:bottom=>1, :right=>2, :top=>3, :left=>4))
+mesh = DGMultiMesh(meshIO, dg, Dict(:outer_boundary=>1, :inner_boundary=>2))
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :bottom => boundary_condition_convergence_test,
-                         :right => boundary_condition_convergence_test,
-                         :top => boundary_condition_convergence_test,
-                         :left => boundary_condition_convergence_test)
+boundary_conditions = (; :outer_boundary => boundary_condition_convergence_test,
+                         :inner_boundary => boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,
