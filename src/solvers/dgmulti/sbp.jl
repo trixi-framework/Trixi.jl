@@ -462,13 +462,14 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
 end
 
 function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+                      dg::DGMultiFluxDiffFDSBP, RealT, uEltype)
 
   md = mesh.md
 
   # storage for volume quadrature values, face quadrature values, flux values
   nvars = nvariables(equations)
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+
   return (; u_values, invJ = inv.(md.J) )
 end
 
