@@ -165,9 +165,9 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
 """
 struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
   alpha_maxIDP::RealT
-  IDPPositivity::Bool
   IDPDensityTVD::Bool
   IDPPressureTVD::Bool
+  IDPPositivity::Bool
   IDPSpecEntropy::Bool
   IDPMathEntropy::Bool
   cache::Cache
@@ -181,9 +181,9 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
                       alpha_maxIDP=1.0,
-                      IDPPositivity=false,
                       IDPDensityTVD=false,
                       IDPPressureTVD=false,
+                      IDPPositivity=false,
                       IDPSpecEntropy=false,
                       IDPMathEntropy=false,
                       positCorrFactor=0.1, IDPMaxIter=10,
@@ -193,14 +193,17 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
   end
 
-  if !(IDPPositivity || IDPDensityTVD || IDPPressureTVD || IDPSpecEntropy || IDPMathEntropy)
-    println("No limiter selected. Default: use IDPSpecEntropy")
-    IDPSpecEntropy = true
+  if !(IDPDensityTVD || IDPPressureTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
+    println("No limiter selected. Default: use IDPDensityTVD")
+    IDPDensityTVD = true
   end
 
-  cache = create_cache(IndicatorIDP, equations, basis)
+  length = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
+              min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
+
+  cache = create_cache(IndicatorIDP, equations, basis, length)
   IndicatorIDP{typeof(alpha_maxIDP), typeof(cache)}(alpha_maxIDP,
-      IDPPositivity, IDPDensityTVD, IDPPressureTVD, IDPSpecEntropy, IDPMathEntropy,
+      IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy,
       cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma)
 end
 
@@ -209,9 +212,9 @@ function Base.show(io::IO, indicator::IndicatorIDP)
 
   print(io, "IndicatorIDP(")
   print(io, "limiter=(")
-  indicator.IDPPositivity  && print(io, "IDPPositivity, ")
   indicator.IDPDensityTVD  && print(io, "IDPDensityTVD, ")
   indicator.IDPPressureTVD && print(io, "IDPPressureTVD, ")
+  indicator.IDPPositivity  && print(io, "IDPPositivity, ")
   indicator.IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
   indicator.IDPMathEntropy && print(io, "IDPMathEntropy, ")
   print(io, "), ")

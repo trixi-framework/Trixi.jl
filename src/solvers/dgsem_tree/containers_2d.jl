@@ -1310,56 +1310,34 @@ mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
   alpha::Array{uEltype, 3} # [i, j, elements]
   alpha1::Array{uEltype, 3}
   alpha2::Array{uEltype, 3}
-  rho_max::Array{uEltype, 3}
-  rho_min::Array{uEltype, 3}
-  p_max::Array{uEltype, 3}
-  p_min::Array{uEltype, 3}
-  s_max::Array{uEltype, 3}
-  s_min::Array{uEltype, 3}
+  var_bounds::Vector{Array{uEltype, 3}}
   # internal `resize!`able storage
   _alpha::Vector{uEltype}
   _alpha1::Vector{uEltype}
   _alpha2::Vector{uEltype}
-  _rho_max::Vector{uEltype}
-  _rho_min::Vector{uEltype}
-  _p_max::Vector{uEltype}
-  _p_min::Vector{uEltype}
-  _s_max::Vector{uEltype}
-  _s_min::Vector{uEltype}
+  _var_bounds::Vector{Vector{uEltype}}
 end
 
-function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes) where uEltype<:Real
+function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes, length) where uEltype<:Real
   nan_uEltype = convert(uEltype, NaN)
 
   # Initialize fields with defaults
   _alpha = fill(nan_uEltype, n_nodes * n_nodes * capacity)
   alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
   _alpha1 = fill(nan_uEltype, (n_nodes+1) * n_nodes * capacity)
-  alpha1 = unsafe_wrap(Array, pointer(_alpha), (n_nodes+1, n_nodes, capacity))
+  alpha1 = unsafe_wrap(Array, pointer(_alpha1), (n_nodes+1, n_nodes, capacity))
   _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes+1) * capacity)
-  alpha2 = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes+1, capacity))
+  alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes+1, capacity))
 
-  _rho_max = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-  rho_max = unsafe_wrap(Array, pointer(_rho_max), (n_nodes, n_nodes, capacity))
-  _rho_min = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-  rho_min = unsafe_wrap(Array, pointer(_rho_min), (n_nodes, n_nodes, capacity))
+  _var_bounds = Vector{Vector{uEltype}}(undef, length)
+  var_bounds  = Vector{Array{uEltype, 3}}(undef, length)
+  for i in 1:length
+    _var_bounds[i] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+    var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
+  end
 
-  _p_max = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-  p_max = unsafe_wrap(Array, pointer(_p_max), (n_nodes, n_nodes, capacity))
-  _p_min = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-  p_min = unsafe_wrap(Array, pointer(_p_min), (n_nodes, n_nodes, capacity))
-
-  _s_max = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-  s_max = unsafe_wrap(Array, pointer(_s_max), (n_nodes, n_nodes, capacity))
-  _s_min = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-  s_min = unsafe_wrap(Array, pointer(_s_min), (n_nodes, n_nodes, capacity))
-
-  # idp_bounds_delta = zeros(uEltype, )
-
-  return ContainerShockCapturingIndicator{uEltype}(alpha, alpha1, alpha2,
-                                                   rho_max, rho_min, p_max, p_min, s_max, s_min,
-                                                   _alpha, _alpha1, _alpha2,
-                                                   _rho_max, _rho_min, _p_max, _p_min, _s_max, _s_min)
+  return ContainerShockCapturingIndicator{uEltype}(alpha,   alpha1,  alpha2,  var_bounds,
+                                                   _alpha, _alpha1, _alpha2, _var_bounds)
 end
 
 nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)
@@ -1380,23 +1358,11 @@ function Base.resize!(indicator::ContainerShockCapturingIndicator, capacity)
   resize!(_alpha2, n_nodes * (n_nodes + 1) * capacity)
   indicator.alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
 
-  @unpack _rho_max, _rho_min = indicator
-  resize!(_rho_max, n_nodes * n_nodes * capacity)
-  indicator.rho_max = unsafe_wrap(Array, pointer(_rho_max), (n_nodes, n_nodes, capacity))
-  resize!(_rho_min, n_nodes * n_nodes * capacity)
-  indicator.rho_min = unsafe_wrap(Array, pointer(_rho_min), (n_nodes, n_nodes, capacity))
-
-  @unpack _p_max, _p_min = indicator
-  resize!(_p_max, n_nodes * n_nodes * capacity)
-  indicator.p_max = unsafe_wrap(Array, pointer(_p_max), (n_nodes, n_nodes, capacity))
-  resize!(_p_min, n_nodes * n_nodes * capacity)
-  indicator.p_min = unsafe_wrap(Array, pointer(_p_min), (n_nodes, n_nodes, capacity))
-
-  @unpack _s_max, _s_min = indicator
-  resize!(_s_max, n_nodes * n_nodes * capacity)
-  indicator.s_max = unsafe_wrap(Array, pointer(_s_max), (n_nodes, n_nodes, capacity))
-  resize!(_s_min, n_nodes * n_nodes * capacity)
-  indicator.s_min = unsafe_wrap(Array, pointer(_s_min), (n_nodes, n_nodes, capacity))
+  @unpack _var_bounds = indicator
+  for i in 1:length(_var_bounds)
+    resize!(_var_bounds[i], n_nodes * n_nodes * capacity)
+    indicator.var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
+  end
 
   return nothing
 end

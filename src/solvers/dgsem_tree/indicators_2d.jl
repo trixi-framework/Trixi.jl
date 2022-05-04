@@ -191,9 +191,9 @@ end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
 
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis))
+  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis), length)
 
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
@@ -249,7 +249,10 @@ function (indicator_IDP::IndicatorIDP)(u::AbstractArray{<:Any,4}, u_old::Abstrac
 end
 
 @inline function IDP_densityTVD!(alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
-  @unpack rho_max, rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  rho_min = var_bounds[1]
+  rho_max = var_bounds[2]
 
   # Calculate bound: rho_min, rho_max
   @threaded for element in eachelement(dg, cache)
@@ -350,7 +353,11 @@ end
 end
 
 @inline function IDP_pressureTVD!(alpha, indicator_IDP, u, u_old, equations, dg, dt, cache)
-  @unpack p_max, p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  offset = 2 * indicator_IDP.IDPDensityTVD
+  p_min = var_bounds[1 + offset]
+  p_max = var_bounds[2 + offset]
 
   # Calculate bound: p_min, p_max
   @threaded for element in eachelement(dg, cache)
@@ -464,7 +471,11 @@ end
 end
 
 @inline function IDP_specEntropy!(alpha, indicator_IDP, u, equations, dg, dt, cache)
-  @unpack s_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  offset = 2 * (indicator_IDP.IDPDensityTVD + indicator_IDP.IDPPressureTVD) +
+           min(indicator_IDP.IDPPositivity, !indicator_IDP.IDPDensityTVD) + min(indicator_IDP.IDPPositivity, !indicator_IDP.IDPPressureTVD)
+  s_min = var_bounds[1 + offset]
 
   # Calculate bound: s_min
   @threaded for element in eachelement(dg, cache)
@@ -507,7 +518,11 @@ specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entrop
 specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol, abs(bound) * newton_abstol)
 
 @inline function IDP_mathEntropy!(alpha, indicator_IDP, u, equations, dg, dt, cache)
-  @unpack s_max = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  offset = 2 * (indicator_IDP.IDPDensityTVD + indicator_IDP.IDPPressureTVD) + indicator_IDP.IDPSpecEntropy +
+           min(indicator_IDP.IDPPositivity, !indicator_IDP.IDPDensityTVD) + min(indicator_IDP.IDPPositivity, !indicator_IDP.IDPPressureTVD)
+  s_max = var_bounds[1 + offset]
 
   # Calculate bound: s_max
   @threaded for element in eachelement(dg, cache)
@@ -554,8 +569,20 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
   @unpack inverse_weights = dg.basis
   @unpack positCorrFactor = indicator_IDP
 
-  @unpack rho_min = indicator_IDP.cache.ContainerShockCapturingIndicator
-  @unpack p_min = indicator_IDP.cache.ContainerShockCapturingIndicator
+  @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
+
+  if indicator_IDP.IDPDensityTVD
+    rho_min = var_bounds[1]
+    p_min   = var_bounds[3]
+  else
+    if indicator_IDP.IDPPressureTVD
+      rho_min = var_bounds[3]
+      p_min   = var_bounds[1]
+    else
+      rho_min = var_bounds[1]
+      p_min   = var_bounds[2]
+    end
+  end
 
   @threaded for element in eachelement(dg, cache)
     inverse_jacobian = cache.elements.inverse_jacobian[element]
