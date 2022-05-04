@@ -470,16 +470,19 @@ function create_cache(mesh::DGMultiMesh, equations,
   nvars = nvariables(equations)
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
 
-  return (; u_values, invJ = inv.(md.J) )
+  Qrst = map(A -> dg.basis.M * A, dg.basis.Drst)
+  Drst_skew = map(A -> dg.basis.M \ (.5 * (A - A')), Qrst)
+  return (; u_values, Drst_skew, invJ = inv.(md.J) )
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGMultiFluxDiffPeriodicFDSBP, cache)
+                               dg::DGMultiFluxDiffFDSBP, cache)
 
   @unpack volume_flux = volume_integral
+  @unpack Drst_skew = cache
 
   # We expect speedup over the serial version only when using two or more threads
   # since the threaded version below does not exploit the symmetry properties,
@@ -497,7 +500,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
       # TODO: DGMulti.
       # This would have to be changed if `has_nonconservative_terms = Val{false}()`
       # because then `volume_flux` is non-symmetric.
-      A = dg.basis.Drst[dim]
+
+      A = Drst_skew[dim]
 
       A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
       row_ids = axes(A, 2)
