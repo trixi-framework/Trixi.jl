@@ -334,6 +334,13 @@ const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
 const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral<:SurfaceIntegralWeakForm, VolumeIntegral<:VolumeIntegralFluxDifferencing}
 
+# type alias for a SBP operator
+const DGMultiFDSBP{NDIMS, ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractDerivativeOperator, SurfaceIntegral, VolumeIntegral}
+
+const DGMultiFluxDiffFDSBP{NDIMS, ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral<:SurfaceIntegralWeakForm, VolumeIntegral<:VolumeIntegralFluxDifferencing}
+
 """
     DGMultiMesh(dg::DGMulti)
 
@@ -427,7 +434,7 @@ end
 
 # specialized for DGMultiPeriodicFDSBP since there are no face nodes
 # and thus no inverse trace constant for periodic domains.
-function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
+function estimate_dt(mesh::DGMultiMesh, dg::DGMultiFDSBP)
   rd = dg.basis # RefElemData
   return StartUpDG.estimate_h(rd, mesh.md)
 end
@@ -455,23 +462,30 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
 end
 
 function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+                      dg::DGMultiFluxDiffFDSBP, RealT, uEltype)
 
   md = mesh.md
 
   # storage for volume quadrature values, face quadrature values, flux values
   nvars = nvariables(equations)
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-  return (; u_values, invJ = inv.(md.J) )
+
+  # Drst_skew is equivalent to dg.basis.Drst for the periodic case
+  Qrst = map(A -> dg.basis.M * A, dg.basis.Drst)
+  Drst_skew = map(A -> dg.basis.M \ (.5 * (A - A')), Qrst)
+  return (; u_values, Drst_skew, invJ = inv.(md.J))
 end
+
+
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGMultiFluxDiffPeriodicFDSBP, cache)
+                               dg::DGMultiFluxDiffFDSBP, cache)
 
   @unpack volume_flux = volume_integral
+  @unpack Drst_skew = cache
 
   # We expect speedup over the serial version only when using two or more threads
   # since the threaded version below does not exploit the symmetry properties,
@@ -489,7 +503,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
       # TODO: DGMulti.
       # This would have to be changed if `has_nonconservative_terms = Val{false}()`
       # because then `volume_flux` is non-symmetric.
-      A = dg.basis.Drst[dim]
+      A = Drst_skew[dim]
 
       A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
       row_ids = axes(A, 2)
