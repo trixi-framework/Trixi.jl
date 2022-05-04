@@ -924,7 +924,7 @@ function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
   shifted_data = nodes.-point
   distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-    
+
   # Iterate over every entry.
   for element in 1:n_elements
     for x in 1:n_nodes
@@ -1404,6 +1404,47 @@ function global_plotting_triangulation_makie(pds::PlotDataSeries{<:PlotData2DTri
   end
   plotting_mesh = merge([trimesh...]) # merge meshes on each element into one large mesh
   return plotting_mesh
+end
+
+# 3D isosurface case for global_plotting_triangulation_makie function
+function global_plotting_triangulation_makie(plot_data::PlotData3DTriangulated{<:ScalarData}, level)
+
+  xp = plot_data.x
+  yp = plot_data.y
+  zp = plot_data.z
+  func = plot_data.data.data
+  connectivity = plot_data.t
+
+  plotting_coordinates = zeros(3, size(xp, 1))
+  num_elements = size(xp, 2)
+  list_of_meshes = Vector{GeometryBasics.Mesh{3, Float32}}(undef, num_elements)
+  isosurface_values = Float32[]
+  sk = 1
+  planes = []
+
+  for e in 1:size(func, 2) # for each column
+    plotting_coordinates[1, :] .= xp[:, e]
+    plotting_coordinates[2, :] .= yp[:, e]
+    plotting_coordinates[3, :] .= zp[:, e]
+
+    pts, trngls, fvals = GridVisualize.marching_tetrahedra(plotting_coordinates,
+                                                           connectivity,
+                                                           func[:, e], planes, level)
+
+    #output mesh that encompasses isosurface
+    if length(pts) > 0
+      makie_triangles = Makie.to_triangles(hcat((getindex.(trngls, i) for i in 1:3)...))
+      iso_mesh = GeometryBasics.normal_mesh(Makie.to_vertices(pts), makie_triangles)
+
+      # add newly found mesh to list of meshes
+      list_of_meshes[sk] = iso_mesh
+      append!(isosurface_values, fvals)
+      sk += 1
+    end
+  end
+
+  plotting_mesh = merge(list_of_meshes[1:sk-1])
+  return plotting_mesh, isosurface_values
 end
 
 # Returns a list of `Makie.Point`s which can be used to plot the mesh, or a solution "wireframe"

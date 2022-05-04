@@ -16,7 +16,8 @@ to use Plots.jl together with Trixi:
 3. [Plotting a 3D solution as a 2D plot](@ref)
 4. [Creating a 1D plot](@ref)
 5. [Plotting a 2D or 3D solutions as a 1D plot](@ref)
-6. [Visualizing results during a simulation](@ref)
+6. [Plotting a 3D isosurface](@ref)
+7. [Visualizing results during a simulation](@ref)
 
 !!! note
     Plotting via Plots.jl is still considered an experimental feature and might
@@ -350,6 +351,72 @@ This gives you the following plot:
 Creating a plot like this has its downsides. For one, it is unclear what to put on the abscissa
 of the plot. By default, the arc length of the given curve is used.
 Also, with this way of plotting you lose the ability to use a mesh plot from `getmesh`.
+
+### Plotting a 3D isosurface
+To plot a 3D isosurface, we use the `ScalarPlotData3D` and `iplot` functions.
+The example below will demonstrate how to use these functions to plot isosurfaces of Q-criterion (for more details, see [this paper](http://www.georgehaller.com/reprints/vortex.pdf), equation 1.2) for the Taylor-Green vortex. First, we install Trixi.jl and OrdinaryDiffEq.jl, as well as the [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/) package for visualization. We then run the `DGMulti` Taylor-Green vortex elixir.
+```julia
+using Pkg; Pkg.activate(temp=true);
+Pkg.add("OrdinaryDiffEq");
+Pkg.develop("Trixi");
+Pkg.add("GLMakie")
+using Trixi
+using GLMakie
+
+# run the simulation
+trixi_include(joinpath(examples_dir(), "dgmulti_3d", "elixir_euler_taylor_green_vortex.jl"), tspan=(0, 2.5), polydeg=4)
+```julia
+
+Next, we postprocess the solution to extract the Q-criterion.
+```julia
+using Trixi: SMatrix
+using LinearAlgebra: norm
+
+function derivative(u, coordinate, solver, mesh)
+  # unpack differentiation operators for DGMulti
+  @unpack Dr, Ds, Dt = solver.basis
+
+  # unpack geometric terms from the MeshData field of a DGMultiMesh
+  @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ, J = mesh.md
+  if coordinate==1
+    # du/dx = du/dr * dr/dx + du/ds * ds/dx + du/dt * dt/dx
+    return (rxJ .* (Dr * u) + sxJ .* (Ds * u) + txJ .* (Dt * u)) ./ J
+  elseif coordinate==2
+    return (ryJ .* (Dr * u) + syJ .* (Ds * u) + tyJ .* (Dt * u)) ./ J
+  else #if coordinate==3
+    return (rzJ .* (Dr * u) + szJ .* (Ds * u) + tzJ .* (Dt * u)) ./ J
+  end
+end
+
+# extract velocities
+rho, rho_v1, rho_v2, rho_v3, _ = StructArrays.components(sol.u[end])
+velocity = (rho_v1 ./ rho, rho_v2 ./ rho, rho_v3 ./ rho)
+
+# create matrix of velocity gradients
+velocity_derivatives = [derivative(velocity[i], j, solver, mesh) for j in 1:3, i in 1:3]
+grad_velocity = StructArray{SMatrix{3, 3, Float64}}((velocity_derivatives..., ))
+
+Q_criteria = zeros(size(sol.u[end]))
+for e in 1:size(sol.u[end], 2) # loop over the elements
+  for i = 1:size(sol.u[end], 1) # loop over nodes
+    dv = grad_velocity[i, e]
+    omega = 0.5 * (dv - dv')
+    S = 0.5 * (dv + dv')
+    Q_criteria[i, e] = 0.5 * (norm(omega)^2 - norm(S)^2)
+  end
+end
+```
+Finally, we use the `ScalarPlotData3D` and `iplot` functions to compute and plot
+the isosurfaces. The `levels` input argument should be an array containing isosurfaces levels
+to plot.
+```julia
+pd = ScalarPlotData3D(Q_criteria, semi)
+iplot(pd, levels = [-.5; -.25; .1; .25])
+```
+This gives us the following plot:
+<img width="800" alt="Screen Shot 2022-04-26 at 1 49 40 PM" src="https://user-images.githubusercontent.com/1156048/165372561-2762f86c-b8c9-4c40-ba4a-71b46388d0b3.png">
+
+**Limitations**: the isosurface extraction algorithm uses [GridVisualize.jl](https://github.com/j-fu/GridVisualize.jl). Currently, it is not possible to color an isosurface by a secondary field (for example, to color isosurfaces of Q-criterion by the norm of vorticity). This is currently [work in progress](https://github.com/j-fu/GridVisualize.jl/issues/13).
 
 ### Visualizing results during a simulation
 To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
