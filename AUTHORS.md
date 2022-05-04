@@ -22,6 +22,7 @@ provided substantial additions or modifications. Together, these two groups form
 The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
+* Maximilian D. Bertrand
 * Benjamin Bolm
 * Jesse Chan
 * Lars Christmann
@@ -29,6 +30,7 @@ are listed in alphabetical order:
 * Erik Faulhaber
 * Gregor Gassner
 * Lucas Gemein
+* Sven Goldberg
 * Julia Odenthal
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez

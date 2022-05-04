@@ -159,7 +159,6 @@ For details see Section 9.2.5 of the book:
   1st edition
   ISBN 0471987662
 """
-
 @inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
                                               x, t,
                                               surface_flux_function,
@@ -167,8 +166,8 @@ For details see Section 9.2.5 of the book:
 
   # create the "external" boundary solution state
   u_boundary = SVector(u_inner[1],
-                        -u_inner[2],
-                        u_inner[3])
+                       -u_inner[2],
+                       u_inner[3])
 
   # calculate the boundary flux
   if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -208,7 +207,7 @@ Further details are available in the paper:
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
-                                                        equations::ShallowWaterEquations1D)
+                                                       equations::ShallowWaterEquations1D)
   # Pull the necessary left and right state information
   h_ll = waterheight(u_ll, equations)
   b_rr = u_rr[3]
@@ -245,7 +244,7 @@ and for curvilinear 2D case in the paper:
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
 @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
-                                                      equations::ShallowWaterEquations1D)
+                                                     equations::ShallowWaterEquations1D)
   # Pull the necessary left and right state information
   h_ll, _, b_ll = u_ll
   h_rr, _, b_rr = u_rr
@@ -254,9 +253,9 @@ and for curvilinear 2D case in the paper:
   b_jump = b_rr - b_ll
 
   # Includes two parts:
-  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-  #        cross-averaging across a discontinuous bottom topography
-  #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
+  #  (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
+  #       cross-averaging across a discontinuous bottom topography
+  #  (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
   z = zero(eltype(u_ll))
 
   f = SVector(z,
@@ -361,7 +360,7 @@ end
 
 # Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation_or_normal_direction,
-                  equations::ShallowWaterEquations1D)
+                                    equations::ShallowWaterEquations1D)
   λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)
 
   if λ_min >= 0 && λ_max >= 0
@@ -383,7 +382,7 @@ end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                      equations::ShallowWaterEquations1D)
+                                     equations::ShallowWaterEquations1D)
   h_ll = waterheight(u_ll, equations)
   v_ll = velocity(u_ll, equations)
   h_rr = waterheight(u_rr, equations)
