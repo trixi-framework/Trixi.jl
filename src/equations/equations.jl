@@ -281,6 +281,7 @@ include("inviscid_burgers_1d.jl")
 
 # Shallow water equations
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
 
 # CompressibleEulerEquations
