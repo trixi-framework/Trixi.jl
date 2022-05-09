@@ -118,6 +118,9 @@ include("auxiliary/special_elixirs.jl")
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
 
+# River bed modelling using splines
+include("bottom_topography/spline_interpolation.jl")
+
 # export types/functions that define the public API of Trixi
 
 export AcousticPerturbationEquations2D,
@@ -212,6 +215,9 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
 export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
+
+# Spline interpolation
+export lin_spline, quad_spline, cubic_spline, get_func
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
