@@ -19,14 +19,12 @@ The third-order SSP Runge-Kutta method of
     This is an experimental feature and may change in future releases.
 """
 struct SimpleSSPRK33 <: SimpleAlgorithmSSP
-  a1::SVector{3, Float64}
-  a2::SVector{3, Float64}
+  a::SVector{3, Float64}
   b::SVector{3, Float64}
   c::SVector{3, Float64}
 
   function SimpleSSPRK33()
-    a1 = SVector(1.0, 1/4, 2/3)
-    a2 = SVector(0.0, 3/4, 1/3) # Note: a2 != 1.0 .- a1
+    a = SVector(1.0, 1/4, 2/3)
     b = SVector(1.0, 1/4, 2/3)
     c = SVector(0.0, 1.0, 1/2)
 
@@ -38,7 +36,7 @@ struct SimpleSSPRK33 <: SimpleAlgorithmSSP
     # --------------------
     #   b | 1/6  1/6  2/3
 
-    new(a1, a2, b, c)
+    new(a, b, c)
   end
 end
 
@@ -144,10 +142,10 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
 
     @. integrator.u_safe = integrator.u
-    for i in 1:length(alg.a1)
+    for i in 1:length(alg.a)
       @trixi_timeit timer() "RK stage" begin
         prob.f(integrator.du, integrator.u_safe, integrator.p, integrator.t + alg.c[i] * integrator.dt)
-        @. integrator.u_old = (1.0 - alg.a1[i]) * integrator.u + alg.a1[i] * integrator.u_safe
+        @. integrator.u_old = (1.0 - alg.a[i]) * integrator.u + alg.a[i] * integrator.u_safe
         @. integrator.u_safe = integrator.u_old + alg.b[i] * integrator.dt * integrator.du
       end
       @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[i] * integrator.dt, integrator.p)
@@ -155,12 +153,12 @@ function solve!(integrator::SimpleIntegratorSSP)
     @. integrator.u = integrator.u_safe
 
     # Note:
-    # @. integrator.u_old = alg.a2[i] * integrator.u + alg.a1[i] * integrator.u_safe
+    # @. integrator.u_old = (1.0 - alg.a[i]) * integrator.u + alg.a[i] * integrator.u_safe
     # The combination of the macro muladd with the operator @. changes the order of operations knowingly, which
     # results in changed solutions.
     # Moreover, unrolling the for-loop changes the order unexpectedly. Using a cache variable like
-    # @. u_tmp = alg.a2[i] * integrator.u
-    # @. integrator.u_old = u_tmp + alg.a1[i] * integrator.u_safe
+    # @. u_tmp = (1.0 - alg.a[i]) * integrator.u
+    # @. integrator.u_old = u_tmp + alg.a[i] * integrator.u_safe
     # solves the differences between the (not-)unrolled for-loop versions.
 
     if integrator.iter == length(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep)
