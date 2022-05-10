@@ -14,7 +14,7 @@ bottom_topography(x) = (1.5 / exp( 0.5 * ((x - 1.0)^2) )+ 0.75 / exp(0.5 * ((x +
 
 # Spline Interpolation
 spline          = cubic_spline(joinpath(examples_dir(), "tree_1d_dgsem_spline", "data_swe_wall.txt"))
-spline_func(x)   = get_func(x, spline)
+spline_func(x)   = spline_interpolation(spline, x)
 
 function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations1D)
     # Set up polar coordinates

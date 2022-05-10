@@ -19,7 +19,7 @@ y_val           = bottom_topography.(x_val)
 
 # Spline interpolation
 spline          = cubic_spline(x_val, y_val)
-spline_func(x)  = get_func(x, spline)
+spline_func(x)  = spline_interpolation(spline, x)
 
 # Note, this initial condition is used to compute errors in the analysis callback but the initialization is
 # overwritten by `initial_condition_ec_discontinuous_bottom` below.

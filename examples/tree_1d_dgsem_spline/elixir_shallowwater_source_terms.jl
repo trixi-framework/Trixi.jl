@@ -17,7 +17,7 @@ y_val           = bottom_topography.(x_val)
 
 # Spline interpolation
 spline          = cubic_spline(x_val, y_val)
-spline_func(x)  = get_func(x, spline)
+spline_func(x)  = spline_interpolation(spline, x)
 
 function initial_condition_convergence_test_spline(x, t, equations::ShallowWaterEquations1D)
   # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
@@ -43,8 +43,8 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservativ
 ###############################################################################
 # Get the TreeMesh and setup a periodic mesh
 
-coordinates_min = range_x[1]
-coordinates_max = range_x[2]
+coordinates_min = 0.0
+coordinates_max = sqrt(2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=10_000,
@@ -78,6 +78,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 
 # use a Runge-Kutta method with automatic (error based) time step size control
 sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-8, reltol=1.0e-8,
-            save_everystep=false,
-            callback=callbacks);
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
