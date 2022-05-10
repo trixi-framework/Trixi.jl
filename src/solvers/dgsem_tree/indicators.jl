@@ -17,6 +17,7 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
 end
 
 
+
 """
     IndicatorHennemannGassner
 
