@@ -43,7 +43,6 @@ volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=true,
-                            IDPPressureTVD=true,
                             IDPPositivity=true,)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,

@@ -18,8 +18,29 @@ The third-order SSP Runge-Kutta method of
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct SimpleSSPRK33 <: SimpleAlgorithmSSP end
+struct SimpleSSPRK33 <: SimpleAlgorithmSSP
+  a1::SVector{3, Float64}
+  a2::SVector{3, Float64}
+  b::SVector{3, Float64}
+  c::SVector{3, Float64}
 
+  function SimpleSSPRK33()
+    a1 = SVector(1.0, 1/4, 2/3)
+    a2 = SVector(0.0, 3/4, 1/3) # Note: a2 != 1.0 .- a1
+    b = SVector(1.0, 1/4, 2/3)
+    c = SVector(0.0, 1.0, 1/2)
+
+    # Butcher tableau
+    #   c |       a
+    #   0 |
+    #   1 |   1
+    # 1/2 | 1/4  1/4
+    # --------------------
+    #   b | 1/6  1/6  2/3
+
+    new(a1, a2, b, c)
+  end
+end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegratorSSPOptions{Callback}
@@ -73,9 +94,7 @@ method [`SimpleSSPRK33`](@ref).
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function solve_IDP(ode::ODEProblem, semi; dt, callback=nothing, kwargs...)
-  alg = SimpleSSPRK33()
-
+function solve_IDP(ode::ODEProblem, semi; alg=SimpleSSPRK33(), dt, callback=nothing, kwargs...)
   u = copy(ode.u0)
   du = similar(u)
   u_safe = similar(u)
@@ -124,25 +143,25 @@ function solve!(integrator::SimpleIntegratorSSP)
       terminate!(integrator)
     end
 
-    @trixi_timeit timer() "RK stage" begin
-      prob.f(integrator.du, integrator.u, integrator.p, integrator.t)
-      @. integrator.u_safe = integrator.u + integrator.dt * integrator.du
+    @. integrator.u_safe = integrator.u
+    for i in 1:length(alg.a1)
+      @trixi_timeit timer() "RK stage" begin
+        prob.f(integrator.du, integrator.u_safe, integrator.p, integrator.t + alg.c[i] * integrator.dt)
+        @. integrator.u_old = (1.0 - alg.a1[i]) * integrator.u + alg.a1[i] * integrator.u_safe
+        @. integrator.u_safe = integrator.u_old + alg.b[i] * integrator.dt * integrator.du
+      end
+      @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[i] * integrator.dt, integrator.p)
     end
-    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u, integrator.dt, integrator.p)
+    @. integrator.u = integrator.u_safe
 
-    @trixi_timeit timer() "RK stage" begin
-      prob.f(integrator.du, integrator.u_safe, integrator.p, integrator.t + integrator.dt)
-      @. integrator.u_old = 3/4 * integrator.u + 1/4 * integrator.u_safe
-      @. integrator.u_safe = integrator.u_old + 1/4 * integrator.dt * integrator.du
-    end
-    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, 1/4 * integrator.dt, integrator.p)
-
-    @trixi_timeit timer() "RK stage" begin
-      prob.f(integrator.du, integrator.u_safe, integrator.p, integrator.t + 1/2 * integrator.dt)
-      @. integrator.u_old = 1/3 * integrator.u + 2/3 * integrator.u_safe
-      @. integrator.u = integrator.u_old + 2/3 * integrator.dt * integrator.du
-    end
-    @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u, integrator.u_old, 2/3 * integrator.dt, integrator.p)
+    # Note:
+    # @. integrator.u_old = alg.a2[i] * integrator.u + alg.a1[i] * integrator.u_safe
+    # The combination of the macro muladd with the operator @. changes the order of operations knowingly, which
+    # results in changed solutions.
+    # Moreover, unrolling the for-loop changes the order unexpectedly. Using a cache variable like
+    # @. u_tmp = alg.a2[i] * integrator.u
+    # @. integrator.u_old = u_tmp + alg.a1[i] * integrator.u_safe
+    # solves the differences between the (not-)unrolled for-loop versions.
 
     if integrator.iter == length(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep)
       new_length = length(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep) + 200

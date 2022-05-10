@@ -194,8 +194,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   end
 
   if !(IDPDensityTVD || IDPPressureTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
-    println("No limiter selected. Default: use IDPDensityTVD")
-    IDPDensityTVD = true
+    println("No limiter selected => pure DG method")
   end
 
   length = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
