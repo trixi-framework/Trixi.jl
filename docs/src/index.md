@@ -1,5 +1,15 @@
 # Trixi.jl
 
+[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
+[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
+[![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
+[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg/videos)
+[![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
+[![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
+[![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
+
 [**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl)
 is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
@@ -47,7 +57,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.6.
+with Julia v1.7.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
@@ -235,27 +245,27 @@ mean      3.99
 
 An example with multiple variables looks like this:
 ```julia
-julia> convergence_test(joinpath(examples_dir(), "2d", "elixir_euler_source_terms.jl"), 3)
+julia> convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms.jl"), 3)
 ```
 ```
 [...]
 l2
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
-8.52e-07  -         1.24e-06  -         1.24e-06  -         4.28e-06  -
-6.49e-08  3.71      8.38e-08  3.88      8.38e-08  3.88      2.96e-07  3.85
-4.33e-09  3.91      5.39e-09  3.96      5.39e-09  3.96      1.93e-08  3.94
+9.32e-07  -         1.42e-06  -         1.42e-06  -         4.82e-06  -
+7.03e-08  3.73      9.53e-08  3.90      9.53e-08  3.90      3.30e-07  3.87
+4.65e-09  3.92      6.09e-09  3.97      6.09e-09  3.97      2.12e-08  3.96
 
-mean      3.81      mean      3.92      mean      3.92      mean      3.90
+mean      3.82      mean      3.93      mean      3.93      mean      3.91
 --------------------------------------------------------------------------------
 linf
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
-8.36e-06  -         1.03e-05  -         1.03e-05  -         4.50e-05  -
-5.58e-07  3.90      6.58e-07  3.97      6.58e-07  3.97      2.92e-06  3.94
-3.77e-08  3.89      4.42e-08  3.90      4.42e-08  3.90      1.91e-07  3.93
+9.58e-06  -         1.17e-05  -         1.17e-05  -         4.89e-05  -
+6.23e-07  3.94      7.48e-07  3.97      7.48e-07  3.97      3.22e-06  3.92
+4.05e-08  3.94      4.97e-08  3.91      4.97e-08  3.91      2.10e-07  3.94
 
-mean      3.90      mean      3.93      mean      3.93      mean      3.94
+mean      3.94      mean      3.94      mean      3.94      mean      3.93
 --------------------------------------------------------------------------------
 ```
 
@@ -264,13 +274,17 @@ mean      3.90      mean      3.93      mean      3.93      mean      3.94
 If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following articles:
 ```bibtex
-@online{ranocha2021adaptive,
+@article{ranocha2022adaptive,
   title={Adaptive numerical simulations with {T}rixi.jl:
          {A} case study of {J}ulia for scientific computing},
   author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
           and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
-  year={2021},
-  month={08},
+  journal={Proceedings of the JuliaCon Conferences},
+  volume={1},
+  number={1},
+  pages={77},
+  year={2022},
+  doi={10.21105/jcon.00077},
   eprint={2108.06476},
   eprinttype={arXiv},
   eprintclass={cs.MS}
@@ -314,7 +328,7 @@ Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
 (University of Stuttgart, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
+(University of Hamburg, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.
 The full list of contributors can be found under [Authors](@ref).

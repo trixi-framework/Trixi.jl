@@ -188,14 +188,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       variable_names = string.('a':'e')
       mesh_vertices_x1d = [x[begin], x[end]]
       fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d, 0)
-      @test_nowarn_debug Plots.plot(fake1d)
+      @test_nowarn_mod Plots.plot(fake1d)
 
       y = x
       data2d = [rand(11,11) for _ in 1:5]
       mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
       mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
       fake2d = Trixi.PlotData2DCartesian(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
-      @test_nowarn_debug Plots.plot(fake2d)
+      @test_nowarn_mod Plots.plot(fake2d)
     end
   end
 
@@ -243,7 +243,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test PlotData2D(sol, slice =:yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice =:xz) isa Trixi.PlotData2DCartesian
 
-    @testset "1D plot from 3D solution" begin
+    @testset "1D plot from 3D solution and Tree-mesh" begin
       @testset "Create 1D plot as slice" begin
         @test_nowarn_debug PlotData1D(sol) isa PlotData1D
         pd1D = PlotData1D(sol)
@@ -261,11 +261,34 @@ isdir(outdir) && rm(outdir, recursive=true)
         @test_nowarn_debug Plots.plot(pd1D)
       end
     end
+
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "structured_3d_dgsem", "elixir_advection_basic.jl"),
+                                     tspan=(0,0.1))
+
+    @testset "1D plot from 3D solution and general mesh" begin
+      @testset "Create 1D plot as slice" begin
+        @test_nowarn_debug PlotData1D(sol) isa PlotData1D
+        pd1D = PlotData1D(sol)
+        @test_nowarn_debug Plots.plot(pd1D)
+        @test_nowarn_debug PlotData1D(sol, slice=:y, point = (0.5, 0.3, 0.1)) isa PlotData1D
+        @test_nowarn_debug PlotData1D(sol, slice=:z, point = (0.1, 0.3, 0.3)) isa PlotData1D
+
+      end
+
+      @testset "Create 1D plot along curve" begin
+        curve = zeros(3, 10)
+        curve[1, :] = range(-1.0, 1.0, length=10)
+        @test_nowarn_debug PlotData1D(sol, curve=curve) isa PlotData1D
+        pd1D = PlotData1D(sol, curve=curve)
+        @test_nowarn_debug Plots.plot(pd1D)
+      end
+    end
   end
 
   @timed_testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
-                                     maxiters=1, analysis_callback=Trixi.TrivialCallback(), initial_refinement_level=1)
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_hypdiff_lax_friedrichs.jl"),
+                        maxiters=1, analysis_callback=Trixi.TrivialCallback(),
+                        initial_refinement_level=1)
     @test_nowarn_debug Plots.plot(sol)
   end
 

@@ -219,12 +219,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     wf = wr .* ws
     StartUpDG.init_face_data(element_type, quad_rule_face=(rf, sf, wf))
   end
-  if D isa AbstractPeriodicDerivativeOperator
-    # we do not need any face stuff for periodic operators
-    Vf = spzeros(length(wf), length(wq))
-  else
-    Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
-  end
+  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf, sf, tf)
@@ -233,6 +228,60 @@ function StartUpDG.RefElemData(element_type::Hex,
   # low order interpolation nodes
   r1, s1, t1 = StartUpDG.nodes(element_type, 1)
   V1 = StartUpDG.vandermonde(element_type, 1, r, s, t) / StartUpDG.vandermonde(element_type, 1, r1, s1, t1)
+
+  return RefElemData(
+    element_type, approximation_type, N,
+    face_vertices, V1,
+    rst, VDM, face_mask,
+    N, rst, LinearAlgebra.I, # plotting
+    rstq, wq, Vq, # quadrature
+    rstf, wf, Vf, nrstJ, # faces
+    M, Pq, Drst, LIFT)
+end
+
+# specialized Hex constructor in 3D to reduce memory usage.
+function StartUpDG.RefElemData(element_type::Hex,
+                               D::AbstractPeriodicDerivativeOperator;
+                               tol = 100*eps())
+
+  approximation_type = D
+  N = SummationByPartsOperators.accuracy_order(D) # kind of polynomial degree
+
+  # 1D operators
+  nodes_1d, weights_1d, D_1d, I_1d = construct_1d_operators(D, tol)
+
+  # volume
+  # to match ordering of nrstJ
+  s, r, t = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d, nodes_1d, nodes_1d))
+  rq = r; sq = s; tq = t
+  wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d, weights_1d))
+  wq = wr .* ws .* wt
+  Dr = kron(I_1d, I_1d, D_1d)
+  Ds = kron(I_1d, D_1d, I_1d)
+  Dt = kron(D_1d, I_1d, I_1d)
+  M = Diagonal(wq)
+  Pq = LinearAlgebra.I
+  Vq = LinearAlgebra.I
+
+  VDM = nothing # unused generalized Vandermonde matrix
+
+  rst = (r, s, t)
+  rstq = (rq, sq, tq)
+  Drst = (Dr, Ds, Dt)
+
+  # face
+  # We do not need any face data for periodic operators. Thus, we just
+  # pass `nothing` to save memory.
+  face_vertices = ntuple(_ -> nothing, 3)
+  face_mask = nothing
+  wf = nothing
+  rstf = ntuple(_ -> nothing, 3)
+  nrstJ = ntuple(_ -> nothing, 3)
+  Vf = nothing
+  LIFT = nothing
+
+  # low order interpolation nodes
+  V1 = nothing # do not need to store V1, since we specialize StartUpDG.MeshData to avoid using it.
 
   return RefElemData(
     element_type, approximation_type, N,
@@ -282,10 +331,13 @@ end
 const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
   DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral, VolumeIntegral}
 
+const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} =
+  DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} where {NDIMS, ElemType, ApproxType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator, SurfaceIntegral<:SurfaceIntegralWeakForm, VolumeIntegral<:VolumeIntegralFluxDifferencing}
+
 """
     DGMultiMesh(dg::DGMulti)
 
-Constructs a single-element [`VertexMappedMesh`](@ref) for a single periodic element given
+Constructs a single-element [`DGMultiMesh`](@ref) for a single periodic element given
 a DGMulti with `approximation_type` set to a periodic (finite difference) SBP operator from
 SummationByPartsOperators.jl.
 """
@@ -295,14 +347,20 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
 
   rd = dg.basis
 
-  e = ones(size(rd.r))
-  z = zero(e)
+  e = Ones{eltype(rd.r)}(size(rd.r))
+  z = Zeros{eltype(rd.r)}(size(rd.r))
 
   VXYZ = ntuple(_ -> [], NDIMS)
   EToV = NaN # StartUpDG.jl uses size(EToV, 1) for the number of elements, this lets us reuse that.
   FToF = []
 
-  xyz = xyzq = rd.rst
+  # We need to scale the domain from `[-1, 1]^NDIMS` (default in StartUpDG.jl)
+  # to the given `coordinates_min, coordinates_max`
+  xyz = xyzq = map(copy, rd.rst)
+  for dim in 1:NDIMS
+    factor = (coordinates_max[dim] - coordinates_min[dim]) / 2
+    @. xyz[dim] = factor * (xyz[dim] + 1) + coordinates_min[dim]
+  end
   xyzf = ntuple(_ -> [], NDIMS)
   wJq = diag(rd.M)
 
@@ -312,62 +370,77 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
   # volume geofacs Gij = dx_i/dxhat_j
   coord_diffs = coordinates_max .- coordinates_min
 
-  if NDIMS==1
-    rxJ = coord_diffs[1] / 2
+  J_scalar = prod(coord_diffs) / 2^NDIMS
+  J = e * J_scalar
+
+  if NDIMS == 1
+    rxJ = J_scalar * 2 / coord_diffs[1]
     rstxyzJ = @SMatrix [rxJ * e]
-  elseif NDIMS==2
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
+  elseif NDIMS == 2
+    rxJ = J_scalar * 2 / coord_diffs[1]
+    syJ = J_scalar * 2 / coord_diffs[2]
     rstxyzJ = @SMatrix [rxJ * e z; z syJ * e]
-  elseif NDIMS==3
-    rxJ = coord_diffs[1] / 2
-    syJ = coord_diffs[2] / 2
-    tzJ = coord_diffs[3] / 2
+  elseif NDIMS == 3
+    rxJ = J_scalar * 2 / coord_diffs[1]
+    syJ = J_scalar * 2 / coord_diffs[2]
+    tzJ = J_scalar * 2 / coord_diffs[3]
     rstxyzJ = @SMatrix [rxJ * e z z; z syJ * e z; z z tzJ * e]
   end
-
-  J = e * prod(coord_diffs) / 2^NDIMS
 
   # surface geofacs
   nxyzJ = ntuple(_ -> [], NDIMS)
   Jf = []
 
-  is_periodic = ntuple(_ -> true, NDIMS)
+  periodicity = ntuple(_ -> true, NDIMS)
 
   md = MeshData(VXYZ, EToV, FToF, xyz, xyzf, xyzq, wJq,
                 mapM, mapP, mapB, rstxyzJ, J, nxyzJ, Jf,
-                is_periodic)
+                periodicity)
 
   boundary_faces = []
-  n_boundary_faces = length(boundary_faces)
-  return VertexMappedMesh{NDIMS, rd.elementType, typeof(md), n_boundary_faces, typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
+
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
 # This is used in `estimate_dt`. `estimate_h` uses that `Jf / J = O(h^{NDIMS-1}) / O(h^{NDIMS}) = O(1/h)`.
 # However, since we do not initialize `Jf` for periodic FDSBP operators, we specialize `estimate_h`
-# based on the grid provided by SummationByPartsOperators.jl.
+# based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
+# provided by `md::MeshData``.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator}
   D = rd.approximationType
   x = grid(D)
-  return x[2] - x[1]
+
+  # we assume all SummationByPartsOperators.jl reference grids are rescaled to [-1, 1]
+  xmin = SummationByPartsOperators.xmin(D)
+  xmax = SummationByPartsOperators.xmax(D)
+  factor = 2 / (xmax - xmin)
+
+  # If the domain has size L^NDIMS, then `minimum(md.J)^(1 / NDIMS) = L`.
+  # WARNING: this is not a good estimate on anisotropic grids.
+  return minimum(diff(x)) * factor * minimum(md.J)^(1 / NDIMS)
 end
 
 # specialized for DGMultiPeriodicFDSBP since there are no face nodes
 # and thus no inverse trace constant for periodic domains.
-function estimate_dt(mesh::AbstractMeshData, dg::DGMultiPeriodicFDSBP)
+function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
   rd = dg.basis # RefElemData
   return StartUpDG.estimate_h(rd, mesh.md)
 end
 
 # do nothing for interface terms if using a periodic operator
-function prolong2interfaces!(cache, u, mesh::AbstractMeshData, equations,
+function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
                              surface_integral, dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
   nothing
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
-                              mesh::VertexMappedMesh,
+                              mesh::DGMultiMesh,
                               have_nonconservative_terms::Val{false}, equations,
                               dg::DGMultiPeriodicFDSBP)
   @assert nelements(mesh, dg, cache) == 1
@@ -375,8 +448,86 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
 end
 
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::VertexMappedMesh, equations,
+                                mesh::DGMultiMesh, equations,
                                 dg::DGMultiPeriodicFDSBP, cache)
   @assert nelements(mesh, dg, cache) == 1
   nothing
 end
+
+function create_cache(mesh::DGMultiMesh, equations,
+                      dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+
+  md = mesh.md
+
+  # storage for volume quadrature values, face quadrature values, flux values
+  nvars = nvariables(equations)
+  u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+  return (; u_values, invJ = inv.(md.J) )
+end
+
+# Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGMultiFluxDiffPeriodicFDSBP, cache)
+
+  @unpack volume_flux = volume_integral
+
+  # We expect speedup over the serial version only when using two or more threads
+  # since the threaded version below does not exploit the symmetry properties,
+  # resulting in a performance penalty of 1/2
+  if Threads.nthreads() > 1
+
+    for dim in eachdim(mesh)
+      normal_direction = get_contravariant_vector(1, dim, mesh)
+
+      # These are strong-form operators of the form `D = M \ Q` where `M` is diagonal
+      # and `Q` is skew-symmetric. Since `M` is diagonal, `inv(M)` scales the rows of `Q`.
+      # Then, `1 / M[i,i] * ∑_j Q[i,j] * volume_flux(u[i], u[j])` is equivalent to
+      #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
+      #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
+      # TODO: DGMulti.
+      # This would have to be changed if `has_nonconservative_terms = Val{false}()`
+      # because then `volume_flux` is non-symmetric.
+      A = dg.basis.Drst[dim]
+
+      A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+      row_ids = axes(A, 2)
+      rows = rowvals(A_base)
+      vals = nonzeros(A_base)
+
+      @threaded for i in row_ids
+        u_i = u[i]
+        du_i = du[i]
+        for id in nzrange(A_base, i)
+          j = rows[id]
+          u_j = u[j]
+          A_ij = vals[id]
+          AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
+          du_i = du_i + AF_ij
+        end
+        du[i] = du_i
+      end
+    end
+
+  else # if using two threads or fewer
+
+    # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
+    # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
+    # volume integral unless we have >2 threads (which should yield >2 speedup).
+    for dim in eachdim(mesh)
+      normal_direction = get_contravariant_vector(1, dim, mesh)
+
+      A = dg.basis.Drst[dim]
+
+      # since has_nonconservative_terms::Val{false},
+      # the volume flux is symmetric.
+      flux_is_symmetric = Val{true}()
+      hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
+                    normal_direction, u, equations)
+    end
+
+  end
+end
+
+end # @muladd

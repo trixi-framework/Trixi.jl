@@ -20,6 +20,7 @@ macro test_trixi_include(elixir, args...)
   local linf              = get_kwarg(args, :linf, nothing)
   local atol              = get_kwarg(args, :atol, 500*eps())
   local rtol              = get_kwarg(args, :rtol, sqrt(eps()))
+  local skip_coverage     = get_kwarg(args, :skip_coverage, false)
   local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, :()))
   if !(:maxiters in keys(coverage_override))
     # maxiters in coverage_override defaults to 1
@@ -40,6 +41,17 @@ macro test_trixi_include(elixir, args...)
   if coverage
     for key in keys(coverage_override)
       push!(kwargs, Pair(key, coverage_override[key]))
+    end
+  end
+
+  if coverage && skip_coverage
+    return quote
+      if Trixi.mpi_isroot()
+        println("═"^100)
+        println("Skipping coverage test of ", $elixir)
+        println("═"^100)
+        println("\n\n")
+      end
     end
   end
 
@@ -161,8 +173,9 @@ macro test_nowarn_mod(expr, additional_ignore_content=String[])
           #       deprecated stuff is fixed upstream.
           "WARNING: importing deprecated binding Colors.RGB1 into PlotUtils.\n",
           "WARNING: importing deprecated binding Colors.RGB4 into PlotUtils.\n",
+          r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
         ]
-        append!(ignore_content, additional_ignore_content)
+        append!(ignore_content, $additional_ignore_content)
         for pattern in ignore_content
           stderr_content = replace(stderr_content, pattern => "")
         end

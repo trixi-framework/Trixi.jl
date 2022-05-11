@@ -177,12 +177,33 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
     println(io, "\n")
   end
 
+  # time integration
   setup = Pair{String,Any}[
            "Start time" => first(integrator.sol.prob.tspan),
            "Final time" => last(integrator.sol.prob.tspan),
            "time integrator" => integrator.alg |> typeof |> nameof,
+           "adaptive" => integrator.opts.adaptive,
           ]
+  if integrator.opts.adaptive
+    push!(setup,
+      "abstol" => integrator.opts.abstol,
+      "reltol" => integrator.opts.reltol,
+      "controller" => integrator.opts.controller,
+    )
+  end
   summary_box(io, "Time integration", setup)
+  println()
+
+  # technical details
+  setup = Pair{String,Any}[
+           "#threads" => Threads.nthreads(),
+          ]
+  if mpi_isparallel()
+    push!(setup,
+      "#MPI ranks" => mpi_nranks(),
+    )
+  end
+  summary_box(io, "Environment information", setup)
   println()
 
   reset_timer!(timer())

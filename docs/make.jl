@@ -30,10 +30,15 @@ DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
-    "Adding a new equation" => ["Scalar conservation law" => ("adding_new_equations", "cubic_conservation_law.jl"),
-                                "Nonconservative equation" => ("adding_new_equations", "nonconservative_advection.jl")],
-    "Differentiable programming" => "differentiable_programming.jl",
+    "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
+    "Shock capturing with flux differencing and stage limiter" => "shock_capturing.jl",
+    "Non-periodic boundaries" => "non_periodic_boundaries.jl",
+    "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
+    "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
+    "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
+    "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
+    "Differentiable programming" => "differentiable_programming.jl",
     ]
 tutorials = create_tutorials(files)
 
@@ -66,7 +71,7 @@ makedocs(
                 "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                 "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
                 "P4est-based mesh" => joinpath("meshes", "p4est_mesh.md"),
-                "Simplicial mesh" => joinpath("meshes", "dgmulti_mesh.md"),
+                "DGMulti mesh" => joinpath("meshes", "dgmulti_mesh.md"),
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",

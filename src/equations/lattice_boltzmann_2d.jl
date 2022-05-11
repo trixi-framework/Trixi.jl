@@ -164,9 +164,9 @@ end
 
 No-slip wall boundary condition using the bounce-back approach.
 """
-function boundary_condition_noslip_wall(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equations::LatticeBoltzmannEquations2D)
+@inline function boundary_condition_noslip_wall(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equations::LatticeBoltzmannEquations2D)
   # For LBM no-slip wall boundary conditions, we set the boundary state to
   # - the inner state for outgoing particle distribution functions
   # - the *opposite* inner state for all other particle distribution functions

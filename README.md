@@ -3,6 +3,7 @@
 [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
+[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg/videos)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
@@ -12,12 +13,8 @@
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 
 <p align="center">
-  <img width="300px" src="docs/src/assets/logo.png">
+  <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
-
-**>> Trixi was present at JuliaCon 2021: Watch the talk on
-[YouTube](https://www.youtube.com/watch?v=hoViWRAhCBE) or revisit the
-[live demonstration](https://github.com/trixi-framework/talk-2021-juliacon)! <<**
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
@@ -66,7 +63,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.6.
+with Julia v1.7.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
@@ -171,13 +168,17 @@ using Git. The latest documentation can be accessed either
 If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following articles:
 ```bibtex
-@online{ranocha2021adaptive,
+@article{ranocha2022adaptive,
   title={Adaptive numerical simulations with {T}rixi.jl:
          {A} case study of {J}ulia for scientific computing},
   author={Ranocha, Hendrik and Schlottke-Lakemper, Michael and Winters, Andrew Ross
           and Faulhaber, Erik and Chan, Jesse and Gassner, Gregor},
-  year={2021},
-  month={08},
+  journal={Proceedings of the JuliaCon Conferences},
+  volume={1},
+  number={1},
+  pages={77},
+  year={2022},
+  doi={10.21105/jcon.00077},
   eprint={2108.06476},
   eprinttype={arXiv},
   eprintclass={cs.MS}
@@ -222,7 +223,7 @@ Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
 (University of Stuttgart, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Münster, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
+(University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).

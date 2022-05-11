@@ -40,6 +40,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Compressible Euler with self-gravity
   include("test_tree_1d_eulergravity.jl")
+
+  # Shallow water 
+  include("test_tree_1d_shallowwater.jl")
 end
 
 # Coverage test for all initial conditions
@@ -245,7 +248,7 @@ end
   volume_flux  = (flux_central, flux_nonconservative)
   surface_flux = (flux_lax_friedrichs, flux_nonconservative)
   solver = DGSEM(polydeg=3, surface_flux=surface_flux,
-                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+                 volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
   # Setup the spatial semidiscretization containing all ingredients
   semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)

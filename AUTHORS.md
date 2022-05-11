@@ -12,7 +12,7 @@ provided substantial additions or modifications. Together, these two groups form
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
-  University of Münster, Germany
+  University of Hamburg, Germany
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
 * [Jesse Chan](https://jlchan.github.io),
@@ -22,6 +22,7 @@ provided substantial additions or modifications. Together, these two groups form
 The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
+* Maximilian D. Bertrand
 * Benjamin Bolm
 * Jesse Chan
 * Lars Christmann
@@ -29,6 +30,7 @@ are listed in alphabetical order:
 * Erik Faulhaber
 * Gregor Gassner
 * Lucas Gemein
+* Sven Goldberg
 * Julia Odenthal
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez

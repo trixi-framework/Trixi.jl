@@ -342,7 +342,7 @@ end
 
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
-function create_cache(mesh::VertexMappedMesh, equations,
+function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT, uEltype)
 
   rd = dg.basis
@@ -381,7 +381,7 @@ end
 
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
-function entropy_projection!(cache, u, mesh::VertexMappedMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
+function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff{<:GaussSBP})
 
   rd = dg.basis
   @unpack Vq = rd
@@ -420,7 +420,7 @@ end
 # Assumes cache.flux_face_values is already computed.
 # Enables tensor product evaluation of `LIFT::TensorProductGaussFaceOperator`.
 function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm,
-                                mesh::VertexMappedMesh, equations,
+                                mesh::DGMultiMesh, equations,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
   @unpack gauss_volume_local_threaded, rhs_volume_local_threaded = cache
   @unpack interp_matrix_gauss_to_lobatto, gauss_LIFT = cache
@@ -441,8 +441,8 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   end
 end
 
-function calc_volume_integral!(du, u, mesh::VertexMappedMesh,
-                               have_nonconservative_terms::Val{false}, equations,
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiff{<:GaussSBP},
                                cache)
 

@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling
+using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros, spzeros
 
@@ -31,8 +31,10 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   AbstractODEIntegrator, init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
                   terminate!, remake
-using CodeTracking: code_string
+using CodeTracking: CodeTracking
+using ConstructionBase: ConstructionBase
 @reexport using EllipsisNotation # ..
+using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
 using IfElse: ifelse
@@ -52,11 +54,12 @@ using RecipesBase: RecipesBase
 using Requires: @require
 using Static: Static, One
 @reexport using StaticArrays: SVector
-using StaticArrays: MVector, MArray, SMatrix, @SMatrix
+using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO, triangulate
+export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
@@ -128,9 +131,9 @@ export AcousticPerturbationEquations2D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
-       ShallowWaterEquations2D
+       ShallowWaterEquations1D, ShallowWaterEquations2D
 
-export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
+export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
@@ -209,12 +212,15 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 
 export PositivityPreservingLimiterZhangShu
 
-export trixi_include, examples_dir, get_examples, default_example, default_example_unstructured
+export trixi_include, examples_dir, get_examples, default_example,
+       default_example_unstructured
+
+export ode_norm, ode_unstable_check
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
-export DGMulti, AbstractMeshData, VertexMappedMesh, estimate_dt, DGMultiMesh
-export GaussSBP
+export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
+export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
@@ -236,7 +242,7 @@ function __init__()
   end
 
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-    using Flux: params
+    using .Flux: params
   end
 
   # FIXME upstream. This is a hacky workaround for

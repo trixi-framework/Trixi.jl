@@ -523,6 +523,20 @@ Cassette.@context Ctx
   @timed_testset "Shallow water conversion between conservative/entropy variables" begin
     H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
 
+    let equations = ShallowWaterEquations1D(gravity_constant=9.8)
+      cons_vars = prim2cons(SVector(H, v1, b),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      total_energy = energy_total(cons_vars, equations)
+      @test total_energy ≈ entropy(cons_vars, equations)
+
+      # test tuple args
+      cons_vars = prim2cons((H, v1, b), equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+
     let equations = ShallowWaterEquations2D(gravity_constant=9.8)
       cons_vars = prim2cons(SVector(H,v1,v2,b),equations)
       entropy_vars = cons2entropy(cons_vars,equations)
@@ -548,6 +562,17 @@ Cassette.@context Ctx
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval=-1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+  end
+
+  @timed_testset "Consistency check for HLLE flux" begin
+    # Set up equations and dummy conservative variables state
+    equations = CompressibleEulerEquations2D(1.4)
+    u = SVector(1.1, -0.5, 2.34, 5.5)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
   end
 
   @testset "FluxRotated vs. direct implementation" begin
@@ -653,6 +678,16 @@ Cassette.@context Ctx
                  xmin=0.0, xmax=1.0, N=10))
 
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
+  end
+
+  @testset "1D non-periodic DGMultiMesh" begin
+    # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
+    dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
+                 surface_integral = SurfaceIntegralWeakForm(flux_central),
+                 volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    mesh = DGMultiMesh(dg, cells_per_dimension=(1,), periodicity=false)
+
+    @test mesh.boundary_faces[:entire_boundary] == [1, 2]
   end
 
 end
