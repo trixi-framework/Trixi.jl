@@ -563,4 +563,4 @@ mesh = UnstructuredMesh2D(mesh_file);
 
 # We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize with ParaView.
 
-# ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/25242486/129733926-6ef80676-779b-4f1e-9826-3ebf750cf382.png) TODO
+# ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/74359358/168049930-8abce6ac-cd47-4d04-b40b-0fa459bbd98d.png)
