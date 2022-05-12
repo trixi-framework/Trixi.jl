@@ -93,7 +93,7 @@ end #hide #md
 # ![mesh_boundary_cartoon](https://user-images.githubusercontent.com/25242486/129603954-9788500d-bba8-49be-8e6f-7555099dbf7c.png)
 
 # The associated `ice_cream_straight_sides.control` file is created below.
-open("out/ice_cream_straight_sides.control", "w") do io 
+open("out/ice_cream_straight_sides.control", "w") do io
   println(io, raw"""
 \begin{CONTROL_INPUT}
     \begin{RUN_PARAMETERS}
@@ -178,7 +178,7 @@ end
 # The plot file format of `skeleton` means that visualizing the plot file will only draw the element boundaries (and no internal nodes).
 # Alternatively, the format can be set to `sem` to visualize the interior nodes of the approximation as well.
 
-# The second block of information in `BACKGOUND_GRID` is
+# The second block of information in `BACKGROUND_GRID` is
 # ```
 # \begin{BACKGROUND_GRID}
 #   x0 = [-8.0, -8.0, 0.0]
@@ -387,7 +387,7 @@ end #hide #md
 
 # We create the new control file `ice_cream_curved_sides.control` file below and will then highlight the
 # major differences compared to `ice_cream_straight_sides.control`.
-open("out/ice_cream_curved_sides.control", "w") do io 
+open("out/ice_cream_curved_sides.control", "w") do io
   println(io, raw"""
 \begin{CONTROL_INPUT}
     \begin{RUN_PARAMETERS}
@@ -457,7 +457,7 @@ open("out/ice_cream_curved_sides.control", "w") do io
 end
 
 # The first alteration is that we have altered the second block of information
-# `BACKGOUND_GRID` within the `CONTROL_INPUT` to be
+# `BACKGROUND_GRID` within the `CONTROL_INPUT` to be
 # ```
 # \begin{BACKGROUND_GRID}
 #    background grid size = [1.0, 1.0, 0.0]
@@ -516,3 +516,51 @@ mesh = UnstructuredMesh2D(mesh_file);
 # We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize with ParaView.
 
 # ![simulation_curved_sides](https://user-images.githubusercontent.com/25242486/129733924-778795c1-9119-419a-8b89-bcbe13e33cd7.png)
+
+
+# ## Setting up a simulation with AMR via `P4estMesh`
+# The above explained mesh file format of `ISM-V2` only works with `UnstructuredMesh2D` and so does
+# not support AMR. On the other hand, the mesh type [`P4estMesh`](@ref) allows AMR. The mesh
+# constructor for the `P4estMesh` imports an unstructured, conforming mesh from an Abaqus mesh file
+# (`.inp`).
+
+# As described above, the first block of the HOHQMesh control file contains the parameter
+# `mesh file format`. If you set `mesh file format = ABAQUS` instead of `ISM-V2`,
+# HOHQMesh.jl's function `generate_mesh` creates an Abaqus mesh file `.inp`.
+# ```julia
+# using HOHQMesh
+# control_file = joinpath("out", "ice_cream_straight_sides.control")
+# output = generate_mesh(control_file);
+# ```
+
+# Now, you can create a `P4estMesh` from your mesh file. It is described in detail in the
+# [P4est-based mesh](https://trixi-framework.github.io/Trixi.jl/stable/meshes/p4est_mesh/#P4est-based-mesh)
+# part of the Trixi docs.
+# ```julia
+# using Trixi
+# mesh_file = joinpath("out", "ice_cream_straight_sides.inp")
+# mesh = P4estMesh{2}(mesh_file)
+# ```
+
+# Since `P4estMesh` supports AMR, we just have to extend the setup from the first example by the
+# standard AMR procedure. For more information about AMR in Trixi, see the [matching tutorial](@ref adaptive_mesh_refinement).
+
+# ```julia
+# amr_indicator = IndicatorLöhner(semi, variable=density)
+
+# amr_controller = ControllerThreeLevel(semi, amr_indicator,
+#                                       base_level=0,
+#                                       med_level =1, med_threshold=0.05,
+#                                       max_level =3, max_threshold=0.1)
+
+# amr_callback = AMRCallback(semi, amr_controller,
+#                            interval=5,
+#                            adapt_initial_condition=true,
+#                            adapt_initial_condition_only_refine=true)
+
+# callbacks = CallbackSet(..., amr_callback)
+# ```
+
+# We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize with ParaView.
+
+# ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/25242486/129733926-6ef80676-779b-4f1e-9826-3ebf750cf382.png) TODO
