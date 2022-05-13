@@ -561,7 +561,8 @@ mesh = UnstructuredMesh2D(mesh_file);
 # callbacks = CallbackSet(..., amr_callback)
 # ```
 
-# We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize 
-with ParaView, see the appropriate [visualization section](https://trixi-framework.github.io/Trixi.jl/stable/visualization/#Trixi2Vtk) for details. 
+# We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize
+# with ParaView, see the appropriate [visualization section](https://trixi-framework.github.io/Trixi.jl/stable/visualization/#Trixi2Vtk)
+# for details.
 
 # ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/74359358/168049930-8abce6ac-cd47-4d04-b40b-0fa459bbd98d.png)
