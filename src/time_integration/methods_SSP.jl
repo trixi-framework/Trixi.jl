@@ -192,6 +192,11 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
   end
 
+  # Check that we are within bounds
+  if integrator.p.solver.volume_integral.indicator.IDPCheckBounds
+    summary_check_bounds(integrator)
+  end
+
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                               (prob.u0, integrator.u),
                               integrator.sol.prob)
@@ -233,5 +238,46 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
 
 end
 
+# check deviation from boundaries of IDP indicator
+@inline function summary_check_bounds(integrator)
+  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = integrator.p.solver.volume_integral.indicator
+  @unpack idp_bounds_delta = integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+
+  println("─"^100)
+  println("Maximum deviation from bounds:")
+  println("─"^100)
+  counter = 0
+  if IDPDensityTVD
+    counter += 1
+    println("rho_min: ", idp_bounds_delta[counter])
+    counter += 1
+    println("rho_max: ", idp_bounds_delta[counter])
+  end
+  if IDPPressureTVD
+    counter += 1
+    println("p_min:   ", idp_bounds_delta[counter])
+    counter += 1
+    println("p_max:   ", idp_bounds_delta[counter])
+  end
+  if IDPPositivity && !IDPDensityTVD
+    counter += 1
+    println("rho_min: ", idp_bounds_delta[counter])
+  end
+  if IDPPositivity && !IDPPressureTVD
+    counter += 1
+    println("p_min:   ", idp_bounds_delta[counter])
+  end
+  if IDPSpecEntropy
+    counter += 1
+    println("ent_min: ", idp_bounds_delta[counter])
+  end
+  if IDPMathEntropy
+    counter += 1
+    println("ent_max: ", idp_bounds_delta[counter])
+  end
+  println("─"^100 * "\n")
+
+  return nothing
+end
 
 end # @muladd

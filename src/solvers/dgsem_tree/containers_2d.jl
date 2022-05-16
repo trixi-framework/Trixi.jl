@@ -1316,6 +1316,7 @@ mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
   _alpha1::Vector{uEltype}
   _alpha2::Vector{uEltype}
   _var_bounds::Vector{Vector{uEltype}}
+  idp_bounds_delta::Vector{uEltype}
 end
 
 function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes, length) where uEltype<:Real
@@ -1336,8 +1337,11 @@ function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes, l
     var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
   end
 
+  idp_bounds_delta = zeros(uEltype, length)
+
   return ContainerShockCapturingIndicator{uEltype}(alpha,   alpha1,  alpha2,  var_bounds,
-                                                   _alpha, _alpha1, _alpha2, _var_bounds)
+                                                   _alpha, _alpha1, _alpha2, _var_bounds,
+                                                   idp_bounds_delta)
 end
 
 nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)

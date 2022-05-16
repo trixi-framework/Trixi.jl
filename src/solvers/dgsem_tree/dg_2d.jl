@@ -679,6 +679,11 @@ end
 
   IDP_correction!(u, alpha1, alpha2, dt, equations, solver, cache)
 
+  # Check that we are within bounds
+  if solver.volume_integral.indicator.IDPCheckBounds
+    @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(u, semi)
+  end
+
   return nothing
 end
 
@@ -700,6 +705,53 @@ end
       for v in eachvariable(equations)
         u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * (alpha_flux1_ip1[v] - alpha_flux1[v]) +
                                                         inverse_weights[j] * (alpha_flux2_jp1[v] - alpha_flux2[v]) )
+      end
+    end
+  end
+
+  return nothing
+end
+
+@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, semi)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
+  @unpack idp_bounds_delta, var_bounds = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+
+  @threaded for element in eachelement(solver, cache)
+    for j in eachnode(solver), i in eachnode(solver)
+      counter = 0
+      if IDPDensityTVD
+        counter += 1 # rho_min
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[1][i, j, element] - u[1, i, j, element])
+        counter += 1 # rho_max
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], u[1, i, j, element] - var_bounds[2][i, j, element])
+      end
+      if IDPPressureTVD
+        p = pressure(get_node_vars(u, equations, solver, i, j, element), equations)
+        counter += 1 # p_min
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - p)
+        counter += 1 # p_max
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], p - var_bounds[counter][i, j, element])
+      end
+      if IDPPositivity && !IDPDensityTVD
+        counter += 1 # rho_min
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - u[1, i, j, element])
+      end
+      if IDPPositivity && !IDPPressureTVD
+        p = pressure(get_node_vars(u, equations, solver, i, j, element), equations)
+        counter += 1 # p_min
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - p)
+      end
+      if IDPSpecEntropy
+        s = entropy_spec(get_node_vars(u, equations, solver, i, j, element), equations)
+        counter += 1 # s_min
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - s)
+      end
+      if IDPMathEntropy
+        s = entropy_math(get_node_vars(u, equations, solver, i, j, element), equations)
+        counter += 1 # s_max
+        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], s - var_bounds[counter][i, j, element])
       end
     end
   end

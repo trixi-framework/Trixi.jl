@@ -177,6 +177,7 @@ struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
   newton_tol::Tuple{RealT, RealT} # Relative and absolute tolerances for Newton's method
   IDPgamma::RealT                 # Constant for the subcell limiting of convex (nonlinear) constraints
                                   # (must be IDPgamma>=2*d, where d is the number of dimensions of the problem)
+  IDPCheckBounds::Bool
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -188,7 +189,8 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                       IDPSpecEntropy=false,
                       IDPMathEntropy=false,
                       positCorrFactor=0.1, IDPMaxIter=10,
-                      newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations))
+                      newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations),
+                      IDPCheckBounds=false)
 
   if IDPMathEntropy && IDPSpecEntropy
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
@@ -204,7 +206,7 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   cache = create_cache(IndicatorIDP, equations, basis, length)
   IndicatorIDP{typeof(alpha_maxIDP), typeof(cache)}(alpha_maxIDP,
       IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy,
-      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma)
+      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -287,9 +289,9 @@ Depending on the indicator_type, different input values and corresponding traine
 - Based on convolutional neural network.
 - 2d Input: Interpolation of the nodal values of the `indicator.variable` to the 4x4 LGL nodes.
 
-If `alpha_continuous == true` the continuous network output for troubled cells (`alpha > 0.5`) is considered. 
+If `alpha_continuous == true` the continuous network output for troubled cells (`alpha > 0.5`) is considered.
 If the cells are good (`alpha < 0.5`), `alpha` is set to `0`.
-If `alpha_continuous == false`, the blending factor is set to `alpha = 0` for good cells and 
+If `alpha_continuous == false`, the blending factor is set to `alpha = 0` for good cells and
 `alpha = 1` for troubled cells.
 
 !!! warning "Experimental implementation"
