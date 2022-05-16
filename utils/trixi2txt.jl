@@ -11,10 +11,11 @@
 #
 #    1) Open the set of `solution_*.txt` files
 #    2) Change the "Field Delimiter Characters" field to be a space instead of a comma
-#    3) Check the box for "Merge Consecutive Delimters"
+#    3) Check the box for "Merge Consecutive Delimiters"
 #    4) Create a plot using Filters -> Data Analysis -> Plot Data
 #    5) Within Plot Data, uncheck "Use Index For XAxis"
 #    6) Select the `x` values for "X Array Name"
+#    7) Now you can adjust the plots and make movies or save screenshots of the solution
 module Trixi2Txt
 
 using EllipsisNotation
