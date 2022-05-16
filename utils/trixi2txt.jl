@@ -5,6 +5,8 @@
 #    using .Trixi2Txt
 #    Trixi2Txt.trixi2txt("out/file_name")
 #
+#  It may be that you need to install the Glob package by running
+#  `import Pkg; Pkg.add("Glob")`.
 #
 #  After the HDF5 files have been converted to `.txt` the 1D solution can be
 #  visualized in ParaView with the following steps:
@@ -23,7 +25,7 @@ using Glob: glob
 using Printf: @printf
 using HDF5: h5open, attributes, haskey
 using MuladdMacro: @muladd
-using Tullio: @tullio
+# using Tullio: @tullio
 using LoopVectorization
 using StaticArrays
 using UnPack: @unpack
