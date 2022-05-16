@@ -275,7 +275,7 @@ that contains a hydrostatic reconstruction for the water height and a general
 bottom topography [`ShallowWaterEquations1D`](@ref).
 
 This hydrostatic reconstruction ensures that the finite volume numerical fluxes remain
-well-balanced for discontinuous bottom topographies. Shuld be used together with
+well-balanced for discontinuous bottom topographies. Should be used together with
 [`flux_audusse_etal`](@ref) in the surface flux to ensure consistency in the hydrostatic
 reconstruction.
 

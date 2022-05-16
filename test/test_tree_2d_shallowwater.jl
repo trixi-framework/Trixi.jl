@@ -22,6 +22,14 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
       tspan = (0.0, 0.25))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced.jl with Audusse et al. fluxes" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
+      l2   = [0.9130579602987147, 9.68729463970494e-15, 9.694538537436981e-15, 0.9130579602987147],
+      linf = [2.1130620376156584, 2.3875905654916432e-14, 2.2492839032269154e-14, 2.1130620376156584],
+      surface_flux=(flux_audusse_etal, flux_nonconservative_audusse_etal),
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.001868474306068482, 0.01731687445878443, 0.017649083171490863, 6.274146767717023e-5],
