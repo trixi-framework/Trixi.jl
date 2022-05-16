@@ -18,8 +18,8 @@ function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations2D)
 
   # Calculate primitive variables
   H = equations.H0
-  v1 = r < 0.6 ? 1.75 : 0.0
-  v2 = r < 0.6 ? -1.75 : 0.0
+  v1 = r < 0.6 ? 2.0 : 0.0
+  v2 = r < 0.6 ? -2.0 : 0.0
   # bottom topography taken from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
   x1, x2 = x
   b = (  1.5 / exp( 0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2) )
@@ -35,9 +35,20 @@ boundary_condition = Dict( :OuterCircle => boundary_condition_slip_wall )
 ###############################################################################
 # Get the DG approximation space
 
+surface_flux = (flux_audusse_etal, flux_nonconservative_audusse_etal)
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg=6, surface_flux=(flux_hll, flux_nonconservative_fjordholm_etal),
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+polydeg = 6
+basis = LobattoLegendreBasis(polydeg)
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max=0.5,
+                                         alpha_min=0.001,
+                                         alpha_smooth=true,
+                                         variable=Trixi.waterheight)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
+
+solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
 
 ###############################################################################
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)

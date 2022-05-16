@@ -112,6 +112,14 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced.jl with Audusse et al. fluxes" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
+      l2   = [1.2164292510839085, 1.2643106818778908e-12, 7.46884905098358e-13, 1.2164292510839079],
+      linf = [1.513851228231562, 1.6287765844373185e-11, 6.8766999132716964e-12, 1.513851228231574],
+      surface_flux=(flux_audusse_etal, flux_nonconservative_audusse_etal),
+      tspan = (0.0, 0.2))
+  end
+
   @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0011197623982310795, 0.04456344888447023, 0.014317376629669337, 5.089218476758975e-6],
@@ -126,10 +134,10 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 2.0))
   end
 
-  @trixi_testset "elixir_shallowwater_wall_bc.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_wall_bc.jl"),
-      l2   = [0.04443210036005491, 0.14454582374113853, 0.15239799057671485, 6.225080477024867e-8],
-      linf = [0.7727399447958347, 2.127376144492187, 3.361677723990531, 3.982097160903919e-7],
+  @trixi_testset "elixir_shallowwater_wall_bc_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_wall_bc_shockcapturing.jl"),
+      l2   = [0.04409822536320286, 0.1558259445556605, 0.16151773336983566, 6.225080476993004e-8],
+      linf = [0.6175151146591848, 1.9838229494325534, 2.5546807933768365, 3.982097158683473e-7],
       tspan = (0.0, 0.05))
   end
 

@@ -268,7 +268,7 @@ end
 
 """
     flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
-                                          equations::ShallowWaterEquations1D)
+                                      equations::ShallowWaterEquations1D)
 
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
 that contains a hydrostatic reconstruction for the water height and a general
@@ -377,7 +377,7 @@ end
     flux_audusse_etal(u_ll, u_rr, orientation::Integer,
                       equations::ShallowWaterEquations1D)
 
-A special type of local Lax-Friedrichs flux that contains the hydrostatic reconstruction
+A special type of local Lax-Friedrichs surface flux that contains the hydrostatic reconstruction
 for the water height and a general bottom topography [`ShallowWaterEquations1D`](@ref).
 The reconstructed water height variables are used to evaluate the symmetric portion of the
 numerical flux as well as the dissipation term at the interface.
