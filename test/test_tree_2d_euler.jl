@@ -165,8 +165,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_positivity_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity_sc_subcell.jl"),
-      l2   = [0.49171272129274185, 0.1654059921666582, 0.16540322728288526, 0.6346745392214297],
-      linf = [2.5231800623551552, 1.1676860712180208, 1.1676908666193262, 6.469773077354864],
+      l2   = [0.49171288879147707, 0.16540604409411028, 0.165403281995138, 0.6346743704341865],
+      linf = [2.523187390223829, 1.1676864180461144, 1.1676912091995713, 6.469768610580735],
       tspan = (0.0, 1.0),
       initial_refinement_level=5,
       coverage_override = (maxiters=3,))
@@ -248,8 +248,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_colliding_flow_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow_sc_subcell.jl"),
-      l2   = [0.0065670105355693535, 0.04549413637429556, 1.5617641521208659e-6, 0.6247664278274535],
-      linf = [0.1448901649616433, 0.5279507148840341, 8.892604457705052e-5, 12.030176754489556],
+      l2   = [0.006567503201406924, 0.045494701197468755, 1.5604684539276876e-6, 0.624781570252251],
+      linf = [0.1448916669656563, 0.5279925643783724, 8.77139846451784e-5, 12.03029820002121],
       tspan = (0.0, 0.1),
       coverage_override = (maxiters=2,))
   end
@@ -264,8 +264,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_astro_jet_subcell_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_subcell_restart.jl"),
-      l2   = [0.4424122644556847, 353.5424835076033, 14.195424344914256, 138995.99716665552],
-      linf = [7.729363826700428, 5819.847107066928, 659.5924852103605, 2.186983178009216e6],
+      l2   = [0.442412359159042, 353.54254537346463, 14.195423442065804, 138996.0083518854],
+      linf = [7.729364707886681, 5819.848679298194, 659.5925327100372, 2.1869838429080946e6],
       tspan = (2.5e-6, 1.0e-4),
       coverage_override = (maxiters=6,))
   end
