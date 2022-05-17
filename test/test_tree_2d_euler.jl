@@ -66,8 +66,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_shockcapturing_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_subcell.jl"),
-      l2   = [0.0528852022914957, 0.04605220278777441, 0.046051285430361966, 0.19333536195011322],
-      linf = [0.18676597825683394, 0.23170518015350347, 0.2316394218254613, 0.6910854547329741])
+      l2   = [0.05279461354314492, 0.045989178414492675, 0.04598740128933962, 0.19301796760176929],
+      linf = [0.18653503138166105, 0.23196626025079317, 0.23205043616292115, 0.6911505364900443])
   end
 
   @trixi_testset "elixir_euler_blast_wave.jl" begin
@@ -132,8 +132,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_blast_wave_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_sc_subcell.jl"),
-      l2   = [0.33497677827522393, 0.18846649571882834, 0.18846957823831056, 0.6202202597584124],
-      linf = [1.570337061620338, 1.2688091762034825, 1.2691766589473688, 2.4069374156041263],
+      l2   = [0.35190218236276916, 0.1932735857321866, 0.1932566034003023, 0.6193245526148682],
+      linf = [1.6865111411650586, 1.3647962470261445, 1.363807717209087, 2.443080751122044],
       tspan = (0.0, 0.5),
       initial_refinement_level = 4,
       coverage_override = (maxiters=6,))
@@ -165,8 +165,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_positivity_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity_sc_subcell.jl"),
-      l2   = [0.49388182696965016, 0.1664478265682381, 0.16644705322200087, 0.6351261288582164],
-      linf = [2.510295676164479, 1.2096774802395878, 1.2095916433265121, 6.471098677030467],
+      l2   = [0.49171272129274185, 0.1654059921666582, 0.16540322728288526, 0.6346745392214297],
+      linf = [2.5231800623551552, 1.1676860712180208, 1.1676908666193262, 6.469773077354864],
       tspan = (0.0, 1.0),
       initial_refinement_level=5,
       coverage_override = (maxiters=3,))
@@ -213,8 +213,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
-      l2   = [0.05564045019484471, 0.03296714778723376, 0.05160031886304709, 0.0798132537431978],
-      linf = [0.2343924443588683, 0.1711747394866538, 0.1340845767284859, 0.27221997312881907],
+      l2   = [0.05570314908537475, 0.03298722583361271, 0.052244709734327016, 0.08011559032847568],
+      linf = [0.24091015067867505, 0.166018978319328, 0.12356154832726032, 0.26951669929779953],
       tspan = (0.0, 0.2),
       initial_refinement_level=5,
       coverage_override = (maxiters=2,))
@@ -248,8 +248,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_colliding_flow_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow_sc_subcell.jl"),
-      l2   = [0.006029487817162152, 0.04306352664570119, 1.0196317105626685e-6, 0.602600980127913],
-      linf = [0.133287118940215, 0.46245152812030377, 4.841326071863473e-5, 11.460517088011834],
+      l2   = [0.0065670105355693535, 0.04549413637429556, 1.5617641521208659e-6, 0.6247664278274535],
+      linf = [0.1448901649616433, 0.5279507148840341, 8.892604457705052e-5, 12.030176754489556],
       tspan = (0.0, 0.1),
       coverage_override = (maxiters=2,))
   end
@@ -264,8 +264,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_astro_jet_subcell_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_subcell_restart.jl"),
-      l2   = [0.4360530254790599, 351.83324431719006, 13.841995590128272, 138429.10256913095],
-      linf = [9.349440577987206, 6938.823487053745, 503.9002738813788, 2.6096438436575336e6],
+      l2   = [0.4424122644556847, 353.5424835076033, 14.195424344914256, 138995.99716665552],
+      linf = [7.729363826700428, 5819.847107066928, 659.5924852103605, 2.186983178009216e6],
       tspan = (2.5e-6, 1.0e-4),
       coverage_override = (maxiters=6,))
   end

@@ -56,11 +56,7 @@ volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=false,
-                            IDPPressureTVD=false,
-                            IDPPositivity=true,
-                            IDPSpecEntropy=false,
-                            IDPMathEntropy=false)
+                            IDPPositivity=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)

@@ -241,7 +241,15 @@ end
 # check deviation from boundaries of IDP indicator
 @inline function summary_check_bounds(integrator)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = integrator.p.solver.volume_integral.indicator
-  @unpack idp_bounds_delta = integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+  @unpack idp_bounds_delta_threaded = integrator.p.solver.volume_integral.indicator.cache
+
+  idp_bounds_delta = zeros(eltype(idp_bounds_delta_threaded[1]), length(idp_bounds_delta_threaded[1]))
+
+  for index in 1:length(idp_bounds_delta)
+    for i in 1:Threads.nthreads()
+      idp_bounds_delta[index] = max(idp_bounds_delta[index], idp_bounds_delta_threaded[i][index])
+    end
+  end
 
   println("─"^100)
   println("Maximum deviation from bounds:")

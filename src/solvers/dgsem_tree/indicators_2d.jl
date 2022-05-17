@@ -198,8 +198,11 @@ function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, bas
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
 
+  idp_bounds_delta_threaded = [zeros(real(basis), length) for _ in 1:Threads.nthreads()]
+
   return (; ContainerShockCapturingIndicator,
-            alpha_max_per_timestep, alpha_mean_per_timestep)
+            alpha_max_per_timestep, alpha_mean_per_timestep,
+            idp_bounds_delta_threaded)
 end
 
 function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
@@ -216,9 +219,9 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
   indicator_IDP.IDPPositivity  &&
     @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,        equations, dg, dt, cache)
   indicator_IDP.IDPSpecEntropy &&
-    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_old, equations, dg, dt, cache)
+    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, equations, dg, dt, cache)
   indicator_IDP.IDPMathEntropy &&
-    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_old, equations, dg, dt, cache)
+    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, equations, dg, dt, cache)
 
   # Clip the maximum amount of FV allowed (default: alpha_maxIDP = 1.0)
   @unpack alpha_maxIDP = indicator_IDP
@@ -284,7 +287,7 @@ end
   end
 
   # Loop over interfaces
-  @threaded for interface in eachinterface(dg, cache)
+  for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
     right = cache.interfaces.neighbor_ids[2, interface]
@@ -396,7 +399,7 @@ end
   end
 
   # Loop over interfaces
-  @threaded for interface in eachinterface(dg, cache)
+  for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
     right = cache.interfaces.neighbor_ids[2, interface]
@@ -509,7 +512,7 @@ end
   end
 
   # Loop over interfaces
-  @threaded for interface in eachinterface(dg, cache)
+  for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
     right = cache.interfaces.neighbor_ids[2, interface]
@@ -581,7 +584,7 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
   end
 
   # Loop over interfaces
-  @threaded for interface in eachinterface(dg, cache)
+  for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
     right = cache.interfaces.neighbor_ids[2, interface]

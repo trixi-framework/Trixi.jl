@@ -716,9 +716,11 @@ end
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
-  @unpack idp_bounds_delta, var_bounds = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+  @unpack var_bounds = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+  @unpack idp_bounds_delta_threaded = solver.volume_integral.indicator.cache
 
   @threaded for element in eachelement(solver, cache)
+    idp_bounds_delta = idp_bounds_delta_threaded[Threads.threadid()]
     for j in eachnode(solver), i in eachnode(solver)
       counter = 0
       if IDPDensityTVD
