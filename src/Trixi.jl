@@ -137,13 +137,14 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
-       flux_audusse_etal, flux_nonconservative_audusse_etal,
+       hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
        FluxLMARS,
        FluxRotated,
-       flux_shima_etal_turbo, flux_ranocha_turbo
+       flux_shima_etal_turbo, flux_ranocha_turbo,
+       FluxHydrostaticReconstruction
 
 export initial_condition_constant,
        initial_condition_gauss,
