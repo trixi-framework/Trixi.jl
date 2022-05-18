@@ -404,8 +404,8 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
   v1_rr, v2_rr = velocity(u_rr, equations)
 
   # Compute the reconstructed water heights
-  h_ll_star = max( 0.0 , h_ll + b_ll - max(b_ll, b_rr) )
-  h_rr_star = max( 0.0 , h_rr + b_rr - max(b_ll, b_rr) )
+  h_ll_star = max(zero(h_ll) , h_ll + b_ll - max(b_ll, b_rr) )
+  h_rr_star = max(zero(h_rr) , h_rr + b_rr - max(b_ll, b_rr) )
 
   # Create the conservative variables using the reconstruted water heights
   u_ll_star = SVector( h_ll_star , h_ll_star * v1_ll , h_ll_star * v2_ll , b_ll )
@@ -419,9 +419,9 @@ end
     flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
                                       equations::ShallowWaterEquations2D)
     flux_nonconservative_audusse_etal(u_ll, u_rr,
-                                        normal_direction_ll     ::AbstractVector,
-                                        normal_direction_average::AbstractVector,
-                                        equations::ShallowWaterEquations2D)
+                                      normal_direction_ll     ::AbstractVector,
+                                      normal_direction_average::AbstractVector,
+                                      equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
 that contains a hydrostatic reconstruction for the water height and a general
