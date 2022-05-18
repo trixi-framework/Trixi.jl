@@ -338,7 +338,7 @@ end
 
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any,3},
-                              mesh::TreeMesh{1}, # TODO: Should we add StructuredMesh{1} as well?
+                              mesh::TreeMesh{1},
                               nonconservative_terms::Val{true},
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
   volume_flux, nonconservative_flux = volume_flux_fv
