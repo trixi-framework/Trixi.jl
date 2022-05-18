@@ -673,22 +673,6 @@ end
 end
 
 
-# Specialized `FluxHydrostaticReconstruction` to compute the conservative part of the numerical surface flux
-# and guarantee the approximation is well-balanced.
-# !!! warning "Experimental code"
-#     This numerical flux is experimental and may change in any future release.
-@inline function (numflux::FluxHydrostaticReconstruction)(u_ll, u_rr, orientation_or_normal_direction,
-                                                          equations::ShallowWaterEquations2D)
-  @unpack numerical_flux, hydrostatic_reconstruction = numflux
-
-  # Create the reconstructed left/right solution states in conservative form
-  u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
-
-  # Use the reconstructed states to compute the numerical surface flux
-  return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction, equations)
-end
-
-
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation_or_normal_direction,
                                                               equations::ShallowWaterEquations2D)
