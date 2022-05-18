@@ -48,7 +48,7 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 ###############################################################################
-# Get the TreeMesh and setup a periodic mesh
+# Create the TreeMesh for the domain [-3, 3]
 
 coordinates_min = -3.0
 coordinates_max = 3.0
@@ -93,18 +93,18 @@ function initial_condition_stone_throw_discontinuous_bottom(x, t, element_id, eq
     end
 
     return prim2cons(SVector(H, v, b), equations)
-  end
+end
 
-  # point to the data we want to augment
-  u = Trixi.wrap_array(ode.u0, semi)
-  # reset the initial condition
-  for element in eachelement(semi.solver, semi.cache)
-    for i in eachnode(semi.solver)
-      x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, semi.solver, i, element)
-      u_node = initial_condition_stone_throw_discontinuous_bottom(x_node, first(tspan), element, equations)
-      Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, element)
-    end
+# point to the data we want to augment
+u = Trixi.wrap_array(ode.u0, semi)
+# reset the initial condition
+for element in eachelement(semi.solver, semi.cache)
+  for i in eachnode(semi.solver)
+    x_node = Trixi.get_node_coords(semi.cache.elements.node_coordinates, equations, semi.solver, i, element)
+    u_node = initial_condition_stone_throw_discontinuous_bottom(x_node, first(tspan), element, equations)
+    Trixi.set_node_vars!(u, u_node, equations, semi.solver, i, element)
   end
+end
 
 summary_callback = SummaryCallback()
 
