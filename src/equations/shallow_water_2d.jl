@@ -429,8 +429,8 @@ bottom topography [`ShallowWaterEquations2D`](@ref).
 
 This hydrostatic reconstruction ensures that the finite volume numerical fluxes remain
 well-balanced for discontinuous bottom topographies. Should be used together with
-[`flux_audusse_etal`](@ref) in the surface flux to ensure consistency in the hydrostatic
-reconstruction.
+[`FluxHydrostaticReconstruction`](@ref) and [`hydrostatic_reconstruction_audusse_etal`](@ref)
+in the surface flux to ensure consistency.
 
 Further details for the hydrostatic reconstruction and its motivation can be found in
 - Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
