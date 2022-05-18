@@ -112,11 +112,11 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.25))
   end
 
-  @trixi_testset "elixir_shallowwater_well_balanced.jl with Audusse et al. fluxes" begin
+  @trixi_testset "elixir_shallowwater_well_balanced.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
       l2   = [1.2164292510839085, 1.2643106818778908e-12, 7.46884905098358e-13, 1.2164292510839079],
       linf = [1.513851228231562, 1.6287765844373185e-11, 6.8766999132716964e-12, 1.513851228231574],
-      surface_flux=(flux_audusse_etal, flux_nonconservative_audusse_etal),
+      surface_flux=(FluxHydrostaticReconstruction(flux_lax_friedrichs, hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
       tspan = (0.0, 0.2))
   end
 
@@ -124,6 +124,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
       l2   = [0.0011197623982310795, 0.04456344888447023, 0.014317376629669337, 5.089218476758975e-6],
       linf = [0.007835284004819698, 0.3486891284278597, 0.11242778979399048, 2.6407324614119432e-5],
+      tspan = (0.0, 0.025))
+  end
+
+  @trixi_testset "elixir_shallowwater_source_terms.jl with FluxHydrostaticReconstruction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
+      l2   = [0.0011197139793938152, 0.015430259691310781, 0.017081031802719724, 5.089218476758271e-6],
+      linf = [0.014300809338967824, 0.12783372461225184, 0.17625472321992852, 2.6407324614341476e-5],
+      surface_flux=(FluxHydrostaticReconstruction(flux_hll, hydrostatic_reconstruction_audusse_etal), flux_nonconservative_audusse_etal),
       tspan = (0.0, 0.025))
   end
 
@@ -136,8 +144,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_shallowwater_wall_bc_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_wall_bc_shockcapturing.jl"),
-      l2   = [0.04409822536320286, 0.1558259445556605, 0.16151773336983566, 6.225080476993004e-8],
-      linf = [0.6175151146591848, 1.9838229494325534, 2.5546807933768365, 3.982097158683473e-7],
+      l2   = [0.04444388691670699, 0.1527771788033111, 0.1593763537203512, 6.225080476986749e-8],
+      linf = [0.6526506870169639, 1.980765893182952, 2.4807635459119757, 3.982097158683473e-7],
       tspan = (0.0, 0.05))
   end
 

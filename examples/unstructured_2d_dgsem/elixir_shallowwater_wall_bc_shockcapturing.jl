@@ -35,7 +35,8 @@ boundary_condition = Dict( :OuterCircle => boundary_condition_slip_wall )
 ###############################################################################
 # Get the DG approximation space
 
-surface_flux = (flux_audusse_etal, flux_nonconservative_audusse_etal)
+surface_flux=(FluxHydrostaticReconstruction(flux_hll, hydrostatic_reconstruction_audusse_etal),
+              flux_nonconservative_audusse_etal)
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
 polydeg = 6
 basis = LobattoLegendreBasis(polydeg)
