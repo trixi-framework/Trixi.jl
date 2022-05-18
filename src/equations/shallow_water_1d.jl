@@ -270,14 +270,15 @@ end
     flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
                                       equations::ShallowWaterEquations1D)
 
-Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
-that uses `hydrostatic_reconstruction_audusse_etal`for the conservative variables
-and a general bottom topography [`ShallowWaterEquations1D`](@ref).
+Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
+The discretization uses the `hydrostatic_reconstruction_audusse_etal` on the conservative
+variables. This hydrostatic reconstruction ensures that the finite volume numerical fluxes
+remain well-balanced for general bottom topographies [`ShallowWaterEquations1D`](@ref).
 
 This hydrostatic reconstruction ensures that the finite volume numerical fluxes remain
 well-balanced for discontinuous bottom topographies. Should be used together with
-[`FluxHydrostaticReconstruction`](@ref) in the surface flux to ensure consistency in the
-hydrostatic reconstruction.
+[`FluxHydrostaticReconstruction`](@ref) and [`hydrostatic_reconstruction_audusse_etal`](@ref)
+in the surface flux to ensure consistency.
 
 Further details on the hydrostatic reconstruction and its motivation can be found in
 - Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)

@@ -423,9 +423,10 @@ end
                                       normal_direction_average::AbstractVector,
                                       equations::ShallowWaterEquations2D)
 
-Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
-that contains a hydrostatic reconstruction for the water height and a general
-bottom topography [`ShallowWaterEquations2D`](@ref).
+Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
+The discretization uses the `hydrostatic_reconstruction_audusse_etal` on the conservative
+variables. This hydrostatic reconstruction ensures that the finite volume numerical fluxes
+remain well-balanced for general bottom topographies [`ShallowWaterEquations2D`](@ref).
 
 This hydrostatic reconstruction ensures that the finite volume numerical fluxes remain
 well-balanced for discontinuous bottom topographies. Should be used together with
