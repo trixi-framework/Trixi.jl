@@ -273,4 +273,21 @@ increase runtime efficiency on modern hardware.
 end
 
 
+"""
+    FluxHydrostaticReconstruction(numerical_flux, hydrostatic_reconstruction)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Allow for some kind of hydrostatic reconstruction of the solution state prior to the
+surface flux computation. This is a particular strategy to ensure that the method remains
+well-balanced for the shallow water equations, see [`ShallowWaterEquations1D`](@ref)
+or [`ShallowWaterEquations2D`](@ref).
+"""
+struct FluxHydrostaticReconstruction{NumericalFlux, HydrostaticReconstruction}
+  numerical_flux::NumericalFlux
+  hydrostatic_reconstruction::HydrostaticReconstruction
+end
+
+
 end # @muladd

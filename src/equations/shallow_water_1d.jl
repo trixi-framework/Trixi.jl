@@ -271,15 +271,15 @@ end
                                       equations::ShallowWaterEquations1D)
 
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
-that contains a hydrostatic reconstruction for the water height and a general
-bottom topography [`ShallowWaterEquations1D`](@ref).
+that uses `hydrostatic_reconstruction_audusse_etal`for the conservative variables
+and a general bottom topography [`ShallowWaterEquations1D`](@ref).
 
 This hydrostatic reconstruction ensures that the finite volume numerical fluxes remain
 well-balanced for discontinuous bottom topographies. Should be used together with
-[`flux_audusse_etal`](@ref) in the surface flux to ensure consistency in the hydrostatic
-reconstruction.
+[`FluxHydrostaticReconstruction`](@ref) in the surface flux to ensure consistency in the
+hydrostatic reconstruction.
 
-Further details for the hydrostatic reconstruction and its motivation can be found in
+Further details on the hydrostatic reconstruction and its motivation can be found in
 - Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
   A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
   [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
@@ -287,19 +287,20 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
 @inline function flux_nonconservative_audusse_etal(u_ll, u_rr,
                                                    orientation::Integer,
                                                    equations::ShallowWaterEquations1D)
-  # Pull the necessary left and right state information
+  # Pull the water height and bottom topography on the left
   h_ll, _, b_ll = u_ll
-  b_rr = u_rr[3]
 
-  # Hydrostatic reconstruction for the water height on the left
-  h_ll_star = max( 0.0 , h_ll + b_ll - max(b_ll, b_rr) )
+  # Create the hydrostatic reconstruction for the left solution state
+  u_ll_star, _ = hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations)
 
+  # Copy the reconstructed water height for easier to read code
+  h_ll_star = u_ll_star[1]
+
+  z = zero(eltype(u_ll))
   # Includes two parts:
   #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
   #        cross-averaging across a discontinuous bottom topography
-  #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-  z = zero(eltype(u_ll))
-
+  #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
   return SVector(z,
                  equations.gravity * h_ll * b_ll + equations.gravity * ( h_ll^2 - h_ll_star^2 ),
                  z)
@@ -374,21 +375,21 @@ end
 
 
 """
-    flux_audusse_etal(u_ll, u_rr, orientation::Integer,
-                      equations::ShallowWaterEquations1D)
+    hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, orientation::Integer,
+                                            equations::ShallowWaterEquations1D)
 
-A special type of local Lax-Friedrichs surface flux that contains the hydrostatic reconstruction
-for the water height and a general bottom topography [`ShallowWaterEquations1D`](@ref).
-The reconstructed water height variables are used to evaluate the symmetric portion of the
-numerical flux as well as the dissipation term at the interface.
+A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
+for a general bottom topography [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
+`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
+Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
 
-Further details for the hydrostatic reconstruction and its motivation can be found in
+Further details on this hydrostatic reconstruction and its motivation can be found in
 - Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
   A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
   [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
 """
-@inline function flux_audusse_etal(u_ll, u_rr, orientation::Integer, equations::ShallowWaterEquations1D)
-  # Unpack left and right state
+@inline function hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations::ShallowWaterEquations1D)
+  # Unpack left and right water heights and bottom topographies
   h_ll, _, b_ll = u_ll
   h_rr, _, b_rr = u_rr
 
@@ -401,20 +402,10 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
   h_rr_star = max( 0.0 , h_rr + b_rr - max(b_ll, b_rr) )
 
   # Create the conservative variables using the reconstruted water heights
-  u_ll_star = SVector( h_ll_star , h_ll_star * v1_ll, b_ll )
-  u_rr_star = SVector( h_rr_star , h_rr_star * v1_rr, b_rr )
+  u_ll_star = SVector( h_ll_star , h_ll_star * v1_ll , b_ll )
+  u_rr_star = SVector( h_rr_star , h_rr_star * v1_rr , b_rr )
 
-  # Obtain left and right fluxes from the reconstructed states
-  f_ll = flux(u_ll_star, 1, equations)
-  f_rr = flux(u_rr_star, 1, equations)
-
-  # Estimate the wave speed
-  λ = max_abs_speed_naive(u_ll_star, u_rr_star, 1, equations)
-
-  # Compute the local Lax-Friedrichs flux with reconstructed water heights
-  f_llf = 0.5 * ( f_ll + f_rr - λ * (u_rr_star - u_ll_star) )
-
-  return SVector(f_llf[1], f_llf[2], zero(eltype(u_ll)))
+  return u_ll_star, u_rr_star
 end
 
 
@@ -432,6 +423,22 @@ end
   c_rr = sqrt(equations.gravity * h_rr)
 
   return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+
+# Specialized `FluxHydrostaticReconstruction` to compute the conservative part of the numerical surface flux
+# and guarantee the approximation is well-balanced.
+# !!! warning "Experimental code"
+#     This numerical flux is experimental and may change in any future release.
+@inline function (numflux::FluxHydrostaticReconstruction)(u_ll, u_rr, orientation_or_normal_direction,
+                                                          equations::ShallowWaterEquations1D)
+  @unpack numerical_flux, hydrostatic_reconstruction = numflux
+
+  # Create the reconstructed left/right solution states in conservative form
+  u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
+
+  # Use the reconstructed states to compute the numerical surface flux
+  return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction, equations)
 end
 
 
