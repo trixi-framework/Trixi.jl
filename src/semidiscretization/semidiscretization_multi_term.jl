@@ -2,8 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-# @muladd begin
-
+@muladd begin
 
 """
     SemidiscretizationMultiTerm
@@ -34,7 +33,9 @@ struct SemidiscretizationMultiTerm{NTerms, Mesh, Equations <: NTuple{NTerms}, In
       solver::Solver, cache::Cache) where {NTerms, Mesh, Equations<:NTuple{NTerms}, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}
     @assert ndims(mesh) == ndims(first(equations))
 
-    # TODO: check that all equations have the same number of variables and same dimension
+    # check that all equations have the same number of variables and same dimension
+    @assert all(ndims.(equations) .== ndims(first(equations)))
+    @assert all(nvariables.(equations) .== nvariables(first(equations)))
 
     performance_counter = PerformanceCounter()
 
@@ -133,7 +134,6 @@ end
 
 @inline Base.ndims(semi::SemidiscretizationMultiTerm) = ndims(semi.mesh)
 
-# we assume all equations have the same number of variables
 @inline nvariables(semi::SemidiscretizationMultiTerm) = nvariables(first(semi.equations))
 @inline nvariables(equations::NTuple) = nvariables(first(equations))
 
@@ -167,10 +167,18 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationMultiTerm, t)
 
   u  = wrap_array(u_ode,  mesh, first(equations), solver, cache)
   du = wrap_array(du_ode, mesh, first(equations), solver, cache)
+  du_single_term = similar(du)
 
+  # compute RHS for each term/equation
   time_start = time_ns()
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, solver, cache)
   for (i, equation) in enumerate(equations)
-    @trixi_timeit timer() "$(i)th rhs!" rhs!(du, u, t, mesh, equation, initial_condition, boundary_conditions, source_terms, solver, cache)
+    @trixi_timeit timer() "`rhs!` number $(i)" rhs!(du_single_term, u, t, mesh, equation,
+                                                    initial_condition, boundary_conditions, source_terms,
+                                                    solver, cache)
+    @threaded for i in eachindex(du)
+      du[i] = du[i] + du_single_term[i]
+    end
   end
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
@@ -178,5 +186,4 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationMultiTerm, t)
   return nothing
 end
 
-
-# end # @muladd
+end # @muladd

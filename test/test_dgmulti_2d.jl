@@ -12,6 +12,36 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "DGMulti 2D" begin
+
+  @trixi_testset "SemidiscretizationMultiTerm" begin
+    dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
+                 surface_integral = SurfaceIntegralWeakForm(flux_central),
+                 volume_integral = VolumeIntegralWeakForm())
+    mesh = DGMultiMesh(dg, cells_per_dimension=(4, 4),
+                       periodicity=(true, true))
+
+    initial_condition = initial_condition_gauss
+
+    # split linear advection with vector = (1, 1) into two terms with
+    # advection vectors (1, 0) and (0, 1).
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    two_equations = (LinearScalarAdvectionEquation2D(1.0, 0.0),
+                     LinearScalarAdvectionEquation2D(0.0, 1.0))
+
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
+    semi_multi = SemidiscretizationMultiTerm(mesh, two_equations, initial_condition, dg)
+
+    ode = semidiscretize(semi, (0.0, 0.01))
+    ode_multi = semidiscretize(semi_multi, (0.0, 0.01))
+
+    du = similar(ode.u0)
+    du_multi = similar(ode_multi.u0)
+    Trixi.rhs!(du, ode.u0, semi, 0.0)
+    Trixi.rhs!(du_multi, ode_multi.u0, semi_multi, 0.0)
+
+    @test norm(norm.(du .- du_multi)) < 100 * eps()
+  end
+
   @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4, 4),
