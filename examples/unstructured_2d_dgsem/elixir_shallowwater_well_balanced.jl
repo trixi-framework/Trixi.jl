@@ -30,7 +30,8 @@ initial_condition = initial_condition_well_balancedness
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg=6, surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal),
+surface_flux=(flux_fjordholm_etal, flux_nonconservative_fjordholm_etal)
+solver = DGSEM(polydeg=6, surface_flux=surface_flux,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
@@ -61,7 +62,7 @@ ode = semidiscretize(semi, tspan)
 # The errors from the analysis callback are not important but the error for this lake at rest test case
 # `∑|H0-(h+b)|` should be around machine roundoff
 # In contrast to the usual signature of initial conditions, this one get passed the
-# `element_id` explicitly. In particular, this initial conditions works as intended 
+# `element_id` explicitly. In particular, this initial conditions works as intended
 # only for the specific mesh loaded above!
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set the background values
