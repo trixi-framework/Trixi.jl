@@ -84,7 +84,7 @@ function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
 end
 
 """
-    solve_IDP(ode, semi; dt, callbacks, kwargs...)
+    solve(ode; dt, callbacks, kwargs...)
 
 The following structures and methods provide a implementation of the third-order SSP Runge-Kutta
 method [`SimpleSSPRK33`](@ref).
@@ -92,7 +92,8 @@ method [`SimpleSSPRK33`](@ref).
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function solve_IDP(ode::ODEProblem, semi; alg=SimpleSSPRK33(), dt, callback=nothing, kwargs...)
+function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
+               dt, callback=nothing, kwargs...)
   u = copy(ode.u0)
   du = similar(u)
   u_safe = similar(u)
@@ -109,6 +110,7 @@ function solve_IDP(ode::ODEProblem, semi; alg=SimpleSSPRK33(), dt, callback=noth
   resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator,
               nelements(integrator.p.solver, integrator.p.cache))
 
+  # initialize callbacks
   if callback isa CallbackSet
     for cb in callback.continuous_callbacks
       error("unsupported")
@@ -142,13 +144,15 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
 
     @. integrator.u_safe = integrator.u
-    for i in 1:length(alg.a)
-      @trixi_timeit timer() "RK stage" begin
-        prob.f(integrator.du, integrator.u_safe, integrator.p, integrator.t + alg.c[i] * integrator.dt)
-        @. integrator.u_old = (1.0 - alg.a[i]) * integrator.u + alg.a[i] * integrator.u_safe
-        @. integrator.u_safe = integrator.u_old + alg.b[i] * integrator.dt * integrator.du
+    for stage in eachindex(alg.c)
+      t_stage = integrator.t + integrator.dt * alg.c[stage]
+      prob.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
+
+      @trixi_timeit timer() "Runge-Kutta stage" begin
+        @. integrator.u_old = (1.0 - alg.a[stage]) * integrator.u + alg.a[stage] * integrator.u_safe
+        @. integrator.u_safe = integrator.u_old + alg.b[stage] * integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[i] * integrator.dt, integrator.p)
+      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p)
     end
     @. integrator.u = integrator.u_safe
 
@@ -198,8 +202,8 @@ function solve!(integrator::SimpleIntegratorSSP)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                              (prob.u0, integrator.u),
-                              integrator.sol.prob)
+                                (prob.u0, integrator.u),
+                                integrator.sol.prob)
 end
 
 # get a cache where the RHS can be stored
