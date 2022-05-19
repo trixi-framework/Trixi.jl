@@ -6,7 +6,7 @@ using Trixi
 # Semidiscretization of the shallow water equations
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81)
-  
+
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
@@ -15,7 +15,8 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal)
+solver = DGSEM(polydeg=3, surface_flux=surface_flux,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
