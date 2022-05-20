@@ -39,10 +39,10 @@
 # These algorithms require another way of setting the step size. You have to pass `dt=...`
 # in the `solve` function. Without other settings, the simulation uses this fixed time step.
 
-# For hyperbolic PDEs, it is natural to use an adaptive CFL-based step size control. Here, the time step is
-# proportional to a ratio of the local measure of mesh spacing $\Delta x_i$ and the maximum (local)
-# wave speed $\lambda_{\max}$ related to the largest-magnitude eigenvalue of the flux Jacobian of
-# the hyperbolic system.
+# For hyperbolic PDEs, it is natural to use an adaptive CFL-based step size control. Here, the time
+# step is proportional to a ratio of the local measure of mesh spacing $\Delta x_i$ for an element `i`
+# and the maximum (local) wave speed $\lambda_{\max}$ related to the largest-magnitude eigenvalue of
+# the flux Jacobian of the hyperbolic system.
 # ```math
 # \Delta t_n = \text{CFL} * \min_i \frac{\Delta x_i}{\lambda_{\max}(u_i^n)}
 # ```
@@ -53,8 +53,8 @@
 # stepsize_callback = StepsizeCallback(; cfl=1.0)
 # ````
 # A suitable CFL number depends on many parameters such as the chosen grid, the integration
-# algorithm and the polynomial degree of the spatial discretization. So, the optimal number for
-# an example is mostly determined experimentally.
+# algorithm and the polynomial degree of the spatial DG discretization. So, the optimal number
+# for an example is mostly determined experimentally.
 
 # You can add this CFL-based step size control to your simulation like any other callback.
 # ````julia
