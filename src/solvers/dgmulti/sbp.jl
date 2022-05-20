@@ -219,12 +219,7 @@ function StartUpDG.RefElemData(element_type::Hex,
     wf = wr .* ws
     StartUpDG.init_face_data(element_type, quad_rule_face=(rf, sf, wf))
   end
-  if D isa AbstractPeriodicDerivativeOperator
-    # we do not need any face stuff for periodic operators
-    Vf = spzeros(length(wf), length(wq))
-  else
-    Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
-  end
+  Vf = sparse(eachindex(face_mask), face_mask, ones(Bool, length(face_mask)))
   LIFT = Diagonal(wq) \ (Vf' * Diagonal(wf))
 
   rstf = (rf, sf, tf)
@@ -233,6 +228,60 @@ function StartUpDG.RefElemData(element_type::Hex,
   # low order interpolation nodes
   r1, s1, t1 = StartUpDG.nodes(element_type, 1)
   V1 = StartUpDG.vandermonde(element_type, 1, r, s, t) / StartUpDG.vandermonde(element_type, 1, r1, s1, t1)
+
+  return RefElemData(
+    element_type, approximation_type, N,
+    face_vertices, V1,
+    rst, VDM, face_mask,
+    N, rst, LinearAlgebra.I, # plotting
+    rstq, wq, Vq, # quadrature
+    rstf, wf, Vf, nrstJ, # faces
+    M, Pq, Drst, LIFT)
+end
+
+# specialized Hex constructor in 3D to reduce memory usage.
+function StartUpDG.RefElemData(element_type::Hex,
+                               D::AbstractPeriodicDerivativeOperator;
+                               tol = 100*eps())
+
+  approximation_type = D
+  N = SummationByPartsOperators.accuracy_order(D) # kind of polynomial degree
+
+  # 1D operators
+  nodes_1d, weights_1d, D_1d, I_1d = construct_1d_operators(D, tol)
+
+  # volume
+  # to match ordering of nrstJ
+  s, r, t = vec.(StartUpDG.NodesAndModes.meshgrid(nodes_1d, nodes_1d, nodes_1d))
+  rq = r; sq = s; tq = t
+  wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(weights_1d, weights_1d, weights_1d))
+  wq = wr .* ws .* wt
+  Dr = kron(I_1d, I_1d, D_1d)
+  Ds = kron(I_1d, D_1d, I_1d)
+  Dt = kron(D_1d, I_1d, I_1d)
+  M = Diagonal(wq)
+  Pq = LinearAlgebra.I
+  Vq = LinearAlgebra.I
+
+  VDM = nothing # unused generalized Vandermonde matrix
+
+  rst = (r, s, t)
+  rstq = (rq, sq, tq)
+  Drst = (Dr, Ds, Dt)
+
+  # face
+  # We do not need any face data for periodic operators. Thus, we just
+  # pass `nothing` to save memory.
+  face_vertices = ntuple(_ -> nothing, 3)
+  face_mask = nothing
+  wf = nothing
+  rstf = ntuple(_ -> nothing, 3)
+  nrstJ = ntuple(_ -> nothing, 3)
+  Vf = nothing
+  LIFT = nothing
+
+  # low order interpolation nodes
+  V1 = nothing # do not need to store V1, since we specialize StartUpDG.MeshData to avoid using it.
 
   return RefElemData(
     element_type, approximation_type, N,
@@ -405,23 +454,15 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
   nothing
 end
 
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+function create_cache(mesh::DGMultiMesh, equations,
+                      dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
 
-  rd = dg.basis
   md = mesh.md
-
-  # for use with flux differencing schemes
-  Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
 
   # storage for volume quadrature values, face quadrature values, flux values
   nvars = nvariables(equations)
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-
-  # dummy storage to allow for compatibility with DGMultiFluxDiffSBP
-  fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, size(md.xq, 1))]
-
-  return (; md, Qrst_skew, u_values, fluxdiff_local_threaded,
-            invJ = inv.(md.J), inv_wq = inv.(rd.wq),)
+  return (; u_values, invJ = inv.(md.J) )
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
@@ -430,17 +471,25 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGMultiFluxDiffPeriodicFDSBP, cache)
 
+  @unpack volume_flux = volume_integral
+
   # We expect speedup over the serial version only when using two or more threads
   # since the threaded version below does not exploit the symmetry properties,
   # resulting in a performance penalty of 1/2
   if Threads.nthreads() > 1
-    @unpack inv_wq, Qrst_skew = cache
-    @unpack volume_flux = volume_integral
 
     for dim in eachdim(mesh)
       normal_direction = get_contravariant_vector(1, dim, mesh)
 
-      A = Qrst_skew[dim]
+      # These are strong-form operators of the form `D = M \ Q` where `M` is diagonal
+      # and `Q` is skew-symmetric. Since `M` is diagonal, `inv(M)` scales the rows of `Q`.
+      # Then, `1 / M[i,i] * ∑_j Q[i,j] * volume_flux(u[i], u[j])` is equivalent to
+      #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
+      #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
+      # TODO: DGMulti.
+      # This would have to be changed if `has_nonconservative_terms = Val{false}()`
+      # because then `volume_flux` is non-symmetric.
+      A = dg.basis.Drst[dim]
 
       A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
       row_ids = axes(A, 2)
@@ -455,7 +504,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
           u_j = u[j]
           A_ij = vals[id]
           AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
-          du_i = du_i + AF_ij * inv_wq[i]
+          du_i = du_i + AF_ij
         end
         du[i] = du_i
       end
@@ -463,13 +512,20 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
   else # if using two threads or fewer
 
-    # Calls the usual DGMultiFluxDiffSBP `calc_volume_integral!`, which uses symmetry to reduce
-    # flux evaluations. Symmetry is expected to yield about a 2x speedup, so we default to the
-    # symmetry-exploiting volume integral unless we have >2 threads (which should yield >2 speedup).
-    invoke(calc_volume_integral!,
-           Tuple{typeof(du), typeof(u), typeof(mesh), typeof(have_nonconservative_terms),
-                 typeof(equations), typeof(volume_integral), DGMultiFluxDiffSBP, typeof(cache)},
-           du, u, mesh, have_nonconservative_terms, equations, volume_integral, dg, cache)
+    # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
+    # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
+    # volume integral unless we have >2 threads (which should yield >2 speedup).
+    for dim in eachdim(mesh)
+      normal_direction = get_contravariant_vector(1, dim, mesh)
+
+      A = dg.basis.Drst[dim]
+
+      # since has_nonconservative_terms::Val{false},
+      # the volume flux is symmetric.
+      flux_is_symmetric = Val{true}()
+      hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
+                    normal_direction, u, equations)
+    end
 
   end
 end

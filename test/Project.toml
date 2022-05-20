@@ -15,7 +15,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 BSON = "0.3.3"
-CairoMakie = "0.6, 0.7"
+CairoMakie = "0.6, 0.7, 0.8"
 Cassette = "0.3.5"
 Flux = "0.12.6"
 ForwardDiff = "0.10"
