@@ -89,6 +89,7 @@
 # quadrilateral mesh example. Then, the tutorial will demonstrate how to conceptualize a problem
 # with curved boundaries, generate a curvilinear mesh using the available [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
 # software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.
+# In the end, the tutorial briefly explains how to simulate an example using AMR via `P4estMesh`.
 
 # ### [12 Differentiable programming](@ref differentiable_programming)
 #-

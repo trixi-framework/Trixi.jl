@@ -338,6 +338,7 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 # ## Propagating errors using Measurements.jl
 
 # [![Error bars by Randall Munroe](https://imgs.xkcd.com/comics/error_bars.png)](https://xkcd.com/2110/)
+# "Error bars" by Randall Munroe, linked from https://xkcd.com/2110
 
 # Similar to AD, Trixi also allows propagating uncertainties using linear error propagation
 # theory via [Measurements.jl](https://github.com/JuliaPhysics/Measurements.jl).
