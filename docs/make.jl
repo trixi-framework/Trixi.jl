@@ -34,7 +34,8 @@ files = [
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
     "Shock capturing with flux differencing and stage limiter" => "shock_capturing.jl",
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
-    "`DGMulti` solver and mesh" => "DGMulti_solver_mesh.jl",
+    "DG schemes via `DGMulti` solver" => "DGMulti_1.jl",
+    "Other SBP schemes (FD, CGSEM) via `DGMulti` solver" => "DGMulti_2.jl",
     # Topic: equations
     "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
