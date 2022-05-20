@@ -13,7 +13,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "DGMulti 2D" begin
 
-  @trixi_testset "SemidiscretizationMultiTerm" begin
+  @trixi_testset "SemidiscretizationHyperbolicParabolic" begin
     dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
                  volume_integral = VolumeIntegralWeakForm())
@@ -25,21 +25,25 @@ isdir(outdir) && rm(outdir, recursive=true)
     # split linear advection with vector = (1, 1) into two terms with
     # advection vectors (1, 0) and (0, 1).
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
-    two_equations = (LinearScalarAdvectionEquation2D(1.0, 0.0),
-                     LinearScalarAdvectionEquation2D(0.0, 1.0))
+    equation1 = LinearScalarAdvectionEquation2D(1.0, 0.0)
+    equation2 = LinearScalarAdvectionEquation2D(0.0, 1.0) # our "parabolic" equation
 
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
-    semi_multi = SemidiscretizationMultiTerm(mesh, two_equations, initial_condition, dg)
+    semi_hyp_par = SemidiscretizationHyperbolicParabolic(mesh, equation1, equation2, initial_condition, dg)
 
     ode = semidiscretize(semi, (0.0, 0.01))
-    ode_multi = semidiscretize(semi_multi, (0.0, 0.01))
+    ode_hyp_par = semidiscretize(semi_hyp_par, (0.0, 0.01))
 
     du = similar(ode.u0)
-    du_multi = similar(ode_multi.u0)
+    du_hyp = similar(ode_hyp_par.u0)
+    du_par = similar(ode_hyp_par.u0)
     Trixi.rhs!(du, ode.u0, semi, 0.0)
-    Trixi.rhs!(du_multi, ode_multi.u0, semi_multi, 0.0)
+    Trixi.rhs!(du_hyp, ode_hyp_par.u0, semi_hyp_par, 0.0)
+    Trixi.rhs_parabolic!(du_par, ode_hyp_par.u0, semi_hyp_par, 0.0)
 
-    @test norm(norm.(du .- du_multi)) < 100 * eps()
+    # Test that the sum of the rhs for `equations1` and `equations2` is the same as the rhs
+    # for `equation` with SemidiscretizationHyperbolic.
+    @test norm(norm.(du .- (du_hyp .+ du_par))) < 100 * eps()
   end
 
   @trixi_testset "elixir_euler_weakform.jl" begin
