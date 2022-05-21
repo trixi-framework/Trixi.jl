@@ -2,7 +2,7 @@ module TestExamplesDGMulti2D
 
 using Test
 using Trixi
-using LinearAlgebra: norm
+using Trixi.LinearAlgebra.norm
 
 include("test_trixi.jl")
 
