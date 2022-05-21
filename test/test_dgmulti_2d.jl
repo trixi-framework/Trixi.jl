@@ -2,7 +2,6 @@ module TestExamplesDGMulti2D
 
 using Test
 using Trixi
-using Trixi.LinearAlgebra: norm
 
 include("test_trixi.jl")
 
@@ -44,7 +43,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # Test that the sum of the rhs for `equations1` and `equations2` is the same as the rhs
     # for `equation` with SemidiscretizationHyperbolic.
-    @test norm(norm.(du .- (du_hyp .+ du_par))) < 10 * length(du) * eps()
+    du_diff = du .- (du_hyp .+ du_par)
+    @test sum(abs.(getindex.(du_diff, 1))) < 10 * length(du) * eps()
   end
 
   @trixi_testset "elixir_euler_weakform.jl" begin
