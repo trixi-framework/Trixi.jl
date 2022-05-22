@@ -67,7 +67,7 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
   return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
 end
 
-function reset_du!(du, dg::DGMulti, cache)
+function reset_du!(du, dg::DGMulti, other_args...)
   @threaded for i in eachindex(du)
       du[i] = zero(eltype(du))
   end
@@ -353,9 +353,9 @@ end
 
 
 # Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
-function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache)
+function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1.0)
   @threaded for i in each_dof_global(mesh, dg, cache)
-    du[i] *= -cache.invJ[i]
+    du[i] *= scaling * cache.invJ[i]
   end
 end
 
