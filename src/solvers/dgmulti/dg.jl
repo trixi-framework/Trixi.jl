@@ -41,7 +41,7 @@ end
 
 # iteration over all elements in a mesh
 @inline ndofs(mesh::DGMultiMesh, dg::DGMulti, cache) = dg.basis.Np * mesh.md.num_elements
-@inline eachelement(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(mesh.md.num_elements)
+@inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = eachelement(mesh, dg)
 
 # iteration over quantities in a single element
 @inline nnodes(basis::RefElemData) = basis.Np
@@ -50,8 +50,8 @@ end
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
 @inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(ndofs(mesh, dg, cache))
-@inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
-@inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
+@inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+@inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
