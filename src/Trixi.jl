@@ -114,6 +114,9 @@ include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
 include("time_integration/time_integration.jl")
 
+# TODO: move this around
+include("solvers/dgmulti/diffusion.jl")
+
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
 
