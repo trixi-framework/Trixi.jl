@@ -5,7 +5,7 @@
 # The interface to this package is the `solve(...)` function. It always requires an ODE problem and
 # a time integration algorithm as input parameters.
 # ````julia
-# solve(ode, alg; kwargs)
+# solve(ode, alg; kwargs...)
 # ````
 # In Trixi, the ODE problem is created by `semidiscretize(semi, tspan)` for a semidiscretization
 # `semi` and the time span `tspan`. In particular, [`semidiscretize`](@ref) returns an `ODEProblem`
