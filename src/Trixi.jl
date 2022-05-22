@@ -13,6 +13,9 @@ To get started, run your first simulation with Trixi using
 
 See also: [trixi-framework/Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
 """
+
+# test comment
+
 module Trixi
 
 # Include other packages that are used in Trixi
