@@ -40,16 +40,16 @@ end
 @inline eachdim(mesh) = Base.OneTo(ndims(mesh))
 
 # iteration over all elements in a mesh
-@inline ndofs(mesh::DGMultiMesh, dg::DGMulti, cache) = dg.basis.Np * mesh.md.num_elements
+@inline ndofs(mesh::DGMultiMesh, dg::DGMulti, other_args...) = dg.basis.Np * mesh.md.num_elements
 @inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
 @inline nnodes(basis::RefElemData) = basis.Np
-@inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nfq)
-@inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(dg.basis.Nq)
+@inline each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq)
+@inline each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq)
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
-@inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, cache) = Base.OneTo(ndofs(mesh, dg, cache))
+@inline each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(ndofs(mesh, dg, other_args...))
 @inline each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
 @inline each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 
@@ -353,9 +353,10 @@ end
 
 
 # Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
-function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache)
+# inverts Jacobian and scales by -1.0
+function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1.0)
   @threaded for i in each_dof_global(mesh, dg, cache)
-    du[i] *= -cache.invJ[i]
+    du[i] *= scaling * cache.invJ[i]
   end
 end
 
