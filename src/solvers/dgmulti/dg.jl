@@ -41,7 +41,7 @@ end
 
 # iteration over all elements in a mesh
 @inline ndofs(mesh::DGMultiMesh, dg::DGMulti, cache) = dg.basis.Np * mesh.md.num_elements
-@inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = eachelement(mesh, dg)
+@inline eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...) = Base.OneTo(mesh.md.num_elements)
 
 # iteration over quantities in a single element
 @inline nnodes(basis::RefElemData) = basis.Np
