@@ -67,7 +67,7 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
   return StructArray{SVector{nvars, uEltype}}(ntuple(_->zeros(uEltype, array_dimensions...), nvars))
 end
 
-function reset_du!(du, dg::DGMulti, cache)
+function reset_du!(du, dg::DGMulti, other_args...)
   @threaded for i in eachindex(du)
       du[i] = zero(eltype(du))
   end
