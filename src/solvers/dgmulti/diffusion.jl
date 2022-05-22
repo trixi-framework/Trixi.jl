@@ -43,8 +43,7 @@ end
 # interpolates from solution coefficients to face quadrature points
 function prolong2interfaces!(u_face_values, u, mesh::DGMultiMesh, equations::AbstractParabolicEquations,
                              surface_integral, dg::DGMulti, cache)
-  rd = dg.basis
-  apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
+  apply_to_each_field(mul_by!(dg.basis.Vf), u_face_values, u)
 end
 
 function calc_gradient_surface_integral(u_grad, u, flux_face_values,
@@ -111,6 +110,12 @@ function calc_gradient_boundary_integral!(du, u, mesh, equations, ::BoundaryCond
   return nothing
 end
 
+# do nothing for periodic domains
+function calc_divergence_boundary_integral!(du, u, u_flux, mesh, equations, ::BoundaryConditionPeriodic,
+                                            dg, cache, parabolic_cache)
+  return nothing
+end
+
 function calc_viscous_fluxes!(u_flux, u, u_grad, mesh::DGMultiMesh,
                               equations::AbstractParabolicEquations,
                               dg::DGMulti, cache, parabolic_cache)
@@ -154,24 +159,40 @@ function calc_divergence!(du, u::StructArray, u_flux, mesh::DGMultiMesh,
     end
   end
 
-  # prolong2interfaces!(cache.u_face_values, u, mesh, equations, dg.surface_integral, dg, cache)
+  # interpolates from solution coefficients to face quadrature points
+  @unpack grad_u_face_values = parabolic_cache
+  for dim in eachdim(mesh)
+    prolong2interfaces!(grad_u_face_values[dim], u_flux[dim], mesh, equations,
+                        dg.surface_integral, dg, cache)
+  end
 
-  # # compute fluxes at interfaces
-  # @unpack u_face_values, flux_face_values = cache
-  # @unpack mapM, mapP, Jf = mesh.md
-  # @threaded for face_node_index in each_face_node_global(mesh, dg, cache, parabolic_cache)
-  #   idM, idP = mapM[face_node_index], mapP[face_node_index]
-  #   uM = u_face_values[idM]
-  #   # compute flux if node is not a boundary node
-  #   if idM != idP
-  #     uP = u_face_values[idP]
-  #     flux_face_values[idM] = 0.5 * (uP - uM) # TODO: use strong/weak formulation?
-  #   end
-  # end
+  # compute fluxes at interfaces
+  @unpack grad_u_face_values, flux_face_values = parabolic_cache
+  @unpack mapM, mapP, nxyzJ, Jf = mesh.md
+  @threaded for face_node_index in each_face_node_global(mesh, dg, cache, parabolic_cache)
+    idM, idP = mapM[face_node_index], mapP[face_node_index]
 
-  # calc_divergence_boundary_integral!(du, u, mesh, equations, boundary_conditions, dg, cache, parabolic_cache)
+    # compute f(u, ∇u) ⋅ n
+    flux_face_value = zero(eltype(flux_face_values))
+    for dim in eachdim(mesh)
+      uM = grad_u_face_values[dim][idM]
+      # compute flux if node is not a boundary node
+      if idM != idP
+        uP = grad_u_face_values[dim][idP]
+        # TODO: use strong/weak formulation?
+        flux_face_value = flux_face_value + 0.5 * (uP - uM) * nxyzJ[dim][face_node_index]
+      end
+    end
+    flux_face_values[idM] = flux_face_value
+  end
 
-  invert_jacobian!(du, mesh, equations, dg, cache; scaling=1.0)
+  # surface contributions
+  apply_to_each_field(mul_by_accum!(dg.basis.LIFT), du, flux_face_values)
+
+  calc_divergence_boundary_integral!(du, u, u_flux, mesh, equations, boundary_conditions, dg, cache, parabolic_cache)
+
+  # multiply by -1 when adding to the RHS
+  invert_jacobian!(du, mesh, equations, dg, cache; scaling=-1.0)
 end
 
 # assumptions: parabolic terms are of the form div(f(u, grad(u))) and
@@ -193,6 +214,6 @@ function rhs!(du, u, mesh::DGMultiMesh, equations::AbstractParabolicEquations,
   calc_viscous_fluxes!(viscous_flux, u_transformed, grad_u,
                        mesh, equations, dg, cache, parabolic_cache)
 
-  calc_divergence!(du, grad_u, mesh, equations, boundary_conditions, dg, cache, parabolic_cache)
+  calc_divergence!(du, u_transformed, grad_u, mesh, equations, boundary_conditions, dg, cache, parabolic_cache)
 
 end
