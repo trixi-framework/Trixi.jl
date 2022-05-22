@@ -1,21 +1,8 @@
-
-abstract type AbstractParabolicEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-
-struct ScalarDiffusion2D{T} <: AbstractParabolicEquations{2, 1}
-  diffusivity::T
-end
-
-# no orientation here since the flux is vector-valued
-function flux(u, grad_u, equations::ScalarDiffusion2D)
-  dudx, dudy = grad_u
-  return equations.diffusivity * dudx, equations.diffusivity * dudy
-end
-
 function create_cache(mesh::DGMultiMesh, equations::AbstractParabolicEquations,
                       dg::DGMultiWeakForm, RealT, uEltype)
   nvars = nvariables(equations)
 
-  # u_parabolic stores "transformed" variables for
+  # u_parabolic stores "transformed" variables for computing the gradient
   @unpack md = mesh
   u_transformed = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_grad = ntuple(_ -> similar(u_transformed), ndims(mesh))
@@ -26,10 +13,9 @@ function create_cache(mesh::DGMultiMesh, equations::AbstractParabolicEquations,
   local_viscous_flux = ntuple(_ -> similar(u_transformed, size(md.xq, 1)), ndims(mesh))
 
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  return (; u_transformed, u_grad,
-            viscous_flux, local_viscous_flux,
-            u_face_values, grad_u_face_values,
-            flux_face_values, local_flux_values=similar(flux_face_values[:, 1]))
+  return (; u_transformed, u_grad, viscous_flux, local_viscous_flux,
+            u_face_values, grad_u_face_values, flux_face_values,
+            local_flux_values=similar(flux_face_values[:, 1]))
 end
 
 # Transform variables prior to taking the gradient. Defaults to doing nothing.

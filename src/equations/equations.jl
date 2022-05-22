@@ -329,5 +329,7 @@ include("lattice_boltzmann_3d.jl")
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
 
+abstract type AbstractParabolicEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("scalar_diffusion_2d.jl")
 
 end # @muladd
