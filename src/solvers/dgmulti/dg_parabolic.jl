@@ -204,10 +204,10 @@ function calc_divergence!(du, u::StructArray, viscous_flux, mesh::DGMultiMesh,
 end
 
 # assumptions: parabolic terms are of the form div(f(u, grad(u))) and
-# will be discretized in first order form
-#               - compute grad(u)
-#               - compute f(u, grad(u))
-#               - compute div(u)
+# will be discretized first order form as follows:
+#               1. compute grad(u)
+#               2. compute f(u, grad(u))
+#               3. compute div(u)
 # boundary conditions will be applied to both grad(u) and div(u).
 function rhs!(du, u, mesh::DGMultiMesh, parabolic_equations::AbstractParabolicEquations,
               initial_condition, boundary_conditions, source_terms,
