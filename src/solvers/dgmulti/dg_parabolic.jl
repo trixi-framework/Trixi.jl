@@ -15,13 +15,14 @@ function create_cache(mesh::DGMultiMesh, equations::AbstractParabolicEquations,
   scalar_flux_face_values = similar(u_face_values)
   grad_u_face_values = ntuple(_ -> similar(u_face_values), ndims(mesh))
 
+  local_u_values_threaded = [similar(u_transformed, dg.basis.Nq) for _ in 1:Threads.nthreads()]
   local_viscous_flux_threaded = [ntuple(_ -> similar(u_transformed, dg.basis.Nq), ndims(mesh)) for _ in 1:Threads.nthreads()]
-  local_flux_values_threaded = [similar(scalar_flux_face_values[:, 1]) for _ in 1:Threads.nthreads()]
+  local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1]) for _ in 1:Threads.nthreads()]
 
   return (; u_transformed, u_grad, viscous_flux,
             weak_differentiation_matrices,
             u_face_values, grad_u_face_values, scalar_flux_face_values,
-            local_viscous_flux_threaded, local_flux_values_threaded)
+            local_u_values_threaded, local_viscous_flux_threaded, local_flux_face_values_threaded)
 end
 
 # Transform solution variables prior to taking the gradient
@@ -42,12 +43,12 @@ end
 function calc_gradient_surface_integral(u_grad, u, scalar_flux_face_values,
                                         mesh, equations::AbstractParabolicEquations,
                                         dg::DGMulti, cache, parabolic_cache)
-  @unpack local_flux_values_threaded = parabolic_cache
+  @unpack local_flux_face_values_threaded = parabolic_cache
   @threaded for e in eachelement(mesh, dg)
-    local_flux_values = local_flux_values_threaded[Threads.threadid()]
+    local_flux_values = local_flux_face_values_threaded[Threads.threadid()]
     for dim in eachdim(mesh)
       for i in eachindex(local_flux_values)
-        # compute [u] * (nx, ny, nz)
+        # compute flux * (nx, ny, nz)
         local_flux_values[i] = scalar_flux_face_values[i, e] * mesh.md.nxyzJ[dim][i, e]
       end
       apply_to_each_field(mul_by_accum!(dg.basis.LIFT), view(u_grad[dim], :, e), local_flux_values)
@@ -169,8 +170,7 @@ function calc_viscous_fluxes!(viscous_flux, u, u_grad, mesh::DGMultiMesh,
     reset_du!(viscous_flux[dim], dg)
   end
 
-  @unpack local_viscous_flux_threaded = parabolic_cache
-  local_u_values_threaded = parabolic_cache.local_flux_values_threaded
+  @unpack local_viscous_flux_threaded, local_u_values_threaded = parabolic_cache
 
   @threaded for e in eachelement(mesh, dg)
 
