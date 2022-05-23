@@ -1,4 +1,3 @@
-
 struct ScalarDiffusion2D{T} <: AbstractParabolicEquations{2, 1}
   diffusivity::T
 end
