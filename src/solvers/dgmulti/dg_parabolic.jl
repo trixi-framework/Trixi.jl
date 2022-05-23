@@ -137,12 +137,6 @@ function calc_viscous_fluxes!(viscous_flux, u, u_grad, mesh::DGMultiMesh,
     reset_du!(viscous_flux[dim], dg)
   end
 
-  # @threaded for i in eachindex(u)
-  #   for dim in eachdim(mesh)
-  #     viscous_flux[dim][i] = equations.diffusivity * u_grad[dim][i]
-  #   end
-  # end
-
   @unpack local_viscous_flux_threaded = parabolic_cache
   local_u_values_threaded = parabolic_cache.local_flux_values_threaded
 
