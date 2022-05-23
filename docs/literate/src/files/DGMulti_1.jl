@@ -1,7 +1,7 @@
 #src # DG schemes via `DGMulti` solver
 
 # [`DGMulti`](@ref) is a DG solver that allows meshes with simplex elements. The basic idea and
-# implementation of this solver is already explained in section ["Meshes"](@ref DGMulti).
+# implementation of this solver is explained in section ["Meshes"](@ref DGMulti).
 # Here, we want to give some examples and a quick overview about the options with `DGMulti`.
 
 # We start with a simple example we already used in the [tutorial about flux differencing](@ref fluxDiffExample).
@@ -54,7 +54,7 @@ plot(pd["rho"])
 plot!(getmesh(pd))
 
 # This simulation is not as fast as the equivalent with `TreeMesh` since no special optimizations for
-# Quads (for instance Tensor product structure) have been implemented. Figure 4 in ["Efficient implementation of modern entropy stable
+# quads (for instance tensor product structure) have been implemented. Figure 4 in ["Efficient implementation of modern entropy stable
 # and kinetic energy preserving discontinuous Galerkin methods for conservation laws"](https://arxiv.org/abs/2112.10517)
 # (2021) provides a nice runtime comparison between the different mesh types. On the other hand,
 # the functions are more general and thus we have more option we can choose from.
