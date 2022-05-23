@@ -208,13 +208,9 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     # inner (idM -> minus) and outer (idP -> plus) indices
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM = u_face_values[idM]
-
-    # compute flux if node is not a boundary node
-    if idM != idP
-      uP = u_face_values[idP]
-      normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
-      flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
-    end
+    uP = u_face_values[idP]
+    normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
+    flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
   end
 end
 
