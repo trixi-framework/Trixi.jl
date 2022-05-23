@@ -49,7 +49,7 @@ function calc_gradient_surface_integral(u_grad, u, flux_face_values,
   end
 end
 
-function calc_gradient!(u_grad, u::StructArray, mesh::DGMultiMesh,
+function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
                         equations::AbstractParabolicEquations,
                         boundary_conditions, dg::DGMulti, cache, parabolic_cache)
 
@@ -153,7 +153,7 @@ function calc_viscous_fluxes!(viscous_flux, u, u_grad, mesh::DGMultiMesh,
   end
 end
 
-function calc_divergence!(du, u::StructArray, viscous_flux, mesh::DGMultiMesh,
+function calc_divergence!(du, u::StructArray, t, viscous_flux, mesh::DGMultiMesh,
                           equations::AbstractParabolicEquations,
                           boundary_conditions, dg::DGMulti, cache, parabolic_cache)
 
@@ -209,7 +209,7 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(u)
 # boundary conditions will be applied to both grad(u) and div(u).
-function rhs!(du, u, mesh::DGMultiMesh, parabolic_equations::AbstractParabolicEquations,
+function rhs!(du, u, t, mesh::DGMultiMesh, parabolic_equations::AbstractParabolicEquations,
               initial_condition, boundary_conditions, source_terms,
               dg::DGMulti, cache, parabolic_cache)
 
@@ -218,13 +218,13 @@ function rhs!(du, u, mesh::DGMultiMesh, parabolic_equations::AbstractParabolicEq
   @unpack u_transformed, u_grad, viscous_flux = parabolic_cache
   transform_variables!(u_transformed, u, parabolic_equations)
 
-  calc_gradient!(u_grad, u_transformed, mesh, parabolic_equations,
+  calc_gradient!(u_grad, u_transformed, t, mesh, parabolic_equations,
                  boundary_conditions, dg, cache, parabolic_cache)
 
   calc_viscous_fluxes!(viscous_flux, u_transformed, u_grad,
                        mesh, parabolic_equations, dg, cache, parabolic_cache)
 
-  calc_divergence!(du, u_transformed, viscous_flux, mesh, parabolic_equations,
+  calc_divergence!(du, u_transformed, t, viscous_flux, mesh, parabolic_equations,
                    boundary_conditions, dg, cache, parabolic_cache)
 
   return nothing
