@@ -128,37 +128,33 @@ end
 calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions::NamedTuple{(),Tuple{}},
                     mesh, equations, dg::DGMulti, cache, parabolic_cache) = nothing
 
-# TODO: finish
-function calc_single_boundary_flux!(scalar_flux_face_values, u_face_values, t, operator_type, boundary_condition, boundary_key,
+# TODO: decide if we want to use the input `u_face_values`
+function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
+                                    operator_type, boundary_condition, boundary_key,
                                     mesh, equations, dg::DGMulti{NDIMS}, cache, parabolic_cache) where {NDIMS}
   rd = dg.basis
   md = mesh.md
 
-  # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
-  # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
   num_pts_per_face = rd.Nfq ÷ rd.Nfaces
-  num_faces_total = rd.Nfaces * md.num_elements
-
-  # This function was originally defined as
-  # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
-  # This results in allocations due to https://github.com/JuliaLang/julia/issues/36313.
-  # To avoid allocations, we use Tim Holy's suggestion:
-  # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
-  reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
-
-  # loop through boundary faces, which correspond to columns of reshaped `u_face_values`
   @unpack xyzf, nxyzJ, Jf = md
-  xyzf, nxyzJ, Jf = reshape_by_face.(xyzf), reshape_by_face.(nxyzJ), reshape_by_face(Jf)
   for f in mesh.boundary_faces[boundary_key]
     for i in Base.OneTo(num_pts_per_face)
-      face_normal = SVector{NDIMS}(getindex.(nxyzJ, i, f)) / Jf[i,f]
-      face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
-      # scalar_flux_face_values[i,f] = boundary_condition(u_face_values[i,f],
-      #                                            face_normal, face_coordinates, t,
-      #                                            surface_flux, equations) * Jf[i,f]
+
+      # reverse engineer element + face node indices (avoids reshaping arrays)
+      e = ((f-1) ÷ rd.Nfaces) + 1
+      fid = i + ((f-1) % rd.Nfaces) * num_pts_per_face
+
+      face_normal = SVector{NDIMS}(getindex.(nxyzJ, fid, e)) / Jf[fid,e]
+      face_coordinates = SVector{NDIMS}(getindex.(xyzf, fid, e))
+
+      # for both the gradient and the divergence, the boundary flux is scalar valued.
+      # for the gradient, it is the solution; for divergence, it is the normal flux.
+      u_boundary = boundary_condition(flux_face_values[fid,e],
+                                      face_normal, face_coordinates, t,
+                                      operator_type, equations)
+      flux_face_values[fid,e] = u_boundary
     end
   end
-
   return nothing
 end
 
