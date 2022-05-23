@@ -50,7 +50,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     du = similar(ode.u0)
     # pass in BoundaryConditionPeriodic() to fake a "do nothing" BC
     Trixi.calc_divergence!(du, ode.u0, u_flux, mesh, parabolic_equations, Trixi.BoundaryConditionPeriodic(), dg, cache, parabolic_cache)
-    @test norm(-getindex.(du, 1) - 2 * y) < 1e3 * eps()
+    @test norm(getindex.(du, 1) - 2 * y) < 1e3 * eps()
   end
 
   @trixi_testset "elixir_euler_weakform.jl" begin
