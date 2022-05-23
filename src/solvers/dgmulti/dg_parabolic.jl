@@ -78,30 +78,54 @@ function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
     # compute flux if node is not a boundary node
     if idM != idP
       uP = u_face_values[idP]
+      # {u} - u = 0.5 * (uP - uM)
       flux_face_values[idM] = 0.5 * (uP - uM) # TODO: use strong/weak formulation?
     end
   end
 
+  calc_boundary_flux!(flux_face_values, u, t, Gradient(), boundary_conditions,
+                      mesh, equations, dg, cache, parabolic_cache)
+
   # compute surface contributions
   calc_gradient_surface_integral(u_grad, u, flux_face_values,
                                  mesh, equations, dg, cache, parabolic_cache)
-
-  calc_gradient_boundary_integral!(u_grad, u, mesh, equations, boundary_conditions, dg, cache, parabolic_cache)
 
   for dim in eachdim(mesh)
     invert_jacobian!(u_grad[dim], mesh, equations, dg, cache; scaling=1.0)
   end
 end
 
+# operator types used for dispatch on boundary fluxes
+struct Gradient end
+struct Divergence end
+
 # do nothing for periodic domains
-function calc_gradient_boundary_integral!(du, u, mesh, equations::AbstractParabolicEquations,
-                                          ::BoundaryConditionPeriodic, dg, cache, parabolic_cache)
+function calc_boundary_flux!(flux, u, t, operator_type, ::BoundaryConditionPeriodic,
+                             mesh, equations::AbstractParabolicEquations, dg::DGMulti,
+                             cache, parabolic_cache)
   return nothing
 end
 
-# do nothing for periodic domains
-function calc_divergence_boundary_integral!(du, u, viscous_flux, mesh, equations::AbstractParabolicEquations,
-                                            ::BoundaryConditionPeriodic, dg, cache, parabolic_cache)
+# "lispy tuple programming" instead of for loop for type stability
+function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions,
+                             mesh, equations, dg::DGMulti, cache, parabolic_cache)
+  # peel off first boundary condition
+  calc_single_boundary_flux!(flux, u, t, operator_type, first(boundary_conditions), first(keys(boundary_conditions)),
+                             mesh, equations, dg, cache, parabolic_cache)
+
+  # recurse on the remainder of the boundary conditions
+  calc_boundary_flux!(flux, u, t, operator_type, Base.tail(boundary_conditions),
+                      mesh, equations, dg, cache, parabolic_cache)
+end
+
+# terminate recursion
+calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions::NamedTuple{(),Tuple{}},
+                    mesh, equations, dg::DGMulti, cache, parabolic_cache) = nothing
+
+# TODO: finish
+function calc_single_boundary_flux!(flux, u, t, operator_type, boundary_condition,
+                                    boundary_key, mesh, equations, dg::DGMulti,
+                                    cache, parabolic_cache)
   return nothing
 end
 
@@ -195,10 +219,11 @@ function calc_divergence!(du, u::StructArray, t, viscous_flux, mesh::DGMultiMesh
     flux_face_values[idM] = flux_face_value
   end
 
+  calc_boundary_flux!(flux_face_values, u, t, Divergence(), boundary_conditions,
+                      mesh, equations, dg, cache, parabolic_cache)
+
   # surface contributions
   apply_to_each_field(mul_by_accum!(dg.basis.LIFT), du, flux_face_values)
-
-  calc_divergence_boundary_integral!(du, u, viscous_flux, mesh, equations, boundary_conditions, dg, cache, parabolic_cache)
 
   invert_jacobian!(du, mesh, equations, dg, cache; scaling=1.0)
 end
