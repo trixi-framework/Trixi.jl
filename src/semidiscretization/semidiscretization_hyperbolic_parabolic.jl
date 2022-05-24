@@ -54,12 +54,13 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, ParabolicEquations
 end
 
 """
-    SemidiscretizationHyperbolicParabolic(mesh, equations, initial_condition, solver;
-                                  source_terms=nothing,
-                                  boundary_conditions=boundary_condition_periodic,
-                                  RealT=real(solver),
-                                  uEltype=RealT,
-                                  initial_cache=NamedTuple())
+    SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, solver;
+                                          source_terms=nothing,
+                                          boundary_conditions=boundary_condition_periodic,
+                                          boundary_conditions_parabolic=boundary_condition_periodic,
+                                          RealT=real(solver),
+                                          uEltype=RealT,
+                                          initial_cache=NamedTuple())
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
@@ -96,15 +97,15 @@ end
 # semantics we want to use here. In particular, it allows us to re-use mutable parts,
 # e.g. `remake(semi).mesh === semi.mesh`.
 function remake(semi::SemidiscretizationHyperbolicParabolic; uEltype=real(semi.solver),
-                                                    mesh=semi.mesh,
-                                                    equations=semi.equations,
-                                                    parabolic_equations=semi.parabolic_equations,
-                                                    initial_condition=semi.initial_condition,
-                                                    solver=semi.solver,
-                                                    source_terms=semi.source_terms,
-                                                    boundary_conditions=semi.boundary_conditions,
-                                                    parabolic_boundary_conditions=semi.parabolic_boundary_conditions
-                                                    )
+                                                             mesh=semi.mesh,
+                                                             equations=semi.equations,
+                                                             parabolic_equations=semi.parabolic_equations,
+                                                             initial_condition=semi.initial_condition,
+                                                             solver=semi.solver,
+                                                             source_terms=semi.source_terms,
+                                                             boundary_conditions=semi.boundary_conditions,
+                                                             parabolic_boundary_conditions=semi.parabolic_boundary_conditions
+                                                             )
   # TODO: Which parts do we want to `remake`? At least the solver needs some
   #       special care if shock-capturing volume integrals are used (because of
   #       the indicators and their own caches...).
