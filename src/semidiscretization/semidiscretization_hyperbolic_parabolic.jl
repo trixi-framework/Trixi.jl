@@ -54,12 +54,13 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, ParabolicEquations
 end
 
 """
-    SemidiscretizationHyperbolicParabolic(mesh, equations, initial_condition, solver;
-                                  source_terms=nothing,
-                                  boundary_conditions=boundary_condition_periodic,
-                                  RealT=real(solver),
-                                  uEltype=RealT,
-                                  initial_cache=NamedTuple())
+    SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, solver;
+                                          source_terms=nothing,
+                                          boundary_conditions=boundary_condition_periodic,
+                                          boundary_conditions_parabolic=boundary_condition_periodic,
+                                          RealT=real(solver),
+                                          uEltype=RealT,
+                                          initial_cache=NamedTuple())
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
