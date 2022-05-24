@@ -38,6 +38,7 @@ files = [
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
+    "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
     ]
 tutorials = create_tutorials(files)
