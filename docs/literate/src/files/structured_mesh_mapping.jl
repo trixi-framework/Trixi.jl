@@ -177,7 +177,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 error_density = let u = Trixi.wrap_array(sol.u[end], semi)
   abs.(u[1, :, :, :] .- 1.0) # density, x, y, elements
 end
-pd = ScalarPlotData2D(_error_density, semi)
+pd = ScalarPlotData2D(error_density, semi)
 
 using Plots
 plot(pd, title="Error in density")
