@@ -174,8 +174,8 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 # we calculate the absolute difference of the first conservation variable density `u[1]` and `1.0`.
 # To plot this error and the mesh, we are using the visualization feature `solution_variables`, where
 # you can define your own plotting variables, explained in [visualization](@ref visualization).
-@inline cons2denserror(u, ::CompressibleEulerEquations2D) = SVector(abs(u[1] - 1.0), u...)
-Trixi.varnames(::typeof(cons2denserror), ::CompressibleEulerEquations2D) = ("error_density", "rho", "rho_v1", "rho_v2", "rho_e")
+@inline cons2denserror(u, equations::CompressibleEulerEquations2D) = ntuple(_ -> abs(u[1] - 1.0), nvariables(equations))
+Trixi.varnames(::typeof(cons2denserror), ::CompressibleEulerEquations2D) = ntuple(_ -> "error_density", nvariables(equations))
 pd = PlotData2D(sol; solution_variables=cons2denserror)
 
 using Plots
