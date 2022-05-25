@@ -25,7 +25,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     initial_condition = (x, t, equations) -> SVector(x[1]^2 * x[2])
 
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
-    equations_parabolic = Trixi.ScalarDiffusion2D(1.0)
+    equations_parabolic = Trixi.LaplaceDiffusion2D(1.0)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, equation, equation_parabolic, initial_condition, dg)
     ode = semidiscretize(semi, (0.0, 0.01))
