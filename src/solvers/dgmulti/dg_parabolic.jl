@@ -100,10 +100,6 @@ function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
   end
 end
 
-# operator types used for dispatch on boundary fluxes
-struct Gradient end
-struct Divergence end
-
 # do nothing for periodic domains
 function calc_boundary_flux!(flux, u, t, operator_type, ::BoundaryConditionPeriodic,
                              mesh, equations::AbstractParabolicEquations, dg::DGMulti,

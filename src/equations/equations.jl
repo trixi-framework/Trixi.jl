@@ -331,6 +331,10 @@ include("acoustic_perturbation_2d.jl")
 
 abstract type AbstractParabolicEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 
+# operator types used for dispatch on parabolic boundary fluxes
+struct Gradient end
+struct Divergence end
+
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
 abstract type AbstractScalarDiffusionEquations{NDIMS, NVARS} <: AbstractParabolicEquations{NDIMS, NVARS} end
 include("scalar_diffusion_2d.jl")
