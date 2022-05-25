@@ -13,46 +13,6 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "DGMulti 2D" begin
 
-  @trixi_testset "SemidiscretizationHyperbolicParabolic" begin
-    using Test
-
-    dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
-                 surface_integral = SurfaceIntegralWeakForm(flux_central),
-                 volume_integral = VolumeIntegralWeakForm())
-    mesh = DGMultiMesh(dg, cells_per_dimension=(2, 2))
-
-    # test with polynomial initial condition x^2 * y
-    initial_condition = (x, t, equations) -> SVector(x[1]^2 * x[2])
-
-    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
-    equations_parabolic = Trixi.LaplaceDiffusion2D(1.0)
-
-    semi = SemidiscretizationHyperbolicParabolic(mesh, equation, equation_parabolic, initial_condition, dg)
-    ode = semidiscretize(semi, (0.0, 0.01))
-
-    @unpack cache, parabolic_cache, parabolic_equations = semi
-    @unpack u_grad = parabolic_cache
-    for dim in 1:length(u_grad)
-      fill!(u_grad[dim], zero(eltype(u_grad[dim])))
-    end
-
-    # pass in BoundaryConditionPeriodic() to fake a "do nothing" BC
-    Trixi.calc_gradient!(u_grad, ode.u0, mesh, parabolic_equations, Trixi.BoundaryConditionPeriodic(), dg, cache, parabolic_cache)
-    @unpack x, y = mesh.md
-    @test norm(getindex.(u_grad[1], 1) - 2 * x .* y) < 1e3 * eps()
-    @test norm(getindex.(u_grad[2], 1) - x.^2) < 1e3 * eps()
-
-    u_flux = similar.(u_grad)
-    Trixi.calc_viscous_fluxes!(u_flux, ode.u0, u_grad, mesh, parabolic_equations, dg, cache, parabolic_cache)
-    @test u_flux[1] ≈ u_grad[1]
-    @test u_flux[2] ≈ u_grad[2]
-
-    du = similar(ode.u0)
-    # pass in BoundaryConditionPeriodic() to fake a "do nothing" BC
-    Trixi.calc_divergence!(du, ode.u0, u_flux, mesh, parabolic_equations, Trixi.BoundaryConditionPeriodic(), dg, cache, parabolic_cache)
-    @test norm(getindex.(du, 1) - 2 * y) < 1e3 * eps()
-  end
-
   @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4, 4),
