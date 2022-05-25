@@ -124,7 +124,7 @@ end
 calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions::NamedTuple{(),Tuple{}},
                     mesh, equations, dg::DGMulti, cache, parabolic_cache) = nothing
 
-# TODO: decide if we want to use the input `u_face_values`
+# TODO: DGMulti. Decide if we want to use the input `u_face_values` (currently unused)
 function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
                                     operator_type, boundary_condition, boundary_key,
                                     mesh, equations, dg::DGMulti{NDIMS}, cache, parabolic_cache) where {NDIMS}
@@ -236,6 +236,7 @@ function calc_divergence!(du, u::StructArray, t, viscous_flux, mesh::DGMultiMesh
     scalar_flux_face_values[idM] = flux_face_value
   end
 
+  # TODO: decide what to pass in
   calc_boundary_flux!(scalar_flux_face_values, nothing, t, Divergence(),
                       boundary_conditions, mesh, equations, dg, cache, parabolic_cache)
 
