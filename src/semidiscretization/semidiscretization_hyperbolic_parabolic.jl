@@ -54,16 +54,36 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, ParabolicEquations
 end
 
 """
-    SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, solver;
+    SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
                                           source_terms=nothing,
-                                          boundary_conditions=boundary_condition_periodic,
-                                          boundary_conditions_parabolic=boundary_condition_periodic,
+                                          both_boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
                                           RealT=real(solver),
                                           uEltype=RealT,
-                                          initial_cache=NamedTuple())
+                                          both_initial_caches=(NamedTuple(), NamedTuple()))
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
+function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
+                                               initial_condition, solver;
+                                               source_terms=nothing,
+                                               boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
+                                               # `RealT` is used as real type for node locations etc.
+                                               # while `uEltype` is used as element type of solutions etc.
+                                               RealT=real(solver), uEltype=RealT,
+                                               initial_caches=(NamedTuple(), NamedTuple()))
+
+  hyperbolic_equations, parabolic_equations = equations
+  hyperbolic_boundary_conditions, parabolic_boundary_conditions = boundary_conditions
+  initial_hyperbolic_cache, initial_parabolic_cache = initial_caches
+
+  return SemidiscretizationHyperbolicParabolic(mesh, hyperbolic_equations, parabolic_equations,
+                                               initial_condition, solver; source_terms,
+                                               boundary_conditions=hyperbolic_boundary_conditions,
+                                               parabolic_boundary_conditions=parabolic_boundary_conditions,
+                                               RealT, uEltype, initial_cache=initial_hyperbolic_cache,
+                                               initial_parabolic_cache=initial_parabolic_cache)
+end
+
 function SemidiscretizationHyperbolicParabolic(mesh, equations, parabolic_equations,
                                                initial_condition, solver;
                                                source_terms=nothing,
