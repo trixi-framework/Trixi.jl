@@ -14,7 +14,8 @@ end
 initial_condition = initial_condition_sharp_gaussian
 
 mesh = DGMultiMesh(dg, cells_per_dimension = (16, 16), periodicity=true)
-semi = SemidiscretizationHyperbolicParabolic(mesh, equations, parabolic_equations, initial_condition, dg)
+semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, parabolic_equations),
+                                             initial_condition, dg)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
