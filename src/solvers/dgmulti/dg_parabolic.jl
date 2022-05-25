@@ -251,9 +251,9 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(u)
 # boundary conditions will be applied to both grad(u) and div(u).
-function rhs!(du, u, t, mesh::DGMultiMesh, parabolic_equations::AbstractParabolicEquations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DGMulti, cache, parabolic_cache)
+function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, parabolic_equations::AbstractParabolicEquations,
+                        initial_condition, boundary_conditions, source_terms,
+                        dg::DGMulti, cache, parabolic_cache)
 
   reset_du!(du, dg)
 
