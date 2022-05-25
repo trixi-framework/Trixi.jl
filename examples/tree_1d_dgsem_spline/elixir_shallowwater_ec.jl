@@ -13,7 +13,7 @@ bottom_topography(x) = sin(x) # arbitrary continuous function
 
 # Setting
 range_x         = [-1.0, 1.0]
-num_interp_val  = 100
+num_interp_val  = 10
 x_val           = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
 y_val           = bottom_topography.(x_val)
 

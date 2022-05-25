@@ -1,37 +1,50 @@
+
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# Semidiscretization of the shallow water equations
+# semidiscretization of the compressible Euler equations
 
-equations = ShallowWaterEquations1D(gravity_constant=9.81)
+equations = ShallowWaterEquations2D(gravity_constant=9.81)
 
 # bottom topography function
-bottom_topography(x) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x)
+bottom_topography(x,y) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x) + 0.5 * sin(sqrt(2.0) * pi * y)
 
 # Setting
-range_x         = [0.0, sqrt(2.0)]
-num_interp_val  = 10
-x_val           = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
-y_val           = bottom_topography.(x_val)
+range_x        = [0.0, sqrt(2.0)]
+range_y        = [0.0, sqrt(2.0)]
+num_interp_val = 100
+x_val          = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
+y_val          = Vector(LinRange(range_y[1], range_y[2], num_interp_val))
+z_val          = zeros(num_interp_val, num_interp_val)
+
+for xi in 1:num_interp_val
+  for yi in 1:num_interp_val
+    z_val[yi, xi] = bottom_topography(x_val[xi], y_val[yi])
+  end
+end
 
 # Spline interpolation
-spline          = cubic_spline(x_val, y_val)
-spline_func(x)  = spline_interpolation(spline, x)
+spline           = bicubic_spline(x_val, y_val, z_val)
+spline_func(x,y) = spline_interpolation(spline, x, y )
 
-function initial_condition_convergence_test_spline(x, t, equations::ShallowWaterEquations1D)
-  # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
+function initial_condition_convergence_test_spline(x, t, equations::ShallowWaterEquations2D)
+  # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
   c  = 7.0
   omega_x = 2.0 * pi * sqrt(2.0)
   omega_t = 2.0 * pi
-  
-  H = c + cos(omega_x * x[1]) * cos(omega_t * t)
-  v = 0.5
-  b = spline_func(x[1])
-  return prim2cons(SVector(H, v, b), equations)
+
+  x1, x2 = x
+
+  H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
+  v1 = 0.5
+  v2 = 1.5
+  b = spline_func(x1, x2)
+  return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
 initial_condition = initial_condition_convergence_test_spline
+
 
 ###############################################################################
 # Get the DG approximation space
@@ -43,8 +56,8 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservativ
 ###############################################################################
 # Get the TreeMesh and setup a periodic mesh
 
-coordinates_min = 0.0
-coordinates_max = sqrt(2.0)
+coordinates_min = (0.0, 0.0)
+coordinates_max = (sqrt(2.0), sqrt(2.0))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=10_000,

@@ -15,7 +15,7 @@ function sort_data(x::Vector{Float64}, y::Vector{Float64}, z::Matrix{Float64})
   y_sorted = sort_data_y[:,1]
   z_temp   = sort_data_y[:,2:end]
   z_sorted = z_temp
-
+  
   return x_sorted, y_sorted, Matrix(z_sorted)
 end
 
@@ -29,8 +29,8 @@ function horizontal_derivative(x::Vector{Float64}, y::Vector{Float64}, z::Matrix
 
   for iy in 1:ny
     for ix in 2:(nx-1)
-        inv_hx = 1/(x[ix+1] - x[ix-1])
-        h_deriv[iy, ix] = inv_hx * (z[iy, ix+1] - z[iy, ix-1])
+      inv_hx = 1/(x[ix+1] - x[ix-1])
+      h_deriv[iy, ix] = inv_hx * (z[iy, ix+1] - z[iy, ix-1])
     end
   end
 
