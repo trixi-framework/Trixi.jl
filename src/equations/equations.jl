@@ -340,7 +340,7 @@ struct Gradient end
 struct Divergence end
 
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
-abstract type AbstractScalarDiffusionEquations{NDIMS, NVARS} <: AbstractParabolicEquations{NDIMS, NVARS} end
-include("scalar_diffusion_2d.jl")
+abstract type AbstractLaplaceDiffusionEquations{NDIMS, NVARS} <: AbstractParabolicEquations{NDIMS, NVARS} end
+include("laplace_diffusion_2d.jl")
 
 end # @muladd
