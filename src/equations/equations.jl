@@ -175,6 +175,10 @@ end
   return flux
 end
 
+# Imposing no boundary condition just evaluates the flux at the inner state.
+@inline function no_boundary_condition(flux, other_args...)
+  return flux
+end
 
 # set sensible default values that may be overwritten by specific equations
 """
