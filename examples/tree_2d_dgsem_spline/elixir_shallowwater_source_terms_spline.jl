@@ -13,7 +13,7 @@ bottom_topography(x,y) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x) + 0.5 * sin(sqrt(2.
 # Setting
 range_x        = [0.0, sqrt(2.0)]
 range_y        = [0.0, sqrt(2.0)]
-num_interp_val = 100
+num_interp_val = 1000
 x_val          = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
 y_val          = Vector(LinRange(range_y[1], range_y[2], num_interp_val))
 z_val          = zeros(num_interp_val, num_interp_val)
@@ -29,21 +29,21 @@ spline           = bicubic_spline(x_val, y_val, z_val)
 spline_func(x,y) = spline_interpolation(spline, x, y )
 
 function initial_condition_convergence_test_spline(x, t, equations::ShallowWaterEquations2D)
-  # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
-  c  = 7.0
-  omega_x = 2.0 * pi * sqrt(2.0)
-  omega_t = 2.0 * pi
+    # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
+    c  = 7.0
+    omega_x = 2.0 * pi * sqrt(2.0)
+    omega_t = 2.0 * pi
+  
+    x1, x2 = x
+  
+    H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
+    v1 = 0.5
+    v2 = 1.5
+    b = spline_func(x1, x2)
+    return prim2cons(SVector(H, v1, v2, b), equations)
+  end
 
-  x1, x2 = x
-
-  H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
-  v1 = 0.5
-  v2 = 1.5
-  b = spline_func(x1, x2)
-  return prim2cons(SVector(H, v1, v2, b), equations)
-end
-
-initial_condition = initial_condition_convergence_test_spline
+initial_condition = initial_condition_convergence_test_spline # MMS EOC test
 
 
 ###############################################################################
