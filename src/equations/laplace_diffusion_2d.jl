@@ -1,17 +1,29 @@
 @doc raw"""
-    LaplaceDiffusion2D(diffusivity)
+    LaplaceDiffusion2D(diffusivity, equations)
 
 `LaplaceDiffusion2D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
-with diffusivity ``\kappa`` applied to each solution component.
+with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
+
+If `equations` is not specified, a scalar `LaplaceDiffusion2D` is returned.
 """
-struct LaplaceDiffusion2D{T} <: AbstractLaplaceDiffusionEquations{2, 1}
+struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusionEquations{2, N}
   diffusivity::T
+  equations::E
+end
+
+function LaplaceDiffusion2D(diffusivity, equations=nothing)
+  if equations isa AbstractEquations
+    nvars = nvariables(equations)
+  else # assume scalar diffusion if no equations are specified
+    nvars = 1
+  end
+  return LaplaceDiffusion2D{typeof(equations), nvars, typeof(diffusivity)}(diffusivity, equations)
 end
 
 # no orientation specified since the flux is vector-valued
 function flux(u, grad_u, equations::LaplaceDiffusion2D)
   dudx, dudy = grad_u
-  return equations.diffusivity * dudx, equations.diffusivity * dudy
+  return SVector(equations.diffusivity * dudx, equations.diffusivity * dudy)
 end
 
 # Dirichlet-type boundary condition for use with a parabolic solver in weak form
