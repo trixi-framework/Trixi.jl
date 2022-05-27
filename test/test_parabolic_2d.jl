@@ -27,7 +27,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
     equations_parabolic = LaplaceDiffusion2D(1.0, equations)
 
-    semi = SemidiscretizationHyperbolicParabolic(mesh, equation, equation_parabolic, initial_condition, dg)
+    semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, dg)
     ode = semidiscretize(semi, (0.0, 0.01))
 
     @unpack cache, cache_parabolic, equations_parabolic = semi
