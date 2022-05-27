@@ -25,21 +25,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     initial_condition = (x, t, equations) -> SVector(x[1]^2 * x[2])
 
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
-    equations_parabolic = Trixi.LaplaceDiffusion2D(1.0)
+    equations_parabolic = LaplaceDiffusion2D(1.0)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, equation, equation_parabolic, initial_condition, dg)
     ode = semidiscretize(semi, (0.0, 0.01))
 
     @unpack cache, parabolic_cache, parabolic_equations = semi
     @unpack u_grad = parabolic_cache
-    for dim in 1:length(u_grad)
+    for dim in eachindex(u_grad)
       fill!(u_grad[dim], zero(eltype(u_grad[dim])))
     end
 
     Trixi.calc_gradient!(u_grad, ode.u0, mesh, parabolic_equations, no_boundary_condition, dg, cache, parabolic_cache)
     @unpack x, y = mesh.md
-    @test norm(getindex.(u_grad[1], 1) - 2 * x .* y) < 1e3 * eps()
-    @test norm(getindex.(u_grad[2], 1) - x.^2) < 1e3 * eps()
+    @test getindex.(u_grad[1], 1) ≈ 2 * x .* y
+    @test getindex.(u_grad[2], 1) ≈ x.^2
 
     u_flux = similar.(u_grad)
     Trixi.calc_viscous_fluxes!(u_flux, ode.u0, u_grad, mesh, parabolic_equations, dg, cache, parabolic_cache)
@@ -48,7 +48,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     du = similar(ode.u0)
     Trixi.calc_divergence!(du, ode.u0, u_flux, mesh, parabolic_equations, no_boundary_condition, dg, cache, parabolic_cache)
-    @test norm(getindex.(du, 1) - 2 * y) < 1e3 * eps()
+    @test getindex.(du, 1) ≈ 2 * y
   end
 
 end

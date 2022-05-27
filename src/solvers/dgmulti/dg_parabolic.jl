@@ -62,7 +62,7 @@ function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
 
   @unpack weak_differentiation_matrices = parabolic_cache
 
-  for dim in 1:length(u_grad)
+  for dim in eachindex(u_grad)
     reset_du!(u_grad[dim], dg)
   end
 

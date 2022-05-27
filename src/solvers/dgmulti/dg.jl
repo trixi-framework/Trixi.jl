@@ -350,7 +350,7 @@ end
 
 # Todo: DGMulti. Specialize for modal DG on curved meshes using WADG
 # inverts Jacobian and scales by -1.0
-function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1.0)
+function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache; scaling=-1)
   @threaded for i in each_dof_global(mesh, dg, cache)
     du[i] *= scaling * cache.invJ[i]
   end
