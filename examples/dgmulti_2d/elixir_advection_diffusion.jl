@@ -36,7 +36,7 @@ parabolic_boundary_conditions = (; :left => boundary_condition_left,
                                    :right => boundary_condition_neumann_zero)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, dg;
-                                             boundary_conditions=(boundary_conditions, parabolic_boundary_conditions))
+                                             boundary_conditions=(boundary_conditions, boundary_conditions_parabolic))
 
 tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan)
