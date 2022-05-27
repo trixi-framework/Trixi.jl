@@ -29,6 +29,8 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-tol = 1e-6
-sol = solve(ode, RDPK3SpFSAL49(), abstol=tol, reltol=tol, save_everystep=false, callback=callbacks)
+time_int_tol = 1e-6
+sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
+            save_everystep=false, callback=callbacks)
+
 summary_callback() # print the timer summary
