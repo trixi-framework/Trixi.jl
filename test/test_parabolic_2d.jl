@@ -28,7 +28,17 @@ isdir(outdir) && rm(outdir, recursive=true)
     equations_parabolic = LaplaceDiffusion2D(1.0, equations)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, dg)
+    @test_nowarn_debug show(stdout, semi)
+    @test_nowarn_debug show(stdout, MIME"text/plain"(), semi)
+
+    @test nvariables(semi)==nvariables(equations)
+    @test Base.ndims(semi)==Base.ndims(mesh)
+    @test Base.real(semi)==Base.real(dg)
+
     ode = semidiscretize(semi, (0.0, 0.01))
+    u0 = similar(ode.u0)
+    Trixi.compute_coefficients!(u0, 0.0, semi)
+    @test u0 ≈ ode.u0
 
     @unpack cache, cache_parabolic, equations_parabolic = semi
     @unpack u_grad = cache_parabolic
