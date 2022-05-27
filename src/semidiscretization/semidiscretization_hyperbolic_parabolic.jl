@@ -72,7 +72,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                RealT=real(solver), uEltype=RealT,
                                                initial_caches=(NamedTuple(), NamedTuple()))
 
-  hyperbolic_equations, equations_parabolic = equations
+  equations_hyperbolic, equations_parabolic = equations
   hyperbolic_boundary_conditions, parabolic_boundary_conditions = boundary_conditions
   initial_hyperbolic_cache, initial_cache_parabolic = initial_caches
 
