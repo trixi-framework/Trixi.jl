@@ -13,7 +13,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "SemidiscretizationHyperbolicParabolic" begin
 
-  @trixi_testset "DGMulti 2D" begin
+  @trixi_testset "DGMulti 2D rhs_parabolic!" begin
 
     dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
@@ -49,6 +49,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     du = similar(ode.u0)
     Trixi.calc_divergence!(du, ode.u0, u_flux, mesh, equations_parabolic, boundary_condition_do_nothing, dg, cache, cache_parabolic)
     @test getindex.(du, 1) ≈ 2 * y
+  end
+
+  @trixi_testset "elixir_advection_diffusion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1)
+      l2 = [0.2485803335154642],
+      linf = [1.079606969242132]
+    )
   end
 
 end
