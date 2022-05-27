@@ -53,7 +53,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_advection_diffusion.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
-      cells_per_dimension = (4, 4), tspan=(0.0, 0.1)
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
       l2 = [0.2485803335154642],
       linf = [1.079606969242132]
     )
