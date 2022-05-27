@@ -1,4 +1,4 @@
-module TestExamplesDGMulti2D
+module TestExamplesParabolic2D
 
 using Test
 using Trixi
