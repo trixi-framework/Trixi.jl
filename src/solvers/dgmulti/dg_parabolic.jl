@@ -252,22 +252,22 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(u)
 # boundary conditions will be applied to both grad(u) and div(u).
-function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, parabolic_equations::AbstractParabolicEquations,
+function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::AbstractParabolicEquations,
                         initial_condition, boundary_conditions, source_terms,
                         dg::DGMulti, cache, parabolic_cache)
 
   reset_du!(du, dg)
 
   @unpack u_transformed, u_grad, viscous_flux = parabolic_cache
-  transform_variables!(u_transformed, u, parabolic_equations)
+  transform_variables!(u_transformed, u, equations_parabolic)
 
-  calc_gradient!(u_grad, u_transformed, t, mesh, parabolic_equations,
+  calc_gradient!(u_grad, u_transformed, t, mesh, equations_parabolic,
                  boundary_conditions, dg, cache, parabolic_cache)
 
   calc_viscous_fluxes!(viscous_flux, u_transformed, u_grad,
-                       mesh, parabolic_equations, dg, cache, parabolic_cache)
+                       mesh, equations_parabolic, dg, cache, parabolic_cache)
 
-  calc_divergence!(du, u_transformed, t, viscous_flux, mesh, parabolic_equations,
+  calc_divergence!(du, u_transformed, t, viscous_flux, mesh, equations_parabolic,
                    boundary_conditions, dg, cache, parabolic_cache)
 
   return nothing

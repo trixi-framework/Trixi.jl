@@ -5,7 +5,7 @@ dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(
              volume_integral = VolumeIntegralWeakForm())
 
 equations = LinearScalarAdvectionEquation2D(1.5, 1.0)
-parabolic_equations = LaplaceDiffusion2D(5e-2)
+equations_parabolic = LaplaceDiffusion2D(5e-2)
 
 initial_condition_zero(x, t, equations::LinearScalarAdvectionEquation2D) = SVector(0.0)
 initial_condition = initial_condition_zero
@@ -26,8 +26,8 @@ boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations) -> 
 # define inviscid boundary conditions
 boundary_conditions = (; :left => boundary_condition_left,
                          :bottom => boundary_condition_zero,
-                         :top => no_boundary_condition,
-                         :right => no_boundary_condition)
+                         :top => boundary_condition_do_nothing,
+                         :right => boundary_condition_do_nothing)
 
 # define viscous boundary conditions
 parabolic_boundary_conditions = (; :left => boundary_condition_left,
@@ -35,7 +35,7 @@ parabolic_boundary_conditions = (; :left => boundary_condition_left,
                                    :top => boundary_condition_zero,
                                    :right => boundary_condition_neumann_zero)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, parabolic_equations), initial_condition, dg;
+semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, dg;
                                              boundary_conditions=(boundary_conditions, parabolic_boundary_conditions))
 
 tspan = (0.0, 1.5)

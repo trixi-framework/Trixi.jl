@@ -176,7 +176,7 @@ end
 end
 
 # Imposing no boundary condition just evaluates the flux at the inner state.
-@inline function no_boundary_condition(flux, other_args...)
+@inline function boundary_condition_do_nothing(flux, other_args...)
   return flux
 end
 
