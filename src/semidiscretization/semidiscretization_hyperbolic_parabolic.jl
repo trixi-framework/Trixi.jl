@@ -11,36 +11,36 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a mixed hyperbolic-parabolic conservation law.
 """
-struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, ParabolicEquations, InitialCondition,
-                                             BoundaryConditions, ParabolicBoundaryConditions,
-                                             SourceTerms, Solver, Cache, ParabolicCache} <: AbstractSemidiscretization
+struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic, InitialCondition,
+                                             BoundaryConditions, BoundaryConditionsParabolic,
+                                             SourceTerms, Solver, Cache, CacheParabolic} <: AbstractSemidiscretization
 
   mesh::Mesh
 
   equations::Equations
-  equations_parabolic::ParabolicEquations
+  equations_parabolic::EquationsParabolic
 
   # This guy is a bit messy since we abuse it as some kind of "exact solution"
   # although this doesn't really exist...
   initial_condition::InitialCondition
 
   boundary_conditions::BoundaryConditions
-  parabolic_boundary_conditions::ParabolicBoundaryConditions
+  parabolic_boundary_conditions::BoundaryConditionsParabolic
 
   source_terms::SourceTerms
 
   solver::Solver
-  # TODO: do we want to introduce `parabolic_solver` for future specialization?
+  # TODO: introduce `solver_parabolic` for future specialization.
 
   cache::Cache
-  parabolic_cache::ParabolicCache
+  parabolic_cache::CacheParabolic
 
   performance_counter::PerformanceCounter
 
-  function SemidiscretizationHyperbolicParabolic{Mesh, Equations, ParabolicEquations, InitialCondition, BoundaryConditions, ParabolicBoundaryConditions, SourceTerms, Solver, Cache, ParabolicCache}(
-      mesh::Mesh, equations::Equations, equations_parabolic::ParabolicEquations, initial_condition::InitialCondition,
-      boundary_conditions::BoundaryConditions, parabolic_boundary_conditions::ParabolicBoundaryConditions,
-      source_terms::SourceTerms, solver::Solver, cache::Cache, parabolic_cache::ParabolicCache) where {Mesh, Equations, ParabolicEquations, InitialCondition, BoundaryConditions, ParabolicBoundaryConditions, SourceTerms, Solver, Cache, ParabolicCache}
+  function SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic, InitialCondition, BoundaryConditions, BoundaryConditionsParabolic, SourceTerms, Solver, Cache, CacheParabolic}(
+      mesh::Mesh, equations::Equations, equations_parabolic::EquationsParabolic, initial_condition::InitialCondition,
+      boundary_conditions::BoundaryConditions, parabolic_boundary_conditions::BoundaryConditionsParabolic,
+      source_terms::SourceTerms, solver::Solver, cache::Cache, parabolic_cache::CacheParabolic) where {Mesh, Equations, EquationsParabolic, InitialCondition, BoundaryConditions, BoundaryConditionsParabolic, SourceTerms, Solver, Cache, CacheParabolic}
     @assert ndims(mesh) == ndims(equations)
 
     # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
