@@ -11,14 +11,8 @@ struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusionEquations{2, N}
   equations::E
 end
 
-function LaplaceDiffusion2D(diffusivity, equations=nothing)
-  if equations isa AbstractEquations
-    nvars = nvariables(equations)
-  else # assume scalar diffusion if no equations are specified
-    nvars = 1
-  end
-  return LaplaceDiffusion2D{typeof(equations), nvars, typeof(diffusivity)}(diffusivity, equations)
-end
+LaplaceDiffusion2D(diffusivity, equations) =
+  LaplaceDiffusion2D{typeof(equations), nvariables(equations), typeof(diffusivity)}(diffusivity, equations)
 
 # no orientation specified since the flux is vector-valued
 function flux(u, grad_u, equations::LaplaceDiffusion2D)
