@@ -12,6 +12,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "DGMulti 2D" begin
+
   @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4, 4),
