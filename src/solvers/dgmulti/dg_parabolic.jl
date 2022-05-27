@@ -1,5 +1,5 @@
-function create_cache(mesh::DGMultiMesh, equations::AbstractEquationsParabolic,
-                      dg::DGMultiWeakForm, RealT, uEltype)
+function create_cache_parabolic(mesh::DGMultiMesh, equations::AbstractEquationsParabolic,
+                                dg::DGMulti, RealT, uEltype)
   nvars = nvariables(equations)
 
   @unpack M, Drst = dg.basis
