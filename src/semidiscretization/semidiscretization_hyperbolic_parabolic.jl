@@ -61,7 +61,7 @@ end
                                           uEltype=RealT,
                                           both_initial_caches=(NamedTuple(), NamedTuple()))
 
-Construct a semidiscretization of a hyperbolic PDE.
+Construct a semidiscretization of a hyperbolic-parabolic PDE.
 """
 function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                initial_condition, solver;

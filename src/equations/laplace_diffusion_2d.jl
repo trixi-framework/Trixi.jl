@@ -1,8 +1,8 @@
 @doc raw"""
-    LaplaceDiffusion2D{T} <: AbstractParabolicEquations{2, 1}
+    LaplaceDiffusion2D(diffusivity)
 
 `LaplaceDiffusion2D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
-applied to each solution component.
+with diffusivity ``\kappa`` applied to each solution component.
 """
 struct LaplaceDiffusion2D{T} <: AbstractLaplaceDiffusionEquations{2, 1}
   diffusivity::T

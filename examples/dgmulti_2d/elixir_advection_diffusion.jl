@@ -1,4 +1,3 @@
-
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
@@ -12,15 +11,15 @@ initial_condition_zero(x, t, equations::LinearScalarAdvectionEquation2D) = SVect
 initial_condition = initial_condition_zero
 
 # tag different boundary segments
-left(x, tol=50*eps()) = abs(x[1]+1)<tol
-right(x, tol=50*eps()) = abs(x[1]-1)<tol
-bottom(x, tol=50*eps()) = abs(x[2]+1)<tol
-top(x, tol=50*eps()) = abs(x[2]-1)<tol
+left(x, tol=50*eps()) = abs(x[1] + 1) < tol
+right(x, tol=50*eps()) = abs(x[1] - 1) < tol
+bottom(x, tol=50*eps()) = abs(x[2] + 1) < tol
+top(x, tol=50*eps()) = abs(x[2] - 1) < tol
 is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom)
 mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); is_on_boundary)
 
 # BC types
-boundary_condition_left = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 + .1 * x[2]))
+boundary_condition_left = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 + 0.1 * x[2]))
 boundary_condition_zero = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0))
 boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations) -> SVector(0.0))
 
@@ -49,8 +48,8 @@ callbacks = CallbackSet(summary_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-tol = 1e-6
-tsave = LinRange(tspan..., 10)
-sol = solve(ode, RDPK3SpFSAL49(), abstol=tol, reltol=tol, save_everystep=false,
-            saveat=tsave, callback=callbacks)
+time_int_tol = 1e-6
+saveat = LinRange(tspan..., 10)
+sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol, save_everystep=false,
+            saveat=saveat, callback=callbacks)
 summary_callback() # print the timer summary
