@@ -175,6 +175,21 @@ end
   return flux
 end
 
+"""
+    BoundaryConditionNeumann(boundary_value_function)
+
+Similar to `BoundaryConditionDirichlet`, but creates a Neumann boundary condition for parabolic
+equations that uses the function  `boundary_value_function` to specify the values at the boundary.
+The passed boundary value function will be called with the same arguments as an initial condition function is called, i.e., as
+```julia
+boundary_value_function(x, t, equations)
+```
+where `x` specifies the coordinates, `t` is the current time, and `equation` is the corresponding system of equations.
+"""
+struct BoundaryConditionNeumann{B}
+  boundary_value_function::B
+end
+
 # Imposing no boundary condition just evaluates the flux at the inner state.
 @inline function boundary_condition_do_nothing(flux, other_args...)
   return flux
@@ -333,14 +348,14 @@ include("lattice_boltzmann_3d.jl")
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
 
-abstract type AbstractParabolicEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 
 # operator types used for dispatch on parabolic boundary fluxes
 struct Gradient end
 struct Divergence end
 
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
-abstract type AbstractLaplaceDiffusionEquations{NDIMS, NVARS} <: AbstractParabolicEquations{NDIMS, NVARS} end
+abstract type AbstractLaplaceDiffusionEquations{NDIMS, NVARS} <: AbstractEquationsParabolic{NDIMS, NVARS} end
 include("laplace_diffusion_2d.jl")
 
 end # @muladd

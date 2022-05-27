@@ -27,11 +27,6 @@ end
   return flux_inner
 end
 
-# `boundary_value_function` should have signature `boundary_value_function(x, t, equations)`
-# For Neumann BCs, this corresponds to kappa * (∇u ⋅ n)
-struct BoundaryConditionNeumann{B}
-  boundary_value_function::B
-end
 
 @inline function (boundary_condition::BoundaryConditionNeumann)(u_inner, normal::AbstractVector,
                                                                 x, t, operator_type::Gradient,
