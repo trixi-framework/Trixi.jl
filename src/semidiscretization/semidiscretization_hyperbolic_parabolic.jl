@@ -162,8 +162,8 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     summary_header(io, "SemidiscretizationHyperbolicParabolic")
     summary_line(io, "#spatial dimensions", ndims(semi.equations))
     summary_line(io, "mesh", semi.mesh)
-    summary_line(io, "equations", semi.equations |> typeof |> nameof)
-    summary_line(io, "equations_parabolic", semi.equations_parabolic |> typeof |> nameof)
+    summary_line(io, "hyperbolic equations", semi.equations |> typeof |> nameof)
+    summary_line(io, "parabolic equations", semi.equations_parabolic |> typeof |> nameof)
     summary_line(io, "initial condition", semi.initial_condition)
 
     # print_boundary_conditions(io, semi)
