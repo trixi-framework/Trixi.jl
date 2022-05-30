@@ -210,11 +210,6 @@ end
   return flux_inner
 end
 
-# Imposing no boundary condition just evaluates the flux at the inner state.
-@inline function boundary_condition_do_nothing(inner_flux_or_state, other_args...)
-  return inner_flux_or_state
-end
-
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
