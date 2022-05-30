@@ -12,6 +12,9 @@ end
 LaplaceDiffusion2D(diffusivity, equations) =
   LaplaceDiffusion2D{typeof(equations), nvariables(equations), typeof(diffusivity)}(diffusivity, equations)
 
+varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D) =
+  varnames(variable_mapping, equations_parabolic.equations)
+
 # no orientation specified since the flux is vector-valued
 function flux(u, grad_u, equations::LaplaceDiffusion2D)
   dudx, dudy = grad_u
