@@ -47,8 +47,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     t = 0.0
-    # pass in `boundary_condition_periodic` to fake "do-nothing"
-    # TODO: DGMulti. Make `boundary_condition_do_nothing` a callable struct like BoundaryConditionPeriodic
+    # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
     Trixi.calc_gradient!(u_grad, ode.u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
     @unpack x, y = mesh.md
