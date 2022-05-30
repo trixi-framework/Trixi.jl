@@ -41,6 +41,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     Trixi.compute_coefficients!(u0, 0.0, semi)
     @test u0 ≈ ode.u0
 
+    # test "do nothing" BC just returns first argument
+    @test boundary_condition_do_nothing(u0, nothing) == u0
+
     @unpack cache, cache_parabolic, equations_parabolic = semi
     @unpack u_grad = cache_parabolic
     for dim in eachindex(u_grad)
