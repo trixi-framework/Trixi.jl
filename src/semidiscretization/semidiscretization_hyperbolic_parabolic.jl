@@ -13,7 +13,7 @@ of a mixed hyperbolic-parabolic conservation law.
 """
 struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic, InitialCondition,
                                              BoundaryConditions, BoundaryConditionsParabolic,
-                                             SourceTerms, Solver, Cache, CacheParabolic} <: AbstractSemidiscretization
+                                             SourceTerms, Solver, SolverParabolic, Cache, CacheParabolic} <: AbstractSemidiscretization
 
   mesh::Mesh
 
@@ -30,17 +30,17 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
   source_terms::SourceTerms
 
   solver::Solver
-  # TODO: introduce `solver_parabolic` for future specialization.
+  solver_parabolic::SolverParabolic
 
   cache::Cache
   cache_parabolic::CacheParabolic
 
   performance_counter::PerformanceCounter
 
-  function SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic, InitialCondition, BoundaryConditions, BoundaryConditionsParabolic, SourceTerms, Solver, Cache, CacheParabolic}(
+  function SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic, InitialCondition, BoundaryConditions, BoundaryConditionsParabolic, SourceTerms, Solver, SolverParabolic, Cache, CacheParabolic}(
       mesh::Mesh, equations::Equations, equations_parabolic::EquationsParabolic, initial_condition::InitialCondition,
       boundary_conditions::BoundaryConditions, boundary_conditions_parabolic::BoundaryConditionsParabolic,
-      source_terms::SourceTerms, solver::Solver, cache::Cache, cache_parabolic::CacheParabolic) where {Mesh, Equations, EquationsParabolic, InitialCondition, BoundaryConditions, BoundaryConditionsParabolic, SourceTerms, Solver, Cache, CacheParabolic}
+      source_terms::SourceTerms, solver::Solver, solver_parabolic::SolverParabolic, cache::Cache, cache_parabolic::CacheParabolic) where {Mesh, Equations, EquationsParabolic, InitialCondition, BoundaryConditions, BoundaryConditionsParabolic, SourceTerms, Solver, SolverParabolic, Cache, CacheParabolic}
     @assert ndims(mesh) == ndims(equations)
 
     # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
@@ -49,12 +49,13 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
 
     new(mesh, equations, equations_parabolic, initial_condition,
         boundary_conditions, boundary_conditions_parabolic,
-        source_terms, solver, cache, cache_parabolic, performance_counter)
+        source_terms, solver, solver_parabolic, cache, cache_parabolic, performance_counter)
   end
 end
 
 """
     SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
+                                          solver_parabolic=default_parabolic_solver(),
                                           source_terms=nothing,
                                           both_boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
                                           RealT=real(solver),
@@ -65,6 +66,7 @@ Construct a semidiscretization of a hyperbolic-parabolic PDE.
 """
 function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                initial_condition, solver;
+                                               solver_parabolic=default_parabolic_solver(),
                                                source_terms=nothing,
                                                boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
                                                # `RealT` is used as real type for node locations etc.
@@ -77,7 +79,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
   initial_hyperbolic_cache, initial_cache_parabolic = initial_caches
 
   return SemidiscretizationHyperbolicParabolic(mesh, equations_hyperbolic, equations_parabolic,
-                                               initial_condition, solver; source_terms,
+                                               initial_condition, solver; solver_parabolic, source_terms,
                                                boundary_conditions=boundary_conditions_hyperbolic,
                                                boundary_conditions_parabolic=boundary_conditions_parabolic,
                                                RealT, uEltype, initial_cache=initial_hyperbolic_cache,
@@ -86,6 +88,7 @@ end
 
 function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
                                                initial_condition, solver;
+                                               solver_parabolic=default_parabolic_solver(),
                                                source_terms=nothing,
                                                boundary_conditions=boundary_condition_periodic,
                                                boundary_conditions_parabolic=boundary_condition_periodic,
@@ -99,15 +102,15 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
   _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
   _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic, mesh, solver, cache)
 
-  cache_parabolic = (; create_cache_parabolic(mesh, equations_parabolic, solver, RealT, uEltype)...,
+  cache_parabolic = (; create_cache_parabolic(mesh, equations_parabolic, solver, solver_parabolic, RealT, uEltype)...,
                                               initial_cache_parabolic...)
 
   SemidiscretizationHyperbolicParabolic{typeof(mesh), typeof(equations), typeof(equations_parabolic),
                                         typeof(initial_condition), typeof(_boundary_conditions), typeof(_boundary_conditions_parabolic),
-                                        typeof(source_terms), typeof(solver), typeof(cache), typeof(cache_parabolic)}(
+                                        typeof(source_terms), typeof(solver), typeof(solver_parabolic), typeof(cache), typeof(cache_parabolic)}(
     mesh, equations, equations_parabolic, initial_condition,
     _boundary_conditions, _boundary_conditions_parabolic, source_terms,
-    solver, cache, cache_parabolic)
+    solver, solver_parabolic, cache, cache_parabolic)
 end
 
 
@@ -122,6 +125,7 @@ function remake(semi::SemidiscretizationHyperbolicParabolic; uEltype=real(semi.s
                                                              equations_parabolic=semi.equations_parabolic,
                                                              initial_condition=semi.initial_condition,
                                                              solver=semi.solver,
+                                                             solver_parabolic=semi.solver_parabolic,
                                                              source_terms=semi.source_terms,
                                                              boundary_conditions=semi.boundary_conditions,
                                                              boundary_conditions_parabolic=semi.boundary_conditions_parabolic
@@ -130,7 +134,7 @@ function remake(semi::SemidiscretizationHyperbolicParabolic; uEltype=real(semi.s
   #       special care if shock-capturing volume integrals are used (because of
   #       the indicators and their own caches...).
   SemidiscretizationHyperbolicParabolic(
-    mesh, equations, equations_parabolic, initial_condition, solver; source_terms, boundary_conditions, boundary_conditions_parabolic, uEltype)
+    mesh, equations, equations_parabolic, initial_condition, solver; solver_parabolic, source_terms, boundary_conditions, boundary_conditions_parabolic, uEltype)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolicParabolic)
@@ -145,6 +149,7 @@ function Base.show(io::IO, semi::SemidiscretizationHyperbolicParabolic)
   print(io, ", ", semi.boundary_conditions_parabolic)
   print(io, ", ", semi.source_terms)
   print(io, ", ", semi.solver)
+  print(io, ", ", semi.solver_parabolic)
   print(io, ", cache(")
   for (idx,key) in enumerate(keys(semi.cache))
     idx > 1 && print(io, " ")
@@ -170,6 +175,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
     summary_line(io, "source terms", semi.source_terms)
     summary_line(io, "solver", semi.solver |> typeof |> nameof)
+    summary_line(io, "parabolic solver", semi.solver_parabolic |> typeof |> nameof)
     summary_line(io, "total #DOFs", ndofs(semi))
     summary_footer(io)
   end
@@ -236,7 +242,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 end
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-  @unpack mesh, equations_parabolic, initial_condition, boundary_conditions_parabolic, source_terms, solver, cache, cache_parabolic = semi
+  @unpack mesh, equations_parabolic, initial_condition, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
   u  = wrap_array(u_ode,  mesh, equations_parabolic, solver, cache_parabolic)
   du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)
@@ -245,7 +251,7 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
   time_start = time_ns()
   @trixi_timeit timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh, equations_parabolic, initial_condition,
                                                         boundary_conditions_parabolic, source_terms,
-                                                        solver, cache, cache_parabolic)
+                                                        solver, solver_parabolic, cache, cache_parabolic)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 
