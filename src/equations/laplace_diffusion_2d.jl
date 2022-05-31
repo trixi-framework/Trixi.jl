@@ -21,6 +21,10 @@ function flux(u, grad_u, equations::LaplaceDiffusion2D)
   return SVector(equations.diffusivity * dudx, equations.diffusivity * dudy)
 end
 
+function penalty(u_outer, u_inner, inv_h, equations::LaplaceDiffusion2D, dg::LDG)
+  return dg.penalty_parameter * (u_outer - u_inner) * equations.diffusivity * inv_h
+end
+
 # Dirichlet-type boundary condition for use with a parabolic solver in weak form
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, normal::AbstractVector,
                                                                   x, t, operator_type::Gradient,
