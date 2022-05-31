@@ -31,9 +31,8 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 # solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
 @inline function apply_to_each_field(f::MulByAccumUniformScaling, out, x, args...)
-  # TODO: DGMulti speed up using threads
-  for (i, x_i) in enumerate(x)
-    out[i] = out[i] + x_i
+  @threaded for i in eachindex(x)
+    out[i] = out[i] + x[i]
   end
 end
 

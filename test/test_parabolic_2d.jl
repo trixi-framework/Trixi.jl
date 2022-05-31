@@ -30,6 +30,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, dg)
     @test_nowarn_debug show(stdout, semi)
     @test_nowarn_debug show(stdout, MIME"text/plain"(), semi)
+    @test_nowarn_debug show(stdout, boundary_condition_do_nothing)
 
     @test nvariables(semi)==nvariables(equations)
     @test Base.ndims(semi)==Base.ndims(mesh)
@@ -40,6 +41,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     Trixi.compute_coefficients!(u0, 0.0, semi)
     @test u0 ≈ ode.u0
 
+    # test "do nothing" BC just returns first argument
+    @test boundary_condition_do_nothing(u0, nothing) == u0
+
     @unpack cache, cache_parabolic, equations_parabolic = semi
     @unpack u_grad = cache_parabolic
     for dim in eachindex(u_grad)
@@ -47,8 +51,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     t = 0.0
-    # pass in `boundary_condition_periodic` to fake "do-nothing"
-    # TODO: DGMulti. Make `boundary_condition_do_nothing` a callable struct like BoundaryConditionPeriodic
+    # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
     Trixi.calc_gradient!(u_grad, ode.u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
     @unpack x, y = mesh.md
