@@ -1,4 +1,4 @@
-# Unstructured meshes and the `DGMulti` solver
+# [Unstructured meshes and the `DGMulti` solver](@id DGMulti)
 
 Trixi includes support for simplicial and tensor product meshes via the `DGMulti` solver type,
 which is based on the [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl) package.
