@@ -7,6 +7,7 @@
 
 include("dg.jl")
 include("dgmulti.jl")
+include("parabolic.jl")
 
 
 end # @muladd
