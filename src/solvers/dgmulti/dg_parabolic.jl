@@ -204,13 +204,6 @@ function calc_viscous_fluxes!(viscous_flux, u, u_grad, mesh::DGMultiMesh,
   end
 end
 
-# no penalization for a BR1 parabolic solver
-function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, boundary_conditions,
-                               mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
-                               dg_parabolic::BR1, cache, cache_parabolic)
-  return nothing
-end
-
 function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, boundary_conditions,
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
                                dg_parabolic, cache, cache_parabolic)
