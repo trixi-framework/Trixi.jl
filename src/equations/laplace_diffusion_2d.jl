@@ -21,7 +21,9 @@ function flux(u, grad_u, equations::LaplaceDiffusion2D)
   return SVector(equations.diffusivity * dudx, equations.diffusivity * dudy)
 end
 
-# TODO: should we move this to a different location?
+# TODO: should this remain in the equations file, be moved to solvers, or live in the elixir?
+# The penalization depends on the solver, but also depends explicitly on physical parameters,
+# and would probably need to be specialized for every different equation.
 function penalty(u_outer, u_inner, inv_h, equations::LaplaceDiffusion2D, dg::ViscousFluxLocalDG)
   return dg.penalty_parameter * (u_outer - u_inner) * equations.diffusivity * inv_h
 end
