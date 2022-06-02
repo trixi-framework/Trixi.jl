@@ -21,7 +21,8 @@ function flux(u, grad_u, equations::LaplaceDiffusion2D)
   return SVector(equations.diffusivity * dudx, equations.diffusivity * dudy)
 end
 
-function penalty(u_outer, u_inner, inv_h, equations::LaplaceDiffusion2D, dg::LDG)
+# TODO: should we move this to a different location?
+function penalty(u_outer, u_inner, inv_h, equations::LaplaceDiffusion2D, dg::ViscousFluxLocalDG)
   return dg.penalty_parameter * (u_outer - u_inner) * equations.diffusivity * inv_h
 end
 
