@@ -5,19 +5,34 @@
 #    using .Trixi2Txt
 #    Trixi2Txt.trixi2txt("out/file_name")
 #
+#  It may be that you need to install the Glob package by running
+#  `import Pkg; Pkg.add("Glob")`.
+#
+#  After the HDF5 files have been converted to `.txt` the 1D solution can be
+#  visualized in ParaView with the following steps:
+#
+#    1) Open the set of `solution_*.txt` files
+#    2) Change the "Field Delimiter Characters" field to be a space instead of a comma
+#    3) Check the box for "Merge Consecutive Delimiters"
+#    4) Create a plot using Filters -> Data Analysis -> Plot Data
+#    5) Within Plot Data, uncheck "Use Index For XAxis"
+#    6) Select the `x` values for "X Array Name"
+#    7) Now you can adjust the plots and make movies or save screenshots of the solution
 module Trixi2Txt
 
 using EllipsisNotation
 using Glob: glob
 using Printf: @printf
 using HDF5: h5open, attributes, haskey
-using Tullio: @tullio
+using MuladdMacro: @muladd
+# using Tullio: @tullio
 using LoopVectorization
 using StaticArrays
+using UnPack: @unpack
 
 include("../src/basic_types.jl")
-include("../src/solvers/dg/basis_lobatto_legendre.jl")
-include("../src/solvers/dg/interpolation.jl")
+include("../src/solvers/dgsem/basis_lobatto_legendre.jl")
+include("../src/solvers/dgsem/interpolation.jl")
 
 function trixi2txt(filename::AbstractString...;
                    variables=[], output_directory=".", nvisnodes=nothing, max_supported_level=11)
@@ -121,7 +136,7 @@ function trixi2txt(filename::AbstractString...;
       for idx in 1:length(xs)
         @printf(io, "%+10.8e", xs[idx])
         for variable_id in 1:length(variables)
-          @printf(io, " %+10.8e", node_centered_data[idx, variable_id])
+          @printf(io, " %+10.8e ", node_centered_data[idx, variable_id])
         end
         println(io)
       end
@@ -316,10 +331,15 @@ function cell2node(cell_centered_data::AbstractArray{Float64})
   # Fill center with original data
   tmp[2:end-1, :] .= cell_centered_data
 
-  # Fill sides with opposite data (periodic domain)
+  # # Fill sides with opposite data (periodic domain)
+  # # x-direction
+  # tmp[1,   :] .= cell_centered_data[end, :]
+  # tmp[end, :] .= cell_centered_data[1,   :]
+
+  # Fill sides with duplicate information
   # x-direction
-  tmp[1,   :] .= cell_centered_data[end, :]
-  tmp[end, :] .= cell_centered_data[1,   :]
+  tmp[1,   :] .= cell_centered_data[1,   :]
+  tmp[end, :] .= cell_centered_data[end, :]
 
   # Create output data structure
   resolution_in, n_variables = size(cell_centered_data)

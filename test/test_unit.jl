@@ -542,6 +542,9 @@ Cassette.@context Ctx
       entropy_vars = cons2entropy(cons_vars,equations)
       @test cons_vars ≈ entropy2cons(entropy_vars,equations)
 
+      total_energy = energy_total(cons_vars, equations)
+      @test total_energy ≈ entropy(cons_vars, equations)
+
       # test tuple args
       cons_vars = prim2cons((H, v1, v2, b), equations)
       entropy_vars = cons2entropy(cons_vars, equations)

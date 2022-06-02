@@ -47,7 +47,7 @@ ode = semidiscretize(semi, tspan)
 # bottom topography function and initial condtion for this academic testcase of entropy conservation.
 # The errors from the analysis callback are not important but `∑∂S/∂U ⋅ Uₜ` should be around machine roundoff
 # In contrast to the usual signature of initial conditions, this one get passed the
-# `element_id` explicitly. In particular, this initial conditions works as intended 
+# `element_id` explicitly. In particular, this initial conditions works as intended
 # only for the specific mesh loaded above!
 function initial_condition_ec_discontinuous_bottom(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set up polar coordinates

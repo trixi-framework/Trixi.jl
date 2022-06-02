@@ -109,7 +109,7 @@
 
 
 
-# ## Implementation in Trixi
+# ## [Implementation in Trixi](@id fluxDiffExample)
 # Now, we have a look at the implementation of DGSEM with flux differencing with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
 using OrdinaryDiffEq, Trixi
 
