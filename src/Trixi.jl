@@ -105,6 +105,7 @@ include("auxiliary/p4est.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
+include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
@@ -221,6 +222,8 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
 export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
+
+export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level

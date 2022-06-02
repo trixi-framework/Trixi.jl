@@ -65,8 +65,8 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test u_flux[2] ≈ u_grad[2]
 
     du = similar(ode.u0)
-    Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic,
-                           boundary_condition_periodic, dg, cache, cache_parabolic)
+    Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic, boundary_condition_periodic,
+                           dg, semi.solver_parabolic, cache, cache_parabolic)
     @test getindex.(du, 1) ≈ 2 * y
   end
 

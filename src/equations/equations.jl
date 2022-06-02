@@ -350,8 +350,4 @@ include("acoustic_perturbation_2d.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 
-# Linear scalar diffusion for use in linear scalar advection-diffusion problems
-abstract type AbstractLaplaceDiffusionEquations{NDIMS, NVARS} <: AbstractEquationsParabolic{NDIMS, NVARS} end
-include("laplace_diffusion_2d.jl")
-
 end # @muladd
