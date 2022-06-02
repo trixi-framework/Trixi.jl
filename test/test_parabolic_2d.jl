@@ -65,9 +65,17 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test u_flux[2] ≈ u_grad[2]
 
     du = similar(ode.u0)
-    Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic,
-                           boundary_condition_periodic, dg, cache, cache_parabolic)
+    Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic, boundary_condition_periodic,
+                           dg, semi.solver_parabolic, cache, cache_parabolic)
     @test getindex.(du, 1) ≈ 2 * y
+  end
+
+  @trixi_testset "elixir_advection_diffusion_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_periodic.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
+      l2 = [0.03180371984888462],
+      linf = [0.2136821621370909]
+    )
   end
 
   @trixi_testset "elixir_advection_diffusion.jl" begin

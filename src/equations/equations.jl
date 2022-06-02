@@ -179,14 +179,6 @@ end
 struct Gradient end
 struct Divergence end
 
-# Dirichlet-type boundary condition for use with parabolic equations.
-@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, normal::AbstractVector,
-                                                                  x, t, operator_type::Divergence,
-                                                                  equations)
-  return u_inner
-end
-
-
 """
     BoundaryConditionNeumann(boundary_normal_flux_function)
 
@@ -201,18 +193,6 @@ where `x` specifies the coordinates, `t` is the current time, and `equation` is 
 """
 struct BoundaryConditionNeumann{B}
   boundary_normal_flux_function::B
-end
-
-# specify default behavior for a Neumann BC is to evaluate the flux at the inner state
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, normal::AbstractVector,
-                                                                x, t, operator_type::Gradient,
-                                                                equations)
-  return flux_inner
-end
-
-# Imposing no boundary condition just evaluates the flux at the inner state.
-@inline function boundary_condition_do_nothing(inner_flux_or_state, other_args...)
-  return inner_flux_or_state
 end
 
 # set sensible default values that may be overwritten by specific equations
@@ -369,9 +349,5 @@ abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEqu
 include("acoustic_perturbation_2d.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-
-# Linear scalar diffusion for use in linear scalar advection-diffusion problems
-abstract type AbstractLaplaceDiffusionEquations{NDIMS, NVARS} <: AbstractEquationsParabolic{NDIMS, NVARS} end
-include("laplace_diffusion_2d.jl")
 
 end # @muladd
