@@ -4,8 +4,8 @@ dg = DGMulti(polydeg = 1, element_type = Tri(), approximation_type = Polynomial(
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
-equations = LinearScalarAdvectionEquation2D(.0, .0)
-equations_parabolic = LaplaceDiffusion2D(5e-1, equations)
+equations = LinearScalarAdvectionEquation2D(0.0, 0.0)
+equations_parabolic = LaplaceDiffusion2D(5.0e-1, equations)
 
 function initial_condition_sharp_gaussian(x, t, equations::LinearScalarAdvectionEquation2D)
   return SVector(exp(-100 * (x[1]^2 + x[2]^2)))
@@ -16,7 +16,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension = (16, 16), periodicity=true)
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg)
 
-tspan = (0.0, .10)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
