@@ -1,10 +1,13 @@
 """
-  struct BR1 end
+    BR1()
 
-The Bassi-Rebay flux from "A High-Order Accurate Discontinuous Finite Element Method for
-the Numerical Solution of the Compressible Navier-Stokes Equations" by Bassi, Rebay (1997).
+"""
+The classical BR1 flux from
 
-https://doi.org/10.1006/jcph.1996.5572
+- F. Bassi, S. Rebay (1997)
+  A High-Order Accurate Discontinuous Finite Element Method for
+  the Numerical Solution of the Compressible Navier-Stokes Equations
+  [DOI: 10.1006/jcph.1996.5572](https://doi.org/10.1006/jcph.1996.5572)
 """
 struct BR1 end
 
@@ -16,17 +19,18 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
 end
 
 """
-  struct LDG{P}
-    penalty_parameter::P
-  end
+    LDG(penalty_parameter)
 
 The local DG (LDG) flux from "The Local Discontinuous Galerkin Method for Time-Dependent
 Convection-Diffusion Systems" by Cockburn and Shu (1998).
 
 Note that, since this implementation does not involve the parabolic "upwinding" vector,
-the LDG solver is equivalent to BR1 with an LDG-type penalization term.
+the LDG solver is equivalent to [`BR1`](@ref) with an LDG-type penalization term.
 
-https://doi.org/10.1137/S0036142997316712
+- Cockburn and Shu (1998).
+  The Local Discontinuous Galerkin Method for Time-Dependent
+  Convection-Diffusion Systems
+  [DOI: 10.1137/S0036142997316712](https://doi.org/10.1137/S0036142997316712)
 """
 struct LDG{P}
   penalty_parameter::P
