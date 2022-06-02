@@ -28,8 +28,20 @@ end
   return boundary_condition.boundary_value_function(x, t, equations)
 end
 
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, normal::AbstractVector,
+                                                                  x, t, operator_type::Divergence,
+                                                                  equations::LaplaceDiffusion2D)
+  return u_inner
+end
+
 @inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, normal::AbstractVector,
                                                                 x, t, operator_type::Divergence,
                                                                 equations::LaplaceDiffusion2D)
   return boundary_condition.boundary_normal_flux_function(x, t, equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, normal::AbstractVector,
+                                                                x, t, operator_type::Gradient,
+                                                                equations::LaplaceDiffusion2D)
+  return flux_inner
 end

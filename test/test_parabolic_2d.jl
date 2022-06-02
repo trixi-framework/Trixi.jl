@@ -70,6 +70,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test getindex.(du, 1) ≈ 2 * y
   end
 
+  @trixi_testset "elixir_advection_diffusion_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_periodic.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
+      l2 = [0.03180371984888462],
+      linf = [0.2136821621370909]
+    )
+  end
+
   @trixi_testset "elixir_advection_diffusion.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
