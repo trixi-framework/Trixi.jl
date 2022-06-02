@@ -10,13 +10,6 @@ The classical BR1 flux from
 """
 struct ViscousFormulationBassiRebay1 end
 
-# no penalization for a BR1 parabolic solver
-function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, boundary_conditions,
-                               mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
-                               dg_parabolic::ViscousFormulationBassiRebay1, cache, cache_parabolic)
-  return nothing
-end
-
 """
     ViscousFormulationLocalDG(penalty_parameter)
 
