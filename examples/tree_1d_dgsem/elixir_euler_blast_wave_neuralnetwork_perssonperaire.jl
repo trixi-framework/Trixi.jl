@@ -1,6 +1,5 @@
 using Downloads: download
 using Flux
-using Random
 using BSON: load
 network = joinpath(@__DIR__, "modelnnpp-0.97-0.0001.bson")
 download("https://github.com/trixi-framework/Trixi_IndicatorNeuralNetwork_networks/raw/main/networks/modelnnpp-0.97-0.0001.bson", network)
