@@ -4,15 +4,16 @@ dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
-equations = LinearScalarAdvectionEquation2D(0.0, 0.0)
-equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations)
+equations_hyperbolic = LinearScalarAdvectionEquation2D(0.0, 0.0)
+equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations_hyperbolic)
+equations = EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
 
-function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
+function initial_condition_diffusive_convergence_test(x, t, equations::EquationsHyperbolicParabolic{2, 1, <:LinearScalarAdvectionEquation2D, <:LaplaceDiffusion2D})
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advection_velocity * t
+  x_trans = x - equations.equations_hyperbolic.advection_velocity * t
 
   # @unpack nu = equation
-  nu = 5.0e-2
+  nu = equations.equations_parabolic.diffusivity
   c = 1.0
   A = 0.5
   L = 2
@@ -24,8 +25,7 @@ end
 initial_condition = initial_condition_diffusive_convergence_test
 
 mesh = DGMultiMesh(dg, cells_per_dimension = (16, 16), periodicity=true)
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg)
+semi = SemidiscretizationHyperbolicParabolic(mesh, equations, initial_condition, dg)
 
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)

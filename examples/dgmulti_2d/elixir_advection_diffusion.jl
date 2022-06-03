@@ -4,10 +4,11 @@ dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
-equations = LinearScalarAdvectionEquation2D(1.5, 1.0)
-equations_parabolic = LaplaceDiffusion2D(5e-2, equations)
+equations_hyperbolic = LinearScalarAdvectionEquation2D(1.5, 1.0)
+equations_parabolic = LaplaceDiffusion2D(5e-2, equations_hyperbolic)
+equations = EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
 
-initial_condition_zero(x, t, equations::LinearScalarAdvectionEquation2D) = SVector(0.0)
+initial_condition_zero(x, t, equations) = SVector(0.0)
 initial_condition = initial_condition_zero
 
 # tag different boundary segments
@@ -35,7 +36,7 @@ boundary_conditions_parabolic = (; :left => boundary_condition_left,
                                    :top => boundary_condition_zero,
                                    :right => boundary_condition_neumann_zero)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, dg;
+semi = SemidiscretizationHyperbolicParabolic(mesh, equations, initial_condition, dg;
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic))
 
 tspan = (0.0, 1.5)
