@@ -1,9 +1,9 @@
 using Downloads: download
 using Flux
-using NNlib
+using Random
 using BSON: load
 network = joinpath(@__DIR__, "modelcnn-0.964-0.001.bson")
-download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelcnn-0.964-0.001.bson", network)
+download("https://github.com/trixi-framework/Trixi_IndicatorNeuralNetwork_networks/raw/main/networks/modelcnn-0.964-0.001.bson", network)
 model2dcnn = load(network, @__MODULE__)[:model2dcnn]
 
 using OrdinaryDiffEq
