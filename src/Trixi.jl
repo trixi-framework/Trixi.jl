@@ -191,7 +191,7 @@ export nelements, nnodes, nvariables,
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
-export SemidiscretizationHyperbolicParabolic
+export SemidiscretizationHyperbolicParabolic, EquationsHyperbolicParabolic
 
 export SemidiscretizationEulerAcoustics
 
