@@ -6,6 +6,7 @@ using Trixi
 
 advection_velocity = (1.5, 1.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
+# Note: If you change the diffusion parameter here, also change it in the initial condition
 equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -17,12 +18,11 @@ coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
+                periodicity=true,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
-# Define initial conditions
-initial_condition_zero(x, t, equations::LinearScalarAdvectionEquation2D) = SVector(0.7)
-initial_condition = initial_condition_zero
-
+# Define initial condition
+# Note: If you change the diffusion parameter here, also change it in the parabolic equation definition
 function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advection_velocity * t
@@ -39,26 +39,7 @@ function initial_condition_diffusive_convergence_test(x, t, equation::LinearScal
 end
 initial_condition = initial_condition_diffusive_convergence_test
 
-# BC types
-boundary_condition_left = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 + 0.1 * x[2]))
-boundary_condition_zero = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0))
-boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations) -> SVector(0.0))
-
-# define inviscid boundary conditions
-boundary_conditions = (
-                       x_neg=boundary_condition_left,
-                       y_neg=boundary_condition_zero,
-                       y_pos=boundary_condition_do_nothing,
-                       x_pos=boundary_condition_do_nothing,
-                      )
-
-# define viscous boundary conditions
-boundary_conditions_parabolic = (
-                                 x_neg=boundary_condition_left,
-                                 y_neg=boundary_condition_zero,
-                                 y_pos=boundary_condition_zero,
-                                 x_pos=boundary_condition_neumann_zero,
-                                )
+# define periodic boundary conditions everywhere
 boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
@@ -90,18 +71,15 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
-# callbacks = CallbackSet(summary_callback, alive_callback)
 
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-time_int_tol = 1e-6
-# sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
-#             save_everystep=false, callback=callbacks)
+time_int_tol = 1.0e-8
 sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
-            save_everystep=false, callback=callbacks, adaptive=false, dt=1.0e-3)
+            save_everystep=false, callback=callbacks)
 
 # Print the timer summary
 summary_callback()
