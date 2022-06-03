@@ -4,10 +4,10 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
+# define types for parabolic solvers
+include("solvers_parabolic.jl")
 
 include("dg.jl")
 include("dgmulti.jl")
-include("solvers_parabolic.jl")
-
 
 end # @muladd
