@@ -8,7 +8,7 @@ equations_hyperbolic = LinearScalarAdvectionEquation2D(0.0, 0.0)
 equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations_hyperbolic)
 equations = EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
 
-function initial_condition_diffusive_convergence_test(x, t, equations::EquationsHyperbolicParabolic{2, 1, <:LinearScalarAdvectionEquation2D, <:LaplaceDiffusion2D})
+function initial_condition_diffusive_convergence_test(x, t, equations::EquationsHyperbolicParabolic{<:LinearScalarAdvectionEquation2D, <:LaplaceDiffusion2D})
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equations.equations_hyperbolic.advection_velocity * t
 

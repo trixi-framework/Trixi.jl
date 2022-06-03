@@ -8,7 +8,7 @@ include("laplace_diffusion_2d.jl")
 A type representing a combined hyperbolic-parabolic equation. Expects that both
 equations have the same number of variables.
 """
-struct EquationsHyperbolicParabolic{NDIMS, NVARS, H<:AbstractEquations{NDIMS, NVARS}, P<:AbstractEquationsParabolic{NDIMS, NVARS}} <: AbstractEquations{NDIMS, NVARS}
+struct EquationsHyperbolicParabolic{H<:AbstractEquations, P<:AbstractEquationsParabolic, NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS}
   equations_hyperbolic::H
   equations_parabolic::P
 end
