@@ -1,16 +1,27 @@
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 1, element_type = Tri(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
 equations = LinearScalarAdvectionEquation2D(0.0, 0.0)
-equations_parabolic = LaplaceDiffusion2D(5.0e-1, equations)
+equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations)
 
-function initial_condition_sharp_gaussian(x, t, equations::LinearScalarAdvectionEquation2D)
-  return SVector(exp(-100 * (x[1]^2 + x[2]^2)))
+function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advection_velocity * t
+
+  # @unpack nu = equation
+  nu = 5.0e-2
+  c = 1.0
+  A = 0.5
+  L = 2
+  f = 1/L
+  omega = 2 * pi * f
+  scalar = c + A * sin(omega * sum(x_trans)) * exp(-2 * nu * omega^2 * t)
+  return SVector(scalar)
 end
-initial_condition = initial_condition_sharp_gaussian
+initial_condition = initial_condition_diffusive_convergence_test
 
 mesh = DGMultiMesh(dg, cells_per_dimension = (16, 16), periodicity=true)
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
