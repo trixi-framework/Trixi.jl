@@ -24,15 +24,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     # test if we recover the exact second derivative
     initial_condition = (x, t, equations) -> SVector(x[1]^2 * x[2])
 
-    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    equations_hyperbolic = LinearScalarAdvectionEquation2D(1.0, 1.0)
     equations_parabolic = LaplaceDiffusion2D(1.0, equations)
+    equations = EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
 
-    semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic, initial_condition, dg)
+    semi = SemidiscretizationHyperbolicParabolic(mesh, equations, initial_condition, dg)
     @test_nowarn_debug show(stdout, semi)
     @test_nowarn_debug show(stdout, MIME"text/plain"(), semi)
     @test_nowarn_debug show(stdout, boundary_condition_do_nothing)
 
-    @test nvariables(semi)==nvariables(equations)
+    @test nvariables(semi)==nvariables(equations_hyperbolic)
     @test Base.ndims(semi)==Base.ndims(mesh)
     @test Base.real(semi)==Base.real(dg)
 
@@ -44,7 +45,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     # test "do nothing" BC just returns first argument
     @test boundary_condition_do_nothing(u0, nothing) == u0
 
-    @unpack cache, cache_parabolic, equations_parabolic = semi
+    @unpack cache, cache_parabolic = semi
     @unpack u_grad = cache_parabolic
     for dim in eachindex(u_grad)
       fill!(u_grad[dim], zero(eltype(u_grad[dim])))
@@ -73,8 +74,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_advection_diffusion_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_periodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
-      l2 = [0.03180371984888462],
-      linf = [0.2136821621370909]
+      l2 = [0.0017154907260937388],
+      linf = [0.003824658692896943]
     )
   end
 
