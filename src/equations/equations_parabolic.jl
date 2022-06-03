@@ -11,12 +11,14 @@ equations have the same number of variables.
 struct EquationsHyperbolicParabolic{H<:AbstractEquations, P<:AbstractEquationsParabolic, NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS}
   equations_hyperbolic::H
   equations_parabolic::P
+
+  function EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
+    @assert nvariables(equations_hyperbolic) == nvariables(equations_parabolic)
+    return new{typeof(equations_hyperbolic), typeof(equations_parabolic), ndims(equations_hyperbolic), nvariables(equations_hyperbolic)}(equations_hyperbolic, equations_parabolic)
+  end
 end
 
-function EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
-  @assert nvariables(equations_hyperbolic) == nvariables(equations_parabolic)
-  return EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
-end
+
 
 # default to using varnames of hyperbolic equations
 varnames(variable_mapping, equations::EquationsHyperbolicParabolic) =
