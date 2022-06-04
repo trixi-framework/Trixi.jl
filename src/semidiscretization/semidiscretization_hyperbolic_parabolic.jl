@@ -168,6 +168,7 @@ end
 
 @inline Base.real(semi::SemidiscretizationHyperbolicParabolic) = real(semi.solver)
 
+# TODO: functions which depend on `equations` should dispatch on equations.equations_hyperbolic
 # retain dispatch on hyperbolic equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicParabolic)
   @unpack mesh, equations, solver, cache = semi
@@ -217,8 +218,8 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
   @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
 
-  u  = wrap_array(u_ode,  mesh, equations.equations_hyperbolic, solver, cache)
-  du = wrap_array(du_ode, mesh, equations.equations_hyperbolic, solver, cache)
+  u  = wrap_array(u_ode,  mesh, equations, solver, cache)
+  du = wrap_array(du_ode, mesh, equations, solver, cache)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
@@ -233,8 +234,8 @@ end
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
   @unpack mesh, equations, initial_condition, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
-  u  = wrap_array(u_ode,  mesh, equations.equations_parabolic, solver, cache_parabolic)
-  du = wrap_array(du_ode, mesh, equations.equations_parabolic, solver, cache_parabolic)
+  u  = wrap_array(u_ode,  mesh, equations, solver, cache_parabolic)
+  du = wrap_array(du_ode, mesh, equations, solver, cache_parabolic)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
