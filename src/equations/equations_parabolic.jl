@@ -18,11 +18,12 @@ struct EquationsHyperbolicParabolic{H<:AbstractEquations, P<:AbstractEquationsPa
   end
 end
 
-
-
-# default to using varnames of hyperbolic equations
+# default to using nvariables and varnames of hyperbolic equations
 varnames(variable_mapping, equations::EquationsHyperbolicParabolic) =
   varnames(variable_mapping, equations.equations_hyperbolic)
+
+nvariables(equations::EquationsHyperbolicParabolic) =
+  nvariables(equations.equations_hyperbolic)
 
 function Base.show(io::IO, text_type::MIME"text/plain", equations::EquationsHyperbolicParabolic)
   # Since this is not performance-critical, we can use `@nospecialize` to reduce latency.
