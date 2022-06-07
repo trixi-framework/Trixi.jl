@@ -50,8 +50,8 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 
-@inline function initial_condition_navier_stokes_convergence_test(u, x, t,
-                                                                  equations::CompressibleNaiverStokes2D)
+@inline function source_terms_navier_stokes_convergence_test(u, x, t,
+                                                             equations::CompressibleNaiverStokes2D)
   # Same settings as in `initial_condition`
   # Amplitude and shift
   A    = 0.5
