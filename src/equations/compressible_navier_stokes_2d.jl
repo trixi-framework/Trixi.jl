@@ -95,7 +95,6 @@ function flux(u, grad_u, equations::CompressibleNaiverStokes2D)
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
-  T  = temperature(u, equations)
 
   # I was not sure what shape this array has or or if it was a tuple
   # or how to properly "unpack" it. So I just guessed...
