@@ -25,7 +25,7 @@ for xi in 1:num_interp_val
 end
 
 # Spline interpolation
-spline           = bicubic_spline(x_val, y_val, z_val)
+spline           = bicubic_b_spline(x_val, y_val, z_val; boundary = "not-a-knot")
 spline_func(x,y) = spline_interpolation(spline, x, y )
 
 function initial_condition_convergence_test_spline(x, t, equations::ShallowWaterEquations2D)
