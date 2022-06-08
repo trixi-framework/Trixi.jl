@@ -1,9 +1,9 @@
 using Downloads: download
 using Flux
-using NNlib
+using Random
 using BSON: load
 network = joinpath(@__DIR__, "modelnnrhs-0.973-0.001.bson")
-download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnrhs-0.973-0.001.bson", network)
+download("https://github.com/trixi-framework/Trixi_IndicatorNeuralNetwork_networks/raw/main/networks/modelnnrhs-0.973-0.001.bson", network)
 model2d = load(network, @__MODULE__)[:model2d]
 
 using OrdinaryDiffEq
