@@ -1,12 +1,13 @@
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the shallow water equations with a discontinuous
-# bottom topography function
+# bottom topography function (set in the initial conditions)
 
-equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=3.25)
+equations = ShallowWaterEquations2D(gravity_constant=9.81, H0=3.0)
 
 # An initial condition with constant total water height and zero velocities to test well-balancedness.
 # Note, this routine is used to compute errors in the analysis callback but the initialization is
@@ -29,18 +30,20 @@ initial_condition = initial_condition_well_balancedness
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-surface_flux = (flux_fjordholm_etal, flux_nonconservative_fjordholm_etal)
+surface_flux = (FluxHydrostaticReconstruction(flux_lax_friedrichs, hydrostatic_reconstruction_audusse_etal),
+                flux_nonconservative_audusse_etal)
 solver = DGSEM(polydeg=4, surface_flux=surface_flux,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
-# Get the TreeMesh and setup a periodic mesh
+# This setup a structured periodic mesh
 
-coordinates_min = (-1.0, -1.0)
-coordinates_max = ( 1.0,  1.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
-                n_cells_max=10_000)
+coordinates_min = (-2.0, -2.0)
+coordinates_max = ( 2.0,  2.0)
+
+cells_per_dimension = (4, 4)
+
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # Create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -52,15 +55,15 @@ tspan = (0.0, 100.0)
 ode = semidiscretize(semi, tspan)
 
 ###############################################################################
-# Workaround to set a discontinuous bottom topography and initial condition for debugging and testing.
+# Workaround to set a discontinuous bottom topography for debugging and testing.
 
 # alternative version of the initial conditinon used to setup a truly discontinuous
-# bottom topography function for this academic testcase of well-balancedness.
+# bottom topography function for this academic testcase.
 # The errors from the analysis callback are not important but the error for this lake at rest test case
 # `∑|H0-(h+b)|` should be around machine roundoff
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
-# only for the TreeMesh2D with initial_refinement_level=2.
+# only for the specific mesh loaded above!
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations2D)
   # Set the background values
   H = equations.H0

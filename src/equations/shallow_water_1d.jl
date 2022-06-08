@@ -13,7 +13,7 @@ Shallow water equations (SWE) in one space dimension. The equations are given by
 \begin{aligned}
   \frac{\partial h}{\partial t} + \frac{\partial}{\partial x}(h v) &= 0 \\
     \frac{\partial}{\partial t}(h v) + \frac{\partial}{\partial x}\left(h v^2 + \frac{g}{2}h^2\right)
-    + g h \frac{\partial b}{\partial x} &= 0 
+    + g h \frac{\partial b}{\partial x} &= 0
 \end{aligned}
 ```
 The unknown quantities of the SWE are the water height ``h`` and the velocity ``v``.
@@ -132,7 +132,7 @@ A weak blast wave discontinuity useful for testing, e.g., total energy conservat
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations1D)
-  
+
   inicenter = 0.7
   x_norm = x[1] - inicenter
   r = abs(x_norm)
@@ -189,7 +189,7 @@ end
 
   f1 = h_v
   f2 = h_v * v + p
-  
+
   return SVector(f1, f2, zero(eltype(u)))
 end
 
@@ -213,7 +213,7 @@ Further details are available in the paper:
   b_rr = u_rr[3]
 
   z = zero(eltype(u_ll))
-  
+
   # Bottom gradient nonconservative term: (0, g h b_x, 0)
   f = SVector(z, equations.gravity * h_ll * b_rr, z)
 
@@ -223,7 +223,7 @@ end
 """
     flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
                                         equations::ShallowWaterEquations1D)
-    
+
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
 that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
 
@@ -263,6 +263,47 @@ and for curvilinear 2D case in the paper:
               z)
 
   return f
+end
+
+
+"""
+    flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
+                                      equations::ShallowWaterEquations1D)
+
+Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
+The discretization uses the `hydrostatic_reconstruction_audusse_etal` on the conservative
+variables.
+
+This hydrostatic reconstruction ensures that the finite volume numerical fluxes remain
+well-balanced for discontinuous bottom topographies [`ShallowWaterEquations1D`](@ref).
+Should be used together with [`FluxHydrostaticReconstruction`](@ref) and
+[`hydrostatic_reconstruction_audusse_etal`](@ref) in the surface flux to ensure consistency.
+
+Further details on the hydrostatic reconstruction and its motivation can be found in
+- Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
+  A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
+  [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
+"""
+@inline function flux_nonconservative_audusse_etal(u_ll, u_rr,
+                                                   orientation::Integer,
+                                                   equations::ShallowWaterEquations1D)
+  # Pull the water height and bottom topography on the left
+  h_ll, _, b_ll = u_ll
+
+  # Create the hydrostatic reconstruction for the left solution state
+  u_ll_star, _ = hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations)
+
+  # Copy the reconstructed water height for easier to read code
+  h_ll_star = u_ll_star[1]
+
+  z = zero(eltype(u_ll))
+  # Includes two parts:
+  #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
+  #        cross-averaging across a discontinuous bottom topography
+  #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
+  return SVector(z,
+                 equations.gravity * h_ll * b_ll + equations.gravity * ( h_ll^2 - h_ll_star^2 ),
+                 z)
 end
 
 
@@ -331,6 +372,42 @@ Further details are available in Theorem 1 of the paper:
 
   return SVector(f1, f2, zero(eltype(u_ll)))
 end
+
+
+"""
+    hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, orientation::Integer,
+                                            equations::ShallowWaterEquations1D)
+
+A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
+for a general bottom topography [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
+`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
+Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
+
+Further details on this hydrostatic reconstruction and its motivation can be found in
+- Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
+  A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
+  [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
+"""
+@inline function hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations::ShallowWaterEquations1D)
+  # Unpack left and right water heights and bottom topographies
+  h_ll, _, b_ll = u_ll
+  h_rr, _, b_rr = u_rr
+
+  # Get the velocities on either side
+  v1_ll = velocity(u_ll, equations)
+  v1_rr = velocity(u_rr, equations)
+
+  # Compute the reconstructed water heights
+  h_ll_star = max(zero(h_ll) , h_ll + b_ll - max(b_ll, b_rr) )
+  h_rr_star = max(zero(h_rr) , h_rr + b_rr - max(b_ll, b_rr) )
+
+  # Create the conservative variables using the reconstruted water heights
+  u_ll_star = SVector( h_ll_star , h_ll_star * v1_ll , b_ll )
+  u_rr_star = SVector( h_rr_star , h_rr_star * v1_rr , b_rr )
+
+  return u_ll_star, u_rr_star
+end
+
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
@@ -434,7 +511,7 @@ end
 
   w1 = equations.gravity * (h + b) - 0.5 * v^2
   w2 = v
-  
+
   return SVector(w1, w2, b)
 end
 
@@ -511,4 +588,3 @@ end
 end
 
 end # @muladd
-    
