@@ -443,7 +443,7 @@ end
 
 
 function rhs!(du, u, t,
-              mesh::ParallelTreeMesh{2}, equations,
+              mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2}}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Start to receive MPI data

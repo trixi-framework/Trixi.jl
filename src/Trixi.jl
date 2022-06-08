@@ -34,6 +34,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 @reexport using EllipsisNotation # ..
+using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: h5open, attributes
 using IfElse: ifelse
@@ -52,7 +53,7 @@ using RecipesBase: RecipesBase
 using Requires: @require
 using Static: Static, One
 @reexport using StaticArrays: SVector
-using StaticArrays: MVector, MArray, SMatrix, @SMatrix
+using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
@@ -128,7 +129,7 @@ export AcousticPerturbationEquations2D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
-       ShallowWaterEquations2D
+       ShallowWaterEquations1D, ShallowWaterEquations2D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
@@ -136,12 +137,14 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
+       hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
        FluxLMARS,
        FluxRotated,
-       flux_shima_etal_turbo, flux_ranocha_turbo
+       flux_shima_etal_turbo, flux_ranocha_turbo,
+       FluxHydrostaticReconstruction
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -202,7 +205,10 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 
 export PositivityPreservingLimiterZhangShu
 
-export trixi_include, examples_dir, get_examples, default_example, default_example_unstructured
+export trixi_include, examples_dir, get_examples, default_example,
+       default_example_unstructured
+
+export ode_norm, ode_unstable_check
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 

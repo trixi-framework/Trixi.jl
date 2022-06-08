@@ -172,14 +172,15 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 
 # Now, we want to verify the free-stream preservation property and plot the mesh. For the verification,
 # we calculate the absolute difference of the first conservation variable density `u[1]` and `1.0`.
-# To plot this error and the mesh, we are using the visualization feature `solution_variables`, where
-# you can define your own plotting variables, explained in [visualization](@ref visualization).
-@inline cons2denserror(u, ::CompressibleEulerEquations2D) = SVector(abs(u[1] - 1.0), u...)
-Trixi.varnames(::typeof(cons2denserror), ::CompressibleEulerEquations2D) = ("error_density", "rho", "rho_v1", "rho_v2", "rho_e")
-pd = PlotData2D(sol; solution_variables=cons2denserror)
+# To plot this error and the mesh, we are using the visualization feature `ScalarPlotData2D`,
+# explained in [visualization](@ref visualization).
+error_density = let u = Trixi.wrap_array(sol.u[end], semi)
+  abs.(u[1, :, :, :] .- 1.0) # density, x, y, elements
+end
+pd = ScalarPlotData2D(error_density, semi)
 
 using Plots
-plot(pd["error_density"], title="Error in density")
+plot(pd, title="Error in density")
 plot!(getmesh(pd))
 
 # We observe that the errors in the variable `density` are at the level of machine accuracy.

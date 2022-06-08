@@ -178,7 +178,7 @@ solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranoc
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex, solver)
 
-u0_ode = compute_coefficients(0.0, semi)
+u0_ode = Trixi.compute_coefficients(0.0, semi)
 size(u0_ode)
 @test size(u0_ode) == (1024,) #src
 
@@ -338,6 +338,7 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits=5)
 # ## Propagating errors using Measurements.jl
 
 # [![Error bars by Randall Munroe](https://imgs.xkcd.com/comics/error_bars.png)](https://xkcd.com/2110/)
+# "Error bars" by Randall Munroe, linked from https://xkcd.com/2110
 
 # Similar to AD, Trixi also allows propagating uncertainties using linear error propagation
 # theory via [Measurements.jl](https://github.com/JuliaPhysics/Measurements.jl).

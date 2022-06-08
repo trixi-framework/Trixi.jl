@@ -523,10 +523,27 @@ Cassette.@context Ctx
   @timed_testset "Shallow water conversion between conservative/entropy variables" begin
     H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
 
+    let equations = ShallowWaterEquations1D(gravity_constant=9.8)
+      cons_vars = prim2cons(SVector(H, v1, b),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      total_energy = energy_total(cons_vars, equations)
+      @test total_energy ≈ entropy(cons_vars, equations)
+
+      # test tuple args
+      cons_vars = prim2cons((H, v1, b), equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+
     let equations = ShallowWaterEquations2D(gravity_constant=9.8)
       cons_vars = prim2cons(SVector(H,v1,v2,b),equations)
       entropy_vars = cons2entropy(cons_vars,equations)
       @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+
+      total_energy = energy_total(cons_vars, equations)
+      @test total_energy ≈ entropy(cons_vars, equations)
 
       # test tuple args
       cons_vars = prim2cons((H, v1, v2, b), equations)
