@@ -81,10 +81,13 @@ varnames(variable_mapping, equations_parabolic::CompressibleNaiverStokes2D) =
 
 
 # no orientation specified since the flux is vector-valued
-# This form of the difussive Navier-Stokes fluxes is taken from Section 2
+# Explicit formulas for the diffussive Navier-Stokes fluxes are avilable, e.g. in Section 2
 # of the paper by Svärd, Carpenter and Nordström
 # "A stable high-order finite difference scheme for the compressible Navier–Stokes
 #  equations, far-field boundary conditions"
+# Although these authors use a different nondimensionalization so some constants are different
+# particularly for Fick's law.
+#
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
 function flux(u, grad_u, equations::CompressibleNaiverStokes2D)
@@ -103,12 +106,12 @@ function flux(u, grad_u, equations::CompressibleNaiverStokes2D)
   # Components of viscous stress tensor
 
   # (4/3*(v1)_x - 2/3*(v2)_y)
-  tau_xx = ( 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy )
+  tau_11 = ( 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy )
   # ((v1)_y + (v2)_x)
-  tau_xy = ( dv1dy + dv2dx )
-  tau_yx = tau_xy
+  tau_12 = ( dv1dy + dv2dx )
+  tau_21 = tau_12
   # (4/3*(v2)_y - 2/3*(v1)_x)
-  tau_yy = ( 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx )
+  tau_22 = ( 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx )
 
   # Fick's law q = -kappa*grad(T); constant is kappa*gamma/(Pr*(gamma-1))
   # Important note! Due to nondimensional scaling R = 1/gamma, so the
@@ -116,17 +119,20 @@ function flux(u, grad_u, equations::CompressibleNaiverStokes2D)
   q1 = ( equations.kappa * equations.inv_gamma_minus_one * dTdx ) / equations.Pr
   q2 = ( equations.kappa * equations.inv_gamma_minus_one * dTdy ) / equations.Pr
 
+  # molecular diffusivity is simply 1/Re for this nondimensionalization
+  mu = 1.0 / equations.Re
+
   # viscous flux components in the x-direction
   f1 = zero(rho)
-  f2 = tau_xx / equations.Re
-  f3 = tau_xy / equations.Re
-  f4 = ( v1 * tau_xx + v2 * tau_xy + q1) / equations.Re
+  f2 = tau_11 * mu
+  f3 = tau_12 * mu
+  f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * mu
 
   # viscous flux components in y-direction
   g1 = zero(rho)
-  g2 = tau_yx / equations.Re
-  g3 = tau_yy / equations.Re
-  g4 = ( v1 * tau_yx + v2 * tau_yy + q2) / equations.Re
+  g2 = tau_21 * mu
+  g3 = tau_22 * mu
+  g4 = ( v1 * tau_21 + v2 * tau_22 + q2 ) * mu
 
   # TODO: I was not sure how to return this properly. Right now it is a vector of vectors
   return SVector( SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4) )
@@ -166,7 +172,7 @@ end
 
 @inline function convert_gradient_variables(u, grad_entropy_vars, equations::CompressibleNaiverStokes2D)
 # Takes the solution values `u` and gradient of the variables (w_2, w_3, w_4) and
-# reverse engineers the gradients to be terms of the primitive vairables (u, v, T).
+# reverse engineers the gradients to be terms of the primitive vairables (v1, v2, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
   rho, rho_v1, rho_v2, _ = u
 
@@ -174,9 +180,9 @@ end
   v2 = rho_v2 / rho
   T  = temperature(u, equations)
 
-  return SVector(equations.R * T * (grad_entropy_vars(1) + v1 * grad_entropy_vars(3)), # grad(u) = R*T*(grad(w_2)+v1*grad(w_4))
-                 equations.R * T * (grad_entropy_vars(2) + v2 * grad_entropy_vars(3)), # grad(v) = R*T*(grad(w_3)+v2*grad(w_4))
-                 equations.R * T * T * grad_entropy_vars(3)                            # grad(T) = R*T^2*grad(w_4))
+  return SVector(equations.R * T * (grad_entropy_vars[1] + v1 * grad_entropy_vars[3]), # grad(u) = R*T*(grad(w_2)+v1*grad(w_4))
+                 equations.R * T * (grad_entropy_vars[2] + v2 * grad_entropy_vars[3]), # grad(v) = R*T*(grad(w_3)+v2*grad(w_4))
+                 equations.R * T * T * grad_entropy_vars[3]                            # grad(T) = R*T^2*grad(w_4))
                 )
 end
 
