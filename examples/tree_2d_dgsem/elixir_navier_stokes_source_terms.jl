@@ -7,7 +7,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNaiverStokes2D(1.4,  # gamma
+equations_parabolic = CompressibleNavierStokes2D(1.4,  # gamma
                                                  1000, # Reynolds number
                                                  0.72, # Prandtl number
                                                  0.5,  # free-stream Mach number
@@ -51,7 +51,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t,
-                                                             equations::CompressibleNaiverStokes2D)
+                                                             equations::CompressibleNavierStokes2D)
   # Same settings as in `initial_condition`
   # Amplitude and shift
   A    = 0.5
@@ -185,7 +185,7 @@ end
 # TODO: Wasn't sure of the call structure, but this should be what we need
 function boundary_condition_no_slip_adiabatic_wall_neumann(grad_u_inner, orientation, direction,
                                                            x, t, surface_flux_function,
-                                                           equations::CompressibleNaiverStokes2D)
+                                                           equations::CompressibleNavierStokes2D)
   # Copy the inner gradients to an external state array
   grad_u_boundary .= grad_u_inner
 

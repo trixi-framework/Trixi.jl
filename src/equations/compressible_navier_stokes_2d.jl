@@ -1,12 +1,12 @@
 @doc raw"""
-    CompressibleNaiverStokes2D(gamma,
+    CompressibleNavierStokes2D(gamma,
                                Re,
                                Pr,
                                Ma_inf,
                                kappa,
                                equations)
 
-`CompressibleNaiverStokes2D` represents the diffusion (i.e. parabolic) terms applied
+`CompressibleNavierStokes2D` represents the diffusion (i.e. parabolic) terms applied
 to mass, momenta, and total energy together with the advective from
 the `CompressibleEulerEquations2D`.
 
@@ -45,7 +45,7 @@ where
 # 1) For now I save gamma and inv(gamma-1) again, but we could potentially reuse them from
 #    the Euler equations
 # 2) Add more here and probably some equations
-struct CompressibleNaiverStokes2D{RealT<:Real, E} <: AbstractCompressibleNavierStokesEquations{2, 3}
+struct CompressibleNavierStokes2D{RealT<:Real, E} <: AbstractCompressibleNavierStokesEquations{2, 3}
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
   Re::RealT                  # Reynolds number
@@ -60,15 +60,15 @@ struct CompressibleNaiverStokes2D{RealT<:Real, E} <: AbstractCompressibleNavierS
   equations::E               # CompressibleEulerEquations2D
 end
 
-function CompressibleNaiverStokes2D(gamma, Reynolds, Prandtl, Mach_frestream, kappa, equations)
+function CompressibleNavierStokes2D(gamma, Reynolds, Prandtl, Mach_freestream, kappa, equations)
   γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
 
   # From the nondimensionalization discussed above set the remaining free-stream
   # quantities
   p_inf = 1.0 / γ
-  u_inf = Mach_frestream
+  u_inf = Mach_freestream
   R     = 1.0 / γ
-  CompressibleNaiverStokes2D{typeof(γ),typeof(equations)}(γ, inv_gamma_minus_one,
+  CompressibleNavierStokes2D{typeof(γ),typeof(equations)}(γ, inv_gamma_minus_one,
                                                           Reynolds, Prandtl, Mach_freestream,
                                                           kappa, p_inf, u_inf, R,
                                                           equations)
@@ -76,7 +76,7 @@ end
 
 # I was not sure what to do here to allow flexibility of selecting primitive or entropy
 # grandient variables
-varnames(variable_mapping, equations_parabolic::CompressibleNaiverStokes2D) =
+varnames(variable_mapping, equations_parabolic::CompressibleNavierStokes2D) =
   varnames(variable_mapping, equations_parabolic.equations)
 
 
@@ -90,7 +90,7 @@ varnames(variable_mapping, equations_parabolic::CompressibleNaiverStokes2D) =
 #
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
-function flux(u, grad_u, equations::CompressibleNaiverStokes2D)
+function flux(u, grad_u, equations::CompressibleNavierStokes2D)
   # Here grad_u is assumed to contain the gradients of the primitive variables (v1,v2,T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
@@ -140,7 +140,7 @@ end
 
 
 # Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleNaiverStokes2D)
+@inline function cons2prim(u, equations::CompressibleNavierStokes2D)
   rho, rho_v1, rho_v2, _ = u
 
   v1 = rho_v1 / rho
@@ -152,7 +152,7 @@ end
 
 
 # Convert conservative variables to entropy
-@inline function cons2entropy(u, equations::CompressibleNaiverStokes2D)
+@inline function cons2entropy(u, equations::CompressibleNavierStokes2D)
   rho, rho_v1, rho_v2, rho_e = u
 
   v1 = rho_v1 / rho
@@ -170,7 +170,7 @@ end
 end
 
 
-@inline function convert_gradient_variables(u, grad_entropy_vars, equations::CompressibleNaiverStokes2D)
+@inline function convert_gradient_variables(u, grad_entropy_vars, equations::CompressibleNavierStokes2D)
 # Takes the solution values `u` and gradient of the variables (w_2, w_3, w_4) and
 # reverse engineers the gradients to be terms of the primitive vairables (v1, v2, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
@@ -187,7 +187,7 @@ end
 end
 
 
-@inline function temperature(u, equations::CompressibleNaiverStokes2D)
+@inline function temperature(u, equations::CompressibleNavierStokes2D)
   rho, rho_v1, rho_v2, rho_e = u
 
   p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
