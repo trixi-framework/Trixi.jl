@@ -133,6 +133,7 @@ export AcousticPerturbationEquations2D,
        InviscidBurgersEquation1D,
        LaplaceDiffusion2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
+       CompressibleNavierStokes2D,
        ShallowWaterEquations1D, ShallowWaterEquations2D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
