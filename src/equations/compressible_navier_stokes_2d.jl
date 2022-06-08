@@ -74,8 +74,14 @@ function CompressibleNavierStokes2D(gamma, Reynolds, Prandtl, Mach_freestream, k
                                                           equations)
 end
 
+
 # I was not sure what to do here to allow flexibility of selecting primitive or entropy
-# grandient variables
+# gradient variables. I see that `transform_variables!` just copies data at the moment.
+
+# This is the flexibility a user should have to select the different gradient variable types
+# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokes2D) = ("v1", "v2", "T")
+# varnames(::typeof(cons2entropy), ::CompressibleNavierStokes2D) = ("w2", "w3", "w4")
+
 varnames(variable_mapping, equations_parabolic::CompressibleNavierStokes2D) =
   varnames(variable_mapping, equations_parabolic.equations)
 
