@@ -1,8 +1,12 @@
+# Based on https://hal.archives-ouvertes.fr/hal-03017566v1/document
+
 ######################################
 ### Bicubic B Spline interpolation ###
 ######################################
 
 # Bicubic B Spline structure
+# The entries of z are set to be the x values horizontally
+# and y values vertically
 mutable struct BicubicBSpline{x_type, y_type, z_type, hx_type, hy_type, Q_type, IP_type}
 
   x::x_type

@@ -1,3 +1,9 @@
+#########################################################################################
+# This example is equivalent to tree_1d_dgsem/elixir_shallowwater_wall.jl,              #
+# but instead of a function for the bottom topography, this version uses a cubic        #
+# b spline interpolation with not-a-knot boundary condition to approximate the bottom   #
+# topography. Interpolation points are provided by a .txt file called data_swe_wall.txt #
+#########################################################################################
 
 using OrdinaryDiffEq
 using Trixi
@@ -13,7 +19,7 @@ equations = ShallowWaterEquations1D(gravity_constant=9.812, H0=2.0)
 bottom_topography(x) = (1.5 / exp( 0.5 * ((x - 1.0)^2) )+ 0.75 / exp(0.5 * ((x + 1.0)^2)))
 
 # Spline Interpolation
-spline          = cubic_b_spline(joinpath(examples_dir(), "tree_1d_dgsem_spline", "data_swe_wall.txt"))
+spline          = cubic_b_spline(joinpath(examples_dir(), "tree_1d_dgsem_spline", "data_swe_wall.txt"); boundary = "not-a-knot")
 spline_func(x)   = spline_interpolation(spline, x)
 
 function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations1D)

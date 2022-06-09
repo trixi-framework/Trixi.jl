@@ -1,3 +1,10 @@
+#####################################################################################
+# This example is equivalent to tree_1d_dgsem/elixir_shallowwater_well_balanced.jl, #
+# but instead of a function for the bottom topography, this version uses a cubic    #
+# spline interpolation with natural boundary condition to approximate the bottom    #
+# topography                                                                        #
+#####################################################################################
+
 
 using OrdinaryDiffEq
 using Trixi

@@ -1,3 +1,11 @@
+#######################################################################################
+# This example is equivalent to tree_1d_dgsem/elixir_source_terms.jl,                 #
+# but instead of a function for the bottom topography, this version uses a cubic      #
+# b spline interpolation with not-a-knot boundary condition to approximate the bottom #
+# topography                                                                          #
+#######################################################################################
+
+
 using OrdinaryDiffEq
 using Trixi
 

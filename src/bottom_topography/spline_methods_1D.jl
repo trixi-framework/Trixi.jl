@@ -1,3 +1,5 @@
+# Based on https://www.rajgunesh.com/resources/downloads/numerical/cubicsplineinterpol.pdf
+
 # Liner spline interpolation
 function spline_interpolation(spline::LinSpline, t)
     

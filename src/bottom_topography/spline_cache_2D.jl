@@ -53,7 +53,11 @@ end
 ### Bicubic Spline Natural ###
 ##############################
 
+# Based on https://www.giassa.net/?page_id=371
+
 # Bicubic spline structure
+# The entries of z are set to be the x values horizontally
+# and y values vertically
 mutable struct BiCubicSpline{x_type, y_type, z_type, Minv_type, fx_type, fy_type, fxy_type}
 
   x::x_type

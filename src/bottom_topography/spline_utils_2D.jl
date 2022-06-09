@@ -1,4 +1,8 @@
-# Sort data to follow logic of the remaining code
+# Helpfunctions for 2D spline interpolation
+
+# Sort data to follow logic of the remaining code.
+# x and y are sorted ascending. The matrix z contains
+# the corresponding values.
 function sort_data(x::Vector{Float64}, y::Vector{Float64}, z::Matrix{Float64})
 
   zx          = transpose(z)

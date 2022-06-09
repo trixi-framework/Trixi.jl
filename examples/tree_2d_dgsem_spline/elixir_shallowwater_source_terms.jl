@@ -1,3 +1,10 @@
+####################################################################################
+# This example is equivalent to tree_2d_dgsem/elixir_shallowwater_source_terms.jl, #
+# but instead of a function for the bottom topography, this version uses a bicubic #
+# spline interpolation with natural boundary condition to approximate the bottom   #
+# topography                                                                       #
+####################################################################################
+
 
 using OrdinaryDiffEq
 using Trixi

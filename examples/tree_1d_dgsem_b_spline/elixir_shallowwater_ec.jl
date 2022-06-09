@@ -1,3 +1,10 @@
+#######################################################################################
+# This example is equivalent to tree_1d_dgsem/elixir_shallowwater_ec.jl,              #
+# but instead of a function for the bottom topography, this version uses a cubic      #
+# b spline interpolation with not-a-knot boundary condition to approximate the bottom #
+# topography                                                                          #
+#######################################################################################
+
 
 using OrdinaryDiffEq
 using Trixi
@@ -18,7 +25,7 @@ x_val           = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
 y_val           = bottom_topography.(x_val)
 
 # Spline interpolation
-spline          = cubic_b_spline(x_val, y_val)
+spline          = cubic_b_spline(x_val, y_val; boundary = "not-a-knot")
 spline_func(x)  = spline_interpolation(spline, x)
 
 # Note, this initial condition is used to compute errors in the analysis callback but the initialization is

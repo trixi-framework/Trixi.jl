@@ -1,4 +1,6 @@
-# Sorting the inputs
+# Helpfunctions for 1D spline interpolation
+
+# Sorting the inputs that the x values are ascending
 function sort_data(x::Vector{Float64},y::Vector{Float64})
       
   orig_data = hcat(x,y)
@@ -11,6 +13,7 @@ function sort_data(x::Vector{Float64},y::Vector{Float64})
 end
 
 # Cubic spline smoothing
+# Based on https://en.wikipedia.org/wiki/Smoothing_spline
 function cubic_spline_smoothing(smoothing_factor, h, y)
 
   n = length(y)

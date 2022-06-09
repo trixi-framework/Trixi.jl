@@ -1,3 +1,5 @@
+# 
+
 ######################
 ### Linear Splines ###
 ######################
@@ -89,6 +91,11 @@ end
 #####################
 ### Cubic Splines ###
 #####################
+
+# Based on https://www.rajgunesh.com/resources/downloads/numerical/cubicsplineinterpol.pdf
+# for natural boundary condition and
+# https://www.youtube.com/watch?v=kDowzxuIzzs
+# for not-a-knot boundary condition
 
 # Spline structure 
 mutable struct CubicSpline{x_type, y_type, h_type, m_type}

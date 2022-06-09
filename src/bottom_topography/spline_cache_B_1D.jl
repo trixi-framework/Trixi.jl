@@ -1,3 +1,5 @@
+# Based on https://hal.archives-ouvertes.fr/hal-03017566v1/document
+
 ######################
 ### Cubic B Spline ###
 ######################

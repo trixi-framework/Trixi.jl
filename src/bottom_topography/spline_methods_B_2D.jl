@@ -1,3 +1,5 @@
+# Based on https://hal.archives-ouvertes.fr/hal-03017566v1/document
+
 # Bicubic B Spline interpolation
 function spline_interpolation(b_spline::BicubicBSpline, tx, ty)
 
