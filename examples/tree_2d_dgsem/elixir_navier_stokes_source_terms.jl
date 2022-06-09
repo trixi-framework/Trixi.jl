@@ -2,7 +2,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection-diffusion equation
+# semidiscretization of the ideal compressible Navier-Stokes equations
 
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition

@@ -65,9 +65,9 @@ function CompressibleNavierStokes2D(gamma, Reynolds, Prandtl, Mach_freestream, k
 
   # From the nondimensionalization discussed above set the remaining free-stream
   # quantities
-  p_inf = 1.0 / γ
+  p_inf = 1 / γ
   u_inf = Mach_freestream
-  R     = 1.0 / γ
+  R     = 1 / γ
   CompressibleNavierStokes2D{typeof(γ),typeof(equations)}(γ, inv_gamma_minus_one,
                                                           Reynolds, Prandtl, Mach_freestream,
                                                           kappa, p_inf, u_inf, R,
@@ -141,7 +141,7 @@ function flux(u, grad_u, equations::CompressibleNavierStokes2D)
   g4 = ( v1 * tau_21 + v2 * tau_22 + q2 ) * mu
 
   # TODO: I was not sure how to return this properly. Right now it is a vector of vectors
-  return SVector( SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4) )
+  return (SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4))
 end
 
 
