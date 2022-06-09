@@ -164,6 +164,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       coverage_override = (maxiters=10^5,))
   end
 
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_ethz.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_ethz.jl"),
+      l2   = [0.1057230211245312, 0.10621112311257341, 0.07260957505339989, 0.11178239111065721],
+      linf = [2.998719417992662, 2.1400285015556166, 1.1569648700415078, 1.8922492268110913],
+      tspan = (0.0, 0.1))
+  end
+
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       l2   = [0.055691508271624536, 0.032986009333751655, 0.05224390923711999, 0.08009536362771563],
