@@ -125,22 +125,21 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
   q1 = ( equations.kappa * equations.inv_gamma_minus_one * dTdx ) / equations.Pr
   q2 = ( equations.kappa * equations.inv_gamma_minus_one * dTdy ) / equations.Pr
 
-  # molecular diffusivity is simply 1/Re for this nondimensionalization
-  mu = 1.0 / equations.Re
+  # kinematic viscosity is simply 1/Re for this nondimensionalization
+  nu = 1.0 / equations.Re
 
   # viscous flux components in the x-direction
   f1 = zero(rho)
-  f2 = tau_11 * mu
-  f3 = tau_12 * mu
-  f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * mu
+  f2 = tau_11 * nu
+  f3 = tau_12 * nu
+  f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * nu
 
   # viscous flux components in y-direction
   g1 = zero(rho)
-  g2 = tau_21 * mu
-  g3 = tau_22 * mu
-  g4 = ( v1 * tau_21 + v2 * tau_22 + q2 ) * mu
+  g2 = tau_21 * nu
+  g3 = tau_22 * nu
+  g4 = ( v1 * tau_21 + v2 * tau_22 + q2 ) * nu
 
-  # TODO: I was not sure how to return this properly. Right now it is a vector of vectors
   return (SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4))
 end
 
