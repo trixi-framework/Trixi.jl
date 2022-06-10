@@ -25,10 +25,10 @@ function initial_condition_kelvin_helmholtz_instability_ethz(x, t, equations::Co
   m = 10
   a1 = rand(rng,m)
   a2 = rand(rng,m)
-  a1 = a1./sum(a1)
-  a2 = a2./sum(a2)
-  b1 = (rand(rng,m).-0.5) * pi
-  b2 = (rand(rng,m).-0.5) * pi
+  a1 .= a1 / sum(a1)
+  a2 .= a2 / sum(a2)
+  b1 = (rand(rng, m) .- 0.5) .* pi
+  b2 = (rand(rng, m) .- 0.5) .* pi
   Y1 = 0.0
   Y2 = 0.0
   for n = 1:m
