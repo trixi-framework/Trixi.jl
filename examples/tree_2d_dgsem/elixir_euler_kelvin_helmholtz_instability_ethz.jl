@@ -23,8 +23,8 @@ function initial_condition_kelvin_helmholtz_instability_ethz(x, t, equations::Co
   # interface is sharp, but randomly perturbed
   rng = StableRNG(100)
   m = 10
-  a1 = rand(rng,m)
-  a2 = rand(rng,m)
+  a1 = rand(rng, m)
+  a2 = rand(rng, m)
   a1 .= a1 / sum(a1)
   a2 .= a2 / sum(a2)
   b1 = (rand(rng, m) .- 0.5) .* pi
