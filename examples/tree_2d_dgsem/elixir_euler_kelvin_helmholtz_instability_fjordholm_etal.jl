@@ -8,7 +8,7 @@ gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
 """
-    initial_condition_kelvin_helmholtz_instability_ethz(x, t, equations::CompressibleEulerEquations2D)
+    initial_condition_kelvin_helmholtz_instability_fjordholm_etal(x, t, equations::CompressibleEulerEquations2D)
 
 A version of the classical Kelvin-Helmholtz instability based on
 - Ulrik S. Fjordholm, Roger Käppeli, Siddhartha Mishra, Eitan Tadmor (2014)
@@ -16,7 +16,7 @@ A version of the classical Kelvin-Helmholtz instability based on
   solutions for hyperbolic systems of conservation laws
   [arXiv: 1402.0909](https://arxiv.org/abs/1402.0909)
 """
-function initial_condition_kelvin_helmholtz_instability_ethz(x, t, equations::CompressibleEulerEquations2D)
+function initial_condition_kelvin_helmholtz_instability_fjordholm_etal(x, t, equations::CompressibleEulerEquations2D)
   # typical resolution 128^2, 256^2
   # domain size is [0,+1]^2
   # interface is sharp, but randomly perturbed
@@ -71,7 +71,7 @@ function initial_condition_kelvin_helmholtz_instability_ethz(x, t, equations::Co
 
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
-initial_condition = initial_condition_kelvin_helmholtz_instability_ethz
+initial_condition = initial_condition_kelvin_helmholtz_instability_fjordholm_etal
 
 surface_flux = flux_hllc
 volume_flux  = flux_ranocha
