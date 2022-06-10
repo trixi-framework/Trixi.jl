@@ -116,8 +116,8 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
   # (4/3*(v1)_x - 2/3*(v2)_y)
   tau_11 = ( 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy )
   # ((v1)_y + (v2)_x)
-  tau_12 = ( dv1dy + dv2dx )
-  tau_21 = tau_12
+  # stress tensor is symmetric
+  tau_12 = ( dv1dy + dv2dx ) # = tau_21
   # (4/3*(v2)_y - 2/3*(v1)_x)
   tau_22 = ( 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx )
 
@@ -136,11 +136,13 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
   f3 = tau_12 * nu
   f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * nu
 
-  # viscous flux components in y-direction
+  # viscous flux components in the y-direction
+  # Note, symmetry is exploited for tau_12 = tau_21
   g1 = zero(rho)
-  g2 = tau_21 * nu
+  g2 = f3 # tau_21 * nu
   g3 = tau_22 * nu
-  g4 = ( v1 * tau_21 + v2 * tau_22 + q2 ) * nu
+  # g4 = ( v1 * tau_21 + v2 * tau_22 + q2 ) * nu
+  g4 = ( v1 * tau_12 + v2 * tau_22 + q2 ) * nu
 
   return (SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4))
 end
