@@ -45,7 +45,7 @@ where
 # 1) For now I save gamma and inv(gamma-1) again, but we could potentially reuse them from
 #    the Euler equations
 # 2) Add more here and probably some equations
-struct CompressibleNavierStokesEquations2D{RealT<:Real, E} <: AbstractCompressibleNavierStokesEquations{2, 3}
+struct CompressibleNavierStokesEquations2D{RealT<:Real, E<:AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 3}
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
   Re::RealT                  # Reynolds number
@@ -60,7 +60,7 @@ struct CompressibleNavierStokesEquations2D{RealT<:Real, E} <: AbstractCompressib
   equations::E               # CompressibleEulerEquations2D
 end
 
-function CompressibleNavierStokesEquations2D(gamma, Reynolds, Prandtl, Mach_freestream, kappa, equations)
+function CompressibleNavierStokesEquations2D(gamma, Reynolds, Prandtl, Mach_freestream, kappa, equations::CompressibleEulerEquations2D)
   γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
 
   # From the nondimensionalization discussed above set the remaining free-stream
