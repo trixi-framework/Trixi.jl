@@ -19,7 +19,7 @@ A version of the classical Kelvin-Helmholtz instability based on
 """
 function initial_condition_kelvin_helmholtz_instability_ethz(x, t, equations::CompressibleEulerEquations2D)
   # typical resolution 128^2, 256^2
-  # doomain size is [0,+1]^2
+  # domain size is [0,+1]^2
   # interface is sharp, but randomly perturbed
   rng = StableRNG(100)
   m = 10
