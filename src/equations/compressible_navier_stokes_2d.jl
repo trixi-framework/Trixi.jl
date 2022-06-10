@@ -61,7 +61,7 @@ struct CompressibleNavierStokesEquations2D{RealT<:Real, E<:AbstractCompressibleE
 end
 
 function CompressibleNavierStokesEquations2D(gamma, Reynolds, Prandtl, Mach_freestream, kappa, equations::CompressibleEulerEquations2D)
-  γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
+  γ, inv_gamma_minus_one, Re, Pr, Ma, κ = promote(gamma, inv(gamma - 1), Reynolds, Prandtl, Mach_freestream, kappa)
 
   # From the nondimensionalization discussed above set the remaining free-stream
   # quantities
@@ -69,8 +69,8 @@ function CompressibleNavierStokesEquations2D(gamma, Reynolds, Prandtl, Mach_free
   u_inf = Mach_freestream
   R     = 1 / γ
   CompressibleNavierStokesEquations2D{typeof(γ),typeof(equations)}(γ, inv_gamma_minus_one,
-                                                                   Reynolds, Prandtl, Mach_freestream,
-                                                                   kappa, p_inf, u_inf, R,
+                                                                   Re, Pr, Ma, κ,
+                                                                   p_inf, u_inf, R,
                                                                    equations)
 end
 
