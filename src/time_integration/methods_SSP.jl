@@ -104,11 +104,8 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
                   (prob=ode,), alg,
                   SimpleIntegratorSSPOptions(callback, ode.tspan; kwargs...), false)
 
-  # Resize antidiffusive fluxes
-  resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
-  # Resize alpha
-  resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator,
-              nelements(integrator.p.solver, integrator.p.cache))
+  # Resize container
+  resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
 
   # initialize callbacks
   if callback isa CallbackSet
@@ -152,7 +149,11 @@ function solve!(integrator::SimpleIntegratorSSP)
         @. integrator.u_old = (1.0 - alg.a[stage]) * integrator.u + alg.a[stage] * integrator.u_safe
         @. integrator.u_safe = integrator.u_old + alg.b[stage] * integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p)
+      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, integrator.p.solver.volume_integral.indicator)
+
+      # Check that we are within bounds
+      @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p)
+
     end
     @. integrator.u = integrator.u_safe
 
@@ -198,7 +199,7 @@ function solve!(integrator::SimpleIntegratorSSP)
 
   # Check that we are within bounds
   if integrator.p.solver.volume_integral.indicator.IDPCheckBounds
-    summary_check_bounds(integrator)
+    summary_check_bounds(integrator.p.solver.volume_integral.indicator)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
@@ -234,18 +235,26 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
   resize!(integrator.u_tmp, new_size)
   resize!(integrator.u_old, new_size)
 
-  # Resize antidiffusive fluxes
-  resize!(integrator.p.cache.ContainerFCT2D, nelements(integrator.p.solver, integrator.p.cache))
-  # Resize alpha
-  resize!(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator,
-              nelements(integrator.p.solver, integrator.p.cache))
+  # Resize container
+  resize!(integrator.p, new_size)
+end
 
+function Base.resize!(semi::AbstractSemidiscretization, new_size)
+  # Resize ContainerFCT2D or ContainerMCL2D
+  if semi.solver.volume_integral.indicator isa IndicatorIDP
+    resize!(semi.cache.ContainerFCT2D, new_size)
+  else # semi.solver.volume_integral.indicator isa IndicatorKuzminetal
+    resize!(semi.cache.ContainerMCL2D, new_size)
+  end
+
+  # Resize ContainerShockCapturingIndicator
+  resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
 end
 
 # check deviation from boundaries of IDP indicator
-@inline function summary_check_bounds(integrator)
-  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = integrator.p.solver.volume_integral.indicator
-  @unpack idp_bounds_delta_threaded = integrator.p.solver.volume_integral.indicator.cache
+@inline function summary_check_bounds(indicator::IndicatorIDP)
+  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
+  @unpack idp_bounds_delta_threaded = indicator.cache
 
   idp_bounds_delta = zeros(eltype(idp_bounds_delta_threaded[1]), length(idp_bounds_delta_threaded[1]))
 

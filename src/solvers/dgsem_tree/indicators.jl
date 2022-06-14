@@ -196,10 +196,6 @@ function IndicatorIDP(equations::AbstractEquations, basis;
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
   end
 
-  if !(IDPDensityTVD || IDPPressureTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
-    println("No limiter selected => pure DG method")
-  end
-
   length = 2 * (IDPDensityTVD + IDPPressureTVD) + IDPSpecEntropy + IDPMathEntropy +
               min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
 
@@ -211,16 +207,21 @@ end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
   @nospecialize indicator # reduce precompilation time
+  @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
 
   print(io, "IndicatorIDP(")
-  print(io, "limiter=(")
-  indicator.IDPDensityTVD  && print(io, "IDPDensityTVD, ")
-  indicator.IDPPressureTVD && print(io, "IDPPressureTVD, ")
-  indicator.IDPPositivity  && print(io, "IDPPositivity, ")
-  indicator.IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
-  indicator.IDPMathEntropy && print(io, "IDPMathEntropy, ")
-  print(io, "), ")
-  print(io, "alpha_maxIDP=", indicator.alpha_maxIDP)
+  if !(IDPDensityTVD || IDPPressureTVD || IDPPositivity || IDPSpecEntropy || IDPMathEntropy)
+    print(io, "No limiter selected => pure DG method")
+  else
+    print(io, "limiter=(")
+    IDPDensityTVD  && print(io, "IDPDensityTVD, ")
+    IDPPressureTVD && print(io, "IDPPressureTVD, ")
+    IDPPositivity  && print(io, "IDPPositivity, ")
+    IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
+    IDPMathEntropy && print(io, "IDPMathEntropy, ")
+    print(io, "), ")
+  end
+  indicator.alpha_maxIDP != 1.0 && print(io, "alpha_maxIDP=", indicator.alpha_maxIDP)
   print(io, ")")
 end
 

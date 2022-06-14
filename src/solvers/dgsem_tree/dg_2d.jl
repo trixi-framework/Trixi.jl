@@ -94,9 +94,15 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
+  cache = add2cache(cache, mesh, equations, volume_integral.indicator, dg, uEltype)
+
+  return (; cache..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
+end
+
+function add2cache(cache, mesh::TreeMesh{2}, equations, indicator::IndicatorIDP, dg::DG, uEltype)
   ContainerFCT2D = Trixi.ContainerFCT2D{uEltype}(0, nvariables(equations), nnodes(dg))
 
-  return (; cache..., fhat1_threaded, fhat2_threaded, flux_temp_threaded, ContainerFCT2D)
+  return (; cache..., ContainerFCT2D)
 end
 
 
@@ -518,18 +524,20 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralShockCapturingSubcell,
                                dg::DGSEM, cache)
   @threaded for element in eachelement(dg, cache)
-    subcell_DG_FV_kernel!(du, u, element, mesh,
-                          nonconservative_terms, equations,
-                          volume_integral, dg, cache)
+    subcell_limiting_kernel!(du, u, element, mesh,
+                             nonconservative_terms, equations,
+                             volume_integral, volume_integral.indicator,
+                             dg, cache)
   end
 end
 
-@inline function subcell_DG_FV_kernel!(du, u,
-                                       element, mesh::TreeMesh{2},
-                                       nonconservative_terms::Val{false}, equations,
-                                       volume_integral, dg::DGSEM, cache)
+@inline function subcell_limiting_kernel!(du, u,
+                                          element, mesh::TreeMesh{2},
+                                          nonconservative_terms::Val{false}, equations,
+                                          volume_integral, indicator::IndicatorIDP,
+                                          dg::DGSEM, cache)
   @unpack inverse_weights = dg.basis
-  @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
+  @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
   # high-order DG fluxes
   @unpack fhat1_threaded, fhat2_threaded = cache
@@ -553,7 +561,7 @@ end
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
-      nonconservative_terms, equations, dg, element, cache)
+      nonconservative_terms, equations, indicator, dg, element, cache)
 
   # Calculate volume integral contribution of low-order FV flux
   for j in eachnode(dg), i in eachnode(dg)
@@ -646,7 +654,7 @@ end
 end
 
 @inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
-                                         nonconservative_terms, equations, dg, element, cache)
+                                         nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
 
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
@@ -668,8 +676,10 @@ end
   return nothing
 end
 
-@inline function antidiffusive_stage!(u_ode, u_old_ode, dt, semi)
+@inline function antidiffusive_stage!(u_ode, u_old_ode, dt, semi, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  @unpack inverse_weights = solver.basis
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   u_old = wrap_array(u_old_ode, mesh, equations, solver, cache)
   u     = wrap_array(u_ode,     mesh, equations, solver, cache)
@@ -677,30 +687,16 @@ end
   @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, cache)
   @unpack alpha1, alpha2 = semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
 
-  IDP_correction!(u, alpha1, alpha2, dt, equations, solver, cache)
-
-  # Check that we are within bounds
-  if solver.volume_integral.indicator.IDPCheckBounds
-    @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(u, semi)
-  end
-
-  return nothing
-end
-
-@inline function IDP_correction!(u::AbstractArray{<:Any,4}, alpha1, alpha2, dt, equations, dg, cache)
-  @unpack inverse_weights = dg.basis
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
-
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in eachelement(solver, cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
     # Calculate volume integral contribution
     # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
-    for j in eachnode(dg), i in eachnode(dg)
-      alpha_flux1     = (1.0 - alpha1[i,   j, element]) * get_node_vars(antidiffusive_flux1, equations, dg, i,   j, element)
-      alpha_flux1_ip1 = (1.0 - alpha1[i+1, j, element]) * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j, element)
-      alpha_flux2     = (1.0 - alpha2[i,   j, element]) * get_node_vars(antidiffusive_flux2, equations, dg, i,   j, element)
-      alpha_flux2_jp1 = (1.0 - alpha2[i, j+1, element]) * get_node_vars(antidiffusive_flux2, equations, dg, i, j+1, element)
+    for j in eachnode(solver), i in eachnode(solver)
+      alpha_flux1     = (1.0 - alpha1[i,   j, element]) * get_node_vars(antidiffusive_flux1, equations, solver, i,   j, element)
+      alpha_flux1_ip1 = (1.0 - alpha1[i+1, j, element]) * get_node_vars(antidiffusive_flux1, equations, solver, i+1, j, element)
+      alpha_flux2     = (1.0 - alpha2[i,   j, element]) * get_node_vars(antidiffusive_flux2, equations, solver, i,   j, element)
+      alpha_flux2_jp1 = (1.0 - alpha2[i, j+1, element]) * get_node_vars(antidiffusive_flux2, equations, solver, i, j+1, element)
 
       for v in eachvariable(equations)
         u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * (alpha_flux1_ip1[v] - alpha_flux1[v]) +
@@ -712,8 +708,8 @@ end
   return nothing
 end
 
-@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, semi)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+# 2d, IndicatorIDP
+@inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorIDP)
 
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
   @unpack var_bounds = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
