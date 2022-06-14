@@ -1,6 +1,9 @@
-function create_cache_parabolic(mesh::DGMultiMesh, equations::AbstractEquationsParabolic,
+function create_cache_parabolic(mesh::DGMultiMesh, equations_hyperbolic::AbstractEquations,
+                                equations_parabolic::AbstractEquationsParabolic,
                                 dg::DGMulti, dg_parabolic, RealT, uEltype)
-  nvars = nvariables(equations)
+  # default to taking derivatives of all hyperbolic terms
+  # TODO: utilize "differentiated" parabolic variables in `equations_parabolic`
+  nvars = nvariables(equations_hyperbolic)
 
   @unpack M, Drst = dg.basis
   weak_differentiation_matrices = map(A -> -M \ (A' * M), Drst)

@@ -438,14 +438,15 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache_parabolic(mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+function create_cache_parabolic(mesh::TreeMesh{2}, equations_hyperbolic::AbstractEquations,
+                                equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, dg_parabolic, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-  elements = init_elements(leaf_cell_ids, mesh, equations_parabolic, dg.basis, RealT, uEltype)
+  elements = init_elements(leaf_cell_ids, mesh, equations_hyperbolic, dg.basis, RealT, uEltype)
 
-  n_vars = nvariables(equations_parabolic)
+  n_vars = nvariables(equations_hyperbolic)
   n_nodes = nnodes(elements)
   n_elements = nelements(elements)
   u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_elements)
