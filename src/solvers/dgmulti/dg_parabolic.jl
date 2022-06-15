@@ -248,7 +248,7 @@ function calc_divergence!(du, u::StructArray, t, viscous_flux, mesh::DGMultiMesh
   end
 
   # interpolates from solution coefficients to face quadrature points
-  viscous_flux_face_values = cache_parabolic.grad_u_face_values
+  viscous_flux_face_values = cache_parabolic.grad_u_face_values # reuse storage
   for dim in eachdim(mesh)
     prolong2interfaces!(viscous_flux_face_values[dim], viscous_flux[dim], mesh, equations,
                         dg.surface_integral, dg, cache)
