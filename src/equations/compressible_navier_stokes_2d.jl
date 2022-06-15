@@ -87,6 +87,13 @@ end
 varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesEquations2D) =
   varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
+# transform to primitive variables
+# TODO: should we have this call a "gradient transformation" field?
+function transform_variables!(u_transformed, u, equations_parabolic::CompressibleNavierStokesEquations2D)
+  @threaded for i in eachindex(u)
+    u_transformed[i] = cons2prim(u[i], equations_parabolic)
+  end
+end
 
 # no orientation specified since the flux is vector-valued
 # Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
@@ -156,7 +163,7 @@ end
   v2 = rho_v2 / rho
   T  = temperature(u, equations)
 
-  return SVector(v1, v2, T)
+  return SVector(rho, v1, v2, T)
 end
 
 
