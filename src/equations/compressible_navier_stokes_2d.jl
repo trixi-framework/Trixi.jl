@@ -204,39 +204,36 @@ end
   return T
 end
 
+# abstract container for wall-type boundary conditions
+struct BoundaryConditionViscousWall{V, H}
+  boundary_condition_velocity::V
+  boundary_condition_heat_flux::H
+end
 
-#
-#  All this boundary conditions stuff I did not touch
-#
+# no slip velocity BC
+struct NoSlip{F}
+  boundary_value_function::F # value of the velocity vector on the boundary
+end
 
-# TODO: should this remain in the equations file, be moved to solvers, or live in the elixir?
-# The penalization depends on the solver, but also depends explicitly on physical parameters,
-# and would probably need to be specialized for every different equation.
-# function penalty(u_outer, u_inner, inv_h, equations::LaplaceDiffusion2D, dg::ViscousFormulationLocalDG)
-#   return dg.penalty_parameter * (u_outer - u_inner) * equations.diffusivity * inv_h
-# end
+# adiabatic temperature BC
+struct Adiabatic{F}
+  boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
+end
 
-# # Dirichlet-type boundary condition for use with a parabolic solver in weak form
-# @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, normal::AbstractVector,
-#                                                                   x, t, operator_type::Gradient,
-#                                                                   equations::LaplaceDiffusion2D)
-#   return boundary_condition.boundary_value_function(x, t, equations)
-# end
+@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(u_inner, normal::AbstractVector,
+                                                                                           x, t, operator_type::Gradient,
+                                                                                           equations::CompressibleNavierStokesEquations2D)
+  rho = u_inner[1] # should not matter since the viscous terms don't depend on rho
+  v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
+  return SVector(rho, v1, v2, u_inner[4])
+end
 
-# @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, normal::AbstractVector,
-#                                                                   x, t, operator_type::Divergence,
-#                                                                   equations::LaplaceDiffusion2D)
-#   return u_inner
-# end
-
-# @inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, normal::AbstractVector,
-#                                                                 x, t, operator_type::Divergence,
-#                                                                 equations::LaplaceDiffusion2D)
-#   return boundary_condition.boundary_normal_flux_function(x, t, equations)
-# end
-
-# @inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, normal::AbstractVector,
-#                                                                 x, t, operator_type::Gradient,
-#                                                                 equations::LaplaceDiffusion2D)
-#   return flux_inner
-# end
+@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, normal::AbstractVector,
+                                                                                           x, t, operator_type::Divergence,
+                                                                                           equations::CompressibleNavierStokesEquations2D)
+  normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x, t, equations)
+  v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
+  tau_1n, tau_2n = flux_inner[2:3]
+  normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
+  return SVector(flux_inner[1:3]..., normal_energy_flux)
+end
