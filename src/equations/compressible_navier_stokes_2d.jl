@@ -45,7 +45,7 @@ where
 # 1) For now I save gamma and inv(gamma-1) again, but we could potentially reuse them from
 #    the Euler equations
 # 2) Add more here and probably some equations
-struct CompressibleNavierStokesEquations2D{RealT<:Real, E<:AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 3}
+struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 3}
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
   Re::RealT                  # Reynolds number
@@ -57,7 +57,7 @@ struct CompressibleNavierStokesEquations2D{RealT<:Real, E<:AbstractCompressibleE
   u_inf::RealT               # free-stream velocity
   R::RealT                   # gas constant (depends on nondimensional scaling!)
 
-  equations::E               # CompressibleEulerEquations2D
+  equations_hyperbolic::E    # CompressibleEulerEquations2D
 end
 
 function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquations2D; Reynolds, Prandtl, Mach_freestream, kappa)
@@ -85,11 +85,11 @@ end
 # varnames(::typeof(cons2entropy), ::CompressibleNavierStokesEquations2D) = ("w2", "w3", "w4")
 
 varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesEquations2D) =
-  varnames(variable_mapping, equations_parabolic.equations)
+  varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
 
 # no orientation specified since the flux is vector-valued
-# Explicit formulas for the diffussive Navier-Stokes fluxes are avilable, e.g. in Section 2
+# Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
 # of the paper by Svärd, Carpenter and Nordström
 # "A stable high-order finite difference scheme for the compressible Navier–Stokes
 #  equations, far-field boundary conditions"
@@ -99,7 +99,7 @@ varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesEquation
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
 function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
-  # Here grad_u is assumed to contain the gradients of the primitive variables (v1,v2,T)
+  # Here grad_u is assumed to contain the gradients of the primitive variables (v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
   rho, rho_v1, rho_v2, _ = u
