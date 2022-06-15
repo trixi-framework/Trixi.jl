@@ -166,6 +166,11 @@ end
   return SVector(rho, v1, v2, T)
 end
 
+# TODO: make this consistent with cons2prim above and cons2prim for Euler!
+@inline prim2cons(u, equations::CompressibleNavierStokesEquations2D) =
+    prim2cons(u, equations.equations_hyperbolic)
+
+
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleNavierStokesEquations2D)
