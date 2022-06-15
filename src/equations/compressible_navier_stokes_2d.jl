@@ -107,10 +107,9 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
 
-  # I was not sure what shape this array has or or if it was a tuple
-  # or how to properly "unpack" it. So I just guessed...
-  dv1dx, dv2dx, dTdx = grad_u[1]
-  dv1dy, dv2dy, dTdy = grad_u[2]
+  # grad_u contains derivatives of each hyperbolic variable
+  _, dv1dx, dv2dx, dTdx = grad_u[1]
+  _, dv1dy, dv2dy, dTdy = grad_u[2]
 
   # Components of viscous stress tensor
 
