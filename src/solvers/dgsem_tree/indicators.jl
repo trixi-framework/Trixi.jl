@@ -242,8 +242,7 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorKuzminetal(equations::AbstractEquations, basis;
                              IDPPressureTVD=true,
-                             IDPCheckBounds=false,
-                             Plotting=false)
+                             IDPCheckBounds=false)
 
   cache = create_cache(IndicatorKuzminetal, equations, basis, 2*nvariables(equations))
   IndicatorKuzminetal{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds)
