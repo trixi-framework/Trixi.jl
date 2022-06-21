@@ -246,7 +246,7 @@ function IndicatorKuzminetal(equations::AbstractEquations, basis;
                              Plotting=false)
 
   cache = create_cache(IndicatorKuzminetal, equations, basis, 2*nvariables(equations))
-  IndicatorKuzminetal{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds, Plotting)
+  IndicatorKuzminetal{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds)
 end
 
 function Base.show(io::IO, indicator::IndicatorKuzminetal)
