@@ -191,7 +191,7 @@ end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
+function create_cache(::Union{Type{IndicatorIDP}, Type{IndicatorKuzminetal}}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
 
   ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis), length)
 

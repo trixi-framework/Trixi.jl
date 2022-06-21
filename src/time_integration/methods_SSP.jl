@@ -152,8 +152,11 @@ function solve!(integrator::SimpleIntegratorSSP)
       @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, integrator.p.solver.volume_integral.indicator)
 
       # Check that we are within bounds
-      @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p)
+      if integrator.p.solver.volume_integral.indicator.IDPCheckBounds
+        @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p)
+      end
 
+      @trixi_timeit timer() "calc_lambda!" calc_lambda!(integrator.u_safe, integrator.p)
     end
     @. integrator.u = integrator.u_safe
 
@@ -172,11 +175,13 @@ function solve!(integrator::SimpleIntegratorSSP)
       resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, new_length)
     end
 
-    integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
-        maximum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha)
-    integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
-        (1/(nnodes(integrator.p.solver)^ndims(integrator.p.equations) * nelements(integrator.p.solver, integrator.p.cache))) *
-             sum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha)
+    if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
+      integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
+          maximum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha)
+      integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
+          (1/(nnodes(integrator.p.solver)^ndims(integrator.p.equations) * nelements(integrator.p.solver, integrator.p.cache))) *
+              sum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha)
+    end
 
     integrator.iter += 1
     integrator.t += integrator.dt
@@ -296,6 +301,35 @@ end
     counter += 1
     println("ent_max: ", idp_bounds_delta[counter])
   end
+  println("─"^100 * "\n")
+
+  return nothing
+end
+
+# check deviation from boundaries of IndicatorKuzminetal
+@inline function summary_check_bounds(indicator::IndicatorKuzminetal)
+  @unpack idp_bounds_delta_threaded = indicator.cache
+
+  idp_bounds_delta = zeros(eltype(idp_bounds_delta_threaded[1]), length(idp_bounds_delta_threaded[1]))
+
+  for index in 1:length(idp_bounds_delta)
+    for i in 1:Threads.nthreads()
+      idp_bounds_delta[index] = max(idp_bounds_delta[index], idp_bounds_delta_threaded[i][index])
+    end
+  end
+
+  # TODO BB: all variables
+  println("─"^100)
+  println("Maximum deviation from bounds:")
+  println("─"^100)
+  println("rho_min:    ", idp_bounds_delta[1])
+  println("rho_max:    ", idp_bounds_delta[2])
+  println("rho_v1_min: ", idp_bounds_delta[3])
+  println("rho_v1_max: ", idp_bounds_delta[4])
+  println("rho_v2_min: ", idp_bounds_delta[5])
+  println("rho_v2_max: ", idp_bounds_delta[6])
+  println("rho_E_min:  ", idp_bounds_delta[7])
+  println("rho_E_max:  ", idp_bounds_delta[8])
   println("─"^100 * "\n")
 
   return nothing

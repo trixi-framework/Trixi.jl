@@ -226,6 +226,38 @@ function Base.show(io::IO, indicator::IndicatorIDP)
 end
 
 
+"""
+IndicatorKuzminetal
+
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct IndicatorKuzminetal{Cache} <: AbstractIndicator
+  cache::Cache
+  IDPPressureTVD::Bool
+  IDPCheckBounds::Bool
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorKuzminetal(equations::AbstractEquations, basis;
+                             IDPPressureTVD=true,
+                             IDPCheckBounds=false,
+                             Plotting=false)
+
+  cache = create_cache(IndicatorKuzminetal, equations, basis, 2*nvariables(equations))
+  IndicatorKuzminetal{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds, Plotting)
+end
+
+function Base.show(io::IO, indicator::IndicatorKuzminetal)
+  @nospecialize indicator # reduce precompilation time
+
+  print(io, "IndicatorKuzminetal(")
+  print(io, "density, velocity, total energy")
+  indicator.IDPPressureTVD && print(io, ", pressure")
+  print(io, ")")
+end
+
 struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   variable::Variable
   cache::Cache

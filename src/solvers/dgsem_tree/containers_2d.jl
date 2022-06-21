@@ -1306,6 +1306,94 @@ function Base.resize!(fluxes::ContainerFCT2D, capacity)
   return nothing
 end
 
+mutable struct ContainerMCL2D{uEltype<:Real}
+  lambda1::Array{uEltype, 3}     # [i, j, element]
+  lambda2::Array{uEltype, 3}     # [i, j, element]
+  # Bar states at subcell interfaces for cons variable
+  bar_states1::Array{uEltype, 4} # [variable, i, j, element]
+  bar_states2::Array{uEltype, 4} # [variable, i, j, element]
+  # TODO: Do I really need to save the fluxes? For now, yes, because I need them to check the bounds at the end.
+  # Idea: Just save the limited bar states. Problem: In there, the sign of the antidiffusive flux is not unique.
+  antidiffusive_flux1_limited::Array{uEltype, 4} # [variables, i, j, elements]
+  antidiffusive_flux2_limited::Array{uEltype, 4} # [variables, i, j, elements]
+  # internal `resize!`able storage
+  _lambda1::Vector{uEltype}
+  _lambda2::Vector{uEltype}
+  _bar_states1::Vector{uEltype}
+  _bar_states2::Vector{uEltype}
+  _antidiffusive_flux1_limited::Vector{uEltype}
+  _antidiffusive_flux2_limited::Vector{uEltype}
+end
+
+function ContainerMCL2D{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
+  nan_uEltype = convert(uEltype, NaN)
+
+  # Initialize fields with defaults
+  _lambda1 = fill(nan_uEltype, (n_nodes+1) * n_nodes * capacity)
+  lambda1 = unsafe_wrap(Array, pointer(_lambda1),
+                        (n_nodes+1, n_nodes, capacity))
+  _lambda2 = fill(nan_uEltype, n_nodes * (n_nodes+1) * capacity)
+  lambda2 = unsafe_wrap(Array, pointer(_lambda2),
+                        (n_nodes, n_nodes+1, capacity))
+  _bar_states1 = fill(nan_uEltype, n_variables * (n_nodes+1) * n_nodes * capacity)
+  bar_states1 = unsafe_wrap(Array, pointer(_bar_states1),
+                        (n_variables, n_nodes+1, n_nodes, capacity))
+  _bar_states2 = fill(nan_uEltype, n_variables * n_nodes * (n_nodes+1) * capacity)
+  bar_states2 = unsafe_wrap(Array, pointer(_bar_states2),
+                        (n_variables, n_nodes, n_nodes+1, capacity))
+
+  _antidiffusive_flux1_limited = fill(nan_uEltype, n_variables * (n_nodes+1) * n_nodes * capacity)
+  antidiffusive_flux1_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux1_limited),
+                                    (n_variables, n_nodes+1, n_nodes, capacity))
+
+  _antidiffusive_flux2_limited = fill(nan_uEltype, n_variables * n_nodes * (n_nodes+1) * capacity)
+  antidiffusive_flux2_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux2_limited),
+                                    (n_variables, n_nodes, n_nodes+1, capacity))
+
+  return ContainerMCL2D{uEltype}(lambda1, lambda2, bar_states1, bar_states2, antidiffusive_flux1_limited, antidiffusive_flux2_limited,
+                                 _lambda1, _lambda2, _bar_states1, _bar_states2, _antidiffusive_flux1_limited, _antidiffusive_flux2_limited)
+end
+
+nvariables(container::ContainerMCL2D) = size(container.bar_states1, 1)
+nnodes(container::ContainerMCL2D) = size(container.lambda1, 2)
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(container::ContainerMCL2D, capacity)
+  n_nodes = nnodes(container)
+  n_variables = nvariables(container)
+
+  @unpack _lambda1, _lambda2, _bar_states1, _bar_states2 = container
+
+  resize!(_lambda1, (n_nodes+1) * n_nodes * capacity)
+  container.lambda1 = unsafe_wrap(Array, pointer(_lambda1),
+                               (n_nodes+1, n_nodes, capacity))
+  resize!(_lambda2, n_nodes * (n_nodes+1) * capacity)
+  container.lambda2 = unsafe_wrap(Array, pointer(_lambda2),
+                               (n_nodes, n_nodes+1, capacity))
+  resize!(_bar_states1, n_variables * (n_nodes+1) * n_nodes * capacity)
+  container.bar_states1 = unsafe_wrap(Array, pointer(_bar_states1),
+                               (n_variables, n_nodes+1, n_nodes, capacity))
+  resize!(_bar_states2, n_variables * n_nodes * (n_nodes+1) * capacity)
+  container.bar_states2 = unsafe_wrap(Array, pointer(_bar_states2),
+                               (n_variables, n_nodes, n_nodes+1, capacity))
+
+  @unpack _antidiffusive_flux1_limited, _antidiffusive_flux2_limited = container
+
+  resize!(_antidiffusive_flux1_limited, n_variables * (n_nodes+1) * n_nodes * capacity)
+  container.antidiffusive_flux1_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux1_limited),
+                                          (n_variables, n_nodes+1, n_nodes, capacity))
+  resize!(_antidiffusive_flux2_limited, n_variables * n_nodes * (n_nodes+1) * capacity)
+  container.antidiffusive_flux2_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux2_limited),
+                                          (n_variables, n_nodes, n_nodes+1, capacity))
+
+  return nothing
+end
+
+
 mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
   alpha::Array{uEltype, 3} # [i, j, elements]
   alpha1::Array{uEltype, 3}
