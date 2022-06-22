@@ -79,10 +79,10 @@ end
                                                                   have_constant_speed(equations), equations,
                                                                   solver, cache)
     elseif a==2
+    # TODO Maybe it's possible to remove one calculation of the lambda (see volume integral)
     @unpack inverse_weights = solver.basis
-    # if t == 0.0
-      calc_lambda!(u_ode, semi)#, mesh, equations, solver.volume_integral.indicator, solver, cache)
-    # end
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+    calc_lambda!(u, mesh, equations, solver, cache, solver.volume_integral.indicator)
     @unpack lambda1, lambda2 = cache.ContainerMCL2D
 
     maxdt = typemax(eltype(u_ode))

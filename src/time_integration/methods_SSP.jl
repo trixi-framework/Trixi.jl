@@ -123,6 +123,7 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
 end
 
 function solve!(integrator::SimpleIntegratorSSP)
+  @unpack indicator = integrator.p.solver.volume_integral
   @unpack prob = integrator.sol
   @unpack alg = integrator
   t_end = last(prob.tspan)
@@ -149,14 +150,12 @@ function solve!(integrator::SimpleIntegratorSSP)
         @. integrator.u_old = (1.0 - alg.a[stage]) * integrator.u + alg.a[stage] * integrator.u_safe
         @. integrator.u_safe = integrator.u_old + alg.b[stage] * integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, integrator.p.solver.volume_integral.indicator)
+      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, indicator)
 
       # Check that we are within bounds
-      if integrator.p.solver.volume_integral.indicator.IDPCheckBounds
+      if indicator.IDPCheckBounds
         @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p)
       end
-
-      @trixi_timeit timer() "calc_lambda!" calc_lambda!(integrator.u_safe, integrator.p)
     end
     @. integrator.u = integrator.u_safe
 
@@ -169,18 +168,19 @@ function solve!(integrator::SimpleIntegratorSSP)
     # @. integrator.u_old = u_tmp + alg.a[i] * integrator.u_safe
     # solves the differences between the (not-)unrolled for-loop versions.
 
-    if integrator.iter == length(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep)
-      new_length = length(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep) + 200
-      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  new_length)
-      resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, new_length)
+    if integrator.iter == length(indicator.cache.alpha_max_per_timestep)
+      new_length = length(indicator.cache.alpha_max_per_timestep) + 200
+      resize!(indicator.cache.alpha_max_per_timestep,  new_length)
+      resize!(indicator.cache.alpha_mean_per_timestep, new_length)
     end
 
-    if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
-      integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
-          maximum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha)
-      integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
+    # TODO BB: Move this calculation to the for loop to get the mean and maximum of all alpha in that timestep (not only of the last RK stage)?
+    if indicator isa IndicatorIDP || (indicator isa IndicatorKuzminetal && indicator.Plotting)
+      indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
+          maximum(indicator.cache.ContainerShockCapturingIndicator.alpha)
+      indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
           (1/(nnodes(integrator.p.solver)^ndims(integrator.p.equations) * nelements(integrator.p.solver, integrator.p.cache))) *
-              sum(integrator.p.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator.alpha)
+              sum(indicator.cache.ContainerShockCapturingIndicator.alpha)
     end
 
     integrator.iter += 1
@@ -203,13 +203,12 @@ function solve!(integrator::SimpleIntegratorSSP)
   end
 
   # Check that we are within bounds
-  if integrator.p.solver.volume_integral.indicator.IDPCheckBounds
-    summary_check_bounds(integrator.p.solver.volume_integral.indicator)
+  if indicator.IDPCheckBounds
+    summary_check_bounds(indicator)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                (prob.u0, integrator.u),
-                                integrator.sol.prob)
+                                (prob.u0, integrator.u), prob)
 end
 
 # get a cache where the RHS can be stored

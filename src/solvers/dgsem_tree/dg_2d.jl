@@ -543,16 +543,16 @@ function calc_volume_integral!(du, u,
                                dg::DGSEM, cache)
   # Calculate maximum wave speeds lambda
   # TODO:
-  # Option one: Calculate the lambdas 4 times each time step (before each RK stage and in callback) plus one time to init the callback
+  # Option one: (Right now) Calculate the lambdas 4 times each time step (before each RK stage and in callback) plus one time to init the callback
   #   1 In the stepsize callback to get the right time step
   #   Remove 1, the first time step cannot be calculated and the others are not accurate (with old lambdas)
   #   2 In the volume integral (here).
   #   Remove 2, the first entropy analysis of the analysis_callback doesn't work.
   #             And we get different result because otherwise the lambdas are only updated once in a RK step.
   #   -> 4 times per timestep is actually not that bad. (3 times would be optimal)
-  # Option two: (Right now) Calculate lambdas after each RK stage plus in the init_stepsize_callback.
+  # Option two: Calculate lambdas after each RK stage plus in the init_stepsize_callback.
   #   Problem: Entropy change at t=0 only works if the stepsize callback is listed before analysis callback (to calculate the lambdas before)
-  # calc_lambda!(u, mesh, nonconservative_terms, equations, volume_integral.indicator, dg, cache)
+  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, volume_integral.indicator)
   # Calculate bar states
   @trixi_timeit timer() "calc_bar_states!" calc_bar_states!(u, mesh, nonconservative_terms, equations, volume_integral.indicator, dg, cache)
   # Calculate boundaries
@@ -644,13 +644,8 @@ end
   # limited antidiffusive flux
   calcflux_antidiffusive_limited!(antidiffusive_flux1, antidiffusive_flux2,
       u, mesh, nonconservative_terms, equations, indicator, dg, element, cache)
+
   @unpack antidiffusive_flux1_limited, antidiffusive_flux2_limited = cache.ContainerMCL2D
-
-  if indicator.Plotting
-    calc_limiting_factor!(antidiffusive_flux1_limited, antidiffusive_flux2_limited,
-      antidiffusive_flux1, antidiffusive_flux2, equations, indicator, dg, element, cache)
-  end
-
   for j in eachnode(dg), i in eachnode(dg)
     for v in eachvariable(equations)
       du[v, i, j, element] += inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
@@ -1099,12 +1094,7 @@ end
   return nothing
 end
 
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh, equations, dg, cache, indicator::IndicatorIDP)
-
-  return nothing
-end
-
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh, equations, dg, cache, indicator::IndicatorKuzminetal, )
+@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh, equations, dg, cache, indicator::IndicatorKuzminetal)
   @unpack lambda1, lambda2 = cache.ContainerMCL2D
 
   @threaded for element in eachelement(dg, cache)

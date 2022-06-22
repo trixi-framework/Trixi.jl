@@ -39,16 +39,6 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
 end
 
 
-@inline function calc_lambda!(u_ode, semi)
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-  calc_lambda!(u, mesh, equations, solver, cache, solver.volume_integral.indicator)
-
-  return nothing
-end
-
-
 @inline function IDP_checkBounds(u_ode, semi)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
