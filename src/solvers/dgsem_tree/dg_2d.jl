@@ -782,8 +782,7 @@ end
   return nothing
 end
 
-@inline function calc_bar_states!(u, mesh,
-                                  nonconservative_terms, equations, indicator::IndicatorIDP, dg, cache)
+@inline function calc_bar_states!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
 
   return nothing
 end
@@ -825,7 +824,7 @@ end
   return nothing
 end
 
-@inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorIDP, dg, cache)
+@inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
 
   return nothing
 end
@@ -1090,6 +1089,11 @@ end
 
   antidiffusive_flux2_limited[:, :,            1, element] .= zero(eltype(antidiffusive_flux2_limited))
   antidiffusive_flux2_limited[:, :, nnodes(dg)+1, element] .= zero(eltype(antidiffusive_flux2_limited))
+
+  return nothing
+end
+
+@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh, equations, dg, cache, indicator)
 
   return nothing
 end

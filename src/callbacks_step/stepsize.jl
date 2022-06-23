@@ -73,33 +73,29 @@ end
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     # TODO BB: Fix the implementation of the second CFL condition.
-    a=2
-    if a==1
-    dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
+    if solver.volume_integral isa VolumeIntegralShockCapturingSubcell && solver.volume_integral.indicator isa IndicatorKuzminetal
+      # TODO Maybe it's possible to remove one calculation of the lambda (see volume integral)
+      @unpack inverse_weights = solver.basis
+      u = wrap_array(u_ode, mesh, equations, solver, cache)
+      calc_lambda!(u, mesh, equations, solver, cache, solver.volume_integral.indicator)
+      @unpack lambda1, lambda2 = cache.ContainerMCL2D
+
+      maxdt = typemax(eltype(u_ode))
+      for element in eachelement(solver, cache)
+        J = 1 / cache.elements.inverse_jacobian[element]
+
+        for j in eachnode(solver), i in eachnode(solver)
+          denom = inverse_weights[i] * (lambda1[i, j, element] + lambda1[i+1, j, element]) +
+                  inverse_weights[j] * (lambda2[i, j, element] + lambda2[i, j+1, element])
+          maxdt = min(maxdt, J / denom)
+        end
+      end
+
+      dt = @trixi_timeit timer() "calculate dt" cfl_number * maxdt
+    else
+      dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
                                                                   have_constant_speed(equations), equations,
                                                                   solver, cache)
-    elseif a==2
-    # TODO Maybe it's possible to remove one calculation of the lambda (see volume integral)
-    @unpack inverse_weights = solver.basis
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-    calc_lambda!(u, mesh, equations, solver, cache, solver.volume_integral.indicator)
-    @unpack lambda1, lambda2 = cache.ContainerMCL2D
-
-    maxdt = typemax(eltype(u_ode))
-    for element in eachelement(solver, cache)
-      J = 1 / cache.elements.inverse_jacobian[element]
-
-      for j in eachnode(solver), i in eachnode(solver)
-        denom = inverse_weights[i] * (lambda1[i, j, element] + lambda1[i+1, j, element]) +
-                inverse_weights[j] * (lambda2[i, j, element] + lambda2[i, j+1, element])
-        maxdt = min(maxdt, J / denom)
-      end
-    end
-
-    dt = @trixi_timeit timer() "calculate dt" cfl_number * maxdt
-    # dt = 1e-4
-    else
-    dt = 1e-4
     end
 
     set_proposed_dt!(integrator, dt)
