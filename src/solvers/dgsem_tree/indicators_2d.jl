@@ -210,7 +210,7 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
                                        dt, cache;
                                        kwargs...)
   @unpack alpha = indicator_IDP.cache.ContainerShockCapturingIndicator
-  alpha .= 0.0
+  alpha .= 0.0 # TODO: Correct that we save only the alpha's of the last RK stage.
 
   indicator_IDP.IDPDensityTVD  &&
     @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,        equations, dg, dt, cache)
