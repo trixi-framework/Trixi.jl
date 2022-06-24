@@ -175,7 +175,7 @@ function solve!(integrator::SimpleIntegratorSSP)
     end
 
     # TODO BB: Move this calculation to the for loop to get the mean and maximum of all alpha in that timestep (not only of the last RK stage)?
-    if indicator isa IndicatorIDP || (indicator isa IndicatorKuzminetal && indicator.Plotting)
+    if indicator isa IndicatorIDP
       indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
           maximum(indicator.cache.ContainerShockCapturingIndicator.alpha)
       indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
