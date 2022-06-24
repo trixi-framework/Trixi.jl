@@ -8,7 +8,7 @@ using Trixi
 trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_euler_astro_jet_MCL.jl"))
 
 ###############################################################################
-# adapt the parameters that have changed compared to "elixir_euler_astro_jet_subcell.jl"
+# adapt the parameters that have changed compared to "elixir_euler_astro_jet_MCL.jl"
 
 restart_filename = joinpath("out", "restart_000001.h5")
 mesh = load_mesh(restart_filename)
