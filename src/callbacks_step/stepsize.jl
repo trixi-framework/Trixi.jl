@@ -85,8 +85,10 @@ end
         J = 1 / cache.elements.inverse_jacobian[element]
 
         for j in eachnode(solver), i in eachnode(solver)
-          denom = inverse_weights[i] * (lambda1[i, j, element] + lambda1[i+1, j, element]) +
-                  inverse_weights[j] * (lambda2[i, j, element] + lambda2[i, j+1, element])
+          denom = inverse_weights[i] * ((i > 1              ? lambda1[i,   j, element] : 0) +
+                                        (i < nnodes(solver) ? lambda1[i+1, j, element] : 0)) +
+                  inverse_weights[j] * ((j > 1              ? lambda2[i,   j, element] : 0) +
+                                        (j < nnodes(solver) ? lambda2[i, j+1, element] : 0))
           maxdt = min(maxdt, J / denom)
         end
       end
