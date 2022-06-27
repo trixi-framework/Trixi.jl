@@ -230,25 +230,45 @@ struct NoSlip{F}
   boundary_value_function::F # value of the velocity vector on the boundary
 end
 
+# isothermal temperature BC
+struct Isothermal{F}
+  boundary_value_function::F # value of the temperature on the boundary
+end
+
 # adiabatic temperature BC
 struct Adiabatic{F}
   boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
 end
 
-@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(u_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Gradient,
                                                                                            equations::CompressibleNavierStokesEquations2D)
-  rho = u_inner[1] # should not matter since the viscous terms don't depend on rho
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
-  return SVector(rho, v1, v2, u_inner[4])
+  return SVector(zero(eltype(u_inner)), v1, v2, u_inner[4])
 end
 
-@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Divergence,
                                                                                            equations::CompressibleNavierStokesEquations2D)
+  # rho, v1, v2, _ = u_inner
   normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x, t, equations)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
-  tau_1n, tau_2n = flux_inner[2:3]
+  tau_1n, tau_2n = flux_inner[2:3] # extract fluxes for 2nd and 3rd equations
   normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
   return SVector(flux_inner[1:3]..., normal_energy_flux)
 end
+
+@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
+                                                                                            x, t, operator_type::Gradient,
+                                                                                            equations::CompressibleNavierStokesEquations2D)
+  v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
+  T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t, equations)
+  return SVector(zero(eltype(flux_inner)), v1, v2, T)
+end
+
+@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
+                                                                                            x, t, operator_type::Divergence,
+                                                                                            equations::CompressibleNavierStokesEquations2D)
+  return flux_inner
+end
+
