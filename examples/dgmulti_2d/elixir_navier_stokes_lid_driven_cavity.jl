@@ -7,13 +7,13 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=100, Prandtl=0.72,
+equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=1000, Prandtl=0.72,
                                                           Mach_freestream=0.1, kappa=1.0)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = GaussSBP(),
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
-             volume_integral = VolumeIntegralWeakForm())
+             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 top(x, tol=50*eps()) = abs(x[2] - 1) < tol
 rest_of_boundary(x, tol=50*eps()) = !top(x, tol)
@@ -52,7 +52,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.5
-tspan = (0.0, 25.0)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
