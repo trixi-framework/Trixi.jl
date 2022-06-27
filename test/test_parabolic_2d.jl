@@ -78,11 +78,19 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_advection_diffusion.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
+  @trixi_testset "elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_nonperiodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
-      l2 = [0.2485803335154642],
-      linf = [1.079606969242132]
+      l2 = [0.012561479036088107],
+      linf = [0.10067620068384618]
+    )
+  end
+
+  @trixi_testset "elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion_nonperiodic.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.1),
+      l2 = [0.0076468006081234705],
+      linf = [0.10067621027072088]
     )
   end
 
