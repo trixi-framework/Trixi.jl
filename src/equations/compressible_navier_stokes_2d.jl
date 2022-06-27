@@ -175,40 +175,40 @@ end
 
 
 
-# Convert conservative variables to entropy
-@inline function cons2entropy(u, equations::CompressibleNavierStokesEquations2D)
-  rho, rho_v1, rho_v2, rho_e = u
+# # Convert conservative variables to entropy
+# @inline function cons2entropy(u, equations::CompressibleNavierStokesEquations2D)
+#   rho, rho_v1, rho_v2, rho_e = u
 
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  v_square = v1^2 + v2^2
-  p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
+#   v1 = rho_v1 / rho
+#   v2 = rho_v2 / rho
+#   v_square = v1^2 + v2^2
+#   p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
 
-  rho_p = rho / p
+#   rho_p = rho / p
 
-  w2 = rho_p * v1
-  w3 = rho_p * v2
-  w4 = -rho_p
+#   w2 = rho_p * v1
+#   w3 = rho_p * v2
+#   w4 = -rho_p
 
-  return SVector(w2, w3, w4)
-end
+#   return SVector(w2, w3, w4)
+# end
 
 
-@inline function convert_gradient_variables(u, grad_entropy_vars, equations::CompressibleNavierStokesEquations2D)
-# Takes the solution values `u` and gradient of the variables (w_2, w_3, w_4) and
-# reverse engineers the gradients to be terms of the primitive vairables (v1, v2, T).
-# Helpful because then the diffusive fluxes have the same form as on paper.
-  rho, rho_v1, rho_v2, _ = u
+# @inline function convert_gradient_variables(u, grad_entropy_vars, equations::CompressibleNavierStokesEquations2D)
+# # Takes the solution values `u` and gradient of the variables (w_2, w_3, w_4) and
+# # reverse engineers the gradients to be terms of the primitive variables (v1, v2, T).
+# # Helpful because then the diffusive fluxes have the same form as on paper.
+#   rho, rho_v1, rho_v2, _ = u
 
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  T  = temperature(u, equations)
+#   v1 = rho_v1 / rho
+#   v2 = rho_v2 / rho
+#   T  = temperature(u, equations)
 
-  return SVector(equations.R * T * (grad_entropy_vars[1] + v1 * grad_entropy_vars[3]), # grad(u) = R*T*(grad(w_2)+v1*grad(w_4))
-                 equations.R * T * (grad_entropy_vars[2] + v2 * grad_entropy_vars[3]), # grad(v) = R*T*(grad(w_3)+v2*grad(w_4))
-                 equations.R * T * T * grad_entropy_vars[3]                            # grad(T) = R*T^2*grad(w_4))
-                )
-end
+#   return SVector(equations.R * T * (grad_entropy_vars[1] + v1 * grad_entropy_vars[3]), # grad(u) = R*T*(grad(w_2)+v1*grad(w_4))
+#                  equations.R * T * (grad_entropy_vars[2] + v2 * grad_entropy_vars[3]), # grad(v) = R*T*(grad(w_3)+v2*grad(w_4))
+#                  equations.R * T * T * grad_entropy_vars[3]                            # grad(T) = R*T^2*grad(w_4))
+#                 )
+# end
 
 
 @inline function temperature(u, equations::CompressibleNavierStokesEquations2D)
