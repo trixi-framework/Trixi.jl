@@ -307,7 +307,11 @@ function calc_gradient_boundary_flux_by_direction!(surface_flux_values::Abstract
       else # Element is on the right, boundary on the left
         u_inner = u_rr
       end
-      flux_inner = u_inner # TODO: revisit if we want to generalize beyond BR1, LDG.
+
+      # TODO: revisit if we want more general boundary treatments.
+      # This assumes the gradient numerical flux at the boundary is the gradient variable,
+      # which is consistent with BR1, LDG.
+      flux_inner = u_inner
 
       x = get_node_coords(node_coordinates, equations_parabolic, dg, i, boundary)
       flux = boundary_condition(flux_inner, u_inner, get_unsigned_normal_vector_2d(direction),
@@ -373,9 +377,11 @@ function calc_divergence_boundary_flux_by_direction!(surface_flux_values::Abstra
 
       x = get_node_coords(node_coordinates, equations_parabolic, dg, i, boundary)
 
-      # TODO: we are passing in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
-      # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and NoSlipWall and Adiabatic
-      # boundary conditions for CompressibleNavierStokesEquations2D as of 2022-6-27. It may not work with future implementations.
+      # TODO: add a field in `cache.boundaries` for gradient information.
+      # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
+      # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
+      # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesEquations2D as of 2022-6-27.
+      # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
       flux = boundary_condition(flux_inner, nothing, get_unsigned_normal_vector_2d(direction),
                                 x, t, Divergence(), equations_parabolic)
 

@@ -41,11 +41,14 @@ or the entropy variables
 where
   w_2 = rho v_1 / p, w_3 = rho v_2 / p, w_4 = -rho / p
 """
+
 # TODO:
 # 1) For now I save gamma and inv(gamma-1) again, but we could potentially reuse them from
 #    the Euler equations
 # 2) Add more here and probably some equations
-struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 3}
+
+# TODO: Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
+struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 4}
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
   Re::RealT                  # Reynolds number
