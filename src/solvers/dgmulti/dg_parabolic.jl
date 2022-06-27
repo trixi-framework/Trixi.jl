@@ -41,7 +41,7 @@ end
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
-function transform_variables!(u_transformed, u, equations)
+function transform_variables!(u_transformed, u, extra_args...)
   @threaded for i in eachindex(u)
     u_transformed[i] = u[i]
   end
