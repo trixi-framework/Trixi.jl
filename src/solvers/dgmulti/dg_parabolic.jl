@@ -101,7 +101,7 @@ function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
     scalar_flux_face_values[idM] = 0.5 * (uP + uM) # TODO: use strong/weak formulation for curved meshes?
   end
 
-  calc_boundary_flux!(scalar_flux_face_values, nothing, t, Gradient(), boundary_conditions,
+  calc_boundary_flux!(scalar_flux_face_values, u_face_values, t, Gradient(), boundary_conditions,
                       mesh, equations, dg, cache, cache_parabolic)
 
   # compute surface contributions
@@ -158,10 +158,9 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
 
       # for both the gradient and the divergence, the boundary flux is scalar valued.
       # for the gradient, it is the solution; for divergence, it is the normal flux.
-      u_boundary = boundary_condition(flux_face_values[fid,e],
-                                      face_normal, face_coordinates, t,
-                                      operator_type, equations)
-      flux_face_values[fid,e] = u_boundary
+      flux_face_values[fid,e] = boundary_condition(flux_face_values[fid,e], u_face_values[fid,e],
+                                                   face_normal, face_coordinates, t,
+                                                   operator_type, equations)
     end
   end
   return nothing
@@ -299,7 +298,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
   reset_du!(du, dg)
 
   @unpack u_transformed, u_grad, viscous_flux = cache_parabolic
-  transform_variables!(u_transformed, u, equations_parabolic)
+  transform_variables!(u_transformed, u, mesh, dg, dg_parabolic, equations_parabolic)
 
   calc_gradient!(u_grad, u_transformed, t, mesh, equations_parabolic,
                  boundary_conditions, dg, cache, cache_parabolic)
