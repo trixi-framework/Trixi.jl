@@ -265,14 +265,14 @@ function calc_divergence!(du, u::StructArray, t, viscous_flux, mesh::DGMultiMesh
     for dim in eachdim(mesh)
       uM = viscous_flux_face_values[dim][idM]
       uP = viscous_flux_face_values[dim][idP]
-      # TODO: use strong/weak formulation?
+      # TODO: use strong/weak formulation to ensure stability on curved meshes?
       flux_face_value = flux_face_value + 0.5 * (uP + uM) * nxyzJ[dim][face_node_index]
     end
     scalar_flux_face_values[idM] = flux_face_value
   end
 
   # TODO: decide what to pass in
-  calc_boundary_flux!(scalar_flux_face_values, nothing, t, Divergence(),
+  calc_boundary_flux!(scalar_flux_face_values, cache_parabolic.u_face_values, t, Divergence(),
                       boundary_conditions, mesh, equations, dg, cache, cache_parabolic)
 
   calc_viscous_penalty!(scalar_flux_face_values, cache_parabolic.u_face_values, t,
