@@ -70,7 +70,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test getindex.(du, 1) ≈ 2 * y
   end
 
-  @trixi_testset "elixir_advection_diffusion_periodic.jl" begin
+  @trixi_testset "DGMulti: elixir_advection_diffusion_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_periodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
       l2 = [0.03180371984888462],
@@ -78,7 +78,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_advection_diffusion_nonperiodic.jl" begin
+  @trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_nonperiodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
       l2 = [0.012561479036088107],
@@ -86,7 +86,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "elixir_advection_diffusion_nonperiodic.jl" begin
+  @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion_nonperiodic.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
       l2 = [0.0076468006081234705],
