@@ -174,7 +174,6 @@ function solve!(integrator::SimpleIntegratorSSP)
       resize!(indicator.cache.alpha_mean_per_timestep, new_length)
     end
 
-    # TODO BB: Move this calculation to the for loop to get the mean and maximum of all alpha in that timestep (not only of the last RK stage)?
     if indicator isa IndicatorIDP
       indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
           maximum(indicator.cache.ContainerShockCapturingIndicator.alpha)
@@ -247,7 +246,7 @@ function Base.resize!(semi::AbstractSemidiscretization, new_size)
   # Resize ContainerFCT2D or ContainerMCL2D
   if semi.solver.volume_integral.indicator isa IndicatorIDP
     resize!(semi.cache.ContainerFCT2D, new_size)
-  else # semi.solver.volume_integral.indicator isa IndicatorKuzminetal
+  else # semi.solver.volume_integral.indicator isa IndicatorMCL
     resize!(semi.cache.ContainerMCL2D, new_size)
   end
 
@@ -305,30 +304,29 @@ end
   return nothing
 end
 
-# check deviation from boundaries of IndicatorKuzminetal
-@inline function summary_check_bounds(indicator::IndicatorKuzminetal)
+# check deviation from boundaries of IndicatorMCL
+@inline function summary_check_bounds(indicator::IndicatorMCL)
   @unpack idp_bounds_delta_threaded = indicator.cache
 
-  idp_bounds_delta = zeros(eltype(idp_bounds_delta_threaded[1]), length(idp_bounds_delta_threaded[1]))
+  err_bounds = idp_bounds_delta_threaded[1]
 
-  for index in 1:length(idp_bounds_delta)
-    for i in 1:Threads.nthreads()
-      idp_bounds_delta[index] = max(idp_bounds_delta[index], idp_bounds_delta_threaded[i][index])
+  for i in 2:Threads.nthreads()
+    for index in 1:length(err_bounds)
+      err_bounds[index] = max(err_bounds[index], idp_bounds_delta_threaded[i][index])
     end
   end
 
-  # TODO BB: all variables
   println("─"^100)
   println("Maximum deviation from bounds:")
   println("─"^100)
-  println("rho_min:    ", idp_bounds_delta[1])
-  println("rho_max:    ", idp_bounds_delta[2])
-  println("rho_v1_min: ", idp_bounds_delta[3])
-  println("rho_v1_max: ", idp_bounds_delta[4])
-  println("rho_v2_min: ", idp_bounds_delta[5])
-  println("rho_v2_max: ", idp_bounds_delta[6])
-  println("rho_E_min:  ", idp_bounds_delta[7])
-  println("rho_E_max:  ", idp_bounds_delta[8])
+  println("rho_min:    ", err_bounds[1])
+  println("rho_max:    ", err_bounds[2])
+  println("rho_v1_min: ", err_bounds[3])
+  println("rho_v1_max: ", err_bounds[4])
+  println("rho_v2_min: ", err_bounds[5])
+  println("rho_v2_max: ", err_bounds[6])
+  println("rho_E_min:  ", err_bounds[7])
+  println("rho_E_max:  ", err_bounds[8])
   println("─"^100 * "\n")
 
   return nothing

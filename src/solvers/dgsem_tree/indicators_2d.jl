@@ -191,9 +191,12 @@ end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Union{Type{IndicatorIDP}, Type{IndicatorKuzminetal}}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
-
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis), length)
+function create_cache(indicator::Union{Type{IndicatorIDP}, Type{IndicatorMCL}}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
+  if indicator == IndicatorIDP
+    ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), length)
+  else # indicator == IndicatorMCL
+    ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorMCL{real(basis)}(0, nvariables(equations), nnodes(basis))
+  end
 
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)

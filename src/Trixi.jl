@@ -177,7 +177,7 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
-       VolumeIntegralShockCapturingSubcell, IndicatorIDP, IndicatorKuzminetal,
+       VolumeIntegralShockCapturingSubcell, IndicatorIDP, IndicatorMCL,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        MortarL2
 

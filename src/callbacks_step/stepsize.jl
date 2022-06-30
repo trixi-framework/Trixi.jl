@@ -72,23 +72,19 @@ end
     @unpack cfl_number = stepsize_callback
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    # TODO BB: Fix the implementation of the second CFL condition.
-    if solver.volume_integral isa VolumeIntegralShockCapturingSubcell && solver.volume_integral.indicator isa IndicatorKuzminetal
-      # TODO Maybe it's possible to remove one calculation of the lambda (see volume integral)
+    if solver.volume_integral isa VolumeIntegralShockCapturingSubcell && solver.volume_integral.indicator isa IndicatorMCL
       @unpack inverse_weights = solver.basis
       u = wrap_array(u_ode, mesh, equations, solver, cache)
       calc_lambda!(u, mesh, equations, solver, cache, solver.volume_integral.indicator)
-      @unpack lambda1, lambda2 = cache.ContainerMCL2D
+      @unpack lambda1, lambda2 = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
 
       maxdt = typemax(eltype(u_ode))
       for element in eachelement(solver, cache)
         J = 1 / cache.elements.inverse_jacobian[element]
 
         for j in eachnode(solver), i in eachnode(solver)
-          denom = inverse_weights[i] * ((i > 1              ? lambda1[i,   j, element] : 0) +
-                                        (i < nnodes(solver) ? lambda1[i+1, j, element] : 0)) +
-                  inverse_weights[j] * ((j > 1              ? lambda2[i,   j, element] : 0) +
-                                        (j < nnodes(solver) ? lambda2[i, j+1, element] : 0))
+          denom = inverse_weights[i] * (lambda1[i, j, element] + lambda1[i+1, j, element]) +
+                  inverse_weights[j] * (lambda2[i, j, element] + lambda2[i, j+1, element])
           maxdt = min(maxdt, J / denom)
         end
       end

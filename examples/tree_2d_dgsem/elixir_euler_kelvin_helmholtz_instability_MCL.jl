@@ -36,9 +36,9 @@ volume_flux  = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
-indicator_sc = IndicatorKuzminetal(equations, basis;
-                                   IDPCheckBounds=true,
-                                   IDPPressureTVD=true)
+indicator_sc = IndicatorMCL(equations, basis;
+                            IDPCheckBounds=true,
+                            IDPPressureTVD=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -80,7 +80,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode, #alg=SSPRK43();
+sol = Trixi.solve(ode,
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback=callbacks);
 summary_callback() # print the timer summary

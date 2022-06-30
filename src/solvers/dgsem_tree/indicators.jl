@@ -227,31 +227,31 @@ end
 
 
 """
-IndicatorKuzminetal
+IndicatorMCL
 
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorKuzminetal{Cache} <: AbstractIndicator
+struct IndicatorMCL{Cache} <: AbstractIndicator
   cache::Cache
   IDPPressureTVD::Bool
   IDPCheckBounds::Bool
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorKuzminetal(equations::AbstractEquations, basis;
-                             IDPPressureTVD=true,
-                             IDPCheckBounds=false)
+function IndicatorMCL(equations::AbstractEquations, basis;
+                      IDPPressureTVD=true,
+                      IDPCheckBounds=false)
 
-  cache = create_cache(IndicatorKuzminetal, equations, basis, 2*nvariables(equations))
-  IndicatorKuzminetal{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds)
+  cache = create_cache(IndicatorMCL, equations, basis, 2*nvariables(equations))
+  IndicatorMCL{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds)
 end
 
-function Base.show(io::IO, indicator::IndicatorKuzminetal)
+function Base.show(io::IO, indicator::IndicatorMCL)
   @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorKuzminetal(")
+  print(io, "IndicatorMCL(")
   print(io, "density, velocity, total energy")
   indicator.IDPPressureTVD && print(io, ", pressure")
   print(io, ")")
