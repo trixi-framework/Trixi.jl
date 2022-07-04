@@ -591,7 +591,7 @@ end
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
-      nonconservative_terms, equations, indicator, dg, element, cache)
+      nonconservative_terms, equations, dg, element, cache)
 
   # Calculate volume integral contribution of low-order FV flux
   for j in eachnode(dg), i in eachnode(dg)
