@@ -82,9 +82,9 @@ end
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
 
-  cache1 = create_cache(mesh, equations,
-                       VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                       dg, uEltype)
+  cache_FV = create_cache(mesh, equations,
+                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
+                          dg, uEltype)
 
   A3dp1_x = Array{uEltype, 3}
   A3dp1_y = Array{uEltype, 3}
@@ -94,9 +94,9 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  cache2 = create_cache(mesh, equations, volume_integral.indicator, dg, uEltype)
+  cache_indicator = create_cache(mesh, equations, volume_integral.indicator, dg, uEltype)
 
-  return (; cache1..., cache2..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
+  return (; cache_FV..., cache_indicator..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
 end
 
 function create_cache(mesh::TreeMesh{2}, equations, indicator::IndicatorIDP, dg::DG, uEltype)
