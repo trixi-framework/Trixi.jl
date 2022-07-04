@@ -561,7 +561,7 @@ end
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
 
   calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
-      nonconservative_terms, equations, indicator, dg, element, cache)
+      nonconservative_terms, equations, dg, element, cache)
 
   # Calculate volume integral contribution of low-order FV flux
   for j in eachnode(dg), i in eachnode(dg)
@@ -654,7 +654,7 @@ end
 end
 
 @inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
-                                         nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
+                                         nonconservative_terms, equations, dg, element, cache)
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
@@ -666,12 +666,6 @@ end
       antidiffusive_flux2[v, i, j, element] = fhat2[v, i, j] - fstar2[v, i, j]
     end
   end
-
-  antidiffusive_flux1[:, 1,            :, element] .= zero(eltype(antidiffusive_flux1))
-  antidiffusive_flux1[:, nnodes(dg)+1, :, element] .= zero(eltype(antidiffusive_flux1))
-
-  antidiffusive_flux2[:, :, 1,            element] .= zero(eltype(antidiffusive_flux2))
-  antidiffusive_flux2[:, :, nnodes(dg)+1, element] .= zero(eltype(antidiffusive_flux2))
 
   return nothing
 end
