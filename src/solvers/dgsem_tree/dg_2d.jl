@@ -633,8 +633,10 @@ end
   @unpack antidiffusive_flux1_threaded, antidiffusive_flux2_threaded = cache
   antidiffusive_flux1 = antidiffusive_flux1_threaded[Threads.threadid()]
   antidiffusive_flux2 = antidiffusive_flux2_threaded[Threads.threadid()]
+  # Note: For MCL, antidiffusive_flux is 3-dimensional. To use the same function as for IndicatorIDP,
+  #       use Julia hack with 1 as last index using element=1.
   calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L,
-      u, mesh, nonconservative_terms, equations, indicator, dg, element, cache)
+      u, mesh, nonconservative_terms, equations, dg, 1, cache)
 
   # limited antidiffusive flux
   calcflux_antidiffusive_limited!(antidiffusive_flux1, antidiffusive_flux2,
@@ -733,7 +735,7 @@ end
 end
 
 @inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
-                                         nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
+                                         nonconservative_terms, equations, dg, element, cache)
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
@@ -745,35 +747,6 @@ end
       antidiffusive_flux2[v, i, j, element] = fhat2[v, i, j] - fstar2[v, i, j]
     end
   end
-
-  antidiffusive_flux1[:, 1,            :, element] .= zero(eltype(antidiffusive_flux1))
-  antidiffusive_flux1[:, nnodes(dg)+1, :, element] .= zero(eltype(antidiffusive_flux1))
-
-  antidiffusive_flux2[:, :, 1,            element] .= zero(eltype(antidiffusive_flux2))
-  antidiffusive_flux2[:, :, nnodes(dg)+1, element] .= zero(eltype(antidiffusive_flux2))
-
-  return nothing
-end
-
-@inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
-                                         nonconservative_terms, equations, indicator::IndicatorMCL, dg, element, cache)
-
-  for j in eachnode(dg), i in 2:nnodes(dg)
-    for v in eachvariable(equations)
-      antidiffusive_flux1[v, i, j] = fhat1[v, i, j] - fstar1[v, i, j]
-    end
-  end
-  for j in 2:nnodes(dg), i in eachnode(dg)
-    for v in eachvariable(equations)
-      antidiffusive_flux2[v, i, j] = fhat2[v, i, j] - fstar2[v, i, j]
-    end
-  end
-
-  # antidiffusive_flux1[:, 1,            :] .= zero(eltype(antidiffusive_flux1))
-  # antidiffusive_flux1[:, nnodes(dg)+1, :] .= zero(eltype(antidiffusive_flux1))
-
-  # antidiffusive_flux2[:, :, 1,          ] .= zero(eltype(antidiffusive_flux2))
-  # antidiffusive_flux2[:, :, nnodes(dg)+1] .= zero(eltype(antidiffusive_flux2))
 
   return nothing
 end
