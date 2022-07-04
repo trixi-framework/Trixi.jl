@@ -1145,80 +1145,53 @@ end
   @threaded for element in eachelement(solver, cache)
     idp_bounds_delta = idp_bounds_delta_threaded[Threads.threadid()]
 
-    # Density
-    err_lower_bound = zero(eltype(u))
-    err_upper_bound = zero(eltype(u))
-    for j in eachnode(solver), i in eachnode(solver)
-      var_min_local = var_min[1, i, j, element]
-      var_max_local = var_max[1, i, j, element]
-
-      # -x
-      if i > 1
-        var_limited = bar_states1[1, i,   j, element] + antidiffusive_flux1_limited[1, i,   j, element] / lambda1[i,   j, element]
-        err_lower_bound = max(err_lower_bound, var_min_local - var_limited)
-        err_upper_bound = max(err_upper_bound, var_limited - var_max_local)
-      end
-      # +x
-      if i < nnodes(solver)
-        var_limited = bar_states1[1, i+1, j, element] - antidiffusive_flux1_limited[1, i+1, j, element] / lambda1[i+1, j, element]
-        err_lower_bound = max(err_lower_bound, var_min_local - var_limited)
-        err_upper_bound = max(err_upper_bound, var_limited - var_max_local)
-      end
-      # -y
-      if j > 1
-        var_limited = bar_states2[1, i,   j, element] + antidiffusive_flux2_limited[1, i,   j, element] / lambda2[i,   j, element]
-        err_lower_bound = max(err_lower_bound, var_min_local - var_limited)
-        err_upper_bound = max(err_upper_bound, var_limited - var_max_local)
-      end
-      # +y
-      if j < nnodes(solver)
-        var_limited = bar_states2[1, i, j+1, element] - antidiffusive_flux2_limited[1, i, j+1, element] / lambda2[i, j+1, element]
-        err_lower_bound = max(err_lower_bound, var_min_local - var_limited)
-        err_upper_bound = max(err_upper_bound, var_limited - var_max_local)
+    # -x
+    for j in eachnode(solver), i in 2:nnodes(solver)
+      lambda = lambda1[i, j, element]
+      rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1_limited[1, i, j, element] / lambda
+      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
+      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
+      for v in 2:nvariables(equations)
+        var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1_limited[v, i, j, element] / lambda
+        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
+        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
       end
     end
-    idp_bounds_delta[1] = max(idp_bounds_delta[1], err_lower_bound)
-    idp_bounds_delta[2] = max(idp_bounds_delta[2], err_upper_bound)
-
-    # Velocity and total energy
-    for v in 2:nvariables(equations)
-      err_lower_bound = zero(eltype(u))
-      err_upper_bound = zero(eltype(u))
-      for j in eachnode(solver), i in eachnode(solver)
-        var_min_local = var_min[v, i, j, element]
-        var_max_local = var_max[v, i, j, element]
-
-        # -x
-        if i > 1
-          rho_limited = bar_states1[1, i,   j, element] + antidiffusive_flux1_limited[1, i,   j, element] / lambda1[i,   j, element]
-          var_limited = bar_states1[v, i,   j, element] + antidiffusive_flux1_limited[v, i,   j, element] / lambda1[i,   j, element]
-          err_lower_bound = max(err_lower_bound, rho_limited * var_min_local - var_limited)
-          err_upper_bound = max(err_upper_bound, var_limited - rho_limited * var_max_local)
-        end
-        # +x
-        if i < nnodes(solver)
-          rho_limited = bar_states1[1, i+1, j, element] - antidiffusive_flux1_limited[1, i+1, j, element] / lambda1[i+1, j, element]
-          var_limited = bar_states1[v, i+1, j, element] - antidiffusive_flux1_limited[v, i+1, j, element] / lambda1[i+1, j, element]
-          err_lower_bound = max(err_lower_bound, rho_limited * var_min_local - var_limited)
-          err_upper_bound = max(err_upper_bound, var_limited - rho_limited * var_max_local)
-        end
-        # -y
-        if j > 1
-          rho_limited = bar_states2[1, i,   j, element] + antidiffusive_flux2_limited[1, i,   j, element] / lambda2[i,   j, element]
-          var_limited = bar_states2[v, i,   j, element] + antidiffusive_flux2_limited[v, i,   j, element] / lambda2[i,   j, element]
-          err_lower_bound = max(err_lower_bound, rho_limited * var_min_local - var_limited)
-          err_upper_bound = max(err_upper_bound, var_limited - rho_limited * var_max_local)
-        end
-        # +y
-        if j < nnodes(solver)
-          rho_limited = bar_states2[1, i, j+1, element] - antidiffusive_flux2_limited[1, i, j+1, element] / lambda2[i, j+1, element]
-          var_limited = bar_states2[v, i, j+1, element] - antidiffusive_flux2_limited[v, i, j+1, element] / lambda2[i, j+1, element]
-          err_lower_bound = max(err_lower_bound, rho_limited * var_min_local - var_limited)
-          err_upper_bound = max(err_upper_bound, var_limited - rho_limited * var_max_local)
-        end
+    # +x
+    for j in eachnode(solver), i in 1:nnodes(solver)-1
+      lambda = lambda1[i+1, j, element]
+      rho_limited = bar_states1[1, i+1, j, element] - antidiffusive_flux1_limited[1, i+1, j, element] / lambda
+      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
+      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
+      for v in 2:nvariables(equations)
+        var_limited = bar_states1[v, i+1, j, element] - antidiffusive_flux1_limited[v, i+1, j, element] / lambda
+        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
+        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
       end
-      idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], err_lower_bound)
-      idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], err_upper_bound)
+    end
+    # -y
+    for j in 2:nnodes(solver), i in eachnode(solver)
+      lambda = lambda2[i, j, element]
+      rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2_limited[1, i, j, element] / lambda
+      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
+      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
+      for v in 2:nvariables(equations)
+        var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2_limited[v, i, j, element] / lambda
+        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
+        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
+      end
+    end
+    # +y
+    for j in 1:nnodes(solver)-1, i in eachnode(solver)
+      lambda = lambda2[i, j+1, element]
+      rho_limited = bar_states2[1, i, j+1, element] - antidiffusive_flux2_limited[1, i, j+1, element] / lambda
+      idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
+      idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
+      for v in 2:nvariables(equations)
+        var_limited = bar_states2[v, i, j+1, element] - antidiffusive_flux2_limited[v, i, j+1, element] / lambda
+        idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
+        idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
+      end
     end
   end
 
