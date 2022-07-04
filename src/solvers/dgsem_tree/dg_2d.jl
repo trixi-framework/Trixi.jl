@@ -82,9 +82,9 @@ end
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
 
-  cache = create_cache(mesh, equations,
-                       VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                       dg, uEltype)
+  cache_FV = create_cache(mesh, equations,
+                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
+                          dg, uEltype)
 
   A3dp1_x = Array{uEltype, 3}
   A3dp1_y = Array{uEltype, 3}
@@ -94,15 +94,15 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  cache = add2cache(cache, mesh, equations, volume_integral.indicator, dg, uEltype)
+  cache_indicator = create_cache(mesh, equations, volume_integral.indicator, dg, uEltype)
 
-  return (; cache..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
+  return (; cache_FV..., cache_indicator..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
 end
 
-function add2cache(cache, mesh::TreeMesh{2}, equations, indicator::IndicatorIDP, dg::DG, uEltype)
+function create_cache(mesh::TreeMesh{2}, equations, indicator::IndicatorIDP, dg::DG, uEltype)
   ContainerFCT2D = Trixi.ContainerFCT2D{uEltype}(0, nvariables(equations), nnodes(dg))
 
-  return (; cache..., ContainerFCT2D)
+  return (; ContainerFCT2D)
 end
 
 
@@ -523,7 +523,7 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingSubcell,
                                dg::DGSEM, cache)
-  @threaded for element in eachelement(dg, cache)
+  @trixi_timeit timer() "subcell_limiting_kernel!" @threaded for element in eachelement(dg, cache)
     subcell_limiting_kernel!(du, u, element, mesh,
                              nonconservative_terms, equations,
                              volume_integral, volume_integral.indicator,
@@ -656,22 +656,22 @@ end
 @inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, indicator::IndicatorIDP, dg, element, cache)
 
-  for j in eachnode(dg), i in eachnode(dg)
+  for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
       antidiffusive_flux1[v, i, j, element] = fhat1[v, i, j] - fstar1[v, i, j]
+    end
+  end
+  for j in 2:nnodes(dg), i in eachnode(dg)
+    for v in eachvariable(equations)
       antidiffusive_flux2[v, i, j, element] = fhat2[v, i, j] - fstar2[v, i, j]
     end
   end
 
-  for i in eachnode(dg)
-    for v in eachvariable(equations)
-      antidiffusive_flux1[v, 1,            i, element] = zero(eltype(antidiffusive_flux1))
-      antidiffusive_flux1[v, nnodes(dg)+1, i, element] = zero(eltype(antidiffusive_flux1))
+  antidiffusive_flux1[:, 1,            :, element] .= zero(eltype(antidiffusive_flux1))
+  antidiffusive_flux1[:, nnodes(dg)+1, :, element] .= zero(eltype(antidiffusive_flux1))
 
-      antidiffusive_flux2[v, i, 1,            element] = zero(eltype(antidiffusive_flux2))
-      antidiffusive_flux2[v, i, nnodes(dg)+1, element] = zero(eltype(antidiffusive_flux2))
-    end
-  end
+  antidiffusive_flux2[:, :, 1,            element] .= zero(eltype(antidiffusive_flux2))
+  antidiffusive_flux2[:, :, nnodes(dg)+1, element] .= zero(eltype(antidiffusive_flux2))
 
   return nothing
 end
@@ -710,7 +710,6 @@ end
 
 # 2d, IndicatorIDP
 @inline function IDP_checkBounds(u::AbstractArray{<:Any,4}, mesh, equations, solver, cache, indicator::IndicatorIDP)
-
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = solver.volume_integral.indicator
   @unpack var_bounds = solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
   @unpack idp_bounds_delta_threaded = solver.volume_integral.indicator.cache

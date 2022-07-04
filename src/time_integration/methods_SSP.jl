@@ -174,7 +174,6 @@ function solve!(integrator::SimpleIntegratorSSP)
       resize!(indicator.cache.alpha_mean_per_timestep, new_length)
     end
 
-    # TODO BB: Move this calculation to the for loop to get the mean and maximum of all alpha in that timestep (not only of the last RK stage)?
     indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
         maximum(indicator.cache.ContainerShockCapturingIndicator.alpha)
     indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
@@ -242,12 +241,8 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
-  # Resize ContainerFCT2D or ContainerMCL2D
-  if semi.solver.volume_integral.indicator isa IndicatorIDP
-    resize!(semi.cache.ContainerFCT2D, new_size)
-  else # semi.solver.volume_integral.indicator isa IndicatorKuzminetal
-    resize!(semi.cache.ContainerMCL2D, new_size)
-  end
+  # Resize ContainerFCT2D
+  resize!(semi.cache.ContainerFCT2D, new_size)
 
   # Resize ContainerShockCapturingIndicator
   resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)

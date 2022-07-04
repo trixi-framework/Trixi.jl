@@ -192,8 +192,7 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
-
-  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicator{real(basis)}(0, nnodes(basis), length)
+  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), length)
 
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)

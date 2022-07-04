@@ -1306,8 +1306,8 @@ function Base.resize!(fluxes::ContainerFCT2D, capacity)
   return nothing
 end
 
-mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
-  alpha::Array{uEltype, 3} # [i, j, elements]
+mutable struct ContainerShockCapturingIndicatorIDP{uEltype<:Real}
+  alpha::Array{uEltype, 3} # [i, j, element]
   alpha1::Array{uEltype, 3}
   alpha2::Array{uEltype, 3}
   var_bounds::Vector{Array{uEltype, 3}}
@@ -1318,7 +1318,7 @@ mutable struct ContainerShockCapturingIndicator{uEltype<:Real}
   _var_bounds::Vector{Vector{uEltype}}
 end
 
-function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes, length) where uEltype<:Real
+function ContainerShockCapturingIndicatorIDP{uEltype}(capacity::Integer, n_nodes, length) where uEltype<:Real
   nan_uEltype = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -1336,18 +1336,18 @@ function ContainerShockCapturingIndicator{uEltype}(capacity::Integer, n_nodes, l
     var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
   end
 
-  return ContainerShockCapturingIndicator{uEltype}(alpha,   alpha1,  alpha2,  var_bounds,
-                                                   _alpha, _alpha1, _alpha2, _var_bounds)
+  return ContainerShockCapturingIndicatorIDP{uEltype}(alpha,   alpha1,  alpha2,  var_bounds,
+                                                      _alpha, _alpha1, _alpha2, _var_bounds)
 end
 
-nnodes(indicator::ContainerShockCapturingIndicator) = size(indicator.alpha, 1)
+nnodes(indicator::ContainerShockCapturingIndicatorIDP) = size(indicator.alpha, 1)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(indicator::ContainerShockCapturingIndicator, capacity)
+function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP, capacity)
   n_nodes = nnodes(indicator)
 
   @unpack _alpha, _alpha1, _alpha2 = indicator
