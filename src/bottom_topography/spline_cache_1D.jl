@@ -154,6 +154,7 @@ function cubic_spline_knot(x::Vector{Float64}, y::Vector{Float64}; smoothing_fac
   h = map(i -> x[i+1] - x[i], 1:n)
 
   # Consider spline smoothing if required
+  ### Kann sein, dass das bisher nur für natural boundary implementiert ist ### 
   if smoothing_factor > 0.0
     y = cubic_spline_smoothing(smoothing_factor, h, y)
   end
