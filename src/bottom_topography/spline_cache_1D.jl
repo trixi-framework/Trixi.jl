@@ -110,9 +110,9 @@ end
 function cubic_spline(x::Vector{Float64},y::Vector{Float64}; boundary = "natural", smoothing_factor = 0.0)
 
   if boundary == "natural"
-    cubic_spline_nat(x, y; smoothing_factor)
+    cubic_spline_nat(x, y; smoothing_factor = smoothing_factor)
   elseif boundary == "not-a-knot"
-    cubic_spline_knot(x, y)
+    cubic_spline_knot(x, y; smoothing_factor = smoothing_factor)
   else
     @error("Only natural and not-a-knot boundary conditions are implemented")
   end
