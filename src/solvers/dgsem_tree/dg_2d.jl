@@ -1021,7 +1021,7 @@ end
 @inline function antidiffusive_stage!(u_ode, u_old_ode, dt, semi, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack inverse_weights = solver.basis
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerContainerAntidiffusiveFlux2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
   u_old = wrap_array(u_old_ode, mesh, equations, solver, cache)
   u     = wrap_array(u_ode,     mesh, equations, solver, cache)
