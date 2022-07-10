@@ -243,12 +243,8 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
-  # Resize ContainerFCT2D or ContainerMCL2D
-  if semi.solver.volume_integral.indicator isa IndicatorIDP
-    resize!(semi.cache.ContainerFCT2D, new_size)
-  else # semi.solver.volume_integral.indicator isa IndicatorMCL
-    resize!(semi.cache.ContainerMCL2D, new_size)
-  end
+  # Resize ContainerAntidiffusiveFlux2D
+  resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
 
   # Resize ContainerShockCapturingIndicator
   resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
