@@ -1258,7 +1258,7 @@ end
 #                          flux2(i, j)
 #                               |
 #                            (i, j-1)
-mutable struct ContainerFCT2D{uEltype<:Real}
+mutable struct ContainerAntidiffusiveFlux2D{uEltype<:Real}
   antidiffusive_flux1::Array{uEltype, 4} # [variables, i, j, elements]
   antidiffusive_flux2::Array{uEltype, 4} # [variables, i, j, elements]
    # internal `resize!`able storage
@@ -1266,7 +1266,7 @@ mutable struct ContainerFCT2D{uEltype<:Real}
   _antidiffusive_flux2::Vector{uEltype}
 end
 
-function ContainerFCT2D{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
+function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
   nan_uEltype = convert(uEltype, NaN)
 
   # Initialize fields with defaults
@@ -1278,19 +1278,19 @@ function ContainerFCT2D{uEltype}(capacity::Integer, n_variables, n_nodes) where 
   antidiffusive_flux2 = unsafe_wrap(Array, pointer(_antidiffusive_flux2),
                                     (n_variables, n_nodes, n_nodes+1, capacity))
 
-  return ContainerFCT2D{uEltype}(antidiffusive_flux1, antidiffusive_flux2,
-                                 _antidiffusive_flux1, _antidiffusive_flux2)
+  return ContainerAntidiffusiveFlux2D{uEltype}(antidiffusive_flux1, antidiffusive_flux2,
+                                               _antidiffusive_flux1, _antidiffusive_flux2)
 end
 
-nvariables(fluxes::ContainerFCT2D) = size(fluxes.antidiffusive_flux1, 1)
-nnodes(fluxes::ContainerFCT2D) = size(fluxes.antidiffusive_flux1, 3)
+nvariables(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1, 1)
+nnodes(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1, 3)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(fluxes::ContainerFCT2D, capacity)
+function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
   n_nodes = nnodes(fluxes)
   n_variables = nvariables(fluxes)
 
@@ -1302,55 +1302,6 @@ function Base.resize!(fluxes::ContainerFCT2D, capacity)
   resize!(_antidiffusive_flux2, n_variables * n_nodes * (n_nodes+1) * capacity)
   fluxes.antidiffusive_flux2 = unsafe_wrap(Array, pointer(_antidiffusive_flux2),
                                            (n_variables, n_nodes, n_nodes+1, capacity))
-
-  return nothing
-end
-
-mutable struct ContainerMCL2D{uEltype<:Real}
-  # Idea: Just save the limited bar states. Problem: In there, the sign of the antidiffusive flux is not unique.
-  antidiffusive_flux1_limited::Array{uEltype, 4} # [variables, i, j, elements]
-  antidiffusive_flux2_limited::Array{uEltype, 4} # [variables, i, j, elements]
-  # internal `resize!`able storage
-  _antidiffusive_flux1_limited::Vector{uEltype}
-  _antidiffusive_flux2_limited::Vector{uEltype}
-end
-
-function ContainerMCL2D{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
-  nan_uEltype = convert(uEltype, NaN)
-
-  # Initialize fields with defaults
-  _antidiffusive_flux1_limited = fill(nan_uEltype, n_variables * (n_nodes+1) * n_nodes * capacity)
-  antidiffusive_flux1_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux1_limited),
-                                    (n_variables, n_nodes+1, n_nodes, capacity))
-
-  _antidiffusive_flux2_limited = fill(nan_uEltype, n_variables * n_nodes * (n_nodes+1) * capacity)
-  antidiffusive_flux2_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux2_limited),
-                                    (n_variables, n_nodes, n_nodes+1, capacity))
-
-  return ContainerMCL2D{uEltype}(antidiffusive_flux1_limited, antidiffusive_flux2_limited,
-                                 _antidiffusive_flux1_limited, _antidiffusive_flux2_limited)
-end
-
-nvariables(container::ContainerMCL2D) = size(container.antidiffusive_flux1_limited, 1)
-nnodes(container::ContainerMCL2D) = size(container.antidiffusive_flux1_limited, 3)
-
-# Only one-dimensional `Array`s are `resize!`able in Julia.
-# Hence, we use `Vector`s as internal storage and `resize!`
-# them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
-function Base.resize!(container::ContainerMCL2D, capacity)
-  n_nodes = nnodes(container)
-  n_variables = nvariables(container)
-
-  @unpack _antidiffusive_flux1_limited, _antidiffusive_flux2_limited = container
-
-  resize!(_antidiffusive_flux1_limited, n_variables * (n_nodes+1) * n_nodes * capacity)
-  container.antidiffusive_flux1_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux1_limited),
-                                          (n_variables, n_nodes+1, n_nodes, capacity))
-  resize!(_antidiffusive_flux2_limited, n_variables * n_nodes * (n_nodes+1) * capacity)
-  container.antidiffusive_flux2_limited = unsafe_wrap(Array, pointer(_antidiffusive_flux2_limited),
-                                          (n_variables, n_nodes, n_nodes+1, capacity))
 
   return nothing
 end
@@ -1418,29 +1369,33 @@ function Base.resize!(indicator::ContainerShockCapturingIndicatorIDP, capacity)
 end
 
 mutable struct ContainerShockCapturingIndicatorMCL{uEltype<:Real}
-  alpha::Array{uEltype, 4}       # [variable, i, j, element]
-  var_min::Array{uEltype, 4}     # [variable, i, j, element]
-  var_max::Array{uEltype, 4}     # [variable, i, j, element]
-  lambda1::Array{uEltype, 3}     # [i, j, element]
-  lambda2::Array{uEltype, 3}     # [i, j, element]
-  bar_states1::Array{uEltype, 4} # [variable, i, j, element]
-  bar_states2::Array{uEltype, 4} # [variable, i, j, element]
+  bar_states1::Array{uEltype, 4}            # [variable, i, j, element]
+  bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
+  var_min::Array{uEltype, 4}                # [variable, i, j, element]
+  var_max::Array{uEltype, 4}                # [variable, i, j, element]
+  volume_flux_difference::Array{uEltype, 4} # [variable, i, j, element]
+  alpha_pressure::Array{uEltype, 3}         # [i, j, element]
+  lambda1::Array{uEltype, 3}                # [i, j, element]
+  lambda2::Array{uEltype, 3}                # [i, j, element]
   # internal `resize!`able storage
-  _alpha::Vector{uEltype}
-  _var_min::Vector{uEltype}
-  _var_max::Vector{uEltype}
-  _lambda1::Vector{uEltype}
-  _lambda2::Vector{uEltype}
   _bar_states1::Vector{uEltype}
   _bar_states2::Vector{uEltype}
+  _var_min::Vector{uEltype}
+  _var_max::Vector{uEltype}
+  _volume_flux_difference::Vector{uEltype}
+  _alpha_pressure::Vector{uEltype}
+  _lambda1::Vector{uEltype}
+  _lambda2::Vector{uEltype}
 end
 
 function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_variables, n_nodes) where uEltype<:Real
   nan_uEltype = convert(uEltype, NaN)
 
   # Initialize fields with defaults
-  _alpha = fill(nan_uEltype, (n_variables+1) * n_nodes * n_nodes * capacity)
-  alpha = unsafe_wrap(Array, pointer(_alpha), (n_variables+1, n_nodes, n_nodes, capacity))
+  _bar_states1 = fill(nan_uEltype, n_variables * (n_nodes+1) * n_nodes * capacity)
+  bar_states1 = unsafe_wrap(Array, pointer(_bar_states1), (n_variables, n_nodes+1, n_nodes, capacity))
+  _bar_states2 = fill(nan_uEltype, n_variables * n_nodes * (n_nodes+1) * capacity)
+  bar_states2 = unsafe_wrap(Array, pointer(_bar_states2), (n_variables, n_nodes, n_nodes+1, capacity))
 
   _var_min = Vector{uEltype}(undef, n_variables*n_nodes^2*capacity)
   var_min  = unsafe_wrap(Array, pointer(_var_min), (n_variables, n_nodes, n_nodes, capacity))
@@ -1448,22 +1403,25 @@ function ContainerShockCapturingIndicatorMCL{uEltype}(capacity::Integer, n_varia
   _var_max = Vector{uEltype}(undef, n_variables*n_nodes^2*capacity)
   var_max  = unsafe_wrap(Array, pointer(_var_max), (n_variables, n_nodes, n_nodes, capacity))
 
+  _volume_flux_difference = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+  volume_flux_difference = unsafe_wrap(Array, pointer(_volume_flux_difference), (n_variables, n_nodes, n_nodes, capacity))
+
+  _alpha_pressure = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+  alpha_pressure = unsafe_wrap(Array, pointer(_alpha_pressure), (n_nodes, n_nodes, capacity))
+
   _lambda1 = fill(nan_uEltype, (n_nodes+1) * n_nodes * capacity)
   lambda1 = unsafe_wrap(Array, pointer(_lambda1), (n_nodes+1, n_nodes, capacity))
   _lambda2 = fill(nan_uEltype, n_nodes * (n_nodes+1) * capacity)
   lambda2 = unsafe_wrap(Array, pointer(_lambda2), (n_nodes, n_nodes+1, capacity))
 
-  _bar_states1 = fill(nan_uEltype, n_variables * (n_nodes+1) * n_nodes * capacity)
-  bar_states1 = unsafe_wrap(Array, pointer(_bar_states1), (n_variables, n_nodes+1, n_nodes, capacity))
-  _bar_states2 = fill(nan_uEltype, n_variables * n_nodes * (n_nodes+1) * capacity)
-  bar_states2 = unsafe_wrap(Array, pointer(_bar_states2), (n_variables, n_nodes, n_nodes+1, capacity))
-
-  return ContainerShockCapturingIndicatorMCL{uEltype}(alpha,  var_min, var_max, lambda1, lambda2, bar_states1, bar_states2,
-                                                      _alpha, _var_min, _var_max, _lambda1, _lambda2, _bar_states1, _bar_states2)
+  return ContainerShockCapturingIndicatorMCL{uEltype}(bar_states1, bar_states2, var_min, var_max,
+                                                      volume_flux_difference, alpha_pressure, lambda1, lambda2,
+                                                      _bar_states1, _bar_states2, _var_min, _var_max,
+                                                      _volume_flux_difference, _alpha_pressure, _lambda1, _lambda2)
 end
 
-nvariables(container::ContainerShockCapturingIndicatorMCL) = size(container.alpha, 1)
-nnodes(container::ContainerShockCapturingIndicatorMCL) = size(container.alpha, 2)
+nvariables(container::ContainerShockCapturingIndicatorMCL) = size(container.var_min, 1)
+nnodes(container::ContainerShockCapturingIndicatorMCL) = size(container.var_min, 2)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
@@ -1474,9 +1432,11 @@ function Base.resize!(container::ContainerShockCapturingIndicatorMCL, capacity)
   n_variables = nvariables(container)
   n_nodes = nnodes(container)
 
-  @unpack _alpha = container
-  resize!(_alpha, (n_variables+1) * n_nodes * n_nodes * capacity)
-  container.alpha = unsafe_wrap(Array, pointer(_alpha), (n_variables+1, n_nodes, n_nodes, capacity))
+  @unpack _bar_states1, _bar_states2 = container
+  resize!(_bar_states1, n_variables * (n_nodes+1) * n_nodes * capacity)
+  container.bar_states1 = unsafe_wrap(Array, pointer(_bar_states1), (n_variables, n_nodes+1, n_nodes, capacity))
+  resize!(_bar_states2, n_variables * n_nodes * (n_nodes+1) * capacity)
+  container.bar_states2 = unsafe_wrap(Array, pointer(_bar_states2), (n_variables, n_nodes, n_nodes+1, capacity))
 
   @unpack _var_min, _var_max = container
   resize!(_var_min, n_variables * n_nodes * n_nodes * capacity)
@@ -1485,17 +1445,19 @@ function Base.resize!(container::ContainerShockCapturingIndicatorMCL, capacity)
   resize!(_var_max, n_variables * n_nodes * n_nodes * capacity)
   container.var_max = unsafe_wrap(Array, pointer(_var_max), (n_variables, n_nodes, n_nodes, capacity))
 
+  @unpack _volume_flux_difference = container
+  resize!(_volume_flux_difference, n_variables * n_nodes * n_nodes * capacity)
+  container.volume_flux_difference = unsafe_wrap(Array, pointer(_volume_flux_difference), (n_variables, n_nodes, n_nodes, capacity))
+
+  @unpack _alpha_pressure = container
+  resize!(_alpha_pressure, n_nodes * n_nodes * capacity)
+  container.alpha_pressure = unsafe_wrap(Array, pointer(_alpha_pressure), (n_nodes, n_nodes, capacity))
+
   @unpack _lambda1, _lambda2 = container
   resize!(_lambda1, (n_nodes+1) * n_nodes * capacity)
   container.lambda1 = unsafe_wrap(Array, pointer(_lambda1), (n_nodes+1, n_nodes, capacity))
   resize!(_lambda2, n_nodes * (n_nodes+1) * capacity)
   container.lambda2 = unsafe_wrap(Array, pointer(_lambda2), (n_nodes, n_nodes+1, capacity))
-
-  @unpack _bar_states1, _bar_states2 = container
-  resize!(_bar_states1, n_variables * (n_nodes+1) * n_nodes * capacity)
-  container.bar_states1 = unsafe_wrap(Array, pointer(_bar_states1), (n_variables, n_nodes+1, n_nodes, capacity))
-  resize!(_bar_states2, n_variables * n_nodes * (n_nodes+1) * capacity)
-  container.bar_states2 = unsafe_wrap(Array, pointer(_bar_states2), (n_variables, n_nodes, n_nodes+1, capacity))
 
   return nothing
 end
