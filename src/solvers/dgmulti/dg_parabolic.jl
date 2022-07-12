@@ -41,9 +41,10 @@ end
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
-function transform_variables!(u_transformed, u, extra_args...)
+function transform_variables!(u_transformed, u, mesh, equations_parabolic::AbstractEquationsParabolic,
+                              dg::DGMulti, dg_parabolic, cache, cache_parabolic)
   @threaded for i in eachindex(u)
-    u_transformed[i] = u[i]
+    u_transformed[i] = gradient_variable_transformation(equations_parabolic, dg_parabolic)(u[i], equations_parabolic)
   end
 end
 
@@ -298,7 +299,8 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
   reset_du!(du, dg)
 
   @unpack u_transformed, u_grad, viscous_flux = cache_parabolic
-  transform_variables!(u_transformed, u, mesh, dg, dg_parabolic, equations_parabolic)
+  transform_variables!(u_transformed, u, mesh, equations_parabolic,
+                       dg, dg_parabolic, cache, cache_parabolic)
 
   calc_gradient!(u_grad, u_transformed, t, mesh, equations_parabolic,
                  boundary_conditions, dg, cache, cache_parabolic)

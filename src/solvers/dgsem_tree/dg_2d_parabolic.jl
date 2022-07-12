@@ -16,7 +16,9 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
 
   @unpack u_transformed, u_grad = cache_parabolic
   @trixi_timeit timer() "transform variables" transform_variables!(u_transformed, u,
-                                                                   equations_parabolic)
+                                                                   mesh, equations_parabolic,
+                                                                   dg, dg_parabolic,
+                                                                   cache, cache_parabolic)
 
   @trixi_timeit timer() "calculate gradient" calc_gradient!(u_grad, u_transformed, t, mesh,
                                                             equations_parabolic,
@@ -37,6 +39,22 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
 
   return nothing
 
+end
+
+# Transform solution variables prior to taking the gradient
+# (e.g., conservative to primitive variables). Defaults to doing nothing.
+# TODO: can we avoid copying data?
+function transform_variables!(u_transformed, u, mesh::TreeMesh{2},
+                              equations_parabolic::AbstractEquationsParabolic,
+                              dg::DG, dg_parabolic, cache, cache_parabolic)
+  @threaded for element in eachelement(dg, cache)
+    # Calculate volume terms in one element
+    for j in eachnode(dg), i in eachnode(dg)
+      u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
+      u_transformed_node = gradient_variable_transformation(equations_parabolic, dg_parabolic)(u_node, equations_parabolic)
+      set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg, i, j, element)
+    end
+  end
 end
 
 # TODO: dg_parabolic is not a DG type; it contains solver-specific information such as an LDG penalty parameter.

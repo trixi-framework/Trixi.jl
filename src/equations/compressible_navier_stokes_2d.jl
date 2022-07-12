@@ -80,9 +80,6 @@ function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquatio
 end
 
 
-# I was not sure what to do here to allow flexibility of selecting primitive or entropy
-# gradient variables. I see that `transform_variables!` just copies data at the moment.
-
 # This is the flexibility a user should have to select the different gradient variable types
 # varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesEquations2D) = ("v1", "v2", "T")
 # varnames(::typeof(cons2entropy), ::CompressibleNavierStokesEquations2D) = ("w2", "w3", "w4")
@@ -90,13 +87,9 @@ end
 varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesEquations2D) =
   varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
-# transform to primitive variables
-# TODO: should we have this call a "gradient transformation" field?
-function transform_variables!(u_transformed, u, equations_parabolic::CompressibleNavierStokesEquations2D)
-  @threaded for i in eachindex(u)
-    u_transformed[i] = cons2prim(u[i], equations_parabolic)
-  end
-end
+# we specialize this function to compute gradients of primitive variables instead of
+# conservative variables.
+gradient_variable_transformation(::CompressibleNavierStokesEquations2D, dg_parabolic) = cons2prim
 
 # no orientation specified since the flux is vector-valued
 # Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
