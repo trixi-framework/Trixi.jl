@@ -42,6 +42,26 @@ function max_dt(u, t, mesh::TreeMesh{2},
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
+@inline function max_dt(u, t, mesh::TreeMesh{2},
+                        constant_speed::Val{false}, equations, dg::DG, cache, indicator::IndicatorMCL)
+  @unpack inverse_weights = dg.basis
+  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, indicator)
+  @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
+
+  maxdt = typemax(eltype(u))
+  for element in eachelement(dg, cache)
+    J = 1 / cache.elements.inverse_jacobian[element]
+
+    for j in eachnode(dg), i in eachnode(dg)
+      denom = inverse_weights[i] * (lambda1[i, j, element] + lambda1[i+1, j, element]) +
+              inverse_weights[j] * (lambda2[i, j, element] + lambda2[i, j+1, element])
+      maxdt = min(maxdt, J / denom)
+    end
+  end
+
+  return maxdt
+end
+
 
 function max_dt(u, t, mesh::ParallelTreeMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)

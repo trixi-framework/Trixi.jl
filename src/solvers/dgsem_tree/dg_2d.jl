@@ -769,9 +769,7 @@ end
 end
 
 @inline function calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache)
-  @unpack var_min, var_max, bar_states1, bar_states2 = indicator.cache.ContainerShockCapturingIndicator
-
-  # Note: Bar states and lambdas at the interfaces are not needed anywhere else. Calculating here without saving.
+  @unpack var_min, var_max, bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
 
   @threaded for element in eachelement(dg, cache)
     for v in eachvariable(equations)
@@ -811,18 +809,20 @@ end
 
   for interface in eachinterface(dg, cache)
     # Get neighboring element ids
-    left  = cache.interfaces.neighbor_ids[1, interface]
-    right = cache.interfaces.neighbor_ids[2, interface]
+    left_id  = cache.interfaces.neighbor_ids[1, interface]
+    right_id = cache.interfaces.neighbor_ids[2, interface]
 
     orientation = cache.interfaces.orientations[interface]
 
     for i in eachnode(dg)
       if orientation == 1
-        index_left  = (nnodes(dg), i, left)
-        index_right = (1,          i, right)
+        index_left  = (nnodes(dg), i, left_id)
+        index_right = (1,          i, right_id)
+        lambda = lambda1[1, i, right_id]
       else
-        index_left  = (i, nnodes(dg), left)
-        index_right = (i,          1, right)
+        index_left  = (i, nnodes(dg), left_id)
+        index_right = (i,          1, right_id)
+        lambda = lambda2[i, 1, right_id]
       end
 
       u_left  = get_node_vars(u, equations, dg, index_left...)
@@ -830,7 +830,6 @@ end
 
       flux_left  = flux(u_left,  orientation, equations)
       flux_right = flux(u_right, orientation, equations)
-      lambda = max_abs_speed_naive(u_left, u_right, orientation, equations)
 
       bar_state_rho = 0.5 * (u_left[1] + u_right[1]) - 0.5 * (flux_right[1] - flux_left[1]) / lambda
       var_min[1, index_left...]  = min(var_min[1, index_left...], bar_state_rho)
@@ -1003,16 +1002,59 @@ end
       u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
       lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, 1, equations)
     end
-    lambda1[1,            :, element] .= zero(eltype(lambda1))
-    lambda1[nnodes(dg)+1, :, element] .= zero(eltype(lambda1))
 
     for j in 2:nnodes(dg), i in eachnode(dg)
       u_node     = get_node_vars(u, equations, dg, i,   j, element)
       u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
       lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, 2, equations)
     end
-    lambda2[:,            1, element] .= zero(eltype(lambda2))
-    lambda2[:, nnodes(dg)+1, element] .= zero(eltype(lambda2))
+  end
+
+  @threaded for interface in eachinterface(dg, cache)
+    left  = cache.interfaces.neighbor_ids[1, interface]
+    right = cache.interfaces.neighbor_ids[2, interface]
+
+    orientation = cache.interfaces.orientations[interface]
+
+    if orientation == 1
+      for j in eachnode(dg)
+        u_left  = get_node_vars(u, equations, dg, nnodes(dg), j, left)
+        u_right = get_node_vars(u, equations, dg, 1,          j, right)
+        lambda = max_abs_speed_naive(u_left, u_right, orientation, equations)
+
+        lambda1[nnodes(dg)+1, j, left]  = lambda
+        lambda1[1,            j, right] = lambda
+      end
+    else
+      for i in eachnode(dg)
+        u_left  = get_node_vars(u, equations, dg, i, nnodes(dg), left)
+        u_right = get_node_vars(u, equations, dg, i, 1,          right)
+        lambda = max_abs_speed_naive(u_left, u_right, orientation, equations)
+
+        lambda2[i, nnodes(dg)+1, left]  = lambda
+        lambda2[i,            1, right] = lambda
+      end
+    end
+  end
+
+  @threaded for boundary in eachboundary(dg, cache)
+    element = cache.boundaries.neighbor_ids[boundary]
+    orientation = cache.boundaries.orientations[boundary]
+    neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+    if orientation == 1
+      if neighbor_side == 2 # boundary_side == 1
+        lambda1[1,            :, element] .= zero(eltype(lambda1))
+      else # boundary_side == 2
+        lambda1[nnodes(dg)+1, :, element] .= zero(eltype(lambda1))
+      end
+    else # orientation == 2
+      if neighbor_side == 2 # boundary_side == 1
+        lambda2[:, 1,            element] .= zero(eltype(lambda2))
+      else # boundary_side == 2
+        lambda2[:, nnodes(dg)+1, element] .= zero(eltype(lambda2))
+      end
+    end
   end
 
   return nothing
