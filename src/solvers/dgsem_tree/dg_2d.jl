@@ -82,9 +82,9 @@ end
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
 
-  cache_FV = create_cache(mesh, equations,
-                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                          dg, uEltype)
+  cache = create_cache(mesh, equations,
+                       VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
+                       dg, uEltype)
 
   A3dp1_x = Array{uEltype, 3}
   A3dp1_y = Array{uEltype, 3}
@@ -94,15 +94,9 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fhat2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
-  cache_indicator = create_cache(mesh, equations, volume_integral.indicator, dg, uEltype)
+  ContainerAntidiffusiveFlux2D = Trixi.ContainerAntidiffusiveFlux2D{uEltype}(0, nvariables(equations), nnodes(dg))
 
-  return (; cache_FV..., cache_indicator..., fhat1_threaded, fhat2_threaded, flux_temp_threaded)
-end
-
-function create_cache(mesh::TreeMesh{2}, equations, indicator::IndicatorIDP, dg::DG, uEltype)
-  ContainerFCT2D = Trixi.ContainerFCT2D{uEltype}(0, nvariables(equations), nnodes(dg))
-
-  return (; ContainerFCT2D)
+  return (; cache..., ContainerAntidiffusiveFlux2D, fhat1_threaded, fhat2_threaded, flux_temp_threaded)
 end
 
 
@@ -557,10 +551,8 @@ end
   calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
       nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
 
-  # Calculate antidiffusive flux
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
-
-  calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
+  # antidiffusive flux
+  calcflux_antidiffusive!(fhat1, fhat2, fstar1_L, fstar2_L, u, mesh,
       nonconservative_terms, equations, dg, element, cache)
 
   # Calculate volume integral contribution of low-order FV flux
@@ -653,8 +645,9 @@ end
   return nothing
 end
 
-@inline function calcflux_antidiffusive!(antidiffusive_flux1, antidiffusive_flux2, fhat1, fhat2, fstar1, fstar2, u, mesh,
+@inline function calcflux_antidiffusive!(fhat1, fhat2, fstar1, fstar2, u, mesh,
                                          nonconservative_terms, equations, dg, element, cache)
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     for v in eachvariable(equations)
@@ -673,7 +666,7 @@ end
 @inline function antidiffusive_stage!(u_ode, u_old_ode, dt, semi, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack inverse_weights = solver.basis
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
   u_old = wrap_array(u_old_ode, mesh, equations, solver, cache)
   u     = wrap_array(u_ode,     mesh, equations, solver, cache)

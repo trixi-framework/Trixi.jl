@@ -241,8 +241,8 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)
-  # Resize ContainerFCT2D
-  resize!(semi.cache.ContainerFCT2D, new_size)
+  # Resize ContainerAntidiffusiveFlux2D
+  resize!(semi.cache.ContainerAntidiffusiveFlux2D, new_size)
 
   # Resize ContainerShockCapturingIndicator
   resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)

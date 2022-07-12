@@ -312,7 +312,7 @@ end
     end
   end
 
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
   @threaded for element in eachelement(dg, cache)
     inverse_jacobian = cache.elements.inverse_jacobian[element]
@@ -424,7 +424,7 @@ end
     end
   end
 
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
   @threaded for element in eachelement(dg, cache)
     inverse_jacobian = cache.elements.inverse_jacobian[element]
@@ -624,7 +624,7 @@ mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entrop
 mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 
 @inline function IDP_positivity!(alpha, indicator_IDP, u_safe, equations, dg, dt, cache)
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
   @unpack positCorrFactor = indicator_IDP
 
@@ -723,7 +723,7 @@ pressure_finalCheck(bound, goal, newton_abstol) = (goal <= eps()) && (goal > -ma
                                      goal_fct, dgoal_fct, initialCheck, finalCheck,
                                      equations, dg, dt, cache, indicator_IDP)
   @unpack inverse_weights = dg.basis
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerFCT2D
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   inverse_jacobian = cache.elements.inverse_jacobian[element]
 
   @unpack IDPgamma = indicator_IDP
