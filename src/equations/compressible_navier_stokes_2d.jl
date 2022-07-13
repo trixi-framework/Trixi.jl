@@ -163,7 +163,6 @@ end
     prim2cons(u, equations.equations_hyperbolic)
 
 
-
 # # Convert conservative variables to entropy
 # @inline function cons2entropy(u, equations::CompressibleNavierStokesEquations2D)
 #   rho, rho_v1, rho_v2, rho_e = u
@@ -252,7 +251,7 @@ end
                                                                                             equations::CompressibleNavierStokesEquations2D)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t, equations)
-  return SVector(zero(eltype(flux_inner)), v1, v2, T)
+  return SVector(u_inner[1], v1, v2, T)
 end
 
 @inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
