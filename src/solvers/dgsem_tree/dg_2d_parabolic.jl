@@ -470,7 +470,7 @@ function calc_gradient!(u_grad, u, t,
   # Calculate interface fluxes
   @trixi_timeit timer() "interface flux" begin
     @unpack surface_flux_values = cache_parabolic.elements
-    @unpack u, neighbor_ids, orientations = cache_parabolic.interfaces
+    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
     @threaded for interface in eachinterface(dg, cache_parabolic)
       # Get neighboring elements
@@ -485,7 +485,8 @@ function calc_gradient!(u_grad, u, t,
 
       for i in eachnode(dg)
         # Call pointwise Riemann solver
-        u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, i, interface)
+        u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+                                           equations_parabolic, dg, i, interface)
         flux = 0.5 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
