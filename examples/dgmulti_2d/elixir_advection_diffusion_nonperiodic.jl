@@ -1,14 +1,8 @@
 using Trixi, OrdinaryDiffEq
 
-polydeg = 3
-r1D, w1D = StartUpDG.gauss_lobatto_quad(0, 0, polydeg)
-rq, sq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D, r1D))
-wq = (x->x[1] .* x[2])(vec.(StartUpDG.NodesAndModes.meshgrid(w1D, w1D)))
-
-dg = DGMulti(polydeg = polydeg, element_type = Quad(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
-             volume_integral = VolumeIntegralWeakForm();
-             quad_rule_vol=(rq,sq,wq), quad_rule_face=(r1D,w1D))
+             volume_integral = VolumeIntegralWeakForm())
 
 get_diffusivity() = 5.0e-2
 
