@@ -81,8 +81,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_advection_diffusion_nonperiodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
-      l2 = [0.012561479036088107],
-      linf = [0.10067620068384618]
+      l2 = [0.002123168335604323],
+      linf = [0.00963640423513712]
     )
   end
 
