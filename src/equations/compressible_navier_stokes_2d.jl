@@ -116,16 +116,16 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
 
   # Components of viscous stress tensor
 
-  # (4/3*(v1)_x - 2/3*(v2)_y)
+  # (4/3 * (v1)_x - 2/3 * (v2)_y)
   tau_11 = ( 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy )
   # ((v1)_y + (v2)_x)
   # stress tensor is symmetric
   tau_12 = ( dv1dy + dv2dx ) # = tau_21
-  # (4/3*(v2)_y - 2/3*(v1)_x)
+  # (4/3 * (v2)_y - 2/3 * (v1)_x)
   tau_22 = ( 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx )
 
-  # Fick's law q = -kappa*grad(T); constant is kappa*gamma/(Pr*(gamma-1))
-  # Important note! Due to nondimensional scaling R = 1/gamma, so the
+  # Fick's law q = -kappa * grad(T); constant is kappa * gamma / (Pr * (gamma-1))
+  # Important note! Due to nondimensional scaling R = 1 / gamma, so the
   # temperature T in the gradient computation already contains a factor of gamma
   q1 = ( equations.kappa * equations.inv_gamma_minus_one * dTdx ) / equations.Pr
   q2 = ( equations.kappa * equations.inv_gamma_minus_one * dTdy ) / equations.Pr
@@ -144,7 +144,6 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
   g1 = zero(rho)
   g2 = f3 # tau_21 * nu
   g3 = tau_22 * nu
-  # g4 = ( v1 * tau_21 + v2 * tau_22 + q2 ) * nu
   g4 = ( v1 * tau_12 + v2 * tau_22 + q2 ) * nu
 
   return (SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4))
