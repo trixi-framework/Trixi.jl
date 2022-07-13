@@ -20,7 +20,7 @@ equations_parabolic = LaplaceDiffusion2D(get_diffusivity(), equations)
 # Springer, Cham, 2016. 179-203. Ellis, Truman, Jesse Chan, and Leszek Demkowicz."
 function initial_condition_erikkson_johnson(x, t, equations)
   l = 4
-  epsilon = get_diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+  epsilon = get_diffusivity() # TODO: this requires epsilon < .6 due to the sqrt
   lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
   lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
   r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
@@ -46,10 +46,10 @@ mesh = DGMultiMesh(dg; coordinates_min=(-1.0, -0.5), coordinates_max=(0.0, 0.5),
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 # define inviscid boundary conditions
-boundary_conditions = (; :left => boundary_condition,
-                         :top => boundary_condition,
+boundary_conditions = (; :left   => boundary_condition,
+                         :top    => boundary_condition,
                          :bottom => boundary_condition,
-                         :right => boundary_condition_do_nothing)
+                         :right  => boundary_condition_do_nothing)
 
 # define viscous boundary conditions
 boundary_conditions_parabolic = (; :entire_boundary => boundary_condition)
