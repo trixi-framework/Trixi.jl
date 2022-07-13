@@ -221,8 +221,8 @@ This creates the following plot:
 ![ScalarPlotData2D_example](https://user-images.githubusercontent.com/1156048/133856590-a9f0be02-8200-483b-af96-eab4a69bf2c7.png)
 
 ### Plotting a 3D solution as a 2D plot
-It is possible to plot 2D slices from 3D simulation data with the same commands
-as above:
+It is possible to plot 2D slices from 3D simulation data using the [`TreeMesh`](@ref)
+with the same commands as above:
 ```julia
 julia> plot(sol) # `sol` is from a 3D simulation
 ```
