@@ -71,7 +71,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @trixi_testset "DGMulti: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_periodic.jl"),
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_advection_diffusion_periodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
       l2 = [0.03180371984888462],
       linf = [0.2136821621370909]
@@ -79,10 +79,18 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_nonperiodic.jl"),
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_advection_diffusion_nonperiodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
       l2 = [0.012561479036088107],
       linf = [0.10067620068384618]
+    )
+  end
+
+  @trixi_testset "DGMulti: elixir_navier_stokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navier_stokes_convergence.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
+      l2 = [0.00153550768125133, 0.0033843168272696357, 0.0036531858107444067, 0.009948436427519428],
+      linf = [0.005522560467190019, 0.013425258500731063, 0.013962115643483375, 0.027483102120516634]
     )
   end
 
