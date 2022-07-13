@@ -105,10 +105,7 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
   # Here grad_u is assumed to contain the gradients of the primitive variables (v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
-  rho, rho_v1, rho_v2, _ = u
-
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
+  rho, v1, v2, _ = u
 
   # grad_u contains derivatives of each hyperbolic variable
   _, dv1dx, dv2dx, dTdx = grad_u[1]
