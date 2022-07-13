@@ -722,6 +722,12 @@ end
     end
   end
 
+  antidiffusive_flux1[:, 1,            :, element] .= zero(eltype(antidiffusive_flux1))
+  antidiffusive_flux1[:, nnodes(dg)+1, :, element] .= zero(eltype(antidiffusive_flux1))
+
+  antidiffusive_flux2[:, :, 1,            element] .= zero(eltype(antidiffusive_flux2))
+  antidiffusive_flux2[:, :, nnodes(dg)+1, element] .= zero(eltype(antidiffusive_flux2))
+
   return nothing
 end
 
