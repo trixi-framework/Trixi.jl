@@ -237,7 +237,7 @@ end
                                                                                            x, t, operator_type::Gradient,
                                                                                            equations::CompressibleNavierStokesEquations2D)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
-  return SVector(zero(eltype(u_inner)), v1, v2, u_inner[4])
+  return SVector(u_inner[1], v1, v2, u_inner[4])
 end
 
 @inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
