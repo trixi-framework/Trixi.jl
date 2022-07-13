@@ -38,7 +38,6 @@ function initial_condition_erikkson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_erikkson_johnson
 
-# define periodic boundary conditions everywhere
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                          y_neg = BoundaryConditionDirichlet(initial_condition),
                          y_pos = BoundaryConditionDirichlet(initial_condition),
