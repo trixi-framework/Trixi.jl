@@ -66,8 +66,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_shockcapturing_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_subcell.jl"),
-      l2   = [0.05279461354314492, 0.045989178414492675, 0.04598740128933962, 0.19301796760176929],
-      linf = [0.18653503138166105, 0.23196626025079317, 0.23205043616292115, 0.6911505364900443])
+      l2   = [0.05279387793678434, 0.04598968102076476, 0.04598873940396531, 0.19301779222816706],
+      linf = [0.1866584355939257, 0.2319290947473017, 0.23237647269183395, 0.6911745732545076])
   end
 
   @trixi_testset "elixir_euler_blast_wave.jl" begin
