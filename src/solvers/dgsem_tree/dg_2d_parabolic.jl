@@ -122,7 +122,7 @@ function calc_divergence!(du, u, t, viscous_flux,
   # Calculate interface fluxes
   @trixi_timeit timer() "interface flux" begin
     @unpack surface_flux_values = cache_parabolic.elements
-    @unpack u, neighbor_ids, orientations = cache_parabolic.interfaces
+    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
     @threaded for interface in eachinterface(dg, cache_parabolic)
       # Get neighboring elements
@@ -137,7 +137,8 @@ function calc_divergence!(du, u, t, viscous_flux,
 
       for i in eachnode(dg)
         # Call pointwise Riemann solver
-        u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, i, interface)
+        # TODO: should this u be cache_parabolic.interfaces.u??
+        u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, i, interface)
         flux = 0.5 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
@@ -279,6 +280,18 @@ function get_unsigned_normal_vector_2d(direction)
   else
     return SVector(0.0, 1.0)
   end
+end
+
+function calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                      mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
+  return nothing
+end
+
+function calc_divergence_boundary_flux!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                        mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                                        surface_integral, dg::DG)
+  return nothing
 end
 
 function calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic::NamedTuple,
@@ -485,6 +498,7 @@ function calc_gradient!(u_grad, u, t,
 
       for i in eachnode(dg)
         # Call pointwise Riemann solver
+        # TODO: should this be cache_parabolic.interfaces.u??
         u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                            equations_parabolic, dg, i, interface)
         flux = 0.5 * (u_ll + u_rr)

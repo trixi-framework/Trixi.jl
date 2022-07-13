@@ -94,6 +94,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.4), polydeg=5,
+      l2 = [4.0915532997994255e-6],
+      linf = [2.3040850347877395e-5]
+    )
+  end
+
   @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion_nonperiodic.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
