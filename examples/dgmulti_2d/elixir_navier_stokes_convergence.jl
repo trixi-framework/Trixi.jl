@@ -4,10 +4,13 @@ using Trixi
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
+get_Re() = 100
+get_Pr() = .72
+
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=1000, Prandtl=0.72,
+equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=get_Re(), Prandtl=get_Pr(),
                                                           Mach_freestream=0.5, kappa=1.0)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -50,8 +53,8 @@ initial_condition = initial_condition_navier_stokes_convergence_test
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
   kappa = 1
   inv_gamma_minus_one = inv(equations.gamma - 1)
-  Pr = 0.72
-  Re = 100
+  Pr = get_Pr()
+  Re = get_Re()
 
   # Same settings as in `initial_condition`
   # Amplitude and shift
@@ -186,7 +189,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span from 0.0 to 1.5
 tspan = (0.0, .50)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
