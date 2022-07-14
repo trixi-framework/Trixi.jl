@@ -233,7 +233,7 @@ end
 function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
   resize!(integrator.u, new_size)
   resize!(integrator.du, new_size)
-  resize!(integrator.u_tmp, new_size)
+  resize!(integrator.u_safe, new_size)
   resize!(integrator.u_old, new_size)
 
   # Resize container
