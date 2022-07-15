@@ -17,6 +17,18 @@
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
+***
+**Trixi.jl at JuliaCon 2022**<br/>
+At this year's JuliaCon, we will be present with two contributions that involve Trixi.jl:
+
+* [Running Julia code in parallel with MPI: Lessons learned](https://live.juliacon.org/talk/LUWYRJ), 
+  26th July 2022
+* [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://live.juliacon.org/talk/YSLKZJ), 
+  27th July 2022
+
+We are looking forward to seeing you there ♥️
+***
+
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
