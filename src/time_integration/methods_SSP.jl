@@ -201,7 +201,7 @@ function solve!(integrator::SimpleIntegratorSSP)
 
   # Check that we are within bounds
   if indicator.IDPCheckBounds
-    summary_check_bounds(indicator)
+    summary_check_bounds(indicator, integrator.p.equations)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
@@ -249,15 +249,15 @@ function Base.resize!(semi::AbstractSemidiscretization, new_size)
 end
 
 # check deviation from boundaries of IDP indicator
-@inline function summary_check_bounds(indicator::IndicatorIDP)
+@inline function summary_check_bounds(indicator::IndicatorIDP, equations::CompressibleEulerEquations2D)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy = indicator
   @unpack idp_bounds_delta_threaded = indicator.cache
 
-  idp_bounds_delta = zeros(eltype(idp_bounds_delta_threaded[1]), length(idp_bounds_delta_threaded[1]))
+  err_bounds = idp_bounds_delta_threaded[1]
 
-  for index in 1:length(idp_bounds_delta)
-    for i in 1:Threads.nthreads()
-      idp_bounds_delta[index] = max(idp_bounds_delta[index], idp_bounds_delta_threaded[i][index])
+  for i in 2:Threads.nthreads()
+    for index in 1:length(err_bounds)
+      err_bounds[index] = max(err_bounds[index], idp_bounds_delta_threaded[i][index])
     end
   end
 
@@ -266,32 +266,28 @@ end
   println("─"^100)
   counter = 0
   if IDPDensityTVD
-    counter += 1
-    println("rho_min: ", idp_bounds_delta[counter])
-    counter += 1
-    println("rho_max: ", idp_bounds_delta[counter])
+    counter += 2
+    println("rho:\n- lower bound: ", err_bounds[counter-1], "\n- upper bound: ", err_bounds[counter])
   end
   if IDPPressureTVD
-    counter += 1
-    println("p_min:   ", idp_bounds_delta[counter])
-    counter += 1
-    println("p_max:   ", idp_bounds_delta[counter])
+    counter += 2
+    println("pressure:\n- lower bound: ", err_bounds[counter-1], "\n- upper bound: ", err_bounds[counter])
   end
   if IDPPositivity && !IDPDensityTVD
     counter += 1
-    println("rho_min: ", idp_bounds_delta[counter])
+    println("rho:\n- positivity: ", err_bounds[counter])
   end
   if IDPPositivity && !IDPPressureTVD
     counter += 1
-    println("p_min:   ", idp_bounds_delta[counter])
+    println("pressure:\n- positivity: ", err_bounds[counter])
   end
   if IDPSpecEntropy
     counter += 1
-    println("ent_min: ", idp_bounds_delta[counter])
+    println("spec. entropy:\n- lower bound: ", err_bounds[counter])
   end
   if IDPMathEntropy
     counter += 1
-    println("ent_max: ", idp_bounds_delta[counter])
+    println("math. entropy:\n- upper bound: ", err_bounds[counter])
   end
   println("─"^100 * "\n")
 
