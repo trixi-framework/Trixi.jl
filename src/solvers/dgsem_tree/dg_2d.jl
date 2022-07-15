@@ -947,6 +947,7 @@ end
       Q = lambda1[i, j, element]^2 * (bar_states1[1, i, j, element] * bar_states1[4, i, j, element] -
                                       0.5 * bar_state_velocity)
 
+      # approximation R_max
       R_max = lambda1[i, j, element] *
                 (sqrt(bar_state_velocity * flux_velocity) +
                 abs(bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element]) +
@@ -969,6 +970,7 @@ end
       Q = lambda2[i, j, element]^2 * (bar_states2[1, i, j, element] * bar_states2[4, i, j, element] -
                                       0.5 * bar_state_velocity)
 
+      # approximation R_max
       R_max = lambda2[i, j, element] *
                 (sqrt(bar_state_velocity * flux_velocity) +
                 abs(bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element]) +
@@ -1151,6 +1153,8 @@ end
   @unpack idp_bounds_delta_threaded = solver.volume_integral.indicator.cache
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
+  n_vars = nvariables(equations)
+
   @threaded for element in eachelement(solver, cache)
     idp_bounds_delta = idp_bounds_delta_threaded[Threads.threadid()]
 
@@ -1160,10 +1164,21 @@ end
       rho_limited = bar_states1[1, i, j, element] + antidiffusive_flux1[1, i, j, element] / lambda
       idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
       idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      for v in 2:nvariables(equations)
+      if indicator.IDPPressureTVD
+        error_pressure = zero(eltype(idp_bounds_delta))
+        var_limited = zero(eltype(idp_bounds_delta))
+      end
+      for v in 2:n_vars
         var_limited = bar_states1[v, i, j, element] + antidiffusive_flux1[v, i, j, element] / lambda
         idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
         idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
+        if indicator.IDPPressureTVD
+          error_pressure += 0.5 * var_limited^2
+        end
+      end
+      if indicator.IDPPressureTVD
+        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
+        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
       end
     end
     # +x
@@ -1172,10 +1187,21 @@ end
       rho_limited = bar_states1[1, i+1, j, element] - antidiffusive_flux1[1, i+1, j, element] / lambda
       idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
       idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      for v in 2:nvariables(equations)
+      if indicator.IDPPressureTVD
+        error_pressure = zero(eltype(idp_bounds_delta))
+        var_limited = zero(eltype(idp_bounds_delta))
+      end
+      for v in 2:n_vars
         var_limited = bar_states1[v, i+1, j, element] - antidiffusive_flux1[v, i+1, j, element] / lambda
         idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
         idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
+        if indicator.IDPPressureTVD
+          error_pressure += 0.5 * var_limited^2
+        end
+      end
+      if indicator.IDPPressureTVD
+        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
+        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
       end
     end
     # -y
@@ -1184,10 +1210,21 @@ end
       rho_limited = bar_states2[1, i, j, element] + antidiffusive_flux2[1, i, j, element] / lambda
       idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
       idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      for v in 2:nvariables(equations)
+      if indicator.IDPPressureTVD
+        error_pressure = zero(eltype(idp_bounds_delta))
+        var_limited = zero(eltype(idp_bounds_delta))
+      end
+      for v in 2:n_vars
         var_limited = bar_states2[v, i, j, element] + antidiffusive_flux2[v, i, j, element] / lambda
         idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
         idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
+        if indicator.IDPPressureTVD
+          error_pressure += 0.5 * var_limited^2
+        end
+      end
+      if indicator.IDPPressureTVD
+        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
+        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
       end
     end
     # +y
@@ -1196,10 +1233,21 @@ end
       rho_limited = bar_states2[1, i, j+1, element] - antidiffusive_flux2[1, i, j+1, element] / lambda
       idp_bounds_delta[1] = max(idp_bounds_delta[1], var_min[1, i, j, element] - rho_limited)
       idp_bounds_delta[2] = max(idp_bounds_delta[2], rho_limited - var_max[1, i, j, element])
-      for v in 2:nvariables(equations)
+      if indicator.IDPPressureTVD
+        error_pressure = zero(eltype(idp_bounds_delta))
+        var_limited = zero(eltype(idp_bounds_delta))
+      end
+      for v in 2:n_vars
         var_limited = bar_states2[v, i, j+1, element] - antidiffusive_flux2[v, i, j+1, element] / lambda
         idp_bounds_delta[2*v-1] = max(idp_bounds_delta[2*v-1], rho_limited * var_min[v, i, j, element] - var_limited)
         idp_bounds_delta[2*v  ] = max(idp_bounds_delta[2*v  ], var_limited - rho_limited * var_max[v, i, j, element])
+        if indicator.IDPPressureTVD
+          error_pressure += 0.5 * var_limited^2
+        end
+      end
+      if indicator.IDPPressureTVD
+        error_pressure -= 0.5 * var_limited^2 + var_limited * rho_limited
+        idp_bounds_delta[2*n_vars+1] = max(idp_bounds_delta[2*n_vars+1], error_pressure)
       end
     end
   end

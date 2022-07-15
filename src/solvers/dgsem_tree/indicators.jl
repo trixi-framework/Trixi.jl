@@ -244,7 +244,7 @@ function IndicatorMCL(equations::AbstractEquations, basis;
                       IDPPressureTVD=true,
                       IDPCheckBounds=false)
 
-  cache = create_cache(IndicatorMCL, equations, basis, 2*nvariables(equations))
+  cache = create_cache(IndicatorMCL, equations, basis, 2*nvariables(equations)+IDPPressureTVD)
   IndicatorMCL{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds)
 end
 

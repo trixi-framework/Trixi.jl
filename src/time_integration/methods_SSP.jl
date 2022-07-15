@@ -301,7 +301,7 @@ end
 end
 
 # check deviation from boundaries of IndicatorMCL
-@inline function summary_check_bounds(indicator::IndicatorMCL)
+@inline function summary_check_bounds(indicator::IndicatorMCL, equations::CompressibleEulerEquations2D)
   @unpack idp_bounds_delta_threaded = indicator.cache
 
   err_bounds = idp_bounds_delta_threaded[1]
@@ -315,14 +315,13 @@ end
   println("─"^100)
   println("Maximum deviation from bounds:")
   println("─"^100)
-  println("rho_min:    ", err_bounds[1])
-  println("rho_max:    ", err_bounds[2])
-  println("rho_v1_min: ", err_bounds[3])
-  println("rho_v1_max: ", err_bounds[4])
-  println("rho_v2_min: ", err_bounds[5])
-  println("rho_v2_max: ", err_bounds[6])
-  println("rho_E_min:  ", err_bounds[7])
-  println("rho_E_max:  ", err_bounds[8])
+  variables = varnames(cons2cons, equations)
+  for v in eachvariable(equations)
+    println(variables[v], ":\n- lower bound: ", err_bounds[2*v-1], "\n- upper bound: ", err_bounds[2*v])
+  end
+  if indicator.IDPPressureTVD
+    println("pressure:\n- lower bound: ", err_bounds[2*nvariables(equations)+1])
+  end
   println("─"^100 * "\n")
 
   return nothing
