@@ -13,10 +13,12 @@ This function will check if `p4est` is already initialized
 and if yes, do nothing, thus it is safe to call it multiple times.
 """
 function init_p4est()
-  # TODO: Clang. How can we get this?
-  # if p4est_package_id()[] >= 0
-  #   return nothing
-  # end
+  p4est_package_id = unsafe_load(
+    cglobal((:p4est_package_id, P4est.LibP4est.libp4est), Cint)
+  )
+  if p4est_package_id >= 0
+    return nothing
+  end
 
   # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
   p4est_init(C_NULL, SC_LP_ERROR)
@@ -28,6 +30,10 @@ end
 # Convert sc_array of type T to Julia array
 function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where T
   sc_array_plain = unsafe_load(sc_array)
+  return unsafe_wrap_sc(T, sc_array_plain)
+end
+
+function unsafe_wrap_sc(::Type{T}, sc_array_plain::sc_array) where T
   elem_count = sc_array_plain.elem_count
   array = sc_array_plain.array
 
@@ -36,12 +42,16 @@ end
 
 
 # Load the ith element (1-indexed) of an sc array of type T
-function unsafe_load_sc(::Type{T}, sc_array, i=1) where T
-  element_size = sc_array.elem_size
+function unsafe_load_sc(::Type{T}, sc_array::Ptr{sc_array}, i=1) where T
+  sc_array_plain = unsafe_load(sc_array)
+  return unsafe_load_sc(T, sc_array_plain, i)
+end
 
+function unsafe_load_sc(::Type{T}, sc_array_plain::sc_array, i=1) where T
+  element_size = sc_array_plain.elem_size
   @assert element_size == sizeof(T)
 
-  return unsafe_load(Ptr{T}(sc_array.array), i)
+  return unsafe_load(Ptr{T}(sc_array_plain.array), i)
 end
 
 
@@ -211,24 +221,24 @@ end
 # Load i-th element of the sc_array info.sides of the type p[48]est_iter_face_side_t
 # 2D version
 function unsafe_load_side(info::Ptr{p4est_iter_face_info_t}, i=1)
-  return unsafe_load_sc(p4est_iter_face_side_t, info.sides, i)
+  return unsafe_load_sc(p4est_iter_face_side_t, unsafe_load(info).sides, i)
 end
 
 # 3D version
 function unsafe_load_side(info::Ptr{p8est_iter_face_info_t}, i=1)
-  return unsafe_load_sc(p8est_iter_face_side_t, info.sides, i)
+  return unsafe_load_sc(p8est_iter_face_side_t, unsafe_load(info).sides, i)
 end
 
 
 # Load i-th element of the sc_array p4est.trees of the type p[48]est_tree_t
 # 2D version
 function unsafe_load_tree(p4est::Ptr{p4est_t}, i=1)
-  return unsafe_load_sc(p4est_tree_t, p4est.trees, i)
+  return unsafe_load_sc(p4est_tree_t, unsafe_load(p4est).trees, i)
 end
 
 # 3D version
 function unsafe_load_tree(p8est::Ptr{p8est_t}, i=1)
-  return unsafe_load_sc(p8est_tree_t, p8est.trees, i)
+  return unsafe_load_sc(p8est_tree_t, unsafe_load(p8est).trees, i)
 end
 
 
