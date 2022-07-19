@@ -334,12 +334,14 @@ end
 
 # Copy controller values to quad user data storage, will be called below
 function copy_to_quad_iter_volume(info, user_data)
+  info_plain = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_plain.p4est, info_plain.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_plain.quadid
 
   # Access user_data = lambda
   user_data_ptr = Ptr{Int}(user_data)
@@ -347,7 +349,7 @@ function copy_to_quad_iter_volume(info, user_data)
   controller_value = unsafe_load(user_data_ptr, quad_id + 1)
 
   # Access quadrant's user data ([global quad ID, controller_value])
-  quad_data_ptr = Ptr{Int}(info.quad.p.user_data)
+  quad_data_ptr = Ptr{Int}(info_plain.quad.p.user_data)
   # Save controller value to quadrant's user data.
   unsafe_store!(quad_data_ptr, controller_value, 2)
 
@@ -567,16 +569,18 @@ end
 
 
 function extract_levels_iter_volume(info, user_data)
+  info_plain = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_plain.p4est, info_plain.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_plain.quadid
   # Julia element ID
   element_id = quad_id + 1
 
-  current_level = info.quad.level
+  current_level = info_plain.quad.level
 
   # Unpack user_data = current_levels and save current element level
   ptr = Ptr{Int}(user_data)

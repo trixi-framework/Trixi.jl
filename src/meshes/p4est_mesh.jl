@@ -415,13 +415,14 @@ end
 function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
   conn = read_inp_p4est(meshfile, Val(n_dimensions))
+  conn_plain = unsafe_load(conn)
 
   # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn.num_trees
-  n_vertices::Int = conn.num_vertices
+  n_trees::Int = conn_plain.num_trees
+  n_vertices::Int = conn_plain.num_vertices
 
-  vertices       = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
-  tree_to_vertex = unsafe_wrap(Array, conn.tree_to_vertex, (2^n_dimensions, n_trees))
+  vertices       = unsafe_wrap(Array, conn_plain.vertices, (3, n_vertices))
+  tree_to_vertex = unsafe_wrap(Array, conn_plain.tree_to_vertex, (2^n_dimensions, n_trees))
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
@@ -1574,15 +1575,17 @@ end
 
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
+  info_plain = unsafe_load(info)
+
   # Load tree from global trees array, one-based indexing
-  tree = unsafe_load_tree(info.p4est, info.treeid + 1)
+  tree = unsafe_load_tree(info_plain.p4est, info_plain.treeid + 1)
   # Quadrant numbering offset of this quadrant
   offset = tree.quadrants_offset
   # Global quad ID
-  quad_id = offset + info.quadid
+  quad_id = offset + info_plain.quadid
 
   # Unpack quadrant's user data ([global quad ID, controller_value])
-  ptr = Ptr{Int}(info.quad.p.user_data)
+  ptr = Ptr{Int}(info_plain.quad.p.user_data)
   # Save global quad ID
   unsafe_store!(ptr, quad_id, 1)
 

@@ -398,7 +398,7 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
 
   elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
-  for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
+  for tree in unsafe_wrap_sc(p4est_tree_t, unsafe_load(mesh.p4est).trees)
     elements_per_level .+= tree.quadrants_per_level
   end
 
