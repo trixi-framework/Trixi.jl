@@ -2,7 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
+# @muladd begin # TODO: Clang development
 
 
 """
@@ -26,10 +26,12 @@ end
 
 
 # Convert sc_array of type T to Julia array
-function unsafe_wrap_sc(::Type{T}, sc_array) where T
-  element_count = sc_array.elem_count
+function unsafe_wrap_sc(::Type{T}, sc_array::Ptr{sc_array}) where T
+  sc_array_plain = unsafe_load(sc_array)
+  elem_count = sc_array_plain.elem_count
+  array = sc_array_plain.array
 
-  return [unsafe_load_sc(T, sc_array, i) for i in 1:element_count]
+  return unsafe_wrap(Array, Ptr{T}(array), elem_count)
 end
 
 
@@ -230,4 +232,4 @@ function unsafe_load_tree(p8est::Ptr{p8est_t}, i=1)
 end
 
 
-end # @muladd
+# end # @muladd # TODO: Clang development

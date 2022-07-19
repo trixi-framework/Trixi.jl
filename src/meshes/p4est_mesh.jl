@@ -2,7 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
+# @muladd begin # TODO: Clang development
 
 
 """
@@ -60,14 +60,14 @@ const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:Val{true}}
 
 
 function destroy_mesh(mesh::P4estMesh{2})
-  conn = mesh.p4est.connectivity
+  conn = unsafe_load(mesh.p4est).connectivity
   p4est_ghost_destroy(mesh.ghost)
   p4est_destroy(mesh.p4est)
   p4est_connectivity_destroy(conn)
 end
 
 function destroy_mesh(mesh::P4estMesh{3})
-  conn = mesh.p4est.connectivity
+  conn = unsafe_load(mesh.p4est).connectivity
   p8est_ghost_destroy(mesh.ghost)
   p8est_destroy(mesh.p4est)
   p8est_connectivity_destroy(conn)
@@ -77,9 +77,12 @@ end
 @inline Base.ndims(::P4estMesh{NDIMS}) where NDIMS = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
-@inline ntrees(mesh::P4estMesh) = mesh.p4est.trees.elem_count
+@inline function ntrees(mesh::P4estMesh)
+  trees = unsafe_load(mesh.p4est).trees
+  return unsafe_load(trees).elem_count
+end
 # returns Int32 by default which causes a weird method error when creating the cache
-@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants)
+@inline ncells(mesh::P4estMesh) = Int(unsafe_load(mesh.p4est).local_num_quadrants)
 
 
 function Base.show(io::IO, mesh::P4estMesh)
@@ -1686,4 +1689,4 @@ function collect_new_cells(mesh::P4estMesh)
 end
 
 
-end # @muladd
+# end # @muladd # TODO: Clang development
