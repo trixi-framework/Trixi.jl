@@ -360,13 +360,14 @@ end
 function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
   conn = read_inp_p4est(meshfile, Val(n_dimensions))
+  conn_plain = unsafe_load(conn)
 
   # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn.num_trees
-  n_vertices::Int = conn.num_vertices
+  n_trees::Int = conn_plain.num_trees
+  n_vertices::Int = conn_plain.num_vertices
 
   # Extract a copy of the element vertices to compute the tree node coordinates
-  vertices = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
+  vertices = unsafe_wrap(Array, conn_plain.vertices, (3, n_vertices))
 
   # Readin all the information from the mesh file into a string array
   file_lines = readlines(open(meshfile))
@@ -399,7 +400,7 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level, n_d
   for tree in 1:n_trees
     current_line = split(file_lines[file_idx])
     boundary_names[:, tree] = map(Symbol, current_line[2:end])
-    file_idx  += 1
+    file_idx += 1
   end
 
   p4est = new_p4est(conn, initial_refinement_level)
