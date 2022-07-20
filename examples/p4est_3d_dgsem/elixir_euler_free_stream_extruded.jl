@@ -47,7 +47,8 @@ mesh = P4estMesh{3}(mesh_file, polydeg=3,
 
 # Refine quadrants in y-direction of each tree at one edge to level 2
 function refine_fn(p8est, which_tree, quadrant)
-  if convert(Int, which_tree) < 4 && quadrant.x == 0 && quadrant.y == 0 && quadrant.level < 2
+  quadrant_plain = unsafe_load(quadrant)
+  if convert(Int, which_tree) < 4 && quadrant_plain.x == 0 && quadrant_plain.y == 0 && quadrant_plain.level < 2
     # return true (refine)
     return Cint(1)
   else

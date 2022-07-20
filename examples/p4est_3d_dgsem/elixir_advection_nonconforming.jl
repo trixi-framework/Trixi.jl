@@ -25,7 +25,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg=3,
 
 # Refine bottom left quadrant of each tree to level 3
 function refine_fn(p8est, which_tree, quadrant)
-  if quadrant.x == 0 && quadrant.y == 0 && quadrant.z == 0 && quadrant.level < 3
+  quadrant_plain = unsafe_load(quadrant)
+  if quadrant_plain.x == 0 && quadrant_plain.y == 0 && quadrant_plain.z == 0 && quadrant_plain.level < 3
     # return true (refine)
     return Cint(1)
   else
