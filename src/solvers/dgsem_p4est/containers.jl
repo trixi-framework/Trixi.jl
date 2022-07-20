@@ -587,7 +587,7 @@ function init_mortars_iter_face_inner(info, sides, user_data)
   # Last entry is the large element
   mortars.neighbor_ids[end, mortar_id] = large_quad_id + 1
 
-  init_mortar_node_indices!(mortars, faces, info.orientation, mortar_id)
+  init_mortar_node_indices!(mortars, faces, unsafe_load(info).orientation, mortar_id)
 
   return nothing
 end
