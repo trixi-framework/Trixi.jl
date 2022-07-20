@@ -415,13 +415,14 @@ end
 function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg, initial_refinement_level, n_dimensions, RealT)
   # Create the mesh connectivity using `p4est`
   conn = read_inp_p4est(meshfile, Val(n_dimensions))
+  conn_plain = unsafe_load(conn)
 
   # These need to be of the type Int for unsafe_wrap below to work
-  n_trees::Int = conn.num_trees
-  n_vertices::Int = conn.num_vertices
+  n_trees::Int = conn_plain.num_trees
+  n_vertices::Int = conn_plain.num_vertices
 
-  vertices       = unsafe_wrap(Array, conn.vertices, (3, n_vertices))
-  tree_to_vertex = unsafe_wrap(Array, conn.tree_to_vertex, (2^n_dimensions, n_trees))
+  vertices       = unsafe_wrap(Array, conn_plain.vertices, (3, n_vertices))
+  tree_to_vertex = unsafe_wrap(Array, conn_plain.tree_to_vertex, (2^n_dimensions, n_trees))
 
   basis = LobattoLegendreBasis(RealT, polydeg)
   nodes = basis.nodes
