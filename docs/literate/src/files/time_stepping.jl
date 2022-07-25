@@ -46,8 +46,8 @@
 # ```math
 # \Delta t_n = \text{CFL} * \min_i \frac{\Delta x_i}{\lambda_{\max}(u_i^n)}
 # ```
-# We compute $\Delta x_i$ by scaling the element size by a factor of $1/(N+1)$, as in 
-# [ Ranocha, Dalcin, Parsani, Ketcheson (2021) ](https://link.springer.com/article/10.1007/s42967-021-00159-w).
+# We compute $\Delta x_i$ by scaling the element size by a factor of $1/(N+1)$, cf. 
+# [Gassne and Kopriva (2011)](https://doi.org/10.1137/100807211), Section 5.
 
 # Trixi provides such a CFL-based step size control. It is implemented as the callback
 # [`StepsizeCallback`](@ref).

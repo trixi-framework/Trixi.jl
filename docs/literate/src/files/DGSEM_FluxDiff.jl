@@ -86,7 +86,7 @@
 # ```math
 # (D \underline{f})_i = \sum_j D_{i,j} \underline{f}_j
 # = 2\sum_j \frac{1}{2} D_{i,j} (\underline{f}_j + \underline{f}_i)
-# \eqqcolon 2\sum_j  D_{i,j} f_\text{cent}(u_i, u_j),
+# \eqqcolon 2\sum_j  D_{i,j} f_\text{central}(u_i, u_j),
 # ```
 # we replace $D \underline{f}$ in the strong form by $2D \underline{f}_{vol}(u^-, u^+)$ with
 # the consistent two-point volume flux $f_{vol}$ and receive the DGSEM formulation with flux differencing
