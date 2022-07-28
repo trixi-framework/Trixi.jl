@@ -98,22 +98,16 @@ function calc_divergence!(du, u, t, viscous_flux,
       right_element = interfaces.neighbor_ids[2, interface]
 
       if orientations[interface] == 1
-        # TODO Make this cleaner (remove the let)
-        let u = viscous_flux[1]
-          # interface in x-direction
-          for j in eachnode(dg), v in eachvariable(equations_parabolic)
-            interfaces.u[1, v, j, interface] = u[v, nnodes(dg), j, left_element]
-            interfaces.u[2, v, j, interface] = u[v,          1, j, right_element]
-          end
+        # interface in x-direction
+        for j in eachnode(dg), v in eachvariable(equations_parabolic)
+          interfaces.u[1, v, j, interface] = viscous_flux[1][v, nnodes(dg), j, left_element]
+          interfaces.u[2, v, j, interface] = viscous_flux[1][v,          1, j, right_element]
         end
       else # if orientations[interface] == 2
-        # TODO Make this cleaner (remove the let)
-        let u = viscous_flux[2]
-          # interface in y-direction
-          for i in eachnode(dg), v in eachvariable(equations_parabolic)
-            interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg), left_element]
-            interfaces.u[2, v, i, interface] = u[v, i,          1, right_element]
-          end
+        # interface in y-direction
+        for i in eachnode(dg), v in eachvariable(equations_parabolic)
+          interfaces.u[1, v, i, interface] = viscous_flux[2][v, i, nnodes(dg), left_element]
+          interfaces.u[2, v, i, interface] = viscous_flux[2][v, i,          1, right_element]
         end
       end
     end
