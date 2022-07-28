@@ -14,13 +14,13 @@ equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=ge
                                                           Mach_freestream=0.5, kappa=1.0)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = polydeg, element_type = Quad(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
 top_bottom(x, tol=50*eps()) = abs(abs(x[2]) - 1) < tol
 is_on_boundary = Dict(:top_bottom => top_bottom)
-mesh = DGMultiMesh(dg, cells_per_dimension=(8, 8); periodicity=(true, false), is_on_boundary)
+mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); periodicity=(true, false), is_on_boundary)
 
 # Define initial condition
 # Note: If you change the parameters here, also change it in the corresponding source terms

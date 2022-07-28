@@ -4,7 +4,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-get_Re() = 1000
+get_Re() = 100
 get_Pr() = .72
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -24,7 +24,6 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 periodicity=(true, false),
                 n_cells_max=30_000) # set maximum capacity of tree data structure
-
 
 # Define initial condition
 # Note: If you change the parameters here, also change it in the corresponding source terms
@@ -193,7 +192,6 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
                                              source_terms=source_terms_navier_stokes_convergence_test)
 
-
 ###############################################################################
 # ODE solvers, callbacks etc.
 
@@ -215,48 +213,3 @@ sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol, dt =
             save_everystep=false, callback=callbacks)
 summary_callback() # print the timer summary
 
-###############################################################################
-# check accuracy of parabolic terms
-
-u_exact = (x, y, t) -> initial_condition_navier_stokes_convergence_test(SVector(x,y), t, equations)
-dqdx = (x, y, t) -> ForwardDiff.derivative(x -> cons2prim(u_exact(x, y, t), equations_parabolic), x)
-dqdy = (x, y, t) -> ForwardDiff.derivative(y -> cons2prim(u_exact(x, y, t), equations_parabolic), y)
-
-g = (x, y, t) -> Trixi.flux(cons2prim(u_exact(x,y,t), equations_parabolic),
-                            (dqdx(x,y,t), dqdy(x,y,t)), equations_parabolic)
-gx = (x, y, t) -> g(x, y, t)[1]
-gy = (x, y, t) -> g(x, y, t)[2]
-
-dgdx = (x,y,t) -> ForwardDiff.derivative(x -> gx(x,y,t), x)
-dgdy = (x,y,t) -> ForwardDiff.derivative(y -> gy(x,y,t), y)
-div_f = (x,y,t) -> dgdx(x,y,t) + dgdy(x,y,t)
-
-x = vec(semi.cache.elements.node_coordinates[1, :, :, :])
-y = vec(semi.cache.elements.node_coordinates[2, :, :, :])
-t = tspan[end]
-
-trixi_wrap(u) = Trixi.wrap_array(vec(reinterpret(reshape, Float64, u)), semi)
-dg = semi.solver
-dg_parabolic = semi.solver_parabolic
-@unpack cache, cache_parabolic = semi
-boundary_conditions = semi.boundary_conditions_parabolic
-u = u_exact.(x, y, t)
-u = trixi_wrap(u)
-
-# check gradient
-@unpack u_transformed, u_grad = cache_parabolic
-Trixi.transform_variables!(u_transformed, u, mesh, equations_parabolic, dg, dg_parabolic, cache, cache_parabolic)
-Trixi.calc_gradient!(u_grad, u_transformed, t, mesh, equations_parabolic, boundary_conditions, dg, cache, cache_parabolic)
-
-println("error in parabolic gradients: $(maximum(abs.(u_grad[1] - trixi_wrap(dqdx.(x,y,t)))) + maximum(abs.(u_grad[2] - trixi_wrap(dqdy.(x,y,t)))))")
-
-# check fluxes
-Trixi.calc_viscous_fluxes!(u_grad, u_transformed, mesh, equations_parabolic, dg, cache, cache_parabolic)
-println("error in parabolic fluxes: $(maximum(abs.(u_grad[1] - trixi_wrap(gx.(x,y,t)))) + maximum(abs.(u_grad[2] - trixi_wrap(gy.(x,y,t)))))")
-
-# check divergence
-du = similar(u)
-Trixi.reset_du!(du, dg, cache)
-Trixi.calc_divergence!(du, u_transformed, t, u_grad, mesh, equations_parabolic,
-                       boundary_conditions, dg, dg_parabolic, cache, cache_parabolic)
-println("error in parabolic divergence: $(maximum(abs.(du - trixi_wrap(div_f.(x,y,t)))))")
