@@ -14,7 +14,7 @@ equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=ge
                                                           Mach_freestream=0.5, kappa=1.0)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-dg = DGMulti(polydeg = polydeg, element_type = Quad(), approximation_type = Polynomial(),
+dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
