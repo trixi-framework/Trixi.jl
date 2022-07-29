@@ -22,9 +22,9 @@
 At this year's JuliaCon, we will be present with two contributions that involve Trixi.jl:
 
 * [Running Julia code in parallel with MPI: Lessons learned](https://live.juliacon.org/talk/LUWYRJ), 
-  26th July 2022
+  26th July 2022. [Watch on YouTube](https://youtu.be/fog1x9rs71Q)
 * [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://live.juliacon.org/talk/YSLKZJ), 
-  27th July 2022
+  27th July 2022. [Watch on YouTube](https://youtu.be/_N4ozHr-t9E)
 
 We are looking forward to seeing you there ♥️
 ***
