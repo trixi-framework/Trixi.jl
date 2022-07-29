@@ -16,7 +16,7 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `Ma_inf`: free-stream Mach number
 - `kappa`: thermal diffusivity for Fick's law
 
-The particular form of the compressible Navier-Stokes implemented are
+The particular form of the compressible Navier-Stokes implemented is
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
@@ -25,7 +25,7 @@ The particular form of the compressible Navier-Stokes implemented are
 +
 \nabla \cdot
 \begin{pmatrix}
- \rho \vec{v} \\ \rho \vec{v}\vec{v}^T + p \underline{I} \\ (\rho e +p) \vec{v}
+ \rho \vec{v} \\ \rho \vec{v}\vec{v}^T + p \underline{I} \\ (\rho e + p) \vec{v}
 \end{pmatrix}
 =
 \nabla \cdot
@@ -42,7 +42,7 @@ are built from the viscous stress tensor
 ```math
 \underline{\tau} = \mu \left(\nabla\vec{v} + \left(\nabla\vec{v}\right)^T\right) - \frac{2}{3} \mu \left(\nabla\cdot\vec{v}\right)\underline{I}
 ```
-where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux
+where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux is
 ```math
 \nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
@@ -107,10 +107,16 @@ struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressi
   equations_hyperbolic::E    # CompressibleEulerEquations2D
 end
 
-function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquations2D; Reynolds, Prandtl, Mach_freestream, kappa)
+function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquations2D; Reynolds, Prandtl, Mach_freestream)
   γ = equations.gamma
   inv_gamma_minus_one = equations.inv_gamma_minus_one
-  Re, Pr, Ma, κ = promote(Reynolds, Prandtl, Mach_freestream, kappa)
+  Re, Pr, Ma = promote(Reynolds, Prandtl, Mach_freestream)
+
+  # Under the assumption of constant Prandtl number the thermal conductivity
+  # constant is kappa = gamma μ R / ((gamma-1) Pr).
+  # Important note! Due to nondimensional scaling R = 1 / gamma, this constant
+  # simplifies slightly. Also, the factor of μ is accounted for later.
+  κ = inv_gamma_minus_one / Pr
 
   # From the nondimensionalization discussed above set the remaining free-stream
   # quantities
@@ -165,27 +171,27 @@ function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
   # (4/3 * (v2)_y - 2/3 * (v1)_x)
   tau_22 = ( 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx )
 
-  # Fick's law q = -kappa * grad(T); constant is kappa * gamma / (Pr * (gamma-1))
+  # Fick's law q = -kappa * grad(T); constant is kappa = gamma μ R / ((gamma-1) Pr)
   # Important note! Due to nondimensional scaling R = 1 / gamma, so the
   # temperature T in the gradient computation already contains a factor of gamma
-  q1 = ( equations.kappa * equations.inv_gamma_minus_one * dTdx ) / equations.Pr
-  q2 = ( equations.kappa * equations.inv_gamma_minus_one * dTdy ) / equations.Pr
+  q1 = equations.kappa * dTdx
+  q2 = equations.kappa * dTdy
 
   # kinematic viscosity is simply 1/Re for this nondimensionalization
-  nu = 1.0 / equations.Re
+  mu = 1.0 / equations.Re
 
   # viscous flux components in the x-direction
   f1 = zero(rho)
-  f2 = tau_11 * nu
-  f3 = tau_12 * nu
-  f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * nu
+  f2 = tau_11 * mu
+  f3 = tau_12 * mu
+  f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * mu
 
   # viscous flux components in the y-direction
   # Note, symmetry is exploited for tau_12 = tau_21
   g1 = zero(rho)
-  g2 = f3 # tau_21 * nu
-  g3 = tau_22 * nu
-  g4 = ( v1 * tau_12 + v2 * tau_22 + q2 ) * nu
+  g2 = f3 # tau_21 * mu
+  g3 = tau_22 * mu
+  g4 = ( v1 * tau_12 + v2 * tau_22 + q2 ) * mu
 
   return (SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4))
 end

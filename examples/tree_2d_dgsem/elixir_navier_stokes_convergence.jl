@@ -11,7 +11,7 @@ equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
 equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=get_Re(), Prandtl=get_Pr(),
-                                                          Mach_freestream=0.5, kappa=1.0)
+                                                          Mach_freestream=0.5)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
