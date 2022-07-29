@@ -16,7 +16,44 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `Ma_inf`: free-stream Mach number
 - `kappa`: thermal diffusivity for Fick's law
 
-For the particular scaling the vicosity is set internally to be μ = 1/Re.
+The particular form of the compressible Navier-Stokes implemented are
+```math
+\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \\ \rho \vec{v} \\ \rho e
+\end{pmatrix}
++
+\nabla \cdot
+\begin{pmatrix}
+ \rho \vec{v} \\ \rho \vec{v}\vec{v}^T + p \underline{I} \\ (\rho e +p) \vec{v}
+\end{pmatrix}
+=
+\nabla \cdot
+\begin{pmatrix}
+0 \\ \underline{\tau} \\ \underline{\tau}\vec{v} - \nabla q
+\end{pmatrix}
+```
+where the system is closed with the ideal gas assumption giving
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
+```
+as the pressure. The terms on the right hand side of the system above
+are built from the viscous stress tensor
+```math
+\underline{\tau} = \mu \left(\nabla\vec{v} + \left(\nabla\vec{v}\right)^T\right) - \frac{2}{3} \mu \left(\nabla\cdot\vec{v}\right)\underline{I}
+```
+where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux
+```math
+\nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
+```
+where ``T`` is the temperature.
+Under the assumption that the gas has a constant Prandtl number
+the thermal conductivity is
+```math
+\kappa = \frac{\gamma \mu R}{(\gamma - 1)\textrm{Pr}}
+```
+
+For this particular scaling the vicosity is set internally to be μ = 1/Re.
 Further, the nondimensionalization takes the density-temperature-sound speed as
 the principle quantities such that
 ```
@@ -37,17 +74,22 @@ The scaling used herein is Section 4.5 of the reference.
 
 In two spatial dimensions we require gradients for three quantities, e.g.,
 primitive quantities
-  grad(v_1), grad(v_2), and grad(T)
+```math
+  \nabla v_1,\, \nabla v_2,\, \nabla T
+````
 or the entropy variables
-  grad(w_2), grad(w_3), grad(w_4)
+```math
+  \nabla w_2,\, \nabla w_3,\, \nabla w_4
+```
 where
-  w_2 = rho v_1 / p, w_3 = rho v_2 / p, w_4 = -rho / p
+```math
+  w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
+````
 """
 
 # TODO:
 # 1) For now I save gamma and inv(gamma-1) again, but we could potentially reuse them from
 #    the Euler equations
-# 2) Add more here and probably some equations
 
 # TODO: Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 4}
