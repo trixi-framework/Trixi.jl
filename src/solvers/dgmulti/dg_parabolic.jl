@@ -196,7 +196,7 @@ function calc_viscous_fluxes!(viscous_flux, u, u_grad, mesh::DGMultiMesh,
     # compute viscous flux at quad points
     for i in eachindex(local_u_values)
       u_i = local_u_values[i]
-      u_grad_i = getindex.(local_viscous_flux, i) # TODO: check if this allocates. Shouldn't for tuples or SVector...
+      u_grad_i = getindex.(local_viscous_flux, i)
       viscous_flux_i = flux(u_i, u_grad_i, equations)
       setindex!.(local_viscous_flux, viscous_flux_i, i)
     end
@@ -272,7 +272,6 @@ function calc_divergence!(du, u::StructArray, t, viscous_flux, mesh::DGMultiMesh
     scalar_flux_face_values[idM] = flux_face_value
   end
 
-  # TODO: decide what to pass in
   calc_boundary_flux!(scalar_flux_face_values, cache_parabolic.u_face_values, t, Divergence(),
                       boundary_conditions, mesh, equations, dg, cache, cache_parabolic)
 
