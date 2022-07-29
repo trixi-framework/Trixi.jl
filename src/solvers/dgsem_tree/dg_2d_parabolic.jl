@@ -14,7 +14,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
 
-  @unpack u_transformed, u_grad = cache_parabolic
+  @unpack u_transformed, u_grad, viscous_flux = cache_parabolic
   @trixi_timeit timer() "transform variables" transform_variables!(u_transformed, u,
                                                                    mesh, equations_parabolic,
                                                                    dg, dg_parabolic,
@@ -25,12 +25,11 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
                                                             boundary_conditions, dg,
                                                             cache, cache_parabolic)
 
-  # TODO: Do not misuse u_grad to store fluxes?
-  @trixi_timeit timer() "calculate viscous fluxes" calc_viscous_fluxes!(u_grad, u_transformed,
+  @trixi_timeit timer() "calculate viscous fluxes" calc_viscous_fluxes!(viscous_flux, u_grad, u_transformed,
                                                                         mesh, equations_parabolic,
                                                                         dg, cache, cache_parabolic)
 
-  @trixi_timeit timer() "calculate divergence" calc_divergence!(du, u_transformed, t, u_grad,
+  @trixi_timeit timer() "calculate divergence" calc_divergence!(du, u_transformed, t, viscous_flux,
                                                                 mesh,
                                                                 equations_parabolic,
                                                                 boundary_conditions, dg,
@@ -247,15 +246,15 @@ function calc_divergence!(du, u, t, viscous_flux,
 end
 
 
-function calc_viscous_fluxes!(viscous_flux, u, mesh::TreeMesh{2},
+function calc_viscous_fluxes!(viscous_flux, u_grad, u, mesh::TreeMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       # Get solution and gradients
       u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
-      u_grad_1_node = get_node_vars(viscous_flux[1], equations_parabolic, dg, i, j, element)
-      u_grad_2_node = get_node_vars(viscous_flux[2], equations_parabolic, dg, i, j, element)
+      u_grad_1_node = get_node_vars(u_grad[1], equations_parabolic, dg, i, j, element)
+      u_grad_2_node = get_node_vars(u_grad[2], equations_parabolic, dg, i, j, element)
 
       # Calculate viscous flux and store each component for later use
       viscous_flux_node = flux(u_node, (u_grad_1_node, u_grad_2_node), equations_parabolic)
@@ -623,6 +622,7 @@ function create_cache_parabolic(mesh::TreeMesh{2}, equations_hyperbolic::Abstrac
   n_elements = nelements(elements)
   u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_elements)
   u_grad = ntuple(_ -> similar(u_transformed), ndims(mesh))
+  viscous_flux = ntuple(_ -> similar(u_transformed), ndims(mesh))
 
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
@@ -631,7 +631,7 @@ function create_cache_parabolic(mesh::TreeMesh{2}, equations_hyperbolic::Abstrac
   # mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
   # cache = (; elements, interfaces, boundaries, mortars)
-  cache = (; elements, interfaces, boundaries, u_grad, u_transformed)
+  cache = (; elements, interfaces, boundaries, u_grad, viscous_flux, u_transformed)
 
   # Add specialized parts of the cache required to compute the mortars etc.
   # cache = (;cache..., create_cache(mesh, equations_parabolic, dg.mortar, uEltype)...)
