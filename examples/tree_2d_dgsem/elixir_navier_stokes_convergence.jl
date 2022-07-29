@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 get_Re() = 100
-get_Pr() = .72
+get_Pr() = 0.72
 
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
@@ -195,8 +195,8 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.5
-tspan = (0.0, .50)
+# Create ODE problem with time span `tspan`
+tspan = (0.0, 0.5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

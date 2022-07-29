@@ -56,7 +56,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.5
+# Create ODE problem with time span `tspan`
 tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan);
 

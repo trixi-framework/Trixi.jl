@@ -8,23 +8,25 @@
 
 `CompressibleNavierStokesEquations2D` represents the diffusion (i.e. parabolic) terms applied
 to mass, momenta, and total energy together with the advective from
-the `CompressibleEulerEquations2D`.
+the [`CompressibleEulerEquations2D`](@ref).
 
-gamma: adiabatic constant,
-Re: Reynolds number,
-Pr: Prandtl number,
-Ma_inf: free-stream Mach number
-kappa: thermal diffusivity for Fick's law
+- `gamma`: adiabatic constant,
+- `Re`: Reynolds number,
+- `Pr`: Prandtl number,
+- `Ma_inf`: free-stream Mach number
+- `kappa`: thermal diffusivity for Fick's law
 
 For the particular scaling the vicosity is set internally to be μ = 1/Re.
 Further, the nondimensionalization takes the density-temperature-sound speed as
 the principle quantities such that
+```
 rho_inf = 1.0
 T_ref = 1.0
 c_inf = 1.0
 p_inf = 1.0 / gamma
 u_inf = Ma_inf
 R = 1.0 / gamma
+```
 
 Other normalization strategies exist, see the reference below for details.
 - Marc Montagnac (2013)
@@ -35,7 +37,7 @@ The scaling used herein is Section 4.5 of the reference.
 
 In two spatial dimensions we require gradients for three quantities, e.g.,
 primitive quantities
-  grad(u), grad(v), and grad(T)
+  grad(v_1), grad(v_2), and grad(T)
 or the entropy variables
   grad(w_2), grad(w_3), grad(w_4)
 where
