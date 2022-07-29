@@ -153,34 +153,28 @@ function calc_divergence!(du, u, t, viscous_flux,
       element = boundaries.neighbor_ids[boundary]
 
       if orientations[boundary] == 1
-        # TODO Make this cleaner (remove the let)
-        let u = viscous_flux[1]
-          # boundary in x-direction
-          if neighbor_sides[boundary] == 1
-            # element in -x direction of boundary
-            for l in eachnode(dg), v in eachvariable(equations_parabolic)
-              boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
-            end
-          else # Element in +x direction of boundary
-            for l in eachnode(dg), v in eachvariable(equations_parabolic)
-              boundaries.u[2, v, l, boundary] = u[v, 1,          l, element]
-            end
+        # boundary in x-direction
+        if neighbor_sides[boundary] == 1
+          # element in -x direction of boundary
+          for l in eachnode(dg), v in eachvariable(equations_parabolic)
+            boundaries.u[1, v, l, boundary] = viscous_flux[1][v, nnodes(dg), l, element]
+          end
+        else # Element in +x direction of boundary
+          for l in eachnode(dg), v in eachvariable(equations_parabolic)
+            boundaries.u[2, v, l, boundary] = viscous_flux[1][v, 1,          l, element]
           end
         end
       else # if orientations[boundary] == 2
-        # TODO Make this cleaner (remove the let)
-        let u = viscous_flux[2]
-          # boundary in y-direction
-          if neighbor_sides[boundary] == 1
-            # element in -y direction of boundary
-            for l in eachnode(dg), v in eachvariable(equations_parabolic)
-              boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
-            end
-          else
-            # element in +y direction of boundary
-            for l in eachnode(dg), v in eachvariable(equations_parabolic)
-              boundaries.u[2, v, l, boundary] = u[v, l, 1,          element]
-            end
+        # boundary in y-direction
+        if neighbor_sides[boundary] == 1
+          # element in -y direction of boundary
+          for l in eachnode(dg), v in eachvariable(equations_parabolic)
+            boundaries.u[1, v, l, boundary] = viscous_flux[2][v, l, nnodes(dg), element]
+          end
+        else
+          # element in +y direction of boundary
+          for l in eachnode(dg), v in eachvariable(equations_parabolic)
+            boundaries.u[2, v, l, boundary] = viscous_flux[2][v, l, 1,          element]
           end
         end
       end
