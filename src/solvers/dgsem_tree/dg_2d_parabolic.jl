@@ -57,10 +57,12 @@ function transform_variables!(u_transformed, u, mesh::TreeMesh{2},
   end
 end
 
-# TODO: dg_parabolic is not a DG type; it contains solver-specific information such as an LDG penalty parameter.
+# note: the argument dg_parabolic is not a DG type; it contains solver-specific
+# information such as an LDG penalty parameter.
 function calc_divergence!(du, u, t, viscous_flux,
                           mesh::TreeMesh{2}, equations_parabolic,
-                          boundary_conditions_parabolic, dg::DG, dg_parabolic,
+                          boundary_conditions_parabolic, dg::DG,
+                          dg_parabolic, # not a `DG` type
                           cache, cache_parabolic)
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" begin
@@ -131,7 +133,6 @@ function calc_divergence!(du, u, t, viscous_flux,
 
       for i in eachnode(dg)
         # Call pointwise Riemann solver
-        # TODO: should this u be cache_parabolic.interfaces.u??
         u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, i, interface)
         flux = 0.5 * (u_ll + u_rr)
 
@@ -492,7 +493,6 @@ function calc_gradient!(u_grad, u, t,
 
       for i in eachnode(dg)
         # Call pointwise Riemann solver
-        # TODO: should this be cache_parabolic.interfaces.u??
         u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                            equations_parabolic, dg, i, interface)
         flux = 0.5 * (u_ll + u_rr)
