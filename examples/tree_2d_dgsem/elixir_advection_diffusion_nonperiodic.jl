@@ -4,44 +4,46 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
 
-advection_velocity = (1.5, 1.0)
+get_diffusivity() = 5.0e-2
+advection_velocity = (1.0, 0.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # Note: If you change the diffusion parameter here, also change it in the initial condition
-equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations)
+equations_parabolic = LaplaceDiffusion2D(get_diffusivity(), equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
+coordinates_max = ( 0.0,  0.5) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                periodicity=true,
+                periodicity=false,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
-# Define initial condition
-# Note: If you change the diffusion parameter here, also change it in the parabolic equation definition
-function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advection_velocity * t
-
-  # @unpack nu = equation
-  nu = 5.0e-2
-  c = 1.0
-  A = 0.5
-  L = 2
-  f = 1/L
-  omega = 2 * pi * f
-  scalar = c + A * sin(omega * sum(x_trans)) * exp(-2 * nu * omega^2 * t)
-  return SVector(scalar)
+# from "Robust DPG methods for transient convection-diffusion."
+# Building bridges: connections and challenges in modern approaches to numerical partial differential equations.
+# Springer, Cham, 2016. 179-203. Ellis, Truman, Jesse Chan, and Leszek Demkowicz."
+function initial_condition_erikkson_johnson(x, t, equations)
+  l = 4
+  epsilon = get_diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+  lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
+  lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
+  r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+  s1 = (1 - sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+  u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
+      cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
+  return SVector{1}(u)
 end
-initial_condition = initial_condition_diffusive_convergence_test
+initial_condition = initial_condition_erikkson_johnson
 
-# define periodic boundary conditions everywhere
-boundary_conditions = boundary_condition_periodic
-boundary_conditions_parabolic = boundary_condition_periodic
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                         y_neg = BoundaryConditionDirichlet(initial_condition),
+                         y_pos = BoundaryConditionDirichlet(initial_condition),
+                         x_pos = boundary_condition_do_nothing)
+
+boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,
@@ -54,7 +56,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.5
+# Create ODE problem with time span `tspan`
 tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan);
 
