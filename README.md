@@ -19,14 +19,14 @@
 
 ***
 **Trixi.jl at JuliaCon 2022**<br/>
-At this year's JuliaCon, we will be present with two contributions that involve Trixi.jl:
+At this year's JuliaCon 2022, we have been present with two contributions that involve Trixi.jl:
 
 * [Running Julia code in parallel with MPI: Lessons learned](https://live.juliacon.org/talk/LUWYRJ), 
-  26th July 2022
+  26th July 2022. [Watch on YouTube](https://youtu.be/fog1x9rs71Q?t=5172), [repo](https://github.com/JuliaParallel/juliacon-2022-julia-for-hpc-minisymposium)
 * [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://live.juliacon.org/talk/YSLKZJ), 
-  27th July 2022
+  27th July 2022. [Watch on YouTube](https://youtu.be/_N4ozHr-t9E), [repo](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
 
-We are looking forward to seeing you there ♥️
+If you have questions about Trixi.jl or our other projects, feel free to get in touch via Slack or open an issue ♥️
 ***
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
