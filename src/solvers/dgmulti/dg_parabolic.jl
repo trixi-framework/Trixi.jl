@@ -83,7 +83,7 @@ function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
   # compute volume contributions to gradients
   @threaded for e in eachelement(mesh, dg)
     for i in eachdim(mesh), j in eachdim(mesh)
-      dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # TODO: assumes mesh is affine
+      dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # TODO: DGMulti. Assumes mesh is affine here.
       apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
                           view(u_grad[i], :, e), view(u, :, e))
     end
@@ -188,7 +188,7 @@ function calc_viscous_fluxes!(viscous_flux, u, u_grad, mesh::DGMultiMesh,
     end
 
     # interpolate u and gradient to quadrature points, store in `local_viscous_flux`
-    apply_to_each_field(mul_by!(dg.basis.Vq), local_u_values, view(u, :, e)) # TODO: can we avoid this when we don't need it?
+    apply_to_each_field(mul_by!(dg.basis.Vq), local_u_values, view(u, :, e)) # TODO: DGMulti. Specialize for nodal collocation methods (SBP, GaussSBP)
     for dim in eachdim(mesh)
       apply_to_each_field(mul_by!(dg.basis.Vq), local_viscous_flux[dim], view(u_grad[dim], :, e))
     end
