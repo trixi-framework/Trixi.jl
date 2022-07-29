@@ -209,23 +209,49 @@ end
   return T
 end
 
-# abstract container for wall-type boundary conditions
+"""
+    struct BoundaryConditionViscousWall{V, H}
+
+Creates a wall-type boundary conditions for the compressible Navier-Stokes equations.
+The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
+to be boundary condition types such as the `NoSlip` velocity boundary condition and the
+`Adiabatic` or `Isothermal` heat boundary condition.
+"""
 struct BoundaryConditionViscousWall{V, H}
   boundary_condition_velocity::V
   boundary_condition_heat_flux::H
 end
 
-# no slip velocity BC
+"""
+    struct NoSlip{F}
+
+Creates a no-slip boundary condition with field `boundary_value_function`, which
+should be a function with signature `boundary_value_function(x, t, equations)`
+and should return a `SVector{NDIMS}` whose entries are the velocity vector at a
+point `x` and time `t`.
+"""
 struct NoSlip{F}
   boundary_value_function::F # value of the velocity vector on the boundary
 end
 
-# isothermal temperature BC
+"""
+    struct Isothermal{F}
+
+Creates an isothermal temperature boundary condition with field `boundary_value_function`,
+which should be a function with signature `boundary_value_function(x, t, equations)` and
+return a scalar value for the temperature at point `x` and time `t`.
+"""
 struct Isothermal{F}
   boundary_value_function::F # value of the temperature on the boundary
 end
 
-# adiabatic temperature BC
+"""
+    struct Adiabatic{F}
+
+Creates an adiabatic temperature boundary condition with field `boundary_value_function`,
+which should be a function with signature `boundary_value_function(x, t, equations)` and
+return a scalar value for the normal heat flux at point `x` and time `t`.
+"""
 struct Adiabatic{F}
   boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
 end
