@@ -71,19 +71,75 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test getindex.(du, 1) ≈ 2 * y
   end
 
-  @trixi_testset "elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_periodic.jl"),
+  @trixi_testset "DGMulti: elixir_advection_diffusion.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_advection_diffusion.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
+      l2 = [0.2485803335154642],
+      linf = [1.079606969242132]
+    )
+  end
+
+  @trixi_testset "DGMulti: elixir_advection_diffusion_periodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_advection_diffusion_periodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
       l2 = [0.0017154907260937388],
       linf = [0.003824658692896943]
     )
   end
 
-  @trixi_testset "elixir_advection_diffusion.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
+  @trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_advection_diffusion_nonperiodic.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
-      l2 = [0.2485803335154642],
-      linf = [1.079606969242132]
+      l2 = [0.002123168335604323],
+      linf = [0.00963640423513712]
+    )
+  end
+
+  @trixi_testset "DGMulti: elixir_navier_stokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navier_stokes_convergence.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
+      l2 = [0.00153550768125133, 0.0033843168272696357, 0.0036531858107444067, 0.009948436427519428],
+      linf = [0.005522560467190019, 0.013425258500731063, 0.013962115643483375, 0.027483102120516634]
+    )
+  end
+
+  @trixi_testset "DGMulti: elixir_navier_stokes_lid_driven_cavity.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navier_stokes_lid_driven_cavity.jl"),
+      cells_per_dimension = (4, 4), tspan=(0.0, 0.5),
+      l2 = [0.0002215612522711349, 0.028318325921400257, 0.009509168701069035, 0.028267900513539248],
+      linf = [0.0015622789413053395, 0.14886653390741342, 0.07163235655334241, 0.19472785105216417]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.4), polydeg=5,
+      l2 = [4.0915532997994255e-6],
+      linf = [2.3040850347877395e-5]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion_nonperiodic.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.1),
+      l2 = [0.007646800618485118],
+      linf = [0.10067621050468958]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.1),
+      l2 = [0.0021116725306635146, 0.0034322351490824465, 0.003874252819611102, 0.012469246082522416],
+      linf = [0.012006418939297214, 0.03552087120958058, 0.02451274749176294, 0.11191122588577151]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_navier_stokes_lid_driven_cavity.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_lid_driven_cavity.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.5),
+      l2 = [0.0001514457152968994, 0.018766076072331786, 0.007065070765651992, 0.020839900573430787],
+      linf = [0.0014523369373645734, 0.12366779944955876, 0.055324509971157544, 0.1609992780534526]
     )
   end
 

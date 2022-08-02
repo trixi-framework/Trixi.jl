@@ -131,9 +131,11 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
-       LaplaceDiffusion2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D
+
+export LaplaceDiffusion2D,
+       CompressibleNavierStokesEquations2D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
@@ -161,7 +163,8 @@ export boundary_condition_do_nothing,
        BoundaryConditionNeumann,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
-       boundary_condition_wall
+       boundary_condition_wall,
+       BoundaryConditionViscousWall, NoSlip, Adiabatic, Isothermal
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic
@@ -250,6 +253,7 @@ function __init__()
 
   # FIXME upstream. This is a hacky workaround for
   #       https://github.com/trixi-framework/Trixi.jl/issues/628
+  #       https://github.com/trixi-framework/Trixi.jl/issues/1185
   # The related upstream issues appear to be
   #       https://github.com/JuliaLang/julia/issues/35800
   #       https://github.com/JuliaLang/julia/issues/32552
@@ -258,9 +262,12 @@ function __init__()
   let
     for T in (Float32, Float64)
       u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
-      view(u_mortars_2d, 1, :, 1, :, 1)
+      u_view_2d = view(u_mortars_2d, 1, :, 1, :, 1)
+      LoopVectorization.axes(u_view_2d)
+
       u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
-      view(u_mortars_3d, 1, :, 1, :, :, 1)
+      u_view_3d = view(u_mortars_3d, 1, :, 1, :, :, 1)
+      LoopVectorization.axes(u_view_3d)
     end
   end
 end
