@@ -7,11 +7,13 @@ using Trixi
 get_Re() = 100
 get_Pr() = 0.72
 
-equations = CompressibleEulerEquations2D(1.4)
+equations_hyperbolic = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=get_Re(), Prandtl=get_Pr(),
+equations_parabolic = CompressibleNavierStokesEquations2D(equations_hyperbolic, Reynolds=get_Re(), Prandtl=get_Pr(),
                                                           Mach_freestream=0.5)
+
+equations = EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
@@ -40,11 +42,12 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
   v2  = v1
   p   = rho^2
 
-  return prim2cons(SVector(rho, v1, v2, p), equations)
+  return prim2cons(SVector(rho, v1, v2, p), equations.equations_hyperbolic)
 end
 
 initial_condition = initial_condition_navier_stokes_convergence_test
 
+# TODO: have the source evaluation take in EquationsHyperbolicParabolic (right now it just uses the hyperbolic part)
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
 
   y = x[2]
@@ -179,10 +182,9 @@ boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)
 # define viscous boundary conditions
 boundary_conditions_parabolic = (; :top_bottom => boundary_condition_top_bottom)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, dg;
+semi = SemidiscretizationHyperbolicParabolic(mesh, equations, initial_condition, dg;
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
                                              source_terms=source_terms_navier_stokes_convergence_test)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.

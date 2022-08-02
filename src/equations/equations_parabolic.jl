@@ -6,6 +6,10 @@ gradient_variable_transformation(::AbstractEquationsParabolic, dg_parabolic) = c
 abstract type AbstractLaplaceDiffusionEquations{NDIMS, NVARS} <: AbstractEquationsParabolic{NDIMS, NVARS} end
 include("laplace_diffusion_2d.jl")
 
+# Compressible Navier-Stokes equations
+abstract type AbstractCompressibleNavierStokesEquations{NDIMS, NVARS} <: AbstractEquationsParabolic{NDIMS, NVARS} end
+include("compressible_navier_stokes_2d.jl")
+
 """
   EquationsHyperbolicParabolic(equations_hyperbolic, equations_parabolic)
 
