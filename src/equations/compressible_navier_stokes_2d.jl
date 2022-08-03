@@ -1,36 +1,31 @@
 @doc raw"""
-    CompressibleNavierStokesEquations2D(gamma,
-                                        Re,
-                                        Pr,
-                                        Ma_inf,
-                                        kappa,
-                                        equations)
+    CompressibleNavierStokesEquations2D(gamma, Re, Pr, Ma_inf, equations)
 
-`CompressibleNavierStokesEquations2D` represents the diffusion (i.e. parabolic) terms applied
-to mass, momenta, and total energy together with the advective from
+These equations contain the diffusion (i.e. parabolic) terms applied
+to mass, momenta, and total energy together with the advective terms from
 the [`CompressibleEulerEquations2D`](@ref).
 
 - `gamma`: adiabatic constant,
 - `Re`: Reynolds number,
 - `Pr`: Prandtl number,
 - `Ma_inf`: free-stream Mach number
-- `kappa`: thermal diffusivity for Fick's law
+- `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 
 The particular form of the compressible Navier-Stokes implemented is
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho \vec{v} \\ \rho e
+\rho \\ \rho \mathbf{v} \\ \rho e
 \end{pmatrix}
 +
 \nabla \cdot
 \begin{pmatrix}
- \rho \vec{v} \\ \rho \vec{v}\vec{v}^T + p \underline{I} \\ (\rho e + p) \vec{v}
+ \rho \mathbf{v} \\ \rho \mathbf{v}\mathbf{v}^T + p \underline{I} \\ (\rho e + p) \mathbf{v}
 \end{pmatrix}
 =
 \nabla \cdot
 \begin{pmatrix}
-0 \\ \underline{\tau} \\ \underline{\tau}\vec{v} - \nabla q
+0 \\ \underline{\tau} \\ \underline{\tau}\mathbf{v} - \nabla q
 \end{pmatrix}
 ```
 where the system is closed with the ideal gas assumption giving
@@ -40,17 +35,31 @@ p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 as the pressure. The terms on the right hand side of the system above
 are built from the viscous stress tensor
 ```math
-\underline{\tau} = \mu \left(\nabla\vec{v} + \left(\nabla\vec{v}\right)^T\right) - \frac{2}{3} \mu \left(\nabla\cdot\vec{v}\right)\underline{I}
+\underline{\tau} = \mu \left(\nabla\mathbf{v} + \left(\nabla\mathbf{v}\right)^T\right) - \frac{2}{3} \mu \left(\nabla\cdot\mathbf{v}\right)\underline{I}
 ```
 where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux is
 ```math
 \nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
-where ``T`` is the temperature.
+where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
 Under the assumption that the gas has a constant Prandtl number
 the thermal conductivity is
 ```math
 \kappa = \frac{\gamma \mu R}{(\gamma - 1)\textrm{Pr}}
+```
+
+In two spatial dimensions we require gradients for three quantities, e.g.,
+primitive quantities
+```math
+\nabla v_1,\, \nabla v_2,\, \nabla T
+```
+or the entropy variables
+```math
+\nabla w_2,\, \nabla w_3,\, \nabla w_4
+```
+where
+```math
+w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 ```
 
 For this particular scaling the vicosity is set internally to be μ = 1/Re.
@@ -71,28 +80,11 @@ Other normalization strategies exist, see the reference below for details.
   equations: a practical guide
   [CERFACS Technical report](https://www.cerfacs.fr/~montagna/TR-CFD-13-77.pdf)
 The scaling used herein is Section 4.5 of the reference.
-
-In two spatial dimensions we require gradients for three quantities, e.g.,
-primitive quantities
-```math
-  \nabla v_1,\, \nabla v_2,\, \nabla T
-````
-or the entropy variables
-```math
-  \nabla w_2,\, \nabla w_3,\, \nabla w_4
-```
-where
-```math
-  w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
-````
 """
-
-# TODO:
-# 1) For now I save gamma and inv(gamma-1) again, but we could potentially reuse them from
-#    the Euler equations
-
-# TODO: Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 4}
+  # TODO:
+  # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
+  # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
   Re::RealT                  # Reynolds number
