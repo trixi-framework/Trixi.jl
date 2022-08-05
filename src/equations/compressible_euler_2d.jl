@@ -1062,6 +1062,13 @@ end
   return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
+@inline function isValidState(cons, equations::CompressibleEulerEquations2D)
+  p = pressure(cons, equations)
+  if cons[1] <= 0.0 || p <= 0.0
+    return false
+  end
+  return true
+end
 
 
 

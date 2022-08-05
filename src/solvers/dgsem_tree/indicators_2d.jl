@@ -750,6 +750,8 @@ end
 @inline function newton_loop!(alpha, bound, u_safe, i, j, element,
                               goal_fct, dgoal_fct, initialCheck, finalCheck,
                               equations, dt, indicator_IDP, antidiffusive_flux)
+  newton_reltol, newton_abstol = indicator_IDP.newton_tol
+
   beta = 1.0 - alpha[i, j, element]
 
   beta_L = 0.0  # alpha = 1
@@ -757,18 +759,23 @@ end
 
   u_curr = u_safe + beta * dt * antidiffusive_flux
 
-  # Perform initial Check
-  as = goal_fct(bound, u_curr, equations)
+  # If state is valid, perform initial check and return if correction is not needed
+  if isValidState(u_curr, equations)
+    as = goal_fct(bound, u_curr, equations)
 
-  newton_reltol, newton_abstol = indicator_IDP.newton_tol
-  initialCheck(bound, as, newton_abstol) && return nothing
+    initialCheck(bound, as, newton_abstol) && return nothing
+  end
 
   # Newton iterations
   for iter in 1:indicator_IDP.IDPMaxIter
     beta_old = beta
 
-    # Evaluate d(goal)/d(beta)
-    dSdbeta = dgoal_fct(u_curr, dt, antidiffusive_flux, equations)
+    # If the state is valid, evaluate d(goal)/d(beta)
+    if isValidState(u_curr, equations)
+      dSdbeta = dgoal_fct(u_curr, dt, antidiffusive_flux, equations)
+    else # Otherwise, perform a bisection step
+      dSdbeta = 0.0
+    end
 
     if dSdbeta != 0.0
       # Update beta with Newton's method
@@ -781,6 +788,13 @@ end
       beta = 0.5 * (beta_L + beta_R)
       # Get new u
       u_curr = u_safe + beta * dt * antidiffusive_flux
+
+      # If the state is invalid, finish bisection step without checking tolerance and iterate further
+      if !isValidState(u_curr, equations)
+        beta_R = beta
+        continue
+      end
+
       # Check new beta for condition and update bounds
       as = goal_fct(bound, u_curr, equations)
       if initialCheck(bound, as, newton_abstol)
@@ -791,6 +805,13 @@ end
     else
       # Get new u
       u_curr = u_safe + beta * dt * antidiffusive_flux
+
+      # If the state is invalid, redefine right bound without checking tolerance and iterate further
+      if !isValidState(u_curr, equations)
+        beta_R = beta
+        continue
+      end
+
       # Evaluate goal function
       as = goal_fct(bound, u_curr, equations)
     end
