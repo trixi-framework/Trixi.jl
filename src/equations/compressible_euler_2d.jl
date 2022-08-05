@@ -335,13 +335,14 @@ Should be used together with [`TreeMesh`](@ref).
                                               equations::CompressibleEulerEquations2D)
   # get the appropriate normal vector from the orientation
   if orientation == 1
-    normal = SVector(1, 0)
+    normal_direction = SVector(1, 0)
   else # orientation == 2
-    normal = SVector(0, 1)
+    normal_direction = SVector(0, 1)
   end
 
   # compute and return the flux using `boundary_condition_slip_wall` routine above
-  return boundary_condition_slip_wall(u_inner, normal, x, t, surface_flux_function, equations)
+  return boundary_condition_slip_wall(u_inner, normal_direction, direction,
+                                      x, t, surface_flux_function, equations)
 end
 
 """
