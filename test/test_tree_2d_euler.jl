@@ -165,8 +165,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_positivity_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity_sc_subcell.jl"),
-      l2   = [0.49171288879147707, 0.16540604409411028, 0.165403281995138, 0.6346743704341865],
-      linf = [2.523187390223829, 1.1676864180461144, 1.1676912091995713, 6.469768610580735],
+      l2   = [0.49170711532017397, 0.16545207388505218, 0.16545210945870265, 0.6347169459573236],
+      linf = [2.525440391740859, 1.167550417094284, 1.1675492773007656, 6.468729876521227],
       tspan = (0.0, 1.0),
       initial_refinement_level=5,
       coverage_override = (maxiters=3,))
@@ -190,8 +190,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_blob_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_sc_subcell.jl"),
-      l2   = [0.23649189278780317, 0.6993516078054665, 0.24313747935314953, 3.071644108599621],
-      linf = [7.850214101046176, 21.245196819766562, 10.004355873576252, 76.18578781492629],
+      l2   = [0.22952600868491232, 0.6598694971331289, 0.2375222572511259, 3.0485750678229198],
+      linf = [7.661392002055745, 19.336398494293007, 9.378519483511768, 79.18768909325449],
       tspan = (0.0, 0.5),
       initial_refinement_level=5)
   end
@@ -255,8 +255,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_colliding_flow_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow_sc_subcell.jl"),
-      l2   = [0.006567503201406924, 0.045494701197468755, 1.5604684539276876e-6, 0.624781570252251],
-      linf = [0.1448916669656563, 0.5279925643783724, 8.77139846451784e-5, 12.03029820002121],
+      l2   = [0.006577159539817667, 0.04554740746415583, 1.4554079130334693e-6, 0.6258024941421835],
+      linf = [0.14555535078246196, 0.5306125024728012, 8.590620121863414e-5, 12.092753540073211],
       tspan = (0.0, 0.1),
       coverage_override = (maxiters=2,))
   end
@@ -271,8 +271,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_astro_jet_subcell_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_subcell_restart.jl"),
-      l2   = [0.442412359159042, 353.54254537346463, 14.195423442065804, 138996.0083518854],
-      linf = [7.729364707886681, 5819.848679298194, 659.5925327100372, 2.1869838429080946e6],
+      l2   = [0.4399267169815457, 352.321452114897, 14.089381141646252, 138648.81629357373],
+      linf = [7.532813790308049, 5594.80343019963, 626.966037014211, 2.154789660969525e6],
       tspan = (2.5e-6, 1.0e-4),
       coverage_override = (maxiters=6,))
   end
