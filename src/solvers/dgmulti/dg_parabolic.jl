@@ -12,8 +12,8 @@ function create_cache_parabolic(mesh::DGMultiMesh,
   # u_transformed stores "transformed" variables for computing the gradient
   @unpack md = mesh
   u_transformed = allocate_nested_array(uEltype, nvars, size(md.x), dg)
-  u_grad = ntuple(_ -> similar(u_transformed), ndims(mesh))
-  flux_viscous = similar.(u_grad)
+  gradients = ntuple(_ -> similar(u_transformed), ndims(mesh))
+  flux_viscous = similar.(gradients)
 
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   scalar_flux_face_values = similar(u_face_values)
@@ -32,7 +32,7 @@ function create_cache_parabolic(mesh::DGMultiMesh,
     end
   end
 
-  return (; u_transformed, u_grad, flux_viscous,
+  return (; u_transformed, gradients, flux_viscous,
             weak_differentiation_matrices, inv_h,
             u_face_values, grad_u_face_values, scalar_flux_face_values,
             local_u_values_threaded, local_flux_viscous_threaded, local_flux_face_values_threaded)
@@ -54,7 +54,7 @@ function prolong2interfaces!(u_face_values, u, mesh::DGMultiMesh, equations::Abs
   apply_to_each_field(mul_by!(dg.basis.Vf), u_face_values, u)
 end
 
-function calc_gradient_surface_integral(u_grad, u, scalar_flux_face_values,
+function calc_gradient_surface_integral(gradients, u, scalar_flux_face_values,
                                         mesh, equations::AbstractEquationsParabolic,
                                         dg::DGMulti, cache, cache_parabolic)
   @unpack local_flux_face_values_threaded = cache_parabolic
@@ -65,19 +65,19 @@ function calc_gradient_surface_integral(u_grad, u, scalar_flux_face_values,
         # compute flux * (nx, ny, nz)
         local_flux_values[i] = scalar_flux_face_values[i, e] * mesh.md.nxyzJ[dim][i, e]
       end
-      apply_to_each_field(mul_by_accum!(dg.basis.LIFT), view(u_grad[dim], :, e), local_flux_values)
+      apply_to_each_field(mul_by_accum!(dg.basis.LIFT), view(gradients[dim], :, e), local_flux_values)
     end
   end
 end
 
-function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
+function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                         equations::AbstractEquationsParabolic,
                         boundary_conditions, dg::DGMulti, cache, cache_parabolic)
 
   @unpack weak_differentiation_matrices = cache_parabolic
 
-  for dim in eachindex(u_grad)
-    reset_du!(u_grad[dim], dg)
+  for dim in eachindex(gradients)
+    reset_du!(gradients[dim], dg)
   end
 
   # compute volume contributions to gradients
@@ -85,7 +85,7 @@ function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
     for i in eachdim(mesh), j in eachdim(mesh)
       dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # TODO: DGMulti. Assumes mesh is affine here.
       apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
-                          view(u_grad[i], :, e), view(u, :, e))
+                          view(gradients[i], :, e), view(u, :, e))
     end
   end
 
@@ -106,11 +106,11 @@ function calc_gradient!(u_grad, u::StructArray, t, mesh::DGMultiMesh,
                       mesh, equations, dg, cache, cache_parabolic)
 
   # compute surface contributions
-  calc_gradient_surface_integral(u_grad, u, scalar_flux_face_values,
+  calc_gradient_surface_integral(gradients, u, scalar_flux_face_values,
                                  mesh, equations, dg, cache, cache_parabolic)
 
   for dim in eachdim(mesh)
-    invert_jacobian!(u_grad[dim], mesh, equations, dg, cache; scaling=1.0)
+    invert_jacobian!(gradients[dim], mesh, equations, dg, cache; scaling=1.0)
   end
 end
 
@@ -167,7 +167,7 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
   return nothing
 end
 
-function calc_viscous_fluxes!(flux_viscous, u, u_grad, mesh::DGMultiMesh,
+function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
                               equations::AbstractEquationsParabolic,
                               dg::DGMulti, cache, cache_parabolic)
 
@@ -190,14 +190,14 @@ function calc_viscous_fluxes!(flux_viscous, u, u_grad, mesh::DGMultiMesh,
     # interpolate u and gradient to quadrature points, store in `local_flux_viscous`
     apply_to_each_field(mul_by!(dg.basis.Vq), local_u_values, view(u, :, e)) # TODO: DGMulti. Specialize for nodal collocation methods (SBP, GaussSBP)
     for dim in eachdim(mesh)
-      apply_to_each_field(mul_by!(dg.basis.Vq), local_flux_viscous[dim], view(u_grad[dim], :, e))
+      apply_to_each_field(mul_by!(dg.basis.Vq), local_flux_viscous[dim], view(gradients[dim], :, e))
     end
 
     # compute viscous flux at quad points
     for i in eachindex(local_u_values)
       u_i = local_u_values[i]
-      u_grad_i = getindex.(local_flux_viscous, i)
-      flux_viscous_i = flux(u_i, u_grad_i, equations)
+      gradients_i = getindex.(local_flux_viscous, i)
+      flux_viscous_i = flux(u_i, gradients_i, equations)
       setindex!.(local_flux_viscous, flux_viscous_i, i)
     end
 
@@ -301,14 +301,14 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
 
   reset_du!(du, dg)
 
-  @unpack u_transformed, u_grad, flux_viscous = cache_parabolic
+  @unpack u_transformed, gradients, flux_viscous = cache_parabolic
   transform_variables!(u_transformed, u, mesh, equations_parabolic,
                        dg, parabolic_scheme, cache, cache_parabolic)
 
-  calc_gradient!(u_grad, u_transformed, t, mesh, equations_parabolic,
+  calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
                  boundary_conditions, dg, cache, cache_parabolic)
 
-  calc_viscous_fluxes!(flux_viscous, u_transformed, u_grad,
+  calc_viscous_fluxes!(flux_viscous, u_transformed, gradients,
                        mesh, equations_parabolic, dg, cache, cache_parabolic)
 
   calc_divergence!(du, u_transformed, t, flux_viscous, mesh, equations_parabolic,
