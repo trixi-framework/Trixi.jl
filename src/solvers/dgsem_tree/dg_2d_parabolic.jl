@@ -260,7 +260,7 @@ function calc_viscous_fluxes!(viscous_flux, u_grad, u, mesh::TreeMesh{2},
   end
 end
 
-# TODO: decide if we should keep this, and if so, extend to 3D.
+# TODO: parabolic; decide if we should keep this, and if so, extend to 3D.
 function get_unsigned_normal_vector_2d(direction)
   if direction > 4 || direction < 1
     @warn "Direction = $direction; in 2D, direction should be 1, 2, 3, or 4."
