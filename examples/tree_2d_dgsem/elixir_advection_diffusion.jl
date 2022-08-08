@@ -22,12 +22,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
 # Define initial condition
-# Note: If you change the diffusion parameter here, also change it in the parabolic equation definition
 function initial_condition_diffusive_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advection_velocity * t
 
-  # @unpack nu = equation
   nu = get_diffusivity()
   c = 1.0
   A = 0.5
@@ -56,7 +54,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 
 # Create ODE problem with time span from 0.0 to 1.5
 tspan = (0.0, 1.5)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

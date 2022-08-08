@@ -21,7 +21,7 @@ function flux(u, grad_u, equations_parabolic::LaplaceDiffusion2D)
   return SVector(equations_parabolic.diffusivity * dudx, equations_parabolic.diffusivity * dudy)
 end
 
-# TODO: should this remain in the equations file, be moved to solvers, or live in the elixir?
+# TODO: parabolic; should this remain in the equations file, be moved to solvers, or live in the elixir?
 # The penalization depends on the solver, but also depends explicitly on physical parameters,
 # and would probably need to be specialized for every different equation.
 function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion2D, dg::ViscousFormulationLocalDG)

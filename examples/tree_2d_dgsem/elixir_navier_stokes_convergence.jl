@@ -8,8 +8,6 @@ reynolds_number() = 100
 prandtl_number() = 0.72
 
 equations = CompressibleEulerEquations2D(1.4)
-# Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
-# I really do not like this structure but it should work for now
 equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=reynolds_number(), Prandtl=prandtl_number(),
                                                           Mach_freestream=0.5)
 
@@ -28,10 +26,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # Define initial condition
 # Note: If you change the parameters here, also change it in the corresponding source terms
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
-
   # Amplitude and shift
-  A    = 0.5
-  c    = 2.0
+  A = 0.5
+  c = 2.0
 
   # convenience values for trig. functions
   pi_x = pi * x[1]
@@ -49,20 +46,18 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
-
   y = x[2]
 
   # we currently need to hardcode these parameters until we fix the "combined equation" issue
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-  kappa = 1
   inv_gamma_minus_one = inv(equations.gamma - 1)
   Pr = prandtl_number()
   Re = reynolds_number()
 
   # Same settings as in `initial_condition`
   # Amplitude and shift
-  A    = 0.5
-  c    = 2.0
+  A = 0.5
+  c = 2.0
 
   # convenience values for trig. functions
   pi_x = pi * x[1]
@@ -108,7 +103,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
   E_y = p_y * inv_gamma_minus_one + rho_y * v1^2 + 2.0 * rho * v1 * v1_y
 
   # Some convenience constants
-  T_const = equations.gamma * inv_gamma_minus_one * kappa / Pr
+  T_const = equations.gamma * inv_gamma_minus_one / Pr
   inv_Re = 1.0 / Re
   inv_rho_cubed = 1.0 / (rho^3)
 

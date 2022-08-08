@@ -24,6 +24,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); periodicity=(true, false), 
 
 # Define initial condition
 # Note: If you change the parameters here, also change it in the corresponding source terms
+# This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
   # Amplitude and shift
   A = 0.5

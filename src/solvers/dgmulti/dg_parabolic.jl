@@ -3,7 +3,7 @@ function create_cache_parabolic(mesh::DGMultiMesh,
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DGMulti, dg_parabolic, RealT, uEltype)
   # default to taking derivatives of all hyperbolic terms
-  # TODO: utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
+  # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
   nvars = nvariables(equations_hyperbolic)
 
   @unpack M, Drst = dg.basis

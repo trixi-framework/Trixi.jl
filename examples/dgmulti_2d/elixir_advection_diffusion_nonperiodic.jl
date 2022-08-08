@@ -9,9 +9,12 @@ diffusivity() = 5.0e-2
 equations = LinearScalarAdvectionEquation2D(1.0, 0.0)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
-# from "Robust DPG methods for transient convection-diffusion."
-# Building bridges: connections and challenges in modern approaches to numerical partial differential equations.
-# Springer, Cham, 2016. 179-203. Ellis, Truman, Jesse Chan, and Leszek Demkowicz."
+# Example setup taken from
+# - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
+#   Robust DPG methods for transient convection-diffusion.
+#   In: Building bridges: connections and challenges in modern approaches
+#   to numerical partial differential equations.
+#   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
 function initial_condition_erikkson_johnson(x, t, equations)
   l = 4
   epsilon = diffusivity() # TODO: this requires epsilon < .6 due to the sqrt

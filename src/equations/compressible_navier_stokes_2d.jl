@@ -82,7 +82,7 @@ Other normalization strategies exist, see the reference below for details.
 The scaling used herein is Section 4.5 of the reference.
 """
 struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 4}
-  # TODO:
+  # TODO: parabolic
   # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
   # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
   gamma::RealT               # ratio of specific heats
@@ -100,7 +100,7 @@ struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressi
 end
 
 function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquations2D; Reynolds, Prandtl, Mach_freestream)
-  γ = equations.gamma
+  gamma = equations.gamma
   inv_gamma_minus_one = equations.inv_gamma_minus_one
   Re, Pr, Ma = promote(Reynolds, Prandtl, Mach_freestream)
 
@@ -108,7 +108,7 @@ function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquatio
   # constant is kappa = gamma μ R / ((gamma-1) Pr).
   # Important note! Due to nondimensional scaling R = 1 / gamma, this constant
   # simplifies slightly. Also, the factor of μ is accounted for later.
-  κ = inv_gamma_minus_one / Pr
+  kappa = inv_gamma_minus_one / Pr
 
   # From the nondimensionalization discussed above set the remaining free-stream
   # quantities
@@ -122,6 +122,7 @@ function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquatio
 end
 
 
+# TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
 # varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesEquations2D) = ("v1", "v2", "T")
 # varnames(::typeof(cons2entropy), ::CompressibleNavierStokesEquations2D) = ("w2", "w3", "w4")
@@ -250,7 +251,7 @@ end
 end
 
 """
-    struct BoundaryConditionViscousWall{V, H}
+    struct BoundaryConditionViscousWall
 
 Creates a wall-type boundary conditions for the compressible Navier-Stokes equations.
 The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
@@ -263,9 +264,9 @@ struct BoundaryConditionViscousWall{V, H}
 end
 
 """
-    struct NoSlip{F}
+    struct NoSlip
 
-Creates a no-slip boundary condition with field `boundary_value_function`, which
+Use to create a no-slip boundary condition with `BoundaryConditionViscousWall`. The field `boundary_value_function`
 should be a function with signature `boundary_value_function(x, t, equations)`
 and should return a `SVector{NDIMS}` whose entries are the velocity vector at a
 point `x` and time `t`.
@@ -275,7 +276,7 @@ struct NoSlip{F}
 end
 
 """
-    struct Isothermal{F}
+    struct Isothermal
 
 Creates an isothermal temperature boundary condition with field `boundary_value_function`,
 which should be a function with signature `boundary_value_function(x, t, equations)` and
@@ -286,7 +287,7 @@ struct Isothermal{F}
 end
 
 """
-    struct Adiabatic{F}
+    struct Adiabatic
 
 Creates an adiabatic temperature boundary condition with field `boundary_value_function`,
 which should be a function with signature `boundary_value_function(x, t, equations)` and
