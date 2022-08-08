@@ -4,11 +4,13 @@ using Trixi
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-get_Re() = 100
-get_Pr() = 0.72
+Reynolds_number() = 100
+Prandtl_number() = 0.72
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=get_Re(), Prandtl=get_Pr(),
+# Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
+# I really do not like this structure but it should work for now
+equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=Reynolds_number(), Prandtl=Prandtl_number(),
                                                           Mach_freestream=0.5)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -49,8 +51,8 @@ initial_condition = initial_condition_navier_stokes_convergence_test
   # we currently need to hardcode these parameters until we fix the "combined equation" issue
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
   inv_gamma_minus_one = inv(equations.gamma - 1)
-  Pr = get_Pr()
-  Re = get_Re()
+  Pr = Prandtl_number()
+  Re = Reynolds_number()
 
   # Same settings as in `initial_condition`
   # Amplitude and shift

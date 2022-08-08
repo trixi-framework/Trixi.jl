@@ -4,17 +4,17 @@ dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
-get_diffusivity() = 5.0e-2
+diffusivity() = 5.0e-2
 
 equations = LinearScalarAdvectionEquation2D(1.0, 0.0)
-equations_parabolic = LaplaceDiffusion2D(get_diffusivity(), equations)
+equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 # from "Robust DPG methods for transient convection-diffusion."
 # Building bridges: connections and challenges in modern approaches to numerical partial differential equations.
 # Springer, Cham, 2016. 179-203. Ellis, Truman, Jesse Chan, and Leszek Demkowicz."
 function initial_condition_erikkson_johnson(x, t, equations)
   l = 4
-  epsilon = get_diffusivity() # TODO: this requires epsilon < .6 due to the sqrt
+  epsilon = diffusivity() # TODO: this requires epsilon < .6 due to the sqrt
   lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
   lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
   r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)

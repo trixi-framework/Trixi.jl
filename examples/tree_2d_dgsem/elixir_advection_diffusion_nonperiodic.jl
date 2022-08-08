@@ -4,11 +4,11 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
 
-get_diffusivity() = 5.0e-2
+diffusivity() = 5.0e-2
 advection_velocity = (1.0, 0.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # Note: If you change the diffusion parameter here, also change it in the initial condition
-equations_parabolic = LaplaceDiffusion2D(get_diffusivity(), equations)
+equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
@@ -27,7 +27,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # Springer, Cham, 2016. 179-203. Ellis, Truman, Jesse Chan, and Leszek Demkowicz."
 function initial_condition_erikkson_johnson(x, t, equations)
   l = 4
-  epsilon = get_diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+  epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
   lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
   lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
   r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
