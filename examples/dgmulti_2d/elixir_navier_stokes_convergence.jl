@@ -8,8 +8,6 @@ get_Re() = 100
 get_Pr() = 0.72
 
 equations = CompressibleEulerEquations2D(1.4)
-# Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
-# I really do not like this structure but it should work for now
 equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=get_Re(), Prandtl=get_Pr(),
                                                           Mach_freestream=0.5)
 
@@ -25,10 +23,9 @@ mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); periodicity=(true, false), 
 # Define initial condition
 # Note: If you change the parameters here, also change it in the corresponding source terms
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
-
   # Amplitude and shift
-  A    = 0.5
-  c    = 2.0
+  A = 0.5
+  c = 2.0
 
   # convenience values for trig. functions
   pi_x = pi * x[1]
@@ -46,9 +43,9 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
-
   y = x[2]
 
+  # TODO: parabolic
   # we currently need to hardcode these parameters until we fix the "combined equation" issue
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
   kappa = 1
@@ -58,8 +55,8 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 
   # Same settings as in `initial_condition`
   # Amplitude and shift
-  A    = 0.5
-  c    = 2.0
+  A = 0.5
+  c = 2.0
 
   # convenience values for trig. functions
   pi_x = pi * x[1]
