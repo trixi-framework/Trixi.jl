@@ -8,7 +8,7 @@
 # boundary conditions will be applied to both grad(u) and div(u).
 function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions, source_terms,
-                        dg::DG, dg_parabolic, cache, cache_parabolic)
+                        dg::DG, parabolic_scheme, cache, cache_parabolic)
 
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -17,7 +17,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
   @unpack u_transformed, u_grad, flux_viscous = cache_parabolic
   @trixi_timeit timer() "transform variables" transform_variables!(u_transformed, u,
                                                                    mesh, equations_parabolic,
-                                                                   dg, dg_parabolic,
+                                                                   dg, parabolic_scheme,
                                                                    cache, cache_parabolic)
 
   @trixi_timeit timer() "calculate gradient" calc_gradient!(u_grad, u_transformed, t, mesh,
@@ -33,7 +33,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
                                                                 mesh,
                                                                 equations_parabolic,
                                                                 boundary_conditions, dg,
-                                                                dg_parabolic, cache,
+                                                                parabolic_scheme, cache,
                                                                 cache_parabolic)
 
   return nothing
@@ -45,7 +45,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh::TreeMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, dg_parabolic, cache, cache_parabolic)
+                              dg::DG, parabolic_scheme, cache, cache_parabolic)
   @threaded for element in eachelement(dg, cache)
     # Calculate volume terms in one element
     for j in eachnode(dg), i in eachnode(dg)
@@ -56,12 +56,12 @@ function transform_variables!(u_transformed, u, mesh::TreeMesh{2},
   end
 end
 
-# note: the argument dg_parabolic is not a DG type; it contains solver-specific
+# note: the argument parabolic_scheme is not a DG type; it contains solver-specific
 # information such as an LDG penalty parameter.
 function calc_divergence!(du, u, t, flux_viscous,
                           mesh::TreeMesh{2}, equations_parabolic,
                           boundary_conditions_parabolic, dg::DG,
-                          dg_parabolic, # not a `DG` type
+                          parabolic_scheme, # not a `DG` type
                           cache, cache_parabolic)
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" begin
@@ -599,7 +599,7 @@ end
 # the RHS etc.
 function create_cache_parabolic(mesh::TreeMesh{2}, equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
-                                dg::DG, dg_parabolic, RealT, uEltype)
+                                dg::DG, parabolic_scheme, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 

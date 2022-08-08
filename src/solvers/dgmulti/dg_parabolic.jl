@@ -1,7 +1,7 @@
 function create_cache_parabolic(mesh::DGMultiMesh,
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
-                                dg::DGMulti, dg_parabolic, RealT, uEltype)
+                                dg::DGMulti, parabolic_scheme, RealT, uEltype)
   # default to taking derivatives of all hyperbolic terms
   # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
   nvars = nvariables(equations_hyperbolic)
@@ -42,7 +42,7 @@ end
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh, equations_parabolic::AbstractEquationsParabolic,
-                              dg::DGMulti, dg_parabolic, cache, cache_parabolic)
+                              dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
   @threaded for i in eachindex(u)
     u_transformed[i] = gradient_variable_transformation(equations_parabolic)(u[i], equations_parabolic)
   end
@@ -211,13 +211,13 @@ end
 # no penalization for a BR1 parabolic solver
 function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, boundary_conditions,
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
-                               dg_parabolic::ViscousFormulationBassiRebay1, cache, cache_parabolic)
+                               parabolic_scheme::ViscousFormulationBassiRebay1, cache, cache_parabolic)
   return nothing
 end
 
 function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, boundary_conditions,
                                mesh, equations::AbstractEquationsParabolic, dg::DGMulti,
-                               dg_parabolic, cache, cache_parabolic)
+                               parabolic_scheme, cache, cache_parabolic)
   # compute fluxes at interfaces
   @unpack scalar_flux_face_values, inv_h = cache_parabolic
   @unpack mapM, mapP = mesh.md
@@ -225,7 +225,7 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t, bounda
     idM, idP = mapM[face_node_index], mapP[face_node_index]
     uM, uP = u_face_values[idM], u_face_values[idP]
     inv_h_face = inv_h[face_node_index]
-    scalar_flux_face_values[idM] = scalar_flux_face_values[idM] + penalty(uP, uM, inv_h_face, equations, dg_parabolic)
+    scalar_flux_face_values[idM] = scalar_flux_face_values[idM] + penalty(uP, uM, inv_h_face, equations, parabolic_scheme)
   end
   return nothing
 end
@@ -233,7 +233,7 @@ end
 
 function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh,
                           equations::AbstractEquationsParabolic,
-                          boundary_conditions, dg::DGMulti, dg_parabolic, cache, cache_parabolic)
+                          boundary_conditions, dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
 
   @unpack weak_differentiation_matrices = cache_parabolic
 
@@ -276,7 +276,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
                       boundary_conditions, mesh, equations, dg, cache, cache_parabolic)
 
   calc_viscous_penalty!(scalar_flux_face_values, cache_parabolic.u_face_values, t,
-                        boundary_conditions, mesh, equations, dg, dg_parabolic,
+                        boundary_conditions, mesh, equations, dg, parabolic_scheme,
                         cache, cache_parabolic)
 
   # surface contributions
@@ -297,13 +297,13 @@ end
 # boundary conditions will be applied to both grad(u) and div(u).
 function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::AbstractEquationsParabolic,
                         initial_condition, boundary_conditions, source_terms,
-                        dg::DGMulti, dg_parabolic, cache, cache_parabolic)
+                        dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
 
   reset_du!(du, dg)
 
   @unpack u_transformed, u_grad, flux_viscous = cache_parabolic
   transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                       dg, dg_parabolic, cache, cache_parabolic)
+                       dg, parabolic_scheme, cache, cache_parabolic)
 
   calc_gradient!(u_grad, u_transformed, t, mesh, equations_parabolic,
                  boundary_conditions, dg, cache, cache_parabolic)
@@ -312,7 +312,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
                        mesh, equations_parabolic, dg, cache, cache_parabolic)
 
   calc_divergence!(du, u_transformed, t, flux_viscous, mesh, equations_parabolic,
-                   boundary_conditions, dg, dg_parabolic, cache, cache_parabolic)
+                   boundary_conditions, dg, parabolic_scheme, cache, cache_parabolic)
 
   return nothing
 
