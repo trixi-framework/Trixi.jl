@@ -144,7 +144,7 @@ gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2p
 #
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
-function flux(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+function flux(u, gradients, orientation::Int, equations::CompressibleNavierStokesDiffusion2D)
   # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
@@ -173,20 +173,24 @@ function flux(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
   # kinematic viscosity is simply 1/Re for this nondimensionalization
   mu = 1.0 / equations.Re
 
-  # viscous flux components in the x-direction
-  f1 = zero(rho)
-  f2 = tau_11 * mu
-  f3 = tau_12 * mu
-  f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * mu
+  if orientation == 1
+    # viscous flux components in the x-direction
+    f1 = zero(rho)
+    f2 = tau_11 * mu
+    f3 = tau_12 * mu
+    f4 = ( v1 * tau_11 + v2 * tau_12 + q1 ) * mu
 
-  # viscous flux components in the y-direction
-  # Note, symmetry is exploited for tau_12 = tau_21
-  g1 = zero(rho)
-  g2 = f3 # tau_21 * mu
-  g3 = tau_22 * mu
-  g4 = ( v1 * tau_12 + v2 * tau_22 + q2 ) * mu
+    return SVector(f1, f2, f3, f4)
+  else # if orientation == 2
+    # viscous flux components in the y-direction
+    # Note, symmetry is exploited for tau_12 = tau_21
+    g1 = zero(rho)
+    g2 = tau_12 * mu # tau_21 * mu
+    g3 = tau_22 * mu
+    g4 = ( v1 * tau_12 + v2 * tau_22 + q2 ) * mu
 
-  return (SVector(f1, f2, f3, f4) , SVector(g1, g2, g3, g4))
+    return SVector(g1, g2, g3, g4)
+  end
 end
 
 

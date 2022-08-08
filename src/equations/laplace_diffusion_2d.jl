@@ -16,9 +16,13 @@ varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D) =
   varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
 # no orientation specified since the flux is vector-valued
-function flux(u, grad_u, equations_parabolic::LaplaceDiffusion2D)
+function flux(u, grad_u, orientation::Int, equations_parabolic::LaplaceDiffusion2D)
   dudx, dudy = grad_u
-  return SVector(equations_parabolic.diffusivity * dudx, equations_parabolic.diffusivity * dudy)
+  if orientation == 1
+    return SVector(equations_parabolic.diffusivity * dudx)
+  else # if orientation == 2
+    return SVector(equations_parabolic.diffusivity * dudy)
+  end
 end
 
 # TODO: parabolic; should this remain in the equations file, be moved to solvers, or live in the elixir?

@@ -197,8 +197,10 @@ function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
     for i in eachindex(local_u_values)
       u_i = local_u_values[i]
       gradients_i = getindex.(local_flux_viscous, i)
-      flux_viscous_i = flux(u_i, gradients_i, equations)
-      setindex!.(local_flux_viscous, flux_viscous_i, i)
+      for dim in eachdim(mesh)
+        flux_viscous_i = flux(u_i, gradients_i, dim, equations)
+        setindex!(local_flux_viscous[dim], flux_viscous_i, i)
+      end
     end
 
     # project back to the DG approximation space
