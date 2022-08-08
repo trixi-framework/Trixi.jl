@@ -4,11 +4,15 @@ using Trixi
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
+# TODO: parabolic; unify names of these accessor functions
+reynolds_number() = 1000.0
+prandtl_number() = 0.72
+mach_number() = 0.1
+
 equations = CompressibleEulerEquations2D(1.4)
-# Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
-# I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=1000, Prandtl=0.72,
-                                                          Mach_freestream=0.1)
+equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=reynolds_number(),
+                                                          Prandtl=prandtl_number(),
+                                                          Mach_freestream=mach_number())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
@@ -24,7 +28,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 function initial_condition_cavity(x, t, equations::CompressibleEulerEquations2D)
-  Ma = 0.1
+  Ma = mach_number()
   rho = 1.0
   u, v = 0, 0
   p = 1.0 / (Ma^2 * equations.gamma)
