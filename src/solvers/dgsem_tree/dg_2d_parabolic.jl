@@ -73,10 +73,12 @@ function calc_divergence!(du, u, t, flux_viscous,
     @unpack derivative_dhat = dg.basis
     @threaded for element in eachelement(dg, cache)
 
+      flux_viscous_x, flux_viscous_y = flux_viscous
+
       # Calculate volume terms in one element
       for j in eachnode(dg), i in eachnode(dg)
-        flux_1_node = get_node_vars(flux_viscous[1], equations_parabolic, dg, i, j, element)
-        flux_2_node = get_node_vars(flux_viscous[2], equations_parabolic, dg, i, j, element)
+        flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j, element)
+        flux_2_node = get_node_vars(flux_viscous_y, equations_parabolic, dg, i, j, element)
 
         for ii in eachnode(dg)
           multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node, equations_parabolic, dg, ii, j, element)
@@ -94,6 +96,8 @@ function calc_divergence!(du, u, t, flux_viscous,
     @unpack interfaces = cache_parabolic
     @unpack orientations = interfaces
 
+    flux_viscous_x, flux_viscous_y = flux_viscous
+
     @threaded for interface in eachinterface(dg, cache)
       left_element  = interfaces.neighbor_ids[1, interface]
       right_element = interfaces.neighbor_ids[2, interface]
@@ -101,14 +105,14 @@ function calc_divergence!(du, u, t, flux_viscous,
       if orientations[interface] == 1
         # interface in x-direction
         for j in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, j, interface] = flux_viscous[1][v, nnodes(dg), j, left_element]
-          interfaces.u[2, v, j, interface] = flux_viscous[1][v,          1, j, right_element]
+          interfaces.u[1, v, j, interface] = flux_viscous_x[v, nnodes(dg), j, left_element]
+          interfaces.u[2, v, j, interface] = flux_viscous_x[v,          1, j, right_element]
         end
       else # if orientations[interface] == 2
         # interface in y-direction
         for i in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, i, interface] = flux_viscous[2][v, i, nnodes(dg), left_element]
-          interfaces.u[2, v, i, interface] = flux_viscous[2][v, i,          1, right_element]
+          interfaces.u[1, v, i, interface] = flux_viscous_y[v, i, nnodes(dg), left_element]
+          interfaces.u[2, v, i, interface] = flux_viscous_y[v, i,          1, right_element]
         end
       end
     end
@@ -157,11 +161,11 @@ function calc_divergence!(du, u, t, flux_viscous,
         if neighbor_sides[boundary] == 1
           # element in -x direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = flux_viscous[1][v, nnodes(dg), l, element]
+            boundaries.u[1, v, l, boundary] = flux_viscous_x[v, nnodes(dg), l, element]
           end
         else # Element in +x direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = flux_viscous[1][v, 1,          l, element]
+            boundaries.u[2, v, l, boundary] = flux_viscous_x[v, 1,          l, element]
           end
         end
       else # if orientations[boundary] == 2
@@ -169,12 +173,12 @@ function calc_divergence!(du, u, t, flux_viscous,
         if neighbor_sides[boundary] == 1
           # element in -y direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = flux_viscous[2][v, l, nnodes(dg), element]
+            boundaries.u[1, v, l, boundary] = flux_viscous_y[v, l, nnodes(dg), element]
           end
         else
           # element in +y direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = flux_viscous[2][v, l, 1,          element]
+            boundaries.u[2, v, l, boundary] = flux_viscous_y[v, l, 1,          element]
           end
         end
       end
@@ -245,18 +249,21 @@ end
 function calc_viscous_fluxes!(flux_viscous, gradients, u, mesh::TreeMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
+
+  gradients_x, gradients_y = gradients
+  flux_viscous_x, flux_viscous_y = flux_viscous # output arrays
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       # Get solution and gradients
       u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
-      gradients_1_node = get_node_vars(gradients[1], equations_parabolic, dg, i, j, element)
-      gradients_2_node = get_node_vars(gradients[2], equations_parabolic, dg, i, j, element)
+      gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg, i, j, element)
+      gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j, element)
 
       # Calculate viscous flux and store each component for later use
       flux_viscous_node_x = flux(u_node, (gradients_1_node, gradients_2_node), 1, equations_parabolic)
       flux_viscous_node_y = flux(u_node, (gradients_1_node, gradients_2_node), 2, equations_parabolic)
-      set_node_vars!(flux_viscous[1], flux_viscous_node_x, equations_parabolic, dg, i, j, element)
-      set_node_vars!(flux_viscous[2], flux_viscous_node_y, equations_parabolic, dg, i, j, element)
+      set_node_vars!(flux_viscous_x, flux_viscous_node_x, equations_parabolic, dg, i, j, element)
+      set_node_vars!(flux_viscous_y, flux_viscous_node_y, equations_parabolic, dg, i, j, element)
     end
   end
 end
@@ -420,10 +427,13 @@ end
 function calc_gradient!(gradients, u, t,
                         mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG, cache, cache_parabolic)
+
+  gradients_x, gradients_y = gradients
+
   # Reset du
   @trixi_timeit timer() "reset ∂u/∂t" begin
-    reset_du!(gradients[1], dg, cache)
-    reset_du!(gradients[2], dg, cache)
+    reset_du!(gradients_x, dg, cache)
+    reset_du!(gradients_y, dg, cache)
   end
 
   # Calculate volume integral
@@ -436,11 +446,11 @@ function calc_gradient!(gradients, u, t,
         u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
 
         for ii in eachnode(dg)
-          multiply_add_to_node_vars!(gradients[1], derivative_dhat[ii, i], u_node, equations_parabolic, dg, ii, j, element)
+          multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i], u_node, equations_parabolic, dg, ii, j, element)
         end
 
         for jj in eachnode(dg)
-          multiply_add_to_node_vars!(gradients[2], derivative_dhat[jj, j], u_node, equations_parabolic, dg, i, jj, element)
+          multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j], u_node, equations_parabolic, dg, i, jj, element)
         end
       end
     end
@@ -511,25 +521,21 @@ function calc_gradient!(gradients, u, t,
     @threaded for element in eachelement(dg, cache)
       for l in eachnode(dg)
         for v in eachvariable(equations_parabolic)
-          let du = gradients[1]
-            # surface at -x
-            du[v, 1,          l, element] = (
-              du[v, 1,          l, element] - surface_flux_values[v, l, 1, element] * factor_1)
+          # surface at -x
+          gradients_x[v, 1,          l, element] = (
+            gradients_x[v, 1,          l, element] - surface_flux_values[v, l, 1, element] * factor_1)
 
-            # surface at +x
-            du[v, nnodes(dg), l, element] = (
-              du[v, nnodes(dg), l, element] + surface_flux_values[v, l, 2, element] * factor_2)
-          end
+          # surface at +x
+          gradients_x[v, nnodes(dg), l, element] = (
+            gradients_x[v, nnodes(dg), l, element] + surface_flux_values[v, l, 2, element] * factor_2)
 
-          let du = gradients[2]
-            # surface at -y
-            du[v, l, 1,          element] = (
-              du[v, l, 1,          element] - surface_flux_values[v, l, 3, element] * factor_1)
+          # surface at -y
+          gradients_y[v, l, 1,          element] = (
+            gradients_y[v, l, 1,          element] - surface_flux_values[v, l, 3, element] * factor_1)
 
-            # surface at +y
-            du[v, l, nnodes(dg), element] = (
-              du[v, l, nnodes(dg), element] + surface_flux_values[v, l, 4, element] * factor_2)
-          end
+          # surface at +y
+          gradients_y[v, l, nnodes(dg), element] = (
+            gradients_y[v, l, nnodes(dg), element] + surface_flux_values[v, l, 4, element] * factor_2)
         end
       end
     end
@@ -537,8 +543,8 @@ function calc_gradient!(gradients, u, t,
 
   # Apply Jacobian from mapping to reference element
   @trixi_timeit timer() "Jacobian" begin
-    apply_jacobian!(gradients[1], mesh, equations_parabolic, dg, cache_parabolic)
-    apply_jacobian!(gradients[2], mesh, equations_parabolic, dg, cache_parabolic)
+    apply_jacobian!(gradients_x, mesh, equations_parabolic, dg, cache_parabolic)
+    apply_jacobian!(gradients_y, mesh, equations_parabolic, dg, cache_parabolic)
   end
 
   return nothing
