@@ -45,7 +45,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test boundary_condition_do_nothing(u0, nothing) == u0
 
     @unpack cache, cache_parabolic, equations_parabolic = semi
-    @unpack u_grad = cache_parabolic
+    u_grad = cache_parabolic.gradients
     for dim in eachindex(u_grad)
       fill!(u_grad[dim], zero(eltype(u_grad[dim])))
     end
