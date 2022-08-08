@@ -187,6 +187,8 @@ function calc_divergence!(du, u, t, viscous_flux,
                                    mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
+  # TODO: parabolic; extend to mortars
+  @assert nmortars(dg, cache) == 0
   # Prolong solution to mortars
   # @trixi_timeit timer() "prolong2mortars" prolong2mortars!(
   #   cache, u, mesh, equations_parabolic, dg.mortar, dg.surface_integral, dg)
