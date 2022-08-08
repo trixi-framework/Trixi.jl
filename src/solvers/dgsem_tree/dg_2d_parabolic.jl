@@ -260,7 +260,7 @@ function calc_viscous_fluxes!(viscous_flux, u_grad, u, mesh::TreeMesh{2},
   end
 end
 
-# TODO: decide if we should keep this, and if so, extend to 3D.
+# TODO: parabolic; decide if we should keep this, and if so, extend to 3D.
 function get_unsigned_normal_vector_2d(direction)
   if direction > 4 || direction < 1
     @warn "Direction = $direction; in 2D, direction should be 1, 2, 3, or 4."
@@ -544,15 +544,7 @@ function calc_gradient!(u_grad, u, t,
                                  mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
-  # Prolong solution to mortars
-  # @trixi_timeit timer() "prolong2mortars" prolong2mortars!(
-  #   cache, u, mesh, equations_parabolic, dg.mortar, dg.surface_integral, dg)
-
-  # Calculate mortar fluxes
-  # @trixi_timeit timer() "mortar flux" calc_mortar_flux!(
-  #   cache.elements.surface_flux_values, mesh,
-  #   have_nonconservative_terms(equations_parabolic), equations_parabolic,
-  #   dg.mortar, dg.surface_integral, dg, cache)
+# TODO: parabolic; mortars
 
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" begin
