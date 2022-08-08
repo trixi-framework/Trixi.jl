@@ -144,25 +144,25 @@ gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2p
 #
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
-function flux(u, grad_u, equations::CompressibleNavierStokesDiffusion2D)
-  # Here grad_u is assumed to contain the gradients of the primitive variables (v1, v2, T)
+function flux(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+  # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
   rho, v1, v2, _ = u
 
-  # grad_u contains derivatives of each hyperbolic variable
-  _, dv1dx, dv2dx, dTdx = grad_u[1]
-  _, dv1dy, dv2dy, dTdy = grad_u[2]
+  # gradients contains derivatives of each hyperbolic variable
+  _, dv1dx, dv2dx, dTdx = gradients[1]
+  _, dv1dy, dv2dy, dTdy = gradients[2]
 
   # Components of viscous stress tensor
 
   # (4/3 * (v1)_x - 2/3 * (v2)_y)
-  tau_11 = ( 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy )
+  tau_11 = 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy
   # ((v1)_y + (v2)_x)
   # stress tensor is symmetric
-  tau_12 = ( dv1dy + dv2dx ) # = tau_21
+  tau_12 = dv1dy + dv2dx # = tau_21
   # (4/3 * (v2)_y - 2/3 * (v1)_x)
-  tau_22 = ( 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx )
+  tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
 
   # Fick's law q = -kappa * grad(T); constant is kappa = gamma μ R / ((gamma-1) Pr)
   # Important note! Due to nondimensional scaling R = 1 / gamma, so the
