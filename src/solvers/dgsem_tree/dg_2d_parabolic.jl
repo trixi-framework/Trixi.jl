@@ -265,7 +265,7 @@ function get_unsigned_normal_vector_2d(direction)
   if direction > 4 || direction < 1
     @warn "Direction = $direction; in 2D, direction should be 1, 2, 3, or 4."
   end
-  if direction==1 || direction==2
+  if direction == 1 || direction == 2
     return SVector(1.0, 0.0)
   else
     return SVector(0.0, 1.0)
