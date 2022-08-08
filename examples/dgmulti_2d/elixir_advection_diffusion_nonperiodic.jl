@@ -42,7 +42,7 @@ mesh = DGMultiMesh(dg; coordinates_min=(-1.0, -0.5), coordinates_max=(0.0, 0.5),
 # BC types
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-# define inviscid boundary conditions
+# define inviscid boundary conditions, enforce "do nothing" boundary condition at the outflow
 boundary_conditions = (; :left   => boundary_condition,
                          :top    => boundary_condition,
                          :bottom => boundary_condition,
