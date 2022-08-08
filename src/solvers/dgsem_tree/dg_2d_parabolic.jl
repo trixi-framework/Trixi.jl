@@ -183,7 +183,7 @@ function calc_divergence!(du, u, t, flux_viscous,
 
   # Calculate boundary fluxes
   @trixi_timeit timer() "boundary flux" begin
-    calc_divergence_boundary_flux!(cache_parabolic, t, boundary_conditions_parabolic,
+    calc_boundary_flux_divergence!(cache_parabolic, t, boundary_conditions_parabolic,
                                    mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
@@ -272,19 +272,19 @@ function get_unsigned_normal_vector_2d(direction)
   end
 end
 
-function calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
+function calc_boundary_flux_gradients!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                       mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
   return nothing
 end
 
-function calc_divergence_boundary_flux!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
+function calc_boundary_flux_divergence!(cache, t, boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                         mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
   return nothing
 end
 
-function calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic::NamedTuple,
+function calc_boundary_flux_gradients!(cache, t, boundary_conditions_parabolic::NamedTuple,
                                       mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
@@ -348,7 +348,7 @@ function calc_gradient_boundary_flux_by_direction!(surface_flux_values::Abstract
   return nothing
 end
 
-function calc_divergence_boundary_flux!(cache, t, boundary_conditions_parabolic::NamedTuple,
+function calc_boundary_flux_divergence!(cache, t, boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
   @unpack surface_flux_values = cache.elements
@@ -540,7 +540,7 @@ function calc_gradient!(gradients, u, t,
 
   # Calculate boundary fluxes
   @trixi_timeit timer() "boundary flux" begin
-    calc_gradient_boundary_flux!(cache_parabolic, t, boundary_conditions_parabolic,
+    calc_boundary_flux_gradients!(cache_parabolic, t, boundary_conditions_parabolic,
                                  mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
