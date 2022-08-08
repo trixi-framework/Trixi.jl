@@ -37,8 +37,8 @@ initial_condition = initial_condition_cavity
 velocity_bc_lid = NoSlip((x, t, equations) -> SVector(1.0, 0.0))
 velocity_bc_cavity = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
-boundary_condition_lid = BoundaryConditionViscousWall(velocity_bc_lid, heat_bc)
-boundary_condition_cavity = BoundaryConditionViscousWall(velocity_bc_cavity, heat_bc)
+boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
+boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
 # define inviscid boundary conditions
 boundary_conditions = (; :top => boundary_condition_slip_wall,

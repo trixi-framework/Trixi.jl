@@ -171,7 +171,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 # BC types
 velocity_bc_top_bottom = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x, t, equations)[2:3])
 heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
-boundary_condition_top_bottom = BoundaryConditionViscousWall(velocity_bc_top_bottom, heat_bc_top_bottom)
+boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom, heat_bc_top_bottom)
 
 # define inviscid boundary conditions
 boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)

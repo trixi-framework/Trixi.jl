@@ -220,14 +220,14 @@ end
 # TODO: can we generalize this to MHD?
 # !!! warning "Experimental feature"
 """
-    struct BoundaryConditionViscousWall
+    struct BoundaryConditionNavierStokesWall
 
 Creates a wall-type boundary conditions for the compressible Navier-Stokes equations.
 The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
 to be boundary condition types such as the `NoSlip` velocity boundary condition and the
 `Adiabatic` or `Isothermal` heat boundary condition.
 """
-struct BoundaryConditionViscousWall{V, H}
+struct BoundaryConditionNavierStokesWall{V, H}
   boundary_condition_velocity::V
   boundary_condition_heat_flux::H
 end
@@ -235,7 +235,7 @@ end
 """
     struct NoSlip
 
-Use to create a no-slip boundary condition with `BoundaryConditionViscousWall`. The field `boundary_value_function`
+Use to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`. The field `boundary_value_function`
 should be a function with signature `boundary_value_function(x, t, equations)`
 and should return a `SVector{NDIMS}` whose entries are the velocity vector at a
 point `x` and time `t`.
@@ -247,7 +247,7 @@ end
 """
     struct Isothermal
 
-Used to create a no-slip boundary condition with `BoundaryConditionViscousWall`.
+Used to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`.
 The field `boundary_value_function` should be a function with signature
 `boundary_value_function(x, t, equations)` and return a scalar value for the
 temperature at point `x` and time `t`.
@@ -259,7 +259,7 @@ end
 """
     struct Adiabatic
 
-Used to create a no-slip boundary condition with `BoundaryConditionViscousWall`.
+Used to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`.
 The field `boundary_value_normal_flux_function` should be a function with signature
 `boundary_value_normal_flux_function(x, t, equations)` and return a scalar value for the
 normal heat flux at point `x` and time `t`.
@@ -268,14 +268,14 @@ struct Adiabatic{F}
   boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
 end
 
-@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Gradient,
                                                                                            equations::CompressibleNavierStokesDiffusion2D)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   return SVector(u_inner[1], v1, v2, u_inner[4])
 end
 
-@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Divergence,
                                                                                            equations::CompressibleNavierStokesDiffusion2D)
   # rho, v1, v2, _ = u_inner
@@ -287,7 +287,7 @@ end
 end
 
 
-@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
                                                                                             x, t, operator_type::Gradient,
                                                                                             equations::CompressibleNavierStokesDiffusion2D)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
@@ -295,7 +295,7 @@ end
   return SVector(u_inner[1], v1, v2, T)
 end
 
-@inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
                                                                                             x, t, operator_type::Divergence,
                                                                                             equations::CompressibleNavierStokesDiffusion2D)
   return flux_inner

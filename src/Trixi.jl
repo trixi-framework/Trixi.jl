@@ -164,7 +164,7 @@ export boundary_condition_do_nothing,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
        boundary_condition_wall,
-       BoundaryConditionViscousWall, NoSlip, Adiabatic, Isothermal
+       BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal
 
 export initial_condition_convergence_test, source_terms_convergence_test
 export source_terms_harmonic
