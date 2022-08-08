@@ -8,7 +8,7 @@ reynolds_number() = 100
 prandtl_number() = 0.72
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=reynolds_number(), Prandtl=prandtl_number(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, Reynolds=reynolds_number(), Prandtl=prandtl_number(),
                                                           Mach_freestream=0.5)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -23,8 +23,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=(true, false),
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
-# Note: the initial condition cannot be specialized to `CompressibleNavierStokesEquations2D`
-#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesEquations2D`)
+# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
+#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
 #       and by the initial condition (which passes in `CompressibleEulerEquations2D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)

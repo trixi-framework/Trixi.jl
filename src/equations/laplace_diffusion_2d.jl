@@ -4,7 +4,7 @@
 `LaplaceDiffusion2D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
 """
-struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusionEquations{2, N}
+struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusion{2, N}
   diffusivity::T
   equations_hyperbolic::E
 end

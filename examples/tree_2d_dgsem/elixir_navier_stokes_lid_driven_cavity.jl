@@ -10,7 +10,7 @@ prandtl_number() = 0.72
 mach_number() = 0.1
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=reynolds_number(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, Reynolds=reynolds_number(),
                                                           Prandtl=prandtl_number(),
                                                           Mach_freestream=mach_number())
 

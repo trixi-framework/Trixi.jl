@@ -10,7 +10,7 @@ prandtl_number() = 0.72
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesEquations2D(equations, Reynolds=reynolds_number(), Prandtl=prandtl_number(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, Reynolds=reynolds_number(), Prandtl=prandtl_number(),
                                                           Mach_freestream=0.5)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -22,8 +22,8 @@ top_bottom(x, tol=50*eps()) = abs(abs(x[2]) - 1) < tol
 is_on_boundary = Dict(:top_bottom => top_bottom)
 mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); periodicity=(true, false), is_on_boundary)
 
-# Note: the initial condition cannot be specialized to `CompressibleNavierStokesEquations2D`
-#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesEquations2D`)
+# Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
+#       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
 #       and by the initial condition (which passes in `CompressibleEulerEquations2D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)

@@ -1,5 +1,5 @@
 @doc raw"""
-    CompressibleNavierStokesEquations2D(gamma, Re, Pr, Ma_inf, equations)
+    CompressibleNavierStokesDiffusion2D(gamma, Re, Pr, Ma_inf, equations)
 
 These equations contain the diffusion (i.e. parabolic) terms applied
 to mass, momenta, and total energy together with the advective terms from
@@ -81,7 +81,7 @@ Other normalization strategies exist, see the reference below for details.
   [CERFACS Technical report](https://www.cerfacs.fr/~montagna/TR-CFD-13-77.pdf)
 The scaling used herein is Section 4.5 of the reference.
 """
-struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesEquations{2, 4}
+struct CompressibleNavierStokesDiffusion2D{RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesDiffusion{2, 4}
   # TODO: parabolic
   # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
   # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
@@ -99,7 +99,7 @@ struct CompressibleNavierStokesEquations2D{RealT <: Real, E <: AbstractCompressi
   equations_hyperbolic::E    # CompressibleEulerEquations2D
 end
 
-function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquations2D; Reynolds, Prandtl, Mach_freestream)
+function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D; Reynolds, Prandtl, Mach_freestream)
   gamma = equations.gamma
   inv_gamma_minus_one = equations.inv_gamma_minus_one
   Re, Pr, Ma = promote(Reynolds, Prandtl, Mach_freestream)
@@ -115,7 +115,7 @@ function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquatio
   p_inf = 1 / gamma
   u_inf = Mach_freestream
   R     = 1 / gamma
-  CompressibleNavierStokesEquations2D{typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
+  CompressibleNavierStokesDiffusion2D{typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
                                                                         Re, Pr, Ma, kappa,
                                                                         p_inf, u_inf, R,
                                                                         equations)
@@ -124,15 +124,15 @@ end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesEquations2D) = ("v1", "v2", "T")
-# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesEquations2D) = ("w2", "w3", "w4")
+# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion2D) = ("v1", "v2", "T")
+# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion2D) = ("w2", "w3", "w4")
 
-varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesEquations2D) =
+varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusion2D) =
   varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
-gradient_variable_transformation(::CompressibleNavierStokesEquations2D, dg_parabolic) = cons2prim
+gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D, dg_parabolic) = cons2prim
 
 # no orientation specified since the flux is vector-valued
 # Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
@@ -144,7 +144,7 @@ gradient_variable_transformation(::CompressibleNavierStokesEquations2D, dg_parab
 #
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
-function flux(u, grad_u, equations::CompressibleNavierStokesEquations2D)
+function flux(u, grad_u, equations::CompressibleNavierStokesDiffusion2D)
   # Here grad_u is assumed to contain the gradients of the primitive variables (v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
@@ -191,7 +191,7 @@ end
 
 
 # Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleNavierStokesEquations2D)
+@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion2D)
   rho, rho_v1, rho_v2, _ = u
 
   v1 = rho_v1 / rho
@@ -203,13 +203,13 @@ end
 
 # This routine is required because `prim2cons` is called in `initial_condition`, which
 # is called with `equations::CompressibleEulerEquations2D`. This means it is inconsistent
-# with `cons2prim(..., ::CompressibleNavierStokesEquations2D)` as defined above.
+# with `cons2prim(..., ::CompressibleNavierStokesDiffusion2D)` as defined above.
 # TODO: parabolic. Is there a way to clean this up?
-@inline prim2cons(u, equations::CompressibleNavierStokesEquations2D) =
+@inline prim2cons(u, equations::CompressibleNavierStokesDiffusion2D) =
     prim2cons(u, equations.equations_hyperbolic)
 
 
-@inline function temperature(u, equations::CompressibleNavierStokesEquations2D)
+@inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
   rho, rho_v1, rho_v2, rho_e = u
 
   p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
@@ -217,6 +217,8 @@ end
   return T
 end
 
+# TODO: can we generalize this to MHD?
+# !!! warning "Experimental feature"
 """
     struct BoundaryConditionViscousWall
 
@@ -268,14 +270,14 @@ end
 
 @inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Gradient,
-                                                                                           equations::CompressibleNavierStokesEquations2D)
+                                                                                           equations::CompressibleNavierStokesDiffusion2D)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   return SVector(u_inner[1], v1, v2, u_inner[4])
 end
 
 @inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Divergence,
-                                                                                           equations::CompressibleNavierStokesEquations2D)
+                                                                                           equations::CompressibleNavierStokesDiffusion2D)
   # rho, v1, v2, _ = u_inner
   normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x, t, equations)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
@@ -287,7 +289,7 @@ end
 
 @inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
                                                                                             x, t, operator_type::Gradient,
-                                                                                            equations::CompressibleNavierStokesEquations2D)
+                                                                                            equations::CompressibleNavierStokesDiffusion2D)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t, equations)
   return SVector(u_inner[1], v1, v2, T)
@@ -295,7 +297,7 @@ end
 
 @inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
                                                                                             x, t, operator_type::Divergence,
-                                                                                            equations::CompressibleNavierStokesEquations2D)
+                                                                                            equations::CompressibleNavierStokesDiffusion2D)
   return flux_inner
 end
 
