@@ -112,13 +112,13 @@ function CompressibleNavierStokesEquations2D(equations::CompressibleEulerEquatio
 
   # From the nondimensionalization discussed above set the remaining free-stream
   # quantities
-  p_inf = 1 / γ
+  p_inf = 1 / gamma
   u_inf = Mach_freestream
-  R     = 1 / γ
-  CompressibleNavierStokesEquations2D{typeof(γ),typeof(equations)}(γ, inv_gamma_minus_one,
-                                                                   Re, Pr, Ma, κ,
-                                                                   p_inf, u_inf, R,
-                                                                   equations)
+  R     = 1 / gamma
+  CompressibleNavierStokesEquations2D{typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
+                                                                        Re, Pr, Ma, kappa,
+                                                                        p_inf, u_inf, R,
+                                                                        equations)
 end
 
 
