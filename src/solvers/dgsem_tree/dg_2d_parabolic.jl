@@ -263,7 +263,7 @@ end
 # TODO: parabolic; decide if we should keep this, and if so, extend to 3D.
 function get_unsigned_normal_vector_2d(direction)
   if direction > 4 || direction < 1
-    @warn "Direction = $direction; in 2D, direction should be 1, 2, 3, or 4."
+    error("Direction = $direction; in 2D, direction should be 1, 2, 3, or 4.")
   end
   if direction == 1 || direction == 2
     return SVector(1.0, 0.0)
