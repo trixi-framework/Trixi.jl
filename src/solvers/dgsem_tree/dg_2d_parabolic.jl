@@ -544,15 +544,7 @@ function calc_gradient!(u_grad, u, t,
                                  mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
-  # Prolong solution to mortars
-  # @trixi_timeit timer() "prolong2mortars" prolong2mortars!(
-  #   cache, u, mesh, equations_parabolic, dg.mortar, dg.surface_integral, dg)
-
-  # Calculate mortar fluxes
-  # @trixi_timeit timer() "mortar flux" calc_mortar_flux!(
-  #   cache.elements.surface_flux_values, mesh,
-  #   have_nonconservative_terms(equations_parabolic), equations_parabolic,
-  #   dg.mortar, dg.surface_integral, dg, cache)
+# TODO: parabolic; mortars
 
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" begin
