@@ -310,10 +310,11 @@ end
   # rho, v1, v2, _ = u_inner
   normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x, t, equations)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
-  tau_1n, tau_2n = flux_inner[2:3] # extract fluxes for 2nd and 3rd equations
+  _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
   normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
-  return SVector(flux_inner[1:3]..., normal_energy_flux)
+  return SVector(flux_inner[1], flux_inner[2], flux_inner[3], normal_energy_flux)
 end
+
 
 @inline function (boundary_condition::BoundaryConditionViscousWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
                                                                                             x, t, operator_type::Gradient,
