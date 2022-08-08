@@ -14,7 +14,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
 
-  @unpack u_transformed, u_grad, viscous_flux = cache_parabolic
+  @unpack u_transformed, u_grad, flux_viscous = cache_parabolic
   @trixi_timeit timer() "transform variables" transform_variables!(u_transformed, u,
                                                                    mesh, equations_parabolic,
                                                                    dg, dg_parabolic,
@@ -25,11 +25,11 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
                                                             boundary_conditions, dg,
                                                             cache, cache_parabolic)
 
-  @trixi_timeit timer() "calculate viscous fluxes" calc_viscous_fluxes!(viscous_flux, u_grad, u_transformed,
+  @trixi_timeit timer() "calculate viscous fluxes" calc_flux_viscouses!(flux_viscous, u_grad, u_transformed,
                                                                         mesh, equations_parabolic,
                                                                         dg, cache, cache_parabolic)
 
-  @trixi_timeit timer() "calculate divergence" calc_divergence!(du, u_transformed, t, viscous_flux,
+  @trixi_timeit timer() "calculate divergence" calc_divergence!(du, u_transformed, t, flux_viscous,
                                                                 mesh,
                                                                 equations_parabolic,
                                                                 boundary_conditions, dg,
@@ -58,7 +58,7 @@ end
 
 # note: the argument dg_parabolic is not a DG type; it contains solver-specific
 # information such as an LDG penalty parameter.
-function calc_divergence!(du, u, t, viscous_flux,
+function calc_divergence!(du, u, t, flux_viscous,
                           mesh::TreeMesh{2}, equations_parabolic,
                           boundary_conditions_parabolic, dg::DG,
                           dg_parabolic, # not a `DG` type
@@ -75,8 +75,8 @@ function calc_divergence!(du, u, t, viscous_flux,
 
       # Calculate volume terms in one element
       for j in eachnode(dg), i in eachnode(dg)
-        flux_1_node = get_node_vars(viscous_flux[1], equations_parabolic, dg, i, j, element)
-        flux_2_node = get_node_vars(viscous_flux[2], equations_parabolic, dg, i, j, element)
+        flux_1_node = get_node_vars(flux_viscous[1], equations_parabolic, dg, i, j, element)
+        flux_2_node = get_node_vars(flux_viscous[2], equations_parabolic, dg, i, j, element)
 
         for ii in eachnode(dg)
           multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node, equations_parabolic, dg, ii, j, element)
@@ -101,14 +101,14 @@ function calc_divergence!(du, u, t, viscous_flux,
       if orientations[interface] == 1
         # interface in x-direction
         for j in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, j, interface] = viscous_flux[1][v, nnodes(dg), j, left_element]
-          interfaces.u[2, v, j, interface] = viscous_flux[1][v,          1, j, right_element]
+          interfaces.u[1, v, j, interface] = flux_viscous[1][v, nnodes(dg), j, left_element]
+          interfaces.u[2, v, j, interface] = flux_viscous[1][v,          1, j, right_element]
         end
       else # if orientations[interface] == 2
         # interface in y-direction
         for i in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, i, interface] = viscous_flux[2][v, i, nnodes(dg), left_element]
-          interfaces.u[2, v, i, interface] = viscous_flux[2][v, i,          1, right_element]
+          interfaces.u[1, v, i, interface] = flux_viscous[2][v, i, nnodes(dg), left_element]
+          interfaces.u[2, v, i, interface] = flux_viscous[2][v, i,          1, right_element]
         end
       end
     end
@@ -157,11 +157,11 @@ function calc_divergence!(du, u, t, viscous_flux,
         if neighbor_sides[boundary] == 1
           # element in -x direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = viscous_flux[1][v, nnodes(dg), l, element]
+            boundaries.u[1, v, l, boundary] = flux_viscous[1][v, nnodes(dg), l, element]
           end
         else # Element in +x direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = viscous_flux[1][v, 1,          l, element]
+            boundaries.u[2, v, l, boundary] = flux_viscous[1][v, 1,          l, element]
           end
         end
       else # if orientations[boundary] == 2
@@ -169,12 +169,12 @@ function calc_divergence!(du, u, t, viscous_flux,
         if neighbor_sides[boundary] == 1
           # element in -y direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = viscous_flux[2][v, l, nnodes(dg), element]
+            boundaries.u[1, v, l, boundary] = flux_viscous[2][v, l, nnodes(dg), element]
           end
         else
           # element in +y direction of boundary
           for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = viscous_flux[2][v, l, 1,          element]
+            boundaries.u[2, v, l, boundary] = flux_viscous[2][v, l, 1,          element]
           end
         end
       end
@@ -242,7 +242,7 @@ function calc_divergence!(du, u, t, viscous_flux,
 end
 
 
-function calc_viscous_fluxes!(viscous_flux, u_grad, u, mesh::TreeMesh{2},
+function calc_flux_viscouses!(flux_viscous, u_grad, u, mesh::TreeMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
   @threaded for element in eachelement(dg, cache)
@@ -253,9 +253,9 @@ function calc_viscous_fluxes!(viscous_flux, u_grad, u, mesh::TreeMesh{2},
       u_grad_2_node = get_node_vars(u_grad[2], equations_parabolic, dg, i, j, element)
 
       # Calculate viscous flux and store each component for later use
-      viscous_flux_node = flux(u_node, (u_grad_1_node, u_grad_2_node), equations_parabolic)
-      set_node_vars!(viscous_flux[1], viscous_flux_node[1], equations_parabolic, dg, i, j, element)
-      set_node_vars!(viscous_flux[2], viscous_flux_node[2], equations_parabolic, dg, i, j, element)
+      flux_viscous_node = flux(u_node, (u_grad_1_node, u_grad_2_node), equations_parabolic)
+      set_node_vars!(flux_viscous[1], flux_viscous_node[1], equations_parabolic, dg, i, j, element)
+      set_node_vars!(flux_viscous[2], flux_viscous_node[2], equations_parabolic, dg, i, j, element)
     end
   end
 end
@@ -610,7 +610,7 @@ function create_cache_parabolic(mesh::TreeMesh{2}, equations_hyperbolic::Abstrac
   n_elements = nelements(elements)
   u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_elements)
   u_grad = ntuple(_ -> similar(u_transformed), ndims(mesh))
-  viscous_flux = ntuple(_ -> similar(u_transformed), ndims(mesh))
+  flux_viscous = ntuple(_ -> similar(u_transformed), ndims(mesh))
 
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
@@ -619,7 +619,7 @@ function create_cache_parabolic(mesh::TreeMesh{2}, equations_hyperbolic::Abstrac
   # mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
   # cache = (; elements, interfaces, boundaries, mortars)
-  cache = (; elements, interfaces, boundaries, u_grad, viscous_flux, u_transformed)
+  cache = (; elements, interfaces, boundaries, u_grad, flux_viscous, u_transformed)
 
   # Add specialized parts of the cache required to compute the mortars etc.
   # cache = (;cache..., create_cache(mesh, equations_parabolic, dg.mortar, uEltype)...)
