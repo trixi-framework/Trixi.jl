@@ -167,7 +167,7 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
   return nothing
 end
 
-function calc_flux_viscouses!(flux_viscous, u, u_grad, mesh::DGMultiMesh,
+function calc_viscous_fluxes!(flux_viscous, u, u_grad, mesh::DGMultiMesh,
                               equations::AbstractEquationsParabolic,
                               dg::DGMulti, cache, cache_parabolic)
 
@@ -308,7 +308,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh, equations_parabolic::Abstra
   calc_gradient!(u_grad, u_transformed, t, mesh, equations_parabolic,
                  boundary_conditions, dg, cache, cache_parabolic)
 
-  calc_flux_viscouses!(flux_viscous, u_transformed, u_grad,
+  calc_viscous_fluxes!(flux_viscous, u_transformed, u_grad,
                        mesh, equations_parabolic, dg, cache, cache_parabolic)
 
   calc_divergence!(du, u_transformed, t, flux_viscous, mesh, equations_parabolic,

@@ -25,7 +25,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
                                                             boundary_conditions, dg,
                                                             cache, cache_parabolic)
 
-  @trixi_timeit timer() "calculate viscous fluxes" calc_flux_viscouses!(flux_viscous, u_grad, u_transformed,
+  @trixi_timeit timer() "calculate viscous fluxes" calc_viscous_fluxes!(flux_viscous, u_grad, u_transformed,
                                                                         mesh, equations_parabolic,
                                                                         dg, cache, cache_parabolic)
 
@@ -242,7 +242,7 @@ function calc_divergence!(du, u, t, flux_viscous,
 end
 
 
-function calc_flux_viscouses!(flux_viscous, u_grad, u, mesh::TreeMesh{2},
+function calc_viscous_fluxes!(flux_viscous, u_grad, u, mesh::TreeMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
   @threaded for element in eachelement(dg, cache)
