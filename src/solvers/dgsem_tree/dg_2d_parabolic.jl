@@ -448,27 +448,8 @@ function calc_gradient!(gradients, u, t,
 
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" begin
-    @unpack interfaces = cache_parabolic
-    @unpack orientations = interfaces
-
-    @threaded for interface in eachinterface(dg, cache)
-      left_element  = interfaces.neighbor_ids[1, interface]
-      right_element = interfaces.neighbor_ids[2, interface]
-
-      if orientations[interface] == 1
-        # interface in x-direction
-        for j in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, j, interface] = u[v, nnodes(dg), j, left_element]
-          interfaces.u[2, v, j, interface] = u[v,          1, j, right_element]
-        end
-      else # if orientations[interface] == 2
-        # interface in y-direction
-        for i in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg), left_element]
-          interfaces.u[2, v, i, interface] = u[v, i,          1, right_element]
-        end
-      end
-    end
+    # TODO: parabolic, should we pass in something else for `surface_integral` here?
+    prolong2interfaces!(cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
   # Calculate interface fluxes
@@ -504,39 +485,8 @@ function calc_gradient!(gradients, u, t,
 
   # Prolong solution to boundaries
   @trixi_timeit timer() "prolong2boundaries" begin
-    @unpack boundaries = cache_parabolic
-    @unpack orientations, neighbor_sides = boundaries
-
-    @threaded for boundary in eachboundary(dg, cache_parabolic)
-      element = boundaries.neighbor_ids[boundary]
-
-      if orientations[boundary] == 1
-        # boundary in x-direction
-        if neighbor_sides[boundary] == 1
-          # element in -x direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
-          end
-        else # Element in +x direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = u[v, 1,          l, element]
-          end
-        end
-      else # if orientations[boundary] == 2
-        # boundary in y-direction
-        if neighbor_sides[boundary] == 1
-          # element in -y direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
-          end
-        else
-          # element in +y direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = u[v, l, 1,          element]
-          end
-        end
-      end
-    end
+    # TODO: parabolic, should we pass in something else for `surface_integral` here?
+    prolong2boundaries!(cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
   # Calculate boundary fluxes
