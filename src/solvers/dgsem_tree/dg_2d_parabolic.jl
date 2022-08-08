@@ -636,7 +636,10 @@ function create_cache_parabolic(mesh::TreeMesh{2}, equations_hyperbolic::Abstrac
 end
 
 
-# Needed to *not* flip the sign of the inverse Jacobian
+# Needed to *not* flip the sign of the inverse Jacobian.
+# This is because the parabolic fluxes are assumed to be of the form
+#   `du/dt + df/dx = dg/dx + source(x,t)`,
+# where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian!(du, mesh::TreeMesh{2},
                          equations::AbstractEquationsParabolic, dg::DG, cache)
 
