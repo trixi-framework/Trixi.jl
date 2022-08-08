@@ -48,7 +48,6 @@ initial_condition = initial_condition_navier_stokes_convergence_test
   # TODO: parabolic
   # we currently need to hardcode these parameters until we fix the "combined equation" issue
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-  kappa = 1
   inv_gamma_minus_one = inv(equations.gamma - 1)
   Pr = get_Pr()
   Re = get_Re()
@@ -102,7 +101,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
   E_y = p_y * inv_gamma_minus_one + rho_y * v1^2 + 2.0 * rho * v1 * v1_y
 
   # Some convenience constants
-  T_const = equations.gamma * inv_gamma_minus_one * kappa / Pr
+  T_const = equations.gamma * inv_gamma_minus_one / Pr
   inv_Re = 1.0 / Re
   inv_rho_cubed = 1.0 / (rho^3)
 
