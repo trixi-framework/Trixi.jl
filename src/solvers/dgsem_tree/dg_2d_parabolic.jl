@@ -50,7 +50,7 @@ function transform_variables!(u_transformed, u, mesh::TreeMesh{2},
     # Calculate volume terms in one element
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
-      u_transformed_node = gradient_variable_transformation(equations_parabolic, dg_parabolic)(u_node, equations_parabolic)
+      u_transformed_node = gradient_variable_transformation(equations_parabolic)(u_node, equations_parabolic)
       set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg, i, j, element)
     end
   end

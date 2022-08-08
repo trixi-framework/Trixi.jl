@@ -132,7 +132,7 @@ varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusio
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
-gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D, dg_parabolic) = cons2prim
+gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2prim
 
 # no orientation specified since the flux is vector-valued
 # Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
