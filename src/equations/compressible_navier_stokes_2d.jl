@@ -245,9 +245,10 @@ end
 """
     struct Isothermal
 
-Creates an isothermal temperature boundary condition with field `boundary_value_function`,
-which should be a function with signature `boundary_value_function(x, t, equations)` and
-return a scalar value for the temperature at point `x` and time `t`.
+Used to create a no-slip boundary condition with `BoundaryConditionViscousWall`.
+The field `boundary_value_function` should be a function with signature
+`boundary_value_function(x, t, equations)` and return a scalar value for the
+temperature at point `x` and time `t`.
 """
 struct Isothermal{F}
   boundary_value_function::F # value of the temperature on the boundary
@@ -256,9 +257,10 @@ end
 """
     struct Adiabatic
 
-Creates an adiabatic temperature boundary condition with field `boundary_value_function`,
-which should be a function with signature `boundary_value_function(x, t, equations)` and
-return a scalar value for the normal heat flux at point `x` and time `t`.
+Used to create a no-slip boundary condition with `BoundaryConditionViscousWall`.
+The field `boundary_value_normal_flux_function` should be a function with signature
+`boundary_value_normal_flux_function(x, t, equations)` and return a scalar value for the
+normal heat flux at point `x` and time `t`.
 """
 struct Adiabatic{F}
   boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
