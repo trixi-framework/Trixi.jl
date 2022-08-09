@@ -961,6 +961,7 @@ end
 end
 
 
+# we pass in the hyperbolic `dg.surface_integral` as a dummy argument for dispatch
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG, cache)
