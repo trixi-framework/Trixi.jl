@@ -413,7 +413,7 @@ end
 
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
-                        mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations_parabolic,
+                        mesh::TreeMesh{2}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG, cache, cache_parabolic)
 
   gradients_x, gradients_y = gradients
