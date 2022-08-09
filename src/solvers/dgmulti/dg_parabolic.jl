@@ -49,6 +49,7 @@ function transform_variables!(u_transformed, u, mesh, equations_parabolic::Abstr
 end
 
 # interpolates from solution coefficients to face quadrature points
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(u_face_values, u, mesh::DGMultiMesh, equations::AbstractEquationsParabolic,
                              surface_integral, dg::DGMulti, cache)
   apply_to_each_field(mul_by!(dg.basis.Vf), u_face_values, u)

@@ -158,6 +158,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 # interpolates from solution coefficients to face quadrature points
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
                              surface_integral, dg::DGMulti)
   rd = dg.basis
@@ -259,6 +260,7 @@ function calc_surface_integral!(du, u, surface_integral::SurfaceIntegralWeakForm
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations, surface_integral,
                              dg::DGMultiSBP)
   rd = dg.basis

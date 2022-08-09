@@ -121,7 +121,7 @@ end
 
 
 # This is the version used when calculating the divergence of the viscous fluxes
-# we pass in the hyperbolic `dg.surface_integral` as a dummy argument for dispatch
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
