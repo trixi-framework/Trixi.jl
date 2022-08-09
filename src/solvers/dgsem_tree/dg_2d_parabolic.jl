@@ -211,7 +211,7 @@ function calc_divergence!(du, u, t, flux_viscous,
 
   # Calculate surface integrals
   @trixi_timeit timer() "surface integral" begin
-    # TODO: parabolic, should we pass in something else for `surface_integral` here?
+    # we pass in the hyperbolic `dg.surface_integral` as a dummy argument
     calc_surface_integral!(du, u, mesh, equations_parabolic, dg.surface_integral, dg, cache_parabolic)
   end
 
@@ -436,7 +436,7 @@ function calc_gradient!(gradients, u, t,
 
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" begin
-    # TODO: parabolic, should we pass in something else for `surface_integral` here?
+    # we pass in the hyperbolic `dg.surface_integral` as a dummy argument
     prolong2interfaces!(cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
@@ -473,7 +473,7 @@ function calc_gradient!(gradients, u, t,
 
   # Prolong solution to boundaries
   @trixi_timeit timer() "prolong2boundaries" begin
-    # TODO: parabolic, should we pass in something else for `surface_integral` here?
+    # we pass in the hyperbolic `dg.surface_integral` as a dummy argument
     prolong2boundaries!(cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
   end
 
