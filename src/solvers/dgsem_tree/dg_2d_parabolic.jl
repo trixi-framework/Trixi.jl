@@ -123,7 +123,7 @@ end
 
 
 # This is the version used when calculating the divergence of the viscous fluxes
-# we pass in the hyperbolic `dg.surface_integral` as a dummy argument
+# we pass in the hyperbolic `dg.surface_integral` as a dummy argument for dispatch
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache)
@@ -233,7 +233,7 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
 end
 
 
-function calc_viscous_fluxes!(flux_viscous, gradients, u, mesh::TreeMesh{2},
+function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::TreeMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
   gradients_x, gradients_y = gradients
@@ -242,7 +242,7 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u, mesh::TreeMesh{2},
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       # Get solution and gradients
-      u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
+      u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, element)
       gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg, i, j, element)
       gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j, element)
 
@@ -412,14 +412,16 @@ function calc_divergence_boundary_flux_by_direction!(surface_flux_values::Abstra
   return nothing
 end
 
-function calc_gradient!(gradients, u, t,
+
+# Calculate the gradient of the transformed variables
+function calc_gradient!(gradients, u_transformed, t,
                         mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG, cache, cache_parabolic)
 
   gradients_x, gradients_y = gradients
 
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" begin
+  @trixi_timeit timer() "reset gradients" begin
     reset_du!(gradients_x, dg, cache)
     reset_du!(gradients_y, dg, cache)
   end
@@ -431,7 +433,7 @@ function calc_gradient!(gradients, u, t,
 
       # Calculate volume terms in one element
       for j in eachnode(dg), i in eachnode(dg)
-        u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
+        u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, element)
 
         for ii in eachnode(dg)
           multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i], u_node, equations_parabolic, dg, ii, j, element)
@@ -446,7 +448,7 @@ function calc_gradient!(gradients, u, t,
 
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
-    cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
+    cache_parabolic, u_transformed, mesh, equations_parabolic, dg.surface_integral, dg)
 
   # Calculate interface fluxes
   @trixi_timeit timer() "interface flux" begin
@@ -480,16 +482,13 @@ function calc_gradient!(gradients, u, t,
   end
 
   # Prolong solution to boundaries
-  @trixi_timeit timer() "prolong2boundaries" begin
-    # we pass in the hyperbolic `dg.surface_integral` as a dummy argument
-    prolong2boundaries!(cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
-  end
+  @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
+    cache_parabolic, u_transformed, mesh, equations_parabolic, dg.surface_integral, dg)
 
   # Calculate boundary fluxes
-  @trixi_timeit timer() "boundary flux" begin
-    calc_boundary_flux_gradients!(cache_parabolic, t, boundary_conditions_parabolic,
-                                 mesh, equations_parabolic, dg.surface_integral, dg)
-  end
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(
+    cache_parabolic, t, boundary_conditions_parabolic, mesh, equations_parabolic,
+    dg.surface_integral, dg)
 
   # TODO: parabolic; mortars
 
