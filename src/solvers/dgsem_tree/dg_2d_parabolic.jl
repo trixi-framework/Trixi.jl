@@ -89,42 +89,8 @@ function calc_divergence!(du, u, t, flux_viscous,
     dg, cache_parabolic)
 
   # Prolong solution to boundaries
-  @trixi_timeit timer() "prolong2boundaries" begin
-    @unpack boundaries = cache_parabolic
-    @unpack orientations, neighbor_sides = boundaries
-    flux_viscous_x, flux_viscous_y = flux_viscous
-
-    @threaded for boundary in eachboundary(dg, cache_parabolic)
-      element = boundaries.neighbor_ids[boundary]
-
-      if orientations[boundary] == 1
-        # boundary in x-direction
-        if neighbor_sides[boundary] == 1
-          # element in -x direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = flux_viscous_x[v, nnodes(dg), l, element]
-          end
-        else # Element in +x direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = flux_viscous_x[v, 1,          l, element]
-          end
-        end
-      else # if orientations[boundary] == 2
-        # boundary in y-direction
-        if neighbor_sides[boundary] == 1
-          # element in -y direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[1, v, l, boundary] = flux_viscous_y[v, l, nnodes(dg), element]
-          end
-        else
-          # element in +y direction of boundary
-          for l in eachnode(dg), v in eachvariable(equations_parabolic)
-            boundaries.u[2, v, l, boundary] = flux_viscous_y[v, l, 1,          element]
-          end
-        end
-      end
-    end
-  end
+  @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
+    cache_parabolic, flux_viscous, mesh, equations_parabolic, dg.surface_integral, dg, cache)
 
   # Calculate boundary fluxes
   @trixi_timeit timer() "boundary flux" begin
@@ -249,6 +215,49 @@ function calc_interface_flux!(surface_flux_values,
       for v in eachvariable(equations_parabolic)
         surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
         surface_flux_values[v, i, right_direction, right_id] = flux[v]
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+# This is the version used when calculating the divergence of the viscous fluxes
+function prolong2boundaries!(cache_parabolic, flux_viscous,
+                             mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                             surface_integral, dg::DG, cache)
+  @unpack boundaries = cache_parabolic
+  @unpack orientations, neighbor_sides = boundaries
+  flux_viscous_x, flux_viscous_y = flux_viscous
+
+  @threaded for boundary in eachboundary(dg, cache_parabolic)
+    element = boundaries.neighbor_ids[boundary]
+
+    if orientations[boundary] == 1
+      # boundary in x-direction
+      if neighbor_sides[boundary] == 1
+        # element in -x direction of boundary
+        for l in eachnode(dg), v in eachvariable(equations_parabolic)
+          boundaries.u[1, v, l, boundary] = flux_viscous_x[v, nnodes(dg), l, element]
+        end
+      else # Element in +x direction of boundary
+        for l in eachnode(dg), v in eachvariable(equations_parabolic)
+          boundaries.u[2, v, l, boundary] = flux_viscous_x[v, 1,          l, element]
+        end
+      end
+    else # if orientations[boundary] == 2
+      # boundary in y-direction
+      if neighbor_sides[boundary] == 1
+        # element in -y direction of boundary
+        for l in eachnode(dg), v in eachvariable(equations_parabolic)
+          boundaries.u[1, v, l, boundary] = flux_viscous_y[v, l, nnodes(dg), element]
+        end
+      else
+        # element in +y direction of boundary
+        for l in eachnode(dg), v in eachvariable(equations_parabolic)
+          boundaries.u[2, v, l, boundary] = flux_viscous_y[v, l, 1,          element]
+        end
       end
     end
   end
