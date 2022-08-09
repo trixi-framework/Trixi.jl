@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+
 # This file collects all methods that have been updated to work with parabolic systems of equations
 #
 # assumptions: parabolic terms are of the form div(f(u, grad(u))) and
@@ -576,3 +582,5 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
 
   return nothing
 end
+
+end # @muladd
