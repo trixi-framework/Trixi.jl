@@ -73,26 +73,10 @@ function calc_divergence!(du, u, t, flux_viscous,
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
-  @trixi_timeit timer() "volume integral" begin
-    @unpack derivative_dhat = dg.basis
-    flux_viscous_x, flux_viscous_y = flux_viscous
-
-    @threaded for element in eachelement(dg, cache)
-      # Calculate volume terms in one element
-      for j in eachnode(dg), i in eachnode(dg)
-        flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j, element)
-        flux_2_node = get_node_vars(flux_viscous_y, equations_parabolic, dg, i, j, element)
-
-        for ii in eachnode(dg)
-          multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node, equations_parabolic, dg, ii, j, element)
-        end
-
-        for jj in eachnode(dg)
-          multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux_2_node, equations_parabolic, dg, i, jj, element)
-        end
-      end
-    end
-  end
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, flux_viscous, mesh,
+    have_nonconservative_terms(equations_parabolic), equations_parabolic,
+    dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
@@ -199,7 +183,37 @@ function calc_divergence!(du, u, t, flux_viscous,
 end
 
 
-# This is the version used to calculate the divergence of the viscous fluxes
+# This is the version used when calculating the divergence of the viscous fluxes
+function calc_volume_integral!(du, flux_viscous,
+                               mesh::TreeMesh{2},
+                               nonconservative_terms,
+                               equations_parabolic::AbstractEquationsParabolic,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+  @unpack derivative_dhat = dg.basis
+  flux_viscous_x, flux_viscous_y = flux_viscous
+
+  @threaded for element in eachelement(dg, cache)
+    # Calculate volume terms in one element
+    for j in eachnode(dg), i in eachnode(dg)
+      flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j, element)
+      flux_2_node = get_node_vars(flux_viscous_y, equations_parabolic, dg, i, j, element)
+
+      for ii in eachnode(dg)
+        multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node, equations_parabolic, dg, ii, j, element)
+      end
+
+      for jj in eachnode(dg)
+        multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux_2_node, equations_parabolic, dg, i, jj, element)
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+# This is the version used when calculating the divergence of the viscous fluxes
 # we pass in the hyperbolic `dg.surface_integral` as a dummy argument
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
