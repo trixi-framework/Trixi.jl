@@ -5,7 +5,7 @@ dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(
              volume_integral = VolumeIntegralWeakForm())
 
 equations = LinearScalarAdvectionEquation2D(1.5, 1.0)
-equations_parabolic = LaplaceDiffusion2D(5e-2, equations)
+equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations)
 
 initial_condition_zero(x, t, equations::LinearScalarAdvectionEquation2D) = SVector(0.0)
 initial_condition = initial_condition_zero

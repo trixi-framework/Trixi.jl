@@ -10,22 +10,22 @@
 
 The compressible Euler equations
 ```math
-\partial t
+\frac{\partial}{\partial t}
 \begin{pmatrix}
 \rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\  \rho e
 \end{pmatrix}
 +
-\partial x
+\frac{\partial}{\partial x}
 \begin{pmatrix}
  \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ \rho v_1 v_3 \\ ( \rho e +p) v_1
 \end{pmatrix}
 +
-\partial y
+\frac{\partial}{\partial y}
 \begin{pmatrix}
 \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_1 v_3 \\ ( \rho e +p) v_2
 \end{pmatrix}
 +
-\partial z
+\frac{\partial}{\partial z}
 \begin{pmatrix}
 \rho v_3 \\ \rho v_1 v_3 \\ \rho v_2 v_3 \\ \rho v_3^2 + p \\ ( \rho e +p) v_3
 \end{pmatrix}
