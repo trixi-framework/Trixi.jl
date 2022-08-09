@@ -134,6 +134,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (flux differencing)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.1),
+      volume_integral=VolumeIntegralFluxDifferencing(flux_central),
+      l2 = [0.0021116725306635146, 0.0034322351490824465, 0.003874252819611102, 0.012469246082522416],
+      linf = [0.012006418939297214, 0.03552087120958058, 0.02451274749176294, 0.11191122588577151]
+    )
+  end
+
   @trixi_testset "TreeMesh2D: elixir_navier_stokes_lid_driven_cavity.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_lid_driven_cavity.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.5),
