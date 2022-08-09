@@ -70,17 +70,14 @@ function calc_divergence!(du, u, t, flux_viscous,
                           parabolic_scheme, # not a `DG` type
                           cache, cache_parabolic)
   # Reset du
-  @trixi_timeit timer() "reset ∂u/∂t" begin
-    reset_du!(du, dg, cache)
-  end
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" begin
     @unpack derivative_dhat = dg.basis
+    flux_viscous_x, flux_viscous_y = flux_viscous
+
     @threaded for element in eachelement(dg, cache)
-
-      flux_viscous_x, flux_viscous_y = flux_viscous
-
       # Calculate volume terms in one element
       for j in eachnode(dg), i in eachnode(dg)
         flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j, element)
@@ -98,31 +95,8 @@ function calc_divergence!(du, u, t, flux_viscous,
   end
 
   # Prolong solution to interfaces
-  @trixi_timeit timer() "prolong2interfaces" begin
-    @unpack interfaces = cache_parabolic
-    @unpack orientations = interfaces
-
-    flux_viscous_x, flux_viscous_y = flux_viscous
-
-    @threaded for interface in eachinterface(dg, cache)
-      left_element  = interfaces.neighbor_ids[1, interface]
-      right_element = interfaces.neighbor_ids[2, interface]
-
-      if orientations[interface] == 1
-        # interface in x-direction
-        for j in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, j, interface] = flux_viscous_x[v, nnodes(dg), j, left_element]
-          interfaces.u[2, v, j, interface] = flux_viscous_x[v,          1, j, right_element]
-        end
-      else # if orientations[interface] == 2
-        # interface in y-direction
-        for i in eachnode(dg), v in eachvariable(equations_parabolic)
-          interfaces.u[1, v, i, interface] = flux_viscous_y[v, i, nnodes(dg), left_element]
-          interfaces.u[2, v, i, interface] = flux_viscous_y[v, i,          1, right_element]
-        end
-      end
-    end
-  end
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache_parabolic, flux_viscous, mesh, equations_parabolic, dg.surface_integral, dg, cache)
 
   # Calculate interface fluxes
   @trixi_timeit timer() "interface flux" begin
@@ -158,6 +132,7 @@ function calc_divergence!(du, u, t, flux_viscous,
   @trixi_timeit timer() "prolong2boundaries" begin
     @unpack boundaries = cache_parabolic
     @unpack orientations, neighbor_sides = boundaries
+    flux_viscous_x, flux_viscous_y = flux_viscous
 
     @threaded for boundary in eachboundary(dg, cache_parabolic)
       element = boundaries.neighbor_ids[boundary]
@@ -218,6 +193,39 @@ function calc_divergence!(du, u, t, flux_viscous,
   # Apply Jacobian from mapping to reference element
   @trixi_timeit timer() "Jacobian" begin
     apply_jacobian!(du, mesh, equations_parabolic, dg, cache_parabolic)
+  end
+
+  return nothing
+end
+
+
+# This is the version used to calculate the divergence of the viscous fluxes
+# we pass in the hyperbolic `dg.surface_integral` as a dummy argument
+function prolong2interfaces!(cache_parabolic, flux_viscous,
+                             mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
+                             surface_integral, dg::DG, cache)
+  @unpack interfaces = cache_parabolic
+  @unpack orientations = interfaces
+
+  flux_viscous_x, flux_viscous_y = flux_viscous
+
+  @threaded for interface in eachinterface(dg, cache)
+    left_element  = interfaces.neighbor_ids[1, interface]
+    right_element = interfaces.neighbor_ids[2, interface]
+
+    if orientations[interface] == 1
+      # interface in x-direction
+      for j in eachnode(dg), v in eachvariable(equations_parabolic)
+        interfaces.u[1, v, j, interface] = flux_viscous_x[v, nnodes(dg), j, left_element]
+        interfaces.u[2, v, j, interface] = flux_viscous_x[v,          1, j, right_element]
+      end
+    else # if orientations[interface] == 2
+      # interface in y-direction
+      for i in eachnode(dg), v in eachvariable(equations_parabolic)
+        interfaces.u[1, v, i, interface] = flux_viscous_y[v, i, nnodes(dg), left_element]
+        interfaces.u[2, v, i, interface] = flux_viscous_y[v, i,          1, right_element]
+      end
+    end
   end
 
   return nothing
@@ -435,10 +443,8 @@ function calc_gradient!(gradients, u, t,
   end
 
   # Prolong solution to interfaces
-  @trixi_timeit timer() "prolong2interfaces" begin
-    # we pass in the hyperbolic `dg.surface_integral` as a dummy argument
-    prolong2interfaces!(cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
-  end
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache_parabolic, u, mesh, equations_parabolic, dg.surface_integral, dg)
 
   # Calculate interface fluxes
   @trixi_timeit timer() "interface flux" begin
