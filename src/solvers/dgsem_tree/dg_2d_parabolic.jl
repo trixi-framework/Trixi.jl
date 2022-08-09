@@ -38,8 +38,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
 
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
-    du, flux_viscous, mesh,
-    have_nonconservative_terms(equations_parabolic), equations_parabolic, dg, cache)
+    du, flux_viscous, mesh, equations_parabolic, dg, cache)
 
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
@@ -47,9 +46,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
 
   # Calculate interface fluxes
   @trixi_timeit timer() "interface flux" calc_interface_flux!(
-    cache_parabolic.elements.surface_flux_values, mesh,
-    have_nonconservative_terms(equations_parabolic), equations_parabolic,
-    dg, cache_parabolic)
+    cache_parabolic.elements.surface_flux_values, mesh, equations_parabolic, dg, cache_parabolic)
 
   # Prolong solution to boundaries
   @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(
@@ -93,9 +90,7 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_volume_integral!(du, flux_viscous,
-                               mesh::TreeMesh{2},
-                               nonconservative_terms,
-                               equations_parabolic::AbstractEquationsParabolic,
+                               mesh::TreeMesh{2}, equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
   flux_viscous_x, flux_viscous_y = flux_viscous
@@ -155,8 +150,7 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values,
-                              mesh::TreeMesh{2},
-                              nonconservative_terms::Val{false}, equations_parabolic,
+                              mesh::TreeMesh{2}, equations_parabolic,
                               dg::DG, cache_parabolic)
   @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
