@@ -134,7 +134,6 @@ varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusio
 # conservative variables.
 gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2prim
 
-# no orientation specified since the flux is vector-valued
 # Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
 # of the paper by Svärd, Carpenter and Nordström
 # "A stable high-order finite difference scheme for the compressible Navier–Stokes
