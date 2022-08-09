@@ -83,34 +83,10 @@ function calc_divergence!(du, u, t, flux_viscous,
     cache_parabolic, flux_viscous, mesh, equations_parabolic, dg.surface_integral, dg, cache)
 
   # Calculate interface fluxes
-  @trixi_timeit timer() "interface flux" begin
-    @unpack surface_flux_values = cache_parabolic.elements
-    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
-
-    @threaded for interface in eachinterface(dg, cache_parabolic)
-      # Get neighboring elements
-      left_id  = neighbor_ids[1, interface]
-      right_id = neighbor_ids[2, interface]
-
-      # Determine interface direction with respect to elements:
-      # orientation = 1: left -> 2, right -> 1
-      # orientation = 2: left -> 4, right -> 3
-      left_direction  = 2 * orientations[interface]
-      right_direction = 2 * orientations[interface] - 1
-
-      for i in eachnode(dg)
-        # Call pointwise Riemann solver
-        u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, i, interface)
-        flux = 0.5 * (u_ll + u_rr)
-
-        # Copy flux to left and right element storage
-        for v in eachvariable(equations_parabolic)
-          surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
-          surface_flux_values[v, i, right_direction, right_id] = flux[v]
-        end
-      end
-    end
-  end
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
+    cache_parabolic.elements.surface_flux_values, mesh,
+    have_nonconservative_terms(equations_parabolic), equations_parabolic,
+    dg, cache_parabolic)
 
   # Prolong solution to boundaries
   @trixi_timeit timer() "prolong2boundaries" begin
@@ -238,6 +214,41 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
       for i in eachnode(dg), v in eachvariable(equations_parabolic)
         interfaces.u[1, v, i, interface] = flux_viscous_y[v, i, nnodes(dg), left_element]
         interfaces.u[2, v, i, interface] = flux_viscous_y[v, i,          1, right_element]
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+# This is the version used when calculating the divergence of the viscous fluxes
+function calc_interface_flux!(surface_flux_values,
+                              mesh::TreeMesh{2},
+                              nonconservative_terms::Val{false}, equations_parabolic,
+                              dg::DG, cache_parabolic)
+  @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+
+  @threaded for interface in eachinterface(dg, cache_parabolic)
+    # Get neighboring elements
+    left_id  = neighbor_ids[1, interface]
+    right_id = neighbor_ids[2, interface]
+
+    # Determine interface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    left_direction  = 2 * orientations[interface]
+    right_direction = 2 * orientations[interface] - 1
+
+    for i in eachnode(dg)
+      # Call pointwise Riemann solver
+      u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u, equations_parabolic, dg, i, interface)
+      flux = 0.5 * (u_ll + u_rr)
+
+      # Copy flux to left and right element storage
+      for v in eachvariable(equations_parabolic)
+        surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
+        surface_flux_values[v, i, right_direction, right_id] = flux[v]
       end
     end
   end
