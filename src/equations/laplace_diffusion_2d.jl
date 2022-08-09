@@ -16,7 +16,7 @@ varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D) =
   varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
 # no orientation specified since the flux is vector-valued
-function flux(u, grad_u, orientation::Int, equations_parabolic::LaplaceDiffusion2D)
+function flux(u, grad_u, orientation::Integer, equations_parabolic::LaplaceDiffusion2D)
   dudx, dudy = grad_u
   if orientation == 1
     return SVector(equations_parabolic.diffusivity * dudx)

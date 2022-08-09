@@ -144,7 +144,7 @@ gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2p
 #
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
-function flux(u, gradients, orientation::Int, equations::CompressibleNavierStokesDiffusion2D)
+function flux(u, gradients, orientation::Integer, equations::CompressibleNavierStokesDiffusion2D)
   # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
@@ -222,7 +222,6 @@ end
 end
 
 # TODO: can we generalize this to MHD?
-# !!! warning "Experimental feature"
 """
     struct BoundaryConditionNavierStokesWall
 
@@ -230,6 +229,9 @@ Creates a wall-type boundary conditions for the compressible Navier-Stokes equat
 The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
 to be boundary condition types such as the `NoSlip` velocity boundary condition and the
 `Adiabatic` or `Isothermal` heat boundary condition.
+
+!!! warning "Experimental feature"
+    This is an experimental feature and may change in future releases.
 """
 struct BoundaryConditionNavierStokesWall{V, H}
   boundary_condition_velocity::V
@@ -251,7 +253,7 @@ end
 """
     struct Isothermal
 
-Used to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`.
+Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
 The field `boundary_value_function` should be a function with signature
 `boundary_value_function(x, t, equations)` and return a scalar value for the
 temperature at point `x` and time `t`.
@@ -263,7 +265,7 @@ end
 """
     struct Adiabatic
 
-Used to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`.
+Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
 The field `boundary_value_normal_flux_function` should be a function with signature
 `boundary_value_normal_flux_function(x, t, equations)` and return a scalar value for the
 normal heat flux at point `x` and time `t`.
