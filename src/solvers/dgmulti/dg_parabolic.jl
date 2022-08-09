@@ -17,7 +17,7 @@ function create_cache_parabolic(mesh::DGMultiMesh,
 
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   scalar_flux_face_values = similar(u_face_values)
-  grad_u_face_values = ntuple(_ -> similar(u_face_values), ndims(mesh))
+  gradients_face_values = ntuple(_ -> similar(u_face_values), ndims(mesh))
 
   local_u_values_threaded = [similar(u_transformed, dg.basis.Nq) for _ in 1:Threads.nthreads()]
   local_flux_viscous_threaded = [ntuple(_ -> similar(u_transformed, dg.basis.Nq), ndims(mesh)) for _ in 1:Threads.nthreads()]
@@ -34,7 +34,7 @@ function create_cache_parabolic(mesh::DGMultiMesh,
 
   return (; u_transformed, gradients, flux_viscous,
             weak_differentiation_matrices, inv_h,
-            u_face_values, grad_u_face_values, scalar_flux_face_values,
+            u_face_values, gradients_face_values, scalar_flux_face_values,
             local_u_values_threaded, local_flux_viscous_threaded, local_flux_face_values_threaded)
 end
 
@@ -251,7 +251,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
   end
 
   # interpolates from solution coefficients to face quadrature points
-  flux_viscous_face_values = cache_parabolic.grad_u_face_values # reuse storage
+  flux_viscous_face_values = cache_parabolic.gradients_face_values # reuse storage
   for dim in eachdim(mesh)
     prolong2interfaces!(flux_viscous_face_values[dim], flux_viscous[dim], mesh, equations,
                         dg.surface_integral, dg, cache)

@@ -45,24 +45,24 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test boundary_condition_do_nothing(u0, nothing) == u0
 
     @unpack cache, cache_parabolic, equations_parabolic = semi
-    u_grad = cache_parabolic.gradients
-    for dim in eachindex(u_grad)
-      fill!(u_grad[dim], zero(eltype(u_grad[dim])))
+    @unpack gradients = cache_parabolic
+    for dim in eachindex(gradients)
+      fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
 
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
-    Trixi.calc_gradient!(u_grad, ode.u0, t, mesh, equations_parabolic,
+    Trixi.calc_gradient!(gradients, ode.u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
     @unpack x, y = mesh.md
-    @test getindex.(u_grad[1], 1) ≈ 2 * x .* y
-    @test getindex.(u_grad[2], 1) ≈ x.^2
+    @test getindex.(gradients[1], 1) ≈ 2 * x .* y
+    @test getindex.(gradients[2], 1) ≈ x.^2
 
-    u_flux = similar.(u_grad)
-    Trixi.calc_viscous_fluxes!(u_flux, ode.u0, u_grad, mesh, equations_parabolic,
+    u_flux = similar.(gradients)
+    Trixi.calc_viscous_fluxes!(u_flux, ode.u0, gradients, mesh, equations_parabolic,
                                dg, cache, cache_parabolic)
-    @test u_flux[1] ≈ u_grad[1]
-    @test u_flux[2] ≈ u_grad[2]
+    @test u_flux[1] ≈ gradients[1]
+    @test u_flux[2] ≈ gradients[2]
 
     du = similar(ode.u0)
     Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic, boundary_condition_periodic,
