@@ -39,8 +39,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
   # Calculate volume integral
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, flux_viscous, mesh,
-    have_nonconservative_terms(equations_parabolic), equations_parabolic,
-    dg.volume_integral, dg, cache)
+    have_nonconservative_terms(equations_parabolic), equations_parabolic, dg, cache)
 
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
@@ -97,7 +96,6 @@ function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{2},
                                nonconservative_terms,
                                equations_parabolic::AbstractEquationsParabolic,
-                               volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
   flux_viscous_x, flux_viscous_y = flux_viscous
