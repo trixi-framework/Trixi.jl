@@ -184,6 +184,7 @@ function calc_interface_flux!(surface_flux_values,
                                                dg, i, interface)
 
       # Compute interface flux as mean of left and right viscous fluxes
+      # TODO: parabolic; only BR1 at the moment
       flux = 0.5 * (flux_ll + flux_rr)
 
       # Copy flux to left and right element storage
