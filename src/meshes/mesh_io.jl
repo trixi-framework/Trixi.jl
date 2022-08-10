@@ -6,7 +6,7 @@
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, DGMultiMesh}, output_directory, timestep=0)
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh}, output_directory, timestep=0)
   save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
 
@@ -92,23 +92,24 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
-# Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
+# Then, within Trixi2Vtk, the DGMultiMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
 function save_mesh_file(mesh::DGMultiMesh, output_directory)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
   filename = joinpath(output_directory, "mesh.h5")
-
+  num_elements = mesh.md.num_elements
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
-    #attributes(file)["mesh_type"] = get_name(mesh)
-    #attributes(file)["ndims"] = ndims(mesh)
-    attributes(file)["num_elements"] = mesh.md.num_elements
-    #attributes(file)["EtoV"] = mesh.md.EToV
-    
-    #file["coordinates"] = @view mesh.md.xyz[:, 1:mesh.md.num_elements]
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["num_elements"] = num_elements
+
+    #TODO: Write mesh-coordinates
+    #TODO: Save element_type
+
   end
 
   return filename
