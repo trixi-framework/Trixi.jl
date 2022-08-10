@@ -106,7 +106,7 @@ end
 
 # Transform gradients from the `u_transformed` variable set prior to computing the viscous fluxes
 # (e.g. entropy to primitive variables).
-# TODO: For entropy stability testing
+# TODO: parabolic; entropy stable viscous terms
 function transform_gradients!(gradients, u, mesh::TreeMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, parabolic_scheme, cache, cache_parabolic)
