@@ -303,20 +303,20 @@ function calc_boundary_flux_gradients!(cache, t, boundary_conditions_parabolic::
   firsts = lasts - n_boundaries_per_direction .+ 1
 
   # Calc boundary fluxes in each direction
-  calc_gradient_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[1],
+  calc_boundary_flux_by_direction_gradient!(surface_flux_values, t, boundary_conditions_parabolic[1],
                                             equations_parabolic, surface_integral, dg, cache,
                                             1, firsts[1], lasts[1])
-  calc_gradient_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[2],
+  calc_boundary_flux_by_direction_gradient!(surface_flux_values, t, boundary_conditions_parabolic[2],
                                             equations_parabolic, surface_integral, dg, cache,
                                             2, firsts[2], lasts[2])
-  calc_gradient_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[3],
+  calc_boundary_flux_by_direction_gradient!(surface_flux_values, t, boundary_conditions_parabolic[3],
                                             equations_parabolic, surface_integral, dg, cache,
                                             3, firsts[3], lasts[3])
-  calc_gradient_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[4],
+  calc_boundary_flux_by_direction_gradient!(surface_flux_values, t, boundary_conditions_parabolic[4],
                                             equations_parabolic, surface_integral, dg, cache,
                                             4, firsts[4], lasts[4])
 end
-function calc_gradient_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
+function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{<:Any,4}, t,
                                                    boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
                                                    surface_integral, dg::DG, cache,
@@ -367,20 +367,20 @@ function calc_boundary_flux_divergence!(cache, t, boundary_conditions_parabolic:
   firsts = lasts - n_boundaries_per_direction .+ 1
 
   # Calc boundary fluxes in each direction
-  calc_divergence_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[1],
+  calc_boundary_flux_by_direction_divergence!(surface_flux_values, t, boundary_conditions_parabolic[1],
                                               equations_parabolic, surface_integral, dg, cache,
                                               1, firsts[1], lasts[1])
-  calc_divergence_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[2],
+  calc_boundary_flux_by_direction_divergence!(surface_flux_values, t, boundary_conditions_parabolic[2],
                                               equations_parabolic, surface_integral, dg, cache,
                                               2, firsts[2], lasts[2])
-  calc_divergence_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[3],
+  calc_boundary_flux_by_direction_divergence!(surface_flux_values, t, boundary_conditions_parabolic[3],
                                               equations_parabolic, surface_integral, dg, cache,
                                               3, firsts[3], lasts[3])
-  calc_divergence_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions_parabolic[4],
+  calc_boundary_flux_by_direction_divergence!(surface_flux_values, t, boundary_conditions_parabolic[4],
                                               equations_parabolic, surface_integral, dg, cache,
                                               4, firsts[4], lasts[4])
 end
-function calc_divergence_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
+function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{<:Any,4}, t,
                                                      boundary_condition,
                                                      equations_parabolic::AbstractEquationsParabolic,
                                                      surface_integral, dg::DG, cache,
