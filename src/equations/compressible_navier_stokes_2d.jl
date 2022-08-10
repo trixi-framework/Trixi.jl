@@ -132,7 +132,11 @@ varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusio
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
-gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2prim
+#gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2prim
+
+# TODO: For entropy stability testing
+gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2entropy
+
 
 # Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
 # of the paper by Svärd, Carpenter and Nordström
@@ -203,6 +207,39 @@ end
 
   return SVector(rho, v1, v2, T)
 end
+
+
+# Convert conservative variables to entropy
+# Note, only w_2, w_3, w_4 are needed for the viscous fluxes so we avoid computing
+# w_1 and simply copy over rho.
+# TODO: parabolic; entropy stable viscous terms
+@inline function cons2entropy(u, equations::CompressibleNavierStokesDiffusion2D)
+  rho, rho_v1, rho_v2, rho_e = u
+
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+
+  return SVector(rho, rho_v1/p, rho_v2/p, -rho/p)
+end
+
+# Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4) and
+# reverse engineers the gradients to be terms of the primitive variables (v1, v2, T).
+# Helpful because then the diffusive fluxes have the same form as on paper.
+# Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
+# TODO: parabolic; entropy stable viscous terms
+@inline function convert_gradient_variables(u, gradient_entropy_vars, equations::CompressibleNavierStokesDiffusion2D)
+  rho, rho_v1, rho_v2, _ = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  T  = temperature(u, equations)
+
+  return SVector(gradient_entropy_vars[1],
+                 equations.R * T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # grad(u) = R*T*(grad(w_2)+v1*grad(w_4))
+                 equations.R * T * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[4]), # grad(v) = R*T*(grad(w_3)+v2*grad(w_4))
+                 equations.R * T * T * gradient_entropy_vars[4]                                # grad(T) = R*T^2*grad(w_4))
+                )
+end
+
 
 # This routine is required because `prim2cons` is called in `initial_condition`, which
 # is called with `equations::CompressibleEulerEquations2D`. This means it is inconsistent

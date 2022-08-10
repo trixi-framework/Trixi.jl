@@ -26,6 +26,11 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
     gradients, u_transformed, t, mesh, equations_parabolic, boundary_conditions_parabolic, dg,
     cache, cache_parabolic)
 
+  # Convert the gradients to a form more suitable for viscous flux calculations
+  # TODO: parabolic; entropy stable viscous terms
+  @trixi_timeit timer() "transform gradients" transform_gradients!(
+    gradients, u, mesh, equations_parabolic, dg, parabolic_scheme, cache, cache_parabolic)
+
   # Compute and store the viscous fluxes
   @trixi_timeit timer() "calculate viscous fluxes" calc_viscous_fluxes!(
     flux_viscous, gradients, u_transformed, mesh, equations_parabolic, dg, cache, cache_parabolic)
@@ -96,6 +101,34 @@ function transform_variables!(u_transformed, u, mesh::TreeMesh{2},
       set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg, i, j, element)
     end
   end
+end
+
+
+# Transform gradients from the `u_transformed` variable set prior to computing the viscous fluxes
+# (e.g. entropy to primitive variables).
+# TODO: For entropy stability testing
+function transform_gradients!(gradients, u, mesh::TreeMesh{2},
+                              equations_parabolic::AbstractEquationsParabolic,
+                              dg::DG, parabolic_scheme, cache, cache_parabolic)
+  gradients_x, gradients_y = gradients
+
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      # Get the solution and gradients
+      u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
+      entropy_gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg, i, j, element)
+      entropy_gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j, element)
+
+      # Convert entropy gradients into their primitive variable form
+      primitive_gradients_1_node = convert_gradient_variables(u_node, entropy_gradients_1_node, equations_parabolic)
+      primitive_gradients_2_node = convert_gradient_variables(u_node, entropy_gradients_2_node, equations_parabolic)
+
+      # Save them back in same arrays to avoid extra storage
+      set_node_vars!(gradients_x, primitive_gradients_1_node, equations_parabolic, dg, i, j, element)
+      set_node_vars!(gradients_y, primitive_gradients_2_node, equations_parabolic, dg, i, j, element)
+    end
+  end
+
 end
 
 
