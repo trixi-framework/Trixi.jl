@@ -132,9 +132,9 @@ varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusio
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
-#gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2prim
+# gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2prim
 
-# TODO: For entropy stability testing
+# TODO: parabolic; entropy stable viscous terms
 gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D) = cons2entropy
 
 
