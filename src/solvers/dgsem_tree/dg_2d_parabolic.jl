@@ -37,7 +37,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
   # been computed and stored in `fluxes_viscous`. In the following, we *reuse* (abuse) the
   # `interfaces` and `boundaries` containers in `cache_parabolic` to interpolate and store the
   # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
-  # is done in the hyperbolic operator). That is, `interfaces.u`/`boundaries.u` store *flux values*
+  # is done in the hyperbolic operator). That is, `interfaces.u`/`boundaries.u` store *viscous flux values*
   # and *not the solution*.  The advantage is that a) we do not need to allocate more storage, b) we
   # do not need to recreate the existing data structure only with a different name, and c) we do not
   # need to interpolate solutions *and* gradients to the surfaces.
