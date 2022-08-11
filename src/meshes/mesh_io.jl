@@ -90,10 +90,13 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   return filename
 end
 
-# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
-# of the mesh, like its size and the type of boundary mapping function.
-# Then, within Trixi2Vtk, the DGMultiMesh and its node coordinates are reconstructured from
-# these attributes for plotting purposes
+"""
+    save_mesh_file(mesh::DGMultiMesh, output_directory)
+
+  Save the coordinates of all vertices and the connection between each element
+  and the the vertices in a single mesh.h5 file. Data about the solution is then
+  stored via the function save_solution_file
+"""
 function save_mesh_file(mesh::DGMultiMesh, output_directory)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
@@ -107,8 +110,13 @@ function save_mesh_file(mesh::DGMultiMesh, output_directory)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["num_elements"] = num_elements
 
-    #TODO: Write mesh-coordinates
-    #TODO: Save element_type
+    #Write mesh-coordinates
+    #HDF5 cannot handle tuples of vectors, hence write them seperatly. 
+    for dims in 1:ndims(mesh)
+      file["coordinates_$dims"] = mesh.md.VXYZ[dims]
+    end
+    #Store the connection between elements and vertices
+    file["EToV"] = mesh.md.EToV
 
   end
 
