@@ -22,21 +22,8 @@ function save_solution_file(u, time, dt, timestep, mesh::DGMultiMesh,
   else
     filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
   end
-  # Convert to different set of variables if requested
-  if solution_variables === cons2cons
-    data = u
-    n_vars = nvariables(equations)
-  else
-    # Reinterpret the solution array as an array of conservative variables,
-    # compute the solution variables via broadcasting, and reinterpret the
-    # result as a plain array of floating point numbers
-    
-    #TODO: Maybe other reshape/reinterpretation?
-    data = Array(reinterpret(eltype(u), solution_variables.(u,Ref(equations))))
-
-    # Find out variable count by looking at output from `solution_variables` function
-    n_vars = size(data, 1)
-  end
+  # Get the number of variables
+  n_vars = nvariables(equations)
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
@@ -51,17 +38,17 @@ function save_solution_file(u, time, dt, timestep, mesh::DGMultiMesh,
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attributes(file)["timestep"] = timestep
 
-    # Store each variable of the solution data
+    #get the components of u
     for v in 1:n_vars
-      # Convert to 1D array
-      #TODO: Correctly shape the data/u
-      #Is the structure num_interpolation_points x num_elements x variable ??
-      file["variables_$v"] = data[:, :, v]
+      u_component = StructArrays.component(u, v)
+      # Store each variable of the solution data
 
+      file["variables_$v"] = u_component[:, 1:mesh.md.num_elements]
       # Add variable name as attribute
       var = file["variables_$v"]
       attributes(var)["name"] = varnames(solution_variables, equations)[v]
     end
+    
 
     # Store element variables
     for (v, (key, element_variable)) in enumerate(element_variables)
@@ -73,7 +60,6 @@ function save_solution_file(u, time, dt, timestep, mesh::DGMultiMesh,
       attributes(var)["name"] = string(key)
     end
   end
-
   return filename
 end
 
