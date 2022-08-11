@@ -84,7 +84,7 @@ end
 
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
 
-function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces, unsaved_changes, current_filename) where {NDIMS}
+function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces, unsaved_changes=true, current_filename="") where {NDIMS}
   return DGMultiMesh{NDIMS, geometric_term_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces, unsaved_changes, current_filename)
 end
 
@@ -235,7 +235,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
     md = StartUpDG.make_periodic(md, periodicity)
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh(dg, GeometricTermsType(Cartesian(), dg), md, boundary_faces, unsaved_changes, "")
+  return DGMultiMesh(dg, GeometricTermsType(Cartesian(), dg), md, boundary_faces)
 end
 
 """
