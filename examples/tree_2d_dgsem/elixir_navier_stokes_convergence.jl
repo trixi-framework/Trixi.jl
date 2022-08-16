@@ -9,7 +9,7 @@ prandtl_number() = 0.72
 
 equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, Reynolds=reynolds_number(), Prandtl=prandtl_number(),
-                                                          Mach_freestream=0.5)
+                                                          Mach_freestream=0.5, gradient_variables=GradientVariablesPrimitive())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
