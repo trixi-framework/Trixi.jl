@@ -120,8 +120,8 @@ function transform_gradients!(gradients, u, mesh::TreeMesh{2},
       entropy_gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j, element)
 
       # Convert entropy gradients into their primitive variable form
-      primitive_gradients_1_node = convert_gradient_variables(u_node, entropy_gradients_1_node, equations_parabolic)
-      primitive_gradients_2_node = convert_gradient_variables(u_node, entropy_gradients_2_node, equations_parabolic)
+      primitive_gradients_1_node = convert_derivative_to_primitive(u_node, entropy_gradients_1_node, equations_parabolic)
+      primitive_gradients_2_node = convert_derivative_to_primitive(u_node, entropy_gradients_2_node, equations_parabolic)
 
       # Save them back in same arrays to avoid extra storage
       set_node_vars!(gradients_x, primitive_gradients_1_node, equations_parabolic, dg, i, j, element)

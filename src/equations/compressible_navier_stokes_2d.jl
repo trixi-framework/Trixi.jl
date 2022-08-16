@@ -152,13 +152,13 @@ gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientV
 # Note, could be generalized to use Sutherland's law to get the molecular and thermal
 # diffusivity
 function flux(u, gradients, orientation::Integer, equations::CompressibleNavierStokesDiffusion2D)
+  # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
+  rho, v1, v2, _ = convert_transformed_to_primitive(u, equations)
   # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
-  # by way of the `convert_gradient_variables` function
+  # by way of the `convert_gradient_variables` function.
   _, dv1dx, dv2dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
   _, dv1dy, dv2dy, dTdy = convert_derivative_to_primitive(u, gradients[2], equations)
-
-  rho, v1, v2, _ = u
 
   # Components of viscous stress tensor
 
@@ -216,14 +216,40 @@ end
 # Note, only w_2, w_3, w_4 are needed for the viscous fluxes so we avoid computing
 # w_1 and simply copy over rho.
 # TODO: parabolic; entropy stable viscous terms
-# JC: is this the same as `cons2entropy` for CompressibleEulerEquations2D?
+# NOTE: this is not the same as `cons2entropy` for CompressibleEulerEquations2D,
+# since it only computes w2, w3, w4 using the actual entropy variable formulas.
 @inline function cons2entropy(u, equations::CompressibleNavierStokesDiffusion2D)
   rho, rho_v1, rho_v2, rho_e = u
 
   p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
 
-  return SVector(rho, rho_v1/p, rho_v2/p, -rho/p)
+  return SVector(rho, rho_v1 / p, rho_v2 / p, -rho / p)
 end
+
+@inline function entropy2cons(w, equations::CompressibleNavierStokesDiffusion2D)
+  rho, w2, w3, w4 = w
+
+  p = -rho / w4
+  rho_v1 = w2 * p
+  rho_v2 = w3 * p
+  rho_e = p / (equations.gamma - 1) + 0.5 * (rho_v1^2 + rho_v2^2) / rho
+
+  return SVector(rho, rho_v1, rho_v2, rho_e)
+end
+
+# the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
+# For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
+# variables into primitive variables.
+@inline function convert_transformed_to_primitive(u_transformed, equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+  return u_transformed
+end
+
+# TODO: parabolic. Make this more efficient!
+@inline function convert_transformed_to_primitive(u_transformed, equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+  # note: this uses CompressibleNavierStokesDiffusion2D versions of cons2prim and entropy2cons
+  return cons2prim(entropy2cons(u_transformed, equations), equations)
+end
+
 
 # Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4) and
 # reverse engineers the gradients to be terms of the primitive variables (v1, v2, T).
@@ -234,8 +260,13 @@ end
   return gradient
 end
 
-@inline function convert_derivative_to_primitive(u, gradient_entropy_vars,
-                                                equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+# the first argument is always the "transformed" variables.
+@inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
+                                                 equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+
+  # TODO: parabolic. This is inefficient to pass in transformed variables but then transform them back.
+  # We can fix this if we directly compute v1, v2, T from the entropy variables
+  u = entropy2cons(w, equations) # calls a "modified" entropy2cons defined for CompressibleNavierStokesDiffusion2D
   rho, rho_v1, rho_v2, _ = u
 
   v1 = rho_v1 / rho
@@ -355,7 +386,7 @@ end
 # specialized BC impositions for GradientVariablesEntropy.
 
 # This should return a SVector containing the boundary values of entropy variables.
-# Here, `u_inner` are the transformed variables (e.g., entropy variables).
+# Here, `w_inner` are the transformed variables (e.g., entropy variables).
 #
 # Taken from "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions
 #             for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
@@ -368,7 +399,7 @@ end
 end
 
 # this is actually identical to the specialization for GradientVariablesPrimitive, but included for completeness.
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, w_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Divergence,
                                                                                            equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
   normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x, t, equations)
