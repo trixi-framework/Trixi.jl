@@ -155,12 +155,10 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
   # either computed directly or reverse engineered from the gradient of the entropy vairables
   # by way of the `convert_gradient_variables` function
-  rho, v1, v2, _ = u
+  _, dv1dx, dv2dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
+  _, dv1dy, dv2dy, dTdy = convert_derivative_to_primitive(u, gradients[2], equations)
 
-  # gradients contains derivatives of each hyperbolic variable
-  gradients_primitive = convert_gradients_to_primitive(u, gradients, equations)
-  _, dv1dx, dv2dx, dTdx = gradients_primitive[1]
-  _, dv1dy, dv2dy, dTdy = gradients_primitive[2]
+  rho, v1, v2, _ = u
 
   # Components of viscous stress tensor
 
@@ -232,11 +230,11 @@ end
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
-@inline function convert_gradients_to_primitive(u, gradients, ::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
-  return gradients
+@inline function convert_derivative_to_primitive(u, gradient, ::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+  return gradient
 end
 
-@inline function convert_gradients_to_primitive(u, gradient_entropy_vars,
+@inline function convert_derivative_to_primitive(u, gradient_entropy_vars,
                                                 equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
   rho, rho_v1, rho_v2, _ = u
 

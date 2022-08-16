@@ -26,10 +26,10 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{2}, equations_parabolic::Abstra
     gradients, u_transformed, t, mesh, equations_parabolic, boundary_conditions_parabolic, dg,
     cache, cache_parabolic)
 
-  # Convert the gradients to a form more suitable for viscous flux calculations
-  # TODO: parabolic; entropy stable viscous terms
-  @trixi_timeit timer() "transform gradients" transform_gradients!(
-    gradients, u, mesh, equations_parabolic, dg, parabolic_scheme, cache, cache_parabolic)
+  # # Convert the gradients to a form more suitable for viscous flux calculations
+  # # TODO: parabolic; entropy stable viscous terms
+  # @trixi_timeit timer() "transform gradients" transform_gradients!(
+  #   gradients, u, mesh, equations_parabolic, dg, parabolic_scheme, cache, cache_parabolic)
 
   # Compute and store the viscous fluxes
   @trixi_timeit timer() "calculate viscous fluxes" calc_viscous_fluxes!(
