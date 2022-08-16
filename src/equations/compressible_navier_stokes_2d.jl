@@ -123,10 +123,10 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
   p_inf = 1 / gamma
   u_inf = Mach_freestream
   R     = 1 / gamma
-  CompressibleNavierStokesDiffusion2D{typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                                        Re, Pr, Ma, kappa,
-                                                                        p_inf, u_inf, R,
-                                                                        equations, gradient_variables)
+  CompressibleNavierStokesDiffusion2D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
+                                                                                                    Re, Pr, Ma, kappa,
+                                                                                                    p_inf, u_inf, R,
+                                                                                                    equations, gradient_variables)
 end
 
 # TODO: parabolic
