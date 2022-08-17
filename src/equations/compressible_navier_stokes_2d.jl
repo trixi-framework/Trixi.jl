@@ -420,7 +420,7 @@ end
   return SVector(w_inner[1], -v1 * w4, -v2 * w4, w4)
 end
 
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Isothermal})(flux_inner, u_inner, normal::AbstractVector,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Isothermal})(flux_inner, w_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Divergence,
                                                                                            equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
   return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
