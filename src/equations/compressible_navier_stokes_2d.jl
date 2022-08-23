@@ -211,31 +211,12 @@ end
   return SVector(rho, v1, v2, T)
 end
 
-
 # Convert conservative variables to entropy
-# Note, only w_2, w_3, w_4 are needed for the viscous fluxes so we avoid computing
-# w_1 and simply copy over rho.
-# TODO: parabolic; entropy stable viscous terms
-# NOTE: this is not the same as `cons2entropy` for CompressibleEulerEquations2D,
-# since it only computes w2, w3, w4 using the actual entropy variable formulas.
-@inline function cons2entropy(u, equations::CompressibleNavierStokesDiffusion2D)
-  rho, rho_v1, rho_v2, rho_e = u
-
-  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
-
-  return SVector(rho, rho_v1 / p, rho_v2 / p, -rho / p)
-end
-
-@inline function entropy2cons(w, equations::CompressibleNavierStokesDiffusion2D)
-  rho, w2, w3, w4 = w
-
-  p = -rho / w4
-  rho_v1 = w2 * p
-  rho_v2 = w3 * p
-  rho_e = p / (equations.gamma - 1) + 0.5 * (rho_v1^2 + rho_v2^2) / rho
-
-  return SVector(rho, rho_v1, rho_v2, rho_e)
-end
+# TODO: parabolic. We can improve efficiency by not computing w_1, which involves logarithms
+# This can be done by specializing `cons2entropy` and `entropy2cons` to `CompressibleNavierStokesDiffusion2D`,
+# but this may be confusing to new users.
+cons2entropy(u, equations::CompressibleNavierStokesDiffusion2D) = cons2entropy(u, equations.equations_hyperbolic)
+entropy2cons(w, equations::CompressibleNavierStokesDiffusion2D) = entropy2cons(w, equations.equations_hyperbolic)
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
 # For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
