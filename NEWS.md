@@ -9,7 +9,7 @@ for human readability.
 
 #### Added
 
-- Support for 2D parabolic diffusion terms has been added.
+- Experimental support for 2D parabolic diffusion terms has been added.
   * `LaplaceDiffusion2D` and `CompressibleNavierStokesDiffusion2D` can be used to add
   diffusion to systems. `LaplaceDiffusion2D` can be used to add scalar diffusion to each
   equation of a system, while `CompressibleNavierStokesDiffusion2D` can be used to add
