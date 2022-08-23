@@ -23,6 +23,8 @@ for human readability.
   * `CompressibleNavierStokesDiffusion2D` can utilize both primitive variables (which are not
   guaranteed to provably dissipate entropy) and entropy variables (which provably dissipate
   entropy at the semi-discrete level).
+  * Please check the `examples` directory for further information about the supported setups.
+    Further documentation will be added later.
 - Numerical fluxes `flux_shima_etal_turbo` and `flux_ranocha_turbo` that are
   equivalent to their non-`_turbo` counterparts but may enable specialized
   methods making use of SIMD instructions to increase runtime efficiency
