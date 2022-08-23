@@ -219,7 +219,11 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
     du_ode = first(get_tmp_cache(integrator))
-    @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
+    # `integrator.f` is usually just a call to `rhs!`
+    # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
+    # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
+    # hyperbolic-parabolic systems.
+    @notimeit timer() integrator.f(du_ode, integrator.u, semi, t)
     u  = wrap_array(integrator.u, mesh, equations, solver, cache)
     du = wrap_array(du_ode,       mesh, equations, solver, cache)
     l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
