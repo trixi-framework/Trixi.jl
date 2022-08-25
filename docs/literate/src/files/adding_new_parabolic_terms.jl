@@ -117,7 +117,7 @@ end
 # Note that we use `BoundaryConditionConstantDirichlet` only for the parabolic boundary
 # conditions, since we have not defined its behavior for the hyperbolic part.
 
-using StaticArrays: SMatrix
+using Trixi: SMatrix
 diffusivity = 5e-2 * SMatrix{2, 2}([2 -1; -1 2])
 equations_parabolic = ConstantAnisotropicDiffusion2D(diffusivity, equations_hyperbolic);
 
