@@ -11,6 +11,8 @@ using Trixi
 advection_velocity = (1.0, 1.0)
 equations_hyperbolic = LinearScalarAdvectionEquation2D(advection_velocity);
 
+# ## Define a new parabolic equation type
+#
 # Next, we define a 2D parabolic diffusion term type. This is similar to [`LaplaceDiffusion2D`](@ref)
 # except that the `diffusivity` field refers to a spatially constant diffusivity matrix now. Note that
 # `ConstantAnisotropicDiffusion2D` has a field for `equations_hyperbolic`. It is useful to have
