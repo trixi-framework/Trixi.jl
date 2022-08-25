@@ -39,7 +39,7 @@ files = [
     # Topic: equations
     "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
-    "Adding parabolic terms" => "adding_parabolic_terms.jl",
+    "Parabolic terms" => "parabolic_terms.jl",
     # Topic: meshes
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
