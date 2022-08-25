@@ -16,7 +16,7 @@ advection_velocity = (1.5, 1.0)
 equations_hyperbolic = LinearScalarAdvectionEquation2D(advection_velocity);
 
 # Next, we define the parabolic diffusion term. The constructor requires knowledge of
-# `equations_hyperbolic` to be passed in because the `LaplaceDiffusion2D` applies
+# `equations_hyperbolic` to be passed in because the [`LaplaceDiffusion2D`](@ref) applies
 # diffusion to every variable of the hyperbolic system.
 
 diffusivity = 5.0e-2
@@ -60,8 +60,8 @@ initial_condition = (x, t, equations) -> SVector(0.0);
 
 # ## Semidiscretizing and solving
 
-# To semidiscretize a hyperbolic-parabolic system, we create a `SemidiscretizationHyperbolicParabolic`.
-# This differs from a `SemidiscretizationHyperbolic` in that we pass in a `Tuple` containing both the
+# To semidiscretize a hyperbolic-parabolic system, we create a [`SemidiscretizationHyperbolicParabolic`](@ref).
+# This differs from a [`SemidiscretizationHyperbolic`](@ref) in that we pass in a `Tuple` containing both the
 # hyperbolic and parabolic equation, as well as a `Tuple` containing the hyperbolic and parabolic
 # boundary conditions.
 
