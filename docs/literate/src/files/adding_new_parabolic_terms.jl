@@ -33,7 +33,7 @@ varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiffusion2D) 
 # \partial_t u(t,x) + \partial_x (f_x(u) - g_x(u, \nabla u))
 #                   + \partial_y (f_y(u) - g_y(u, \nabla u)) = 0
 # ```
-# where ``f_x(u)``, ``f_y(u)`` are the hyperbolic fluxes and ``g_x(u, \nabla u)``, ``g_y(u, \nabla u)`` denote
+# where ``f_1(u)``, ``f_2(u)`` are the hyperbolic fluxes and ``g_1(u, \nabla u)``, ``g_2(u, \nabla u)`` denote
 # the viscous fluxes. For anisotropic diffusion, the viscous fluxes are the first and second components
 # of the matrix-vector product involving `diffusivity` and the gradient vector.
 #
@@ -56,7 +56,7 @@ end
 # ```math
 # \begin{aligned}
 # \bm{q} &= \nabla u \\
-# \bm{\sigma} &= \begin{pmatrix} g_x(u, \bm{q}) \\ g_y(u, \bm{q}) \end{pmatrix} \\
+# \bm{\sigma} &= \begin{pmatrix} g_1(u, \bm{q}) \\ g_2(u, \bm{q}) \end{pmatrix} \\
 # \text{viscous contribution } &= \nabla \cdot \bm{\sigma}
 # \end{aligned}
 # ```
@@ -75,7 +75,7 @@ end
 # This boundary condition contains only the field `boundary_value`, which we assume to be some
 # real-valued constant which we will impose as the Dirichlet data on the boundary.
 #
-# Boundary conditions have generally been defined as "callable structs" (also known as "functors).
+# Boundary conditions have generally been defined as "callable structs" (also known as "functors").
 # For each boundary condition, we need to specify the appropriate boundary data to return for both
 # the `Gradient` and `Divergence`. Since the gradient is operating on the solution `u`, the boundary
 # data should be the value of `u`, and we can directly impose Dirichlet data.
@@ -112,7 +112,7 @@ end
 #
 # Finally, we can instantiate our new parabolic equation type, define boundary conditions,
 # and run a simulation. The specific anisotropic diffusion matrix we use produces more
-# dissipation in the direction (1, -1) than an isotropic diffusion.
+# dissipation in the direction ``(1, -1)`` as an isotropic diffusion.
 #
 # For boundary conditions, we impose that ``u=1`` on the left wall, ``u=2`` on the bottom
 # wall, and ``u = 0`` on the outflow walls. The initial condition is taken to be ``u = 0``.
@@ -120,7 +120,7 @@ end
 # conditions, since we have not defined its behavior for the hyperbolic part.
 
 using Trixi: SMatrix
-diffusivity = 5e-2 * SMatrix{2, 2}([2 -1; -1 2])
+diffusivity = 5.0e-2 * SMatrix{2, 2}([2 -1; -1 2])
 equations_parabolic = ConstantAnisotropicDiffusion2D(diffusivity, equations_hyperbolic);
 
 boundary_conditions_hyperbolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(1.0)),
