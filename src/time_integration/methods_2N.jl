@@ -76,7 +76,7 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegrator2NOptions}
+mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegrator2NOptions}
   u::uType #
   du::uType
   u_tmp::uType
@@ -86,6 +86,7 @@ mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIn
   iter::Int # current number of time steps (iteration)
   p::Params # will be the semidiscretization from Trixi
   sol::Sol # faked
+  f::F
   alg::Alg
   opts::SimpleIntegrator2NOptions
   finalstep::Bool # added for convenience
@@ -109,7 +110,7 @@ function solve(ode::ODEProblem, alg::T;
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
-                  (prob=ode,), alg,
+                  (prob=ode,), ode.f, alg,
                   SimpleIntegrator2NOptions(callback, ode.tspan; kwargs...), false)
 
   # initialize callbacks
@@ -149,7 +150,7 @@ function solve!(integrator::SimpleIntegrator2N)
     integrator.u_tmp .= 0
     for stage in eachindex(alg.c)
       t_stage = integrator.t + integrator.dt * alg.c[stage]
-      prob.f(integrator.du, integrator.u, prob.p, t_stage)
+      integrator.f(integrator.du, integrator.u, prob.p, t_stage)
 
       a_stage    = alg.a[stage]
       b_stage_dt = alg.b[stage] * integrator.dt
