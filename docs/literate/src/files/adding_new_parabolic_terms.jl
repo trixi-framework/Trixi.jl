@@ -123,16 +123,13 @@ using Trixi: SMatrix
 diffusivity = 5e-2 * SMatrix{2, 2}([2 -1; -1 2])
 equations_parabolic = ConstantAnisotropicDiffusion2D(diffusivity, equations_hyperbolic);
 
-u_left = 1.0
-u_bottom = 2.0
-
-boundary_conditions_hyperbolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(u_left)),
-                                    y_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(u_bottom)),
+boundary_conditions_hyperbolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(1.0)),
+                                    y_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(2.0)),
                                     y_pos = boundary_condition_do_nothing,
                                     x_pos = boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = (; x_neg = BoundaryConditionConstantDirichlet(u_left),
-                                   y_neg = BoundaryConditionConstantDirichlet(u_bottom),
+boundary_conditions_parabolic = (; x_neg = BoundaryConditionConstantDirichlet(1.0),
+                                   y_neg = BoundaryConditionConstantDirichlet(2.0),
                                    y_pos = BoundaryConditionConstantDirichlet(0.0),
                                    x_pos = BoundaryConditionConstantDirichlet(0.0));
 
