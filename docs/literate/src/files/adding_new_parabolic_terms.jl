@@ -30,8 +30,8 @@ varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiffusion2D) 
 # Next, we define the viscous flux function. We assume that the mixed hyperbolic-parabolic system
 # is of the form
 # ```math
-# \partial_t u(t,x) + \partial_x (f_x(u) - g_x(u, \nabla u))
-#                   + \partial_y (f_y(u) - g_y(u, \nabla u)) = 0
+# \partial_t u(t,x) + \partial_x (f_1(u) - g_1(u, \nabla u))
+#                   + \partial_y (f_2(u) - g_2(u, \nabla u)) = 0
 # ```
 # where ``f_1(u)``, ``f_2(u)`` are the hyperbolic fluxes and ``g_1(u, \nabla u)``, ``g_2(u, \nabla u)`` denote
 # the viscous fluxes. For anisotropic diffusion, the viscous fluxes are the first and second components
