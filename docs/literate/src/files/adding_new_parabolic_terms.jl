@@ -33,7 +33,7 @@ varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiffusion2D) 
 # \partial_t u(t,x) + \partial_x (f_x(u) - g_x(u, \nabla u))
 #                   + \partial_y (f_y(u) - g_y(u, \nabla u)) = 0
 # ```
-# where `f_x(u)`, `f_y(u)` are the hyperbolic fluxes and `g_x(u, \nabla u)`, `g_y(u, \nabla u)` denote
+# where ``f_x(u)``, ``f_y(u)`` are the hyperbolic fluxes and ``g_x(u, \nabla u)``, ``g_y(u, \nabla u)`` denote
 # the viscous fluxes. For anisotropic diffusion, the viscous fluxes are the first and second components
 # of the matrix-vector product involving `diffusivity` and the gradient vector.
 #
@@ -56,8 +56,8 @@ end
 # ```math
 # \begin{aligned}
 # \bm{q} &= \nabla u \\
-# \bm{sigma} &= \begin{pmatrix} g_x(u, \bm{q}) \\ g_y(u, \bm{q}) \end{pmatrix} \\
-# \text{viscous contribution } = \nabla \cdot \bm{\sigma}
+# \bm{\sigma} &= \begin{pmatrix} g_x(u, \bm{q}) \\ g_y(u, \bm{q}) \end{pmatrix} \\
+# \text{viscous contribution } &= \nabla \cdot \bm{\sigma}
 # \end{aligned}
 # ```
 #
