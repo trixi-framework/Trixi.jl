@@ -241,9 +241,9 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
     for j in 2:nnodes(dg), i in eachnode(dg)
       alpha2[i, j, element] = max(alpha[i, j-1, element], alpha[i, j, element])
     end
-    alpha1[1, :, element] .= zero(eltype(alpha1))
+    alpha1[1,            :, element] .= zero(eltype(alpha1))
     alpha1[nnodes(dg)+1, :, element] .= zero(eltype(alpha1))
-    alpha2[:, 1, element] .= zero(eltype(alpha2))
+    alpha2[:,            1, element] .= zero(eltype(alpha2))
     alpha2[:, nnodes(dg)+1, element] .= zero(eltype(alpha2))
   end
 

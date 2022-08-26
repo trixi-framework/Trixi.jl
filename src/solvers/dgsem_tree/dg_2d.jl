@@ -671,25 +671,32 @@ end
 
 @inline function antidiffusive_stage!(u_ode, u_old_ode, dt, semi, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack inverse_weights = solver.basis
-  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
 
   u_old = wrap_array(u_old_ode, mesh, equations, solver, cache)
   u     = wrap_array(u_ode,     mesh, equations, solver, cache)
 
   @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, cache)
-  @unpack alpha1, alpha2 = semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator
 
-  @threaded for element in eachelement(solver, cache)
+  perform_IDP_correction(u, dt, mesh, equations, solver, cache)
+
+  return nothing
+end
+
+@inline function perform_IDP_correction(u, dt, mesh::TreeMesh2D, equations, dg, cache)
+  @unpack inverse_weights = dg.basis
+  @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
+  @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+
+  @threaded for element in eachelement(dg, cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
     # Calculate volume integral contribution
-    # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
-    for j in eachnode(solver), i in eachnode(solver)
-      alpha_flux1     = (1.0 - alpha1[i,   j, element]) * get_node_vars(antidiffusive_flux1, equations, solver, i,   j, element)
-      alpha_flux1_ip1 = (1.0 - alpha1[i+1, j, element]) * get_node_vars(antidiffusive_flux1, equations, solver, i+1, j, element)
-      alpha_flux2     = (1.0 - alpha2[i,   j, element]) * get_node_vars(antidiffusive_flux2, equations, solver, i,   j, element)
-      alpha_flux2_jp1 = (1.0 - alpha2[i, j+1, element]) * get_node_vars(antidiffusive_flux2, equations, solver, i, j+1, element)
+    for j in eachnode(dg), i in eachnode(dg)
+      # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
+      alpha_flux1     = (1.0 - alpha1[i,   j, element]) * get_node_vars(antidiffusive_flux1, equations, dg, i,   j, element)
+      alpha_flux1_ip1 = (1.0 - alpha1[i+1, j, element]) * get_node_vars(antidiffusive_flux1, equations, dg, i+1, j, element)
+      alpha_flux2     = (1.0 - alpha2[i,   j, element]) * get_node_vars(antidiffusive_flux2, equations, dg, i,   j, element)
+      alpha_flux2_jp1 = (1.0 - alpha2[i, j+1, element]) * get_node_vars(antidiffusive_flux2, equations, dg, i, j+1, element)
 
       for v in eachvariable(equations)
         u[v, i, j, element] += dt * inverse_jacobian * (inverse_weights[i] * (alpha_flux1_ip1[v] - alpha_flux1[v]) +
