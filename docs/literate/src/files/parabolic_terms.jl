@@ -1,4 +1,4 @@
-#src # Adding parabolic terms (advection-diffusion).
+#src # Parabolic terms (advection-diffusion).
 
 # Experimental support for parabolic diffusion terms is available in Trixi.jl.
 # This demo illustrates parabolic terms for the advection-diffusion equation.
@@ -36,7 +36,7 @@ boundary_condition_zero_dirichlet = BoundaryConditionDirichlet((x, t, equations)
 
 boundary_conditions_hyperbolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 + 0.5 * x[2])),
                                     y_neg = boundary_condition_zero_dirichlet,
-                                    y_pos = boundary_condition_zero_dirichlet,
+                                    y_pos = boundary_condition_do_nothing,
                                     x_pos = boundary_condition_do_nothing)
 
 boundary_conditions_parabolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 + 0.5 * x[2])),
