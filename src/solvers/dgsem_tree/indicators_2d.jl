@@ -212,15 +212,15 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
   alpha .= 0.0 # TODO: Correct that we save only the alpha's of the last RK stage.
 
   indicator_IDP.IDPDensityTVD  &&
-    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, mesh, indicator_IDP, u_safe,        equations, dg, dt, cache)
+    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache)
   indicator_IDP.IDPPressureTVD &&
-    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, mesh, indicator_IDP, u_safe,        equations, dg, dt, cache)
+    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache)
   indicator_IDP.IDPPositivity  &&
-    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, mesh, indicator_IDP, u_safe,        equations, dg, dt, cache)
+    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache)
   indicator_IDP.IDPSpecEntropy &&
-    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, mesh, indicator_IDP, u_safe, u_safe, equations, dg, dt, cache)
+    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache)
   indicator_IDP.IDPMathEntropy &&
-    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, mesh, indicator_IDP, u_safe, u_safe, equations, dg, dt, cache)
+    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache)
 
   # Clip the maximum amount of FV allowed (default: alpha_maxIDP = 1.0)
   @unpack alpha_maxIDP = indicator_IDP
@@ -366,7 +366,7 @@ end
   end
 end
 
-@inline function IDP_densityTVD!(alpha, mesh, indicator_IDP, u_safe, equations, dg, dt, cache)
+@inline function IDP_densityTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache)
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   rho_min = var_bounds[1]
@@ -420,7 +420,7 @@ end
   return nothing
 end
 
-@inline function IDP_pressureTVD!(alpha, mesh, indicator_IDP, u_safe, equations, dg, dt, cache)
+@inline function IDP_pressureTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache)
   # IDP limiter for pressure based on
   # - Kuzmin et al. (2020). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
@@ -486,7 +486,7 @@ end
   return nothing
 end
 
-@inline function IDP_specEntropy!(alpha, mesh, indicator_IDP, u_safe, u_old, equations, dg, dt, cache)
+@inline function IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
@@ -500,7 +500,7 @@ end
       u_local = get_node_vars(u_safe, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
                           specEntropy_goal, specEntropy_dGoal_dbeta, specEntropy_initialCheck, standard_finalCheck,
-                          equations, dg, dt, cache, indicator_IDP)
+                          dt, mesh, equations, dg, cache, indicator_IDP)
     end
   end
 
@@ -511,7 +511,7 @@ specEntropy_goal(bound, u, equations) = bound - entropy_spec(u, equations)
 specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy_spec(u, equations), dt * antidiffusive_flux)
 specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_mathEntropy!(alpha, mesh, indicator_IDP, u_safe, u_old, equations, dg, dt, cache)
+@inline function IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
@@ -526,7 +526,7 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
       u_local = get_node_vars(u_safe, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
                           mathEntropy_goal, mathEntropy_dGoal_dbeta, mathEntropy_initialCheck, standard_finalCheck,
-                          equations, dg, dt, cache, indicator_IDP)
+                          dt, mesh, equations, dg, cache, indicator_IDP)
     end
   end
 
@@ -537,7 +537,7 @@ mathEntropy_goal(bound, u, equations) = bound - entropy_math(u, equations)
 mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy(u, equations), dt * antidiffusive_flux)
 mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_positivity!(alpha, mesh, indicator_IDP, u_safe, equations, dg, dt, cache)
+@inline function IDP_positivity!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
   @unpack positCorrFactor = indicator_IDP
@@ -621,7 +621,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
       # Perform Newton's bisection method to find new alpha
       newton_loops_alpha!(alpha, p_min[i, j, element], u_local, i, j, element,
                           pressure_goal, pressure_dgoal_dbeta, pressure_initialCheck, pressure_finalCheck,
-                          equations, dg, dt, cache, indicator_IDP)
+                          dt, mesh, equations, dg, cache, indicator_IDP)
     end
   end
 
@@ -635,7 +635,7 @@ pressure_finalCheck(bound, goal, newton_abstol) = (goal <= eps()) && (goal > -ma
 
 @inline function newton_loops_alpha!(alpha, bound, u_safe, i, j, element,
                                      goal_fct, dgoal_fct, initialCheck, finalCheck,
-                                     equations, dg, dt, cache, indicator_IDP)
+                                     dt, mesh, equations, dg, cache, indicator_IDP)
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   inverse_jacobian = cache.elements.inverse_jacobian[element]

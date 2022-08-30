@@ -16,7 +16,7 @@ function apply_smoothing!(mesh::StructuredMesh{2}, alpha, alpha_tmp, dg, cache)
   for element in eachelement(dg,cache)
     # Get neighboring element ids
     left  = cache.elements.left_neighbors[1, element]
-    lower = cache.elements.left_neighbors[2, element] 
+    lower = cache.elements.left_neighbors[2, element]
 
     # Apply smoothing
     alpha[left]     = max(alpha_tmp[left],    0.5 * alpha_tmp[element], alpha[left])

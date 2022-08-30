@@ -690,7 +690,6 @@ end
   @threaded for element in eachelement(dg, cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
-    # Calculate volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
       # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
       alpha_flux1     = (1.0 - alpha1[i,   j, element]) * get_node_vars(antidiffusive_flux1, equations, dg, i,   j, element)
