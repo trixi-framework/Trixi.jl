@@ -174,7 +174,7 @@ julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
 
-![image](https://user-images.githubusercontent.com/72009492/130952732-633159ff-c167-4d36-ba36-f2a2eac0a8d6.PNG)
+![image](https://user-images.githubusercontent.com/26361975/177492363-74cee347-7abe-4522-8b2d-0dfadc317f7e.png)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
@@ -269,6 +269,13 @@ mean      3.94      mean      3.94      mean      3.94      mean      3.93
 --------------------------------------------------------------------------------
 ```
 
+### Showcase of advanced features
+The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),
+originally given as part of JuliaCon 2022, outlines how to use Trixi for an adaptive simulation
+of the compressible Euler equations in two spatial dimensions on a complex domain. More details
+as well as code to run the simulation presented can be found at the
+[reproducibility repository](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
+for the presentation.
 
 ## Referencing
 If you use Trixi in your own research or write a paper using results obtained
