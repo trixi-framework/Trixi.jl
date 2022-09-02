@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  evaluate:
+  additional_invalidations:
     # Only run on PRs to the default branch.
     # In the PR trigger above branches can be specified only explicitly whereas this check should work for master, main, or any other default branch
     if: github.base_ref == github.event.repository.default_branch
