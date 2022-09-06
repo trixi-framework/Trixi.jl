@@ -390,7 +390,8 @@ end
                                                                                                 x, t, operator_type::Gradient,
                                                                                                 equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
-  return SVector(w_inner[1], -v1 * w_inner[4], -v2 * w_inner[4], w_inner[4])
+  negative_rho_inv_p = w_inner[4] # w_4 = -rho / p
+  return SVector(w_inner[1], -v1 * negative_rho_inv_p, -v2 * negative_rho_inv_p, negative_rho_inv_p)
 end
 
 # this is actually identical to the specialization for GradientVariablesPrimitive, but included for completeness.
