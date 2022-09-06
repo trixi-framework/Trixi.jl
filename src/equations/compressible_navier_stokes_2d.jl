@@ -373,16 +373,16 @@ end
 #             for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
 # DOI: 10.1016/j.jcp.2021.110723
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, w_inner, normal::AbstractVector,
-                                                                                           x, t, operator_type::Gradient,
-                                                                                           equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+                                                                                                x, t, operator_type::Gradient,
+                                                                                                equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   return SVector(w_inner[1], -v1 * w_inner[4], -v2 * w_inner[4], w_inner[4])
 end
 
 # this is actually identical to the specialization for GradientVariablesPrimitive, but included for completeness.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, w_inner, normal::AbstractVector,
-                                                                                           x, t, operator_type::Divergence,
-                                                                                           equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+                                                                                                x, t, operator_type::Divergence,
+                                                                                                equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
   normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x, t, equations)
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
@@ -391,8 +391,8 @@ end
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Isothermal})(flux_inner, w_inner, normal::AbstractVector,
-                                                                                           x, t, operator_type::Gradient,
-                                                                                           equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+                                                                                                 x, t, operator_type::Gradient,
+                                                                                                 equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t, equations)
 
