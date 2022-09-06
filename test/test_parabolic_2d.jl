@@ -134,6 +134,32 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
+  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (isothermal walls)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+      initial_refinement_level = 2, tspan=(0.0, 0.1),
+      heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x, t, equations), equations)),
+      l2 = [0.002103629650384378, 0.0034358439333976123, 0.0038673598780978413, 0.012670355349347209],
+      linf = [0.012006261793021222, 0.035502125190110666, 0.025107947320650532, 0.11647078036915026]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (Entropy gradient variables)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+      initial_refinement_level=2, tspan=(0,.1), gradient_variables=GradientVariablesEntropy(),
+      l2 = [0.002140374251726679, 0.0034258287094981717, 0.0038915122887464865, 0.012506862342821999],
+      linf = [0.012244412004805971, 0.035075591861236655, 0.02458089234452718, 0.11425600757951138]
+    )
+  end
+
+  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (Entropy gradient variables, isothermal walls)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+      initial_refinement_level=2, tspan=(0,.1), gradient_variables=GradientVariablesEntropy(),
+      heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x, t, equations), equations)),
+      l2 = [0.002134973734788134, 0.0034301388278191753, 0.0038928324474145994, 0.012693611436279086],
+      linf = [0.012244236275815057, 0.035054066314196344, 0.02509959850525358, 0.1179561632485715]
+    )
+  end
+
   @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (flux differencing)" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
