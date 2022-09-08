@@ -16,8 +16,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_advection_gauss_sbp.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_gauss_sbp.jl"),
       cells_per_dimension = (8,),
-      l2 = [3.9931505151015453e-5],
-      linf = [8.125663733915545e-5]
+      l2 = [2.9953644500009865e-5],
+      linf = [4.467840577382365e-5]
     )
   end
 
