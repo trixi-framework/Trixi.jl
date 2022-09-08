@@ -313,8 +313,7 @@ end
 # for VolumeIntegralWeakForm yet.
 function DGMulti(element_type::Union{Quad, Hex},
                  approximation_type::GaussSBP,
-                 volume_integral::VolumeIntegralFluxDifferencing,
-                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
+                 volume_integral, surface_integral;
                  polydeg::Integer,
                  surface_flux=flux_central,
                  kwargs...)
