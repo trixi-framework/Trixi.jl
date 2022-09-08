@@ -157,6 +157,29 @@ function max_dt(u, t, mesh::DGMultiMesh,
   return 2 * dt_min / (polydeg + 1)
 end
 
+function max_dt(u, t, mesh::DGMultiMesh,
+                constant_speed::Val{true}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+
+  @unpack md = mesh
+  rd = dg.basis
+
+  dt_min = Inf
+  for e in eachelement(mesh, dg, cache)
+    h_e = StartUpDG.estimate_h(e, rd, md)
+    max_speeds = ntuple(_->nextfloat(zero(t)), NDIMS)
+    for i in Base.OneTo(rd.Np) # loop over nodes
+      max_speeds = max.(max_abs_speeds(equations), max_speeds)
+    end
+    dt_min = min(dt_min, h_e / sum(max_speeds))
+  end
+  # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+  # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+  # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+  # the number of 1D nodes for `DGSEM` solvers.
+  polydeg = rd.N
+  return 2 * dt_min / (polydeg + 1)
+end
+
 # interpolates from solution coefficients to face quadrature points
 # We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
