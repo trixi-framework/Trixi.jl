@@ -14,7 +14,7 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 surface_flux = FluxLaxFriedrichs()
 dg = DGMulti(polydeg = 3,
              element_type = Line(),
-             #approximation_type = GaussSBP(), # I want to use GaussSBP here,
+             approximation_type = GaussSBP(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = VolumeIntegralWeakForm())
 
