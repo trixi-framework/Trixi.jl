@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-#  setup the equations (for now just linear advection)
+#  setup the equations
 
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
