@@ -1,5 +1,6 @@
 @doc raw"""
-    CompressibleNavierStokesDiffusion2D(gamma, Re, Pr, Ma_inf, equations)
+    CompressibleNavierStokesDiffusion2D(gamma, Re, Pr, Ma_inf, equations,
+                                        gradient_variables=GradientVariablesPrimitive())
 
 These equations contain the diffusion (i.e. parabolic) terms applied
 to mass, momenta, and total energy together with the advective terms from
@@ -10,6 +11,8 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `Pr`: Prandtl number,
 - `Ma_inf`: free-stream Mach number
 - `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
+- `gradient_variables`: which variables the gradients are taken with respect to.
+                        Defaults to `GradientVariablesPrimitive()`.
 
 The particular form of the compressible Navier-Stokes implemented is
 ```math
