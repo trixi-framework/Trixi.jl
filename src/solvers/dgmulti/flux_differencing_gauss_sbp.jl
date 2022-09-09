@@ -308,13 +308,36 @@ end
   end
 end
 
-# Specialized constructor for GaussSBP approximation type on quad elements. Restricting to
-# VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
-# for VolumeIntegralWeakForm yet.
+function DGMulti(element_type::Line,
+                 approximation_type::GaussSBP,
+                 volume_integral, surface_integral;
+                 polydeg::Integer,
+                 surface_flux=flux_central,
+                 kwargs...)
+
+  # explicitly specify Gauss quadrature rule with polydeg+1 points
+  rd = RefElemData(element_type, Polynomial(), polydeg,
+                   quad_rule_vol=StartUpDG.gauss_quad(0, 0, polydeg),
+                   kwargs...)
+
+  # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
+  # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
+  # rd.approximationType manually so we can dispatch on the `GaussSBP` type.
+  # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
+  rd_gauss = @set rd.approximationType = GaussSBP()
+
+  # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
+  # the mesh is initialized, since the face interpolation operator is used for that.
+  return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
+end
+
+# Specialized constructor for GaussSBP approximation type on quad elements.
+# TODO: I believe this is restricted to `VolumeIntegralFluxDifferencing` for now
+# since there isn't a way to exploit this structure for VolumeIntegralWeakForm yet.
+
 function DGMulti(element_type::Union{Quad, Hex},
                  approximation_type::GaussSBP,
-                 volume_integral::VolumeIntegralFluxDifferencing,
-                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
+                 volume_integral, surface_integral;
                  polydeg::Integer,
                  surface_flux=flux_central,
                  kwargs...)
