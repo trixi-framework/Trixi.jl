@@ -1,110 +1,34 @@
-######################################
-#### Bilinear spline interpolation ###
-######################################
-function spline_interpolation(spline::BiLinSpline, tx, ty)
+# Based on https://hal.archives-ouvertes.fr/hal-03017566v1/document
 
-  # Local valriables
-  x  = spline.x
-  y  = spline.y
-  z  = spline.z
-  hx = spline.hx
-  hy = spline.hy
-  nx = length(x)
-  ny = length(y)
+#######################################
+### Bilinaer B Spline interpolation ###
+#######################################
 
-  # Get position of interpolation point in values
-  ix = max(1, min(searchsortedlast(x, tx), nx-1))
-  iy = max(1, min(searchsortedlast(y, ty), ny-1))
+function spline_interpolation(b_spline::BilinearBSpline, tx, ty)
 
-  # Calculate coefficients
-  aij =  z[iy     , ix   ]
-  bij = (z[iy    , (ix+1)] - aij)/hx[ix]
-  cij = (z[(iy+1), ix    ] - aij)/hy[iy]
-  dij = (z[(iy+1), (ix+1)] - aij - bij*hx[ix] - cij*hy[iy])/(hx[ix]*hy[iy])
+  x  = b_spline.x
+  y  = b_spline.y
+  hx = b_spline.hx
+  hy = b_spline.hy
+  Q  = b_spline.Q
+  IP = b_spline.IP
 
-  # Calculate interpolated value
-  interp_val = aij + bij*(tx-x[ix]) + cij*(ty-y[iy]) + dij*((tx-x[ix]) * (ty-y[iy]))
+  i = max(1, min(searchsortedlast(x, tx), length(x) - 1))
+  j = max(1, min(searchsortedlast(y, ty), length(y) - 1))
 
-  return interp_val
-end
+  my = (tx - x[i])/hx
+  ny = (ty - y[j])/hy
 
-#############################################
-#### Natural bicubic spline interpolation ###
-#############################################
-function spline_interpolation(spline::BiCubicSpline, tx, ty)
+  Q_temp = [Q[i, j:(j+1)] Q[(i+1), j:(j+1)]]
 
-  # Local valriables
-  x     = spline.x
-  y     = spline.y
-  z     = spline.z
-  fx    = spline.fx
-  fy    = spline.fy
-  fxy   = spline.fxy
-  nx    = length(x)
-  ny    = length(y)
+  S = [ny, 1]' * IP * Q_temp * IP' * [my, 1]
   
-  # Get position of interpolation point in values
-  ix = max(1, min(searchsortedlast(x, tx), nx-1))
-  iy = max(1, min(searchsortedlast(y, ty), ny-1))
-
-  # Get grid size
-  hx = x[ix+1] - x[ix]
-  hy = y[iy+1] - y[iy]
-
-  # Non derivative values
-  I00 = z[ iy   ,  ix   ]
-  I10 = z[ iy   , (ix+1)]
-  I01 = z[(iy+1),  ix   ]
-  I11 = z[(iy+1), (ix+1)]
-
-  # Horizontally derived values
-  Ix00 = fx[ iy   ,  ix   ] * hx
-  Ix10 = fx[ iy   , (ix+1)] * hx
-  Ix01 = fx[(iy+1),  ix   ] * hx
-  Ix11 = fx[(iy+1), (ix+1)] * hx
-
-  # Vertically derived values
-  Iy00 = fy[ iy   ,  ix   ] * hy
-  Iy10 = fy[ iy   , (ix+1)] * hy
-  Iy01 = fy[(iy+1),  ix   ] * hy
-  Iy11 = fy[(iy+1), (ix+1)] * hy
-
-  # Cross derived values
-  Ixy00 = fxy[ iy   ,  ix   ] * hx * hy
-  Ixy10 = fxy[ iy   , (ix+1)] * hx * hy
-  Ixy01 = fxy[(iy+1),  ix   ] * hx * hy
-  Ixy11 = fxy[(iy+1), (ix+1)] * hx * hy
-
-  # Target vector
-  beta = [I00, I10, I01, I11,
-          Ix00, Ix10, Ix01, Ix11,
-          Iy00, Iy10, Iy01, Iy11,
-          Ixy00, Ixy10, Ixy01, Ixy11]
-
-  # Coefficients
-  alpha = spline.M_inv*beta
-  coeff = reshape(alpha, (4,4))
-
-  # Normalize values
-  u = (tx-x[ix]) / hx
-  v = (ty-y[iy]) / hy
-
-  # Calculate interpolation values
-  interp_val = 0
-  for m in 0:3
-    for n in 0:3
-      interp_val += coeff[m+1,n+1] * (u^m) * (v^n)
-    end
-  end
-
-  return interp_val
+  return S
 end
 
 ######################################
 ### Bicubic B Spline interpolation ###
 ######################################
-
-# Based on https://hal.archives-ouvertes.fr/hal-03017566v1/document
 
 function spline_interpolation(b_spline::BicubicBSpline, tx, ty)
 

@@ -219,8 +219,7 @@ export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
 export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
 
 # Spline interpolation
-export lin_spline, quad_spline, cubic_spline, cubic_b_spline, bilin_spline, bicubic_spline, 
-       bicubic_b_spline, spline_interpolation
+export lin_b_spline, cubic_b_spline, bilin_b_spline, bicubic_b_spline, spline_interpolation
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
