@@ -19,7 +19,7 @@ equations = ShallowWaterEquations1D(gravity_constant=9.812, H0=2.0)
 bottom_topography(x) = (1.5 / exp( 0.5 * ((x - 1.0)^2) )+ 0.75 / exp(0.5 * ((x + 1.0)^2)))
 
 # Spline Interpolation
-spline          = cubic_b_spline(joinpath(examples_dir(), "tree_1d_dgsem_spline", "data_swe_wall.txt"); boundary = "not-a-knot")
+spline          = cubic_b_spline(joinpath(examples_dir(), "tree_1d_dgsem_spline_approx", "data_swe_wall2.txt"); boundary = "not-a-knot")
 spline_func(x)   = spline_interpolation(spline, x)
 
 function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations1D)
@@ -98,5 +98,5 @@ summary_callback() # print the timer summary
 # Gif code inspired by https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/
 using Plots
 @gif for step in 1:length(sol.u)
-    plot(sol.u[step], semi, ylim=(0, 3), legend=true, label="approximation", title="time t=$(round(sol.t[step], digits=5))")
+    plot(sol.u[step], semi, ylim=(0, 3), legend=false, title="time t=$(round(sol.t[step], digits=5))")
 end

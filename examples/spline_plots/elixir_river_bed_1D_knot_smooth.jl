@@ -11,8 +11,8 @@ using Plots
 λ = 10.0
 
 # Call the spline structure
-spline        = cubic_spline(joinpath("examples","spline_plots","Rhine_data_1D_100.txt"); boundary = "not-a-knot")
-spline_smooth = cubic_spline(joinpath("examples","spline_plots","Rhine_data_1D_100.txt"); boundary = "not-a-knot", smoothing_factor = λ)
+spline        = cubic_b_spline(joinpath("examples","spline_plots","Rhine_data_1D_100.txt"); boundary = "not-a-knot")
+spline_smooth = cubic_b_spline(joinpath("examples","spline_plots","Rhine_data_1D_100.txt"); boundary = "not-a-knot", smoothing_factor = λ)
 
 # Call the spline functions
 spline_func(x)        = spline_interpolation(spline       , x)

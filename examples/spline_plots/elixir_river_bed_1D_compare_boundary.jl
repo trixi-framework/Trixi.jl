@@ -7,8 +7,8 @@ using Trixi
 using Plots
 
 # Call the spline structure
-spline_nat  = cubic_spline(joinpath("examples","spline_plots","Rhine_data_1D_10.txt"))
-spline_knot = cubic_spline(joinpath("examples","spline_plots","Rhine_data_1D_10.txt"); boundary = "not-a-knot")
+spline_nat  = cubic_b_spline(joinpath("examples","spline_plots","Rhine_data_1D_10.txt"))
+spline_knot = cubic_b_spline(joinpath("examples","spline_plots","Rhine_data_1D_10.txt"); boundary = "not-a-knot")
 
 # Call the spline functions
 spline_func_nat(x)  = spline_interpolation(spline_nat , x)
