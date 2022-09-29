@@ -322,9 +322,9 @@ function DGMulti(element_type::Line,
 
   # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
   # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
-  # rd.approximationType manually so we can dispatch on the `GaussSBP` type.
+  # rd.approximation_type manually so we can dispatch on the `GaussSBP` type.
   # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
-  rd_gauss = @set rd.approximationType = GaussSBP()
+  rd_gauss = @set rd.approximation_type = GaussSBP()
 
   # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
   # the mesh is initialized, since the face interpolation operator is used for that.
@@ -354,9 +354,9 @@ function DGMulti(element_type::Union{Quad, Hex},
 
   # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
   # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
-  # rd.approximationType manually so we can dispatch on the `GaussSBP` type.
+  # rd.approximation_type manually so we can dispatch on the `GaussSBP` type.
   # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
-  rd_gauss = @set rd.approximationType = GaussSBP()
+  rd_gauss = @set rd.approximation_type = GaussSBP()
 
   # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
   # the mesh is initialized, since the face interpolation operator is used for that.
