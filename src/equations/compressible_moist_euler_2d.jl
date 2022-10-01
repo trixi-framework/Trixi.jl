@@ -471,22 +471,24 @@ end
 
 
 function initial_condition_gravity_wave(x, t, equations::CompressibleMoistEulerEquations2D)
-  @unpack p_0, kappa, g, c_pd, c_vd, R_d, R_v = equations
+  @unpack p_0, kappa, gamma, g, c_pd, c_vd, R_d, R_v = equations
   z = x[2]
-  theta_ref = 250
-  T_0 = 250
+  T_0 = 250.0
+  theta_0 = T_0
   N = g / sqrt(c_pd * T_0)
 
-  theta = T_0 * exp(N^2 *z / g)
-  p = p_0(1 + g^2 * inv(c_pd * T_0 * N^2) * (exp(-z * N^2 / g) - 1))^(- kappa)
-  rho = p_0 * inv(theta * R_d) * (p_0 / p)^(inv(gamma))
+  theta = theta_0 * exp(N^2 *z / g)
+  p = p_0*(1 + g^2 * inv(c_pd * theta_0 * N^2) * (exp(-z * N^2 / g) - 1))^(1/kappa)
+  # ??????????????
+  #rho = p_0 * inv(theta * R_d * (p / p_0)^(c_vd / c_pd))
+  rho = p / ((p / p_0)^kappa*R_d*theta)
   T = p / (R_d * rho)
 
   v1 = 20
   v2 = 0
-  rho_v1 = rho * v2
+  rho_v1 = rho * v1
   rho_v2 = rho * v2
-  rho_E = rho * c_vd * T + 1/2 * rho * (v1^2 + v2^2)
+  rho_E = rho * c_vd * T + 0.5 * rho * (v1^2 + v2^2)
   rho_qv = 0
   rho_ql = 0
   return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
@@ -1134,6 +1136,17 @@ end
   return SVector(rho, v1, v2, p, qv, ql)
 end
 
+@inline function cons2temp(u, equations::CompressibleMoistEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  T = get_current_condition(u, equations)[2]
+  qv = rho_qv / rho
+  ql = rho_ql / rho
+
+  return SVector(rho, v1, v2, T, qv, ql)
+end
+
 #TODO:
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
@@ -1254,6 +1267,7 @@ end
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
+  qv = rho_qv / rho
   ql = rho_ql / rho
   p, T = get_current_condition(u, equations)
  
@@ -1272,12 +1286,12 @@ end
   kappa_m =  R_m * inv(c_pml)
   pot = T * (p_0 / p)^(kappa_m)
 
-  pot1 = rho
-  pot2 = p
-  pot3 = T
-  pot4 = pot
+  pot1 = qv
+  pot2 = ql
+  pot3 = r_v + r_l
+  pot4 = T
   pot5 = H
-  pot6 = ql
+  pot6 = aequivalent_pottemp_thermodynamic(u, equations)
 
   return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
 end
@@ -1300,6 +1314,16 @@ end
   return rho_qv
 end
 
+@inline function saturation_pressure(u, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_v = equations
+  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
+  T = get_current_condition(u, equations)[2]
+  p_v = rho_qv * R_v * T
+  T_C = T - 273.15
+  p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
+  H = p_v / p_vs 
+  return H
+end
 
 @inline function density_liquid(u, equations::CompressibleMoistEulerEquations2D)
   rho_ql = u[6]
