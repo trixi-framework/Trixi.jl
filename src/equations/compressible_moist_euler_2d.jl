@@ -523,6 +523,65 @@ end
 end
 
 
+@inline function source_terms_raylight_sponge(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  @unpack g, Rain = equations
+  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  z = x[2]
+
+  # relaxed background velocity
+  vr1, vr2 = (20.0, 0.0)
+  # damping threshold
+  z_s = 25000.0
+  # boundary top
+  z_top = 30000.0
+  # positive even power with default value 2
+  gamma = 2.0
+  #relaxation coefficient > 0
+  alpha = 0.5
+
+  tau_s = zero(eltype(u))
+  if z > z_s 
+    tau_s = alpha * sin(0.5 * (z-z_s) * inv(z_top - z_s))^(gamma)
+  end
+
+  return SVector(zero(eltype(u)), 
+                 -tau_s * rho *(v1-vr1),
+                 -tau_s * rho *(v2-vr2),
+                 zero(eltype(u)), zero(eltype(u)), zero(eltype(u)))
+end
+
+
+@inline function source_terms_nonhydrostatic_raylight_sponge(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  z = x[2]
+
+  # relaxed background velocity
+  vr1, vr2 = (10.0, 0.0)
+  # damping threshold
+  z_s = 9000.0
+  # boundary top
+  z_top = 15000.0
+  # positive even power with default value 2
+  gamma = 2.0
+  #relaxation coefficient > 0
+  alpha = 0.5
+
+  tau_s = zero(eltype(u))
+  if z > z_s 
+    tau_s = alpha * sin(0.5 * (z-z_s) * inv(z_top - z_s))^(gamma)
+  end
+
+  return SVector(zero(eltype(u)), 
+                 -tau_s * rho *(v1-vr1),
+                 -tau_s * rho *(v2-vr2),
+                 zero(eltype(u)), zero(eltype(u)), zero(eltype(u)))
+end
+
+
 @inline function source_terms_moist_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
 
   return source_terms_geopotential(u, equations) + source_terms_phase_change(u, equations)
