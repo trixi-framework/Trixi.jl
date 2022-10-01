@@ -26,7 +26,7 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals, InitialEntropyStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -36,6 +36,7 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
   analysis_errors::Vector{Symbol}
   analysis_integrals::AnalysisIntegrals
   initial_state_integrals::InitialStateIntegrals
+  initial_entropy_state_integrals::InitialEntropyStateIntegrals
   cache::Cache
 end
 
@@ -105,6 +106,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
+                                       zero(uEltype),
                                        cache_analysis)
 
   DiscreteCallback(condition, analysis_callback,
@@ -116,10 +118,12 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
   initial_state_integrals = integrate(u_ode, semi)
+  initial_entropy_state_integrals = integrate(entropy,u_ode, semi)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
   analysis_callback = cb.affect!
   analysis_callback.initial_state_integrals = initial_state_integrals
+  analysis_callback.initial_entropy_state_integrals = initial_entropy_state_integrals
   @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
 
   if save_analysis && mpi_isroot()
@@ -301,6 +305,21 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         @printf("  % 10.8e", err)
         @printf(io, "  % 10.8e", err)
       end
+      println()
+    end
+  end
+
+
+  # Entropy conservation errror
+  if :entropy_conservation_error in analysis_errors
+    @unpack initial_entropy_state_integrals = analysis_callback
+    entropy_state_integrals = integrate(entropy, u_ode, semi)
+
+    if mpi_isroot()
+      print(" (∑S₀ - ∑S) / | ∑S₀ | : ")
+        err = (initial_entropy_state_integrals - entropy_state_integrals) / abs(initial_entropy_state_integrals)
+        @printf("  % 10.8e", err)
+        @printf(io, "  % 10.8e", err)
       println()
     end
   end
