@@ -22,10 +22,11 @@ struct CompressibleMoistEulerEquations2D{RealT<:Real} <: AbstractCompressibleMoi
   rho_w::RealT # massdensity of water
   L_00::RealT # latent evaporation heat at 0 K
   a::RealT
+  RainConst::RealT # Entropie correction Term
   Rain::Bool
 end
 
-function CompressibleMoistEulerEquations2D(;Rain=false, RealT=Float64)
+function CompressibleMoistEulerEquations2D(;g= 9.81, Rain=false, RealT=Float64)
    p_0 = 100000.0
    c_pd = 1004.0
    c_vd = 717.0
@@ -34,7 +35,6 @@ function CompressibleMoistEulerEquations2D(;Rain=false, RealT=Float64)
    c_vv = 1424.0
    R_v = c_pv-c_vv
    c_pl =  4186.0
-   g = 9.81
    gamma = c_pd / c_vd # = 1/(1 - kappa)
    kappa = 1 - inv(gamma)
    c_r = 130.0
@@ -42,15 +42,17 @@ function CompressibleMoistEulerEquations2D(;Rain=false, RealT=Float64)
    rho_w = 1000.0
    L_00 = 3147620.0
    a = 360.0
-   return CompressibleMoistEulerEquations2D{RealT}(p_0, c_pd, c_vd, R_d, c_pv, c_vv, R_v, c_pl,  g, kappa, gamma, c_r, N_0r, rho_w, L_00, a, Rain)
+   RainConst = - c_r * exp(2.45374) * inv(3) * inv(pi * rho_w * N_0r)
+   return CompressibleMoistEulerEquations2D{RealT}(p_0, c_pd, c_vd, R_d, c_pv, c_vv, R_v, c_pl,  g, kappa, gamma, c_r, N_0r, rho_w, L_00, a, RainConst, Rain)
   end
 
 
 varnames(::typeof(cons2cons), ::CompressibleMoistEulerEquations2D) = ("rho", "rho_v1", "rho_v2", "rho_E", "rho_qv", "rho_ql")
 varnames(::typeof(cons2prim), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "p", "qv", "ql")
+varnames(::typeof(cons2temp), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "T", "qv", "ql")
 varnames(::typeof(cons2drypot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "drypottemp", "qv", "ql")
 varnames(::typeof(cons2moistpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "moistpottemp", "qv", "ql")
-varnames(::typeof(cons2moist), ::CompressibleMoistEulerEquations2D) = ("rho", "p", "T", "moistpottemp", "H", "ql")
+varnames(::typeof(cons2moist), ::CompressibleMoistEulerEquations2D) = ("qv", "ql", "rt", "T", "H", "aeqpottemp")
 varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "aeqpottemp", "rv", "rt")
 
 
@@ -86,6 +88,7 @@ varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "
 end
 =#
 
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
   @unpack c_pl, Rain = equations
@@ -106,7 +109,7 @@ end
     W_f = fall_speed_rain(rho_ql, rho_ql, equations)
     f1 = rho_v2 + rho_ql * W_f 
     f2 = rho_v2 * v1 
-    f3 = rho_v2 * v2 + p + rho_ql * W_f * v2
+    f3 = rho_v2 * v2 + rho_ql * W_f * v2 + p
     f4 = (rho_E + p) * v2 + W_f * rho_ql * (c_pl * T + 0.5*(v1*v1 + v2*v2))
     f5 = rho_v2 * qv
     f6 = rho_v2 * ql + rho_ql * W_f   
@@ -123,22 +126,31 @@ end
 
 
 @inline function flux(u, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
-  rho_e = u[4]
-  rho, v1, v2, p, qv, ql = cons2prim(u, equations)
-
+  @unpack c_pl, R_d, R_v, Rain = equations
+  @unpack c_pl, Rain = equations
+  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  qv = rho_qv / rho
+  ql = rho_ql / rho
+  p, T = get_current_condition(u, equations)
   v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+  W_f = 0
+  if Rain
+    W_f = normal_direction[2] * fall_speed_rain(rho_ql, rho_ql, equations)
+  end
   rho_v_normal = rho * v_normal
-  f1 = rho_v_normal
-  f2 = rho_v_normal * v1 + p * normal_direction[1]
-  f3 = rho_v_normal * v2 + p * normal_direction[2]
-  f4 = (rho_e + p) * v_normal
+  f1 = rho_v_normal + rho_ql*W_f
+  f2 = (rho_v_normal ) * v1 + p * normal_direction[1]
+  f3 = (rho_v_normal + rho_ql*W_f) * v2 + p * normal_direction[2]
+  f4 = (rho_e + p) * v_normal + W_f * rho_ql * (c_pl * T + 0.5*(v1*v1 + v2*v2))
   f5 = rho_v_normal * qv 
-  f6 = rho_v_normal * ql
+  f6 = (rho_v_normal + rho*W_f) * ql 
   return SVector(f1, f2, f3, f4, f5, f6)
 end
 
 
-function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, x, t,
+@inline function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, x, t,
                                        surface_flux_function,
                                        equation::CompressibleMoistEulerEquations2D)
   if orientation == 1 # interface in x-direction
@@ -157,7 +169,8 @@ function boundary_condition_slip_wall(u_inner, orientation::Integer, direction, 
   return flux
 end
 
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
   surface_flux_function, equations::CompressibleMoistEulerEquations2D)
 
   norm_ = norm(normal_direction)
@@ -194,7 +207,7 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
 end
 
 
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
   surface_flux_function, equations::CompressibleMoistEulerEquations2D)
   # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
   # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
@@ -210,7 +223,7 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
 end
 
 
-@inline function rotate_to_x(u, normal_vector, equations::CompressibleMoistEulerEquations2D)
+@inline function rotate_to_x(u, normal_vector::AbstractVector, equations::CompressibleMoistEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
   c = normal_vector[1]
@@ -245,19 +258,8 @@ function solve_for_absolute_temperature(moist_state, H, equations, T_0)
 end
 
 
-function initial_condition_convergence_test(x, t, equations::CompressibleMoistEulerEquations2D)
+function initial_condition_convergence_test_dry(x, t, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
-  #T = 288
-  #tmp = 1
-  # solution of (1-qv-ql)*R_d + qv*R_v = T
-  #qv = 1/168
-  #ql = 1/8036
-
-  #qv = 1/132
-  #ql = 1/902
-  
-  #qv = 1/51
-  #ql = 1/119
 
   c = 2
   A = 0.1
@@ -266,13 +268,11 @@ function initial_condition_convergence_test(x, t, equations::CompressibleMoistEu
   ω = 2 * pi * f
   ini = c + A * sin(ω * (x[1] + x[2] - t))
 
-  #qv = 1/2
-  #ql = 1/10000
   qv = 0
   ql = 0
+
   mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
 
-  #T = (ini - 1) /mu  
   T = (ini - 1) / c_vd  
   E = (mu*T + qv*L_00 + 1)
 
@@ -287,20 +287,9 @@ function initial_condition_convergence_test(x, t, equations::CompressibleMoistEu
 end
 
 
-@inline function source_terms_convergence_test(u, x, t, equations::CompressibleMoistEulerEquations2D)
+@inline function source_terms_convergence_test_dry(u, x, t, equations::CompressibleMoistEulerEquations2D)
   # Same settings as in `initial_condition`
   @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
-  #T = 288
-  #tmp = 1
-  # solution of (1-q_v-q_l)*R_d + q_v*R_v = T 
-  #qv = 1/168
-  #ql = 1/8036
-
-  #qv = 1/132
-  #ql = 1/902
-
-  #qv = 1/51
-  #ql = 1/119
   c = 2
   A = 0.1
   L = 2
@@ -312,15 +301,13 @@ end
   rho = c + A * si
   rho_x = ω * A * co
   
-  #qv = 1/2
-  #ql = 1/10000
+
   qv = 0
   ql = 0
   mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
   xi = ((1 - qv - ql) * R_d + qv * R_v)
 
-  #T = (rho - 1) /mu  
-  #dT = rho_x / mu
+
   T = (rho - 1) / c_vd  
   dT = rho_x / c_vd
   E = (mu * T + qv * L_00 + 1)
@@ -328,31 +315,53 @@ end
   dp = xi * (T * rho_x + rho * dT)
   # Note that d/dt rho = -d/dx rho = -d/dy rho.
 
+  du1, du2, du3, du4, du5, du6 = source_terms_moist_bubble(u, x, t, equations)
 
-  du1 = rho_x
-  du2 = rho_x + dp
-  du3 = du2
-  du4 = dE + 2*dp
-  du5 = qv * du1
-  du6 = ql * du1
+
+  du1 += rho_x
+  du2 += rho_x + dp
+  du3 += du2
+  du4 += dE + 2*dp
+  du5 += qv * du1
+  du6 += ql * du1
 
   return SVector(du1, du2, du3, du4, du5, du6)
 end
 
-@inline function source_terms_convergence_test_rain(u, x, t, equations::CompressibleMoistEulerEquations2D)
+
+function initial_condition_convergence_test_moist(x, t, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
+
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  ini = c + A * sin(ω * (x[1] + x[2] - t))
+
+ 
+  qv = 1/L_00
+  ql = qv / 10
+
+  mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
+
+  T = (ini - 1) /mu + 10/c_vd
+  E = (mu*T + qv*L_00 + 1)
+
+  rho = ini
+  rho_v1 = ini
+  rho_v2 = ini
+  rho_e = E * ini
+  rho_qv = qv * ini 
+  rho_ql = ql * ini
+  
+  return SVector(rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql)
+end
+
+
+@inline function source_terms_convergence_test_all(u, x, t, equations::CompressibleMoistEulerEquations2D)
   # Same settings as in `initial_condition`
   @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00, c_r, N_0r, rho_w, Rain = equations
-  #T = 288
-  #tmp = 1
-  # solution of (1-q_v-q_l)*R_d + q_v*R_v = T 
-  #qv = 1/168
-  #ql = 1/8036
-
-  #qv = 1/132
-  #ql = 1/902
-
-  #qv = 1/51
-  #ql = 1/119
   c = 2
   A = 0.1
   L = 2
@@ -364,47 +373,98 @@ end
   rho = c + A * si
   rho_x = ω * A * co
   
-  #qv = 1/2
-  #ql = 1/10000
-  qv = 0
-  ql = 0
-  mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
+
+  qv = 1/L_00
+  ql = qv / 10
+  mu = ((1 - qv - ql) * c_vd + qv * c_vv + ql * c_pl)
   xi = ((1 - qv - ql) * R_d + qv * R_v)
 
-  #T = (rho - 1) /mu  
-  #dT = rho_x / mu
+
   T = (rho - 1) / c_vd  
   dT = rho_x / c_vd
   E = (mu * T + qv * L_00 + 1)
   dE = E * rho_x + rho * mu * dT
   dp = xi * (T * rho_x + rho * dT)
 
-  Rflux = 0
-  RfluxE = 0
 
-  if Rain
+  #Calculate Error in Sources with exact solution and u
+  u_exact = SVector(rho, rho, rho, rho*E, rho*qv, rho*ql) 
+
+  du1, du2, du3, du4, du5, du6 = ( source_terms_moist_bubble(u, x, t, equations) -
+                                   source_terms_moist_bubble(u_exact, x, t, equations))  
+  #du1, du2, du3, du4, du5, du6 = zeros(Float64, 6)                              
+  # Note that d/dt rho = -d/dx rho = -d/dy rho.
+  du1 += rho_x 
+  du2 += rho_x + dp
+  du3 += du2 
+  du4 += dE + 2*dp 
+  du5 += qv * rho_x
+  du6 += ql * rho_x 
+
+  return SVector(du1, du2, du3, du4, du5, du6)
+end
+
+
+@inline function source_terms_convergence_test_moist(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  # Same settings as in `initial_condition`
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00, c_r, N_0r, rho_w, Rain, g = equations
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  
+  x1, x2 = x
+  si, co = sincos(ω * (x1 + x2 - t))
+  rho = c + A * si
+  rho_x = ω * A * co
+  
+  
+  qv = 1/L_00
+  ql = qv/10 
+
+  mu = ((1 - qv - ql) * c_vd + qv * c_vv + ql * c_pl)
+  xi = ((1 - qv - ql) * R_d + qv * R_v)
+
+  T = (rho - 1) /mu + 10/c_vd
+  dT = rho_x / mu
+  
+  E = (mu * T + qv * L_00 + 1)
+  drhoE = E * rho_x + rho * mu * dT
+  dp = xi * (T * rho_x + rho * dT)
+
+  
     # Rain Term
     e_lp1 = c_pl * T + 1 
 
-    gm = exp(2.45374) # Gamma(4.5)
-    a = - c_r * gm * inv(6)
-    b = pi * rho_w * N_0r
+  #gm = exp(2.45374) # Gamma(4.5)
+  #a = - c_r * gm * inv(6)
+  #b = pi * rho_w * N_0r
 
-    Wf = a * (ql * rho / b)^(1/8)
-    dWf = a / (8 * b * (ql * rho / b)^(7/8)) * ql * rho_x
+  #Wf = a * (ql * rho / b)^(1/8)
+  #dWf = a / (8 * b * (ql * rho / b)^(7/8)) *  ql * rho_x
   
-    Rflux = rho * ql * dWf + ql * rho_x * Wf
+  #Rflux = rho * ql * dWf + ql * rho_x * Wf
+  #RfluxE = e_lp1 * Rflux + c_pl * dT * ql * rho * Wf
+
+
+  Wf = fall_speed_rain(rho*ql, rho*ql, equations)  
+  Rflux = 9/8 * Wf * ql * rho_x
     RfluxE = e_lp1 * Rflux + c_pl * dT * ql * rho * Wf
-  end
 
+  #Calculate Error in Sources with exact solution and u
+  u_exact = (rho, rho, rho, rho*E, rho*qv, rho*ql) 
+
+  du1, du2, du3, du4, du5, du6 = ( source_terms_rain(u, x, t, equations) -
+                                   source_terms_rain(u_exact, x, t, equations))  
+  #du1, du2, du3, du4, du5, du6 = zeros(Float64, 6)                              
   # Note that d/dt rho = -d/dx rho = -d/dy rho.
-
-  du1 = rho_x + Rflux
-  du2 = rho_x + dp
-  du3 = du2 + Rflux
-  du4 = dE + 2*dp + RfluxE
-  du5 = qv * rho_x
-  du6 = ql * rho_x + Rflux
+  du1 += rho_x + Rflux
+  du2 += rho_x + dp
+  du3 += du2 + Rflux
+  du4 += drhoE + 2*dp + RfluxE
+  du5 += qv * rho_x
+  du6 += ql * rho_x + Rflux
 
   return SVector(du1, du2, du3, du4, du5, du6)
 end
@@ -433,41 +493,18 @@ function initial_condition_gravity_wave(x, t, equations::CompressibleMoistEulerE
 end
 
 
-# Warm bubble test from paper:
-# Wicker, L. J., and W. C. Skamarock, 1998: A time-splitting scheme
-# for the elastic equations incorporating second-order Runge–Kutta
-# time differencing. Mon. Wea. Rev., 126, 1992–1999.
-function initial_condition_warm_bubble(x, t, equations::CompressibleMoistEulerEquations2D)
-  @unpack p_0, kappa, g, c_pd, c_vd, R_d, R_v = equations
-  xc = 0
-  zc = 2000
-  r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
-  rc = 2000
-  θ_ref = 300
-  Δθ = 0
-
-  if r <= rc
-     Δθ = 2 * cospi(0.5*r/rc)^2
+@inline function source_terms_geopotential(u, x, t, equations::CompressibleMoistEulerEquations2D)
+  @unpack g, Rain = equations
+  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
+  tmp = rho_v2
+  if Rain
+    W_f = fall_speed_rain(rho_ql, rho_ql, equations)
+    tmp += rho_ql * W_f
   end
 
-  #Perturbed state:
-  θ = θ_ref + Δθ # potential temperature
-  π_exner = 1 - g / (c_pd * θ) * x[2] # exner pressure
-  rho = p_0 / (R_d * θ) * (π_exner)^(c_vd / R_d) # density
-  p = p_0 * (1-kappa * g * x[2] / (R_d * θ_ref))^(c_pd / R_d)
-  T = p / (R_d * rho)
-
-  v1 = 0
-  v2 = 0
-  rho_v1 = rho * v1
-  rho_v2 = rho * v2
-  rho_E = rho * c_vd * T + 1/2 * rho * (v1^2 + v2^2)  
-  return SVector(rho, rho_v1, rho_v2, rho_E, zero(eltype(g)) ,zero(eltype(g)))
-end
-
-
-@inline function source_terms_warm_bubble(u, x, t, equations::CompressibleMoistEulerEquations2D)
-  return source_terms_geopotential(u, equations)
+  return SVector(zero(eltype(u)), zero(eltype(u)),
+                 -g * rho, -g * tmp, 
+                 zero(eltype(u)), zero(eltype(u)))
 end
 
 
@@ -515,12 +552,10 @@ end
   Q_v = ground_vapor_term(u, x, t, equations)
   _, T = get_current_condition(u, equations)
   K = 0.5 * (v1^2 + v2^2)
-  #phi = g * x[2]
-  phi = 0 
   h_v = c_pv * T + L_00
 
-  return SVector(Q_v, Q_v * v1, Q_v * v1,
-                 Q_v * (h_v + phi + K) , Q_v , zero(eltype(u)))
+  return SVector(Q_v, Q_v * v1, Q_v * v2,
+                 Q_v * (h_v  + K) , Q_v , zero(eltype(u)))
 end
 
 
@@ -1028,20 +1063,6 @@ end
 end
 
 
-@inline function max_abs_speeds(u, equations::CompressibleMoistEulerEquations2D)
-  rho, v1, v2, p, qv, ql = cons2prim(u, equations)
-  k = 1
-
-  if equations.Rain
-  Wf = fall_speed_rain(rho * ql, rho * ql, equations)
-  k += abs(Wf * v2)
-  end
-
-  c = sqrt(equations.gamma * p / rho)
-  return abs(v1) + c, abs(v2 * k) + c
-end
-
-
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
@@ -1100,7 +1121,6 @@ end
   return SVector(rho, rho_v1, rho_v2, rho_E, 0, 0)
 end
 
-
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::CompressibleMoistEulerEquations2D)
   rho, v1, v2, p, qv, ql = prim
@@ -1111,7 +1131,6 @@ end
   rho_E  = p * equations.inv_gamma_minus_one + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
   return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
 end
-
 
 @inline function cons2drypot(u, equations::CompressibleMoistEulerEquations2D)
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
@@ -1376,31 +1395,83 @@ end
   return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
 end
 
-
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
-# maximum velocity magnitude plus the maximum speed of sound
-# TODO: This doesn't really use the `orientation` - should it?
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
+  qd_ll = 1 - qv_ll - ql_ll
+  qd_rr = 1 - qv_rr - ql_rr  
+  # Get the density and gas gamma
+  gamma_ll = (qd_ll * c_pd + qv_ll * c_pv + ql_ll * c_pl) * inv(qd_ll * c_vd + qv_ll * c_vv + ql_ll * c_pl)
+  gamma_rr = (qd_rr * c_pd + qv_rr * c_pv + ql_rr * c_pl) * inv(qd_rr * c_vd + qv_rr * c_vv + ql_rr * c_pl)
 
-  # Calculate primitive variables and speed of sound
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
+
+  # Compute the sound speeds on the left and right
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-  p_ll = get_current_condition(u_ll, equations)[1]
-  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
+  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
-  p_rr = get_current_condition(u_rr, equations)[1]
-  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+  c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
+  rho_ll, v1_ll, v2_ll, p_ll, qv_ll, ql_ll = cons2prim(u_ll, equations)
+  rho_rr, v1_rr, v2_rr, p_rr, qv_rr, ql_rr = cons2prim(u_rr, equations)
+  qd_ll = 1 - qv_ll - ql_ll
+  qd_rr = 1 - qv_rr - ql_rr  
+  # Get the density and gas gamma
+  gamma_ll = (qd_ll * c_pd + qv_ll * c_pv ) * inv(qd_ll * c_vd + qv_ll * c_vv )
+  gamma_rr = (qd_rr * c_pd + qv_rr * c_pv ) * inv(qd_rr * c_vd + qv_rr * c_vv )
+  # Calculate normal velocities and sound speed
+  # left
+  v_ll = (  v1_ll * normal_direction[1]
+          + v2_ll * normal_direction[2] )
+  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+  # right
+  v_rr = (  v1_rr * normal_direction[1]
+          + v2_rr * normal_direction[2] )
+  c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+  return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction) 
+end
+
+@inline function max_abs_speeds(u, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_pd, c_pv, c_pl, c_vd, c_vv = equations
+  rho, v1, v2, p, qv, ql = cons2prim(u, equations)
+  qd = 1 - qv - ql 
+
+  gamma = (qd * c_pd + qv * c_pv ) * inv(qd * c_vd + qv * c_vv)
+  c = sqrt(gamma * p / rho)
+
+  return (abs(v1) + c, abs(v2) + c)
+end
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
+# TODO: This doesn't really use the `orientation` - should it?
+#@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
+#  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+#  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  # Calculate primitive variables and speed of sound
+#  v1_ll = rho_v1_ll / rho_ll
+#  v2_ll = rho_v2_ll / rho_ll
+#  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+#  p_ll = get_current_condition(u_ll, equations)[1]
+#  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+#  v1_rr = rho_v1_rr / rho_rr
+#  v2_rr = rho_v2_rr / rho_rr
+#  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
+#  p_rr = get_current_condition(u_rr, equations)[1]
+#  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+#  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+#end
+
+
+@inline function max_abs_speed_naive2(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
   return max_abs_speed_naive(u_ll, u_rr, 0, equations) * norm(normal_direction)
 end
 
