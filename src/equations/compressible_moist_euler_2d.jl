@@ -1078,23 +1078,44 @@ end
 #TODO:
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_pd, c_pv, c_pl, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
+  p, T = get_current_condition(u, equations)
   v_square = v1^2 + v2^2
-  p = (equations.gamma - 1) * (rho_E - 0.5 * rho * v_square)
+  rho_qd =rho-rho_qv-rho_ql
 
-  #s = log(p) - equations.gamma*log(rho)
-  s=0
-  rho_p = rho / p
+  # Thermodynamic entropy
+  s_d = 0
+  s_v = 0
+  s_l = 0
 
-  w1 = (equations.gamma - s) * inv(equations.gamma - 1) - 0.5 * rho_p * v_square
-  w2 = rho_p * v1
-  w3 = rho_p * v2
-  w4 = -rho_p
+  # Thermodynamic entropy
+  if(rho_qd > 2*eps())
+    s_d = c_pd*log(T) - R_d*log(rho_qd*R_d*T)
+  end
+  if(rho_qv > 2*eps())
+    s_v = c_pv*log(T) - R_v*log(rho_qv*R_v*T)
+  end
+  if(rho_ql > 2*eps())
+    s_l = c_pl*log(T)
+  end
 
-  return SVector(w1, w2, w3, w4, 0, 0)
+  g_d = (c_pd - s_d)*T
+  g_v = L_00 + (c_pv + R_v - s_v)*T
+  g_l = (c_pl - s_l)*T
+
+
+  w1 = g_d - 0.5 * v_square
+  w2 = v1
+  w3 = v2
+  w4 = -1
+  w5 = g_v-g_d
+  w6 = g_l-g_d
+
+  return inv(T) * SVector(w1, w2, w3, w4, w5, w6)
 end
 
 #TODO:
@@ -1257,13 +1278,24 @@ end
 #TODO:
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equations::CompressibleMoistEulerEquations2D)
+  @unpack c_vd, c_vv, c_pl, R_d, R_v = equations
   # Pressure
-  p = (equations.gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
-
+  p, T = get_current_condition(cons, equations)
+  rho_qd =cons[1]-cons[5]-cons[6]
+  rho_qv =cons[5]
+  rho_ql =cons[6]
+  s_d = s_v = s_l = zero(eltype(cons))
   # Thermodynamic entropy
-  s = log(p) - equations.gamma*log(cons[1])
-
-  return s
+  if(rho_qd > 2*eps())
+    s_d = c_vd*log(T) - R_d*log(rho_qd*R_d)
+  end
+  if(rho_qv > 2*eps())
+    s_v = c_vv*log(T) - R_v*log(rho_qv*R_v)
+  end
+  if(rho_ql > 2*eps())
+    s_l = c_pl*log(T)
+  end
+  return rho_qd*s_d + rho_qv*s_v + rho_ql*s_l
 end
 
 
@@ -1271,7 +1303,7 @@ end
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equations::CompressibleMoistEulerEquations2D)
   # Mathematical entropy
-  S = -entropy_thermodynamic(cons, equations) * cons[1] * equations.inv_gamma_minus_one
+  S = -entropy_thermodynamic(cons, equations) 
 
   return S
 end
@@ -1692,6 +1724,76 @@ end
    f6 = f1 * ql_avg
 
   return SVector(f1, f2, f3, f4, f5, f6)
+end
+
+
+
+@inline function flux_chandrashekar(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00, RainConst = equations
+  R_q = 0
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_E_ll, rho_qv_ll, rho_ql_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_E_rr, rho_qv_rr, rho_ql_rr = u_rr
+
+  rho_qd_ll = rho_ll - rho_qv_ll - rho_ql_ll
+  rho_qd_rr = rho_rr - rho_qv_rr - rho_ql_rr
+  v1_ll = rho_v1_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_ll = rho_v2_ll / rho_ll
+  v2_rr = rho_v2_rr / rho_rr
+
+  # inner energy
+  rho_e_ll = (rho_E_ll - 0.5 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll))
+  rho_e_rr = (rho_E_rr - 0.5 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr))
+
+  # Absolute Temperature
+  T_ll = (rho_e_ll - L_00 * rho_qv_ll) / (rho_qd_ll * c_vd + rho_qv_ll * c_vv + rho_ql_ll * c_pl)
+  T_rr = (rho_e_rr - L_00 * rho_qv_rr) / (rho_qd_rr * c_vd + rho_qv_rr * c_vv + rho_ql_rr * c_pl)
+
+  # Compute the necessary mean values
+  rho_qd_mean = 0
+  rho_qv_mean = 0
+  rho_ql_mean = 0
+  inv_T_mean = 0
+  if(!isapprox(rho_qd_ll, 0.0; atol=2*rho_ll*eps()) && !isapprox(rho_qd_rr, 0.0; atol=2*rho_rr*eps()))
+    rho_qd_mean = ln_mean(rho_qd_ll, rho_qd_rr)
+  end
+  if(!isapprox(rho_qv_ll, 0.0; atol=2*rho_ll*eps()) && !isapprox(rho_qv_rr, 0.0; atol=2*rho_rr*eps()))
+    rho_qv_mean = ln_mean(rho_qv_ll, rho_qv_rr)
+  end
+  if(!isapprox(rho_ql_ll, 0.0; atol=2*rho_ll*eps()) && !isapprox(rho_ql_rr, 0.0; atol=2*rho_rr*eps()))
+    rho_ql_mean = ln_mean(rho_ql_ll, rho_ql_rr)
+  end
+  if(!isapprox(inv(T_ll), 0.0; atol=2*eps()) && !isapprox(inv(T_rr), 0.0; atol=2*eps()))
+    inv_T_mean = inv_ln_mean(inv(T_ll), inv(T_rr))
+  end
+  
+  
+
+
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  v1_square_avg = 0.5 * (v1_ll^2 + v1_rr^2)
+  v2_square_avg = 0.5 * (v2_ll^2 + v2_rr^2)
+  rho_qd_avg = 0.5 * (rho_qd_ll + rho_qd_rr)
+  rho_qv_avg = 0.5 * (rho_qv_ll + rho_qv_rr)
+  rho_ql_avg = 0.5 * (rho_ql_ll + rho_ql_rr)
+  inv_T_avg  = 0.5 * (inv(T_ll) + inv(T_rr))
+  v_dot_n_avg = normal_direction[1]*v1_avg + normal_direction[2]*v2_avg
+
+  p_int = inv(inv_T_avg) * (R_d*rho_qd_avg + R_v*rho_qv_avg + R_q*rho_ql_avg) 
+  K_avg = 0.5 *(v1_square_avg + v2_square_avg)
+
+  f_1d = rho_qd_mean * v_dot_n_avg
+  f_1v = rho_qv_mean * v_dot_n_avg
+  f_1l = rho_ql_mean * v_dot_n_avg
+  f1 = f_1d + f_1v + f_1l
+  f2 = f1*v1_avg + normal_direction[1]*p_int
+  f3 = f1*v2_avg + normal_direction[2]*p_int
+  f4 = ((c_vd*inv_T_mean - K_avg) * f_1d + (L_00 + c_vv*inv_T_mean - K_avg) * f_1v +
+          (c_pl*inv_T_mean - K_avg) * f_1l + v1_avg*f2 + v2_avg*f3 )
+
+  return SVector(f1, f2, f3, f4, f_1v, f_1l)
 end
 
 
