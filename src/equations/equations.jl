@@ -270,7 +270,8 @@ Convert the conservative variables `u` based on a standard [`entropy`](@ref) to 
 potential temperature of `CompressibleDryEulerEquations` . The inverse conversion is
 performed by [`pot2cons`](@ref).
 """
-function cons2pot end
+
+function cons2temp end
 
 function cons2drypot end
 
