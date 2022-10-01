@@ -1381,16 +1381,21 @@ end
   @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, kappa, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = cons
   rho_d = rho - rho_qv - rho_ql
-  p, T, _, _, _, _ = get_moist_profile(cons, equations)
+  p, T = get_current_condition(cons, equations)
   p_v = rho_qv * R_v * T
   p_d = p - p_v
   T_C = T - 273.15
   p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
   H = p_v / p_vs
   r_v = rho_qv / rho_d
+  r_l = rho_ql / rho_d
+  r_t = r_v + r_l
+  L_v = L_00 + (c_pv - c_pl) * T
+  c_p = c_pd + r_t * c_pl
 
   #Aequivalentpotential temperature
-  aeq_pot = T * (p_0 / p_d)^( kappa) * H^(- r_v * R_v /c_pd) * exp((L_00 + (c_pv - c_pl) * T ) * (r_v / c_pd * T))
+  aeq_pot = (T * (p_0 / p_d)^(R_d / c_p) * H^(- r_v * R_v / c_p) *
+             exp(L_v * r_v * inv(c_p * T)))
 
   return aeq_pot
 end
