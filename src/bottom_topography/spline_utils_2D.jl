@@ -5,20 +5,19 @@
 # the corresponding values.
 function sort_data(x::Vector{Float64}, y::Vector{Float64}, z::Matrix{Float64})
 
-  zx          = transpose(z)
-  orig_data_x = hcat(x, zx)
-  sort_data_x = orig_data_x[sortperm(orig_data_x[:,1]), :]
+  zx              = transpose(z)
+  original_data_x = hcat(x, zx)
+  sorted_data_x   = original_data_x[sortperm(original_data_x[:,1]), :]
 
-  x_sorted = sort_data_x[:,1]
-  z_inter  = sort_data_x[:, 2:end]
+  x_sorted  = sorted_data_x[:,1]
+  z_interim = sorted_data_x[:, 2:end]
 
-  zy          = transpose(z_inter)
-  orig_data_y = hcat(y, zy)
-  sort_data_y = orig_data_y[sortperm(orig_data_y[:,1]), :]
+  zy              = transpose(z_interim)
+  original_data_y = hcat(y, zy)
+  sorted_data_y   = original_data_y[sortperm(original_data_y[:,1]), :]
 
-  y_sorted = sort_data_y[:,1]
-  z_temp   = sort_data_y[:,2:end]
-  z_sorted = z_temp
+  y_sorted = sorted_data_y[:,1]
+  z_sorted   = sorted_data_y[:,2:end]
   
   return x_sorted, y_sorted, Matrix(z_sorted)
 end
@@ -44,11 +43,11 @@ end
 # y = (y_1, y_2, ..., y_m)
 # z = (z_11, ..., z_1n;
 #      ...., ..., ....;
-#      z_m1, ..., z_mn)
+#      z_nm, ..., z_nm)
 # to control_points = (x_1, y_1, z_11;
-#                      x_2, y_1, z_12;
+#                      x_2, y_1, z_21;
 #                      ..., ..., ....;
-#                      x_n, y_m, z_mn)
+#                      x_n, y_m, z_nm)
 function restructure_data(x, y, z)
 
   x_mat = repeat(x, 1, length(y))
@@ -60,71 +59,65 @@ function restructure_data(x, y, z)
   y_vec = vec(reshape(y_mat', (p, 1)))
   z_vec = vec(reshape(z'    , (p, 1)))
 
-  control_points = [x_vec y_vec z_vec]
-
-  return control_points
-
+  return [x_vec y_vec z_vec]
 end
 
 # Thin plate spline approximation  
 # Based on:
 # Approximate Thin Plate Spline Mappings
 # by Gianluca Donato and Serge Belongie, 2002
-function calc_tps(λ, x, y, z)
+function calc_tps(lambda, x, y, z)
 
-  control_points = restructure_data(x,y,z)
+  restructured_data = restructure_data(x,y,z)
+  x_hat = restructured_data[:,1]
+  y_hat = restructured_data[:,2]
+  z_hat = restructured_data[:,3]
 
-  nx = length(x)
-  ny = length(y)
-  p  = length(z)
+  n = length(x)
+  m = length(y)
+  p = length(z)
 
-  mtx_l = zeros(p+3,p+3)
-  mtx_v = zeros(p+3,1)
-  grid  = zeros(nx, ny)
+  L   = zeros(p+3, p+3)
+  rhs = zeros(p+3, 1  )
+  H_f = zeros(p  , 1  )
 
-  # Fill K part of matrix A
-  a = 0
+  # Fill K part of matrix L
   for i in 1:p
     for j in (i+1):p
-      pt_i = control_points[i,1:2]
-      pt_j = control_points[j,1:2]
-      elen = norm(pt_i .- pt_j)
-      mtx_l[i,j]      = tps_base_func(elen)
-      mtx_l[j,i]      = tps_base_func(elen)
-      a = a + elen*2
+      p_i    = [x_hat[i], y_hat[i]]
+      p_j    = [x_hat[j], y_hat[j]]
+      U      = tps_base_func(norm(p_i .- p_j))
+      L[i,j] = U
+      L[j,i] = U
     end
   end
 
-  a = a/(p*p)
-
-  # Fill rest of matrix A
-  mtx_l[1:p,1:p] = mtx_l[1:p,1:p] + λ * (a*a) * diagm(ones(p))
+  # Fill rest of matrix L
+  L[1:p,1:p] = L[1:p,1:p] + lambda * diagm(ones(p))
   
-  mtx_l[1:p,p+1] = ones(p)
-  mtx_l[1:p,p+2] = control_points[:,1]
-  mtx_l[1:p,p+3] = control_points[:,2]
+  L[1:p,p+1] = ones(p)
+  L[1:p,p+2] = x_hat
+  L[1:p,p+3] = y_hat
 
-  mtx_l[p+1,1:p] = ones(p)
-  mtx_l[p+2,1:p] = control_points[:,1]
-  mtx_l[p+3,1:p] = control_points[:,2]
+  L[p+1,1:p] = ones(p)
+  L[p+2,1:p] = x_hat
+  L[p+3,1:p] = y_hat
 
   # Fill Vektor v
-  mtx_v[1:p,1] = control_points[1:p,3]
+  rhs[1:p,1] = z_hat
 
   # Calculate solution vector
-  lsg_vec = mtx_l\mtx_v
+  coeff = L\rhs
 
   # Fill matrix grid with smoothed z values
-  for i in 1:nx
-    for j in 1:ny
-      h = lsg_vec[p+1] + lsg_vec[p+2]*x[i] + lsg_vec[p+3]*y[j]
-      for k in 1:p
-        elen = norm(control_points[k,1:2] .- [x[i], y[j]])
-        h = h + lsg_vec[k] * tps_base_func(elen)
-      end
-      grid[j,i]= h
+  for i in 1:p
+    H_f[i] = coeff[p+1] + coeff[p+2]*x_hat[i] + coeff[p+3]*y_hat[i]
+    p_i    = [x_hat[i], y_hat[i]]
+    for k in 1:p
+      p_k    = [x_hat[k], y_hat[k]]
+      H_f[i] = H_f[i] + coeff[k] * tps_base_func(norm(p_i .- p_k))
     end
   end
 
-  return grid
+  return transpose(reshape(H_f, (n,m)))
 end

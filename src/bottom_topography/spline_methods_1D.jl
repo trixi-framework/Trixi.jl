@@ -9,11 +9,11 @@ function spline_interpolation(b_spline::LinearBSpline, t)
   IP = b_spline.IP
 
 
-  i = max(1, min(searchsortedlast(x, t), length(x) - 1))
+  i = max(1, min(searchsortedlast(x, t), length(x)-1))
 
-  chi = (t - x[i])/h
+  kappa = (t - x[i])/h
 
-  c = [chi, 1]' * IP * Q[i:(i+1)]
+  c = [kappa, 1]' * IP * Q[i:(i+1)]
 
   return c  
 end
@@ -29,9 +29,9 @@ function spline_interpolation(b_spline::CubicBSpline, t)
 
   i = max(1, min(searchsortedlast(x, t), length(x) - 1))
 
-  chi = (t - x[i])/h
+  kappa = (t - x[i])/h
 
-  c = 1/6 * [chi^3, chi^2, chi, 1]' * IP * Q[i:(i+3)]
+  c = 1/6 * [kappa^3, kappa^2, kappa, 1]' * IP * Q[i:(i+3)]
 
-  return c  
+  return c
 end
