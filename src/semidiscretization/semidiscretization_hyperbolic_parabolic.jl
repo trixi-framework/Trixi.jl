@@ -35,7 +35,7 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
   cache::Cache
   cache_parabolic::CacheParabolic
 
-  performance_counter::PerformanceCounter
+  performance_counter::PerformanceCounterList{2}
 
   function SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic, InitialCondition, BoundaryConditions, BoundaryConditionsParabolic, SourceTerms, Solver, SolverParabolic, Cache, CacheParabolic}(
       mesh::Mesh, equations::Equations, equations_parabolic::EquationsParabolic, initial_condition::InitialCondition,
@@ -45,7 +45,7 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
 
     # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
 
-    performance_counter = PerformanceCounter()
+    performance_counter = PerformanceCounterList{2}()
 
     new(mesh, equations, equations_parabolic, initial_condition,
         boundary_conditions, boundary_conditions_parabolic,
@@ -237,7 +237,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
   @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition,
                                     boundary_conditions, source_terms, solver, cache)
   runtime = time_ns() - time_start
-  put!(semi.performance_counter, runtime)
+  put!(semi.performance_counter.counters[1], runtime)
 
   return nothing
 end
@@ -254,7 +254,7 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
                                                         boundary_conditions_parabolic, source_terms,
                                                         solver, solver_parabolic, cache, cache_parabolic)
   runtime = time_ns() - time_start
-  put!(semi.performance_counter, runtime)
+  put!(semi.performance_counter.counters[2], runtime)
 
   return nothing
 end
