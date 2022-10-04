@@ -72,7 +72,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan)
   # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  return ODEProblem(rhs!, u0_ode, tspan, semi)
+  iip = true # is-inplace, i.e., we modify a vector when calling rhs!
+  return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
 end
 
 
@@ -88,7 +89,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::A
   # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  return ODEProblem(rhs!, u0_ode, tspan, semi)
+  iip = true # is-inplace, i.e., we modify a vector when calling rhs!
+  return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
 end
 
 
