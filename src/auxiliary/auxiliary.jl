@@ -64,7 +64,7 @@ struct PerformanceCounterList{N}
   counters::NTuple{N, PerformanceCounter}
 end
 
-function PerformanceCounterList{N}()
+function PerformanceCounterList{N}() where {N}
   counters = ntuple(_ -> PerformanceCounter(), Val{N}())
   return PerformanceCounterList{N}(counters)
 end
