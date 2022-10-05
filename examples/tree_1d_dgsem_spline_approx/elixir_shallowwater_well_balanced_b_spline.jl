@@ -77,6 +77,17 @@ ode = semidiscretize(semi, tspan)
 # In contrast to the usual signature of initial conditions, this one get passed the
 # `element_id` explicitly. In particular, this initial conditions works as intended
 # only for the TreeMesh1D with `initial_refinement_level=3`.
+
+# discontinuous bottom topography function
+disc_bottom_topography(x) = 2.0 + 0.5 * sin(2.0 * pi * x) 
+
+# Setting
+y_val_disc = disc_bottom_topography.(x_val)
+
+# Spline interpolation
+disc_spline         = cubic_b_spline(x_val, y_val_disc; boundary = "not-a-knot")
+disc_spline_func(x) = spline_interpolation(disc_spline, x)
+
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations1D)
   # Set the background values
   H = equations.H0
@@ -85,7 +96,7 @@ function initial_condition_discontinuous_well_balancedness(x, t, element_id, equ
 
   # Setup a discontinuous bottom topography using the element id number
   if element_id == 7
-    b = 2.0 + 0.5 * sin(2.0 * pi * x[1])
+    b = disc_spline_func(x[1])
   end
 
   return prim2cons(SVector(H, v, b), equations)
