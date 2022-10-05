@@ -297,17 +297,17 @@ end
 function Base.show(io::IO, mime::MIME"text/plain", rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
   @nospecialize rd
   print(io, "RefElemData for an approximation using an ")
-  show(IOContext(io, :compact => true), rd.approximationType)
+  show(IOContext(io, :compact => true), rd.approximation_type)
   print(io, " on $(rd.elementType) element")
 end
 
 function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
   @nospecialize rd
-  print(io, "RefElemData{", summary(rd.approximationType), ", ", rd.elementType, "}")
+  print(io, "RefElemData{", summary(rd.approximation_type), ", ", rd.elementType, "}")
 end
 
 function StartUpDG.inverse_trace_constant(rd::RefElemData{NDIMS, ElementType, ApproximationType})  where {NDIMS, ElementType<:Union{Line, Quad, Hex}, ApproximationType<:AbstractDerivativeOperator}
-  D = rd.approximationType
+  D = rd.approximation_type
 
   # the inverse trace constant is the maximum eigenvalue corresponding to
   #       M_f * v = λ * M * v
@@ -412,7 +412,7 @@ end
 # based on the reference grid provided by SummationByPartsOperators.jl and information about the domain size
 # provided by `md::MeshData``.
 function StartUpDG.estimate_h(e, rd::RefElemData{NDIMS, ElementType, ApproximationType}, md::MeshData)  where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:SummationByPartsOperators.AbstractPeriodicDerivativeOperator}
-  D = rd.approximationType
+  D = rd.approximation_type
   x = grid(D)
 
   # we assume all SummationByPartsOperators.jl reference grids are rescaled to [-1, 1]
