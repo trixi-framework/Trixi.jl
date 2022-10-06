@@ -1,5 +1,5 @@
 @doc raw"""
-    CompressibleNavierStokesDiffusion2D(gamma, Re, Pr, Ma_inf, equations,
+    CompressibleNavierStokesDiffusion2D(gamma, mu, Pr, R, equations,
                                         gradient_variables=GradientVariablesPrimitive())
 
 These equations contain the diffusion (i.e. parabolic) terms applied
@@ -7,9 +7,9 @@ to mass, momenta, and total energy together with the advective terms from
 the [`CompressibleEulerEquations2D`](@ref).
 
 - `gamma`: adiabatic constant,
-- `Re`: Reynolds number,
+- `mu`: viscosity,
 - `Pr`: Prandtl number,
-- `Ma_inf`: free-stream Mach number
+- `R`: gas constant
 - `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to `GradientVariablesPrimitive()`.
@@ -45,10 +45,10 @@ where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux i
 \nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
 where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
-Under the assumption that the gas has a constant Prandtl number
+Under the assumption that the gas has a constant Prandtl number,
 the thermal conductivity is
 ```math
-\kappa = \frac{\gamma \mu R}{(\gamma - 1)\textrm{Pr}}
+\kappa = \frac{\gamma \mu R}{(\gamma - 1)\textrm{Pr}}.
 ```
 
 In two spatial dimensions we require gradients for three quantities, e.g.,
@@ -65,24 +65,8 @@ where
 w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 ```
 
-For this particular scaling the vicosity is set internally to be μ = 1/Re.
-Further, the nondimensionalization takes the density-temperature-sound speed as
-the principle quantities such that
-```
-rho_inf = 1.0
-T_ref = 1.0
-c_inf = 1.0
-p_inf = 1.0 / gamma
-u_inf = Ma_inf
-R = 1.0 / gamma
-```
-
-Other normalization strategies exist, see the reference below for details.
-- Marc Montagnac (2013)
-  Variable Normalization (nondimensionalization and scaling) for Navier-Stokes
-  equations: a practical guide
-  [CERFACS Technical report](https://www.cerfacs.fr/~montagna/TR-CFD-13-77.pdf)
-The scaling used herein is Section 4.5 of the reference.
+#!!! warning "Experimental code"
+#    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesDiffusion{2, 4}
   # TODO: parabolic
@@ -90,14 +74,11 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <
   # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
-  Re::RealT                  # Reynolds number
-  Pr::RealT                  # Prandtl number
-  Ma_inf::RealT              # free-stream Mach number
-  kappa::RealT               # thermal diffusivity for Fick's law
 
-  p_inf::RealT               # free-stream pressure
-  u_inf::RealT               # free-stream velocity
-  R::RealT                   # gas constant (depends on nondimensional scaling!)
+  mu::RealT                  # viscosity
+  Pr::RealT                  # Prandtl number
+  R::RealT                   # gas constant
+  kappa::RealT               # thermal diffusivity for Fick's law
 
   equations_hyperbolic::E    # CompressibleEulerEquations2D
   gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -123,26 +104,19 @@ struct GradientVariablesEntropy end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
-                                             Reynolds, Prandtl, Mach_freestream,
+                                             viscosity, Prandtl, gas_constant = 287.058,
                                              gradient_variables = GradientVariablesPrimitive())
   gamma = equations.gamma
   inv_gamma_minus_one = equations.inv_gamma_minus_one
-  Re, Pr, Ma = promote(Reynolds, Prandtl, Mach_freestream)
+  mu, Pr, R = promote(viscosity, Prandtl, gas_constant)
 
   # Under the assumption of constant Prandtl number the thermal conductivity
   # constant is kappa = gamma μ R / ((gamma-1) Pr).
-  # Important note! Due to nondimensional scaling R = 1 / gamma, this constant
-  # simplifies slightly. Also, the factor of μ is accounted for later.
-  kappa = inv_gamma_minus_one / Pr
+  # Important note! Factor of μ is accounted for later in `flux`.
+  kappa = gamma * R * inv_gamma_minus_one / Pr
 
-  # From the nondimensionalization discussed above set the remaining free-stream
-  # quantities
-  p_inf = 1 / gamma
-  u_inf = Mach_freestream
-  R     = 1 / gamma
   CompressibleNavierStokesDiffusion2D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                                                                    Re, Pr, Ma, kappa,
-                                                                                                    p_inf, u_inf, R,
+                                                                                                    mu, Pr, R, kappa,
                                                                                                     equations, gradient_variables)
 end
 
@@ -159,15 +133,12 @@ varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusio
 gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive}) = cons2prim
 gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy}) = cons2entropy
 
-# Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
-# of the paper by Svärd, Carpenter and Nordström
-# "A stable high-order finite difference scheme for the compressible Navier–Stokes
-#  equations, far-field boundary conditions"
-# Although these authors use a different nondimensionalization so some constants are different
-# particularly for Fick's law.
-#
-# Note, could be generalized to use Sutherland's law to get the molecular and thermal
-# diffusivity
+
+# Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
+# of the paper by Rueda-Ramíreza, Hennemann, Hindenlang, Winters, and Gassner
+# "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
+#  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
+# where one sets the magnetic field components equal to 0.
 function flux(u, gradients, orientation::Integer, equations::CompressibleNavierStokesDiffusion2D)
   # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
   rho, v1, v2, _ = convert_transformed_to_primitive(u, equations)
@@ -188,13 +159,13 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
 
   # Fick's law q = -kappa * grad(T); constant is kappa = gamma μ R / ((gamma-1) Pr)
-  # Important note! Due to nondimensional scaling R = 1 / gamma, so the
-  # temperature T in the gradient computation already contains a factor of gamma
   q1 = equations.kappa * dTdx
   q2 = equations.kappa * dTdy
 
-  # kinematic viscosity is simply 1/Re for this nondimensionalization
-  mu = 1.0 / equations.Re
+  # Constant viscosity is copied to a variable for readibility.
+  # Offers flexibility for viscosity via Sutherland's law where it depends
+  # on temperature and reference values, Ts and Tref such that mu(T)
+  mu = equations.mu
 
   if orientation == 1
     # viscous flux components in the x-direction
