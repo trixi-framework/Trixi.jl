@@ -4,14 +4,14 @@ using Trixi
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-reynolds_number() = 100
 prandtl_number() = 0.72
+viscosity() = 0.01
 
 equations = CompressibleEulerEquations2D(1.4)
 # Note: If you change the Navier-Stokes parameters here, also change them in the initial condition
 # I really do not like this structure but it should work for now
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, Reynolds=reynolds_number(), Prandtl=prandtl_number(),
-                                                          Mach_freestream=0.5, gradient_variables=GradientVariablesPrimitive())
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, viscosity=viscosity(), Prandtl=prandtl_number(),
+                                                          gradient_variables=GradientVariablesPrimitive())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
@@ -52,7 +52,7 @@ end
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
   inv_gamma_minus_one = inv(equations.gamma - 1)
   Pr = prandtl_number()
-  Re = reynolds_number()
+  mu = viscosity()
 
   # Same settings as in `initial_condition`
   # Amplitude and shift
@@ -104,7 +104,6 @@ end
 
   # Some convenience constants
   T_const = equations.gamma * inv_gamma_minus_one / Pr
-  inv_Re = 1.0 / Re
   inv_rho_cubed = 1.0 / (rho^3)
 
   # compute the source terms
@@ -118,10 +117,10 @@ end
                                         + rho   * v1_y * v2
                                         + rho   * v1   * v2_y
     # stress tensor from x-direction
-                      - 4.0 / 3.0 * v1_xx * inv_Re
-                      + 2.0 / 3.0 * v2_xy * inv_Re
-                      - v1_yy             * inv_Re
-                      - v2_xy             * inv_Re )
+                      - 4.0 / 3.0 * v1_xx * mu
+                      + 2.0 / 3.0 * v2_xy * mu
+                      - v1_yy             * mu
+                      - v2_xy             * mu )
   # y-momentum equation
   du3 = ( rho_t * v2 + rho * v2_t + p_y + rho_x * v1    * v2
                                         + rho   * v1_x  * v2
@@ -129,39 +128,39 @@ end
                                         +         rho_y * v2^2
                                         + 2.0   * rho   * v2 * v2_y
     # stress tensor from y-direction
-                      - v1_xy             * inv_Re
-                      - v2_xx             * inv_Re
-                      - 4.0 / 3.0 * v2_yy * inv_Re
-                      + 2.0 / 3.0 * v1_xy * inv_Re )
+                      - v1_xy             * mu
+                      - v2_xx             * mu
+                      - 4.0 / 3.0 * v2_yy * mu
+                      + 2.0 / 3.0 * v1_xy * mu )
   # total energy equation
   du4 = ( E_t + v1_x * (E + p) + v1 * (E_x + p_x)
               + v2_y * (E + p) + v2 * (E_y + p_y)
     # stress tensor and temperature gradient terms from x-direction
-                                - 4.0 / 3.0 * v1_xx * v1   * inv_Re
-                                + 2.0 / 3.0 * v2_xy * v1   * inv_Re
-                                - 4.0 / 3.0 * v1_x  * v1_x * inv_Re
-                                + 2.0 / 3.0 * v2_y  * v1_x * inv_Re
-                                - v1_xy     * v2           * inv_Re
-                                - v2_xx     * v2           * inv_Re
-                                - v1_y      * v2_x         * inv_Re
-                                - v2_x      * v2_x         * inv_Re
+                                - 4.0 / 3.0 * v1_xx * v1   * mu
+                                + 2.0 / 3.0 * v2_xy * v1   * mu
+                                - 4.0 / 3.0 * v1_x  * v1_x * mu
+                                + 2.0 / 3.0 * v2_y  * v1_x * mu
+                                - v1_xy     * v2           * mu
+                                - v2_xx     * v2           * mu
+                                - v1_y      * v2_x         * mu
+                                - v2_x      * v2_x         * mu
          - T_const * inv_rho_cubed * (        p_xx * rho   * rho
                                       - 2.0 * p_x  * rho   * rho_x
                                       + 2.0 * p    * rho_x * rho_x
-                                      -       p    * rho   * rho_xx ) * inv_Re
+                                      -       p    * rho   * rho_xx ) * mu
     # stress tensor and temperature gradient terms from y-direction
-                                - v1_yy     * v1           * inv_Re
-                                - v2_xy     * v1           * inv_Re
-                                - v1_y      * v1_y         * inv_Re
-                                - v2_x      * v1_y         * inv_Re
-                                - 4.0 / 3.0 * v2_yy * v2   * inv_Re
-                                + 2.0 / 3.0 * v1_xy * v2   * inv_Re
-                                - 4.0 / 3.0 * v2_y  * v2_y * inv_Re
-                                + 2.0 / 3.0 * v1_x  * v2_y * inv_Re
+                                - v1_yy     * v1           * mu
+                                - v2_xy     * v1           * mu
+                                - v1_y      * v1_y         * mu
+                                - v2_x      * v1_y         * mu
+                                - 4.0 / 3.0 * v2_yy * v2   * mu
+                                + 2.0 / 3.0 * v1_xy * v2   * mu
+                                - 4.0 / 3.0 * v2_y  * v2_y * mu
+                                + 2.0 / 3.0 * v1_x  * v2_y * mu
          - T_const * inv_rho_cubed * (        p_yy * rho   * rho
                                       - 2.0 * p_y  * rho   * rho_y
                                       + 2.0 * p    * rho_y * rho_y
-                                      -       p    * rho   * rho_yy ) * inv_Re )
+                                      -       p    * rho   * rho_yy ) * mu )
 
   return SVector(du1, du2, du3, du4)
 end
