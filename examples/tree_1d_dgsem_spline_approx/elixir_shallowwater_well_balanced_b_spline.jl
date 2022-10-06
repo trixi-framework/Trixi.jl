@@ -1,11 +1,12 @@
-#######################################################################################
-# This example is equivalent to tree_1d_dgsem/elixir_shallowwater_well_balanced.jl,   #
-# but instead of a function for the bottom topography, this version uses a cubic      #
-# b spline interpolation with not-a-knot boundary condition to approximate the bottom #
-# topography                                                                          #
-#######################################################################################
+###############################################################################
+# This example is equivalent to                                               #
+# tree_1d_dgsem/elixir_shallowwater_well_balanced.jl, but instead of a        #
+# function for the bottom topography, this version uses a cubic B-spline      #
+# interpolation with not-a-knot boundary condition to approximate the bottom  #
+# topography. The interpolation points are provided via a gist                #                                                         
+###############################################################################
 
-
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -15,17 +16,17 @@ using Trixi
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81, H0=3.25)
 
-# bottom topography function
-bottom_topography(x) = (1.5 / exp( 0.5 * ((x - 1.0)^2) )+ 0.75 / exp(0.5 * ((x + 1.0)^2)))
-
-# Setting
-range_x         = [-1.0, 1.0]
-num_interp_val  = 10
-x_val           = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
-y_val           = bottom_topography.(x_val)
+###############################################################################
+# The data for the bottom topography is saved as a .txt-file in a gist.
+# To create the data, the following function
+# bottom_topography(x) = (1.5 / exp( 0.5 * ((x - 1.0)^2) )
+#                         + 0.75 / exp(0.5 * ((x + 1.0)^2)))
+# has been evaluated at 10 equally spaced points between [-1,1] and the
+# resulting values have been saved.
+spline_data_1 = download("https://gist.githubusercontent.com/maxbertrand1996/dd1dd6cd37ba134b3ec00ae548313181/raw/db2d418945e26e0bffe2aabc791b59612c17b292/data_swe_well_balanced_1D_1.txt")
 
 # Spline interpolation
-spline          = cubic_b_spline(x_val, y_val; boundary = "not-a-knot")
+spline          = cubic_b_spline(spline_data_1; boundary = "not-a-knot")
 spline_func(x)  = spline_interpolation(spline, x)
 
 # An initial condition with constant total water height and zero velocities to test well-balancedness.
@@ -68,24 +69,30 @@ tspan = (0.0, 100.0)
 ode = semidiscretize(semi, tspan)
 
 ###############################################################################
-# Workaround to set a discontinuous bottom topography and initial condition for debugging and testing.
+# Workaround to set a discontinuous bottom topography and initial condition for 
+# debugging and testing.
 
-# alternative version of the initial conditinon used to setup a truly discontinuous
-# bottom topography function for this academic testcase of well-balancedness.
-# The errors from the analysis callback are not important but the error for this lake at rest test case
-# `∑|H0-(h+b)|` should be around machine roundoff.
-# In contrast to the usual signature of initial conditions, this one get passed the
-# `element_id` explicitly. In particular, this initial conditions works as intended
-# only for the TreeMesh1D with `initial_refinement_level=3`.
+# alternative version of the initial conditinon used to setup a truly 
+# discontinuous bottom topography function for this academic testcase of 
+# well-balancedness.
+# The errors from the analysis callback are not important but the error for 
+# this lake at rest test case `∑|H0-(h+b)|` should be around machine roundoff.
+# In contrast to the usual signature of initial conditions, this one get 
+# passed the `element_id` explicitly. In particular, this initial conditions 
+# works as intended only for the TreeMesh1D with `initial_refinement_level=3`.
 
+###############################################################################
+# The data for the discountinuous part of the 
+# bottom topography is saved as a .txt-file in a gist.
+# To create the data, the following function
+# disc_bottom_topography(x) = 2.0 + 0.5 * sin(2.0 * pi * x)
+# has been evaluated at 10 equally spaced points between [-1,1] and the
+# resulting values have been saved.
 # discontinuous bottom topography function
-disc_bottom_topography(x) = 2.0 + 0.5 * sin(2.0 * pi * x) 
-
-# Setting
-y_val_disc = disc_bottom_topography.(x_val)
+spline_data_2 = download("https://gist.githubusercontent.com/maxbertrand1996/c88103c7cd0a4e52f79728f623aca1b4/raw/feb5d8f05f77d6d37517a5f2b6fc4d47ec3c1db5/data_swe_well_balanced_1D_2.txt")
 
 # Spline interpolation
-disc_spline         = cubic_b_spline(x_val, y_val_disc; boundary = "not-a-knot")
+disc_spline         = cubic_b_spline(spline_data_2; boundary = "not-a-knot")
 disc_spline_func(x) = spline_interpolation(disc_spline, x)
 
 function initial_condition_discontinuous_well_balancedness(x, t, element_id, equations::ShallowWaterEquations1D)

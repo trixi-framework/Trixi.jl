@@ -1,10 +1,12 @@
-#########################################################################################
-# This example is equivalent to tree_1d_dgsem/elixir_shallowwater_wall.jl,              #
-# but instead of a function for the bottom topography, this version uses a cubic        #
-# b spline interpolation with not-a-knot boundary condition to approximate the bottom   #
-# topography. Interpolation points are provided by a .txt file called data_swe_wall.txt #
-#########################################################################################
+###############################################################################
+# This example is equivalent to tree_1d_dgsem/elixir_shallowwater_wall.jl,    #            
+# but instead of a function for the bottom topography, this version uses a    #
+# cubic B-spline interpolation with not-a-knot boundary condition to          #
+# approximate the bottom topography. Interpolation points are provided        #
+# via a gist.                                                                 #
+###############################################################################
 
+using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -13,14 +15,18 @@ using Trixi
 
 equations = ShallowWaterEquations1D(gravity_constant=9.812, H0=2.0)
   
-# bottom bottom_topography function
-# This has been used to create the file "data_swe_wall" with 100 equally spaced data points 
-# in the x-direction
-bottom_topography(x) = (1.5 / exp( 0.5 * ((x - 1.0)^2) )+ 0.75 / exp(0.5 * ((x + 1.0)^2)))
+###############################################################################
+# The data for the bottom topography is saved as a .txt-file in a gist.
+# To create the data, the following function
+# bottom_topography(x) = (1.5 / exp( 0.5 * ((x - 1.0)^2))
+#                         + 0.75 / exp(0.5 * ((x + 1.0)^2)))
+# has been evaluated at 11 equally spaced points between [-5,5] and the
+# resulting values have been saved.
+spline_data    = download("https://gist.githubusercontent.com/maxbertrand1996/221adf82516b747457440c0217c1cc57/raw/82b2ac03d29613d5afc6cf3b17a5820dc38021ea/data_swe_wall_1D")
 
 # Spline Interpolation
-spline          = cubic_b_spline(joinpath(examples_dir(), "tree_1d_dgsem_spline_approx", "data_swe_wall2.txt"); boundary = "not-a-knot")
-spline_func(x)   = spline_interpolation(spline, x)
+spline         = cubic_b_spline(spline_data; boundary = "not-a-knot")
+spline_func(x) = spline_interpolation(spline, x)
 
 function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations1D)
     # Set up polar coordinates
@@ -95,7 +101,8 @@ sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-8, reltol=1.0e-8,
             callback=callbacks);
 summary_callback() # print the timer summary
 
-# Gif code inspired by https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/
+# Gif code inspired by 
+# https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/
 using Plots
 @gif for step in 1:length(sol.u)
     plot(sol.u[step], semi, ylim=(0, 3), legend=false, title="time t=$(round(sol.t[step], digits=5))")

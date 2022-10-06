@@ -122,3 +122,17 @@ function cubic_b_spline(x::Vector, y::Vector; boundary = "free", smoothing_facto
     @error("Only free and not-a-knot conditions are implemented!")
   end
 end
+
+# read from file
+function cubic_b_spline(path::String; boundary = "free", smoothing_factor = 0.0)
+
+  file = open(path)
+  lines = readlines(file)
+  close(file)
+
+  num_elements = parse(Int64,lines[2])
+  x = [parse(Float64, val) for val in lines[4:3+num_elements]]
+  y = [parse(Float64, val) for val in lines[5+num_elements:end]]
+
+  cubic_b_spline(x, y; boundary = boundary, smoothing_factor = smoothing_factor)
+end

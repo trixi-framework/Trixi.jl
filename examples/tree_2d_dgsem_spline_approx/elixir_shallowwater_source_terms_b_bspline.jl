@@ -25,10 +25,8 @@ x_val          = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
 y_val          = Vector(LinRange(range_y[1], range_y[2], num_interp_val))
 z_val          = zeros(num_interp_val, num_interp_val)
 
-for xi in 1:num_interp_val
-  for yi in 1:num_interp_val
-    z_val[yi, xi] = bottom_topography(x_val[xi], y_val[yi])
-  end
+for i in 1:num_interp_val, j in 1:num_interp_val
+  z_val[j, i] = bottom_topography(x_val[i], y_val[j])
 end
 
 # Spline interpolation

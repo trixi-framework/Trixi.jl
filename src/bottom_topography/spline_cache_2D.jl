@@ -350,9 +350,9 @@ function bicubic_b_spline(path::String; boundary = "free", smoothing_factor = 0.
   n = parse(Int64, lines[2])
   m = parse(Int64, lines[4])
   
-  x     = [parse(Float64, val) for val in lines[6      :5+n    ]]
-  y     = [parse(Float64, val) for val in lines[(7+n)  :(6+n+m)]]
-  z_tmp = [parse(Float64, val) for val in lines[(8+n+m):end    ]]
+  x     = [parse(Float64, val) for val in lines[6:(5+n)]]
+  y     = [parse(Float64, val) for val in lines[(7+n):(6+n+m)]]
+  z_tmp = [parse(Float64, val) for val in lines[(8+n+m):end]]
 
   z = transpose(reshape(z_tmp, (n, m)))
 

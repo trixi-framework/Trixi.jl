@@ -1,4 +1,4 @@
-# Helpfunctions for 2D spline interpolation
+# Help functions for 2D spline interpolation
 
 # Sort data to follow logic of the remaining code.
 # x and y are sorted ascending. The matrix z contains
