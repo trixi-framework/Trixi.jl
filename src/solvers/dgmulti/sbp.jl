@@ -400,7 +400,7 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
                 periodicity)
 
   boundary_faces = []
-  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces, true, "")
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).

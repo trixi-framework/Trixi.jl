@@ -84,8 +84,8 @@ end
 
 # now that `DGMulti` is defined, we can define constructors for `DGMultiMesh` which use `dg::DGMulti`
 
-function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces) where {NDIMS}
-  return DGMultiMesh{NDIMS, geometric_term_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS}, boundary_faces, unsaved_changes=true, current_filename="") where {NDIMS}
+  return DGMultiMesh{NDIMS, geometric_term_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces, unsaved_changes, current_filename)
 end
 
 # TODO: DGMulti, v0.5. These constructors which use `rd::RefElemData` are now redundant and can be removed.
@@ -211,7 +211,9 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
                      coordinates_min=ntuple(_ -> -one(real(dg)), NDIMS),
                      coordinates_max=ntuple(_ -> one(real(dg)), NDIMS),
                      is_on_boundary=nothing,
-                     periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+                     periodicity=ntuple(_ -> false, NDIMS), 
+                     unsaved_changes = true, 
+                     kwargs...) where {NDIMS}
 
   if haskey(kwargs, :is_periodic)
     # TODO: DGMulti. Deprecate `is_periodic` in version 0.5
