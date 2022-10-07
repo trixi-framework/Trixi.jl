@@ -54,7 +54,7 @@ end
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
   inv_gamma_minus_one = inv(equations.gamma - 1)
   Pr = prandtl_number()
-  mu = mu()
+  mu_ = mu()
 
   # Same settings as in `initial_condition`
   # Amplitude and shift
@@ -119,10 +119,10 @@ end
                                         + rho   * v1_y * v2
                                         + rho   * v1   * v2_y
     # stress tensor from x-direction
-                      - 4.0 / 3.0 * v1_xx * mu
-                      + 2.0 / 3.0 * v2_xy * mu
-                      - v1_yy             * mu
-                      - v2_xy             * mu )
+                      - 4.0 / 3.0 * v1_xx * mu_
+                      + 2.0 / 3.0 * v2_xy * mu_
+                      - v1_yy             * mu_
+                      - v2_xy             * mu_ )
   # y-momentum equation
   du3 = ( rho_t * v2 + rho * v2_t + p_y + rho_x * v1    * v2
                                         + rho   * v1_x  * v2
@@ -130,39 +130,39 @@ end
                                         +         rho_y * v2^2
                                         + 2.0   * rho   * v2 * v2_y
     # stress tensor from y-direction
-                      - v1_xy             * mu
-                      - v2_xx             * mu
-                      - 4.0 / 3.0 * v2_yy * mu
-                      + 2.0 / 3.0 * v1_xy * mu )
+                      - v1_xy             * mu_
+                      - v2_xx             * mu_
+                      - 4.0 / 3.0 * v2_yy * mu_
+                      + 2.0 / 3.0 * v1_xy * mu_ )
   # total energy equation
   du4 = ( E_t + v1_x * (E + p) + v1 * (E_x + p_x)
               + v2_y * (E + p) + v2 * (E_y + p_y)
     # stress tensor and temperature gradient terms from x-direction
-                                - 4.0 / 3.0 * v1_xx * v1   * mu
-                                + 2.0 / 3.0 * v2_xy * v1   * mu
-                                - 4.0 / 3.0 * v1_x  * v1_x * mu
-                                + 2.0 / 3.0 * v2_y  * v1_x * mu
-                                - v1_xy     * v2           * mu
-                                - v2_xx     * v2           * mu
-                                - v1_y      * v2_x         * mu
-                                - v2_x      * v2_x         * mu
+                                - 4.0 / 3.0 * v1_xx * v1   * mu_
+                                + 2.0 / 3.0 * v2_xy * v1   * mu_
+                                - 4.0 / 3.0 * v1_x  * v1_x * mu_
+                                + 2.0 / 3.0 * v2_y  * v1_x * mu_
+                                - v1_xy     * v2           * mu_
+                                - v2_xx     * v2           * mu_
+                                - v1_y      * v2_x         * mu_
+                                - v2_x      * v2_x         * mu_
          - T_const * inv_rho_cubed * (        p_xx * rho   * rho
                                       - 2.0 * p_x  * rho   * rho_x
                                       + 2.0 * p    * rho_x * rho_x
-                                      -       p    * rho   * rho_xx ) * mu
+                                      -       p    * rho   * rho_xx ) * mu_
     # stress tensor and temperature gradient terms from y-direction
-                                - v1_yy     * v1           * mu
-                                - v2_xy     * v1           * mu
-                                - v1_y      * v1_y         * mu
-                                - v2_x      * v1_y         * mu
-                                - 4.0 / 3.0 * v2_yy * v2   * mu
-                                + 2.0 / 3.0 * v1_xy * v2   * mu
-                                - 4.0 / 3.0 * v2_y  * v2_y * mu
-                                + 2.0 / 3.0 * v1_x  * v2_y * mu
+                                - v1_yy     * v1           * mu_
+                                - v2_xy     * v1           * mu_
+                                - v1_y      * v1_y         * mu_
+                                - v2_x      * v1_y         * mu_
+                                - 4.0 / 3.0 * v2_yy * v2   * mu_
+                                + 2.0 / 3.0 * v1_xy * v2   * mu_
+                                - 4.0 / 3.0 * v2_y  * v2_y * mu_
+                                + 2.0 / 3.0 * v1_x  * v2_y * mu_
          - T_const * inv_rho_cubed * (        p_yy * rho   * rho
                                       - 2.0 * p_y  * rho   * rho_y
                                       + 2.0 * p    * rho_y * rho_y
-                                      -       p    * rho   * rho_yy ) * mu )
+                                      -       p    * rho   * rho_yy ) * mu_ )
 
   return SVector(du1, du2, du3, du4)
 end
