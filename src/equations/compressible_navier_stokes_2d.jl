@@ -1,5 +1,5 @@
 @doc raw"""
-    CompressibleNavierStokesDiffusion2D(gamma, Re, Pr, Ma_inf, equations,
+    CompressibleNavierStokesDiffusion2D(gamma, mu, Pr, equations,
                                         gradient_variables=GradientVariablesPrimitive())
 
 These equations contain the diffusion (i.e. parabolic) terms applied
@@ -7,12 +7,14 @@ to mass, momenta, and total energy together with the advective terms from
 the [`CompressibleEulerEquations2D`](@ref).
 
 - `gamma`: adiabatic constant,
-- `Re`: Reynolds number,
+- `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
-- `Ma_inf`: free-stream Mach number
 - `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to `GradientVariablesPrimitive()`.
+
+Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
+[``\mu``] = kg m⁻¹ s⁻¹.
 
 The particular form of the compressible Navier-Stokes implemented is
 ```math
@@ -45,11 +47,17 @@ where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux i
 \nabla q = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
 where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
-Under the assumption that the gas has a constant Prandtl number
+Under the assumption that the gas has a constant Prandtl number,
 the thermal conductivity is
 ```math
-\kappa = \frac{\gamma \mu R}{(\gamma - 1)\textrm{Pr}}
+\kappa = \frac{\gamma \mu R}{(\gamma - 1)\textrm{Pr}}.
 ```
+From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
+that the gas constant `R` cancels and the heat flux becomes
+```math
+\nabla q = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
+```
+which is the form implemented below in the [`flux`](@ref) function.
 
 In two spatial dimensions we require gradients for three quantities, e.g.,
 primitive quantities
@@ -65,24 +73,8 @@ where
 w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 ```
 
-For this particular scaling the vicosity is set internally to be μ = 1/Re.
-Further, the nondimensionalization takes the density-temperature-sound speed as
-the principle quantities such that
-```
-rho_inf = 1.0
-T_ref = 1.0
-c_inf = 1.0
-p_inf = 1.0 / gamma
-u_inf = Ma_inf
-R = 1.0 / gamma
-```
-
-Other normalization strategies exist, see the reference below for details.
-- Marc Montagnac (2013)
-  Variable Normalization (nondimensionalization and scaling) for Navier-Stokes
-  equations: a practical guide
-  [CERFACS Technical report](https://www.cerfacs.fr/~montagna/TR-CFD-13-77.pdf)
-The scaling used herein is Section 4.5 of the reference.
+#!!! warning "Experimental code"
+#    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesDiffusion{2, 4}
   # TODO: parabolic
@@ -90,14 +82,10 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <
   # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
   gamma::RealT               # ratio of specific heats
   inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
-  Re::RealT                  # Reynolds number
-  Pr::RealT                  # Prandtl number
-  Ma_inf::RealT              # free-stream Mach number
-  kappa::RealT               # thermal diffusivity for Fick's law
 
-  p_inf::RealT               # free-stream pressure
-  u_inf::RealT               # free-stream velocity
-  R::RealT                   # gas constant (depends on nondimensional scaling!)
+  mu::RealT                  # viscosity
+  Pr::RealT                  # Prandtl number
+  kappa::RealT               # thermal diffusivity for Fick's law
 
   equations_hyperbolic::E    # CompressibleEulerEquations2D
   gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -123,26 +111,19 @@ struct GradientVariablesEntropy end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
-                                             Reynolds, Prandtl, Mach_freestream,
+                                             mu, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
   gamma = equations.gamma
   inv_gamma_minus_one = equations.inv_gamma_minus_one
-  Re, Pr, Ma = promote(Reynolds, Prandtl, Mach_freestream)
+  μ, Pr = promote(mu, Prandtl)
 
   # Under the assumption of constant Prandtl number the thermal conductivity
-  # constant is kappa = gamma μ R / ((gamma-1) Pr).
-  # Important note! Due to nondimensional scaling R = 1 / gamma, this constant
-  # simplifies slightly. Also, the factor of μ is accounted for later.
-  kappa = inv_gamma_minus_one / Pr
+  # constant is kappa = gamma μ / ((gamma-1) Pr).
+  # Important note! Factor of μ is accounted for later in `flux`.
+  kappa = gamma * inv_gamma_minus_one / Pr
 
-  # From the nondimensionalization discussed above set the remaining free-stream
-  # quantities
-  p_inf = 1 / gamma
-  u_inf = Mach_freestream
-  R     = 1 / gamma
   CompressibleNavierStokesDiffusion2D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                                                                    Re, Pr, Ma, kappa,
-                                                                                                    p_inf, u_inf, R,
+                                                                                                    μ, Pr, kappa,
                                                                                                     equations, gradient_variables)
 end
 
@@ -159,15 +140,12 @@ varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusio
 gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive}) = cons2prim
 gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy}) = cons2entropy
 
-# Explicit formulas for the diffussive Navier-Stokes fluxes are available, e.g. in Section 2
-# of the paper by Svärd, Carpenter and Nordström
-# "A stable high-order finite difference scheme for the compressible Navier–Stokes
-#  equations, far-field boundary conditions"
-# Although these authors use a different nondimensionalization so some constants are different
-# particularly for Fick's law.
-#
-# Note, could be generalized to use Sutherland's law to get the molecular and thermal
-# diffusivity
+
+# Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
+# of the paper by Rueda-Ramíreza, Hennemann, Hindenlang, Winters, and Gassner
+# "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
+#  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
+# where one sets the magnetic field components equal to 0.
 function flux(u, gradients, orientation::Integer, equations::CompressibleNavierStokesDiffusion2D)
   # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
   rho, v1, v2, _ = convert_transformed_to_primitive(u, equations)
@@ -187,14 +165,17 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   # (4/3 * (v2)_y - 2/3 * (v1)_x)
   tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
 
-  # Fick's law q = -kappa * grad(T); constant is kappa = gamma μ R / ((gamma-1) Pr)
-  # Important note! Due to nondimensional scaling R = 1 / gamma, so the
-  # temperature T in the gradient computation already contains a factor of gamma
+  # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
+  # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
+  # Note, the gas constant cancels under this formulation, so it is not present
+  # in the implementation
   q1 = equations.kappa * dTdx
   q2 = equations.kappa * dTdy
 
-  # kinematic viscosity is simply 1/Re for this nondimensionalization
-  mu = 1.0 / equations.Re
+  # Constant dynamic viscosity is copied to a variable for readibility.
+  # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
+  # on temperature and reference values, Ts and Tref such that mu(T)
+  mu = equations.mu
 
   if orientation == 1
     # viscous flux components in the x-direction
@@ -272,9 +253,9 @@ end
   T  = temperature(u, equations)
 
   return SVector(gradient_entropy_vars[1],
-                 equations.R * T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # grad(u) = R*T*(grad(w_2)+v1*grad(w_4))
-                 equations.R * T * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[4]), # grad(v) = R*T*(grad(w_3)+v2*grad(w_4))
-                 equations.R * T * T * gradient_entropy_vars[4]                                # grad(T) = R*T^2*grad(w_4))
+                 T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # grad(u) = T*(grad(w_2)+v1*grad(w_4))
+                 T * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[4]), # grad(v) = T*(grad(w_3)+v2*grad(w_4))
+                 T * T * gradient_entropy_vars[4]                                # grad(T) = T^2*grad(w_4))
                 )
 end
 
@@ -291,7 +272,7 @@ end
   rho, rho_v1, rho_v2, rho_e = u
 
   p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
-  T = p / (equations.R * rho)
+  T = p / rho
   return T
 end
 
@@ -414,8 +395,8 @@ end
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t, equations)
 
-  # the entropy variables w2 = rho * v1 / p = v1 / (equations.R * T) = -v1 * w4. Similarly for w3
-  w4 = -1 / (equations.R * T)
+  # the entropy variables w2 = rho * v1 / p = v1 / T = -v1 * w4. Similarly for w3
+  w4 = -1 / T
   return SVector(w_inner[1], -v1 * w4, -v2 * w4, w4)
 end
 

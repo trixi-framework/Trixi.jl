@@ -36,7 +36,6 @@ Here, ``\rho`` is the density, ``v_1``,`v_2` the velocities, ``e`` the specific 
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
 the pressure.
-
 """
 struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
   gamma::RealT               # ratio of specific heats

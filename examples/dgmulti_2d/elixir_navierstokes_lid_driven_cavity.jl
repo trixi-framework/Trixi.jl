@@ -5,14 +5,13 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 # TODO: parabolic; unify names of these accessor functions
-reynolds_number() = 1000.0
 prandtl_number() = 0.72
-mach_number() = 0.1
+mu() = 0.001
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, Reynolds=reynolds_number(),
-                                                          Prandtl=prandtl_number(),
-                                                          Mach_freestream=mach_number())
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(),
+                                                          Prandtl=prandtl_number())
+
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = GaussSBP(),
@@ -25,7 +24,7 @@ is_on_boundary = Dict(:top => top, :rest_of_boundary => rest_of_boundary)
 mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); is_on_boundary)
 
 function initial_condition_cavity(x, t, equations::CompressibleEulerEquations2D)
-  Ma = mach_number()
+  Ma = 0.1
   rho = 1.0
   u, v = 0, 0
   p = 1.0 / (Ma^2 * equations.gamma)

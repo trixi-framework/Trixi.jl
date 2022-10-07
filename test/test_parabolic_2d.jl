@@ -94,19 +94,19 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "DGMulti: elixir_navier_stokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navier_stokes_convergence.jl"),
+  @trixi_testset "DGMulti: elixir_navierstokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navierstokes_convergence.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.1),
-      l2 = [0.00153550768125133, 0.0033843168272696357, 0.0036531858107444067, 0.009948436427519428],
-      linf = [0.005522560467190019, 0.013425258500731063, 0.013962115643483375, 0.027483102120516634]
+      l2 = [0.0015355076812510957, 0.0033843168272696756, 0.0036531858107443434, 0.009948436427519214],
+      linf = [0.005522560467190019, 0.013425258500730508, 0.013962115643482154, 0.027483102120502423]
     )
   end
 
-  @trixi_testset "DGMulti: elixir_navier_stokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navier_stokes_lid_driven_cavity.jl"),
+  @trixi_testset "DGMulti: elixir_navierstokes_lid_driven_cavity.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_navierstokes_lid_driven_cavity.jl"),
       cells_per_dimension = (4, 4), tspan=(0.0, 0.5),
-      l2 = [0.0002215612522711349, 0.028318325921400257, 0.009509168701069035, 0.028267900513539248],
-      linf = [0.0015622789413053395, 0.14886653390741342, 0.07163235655334241, 0.19472785105216417]
+      l2 = [0.00022156125227115747, 0.028318325921401, 0.009509168701070296, 0.028267900513550506],
+      linf = [0.001562278941298234, 0.14886653390744856, 0.0716323565533752, 0.19472785105241996]
     )
   end
 
@@ -126,54 +126,54 @@ isdir(outdir) && rm(outdir, recursive=true)
     )
   end
 
-  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
-      l2 = [0.0021116725306635146, 0.0034322351490824465, 0.003874252819611102, 0.012469246082522416],
-      linf = [0.012006418939297214, 0.03552087120958058, 0.02451274749176294, 0.11191122588577151]
+      l2 = [0.002111672530658797, 0.0034322351490857846, 0.0038742528195910416, 0.012469246082568561],
+      linf = [0.012006418939223495, 0.035520871209746126, 0.024512747492231427, 0.11191122588756564]
     )
   end
 
-  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (isothermal walls)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
       heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x, t, equations), equations)),
-      l2 = [0.002103629650384378, 0.0034358439333976123, 0.0038673598780978413, 0.012670355349347209],
-      linf = [0.012006261793021222, 0.035502125190110666, 0.025107947320650532, 0.11647078036915026]
+      l2 = [0.002103629650383915, 0.003435843933396454, 0.00386735987813341, 0.012670355349235728],
+      linf = [0.012006261793147788, 0.03550212518982032, 0.025107947319661185, 0.11647078036571124]
     )
   end
 
-  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (Entropy gradient variables)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
-      initial_refinement_level=2, tspan=(0,.1), gradient_variables=GradientVariablesEntropy(),
-      l2 = [0.002140374251726679, 0.0034258287094981717, 0.0038915122887464865, 0.012506862342821999],
-      linf = [0.012244412004805971, 0.035075591861236655, 0.02458089234452718, 0.11425600757951138]
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
+      initial_refinement_level=2, tspan=(0.0, 0.1), gradient_variables=GradientVariablesEntropy(),
+      l2 = [0.0021403742517389513, 0.0034258287094908572, 0.0038915122886898517, 0.012506862343013842],
+      linf = [0.012244412004628336, 0.03507559186162224, 0.024580892345558894, 0.11425600758350107]
     )
   end
 
-  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (Entropy gradient variables, isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
-      initial_refinement_level=2, tspan=(0,.1), gradient_variables=GradientVariablesEntropy(),
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables, isothermal walls)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
+      initial_refinement_level=2, tspan=(0.0, 0.1), gradient_variables=GradientVariablesEntropy(),
       heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x, t, equations), equations)),
-      l2 = [0.002134973734788134, 0.0034301388278191753, 0.0038928324474145994, 0.012693611436279086],
-      linf = [0.012244236275815057, 0.035054066314196344, 0.02509959850525358, 0.1179561632485715]
+      l2 = [0.0021349737347844907, 0.0034301388278203033, 0.0038928324474291572, 0.012693611436230873],
+      linf = [0.01224423627586213, 0.035054066314102905, 0.025099598504931965, 0.11795616324751634]
     )
   end
 
-  @trixi_testset "TreeMesh2D: elixir_navier_stokes_convergence.jl (flux differencing)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_convergence.jl"),
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (flux differencing)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.1),
       volume_integral=VolumeIntegralFluxDifferencing(flux_central),
-      l2 = [0.0021116725306635146, 0.0034322351490824465, 0.003874252819611102, 0.012469246082522416],
-      linf = [0.012006418939297214, 0.03552087120958058, 0.02451274749176294, 0.11191122588577151]
+      l2 = [0.0021116725306633594, 0.0034322351490827557, 0.0038742528196093542, 0.012469246082526909],
+      linf = [0.012006418939291663, 0.035520871209594115, 0.024512747491801577, 0.11191122588591007]
     )
   end
 
-  @trixi_testset "TreeMesh2D: elixir_navier_stokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navier_stokes_lid_driven_cavity.jl"),
+  @trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"),
       initial_refinement_level = 2, tspan=(0.0, 0.5),
-      l2 = [0.0001514457152968994, 0.018766076072331786, 0.007065070765651992, 0.020839900573430787],
-      linf = [0.0014523369373645734, 0.12366779944955876, 0.055324509971157544, 0.1609992780534526]
+      l2 = [0.00015144571529699053, 0.018766076072331623, 0.007065070765652574, 0.0208399005734258],
+      linf = [0.0014523369373669048, 0.12366779944955864, 0.05532450997115432, 0.16099927805328207]
     )
   end
 
