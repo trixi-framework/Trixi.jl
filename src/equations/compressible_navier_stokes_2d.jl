@@ -1,5 +1,5 @@
 @doc raw"""
-    CompressibleNavierStokesDiffusion2D(gamma, mu, Pr, R, equations,
+    CompressibleNavierStokesDiffusion2D(gamma, mu, Pr, equations,
                                         gradient_variables=GradientVariablesPrimitive())
 
 These equations contain the diffusion (i.e. parabolic) terms applied
@@ -7,9 +7,8 @@ to mass, momenta, and total energy together with the advective terms from
 the [`CompressibleEulerEquations2D`](@ref).
 
 - `gamma`: adiabatic constant,
-- `mu`: viscosity,
+- `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
-- `R`: gas constant
 - `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to `GradientVariablesPrimitive()`.
@@ -50,6 +49,12 @@ the thermal conductivity is
 ```math
 \kappa = \frac{\gamma \mu R}{(\gamma - 1)\textrm{Pr}}.
 ```
+From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
+that the gas constant `R` cancels and the heat flux becomes
+```math
+\nabla q = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
+```
+which is the form implemented below in the [`flux`](@ref) function.
 
 In two spatial dimensions we require gradients for three quantities, e.g.,
 primitive quantities
@@ -77,7 +82,6 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <
 
   mu::RealT                  # viscosity
   Pr::RealT                  # Prandtl number
-  R::RealT                   # gas constant
   kappa::RealT               # thermal diffusivity for Fick's law
 
   equations_hyperbolic::E    # CompressibleEulerEquations2D
@@ -104,19 +108,19 @@ struct GradientVariablesEntropy end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
-                                             viscosity, Prandtl, gas_constant = 287.058,
+                                             viscosity, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
   gamma = equations.gamma
   inv_gamma_minus_one = equations.inv_gamma_minus_one
-  mu, Pr, R = promote(viscosity, Prandtl, gas_constant)
+  mu, Pr = promote(viscosity, Prandtl)
 
   # Under the assumption of constant Prandtl number the thermal conductivity
-  # constant is kappa = gamma μ R / ((gamma-1) Pr).
+  # constant is kappa = gamma μ / ((gamma-1) Pr).
   # Important note! Factor of μ is accounted for later in `flux`.
-  kappa = gamma * R * inv_gamma_minus_one / Pr
+  kappa = gamma * inv_gamma_minus_one / Pr
 
   CompressibleNavierStokesDiffusion2D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                                                                    mu, Pr, R, kappa,
+                                                                                                    mu, Pr, kappa,
                                                                                                     equations, gradient_variables)
 end
 
@@ -158,12 +162,15 @@ function flux(u, gradients, orientation::Integer, equations::CompressibleNavierS
   # (4/3 * (v2)_y - 2/3 * (v1)_x)
   tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
 
-  # Fick's law q = -kappa * grad(T); constant is kappa = gamma μ R / ((gamma-1) Pr)
+  # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
+  # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
+  # Note, the gas constant cancels under this formulation, so it is not present
+  # in the implementation
   q1 = equations.kappa * dTdx
   q2 = equations.kappa * dTdy
 
-  # Constant viscosity is copied to a variable for readibility.
-  # Offers flexibility for viscosity via Sutherland's law where it depends
+  # Constant dynamic viscosity is copied to a variable for readibility.
+  # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
   # on temperature and reference values, Ts and Tref such that mu(T)
   mu = equations.mu
 
@@ -243,9 +250,9 @@ end
   T  = temperature(u, equations)
 
   return SVector(gradient_entropy_vars[1],
-                 equations.R * T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # grad(u) = R*T*(grad(w_2)+v1*grad(w_4))
-                 equations.R * T * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[4]), # grad(v) = R*T*(grad(w_3)+v2*grad(w_4))
-                 equations.R * T * T * gradient_entropy_vars[4]                                # grad(T) = R*T^2*grad(w_4))
+                 T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # grad(u) = T*(grad(w_2)+v1*grad(w_4))
+                 T * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[4]), # grad(v) = T*(grad(w_3)+v2*grad(w_4))
+                 T * T * gradient_entropy_vars[4]                                # grad(T) = T^2*grad(w_4))
                 )
 end
 
@@ -262,7 +269,7 @@ end
   rho, rho_v1, rho_v2, rho_e = u
 
   p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
-  T = p / (equations.R * rho)
+  T = p / rho
   return T
 end
 
@@ -385,8 +392,8 @@ end
   v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t, equations)
   T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t, equations)
 
-  # the entropy variables w2 = rho * v1 / p = v1 / (equations.R * T) = -v1 * w4. Similarly for w3
-  w4 = -1 / (equations.R * T)
+  # the entropy variables w2 = rho * v1 / p = v1 / T = -v1 * w4. Similarly for w3
+  w4 = -1 / T
   return SVector(w_inner[1], -v1 * w4, -v2 * w4, w4)
 end
 
