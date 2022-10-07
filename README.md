@@ -17,6 +17,18 @@
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
+***
+**Trixi.jl at JuliaCon 2022**<br/>
+At this year's JuliaCon 2022, we have been present with two contributions that involve Trixi.jl:
+
+* [Running Julia code in parallel with MPI: Lessons learned](https://live.juliacon.org/talk/LUWYRJ),
+  26th July 2022. [Watch on YouTube](https://youtu.be/fog1x9rs71Q?t=5172), [repo](https://github.com/JuliaParallel/juliacon-2022-julia-for-hpc-minisymposium)
+* [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://live.juliacon.org/talk/YSLKZJ),
+  27th July 2022. [Watch on YouTube](https://youtu.be/_N4ozHr-t9E), [repo](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
+
+If you have questions about Trixi.jl or our other projects, feel free to get in touch via Slack or open an issue ♥️
+***
+
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -30,7 +42,7 @@ installation and postprocessing procedures. Its features include:
   * Structured and unstructured meshes
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
   * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
-* High-order accuracy in space in time
+* High-order accuracy in space and time
 * Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
@@ -135,7 +147,7 @@ julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
 <p align="center">
-  <img width="300px" src="https://user-images.githubusercontent.com/72009492/130952732-633159ff-c167-4d36-ba36-f2a2eac0a8d6.PNG">
+  <img width="300px" src="https://user-images.githubusercontent.com/26361975/177492363-74cee347-7abe-4522-8b2d-0dfadc317f7e.png">
 </p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a
@@ -156,6 +168,13 @@ of a Julia method is typically slow, with subsequent runs being much faster. For
 instance, in the example above the first execution of `trixi_include` takes about
 20 seconds, while subsequent runs require less than 60 *milli*seconds.
 
+### Showcase of advanced features
+The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),
+originally given as part of JuliaCon 2022, outlines how to use Trixi for an adaptive simulation
+of the compressible Euler equations in two spatial dimensions on a complex domain. More details
+as well as code to run the simulation presented can be found at the
+[reproducibility repository](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
+for the presentation.
 
 ## Documentation
 Additional documentation is available that contains more information on how to

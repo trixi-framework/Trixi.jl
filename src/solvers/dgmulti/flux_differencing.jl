@@ -383,7 +383,7 @@ end
 # Designed to be extendable to include specialized `approximation_types` too.
 @inline function has_sparse_operators(dg::DGMultiFluxDiff)
   rd = dg.basis
-  return has_sparse_operators(rd.elementType, rd.approximationType)
+  return has_sparse_operators(rd.elementType, rd.approximation_type)
 end
 
 # The general fallback does not assume sparse operators

@@ -92,7 +92,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiWeakForm, RealT, 
   u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
   u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
   flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-  if typeof(rd.approximationType) <: Union{SBP, AbstractNonperiodicDerivativeOperator}
+  if typeof(rd.approximation_type) <: Union{SBP, AbstractNonperiodicDerivativeOperator}
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
   else
     lift_scalings = nothing
@@ -147,6 +147,29 @@ function max_dt(u, t, mesh::DGMultiMesh,
     for i in Base.OneTo(rd.Np) # loop over nodes
       lambda_i = max_abs_speeds(u[i, e], equations)
       max_speeds = max.(max_speeds, lambda_i)
+    end
+    dt_min = min(dt_min, h_e / sum(max_speeds))
+  end
+  # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+  # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+  # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+  # the number of 1D nodes for `DGSEM` solvers.
+  polydeg = rd.N
+  return 2 * dt_min / (polydeg + 1)
+end
+
+function max_dt(u, t, mesh::DGMultiMesh,
+                constant_speed::Val{true}, equations, dg::DGMulti{NDIMS}, cache) where {NDIMS}
+
+  @unpack md = mesh
+  rd = dg.basis
+
+  dt_min = Inf
+  for e in eachelement(mesh, dg, cache)
+    h_e = StartUpDG.estimate_h(e, rd, md)
+    max_speeds = ntuple(_->nextfloat(zero(t)), NDIMS)
+    for i in Base.OneTo(rd.Np) # loop over nodes
+      max_speeds = max.(max_abs_speeds(equations), max_speeds)
     end
     dt_min = min(dt_min, h_e / sum(max_speeds))
   end
