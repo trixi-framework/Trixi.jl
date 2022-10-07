@@ -261,7 +261,6 @@ end
 
 
 include("auxiliary/precompile.jl")
-_precompile_manual_()
 
 
 end
