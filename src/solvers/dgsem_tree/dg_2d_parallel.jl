@@ -151,8 +151,8 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
   data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
   # Start receiving and unpack received data until all communication is finished
-  d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
-  while d != 0
+  d = MPI.Waitany(mpi_cache.mpi_recv_requests)
+  while d !== nothing
     recv_buffer = mpi_cache.mpi_recv_buffers[d]
 
     for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[d])
@@ -221,7 +221,7 @@ function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
       end
     end
 
-    d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
+    d = MPI.Waitany(mpi_cache.mpi_recv_requests)
   end
 
   return nothing

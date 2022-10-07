@@ -112,8 +112,8 @@ function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cach
   n_positions = n_small_elements + 1
 
   # Start receiving and unpack received data until all communication is finished
-  d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
-  while d != 0
+  d = MPI.Waitany(mpi_cache.mpi_recv_requests)
+  while d !== nothing
     recv_buffer = mpi_cache.mpi_recv_buffers[d]
 
     for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[d])
@@ -148,7 +148,7 @@ function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cach
       end
     end
 
-    d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
+    d = MPI.Waitany(mpi_cache.mpi_recv_requests)
   end
 
   return nothing
@@ -507,8 +507,8 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache, mesh::ParallelP4est
   end
 
   # Unpack data from receive buffers
-  d, _ = MPI.Waitany!(recv_requests)
-  while d != 0
+  d = MPI.Waitany(recv_requests)
+  while d !== nothing
     recv_buffer = recv_buffers[d]
 
     for (index, mortar) in enumerate(mpi_neighbor_mortars[d])
@@ -526,7 +526,7 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache, mesh::ParallelP4est
       end
     end
 
-    d, _ = MPI.Waitany!(recv_requests)
+    d = MPI.Waitany(recv_requests)
   end
 
   # Wait for communication to finish
