@@ -13,7 +13,7 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to `GradientVariablesPrimitive()`.
 
-Fluid properties such as the dynamic viscosity ``\\mu`` can be provided in any consistent unit system, e.g.,
+Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
 
 The particular form of the compressible Navier-Stokes implemented is
@@ -111,11 +111,11 @@ struct GradientVariablesEntropy end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
-                                             viscosity, Prandtl,
+                                             mu, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
   gamma = equations.gamma
   inv_gamma_minus_one = equations.inv_gamma_minus_one
-  mu, Pr = promote(viscosity, Prandtl)
+  μ, Pr = promote(mu, Prandtl)
 
   # Under the assumption of constant Prandtl number the thermal conductivity
   # constant is kappa = gamma μ / ((gamma-1) Pr).
@@ -123,7 +123,7 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
   kappa = gamma * inv_gamma_minus_one / Pr
 
   CompressibleNavierStokesDiffusion2D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                                                                    mu, Pr, kappa,
+                                                                                                    μ, Pr, kappa,
                                                                                                     equations, gradient_variables)
 end
 

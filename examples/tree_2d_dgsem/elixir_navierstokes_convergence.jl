@@ -5,10 +5,10 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-dynamic_viscosity() = 0.01
+mu() = 0.01
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, viscosity=dynamic_viscosity(), Prandtl=prandtl_number(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu=mu(), Prandtl=prandtl_number(),
                                                           gradient_variables=GradientVariablesPrimitive())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -54,7 +54,7 @@ end
   # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
   inv_gamma_minus_one = inv(equations.gamma - 1)
   Pr = prandtl_number()
-  mu = dynamic_viscosity()
+  mu = mu()
 
   # Same settings as in `initial_condition`
   # Amplitude and shift
