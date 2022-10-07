@@ -223,7 +223,8 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
   # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-  return SplitODEProblem(rhs!, rhs_parabolic!, u0_ode, tspan, semi)
+  iip = true # is-inplace, i.e., we modify a vector when calling rhs!, rhs_parabolic!
+  return SplitODEProblem{iip}(rhs!, rhs_parabolic!, u0_ode, tspan, semi)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
