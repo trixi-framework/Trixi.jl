@@ -246,6 +246,7 @@ function __init__()
 
   # FIXME upstream. This is a hacky workaround for
   #       https://github.com/trixi-framework/Trixi.jl/issues/628
+  #       https://github.com/trixi-framework/Trixi.jl/issues/1185
   # The related upstream issues appear to be
   #       https://github.com/JuliaLang/julia/issues/35800
   #       https://github.com/JuliaLang/julia/issues/32552
@@ -254,9 +255,12 @@ function __init__()
   let
     for T in (Float32, Float64)
       u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
-      view(u_mortars_2d, 1, :, 1, :, 1)
+      u_view_2d = view(u_mortars_2d, 1, :, 1, :, 1)
+      LoopVectorization.axes(u_view_2d)
+
       u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
-      view(u_mortars_3d, 1, :, 1, :, :, 1)
+      u_view_3d = view(u_mortars_3d, 1, :, 1, :, :, 1)
+      LoopVectorization.axes(u_view_3d)
     end
   end
 end
