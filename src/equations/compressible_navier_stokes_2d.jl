@@ -13,7 +13,7 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to `GradientVariablesPrimitive()`.
 
-Fluid properties such as the dynamic viscosity mu can be provided in any unit system, e.g.,
+Fluid properties such as the dynamic viscosity ``\\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
 
 The particular form of the compressible Navier-Stokes implemented is
