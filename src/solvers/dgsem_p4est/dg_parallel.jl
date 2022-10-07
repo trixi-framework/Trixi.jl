@@ -102,7 +102,7 @@ end
 
 
 function finish_mpi_send!(mpi_cache::P4estMPICache)
-  MPI.Waitall!(mpi_cache.mpi_send_requests)
+  MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 
@@ -530,7 +530,7 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache, mesh::ParallelP4est
   end
 
   # Wait for communication to finish
-  MPI.Waitall!(send_requests)
+  MPI.Waitall(send_requests, MPI.Status)
 
   return nothing
 end

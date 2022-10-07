@@ -142,7 +142,7 @@ end
 
 # TODO: MPI dimension agnostic
 function finish_mpi_send!(mpi_cache::MPICache)
-  MPI.Waitall!(mpi_cache.mpi_send_requests)
+  MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 
