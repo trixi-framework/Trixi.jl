@@ -1,6 +1,7 @@
 ############################################################################################
-# This elixir compares the differences of the natural boundary and the not-a-knot boundary #
-# on a cross section of the Rhine river bed where we are given 10 data points              #
+# This elixir compares the differences of the natural end_condition and the not-a-knot     #
+# end_condition on a cross section of the Rhine river bed where we are given 10 data       # 
+# points                                                                                   #
 ############################################################################################
 
 using Downloads: download
@@ -12,7 +13,7 @@ spline_data = download("https://gist.githubusercontent.com/maxbertrand1996/b05a9
 
 # Call the spline structure
 spline_nat  = cubic_b_spline(spline_data)
-spline_knot = cubic_b_spline(spline_data; boundary = "not-a-knot")
+spline_knot = cubic_b_spline(spline_data; end_condition = "not-a-knot")
 
 # Call the spline functions
 spline_func_nat(x)  = spline_interpolation(spline_nat , x)
@@ -24,6 +25,7 @@ x_calc = Vector(LinRange(1, 10, 100))
 # Plot
 pyplot()
 scatter(spline_nat.x, spline_nat.y, label = "interpolation points")
-plot!(x_calc, spline_func_nat.(x_calc), label = "cubic spline interpolation, natural boundary")
+plot!(x_calc, spline_func_nat.(x_calc), 
+      label = "cubic spline interpolation, natural end_condition")
 plot!(x_calc, spline_func_knot.(x_calc), line =:dash, 
-      label = "cubic spline interpolation, not-a-knot boundary")
+      label = "cubic spline interpolation, not-a-knot end_condition")
