@@ -1,23 +1,41 @@
-# Help functions for 2D spline interpolation
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
 
-# Sort data to follow logic of the remaining code.
-# x and y are sorted ascending. The matrix z contains
+##################################################
+### Help functions for 2D spline interpolation ###
+##################################################
+
+# Sort data so that x and y values are ascending and that the matrix z contains
 # the corresponding values.
-function sort_data(x::Vector{Float64}, y::Vector{Float64}, z::Matrix{Float64})
+"""
+    sort_data(x::Vector, y::Vector, z::Matrix)
+
+This function sorts the inputs vectors `x` and `y` in a ascending order
+and also reorders the input matrix `z` accordingly. 
+
+Therefore first the `x` values are sorted with the matrix `z` accordingly and
+afterwards the `y` values are sorted with the matrix `z` accordingly.
+
+The sorted `x`, `y` and `z` values are returned.
+"""
+function sort_data(x::Vector, y::Vector, z::Matrix)
 
   zx              = transpose(z)
   original_data_x = hcat(x, zx)
   sorted_data_x   = original_data_x[sortperm(original_data_x[:,1]), :]
 
   x_sorted  = sorted_data_x[:,1]
-  z_interim = sorted_data_x[:, 2:end]
+  z_interim = sorted_data_x[:,2:end]
 
   zy              = transpose(z_interim)
   original_data_y = hcat(y, zy)
   sorted_data_y   = original_data_y[sortperm(original_data_y[:,1]), :]
 
   y_sorted = sorted_data_y[:,1]
-  z_sorted   = sorted_data_y[:,2:end]
+  z_sorted = sorted_data_y[:,2:end]
   
   return x_sorted, y_sorted, Matrix(z_sorted)
 end
@@ -27,7 +45,16 @@ end
 ###################################
 
 # Base function for thin plate spline
-function tps_base_func(r)
+"""
+    tps_base_func(r::Number)
+
+Thin plate spline basis function.
+
+- Gianluca Donato and Serge Belongie (2001)
+  Approximate Thin Plate Spline Mappings
+  [DOI: 10.1007/3-540-47977-5_2](https://link.springer.com/content/pdf/10.1007/3-540-47977-5_2.pdf)
+"""
+function tps_base_func(r::Number)
 
   if r == 0
     return 0
@@ -38,17 +65,32 @@ function tps_base_func(r)
 end
 
 # restructure input data to be able to use the thin plate spline functionality
-# data is restructured in the following form:
-# x = (x_1, x_2, ..., x_n)
-# y = (y_1, y_2, ..., y_m)
-# z = (z_11, ..., z_1n;
-#      ...., ..., ....;
-#      z_nm, ..., z_nm)
-# to control_points = (x_1, y_1, z_11;
-#                      x_2, y_1, z_21;
-#                      ..., ..., ....;
-#                      x_n, y_m, z_nm)
-function restructure_data(x, y, z)
+@doc raw"""
+      restructure_data(x::Vector, y::Vector, z::Matrix)
+
+This function restructures the input values
+- `x`: a vector with `n` values in x-direction
+- `y`: a vector with `m` values in y-direction
+- `z`: a  `m` ``\\times`` `n` matrix with values in z-direction where the values of `z` correspond 
+       to the indexing `(y,x)`
+
+The output is of the following form:
+```math
+\begin{equation}
+  \begin{bmatrix}
+    x_1 & y_1 & z_{1,1}\\
+    x_2 & y_1 & z_{1,2}\\
+    & \vdots & \\
+    x_n & y_1 & z_{1,n}\\
+    x_1 & y_2 & z_{2,1}\\
+    & \vdots & \\
+    x_n & y_m & z_{m,n}
+  \end{bmatrix}
+\end{equation}
+```
+
+"""
+function restructure_data(x::Vector, y::Vector, z::Matrix)
 
   x_mat = repeat(x, 1, length(y))
   y_mat = repeat(y, 1, length(x))
@@ -63,10 +105,61 @@ function restructure_data(x, y, z)
 end
 
 # Thin plate spline approximation  
-# Based on:
-# Approximate Thin Plate Spline Mappings
-# by Gianluca Donato and Serge Belongie, 2002
-function calc_tps(lambda, x, y, z)
+@doc raw"""
+    calc_tps(lambda::Number, x::Vector, y::Vector, z::Matrix)
+
+The inputs to this function are:
+- `lambda`: a smoothing factor which specifies the degree of the smoothing that should take place
+- `x`: a vector of `x` values 
+- `y`: a vector of `x` values
+- `z`: a matrix with the `z` values to be smoothed where the values of `z` correspond to the
+       indexing `(y,x)`
+
+This function uses the thin plate spline approach to perform the smoothing.
+To do so the following linear equations system has to be solved for `coeff`:
+```math
+\begin{equation}\label{tps_mat}
+		\underbrace{
+		\begin{bmatrix}
+			K & P \\
+			P^T & O
+		\end{bmatrix}
+		}_{:= L}
+		\underbrace{\begin{bmatrix}
+			w \\ a
+		\end{bmatrix}}_{\text{:= coeff}}
+		=
+		\underbrace{\begin{bmatrix}
+			z\\o
+		\end{bmatrix}}_{\text{:= rhs}}
+\end{equation}
+```
+First of all the inputs are restructured using the function [`restructure_data`](@ref) and
+saved in the variables `x_hat`, `y_hat` and `z_hat`.
+
+Then the matrix `L` can be filled by setting 
+`K` = [`tps_base_func`](@ref)`(||(x_hat[i], y_hat[i]) - (x_hat[j], y_hat[j])||)` where `|| ||` is 
+the Eucledian norm, `P` = `[1 x y]` and `O` = ``3\times 3`` zeros matrix.
+
+Afterwards the vector `rhs` is filled by setting `z` = `z_hat` and `o` = a vector with three zeros.
+
+Now the system is solved to redeem the vector `coeff`.
+This vector is then used to calculate the smoothed values for `z` and save them in `H_f` by 
+the following function:
+```math
+\begin{align}
+H\_f[i] = &a[1] + a[2]x\_hat[i] + a[3]y\_hat[i] \\
+        + &\sum_{j = 0}^p tps\_base\_func(\|(x\_hat[i], y\_hat[i]) - (x\_hat[j], y\_hat[j]) \|)
+\end{align}
+```
+here `p` is the number of entries in `z_hat`.
+
+A reference to the calculations can be found in the lecture notes of
+- Gianluca Donato and Serge Belongie (2001)
+  Approximate Thin Plate Spline Mappings
+  [DOI: 10.1007/3-540-47977-5_2](https://link.springer.com/content/pdf/10.1007/3-540-47977-5_2.pdf)
+"""
+function calc_tps(lambda::Number, x::Vector, y::Vector, z::Matrix)
 
   restructured_data = restructure_data(x,y,z)
   x_hat = restructured_data[:,1]
@@ -103,8 +196,8 @@ function calc_tps(lambda, x, y, z)
   L[p+2,1:p] = x_hat
   L[p+3,1:p] = y_hat
 
-  # Fill Vektor v
-  rhs[1:p,1] = z_hat
+  # Fill part z of rhs
+  rhs[1:p,1] = z
 
   # Calculate solution vector
   coeff = L\rhs
@@ -121,3 +214,5 @@ function calc_tps(lambda, x, y, z)
 
   return transpose(reshape(H_f, (n,m)))
 end
+
+end # @muladd
