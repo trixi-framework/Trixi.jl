@@ -70,5 +70,19 @@ const boundary_condition_periodic = BoundaryConditionPeriodic()
 
 Base.show(io::IO, ::BoundaryConditionPeriodic) = print(io, "boundary_condition_periodic")
 
+"""
+    boundary_condition_do_nothing = BoundaryConditionDoNothing()
+
+Imposing no boundary condition just evaluates the flux at the inner state.
+"""
+struct BoundaryConditionDoNothing end
+
+@inline function (boundary_condition::BoundaryConditionDoNothing)(inner_flux_or_state, other_args...)
+  return inner_flux_or_state
+end
+
+const boundary_condition_do_nothing = BoundaryConditionDoNothing()
+
+Base.show(io::IO, ::BoundaryConditionDoNothing) = print(io, "boundary_condition_do_nothing")
 
 end # @muladd
