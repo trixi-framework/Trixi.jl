@@ -26,7 +26,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension=(16, 16); is_on_boundary)
 function initial_condition_cavity(x, t, equations::CompressibleEulerEquations2D)
   Ma = 0.1
   rho = 1.0
-  u, v = 0, 0
+  u, v = 0.0, 0.0
   p = 1.0 / (Ma^2 * equations.gamma)
   return prim2cons(SVector(rho, u, v, p), equations)
 end

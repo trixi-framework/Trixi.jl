@@ -27,7 +27,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 #   In: Building bridges: connections and challenges in modern approaches
 #   to numerical partial differential equations.
 #   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
-function initial_condition_erikkson_johnson(x, t, equations)
+function initial_condition_eriksson_johnson(x, t, equations)
   l = 4
   epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
   lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
@@ -38,7 +38,7 @@ function initial_condition_erikkson_johnson(x, t, equations)
       cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
   return SVector{1}(u)
 end
-initial_condition = initial_condition_erikkson_johnson
+initial_condition = initial_condition_eriksson_johnson
 
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                          y_neg = BoundaryConditionDirichlet(initial_condition),

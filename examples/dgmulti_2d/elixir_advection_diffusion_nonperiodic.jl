@@ -31,8 +31,8 @@ initial_condition = initial_condition_erikkson_johnson
 # tag different boundary segments
 left(x, tol=50*eps()) = abs(x[1] + 1) < tol
 right(x, tol=50*eps()) = abs(x[1]) < tol
-bottom(x, tol=50*eps()) = abs(x[2] + .5) < tol
-top(x, tol=50*eps()) = abs(x[2] - .5) < tol
+bottom(x, tol=50*eps()) = abs(x[2] + 0.5) < tol
+top(x, tol=50*eps()) = abs(x[2] - 0.5) < tol
 entire_boundary(x, tol=50*eps()) = true
 is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom,
                       :entire_boundary => entire_boundary)
