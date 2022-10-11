@@ -147,7 +147,7 @@ The .txt file has to have the following structure to be interpreted by this func
 - Remaining lines: values for `z` where each value has its own line and is in the following order:
                    z_11, z_12, ... z_1n, z_21, ... z_2n, ..., z_m1, ..., z_mn
 
-An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/7b1b943eac142d5bc836bb818fe83a5a/raw/67500b54a81c671c3f6834002defedb87ebe8a45/Rhine_data_2D_10.txt)
+An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/7b1b943eac142d5bc836bb818fe83a5a/raw/74228e349e91fbfe1563479f99943b469f26ac62/Rhine_data_2D_10.txt)
 """
 function bilinear_b_spline(path::String; smoothing_factor = 0.0)
   file = open(path)
@@ -579,7 +579,7 @@ The .txt file has to have the following structure to be interpreted by this func
 - Remaining lines: values for `z` where each value has its own line and is in th following order:
                    z_11, z_12, ... z_1n, z_21, ... z_2n, ..., z_m1, ..., z_mn
 
-An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/7b1b943eac142d5bc836bb818fe83a5a/raw/67500b54a81c671c3f6834002defedb87ebe8a45/Rhine_data_2D_10.txt)
+An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/7b1b943eac142d5bc836bb818fe83a5a/raw/74228e349e91fbfe1563479f99943b469f26ac62/Rhine_data_2D_10.txt)
 """
 function bicubic_b_spline(path::String; end_condition = "free", smoothing_factor = 0.0)
   file = open(path)

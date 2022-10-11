@@ -123,7 +123,7 @@ The .txt file has to have the following structure to be interpreted by this func
 - Remaining lines: `y` values where each value has its own line  
 
 Note that the number of `x` and `y` values have to be the same.
-An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/b05a90e66025ee1ebddf444a32c3fa01/raw/62d2dd1dcf4a2cafb0bfa556c464722d74a3304c/Rhine_data_1D_10.txt)
+An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/b05a90e66025ee1ebddf444a32c3fa01/raw/90d375c1ac11b26589aab1fe92bd0e6f6daf37b7/Rhine_data_1D_10.txt)
 """
 function linear_b_spline(path::String; smoothing_factor = 0.0)
 
@@ -349,7 +349,7 @@ The .txt file has to have the following structure to be interpreted by this func
 - Remaining lines: `y` values where each value has its own line  
 
 Note that the number of `x` and `y` values have to be the same.
-An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/b05a90e66025ee1ebddf444a32c3fa01/raw/62d2dd1dcf4a2cafb0bfa556c464722d74a3304c/Rhine_data_1D_10.txt)
+An example can be found [here](https://gist.githubusercontent.com/maxbertrand1996/b05a90e66025ee1ebddf444a32c3fa01/raw/90d375c1ac11b26589aab1fe92bd0e6f6daf37b7/Rhine_data_1D_10.txt)
 """
 # Read from file
 function cubic_b_spline(path::String; end_condition = "free", smoothing_factor = 0.0)

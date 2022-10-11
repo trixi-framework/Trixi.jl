@@ -197,7 +197,7 @@ function calc_tps(lambda::Number, x::Vector, y::Vector, z::Matrix)
   L[p+3,1:p] = y_hat
 
   # Fill part z of rhs
-  rhs[1:p,1] = z
+  rhs[1:p,1] = z_hat
 
   # Calculate solution vector
   coeff = L\rhs
