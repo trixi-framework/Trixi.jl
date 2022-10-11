@@ -413,7 +413,7 @@ end
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
                                           has_nonconservative_terms::Val{false}, volume_integral,
                                           has_sparse_operators::Val{false}, mesh,
-                                          equations, dg, cache) where {Flux}
+                                          equations, dg, cache)
   @unpack volume_flux = volume_integral
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
@@ -427,7 +427,7 @@ end
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
                                           has_nonconservative_terms::Val{true}, volume_integral,
                                           has_sparse_operators::Val{false}, mesh,
-                                          equations, dg, cache) where {Flux}
+                                          equations, dg, cache)
   flux_conservative, flux_nonconservative = volume_integral.volume_flux
   for dim in eachdim(mesh)
     Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg, cache)
