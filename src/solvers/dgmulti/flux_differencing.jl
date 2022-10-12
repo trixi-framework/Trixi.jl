@@ -393,11 +393,12 @@ end
 # sum factorization here, which is slower for fully dense matrices.
 @inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
 
+# General fallback for DGMulti solvers:
 # Polynomial-based solvers use hybridized SBP operators, which have blocks scaled by outward
 # normal components. This implies that operators for different coordinate directions have
 # different sparsity patterns. We default to using sum factorization (which is faster when
 # operators are sparse) for all `<:Polynomial` approximation types.
-@inline has_sparse_operators(element_type, approx_type::Polynomial) = Val{true}()
+@inline has_sparse_operators(element_type, approx_type) = Val{true}()
 
 # SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
@@ -503,10 +504,11 @@ end
   end
 end
 
-
+# calculates volume integral for <:Polynomial approximation types (e.g., we
+# do not assume any additional structure in RefElemData, such as)
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMultiFluxDiff{<:Polynomial},
+                               volume_integral, dg::DGMultiFluxDiff,
                                cache)
 
   @unpack entropy_projected_u_values, Ph = cache
@@ -573,7 +575,7 @@ end
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff{<:Union{Polynomial, GaussSBP}}, cache) where {Source, BC}
+              source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
 
   @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -598,11 +600,48 @@ function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions:
 
   @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
 
-  @trixi_timeit timer() "sources terms" calc_sources!(du, u, t, source_terms,
+  @trixi_timeit timer() "source terms" calc_sources!(du, u, t, source_terms,
                                                      mesh, equations, dg, cache)
 
   return nothing
 end
+
+# Specializes on SBP (e.g., nodal/collocation) DG methods with a flux differencing volume
+# integral, e.g., an entropy conservative/stable discretization. The implementation of `rhs!`
+# for such schemes is very similar to the implementation of `rhs!` for standard DG methods,
+# but specializes `calc_volume_integral`.
+function rhs!(du, u, t, mesh, equations,
+              initial_condition, boundary_conditions::BC, source_terms::Source,
+              dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
+
+  @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+
+  @trixi_timeit timer() "volume integral" calc_volume_integral!(
+    du, u, mesh, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
+
+  @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, mesh, equations, dg.surface_integral, dg)
+
+  @trixi_timeit timer() "interface flux" calc_interface_flux!(
+    cache, dg.surface_integral, mesh,
+    have_nonconservative_terms(equations), equations, dg)
+
+  @trixi_timeit timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, mesh, equations, dg)
+
+  @trixi_timeit timer() "surface integral" calc_surface_integral!(
+    du, u, dg.surface_integral, mesh, equations, dg, cache)
+
+  @trixi_timeit timer() "Jacobian" invert_jacobian!(
+    du, mesh, equations, dg, cache)
+
+  @trixi_timeit timer() "source terms" calc_sources!(
+    du, u, t, source_terms, mesh, equations, dg, cache)
+
+  return nothing
+end
+
 
 
 end # @muladd
