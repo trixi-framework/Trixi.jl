@@ -504,8 +504,9 @@ end
   end
 end
 
-# calculates volume integral for <:Polynomial approximation types (e.g., we
-# do not assume any additional structure in RefElemData, such as)
+# calculates volume integral for <:Polynomial approximation types. We
+# do not assume any additional structure (such as collocated volume or
+# face nodes, tensor product structure, etc) in `DGMulti`.
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGMultiFluxDiff,
