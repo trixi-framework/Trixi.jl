@@ -397,7 +397,7 @@ end
 # Polynomial-based solvers use hybridized SBP operators, which have blocks scaled by outward
 # normal components. This implies that operators for different coordinate directions have
 # different sparsity patterns. We default to using sum factorization (which is faster when
-# operators are sparse) for all `<:Polynomial` approximation types.
+# operators are sparse) for all `DGMulti` / `StartUpDG.jl` approximation types.
 @inline has_sparse_operators(element_type, approx_type) = Val{true}()
 
 # SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
