@@ -386,19 +386,16 @@ end
   return has_sparse_operators(rd.elementType, rd.approximation_type)
 end
 
-# The general fallback does not assume sparse operators
-@inline has_sparse_operators(element_type, approximation_type) = Val{false}()
-
-# For traditional SBP operators on triangles, the operators are fully dense. We avoid using
-# sum factorization here, which is slower for fully dense matrices.
-@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
-
 # General fallback for DGMulti solvers:
 # Polynomial-based solvers use hybridized SBP operators, which have blocks scaled by outward
 # normal components. This implies that operators for different coordinate directions have
 # different sparsity patterns. We default to using sum factorization (which is faster when
 # operators are sparse) for all `DGMulti` / `StartUpDG.jl` approximation types.
 @inline has_sparse_operators(element_type, approx_type) = Val{true}()
+
+# For traditional SBP operators on triangles, the operators are fully dense. We avoid using
+# sum factorization here, which is slower for fully dense matrices.
+@inline has_sparse_operators(::Union{Tri, Tet}, approx_type::AT) where {AT <: SBP} = Val{false}()
 
 # SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
