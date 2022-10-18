@@ -142,7 +142,7 @@ gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientV
 
 
 # Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
-# of the paper by Rueda-Ramíreza, Hennemann, Hindenlang, Winters, and Gassner
+# of the paper by Rueda-Ramírez, Hennemann, Hindenlang, Winters, and Gassner
 # "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
 #  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
 # where one sets the magnetic field components equal to 0.
