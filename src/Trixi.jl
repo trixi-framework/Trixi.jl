@@ -135,7 +135,7 @@ export AcousticPerturbationEquations2D,
        ShallowWaterEquations1D, ShallowWaterEquations2D
 
 export LaplaceDiffusion2D,
-       CompressibleNavierStokesDiffusion2D
+       CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
 
 export GradientVariablesPrimitive, GradientVariablesEntropy
 
