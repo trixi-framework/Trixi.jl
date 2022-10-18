@@ -1,10 +1,3 @@
-####################################################################################
-# This example is equivalent to tree_2d_dgsem/elixir_shallowwater_source_terms.jl, #
-# but instead of a function for the bottom topography, this version uses a bicubic #
-# b spline interpolation with the not-a-knot boundary condition to approximate     #
-# the bottom topography                                                            #
-####################################################################################
-
 
 using OrdinaryDiffEq
 using Trixi
@@ -14,42 +7,42 @@ using Trixi
 
 equations = ShallowWaterEquations2D(gravity_constant=9.81)
 
-# bottom topography function
-bottom_topography(x,y) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x) + 0.5 * sin(sqrt(2.0) * pi * y)
+bottom_topography(x,y) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x) + 
+                           0.5 * sin(sqrt(2.0) * pi * y)
+coordinates_min = (0.0, 0.0)
+coordinates_max = (sqrt(2.0), sqrt(2.0))
 
-# Setting
-range_x        = [0.0, sqrt(2.0)]
-range_y        = [0.0, sqrt(2.0)]
-num_interp_val = 100
-x_val          = Vector(LinRange(range_x[1], range_x[2], num_interp_val))
-y_val          = Vector(LinRange(range_y[1], range_y[2], num_interp_val))
-z_val          = zeros(num_interp_val, num_interp_val)
+n = 4
 
-for i in 1:num_interp_val, j in 1:num_interp_val
-  z_val[j, i] = bottom_topography(x_val[i], y_val[j])
+interp_x = Vector(LinRange(coordinates_min[1], coordinates_max[1], n))
+interp_y = Vector(LinRange(coordinates_min[2], coordinates_max[2], n))
+
+interp_z = zeros(n,n)
+
+for i in 1:n, j in 1:n
+  interp_z[j,i] = bottom_topography(interp_x[i], interp_y[j])
 end
 
 # Spline interpolation
-spline           = bicubic_b_spline(x_val, y_val, z_val; boundary = "not-a-knot")
+spline           = bicubic_b_spline(interp_x, interp_y, interp_z; end_condition = "not-a-knot")
 spline_func(x,y) = spline_interpolation(spline, x, y )
 
 function initial_condition_convergence_test_spline(x, t, equations::ShallowWaterEquations2D)
-    # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
-    c  = 7.0
-    omega_x = 2.0 * pi * sqrt(2.0)
-    omega_t = 2.0 * pi
-  
-    x1, x2 = x
-  
-    H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
-    v1 = 0.5
-    v2 = 1.5
-    b = spline_func(x1, x2)
-    return prim2cons(SVector(H, v1, v2, b), equations)
-  end
+  # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
+  c  = 7.0
+  omega_x = 2.0 * pi * sqrt(2.0)
+  omega_t = 2.0 * pi
+
+  x1, x2 = x
+
+  H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
+  v1 = 0.5
+  v2 = 1.5
+  b = spline_func(x1, x2)
+  return prim2cons(SVector(H, v1, v2, b), equations)
+end
 
 initial_condition = initial_condition_convergence_test_spline # MMS EOC test
-
 
 ###############################################################################
 # Get the DG approximation space
@@ -61,8 +54,6 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservativ
 ###############################################################################
 # Get the TreeMesh and setup a periodic mesh
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (sqrt(2.0), sqrt(2.0))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=10_000,

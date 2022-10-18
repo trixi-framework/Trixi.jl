@@ -1,12 +1,4 @@
-###############################################################################
-# This example is equivalent to tree_1d_dgsem/elixir_source_terms.jl,         #       
-# but instead of a function for the bottom topography, this version uses a    # 
-# cubic B-spline interpolation with not-a-knot boundary condition to          #
-# approximate the bottom topography. The interpolation points are provided    #
-# via a gist.                                                                 #        
-###############################################################################
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -15,16 +7,16 @@ using Trixi
 
 equations = ShallowWaterEquations1D(gravity_constant=9.81)
 
-###############################################################################
-# The data for the bottom topography is saved as a .txt-file in a gist.
-# To create the data, the following function
-# bottom_topography(x) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x)
-# has been evaluated at 10 equally spaced points between [0,√2] and the
-# resulting values have been saved.
-spline_data = download("https://gist.githubusercontent.com/maxbertrand1996/609f43c10de0f59fd3e3761c1e8bea84/raw/64b84f6de632b50d9f77a79f861f4aa1bb76b214/data_swe_source_terms_1D.txt")
+bottom_topography(x) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x)
+coordinates_min = 0.0
+coordinates_max = sqrt(2.0)
+n = 100
+
+interp_x = Vector(LinRange(coordinates_min, coordinates_max, n))
+interp_y = bottom_topography.(interp_x)
 
 # Spline interpolation
-spline         = cubic_b_spline(spline_data; boundary = "not-a-knot")
+spline         = cubic_b_spline(interp_x, interp_y; end_condition="not-a-knot")
 spline_func(x) = spline_interpolation(spline, x)
 
 function initial_condition_convergence_test_spline(x, t, equations::ShallowWaterEquations1D)
@@ -41,6 +33,7 @@ end
 
 initial_condition = initial_condition_convergence_test_spline
 
+
 ###############################################################################
 # Get the DG approximation space
 
@@ -51,8 +44,6 @@ solver = DGSEM(polydeg=3, surface_flux=(flux_lax_friedrichs, flux_nonconservativ
 ###############################################################################
 # Get the TreeMesh and setup a periodic mesh
 
-coordinates_min = 0.0
-coordinates_max = sqrt(2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=10_000,
