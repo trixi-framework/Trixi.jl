@@ -29,7 +29,6 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 #       and by the initial condition (which passes in `CompressibleEulerEquations3D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
-  # TODO: cleanup constants
   # Constants. OBS! Must match those in `source_terms_navier_stokes_convergence_test`
   c  = 2.0
   A1 = 0.5
@@ -59,7 +58,6 @@ end
   Pr = prandtl_number()
   mu_ = mu()
 
-  # TODO: cleanup constants
   # Constants. OBS! Must match those in `initial_condition_navier_stokes_convergence_test`
   c  = 2.0
   A1 = 0.5

@@ -91,11 +91,6 @@ struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real, E <
   gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
 end
 
-# TODO: Delete. I do not think these need declared again because they are in the 2D file and are
-#       dimension agnostic.
-# struct GradientVariablesPrimitive end
-# struct GradientVariablesEntropy end
-
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquations3D;
                                              mu, Prandtl,
