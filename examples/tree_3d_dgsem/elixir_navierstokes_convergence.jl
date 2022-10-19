@@ -22,7 +22,7 @@ coordinates_max = ( 1.0,  1.0,  1.0) # maximum coordinates (max(x), max(y), max(
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 periodicity=(true, false, true),
-                n_cells_max=100_000) # set maximum capacity of tree data structure
+                n_cells_max=50_000) # set maximum capacity of tree data structure
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion3D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion3D`)
