@@ -12,17 +12,13 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu=mu(), Pr
                                                           gradient_variables=GradientVariablesPrimitive())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-               volume_integral=VolumeIntegralWeakForm())
+dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(),
+             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+             volume_integral = VolumeIntegralWeakForm())
 
-coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
-coordinates_max = ( 1.0,  1.0,  1.0) # maximum coordinates (max(x), max(y), max(z))
-
-# Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                periodicity=(true, false, true),
-                n_cells_max=50_000) # set maximum capacity of tree data structure
+top_bottom(x, tol=50*eps()) = abs(abs(x[2]) - 1) < tol
+is_on_boundary = Dict(:top_bottom => top_bottom)
+mesh = DGMultiMesh(dg, cells_per_dimension=(8, 8, 8); periodicity=(true, false, true), is_on_boundary)
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion3D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion3D`)
@@ -227,24 +223,15 @@ heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom, heat_bc_top_bottom)
 
 # define inviscid boundary conditions
-boundary_conditions = (; x_neg = boundary_condition_periodic,
-                         x_pos = boundary_condition_periodic,
-                         y_neg = boundary_condition_slip_wall,
-                         y_pos = boundary_condition_slip_wall,
-                         z_neg = boundary_condition_periodic,
-                         z_pos = boundary_condition_periodic)
+boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; x_neg = boundary_condition_periodic,
-                                   x_pos = boundary_condition_periodic,
-                                   y_neg = boundary_condition_top_bottom,
-                                   y_pos = boundary_condition_top_bottom,
-                                   z_neg = boundary_condition_periodic,
-                                   z_pos = boundary_condition_periodic)
+boundary_conditions_parabolic = (; :top_bottom => boundary_condition_top_bottom)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, solver;
+semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), initial_condition, dg;
                                              boundary_conditions=(boundary_conditions, boundary_conditions_parabolic),
                                              source_terms=source_terms_navier_stokes_convergence_test)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -256,14 +243,13 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval=10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval, uEltype=real(dg))
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol, dt = 1e-5,
+sol = solve(ode, RDPK3SpFSAL49(), abstol=time_int_tol, reltol=time_int_tol,
             save_everystep=false, callback=callbacks)
 summary_callback() # print the timer summary
-
