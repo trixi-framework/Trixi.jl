@@ -116,7 +116,7 @@ end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2",  "v3", "T")
+# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
 # varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
 
 varnames(variable_mapping, equations_parabolic::CompressibleNavierStokesDiffusion3D) =
@@ -240,8 +240,8 @@ end
 end
 
 
-# Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4) and
-# reverse engineers the gradients to be terms of the primitive variables (v1, v2, T).
+# Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4, w_5) and
+# reverse engineers the gradients to be terms of the primitive variables (v1, v2, v3, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
@@ -254,7 +254,7 @@ end
                                                  equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
 
   # TODO: parabolic. This is inefficient to pass in transformed variables but then transform them back.
-  # We can fix this if we directly compute v1, v2, T from the entropy variables
+  # We can fix this if we directly compute v1, v2, v3, T from the entropy variables
   u = entropy2cons(w, equations) # calls a "modified" entropy2cons defined for CompressibleNavierStokesDiffusion3D
   rho, rho_v1, rho_v2, rho_v3, _ = u
 
@@ -288,59 +288,6 @@ end
   return T
 end
 
-# TODO: can we generalize this to MHD?
-# TODO: These structs only need declared once.
-# """
-#     struct BoundaryConditionNavierStokesWall
-
-# Creates a wall-type boundary conditions for the compressible Navier-Stokes equations.
-# The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
-# to be boundary condition types such as the `NoSlip` velocity boundary condition and the
-# `Adiabatic` or `Isothermal` heat boundary condition.
-
-# !!! warning "Experimental feature"
-#     This is an experimental feature and may change in future releases.
-# """
-# struct BoundaryConditionNavierStokesWall{V, H}
-#   boundary_condition_velocity::V
-#   boundary_condition_heat_flux::H
-# end
-
-# """
-#     struct NoSlip
-
-# Use to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`. The field `boundary_value_function`
-# should be a function with signature `boundary_value_function(x, t, equations)`
-# and should return a `SVector{NDIMS}` whose entries are the velocity vector at a
-# point `x` and time `t`.
-# """
-# struct NoSlip{F}
-#   boundary_value_function::F # value of the velocity vector on the boundary
-# end
-
-# """
-#     struct Isothermal
-
-# Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
-# The field `boundary_value_function` should be a function with signature
-# `boundary_value_function(x, t, equations)` and return a scalar value for the
-# temperature at point `x` and time `t`.
-# """
-# struct Isothermal{F}
-#   boundary_value_function::F # value of the temperature on the boundary
-# end
-
-# """
-#     struct Adiabatic
-
-# Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
-# The field `boundary_value_normal_flux_function` should be a function with signature
-# `boundary_value_normal_flux_function(x, t, equations)` and return a scalar value for the
-# normal heat flux at point `x` and time `t`.
-# """
-# struct Adiabatic{F}
-#   boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
-# end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Gradient,
