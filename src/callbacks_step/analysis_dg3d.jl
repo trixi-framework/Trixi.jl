@@ -220,7 +220,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
     for l in eachnode(dg)
       divb += ( derivative_matrix[i, l] * u[6, l, j, k, element] +
                 derivative_matrix[j, l] * u[7, i, l, k, element] +
-                derivative_matrix[k, l] * u[7, i, j, l, element] )
+                derivative_matrix[k, l] * u[8, i, j, l, element] )
     end
     divb *= cache.elements.inverse_jacobian[element]
     divb^2
@@ -262,7 +262,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
       for l in eachnode(dg)
         divb += ( derivative_matrix[i, l] * u[6, l, j, k, element] +
                   derivative_matrix[j, l] * u[7, i, l, k, element] +
-                  derivative_matrix[k, l] * u[7, i, j, l, element] )
+                  derivative_matrix[k, l] * u[8, i, j, l, element] )
       end
       divb *= cache.elements.inverse_jacobian[element]
       linf_divb = max(linf_divb, abs(divb))
