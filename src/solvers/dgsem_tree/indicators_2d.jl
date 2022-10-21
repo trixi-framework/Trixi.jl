@@ -209,7 +209,7 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
                                        dt, cache;
                                        kwargs...)
   @unpack alpha = indicator_IDP.cache.ContainerShockCapturingIndicator
-  alpha .= 0.0 # TODO: Correct that we save only the alpha's of the last RK stage.
+  alpha .= 0.0
 
   indicator_IDP.IDPDensityTVD  &&
     @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache)
@@ -753,6 +753,16 @@ end
 
 standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 
+@inline function update_alpha_per_timestep!(alpha_max_per_timestep, alpha_mean_per_timestep, alpha,
+                                            timestep, n_stages, semi)
+  _, equations, solver, cache = mesh_equations_solver_cache(semi)
+  n_elements = nelements(solver, cache)
+  n_nodes = nnodes(solver)^ndims(equations)
+  alpha_max_per_timestep[timestep] = max(alpha_max_per_timestep[timestep], maximum(alpha))
+  alpha_mean_per_timestep[timestep] += 1/(n_stages * n_nodes * n_elements) * sum(alpha)
+
+  return nothing
+end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)

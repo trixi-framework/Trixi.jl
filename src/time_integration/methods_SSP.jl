@@ -152,6 +152,11 @@ function solve!(integrator::SimpleIntegratorSSP)
       end
       @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, indicator)
 
+      update_alpha_per_timestep!(indicator.cache.alpha_max_per_timestep,
+                                 indicator.cache.alpha_mean_per_timestep,
+                                 indicator.cache.ContainerShockCapturingIndicator.alpha,
+                                 integrator.iter+1, length(alg.c), integrator.p)
+
       # Check that we are within bounds
       if indicator.IDPCheckBounds
         @trixi_timeit timer() "IDP_checkBounds" IDP_checkBounds(integrator.u_safe, integrator.p)
@@ -168,17 +173,13 @@ function solve!(integrator::SimpleIntegratorSSP)
     # @. integrator.u_old = u_tmp + alg.a[i] * integrator.u_safe
     # solves the differences between the (not-)unrolled for-loop versions.
 
-    if integrator.iter == length(indicator.cache.alpha_max_per_timestep)
+    if integrator.iter+1 == length(indicator.cache.alpha_max_per_timestep) && !integrator.finalstep
       new_length = length(indicator.cache.alpha_max_per_timestep) + 200
       resize!(indicator.cache.alpha_max_per_timestep,  new_length)
       resize!(indicator.cache.alpha_mean_per_timestep, new_length)
+      indicator.cache.alpha_max_per_timestep[new_length - 199:new_length] .= 0.0
+      indicator.cache.alpha_mean_per_timestep[new_length - 199:new_length] .= 0.0
     end
-
-    indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
-        maximum(indicator.cache.ContainerShockCapturingIndicator.alpha)
-    indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
-        (1/(nnodes(integrator.p.solver)^ndims(integrator.p.equations) * nelements(integrator.p.solver, integrator.p.cache))) *
-            sum(indicator.cache.ContainerShockCapturingIndicator.alpha)
 
     integrator.iter += 1
     integrator.t += integrator.dt
