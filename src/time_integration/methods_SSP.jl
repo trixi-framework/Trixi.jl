@@ -58,7 +58,7 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegratorSSPOptions}
+mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegratorSSPOptions}
   u::uType
   du::uType
   u_safe::uType
@@ -69,6 +69,7 @@ mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, Alg, SimpleI
   iter::Int # current number of time steps (iteration)
   p::Params # will be the semidiscretization from Trixi
   sol::Sol # faked
+  f::F
   alg::Alg
   opts::SimpleIntegratorSSPOptions
   finalstep::Bool # added for convenience
@@ -101,7 +102,7 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegratorSSP(u, du, u_safe, u_old, t, dt, zero(dt), iter, ode.p,
-                  (prob=ode,), alg,
+                  (prob=ode,), ode.f, alg,
                   SimpleIntegratorSSPOptions(callback, ode.tspan; kwargs...), false)
 
   # Resize container
@@ -144,7 +145,7 @@ function solve!(integrator::SimpleIntegratorSSP)
     @. integrator.u_safe = integrator.u
     for stage in eachindex(alg.c)
       t_stage = integrator.t + integrator.dt * alg.c[stage]
-      prob.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
+      integrator.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
 
       @trixi_timeit timer() "Runge-Kutta stage" begin
         @. integrator.u_old = (1.0 - alg.a[stage]) * integrator.u + alg.a[stage] * integrator.u_safe

@@ -24,9 +24,9 @@ timer() = main_timer
 
 
 """
-    PerformanceCounter
+    PerformanceCounter()
 
-A `PerformanceCounter` be used to track the runtime performance of some calls.
+A `PerformanceCounter` can be used to track the runtime performance of some calls.
 Add a new runtime measurement via `put!(counter, runtime)` and get the averaged
 runtime of all measurements added so far via `take!(counter)`, resetting the
 `counter`.
@@ -49,6 +49,34 @@ function Base.put!(counter::PerformanceCounter, runtime::Real)
   counter.ncalls_since_readout += 1
   counter.runtime += runtime
 end
+
+
+"""
+    PerformanceCounterList{N}()
+
+A `PerformanceCounterList{N}` can be used to track the runtime performance of
+calls to multiple functions, adding them up.
+Add a new runtime measurement via `put!(counter.counters[i], runtime)` and get
+the averaged runtime of all measurements added so far via `take!(counter)`,
+resetting the `counter`.
+"""
+struct PerformanceCounterList{N}
+  counters::NTuple{N, PerformanceCounter}
+end
+
+function PerformanceCounterList{N}() where {N}
+  counters = ntuple(_ -> PerformanceCounter(), Val{N}())
+  return PerformanceCounterList{N}(counters)
+end
+
+function Base.take!(counter::PerformanceCounterList)
+  time_per_call = 0.0
+  for c in counter.counters
+    time_per_call += take!(c)
+  end
+  return time_per_call
+end
+
 
 
 
