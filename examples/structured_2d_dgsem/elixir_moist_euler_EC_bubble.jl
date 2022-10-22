@@ -221,48 +221,17 @@ source_term = source_terms_geopotential
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
-#surface_flux = flux_lax_friedrichs
-#volume_flux = flux_lax_friedrichs
-#surface_flux = Trixi.flux_chandrashekar
-#volume_flux = Trixi.flux_chandrashekar
-surface_flux = Trixi.flux_central
-volume_flux = Trixi.flux_central
 
-#indicator_sc = IndicatorHennemannGassner(equations, basis,
-#                                         alpha_max=0.05,
-#                                         alpha_min=0.001,
-#                                         alpha_smooth=true,
-#                                         variable=density_pressure)
-#volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-#                                                 volume_flux_dg=volume_flux,
-#                                                 volume_flux_fv=surface_flux)
+surface_flux = flux_chandrashekar
+volume_flux = flux_chandrashekar
+#surface_flux = flux_central
+#volume_flux = flux_central
+
 
 volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-function mapping(xi_, eta_)
-  # Transform input variables between -1 and 1 onto [0,10000]x[0.1,10000.1]
-  xi = 5000.0 * xi_ + 5000.0
-  eta = 5000.0 * eta_ + 5000.1
-
-  L_x = 10000.0
-  L_z = 10000.0
-
-  #z = eta + 1/8 * L_z * (cos(1.5 * pi * (2 * xi - L_x)/ L_x) *
-  #                 cos(0.5 * pi * (2 * eta - L_z)/ L_z))
-
-  #x = xi + 1/8 * L_x * (cos(0.5 * pi * (2 * xi - L_x)/ L_x ) *
-  #                cos(2 * pi * (2 * z - L_z )/ L_z))
-
-  z = eta + 1/8 * L_z * (cos(1.5 * pi * xi_ ) *
-                  cos(0.5 * pi * eta_))
-
-  x = xi + 1/8 * L_x * (cos(0.5 * pi * xi_ ) *
-                 cos(2 * pi * (2 * z - L_z )/ L_z))
-
-  return SVector(x, z)
-end
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (4000.0, 4000.0)
@@ -283,7 +252,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.3)
+tspan = (0.0, 30.0)
+
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -311,7 +281,12 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK33(),
+#sol = solve(ode, SSPRK33(),
+#            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+#            save_everystep=false, callback=callbacks);
+
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
+
 summary_callback() # print the timer summary

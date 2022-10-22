@@ -50,16 +50,8 @@ boundary_conditions = (
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_LMARS
-volume_flux = flux_chandrasekhar
-                                                              
-#indicator_sc = IndicatorHennemannGassner(equations, basis,
-#                                         alpha_max=0.5,
-#                                         alpha_min=0.001,
-#                                         alpha_smooth=true,
-#                                         variable=density_pressure)
-#volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-#                                                 volume_flux_dg=volume_flux,
-#                                                 volume_flux_fv=surface_flux) 
+volume_flux = flux_chandrashekar
+                                                            
 
 volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
                       
@@ -84,16 +76,16 @@ f3(s) = bottom(s)
 f4(s) = SVector( 20000.0 * s, 16000.0)
 
 
-f1(s) = SVector(-20000.0, 8000.0 * s + 8000.0)
-f2(s) = SVector( 20000.0, 8000.0 * s + 8000.0)
-f3(s) = SVector( 20000.0 * s, (400.0 * 1000.0^2 * inv((20000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((20000.0)^2+1000.0^2)))
-f4(s) = SVector( 20000.0 * s, 16000.0)
+f1(s) = SVector(-30000.0, 8000.0 * s + 8000.0)
+f2(s) = SVector( 30000.0, 8000.0 * s + 8000.0)
+f3(s) = SVector( 30000.0 * s, (400.0 * 1000.0^2 * inv((30000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((30000.0)^2+1000.0^2)))
+f4(s) = SVector( 30000.0 * s, 16000.0)
 
 faces = (f1, f2, f3, f4)
 
 
 # dx = 0.2*a  dz = 10-200 m  für (40,16) km 
-cells_per_dimension = (50, 40)#(200, 160)
+cells_per_dimension = (150, 80)#(200, 160)
 #(64, 32)
 #(288, 125)
 
@@ -107,8 +99,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 
 # t = 21.6*a/v_1
 tspan = (0.0, 2160.0)
-
-#tspan = (0.0, 600.0)
 
 ode = semidiscretize(semi, tspan)
 
@@ -143,9 +133,5 @@ sol = solve(ode, SSPRK33(),
             maxiters=1.0e7,
             dt=1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
-
-#sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-#            dt=1, # solve needs some value here but it will be overwritten by the stepsize_callback
-#            save_everystep=false, callback=callbacks);
 
 summary_callback() # print the timer summary

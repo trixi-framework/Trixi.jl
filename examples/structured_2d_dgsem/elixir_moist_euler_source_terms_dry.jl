@@ -16,7 +16,7 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
 
-cells_per_dimension = (8, 8)
+cells_per_dimension = (16, 16)
 
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
