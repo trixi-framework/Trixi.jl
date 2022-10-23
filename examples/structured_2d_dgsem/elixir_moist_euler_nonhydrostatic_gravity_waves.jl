@@ -72,20 +72,20 @@ end
 
 f1(s) = SVector(-20000.0, 8000.0 * s + 8000.0)
 f2(s) = SVector( 20000.0, 8000.0 * s + 8000.0)
-f3(s) = bottom(s)
+f3(s) = SVector( 20000.0 * s , (400.0 * 1000.0^2 * inv((20000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((20000.0)^2+1000.0^2)))
 f4(s) = SVector( 20000.0 * s, 16000.0)
 
 
-f1(s) = SVector(-30000.0, 8000.0 * s + 8000.0)
-f2(s) = SVector( 30000.0, 8000.0 * s + 8000.0)
-f3(s) = SVector( 30000.0 * s, (400.0 * 1000.0^2 * inv((30000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((30000.0)^2+1000.0^2)))
-f4(s) = SVector( 30000.0 * s, 16000.0)
+#f1(s) = SVector(-30000.0, 8000.0 * s + 8000.0)
+#f2(s) = SVector( 30000.0, 8000.0 * s + 8000.0)
+#f3(s) = SVector( 30000.0 * s, (400.0 * 1000.0^2 * inv((30000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((30000.0)^2+1000.0^2)))
+#f4(s) = SVector( 30000.0 * s, 16000.0)
 
 faces = (f1, f2, f3, f4)
 
 
 # dx = 0.2*a  dz = 10-200 m  für (40,16) km 
-cells_per_dimension = (150, 80)#(200, 160)
+cells_per_dimension = (100, 80)
 #(64, 32)
 #(288, 125)
 
@@ -105,8 +105,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 10000
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy,))
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 

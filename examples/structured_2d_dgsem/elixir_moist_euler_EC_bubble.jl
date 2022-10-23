@@ -270,7 +270,7 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution=true,
                                      solution_variables=solution_variables)
 
-stepsize_callback = StepsizeCallback(cfl=0.0125)
+stepsize_callback = StepsizeCallback(cfl=0.4)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -281,9 +281,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-#sol = solve(ode, SSPRK33(),
-#            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#            save_everystep=false, callback=callbacks);
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

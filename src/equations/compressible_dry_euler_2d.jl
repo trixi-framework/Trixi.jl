@@ -31,7 +31,7 @@ function CompressibleDryEulerEquations2D(;RealT=Float64)
 
 varnames(::typeof(cons2cons), ::CompressibleDryEulerEquations2D) = ("rho", "rho_v1", "rho_v2", "rho_E")
 varnames(::typeof(cons2prim), ::CompressibleDryEulerEquations2D) = ("rho", "v1", "v2", "p")
-varnames(::typeof(cons2pot), ::CompressibleDryEulerEquations2D) = ("rho", "v1", "v2", "pottemp")
+varnames(::typeof(cons2drypot), ::CompressibleDryEulerEquations2D) = ("rho", "v1", "v2", "pottemp")
 
 
 # Calculate 1D flux for a single point

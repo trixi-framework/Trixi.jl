@@ -11,12 +11,17 @@ equations = CompressibleMoistEulerEquations2D()
 
 initial_condition = initial_condition_convergence_test_moist
 
-polydeg = 3
+polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
-surface_flux = flux_lax_friedrichs
 
-solver = DGSEM(basis, surface_flux)
+surface_flux = flux_chandrashekar
+volume_flux = flux_chandrashekar
+
+
+volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
+
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
@@ -48,7 +53,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.4)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

@@ -293,13 +293,12 @@ function initial_condition_convergence_test_moist(x, t, equations::CompressibleM
   ω = 2 * pi * f
   ini = c + A * sin(ω * (x[1] + x[2] - t))
 
- 
-  qv = 1/L_00
+  qv = 100/L_00
   ql = qv / 10
 
   mu = ((1 - qv - ql)*c_vd + qv*c_vv + ql*c_pl)
 
-  T = (ini - 1) /mu + 10/c_vd
+  T = (ini - 1) /mu + 10/c_vd + 40
   E = (mu*T + qv*L_00 + 1)
 
   rho = ini
@@ -327,20 +326,17 @@ end
   rho = c + A * si
   rho_x = ω * A * co
   
-
-  qv = 1/L_00
+  qv = 100/L_00
   ql = qv / 10
   mu = ((1 - qv - ql) * c_vd + qv * c_vv + ql * c_pl)
   xi = ((1 - qv - ql) * R_d + qv * R_v)
 
-
-  T = (rho - 1) / c_vd  
+  T = (rho - 1) /mu + 10/c_vd + 40
   dT = rho_x / c_vd
   E = (mu * T + qv * L_00 + 1)
   dE = E * rho_x + rho * mu * dT
   dp = xi * (T * rho_x + rho * dT)
 
-  
   #Calculate Error in Sources with exact solution and u
   u_exact = SVector(rho, rho, rho, rho*E, rho*qv, rho*ql) 
 
@@ -348,9 +344,10 @@ end
                                    source_terms_moist_bubble(u_exact, x, t, equations))  
   #du1, du2, du3, du4, du5, du6 = zeros(Float64, 6)                              
   # Note that d/dt rho = -d/dx rho = -d/dy rho.
+
   du1 += rho_x 
   du2 += rho_x + dp
-  du3 += du2 
+  du3 += rho_x + dp 
   du4 += dE + 2*dp 
   du5 += qv * rho_x
   du6 += ql * rho_x 
