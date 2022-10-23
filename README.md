@@ -239,8 +239,8 @@ In addition, you can also refer to Trixi directly as
 
 ## Authors
 Trixi was initiated by [Michael
-Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
-(University of Stuttgart, Germany) and
+Schlottke-Lakemper](https://lakemper.eu)
+(RWTH Aachen University, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
