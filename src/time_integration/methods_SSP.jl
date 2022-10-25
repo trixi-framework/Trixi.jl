@@ -58,7 +58,7 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegratorSSPOptions}
+mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, F, Alg, SimpleIntegratorSSPOptions}
   u::uType
   du::uType
   u_safe::uType
@@ -69,6 +69,7 @@ mutable struct SimpleIntegratorSSP{RealT<:Real, uType, Params, Sol, Alg, SimpleI
   iter::Int # current number of time steps (iteration)
   p::Params # will be the semidiscretization from Trixi
   sol::Sol # faked
+  f::F
   alg::Alg
   opts::SimpleIntegratorSSPOptions
   finalstep::Bool # added for convenience
@@ -101,7 +102,7 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegratorSSP(u, du, u_safe, u_old, t, dt, zero(dt), iter, ode.p,
-                  (prob=ode,), alg,
+                  (prob=ode,), ode.f, alg,
                   SimpleIntegratorSSPOptions(callback, ode.tspan; kwargs...), false)
 
   # Resize container
@@ -144,13 +145,20 @@ function solve!(integrator::SimpleIntegratorSSP)
     @. integrator.u_safe = integrator.u
     for stage in eachindex(alg.c)
       t_stage = integrator.t + integrator.dt * alg.c[stage]
-      prob.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
+      integrator.f(integrator.du, integrator.u_safe, integrator.p, t_stage)
 
       @trixi_timeit timer() "Runge-Kutta stage" begin
         @. integrator.u_old = (1.0 - alg.a[stage]) * integrator.u + alg.a[stage] * integrator.u_safe
         @. integrator.u_safe = integrator.u_old + alg.b[stage] * integrator.dt * integrator.du
       end
       @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, indicator)
+
+      if indicator isa IndicatorIDP
+        update_alpha_per_timestep!(indicator.cache.alpha_max_per_timestep,
+                                   indicator.cache.alpha_mean_per_timestep,
+                                   indicator.cache.ContainerShockCapturingIndicator.alpha,
+                                   integrator.iter+1, length(alg.c), integrator.p)
+      end
 
       # Check that we are within bounds
       if indicator.IDPCheckBounds
@@ -168,18 +176,12 @@ function solve!(integrator::SimpleIntegratorSSP)
     # @. integrator.u_old = u_tmp + alg.a[i] * integrator.u_safe
     # solves the differences between the (not-)unrolled for-loop versions.
 
-    if integrator.iter == length(indicator.cache.alpha_max_per_timestep)
+    if integrator.iter+1 == length(indicator.cache.alpha_max_per_timestep) && !integrator.finalstep
       new_length = length(indicator.cache.alpha_max_per_timestep) + 200
       resize!(indicator.cache.alpha_max_per_timestep,  new_length)
       resize!(indicator.cache.alpha_mean_per_timestep, new_length)
-    end
-
-    if indicator isa IndicatorIDP
-      indicator.cache.alpha_max_per_timestep[integrator.iter+1] =
-          maximum(indicator.cache.ContainerShockCapturingIndicator.alpha)
-      indicator.cache.alpha_mean_per_timestep[integrator.iter+1] =
-          (1/(nnodes(integrator.p.solver)^ndims(integrator.p.equations) * nelements(integrator.p.solver, integrator.p.cache))) *
-              sum(indicator.cache.ContainerShockCapturingIndicator.alpha)
+      indicator.cache.alpha_max_per_timestep[new_length - 199:new_length] .= 0.0
+      indicator.cache.alpha_mean_per_timestep[new_length - 199:new_length] .= 0.0
     end
 
     integrator.iter += 1

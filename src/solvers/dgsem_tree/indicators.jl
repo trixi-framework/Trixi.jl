@@ -235,7 +235,7 @@ IndicatorMCL
 """
 struct IndicatorMCL{Cache} <: AbstractIndicator
   cache::Cache
-  IDPPressureTVD::Bool
+  IDPPressureTVD::Bool    # synchronized pressure limiting
   IDPCheckBounds::Bool
 end
 

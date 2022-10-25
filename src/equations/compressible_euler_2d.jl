@@ -10,17 +10,17 @@
 
 The compressible Euler equations
 ```math
-\partial t
+\frac{\partial}{\partial t}
 \begin{pmatrix}
 \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
 \end{pmatrix}
 +
-\partial x
+\frac{\partial}{\partial x}
 \begin{pmatrix}
  \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e +p) v_1
 \end{pmatrix}
 +
-\partial y
+\frac{\partial}{\partial y}
 \begin{pmatrix}
 \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e +p) v_2
 \end{pmatrix}
@@ -36,7 +36,6 @@ Here, ``\rho`` is the density, ``v_1``,`v_2` the velocities, ``e`` the specific 
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
 the pressure.
-
 """
 struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
   gamma::RealT               # ratio of specific heats
@@ -335,13 +334,14 @@ Should be used together with [`TreeMesh`](@ref).
                                               equations::CompressibleEulerEquations2D)
   # get the appropriate normal vector from the orientation
   if orientation == 1
-    normal = SVector(1, 0)
+    normal_direction = SVector(1, 0)
   else # orientation == 2
-    normal = SVector(0, 1)
+    normal_direction = SVector(0, 1)
   end
 
   # compute and return the flux using `boundary_condition_slip_wall` routine above
-  return boundary_condition_slip_wall(u_inner, normal, x, t, surface_flux_function, equations)
+  return boundary_condition_slip_wall(u_inner, normal_direction, direction,
+                                      x, t, surface_flux_function, equations)
 end
 
 """
@@ -1062,6 +1062,13 @@ end
   return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
+@inline function isValidState(cons, equations::CompressibleEulerEquations2D)
+  p = pressure(cons, equations)
+  if cons[1] <= 0.0 || p <= 0.0
+    return false
+  end
+  return true
+end
 
 
 
