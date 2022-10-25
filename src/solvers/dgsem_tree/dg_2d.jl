@@ -1070,23 +1070,17 @@ end
 
   @trixi_timeit timer() "alpha calculation" semi.solver.volume_integral.indicator(u, u_old, mesh, equations, solver, dt, cache)
 
-  perform_IDP_correction(u, dt, mesh, equations, solver, cache, indicator)
+  perform_IDP_correction(u, dt, mesh, equations, solver, cache)
 
   return nothing
 end
 
-@inline function perform_IDP_correction(u, dt, mesh::TreeMesh2D, equations, dg, cache, indicator)
+@inline function perform_IDP_correction(u, dt, mesh::TreeMesh2D, equations, dg, cache)
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
-  if indicator.indicator_smooth
-    elements = cache.element_ids_dgfv
-  else
-    elements = eachelement(dg, cache)
-  end
 
-  # Loop over blended DG-FV elements
-  @threaded for element in elements
+  @threaded for element in eachelement(dg, cache)
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
     for j in eachnode(dg), i in eachnode(dg)
