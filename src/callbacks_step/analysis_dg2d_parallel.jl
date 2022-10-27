@@ -136,17 +136,18 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 
-function integrate_via_indices(func::Func, u,
-                               mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
+# We need to dispatch on `u::TrixiMPIArray` instead of `mesh::TreeMesh{2}` to
+# simply use `parent(u)` instead of some `invoke` call.
+function integrate_via_indices(func::Func, u::TrixiMPIArray,
+                               mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
-  # call the method accepting a general `mesh::TreeMesh{2}`
-  # TODO: MPI, we should improve this; maybe we should dispatch on `u`
-  #       and create some MPI array type, overloading broadcasting and mapreduce etc.
-  #       Then, this specific array type should also work well with DiffEq etc.
-  local_integral = invoke(integrate_via_indices,
-    Tuple{typeof(func), typeof(u), TreeMesh{2}, typeof(equations),
-          typeof(dg), typeof(cache), map(typeof, args)...},
-    func, u, mesh, equations, dg, cache, args..., normalize=normalize)
+  # Call the method for the local degrees of freedom and perform a global
+  # MPI reduction afterwards.
+  # Note that the simple `TreeMesh` implements an efficient way to compute
+  # the global volume without requiring communication. This global volume is
+  # already used when `normalize=true`.
+  local_integral = integrate_via_indices(func, parent(u), mesh, equations, dg,
+                                         cache, args...; normalize)
 
   # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
   global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())

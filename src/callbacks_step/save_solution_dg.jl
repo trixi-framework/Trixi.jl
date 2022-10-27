@@ -73,7 +73,9 @@ function save_solution_file(u, time, dt, timestep,
   return filename
 end
 
-
+# Note that we cannot dispatch on `u::TrixiMPIArray` since we use
+# `wrap_array_native` before calling this method, loosing the MPI array
+# wrapper type.
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();

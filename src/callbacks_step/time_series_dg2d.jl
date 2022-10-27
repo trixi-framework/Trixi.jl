@@ -137,7 +137,7 @@ function record_state_at_points!(point_data, u, solution_variables, n_solution_v
     for j in eachnode(dg), i in eachnode(dg)
       u_node = solution_variables(get_node_vars(u, equations, dg, i, j, element_id), equations)
 
-      for v in 1:length(u_node)
+      for v in eachindex(u_node)
         data[old_length + v] += (u_node[v]
                                 * interpolating_polynomials[i, 1, index]
                                 * interpolating_polynomials[j, 2, index])

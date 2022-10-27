@@ -369,9 +369,20 @@ include("dgsem/dgsem.jl")
 
 
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
-  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
+  # We must allocate a `Vector` in order to be able to `resize!` it for AMR.
+  # Currently, Julia does not allow resizing multi-dimensional `Array`s, see
+  # https://github.com/JuliaLang/julia/issues/37900
   # cf. wrap_array
-  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+  u = zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+
+  # This function is used every time we allocate some new coefficient vector.
+  # Thus, we can check here whether MPI parallelization is set up and wrap
+  # the coefficient vector for use with MPI if necessary.
+  if mpi_parallel(mesh) === Val{true}()
+    return TrixiMPIArray(u)
+  else
+    return u
+  end
 end
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations, dg::DGSEM, cache)
@@ -405,13 +416,19 @@ end
     #     `@batch` from Polyester.jl or something similar. Using Polyester.jl
     #     is probably the best option since everything will be handed over to
     #     Chris Elrod, one of the best performance software engineers for Julia.
-    PtrArray(pointer(u_ode),
-             (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
-            #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+    u = PtrArray(pointer(u_ode),
+                 (StaticInt(nvariables(equations)), ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))..., nelements(dg, cache)))
+               # (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
   else
     # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-    unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+    u = unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
+                    (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+  end
+
+  if u_ode isa TrixiMPIArray
+    return TrixiMPIArray(u, mpi_comm(u_ode))
+  else
+    return u
   end
 end
 

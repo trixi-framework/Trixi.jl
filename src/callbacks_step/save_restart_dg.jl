@@ -84,7 +84,9 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh, Unstructu
   return u_ode
 end
 
-
+# Note that we cannot dispatch on `u::TrixiMPIArray` since we use
+# `wrap_array_native` before calling this method, loosing the MPI array
+# wrapper type.
 function save_restart_file(u, time, dt, timestep,
                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
                            restart_callback)
