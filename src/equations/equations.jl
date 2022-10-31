@@ -175,6 +175,25 @@ end
   return flux
 end
 
+# operator types used for dispatch on parabolic boundary fluxes
+struct Gradient end
+struct Divergence end
+
+"""
+    BoundaryConditionNeumann(boundary_normal_flux_function)
+
+Similar to `BoundaryConditionDirichlet`, but creates a Neumann boundary condition for parabolic
+equations that uses the function `boundary_normal_flux_function` to specify the values of the normal
+flux at the boundary.
+The passed boundary value function will be called with the same arguments as an initial condition function is called, i.e., as
+```julia
+boundary_normal_flux_function(x, t, equations)
+```
+where `x` specifies the coordinates, `t` is the current time, and `equation` is the corresponding system of equations.
+"""
+struct BoundaryConditionNeumann{B}
+  boundary_normal_flux_function::B
+end
 
 # set sensible default values that may be overwritten by specific equations
 """
@@ -329,5 +348,6 @@ include("lattice_boltzmann_3d.jl")
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
 
+abstract type AbstractEquationsParabolic{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 
 end # @muladd
