@@ -13,8 +13,12 @@ using SnoopPrecompile: @precompile_all_calls
 
     coordinates_min = (0.0, 0.0)
     coordinates_max = (2.0, 2.0)
+    refinement_patches = (
+         (type="box", coordinates_min=(0.0, 0.0), coordinates_max=(1.0, 1.0)),
+       )
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level=1,
+                    refinement_patches=refinement_patches,
                     n_cells_max=100)
 
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
@@ -30,6 +34,13 @@ using SnoopPrecompile: @precompile_all_calls
 
     analysis_interval = 100
     analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+    let u_ode = ode.u0
+      GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        analysis_callback.affect!(devnull, du, u, u_ode, first(tspan), semi)
+      end
+    end
 
     alive_callback = AliveCallback(analysis_interval=analysis_interval)
   end
@@ -41,8 +52,12 @@ using SnoopPrecompile: @precompile_all_calls
 
     coordinates_min = (0.0, 0.0, 0.0)
     coordinates_max = (2.0, 2.0, 2.0)
+    refinement_patches = (
+         (type="box", coordinates_min=(0.0, 0.0, 0.0), coordinates_max=(1.0, 1.0, 1.0)),
+       )
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level=1,
+                    refinement_patches=refinement_patches,
                     n_cells_max=100)
 
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver,
@@ -58,6 +73,13 @@ using SnoopPrecompile: @precompile_all_calls
 
     analysis_interval = 100
     analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+    let u_ode = ode.u0
+      GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        analysis_callback.affect!(devnull, du, u, u_ode, first(tspan), semi)
+      end
+    end
 
     alive_callback = AliveCallback(analysis_interval=analysis_interval)
   end
