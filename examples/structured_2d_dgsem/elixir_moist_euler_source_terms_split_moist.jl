@@ -53,7 +53,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.4)
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -64,6 +64,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            maxiters=1.0e7,
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

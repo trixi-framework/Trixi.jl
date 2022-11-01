@@ -13,8 +13,6 @@ function initial_condition_nonhydrostatic_gravity_wave(x, t, equations::Compress
 
   theta = theta_0 * exp(N^2 *z / g)
   p = p_0*(1 + g^2 * inv(c_pd * theta_0 * N^2) * (exp(-z * N^2 / g) - 1))^(1/kappa)
-  # ??????????????
-  #rho = p_0 * inv(theta * R_d * (p / p_0)^(c_vd / c_pd))
   rho = p / ((p / p_0)^kappa*R_d*theta)
   T = p / (R_d * rho)
 
@@ -75,7 +73,6 @@ f2(s) = SVector( 20000.0, 8000.0 * s + 8000.0)
 f3(s) = SVector( 20000.0 * s , (400.0 * 1000.0^2 * inv((20000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((20000.0)^2+1000.0^2)))
 f4(s) = SVector( 20000.0 * s, 16000.0)
 
-
 #f1(s) = SVector(-30000.0, 8000.0 * s + 8000.0)
 #f2(s) = SVector( 30000.0, 8000.0 * s + 8000.0)
 #f3(s) = SVector( 30000.0 * s, (400.0 * 1000.0^2 * inv((30000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((30000.0)^2+1000.0^2)))
@@ -86,8 +83,7 @@ faces = (f1, f2, f3, f4)
 
 # dx = 0.2*a  dz = 10-200 m  für (40,16) km 
 cells_per_dimension = (100, 80)
-#(64, 32)
-#(288, 125)
+
 
 mesh = StructuredMesh(cells_per_dimension, faces)
 
