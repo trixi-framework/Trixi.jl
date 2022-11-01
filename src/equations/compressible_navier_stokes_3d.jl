@@ -284,6 +284,24 @@ end
 end
 
 
+@inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+  # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
+
+  omega = vorticity(u, gradients, equations)
+  return 0.5 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
+end
+
+
+@inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+  # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+  _, dv1dx, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+  _, dv1dy, dv2dy, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+  _, dv1dz, dv2dz, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3], equations)
+
+  return SVector(dv3dy - dv2dz , dv1dz - dv3dx , dv2dx - dv1dy)
+end
+
+
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip, <:Adiabatic})(flux_inner, u_inner, normal::AbstractVector,
                                                                                            x, t, operator_type::Gradient,
                                                                                            equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
