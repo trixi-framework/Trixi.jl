@@ -199,6 +199,22 @@ function integrate(func::Func, u,
 end
 
 
+function integrate(func::typeof(enstrophy), u,
+                   mesh::TreeMesh{3},
+                   equations, equations_parabolic::CompressibleNavierStokesDiffusion3D,
+                   dg::DGSEM,
+                   cache, cache_parabolic; normalize=true)
+  gradients_x, gradients_y, gradients_z = cache_parabolic.gradients
+  integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
+    u_local = get_node_vars(u, equations, dg, i, j, k, element)
+    gradients_1_local = get_node_vars(gradients_x, equations_parabolic, dg, i, j, k, element)
+    gradients_2_local = get_node_vars(gradients_y, equations_parabolic, dg, i, j, k, element)
+    gradients_3_local = get_node_vars(gradients_z, equations_parabolic, dg, i, j, k, element)
+    return func(u_local, (gradients_1_local, gradients_2_local, gradients_3_local), equations_parabolic)
+  end
+end
+
+
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
                  equations, dg::DG, cache)

@@ -470,6 +470,21 @@ pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 
 
+# Special analyze for `SemidiscretizationHyperbolicParabolic` such that
+# precomputed gradients are available. For now only implemented for the `enstrophy`
+#!!! warning "Experimental code"
+#    This code is experimental and may be changed or removed in any future release.
+function analyze(quantity::typeof(enstrophy), du, u, t, semi::SemidiscretizationHyperbolicParabolic)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  equations_parabolic = semi.equations_parabolic
+  cache_parabolic = semi.cache_parabolic
+  analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, cache_parabolic)
+end
+function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, cache_parabolic)
+  integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache, cache_parabolic, normalize=true)
+end
+
+
 function entropy_timederivative end
 pretty_form_utf(::typeof(entropy_timederivative)) = "∑∂S/∂U ⋅ Uₜ"
 pretty_form_ascii(::typeof(entropy_timederivative)) = "dsdu_ut"
@@ -493,6 +508,9 @@ pretty_form_ascii(::typeof(energy_magnetic)) = "e_magnetic"
 
 pretty_form_utf(::typeof(cross_helicity)) = "∑v⋅B"
 pretty_form_ascii(::typeof(cross_helicity)) = "v_dot_B"
+
+pretty_form_utf(::typeof(enstrophy)) = "∑enstrophy"
+pretty_form_ascii(::typeof(enstrophy)) = "enstrophy"
 
 pretty_form_utf(::Val{:l2_divb}) = "L2 ∇⋅B"
 pretty_form_ascii(::Val{:l2_divb}) = "l2_divb"
