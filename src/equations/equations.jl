@@ -308,11 +308,8 @@ include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 
-# CompressibleEulerEquations
-abstract type AbstractCompressibleDryEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("compressible_dry_euler_2d.jl")
 
-# CompressibleEulerEquations
+# CompressibleMoistEulerEquations
 abstract type AbstractCompressibleMoistEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_moist_euler_2d.jl")
 
