@@ -49,7 +49,6 @@ varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "
 
 # Calculate 1D flux for a single point.
 @inline function flux(u, orientation::Integer, equations::CompressibleMoistEulerEquations2D)
-  @unpack c_pl, Rain = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
@@ -426,6 +425,16 @@ end
   C = 1
 
   return (a + b - sqrt(a^2 + b^2)) * C
+end
+
+
+# Add the source containing Q_ph
+@inline function source_terms_phase_change(u, equations::CompressibleMoistEulerEquations2D)
+
+  Q_ph = phase_change_term(u, equations)
+  
+  return SVector(zero(eltype(u)), zero(eltype(u)), zero(eltype(u)),
+                 zero(eltype(u)) , Q_ph, -Q_ph)
 end
 
 

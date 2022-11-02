@@ -2,7 +2,8 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the compressible moist Euler equation
+
 
 function initial_condition_nonhydrostatic_gravity_wave(x, t, equations::CompressibleMoistEulerEquations2D)
   @unpack p_0, kappa, gamma, g, c_pd, c_vd, R_d, R_v = equations
@@ -30,13 +31,13 @@ equations = CompressibleMoistEulerEquations2D()
 
 initial_condition = initial_condition_nonhydrostatic_gravity_wave
 
-function source_term(u, x, t, equations::CompressibleMoistEulerEquations2D)
+function source(u, x, t, equations::CompressibleMoistEulerEquations2D)
   return (Trixi.source_terms_geopotential(u, equations) +
           Trixi.source_terms_phase_change(u, equations::CompressibleMoistEulerEquations2D) +
           Trixi.source_terms_nonhydrostatic_raylight_sponge(u, x, t, equations::CompressibleMoistEulerEquations2D))
 end
 
-source_term=source_term
+source_term=source
 
 boundary_conditions = (
                        x_neg=boundary_condition_periodic,
@@ -73,10 +74,6 @@ f2(s) = SVector( 20000.0, 8000.0 * s + 8000.0)
 f3(s) = SVector( 20000.0 * s , (400.0 * 1000.0^2 * inv((20000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((20000.0)^2+1000.0^2)))
 f4(s) = SVector( 20000.0 * s, 16000.0)
 
-#f1(s) = SVector(-30000.0, 8000.0 * s + 8000.0)
-#f2(s) = SVector( 30000.0, 8000.0 * s + 8000.0)
-#f3(s) = SVector( 30000.0 * s, (400.0 * 1000.0^2 * inv((30000.0 * s)^2+1000.0^2))-(400.0 * 1000.0^2 * inv((30000.0)^2+1000.0^2)))
-#f4(s) = SVector( 30000.0 * s, 16000.0)
 
 faces = (f1, f2, f3, f4)
 
