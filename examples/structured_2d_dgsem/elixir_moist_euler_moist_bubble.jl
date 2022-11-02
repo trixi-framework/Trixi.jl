@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the compressible moist Euler equations
 
 equations = CompressibleMoistEulerEquations2D()
 
@@ -234,7 +234,7 @@ coordinates_max = (20000.0, 10000.0)
 
 cells_per_dimension = (64, 32)
 
-# Create curved mesh with 16 x 16 elements
+# Create curved mesh with 64 x 32 elements
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 ###############################################################################

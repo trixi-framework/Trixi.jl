@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the compressible moist Euler equations
 
 equations = CompressibleMoistEulerEquations2D()
 
@@ -49,25 +49,25 @@ initial_condition = initial_condition_warm_bubble
 
 boundary_condition = (x_neg=boundary_condition_periodic,
                       x_pos=boundary_condition_periodic,
-                      #x_neg=boundary_condition_slip_wall,
-                      #x_pos=boundary_condition_slip_wall,
                       y_neg=boundary_condition_slip_wall,
                       y_pos=boundary_condition_slip_wall)
 
-
+# Gravity source since Q_ph=0
 source_term = source_terms_geopotential
+
 ###############################################################################
 # Get the DG approximation space
-
-
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_LMARS
-volume_flux = Trixi.flux_chandrashekar
+volume_flux = flux_chandrashekar
 
 volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
 
+
+# Create DG solver with polynomial degree = 4 and LMARS flux as surface flux 
+# and the EC flux (chandrashekar) as volume flux
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0.0, 0.0)
@@ -75,11 +75,11 @@ coordinates_max = (20000.0, 10000.0)
 
 
 cells_per_dimension = (64, 32)
-#cells_per_dimension = (80, 40)
 
-
+# Create curved mesh with 64 x 32 elements
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
+# A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_condition,
                                     source_terms=source_term)
@@ -88,7 +88,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 1000.0)
-#tspan = (0.0, 1020.0)
+
+
+# Create ODE problem with time span from 0.0 to 1000.0
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -114,9 +116,9 @@ callbacks = CallbackSet(summary_callback,
                         save_solution,
                         stepsize_callback)
 
+
 ###############################################################################
 # run the simulation
-
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), 
             maxiters=1.0e7,
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
