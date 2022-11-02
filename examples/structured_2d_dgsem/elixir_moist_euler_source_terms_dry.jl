@@ -7,7 +7,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleMoistEulerEquations2D( ;g=0.0, Rain=false) 
+equations = CompressibleMoistEulerEquations2D( ;g=0.0) 
 
 initial_condition = initial_condition_convergence_test_dry
 

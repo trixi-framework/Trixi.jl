@@ -77,8 +77,6 @@ end
 # Calculate 1D flux for a single point in the normal direction.
 # Note, this directional vector is not normalized.
 @inline function flux(u, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
-  @unpack c_pl, R_d, R_v, Rain = equations
-  @unpack c_pl, Rain = equations
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
@@ -278,7 +276,7 @@ end
 # Extends the convergence test to the system with gravity and phase change.
 @inline function source_terms_convergence_test_moist(u, x, t, equations::CompressibleMoistEulerEquations2D)
   # Same settings as in `initial_condition`
-  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00, c_r, N_0r, rho_w, Rain = equations
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
   c = 2
   A = 0.1
   L = 2
@@ -321,13 +319,9 @@ end
 
 # Gravity source term
 @inline function source_terms_geopotential(u, x, t, equations::CompressibleMoistEulerEquations2D)
-  @unpack g, Rain = equations
+  @unpack g = equations
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
   tmp = rho_v2
-  if Rain
-    W_f = fall_speed_rain(rho_ql, rho_ql, equations)
-    tmp += rho_ql * W_f
-  end 
 
   return SVector(zero(eltype(u)), zero(eltype(u)),
                  -g * rho, -g * tmp, 
@@ -336,13 +330,9 @@ end
 
 
 @inline function source_terms_geopotential(u, equations::CompressibleMoistEulerEquations2D)
-  @unpack g, Rain = equations
+  @unpack g = equations
   rho, rho_v1, rho_v2, rho_e, rho_qv, rho_ql = u
   tmp = rho_v2
-  if Rain
-    W_f = fall_speed_rain(rho_ql, rho_ql, equations)
-    tmp += rho_ql * W_f
-  end 
 
   return SVector(zero(eltype(u)), zero(eltype(u)),
                  -g * rho, -g * tmp, 
@@ -850,7 +840,7 @@ end
 # aequivalent potential temperature instead of pressure
 # and mixing ratios innstead of specific contend.
 @inline function cons2aeqpot(cons, equations::CompressibleMoistEulerEquations2D)
-  @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, kappa, L_00 = equations
+  @unpack c_pd, c_pv, c_pl, R_d, R_v, p_0, L_00 = equations
   rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = cons
   rho_d = rho - rho_qv - rho_ql
   p, T = get_current_condition(cons, equations)
@@ -945,7 +935,7 @@ end
 # multicomponent compressible Euler equations, 4 Feb 2020, doi:10.1016/j.cma.2020.112912,
 # https://arxiv.org/abs/1904.00972 [math.NA].
 @inline function flux_chandrashekar(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleMoistEulerEquations2D)
-  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00, RainConst = equations
+  @unpack R_d, R_v, c_vd, c_vv, c_pl, L_00 = equations
   R_q = 0
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_E_ll, rho_qv_ll, rho_ql_ll = u_ll
