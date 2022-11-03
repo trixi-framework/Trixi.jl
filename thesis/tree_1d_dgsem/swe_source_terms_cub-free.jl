@@ -10,7 +10,7 @@ equations = ShallowWaterEquations1D(gravity_constant=9.81)
 bottom_topography(x) = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x)
 coordinates_min = 0.0
 coordinates_max = sqrt(2.0)
-n = 4
+n = 20
 
 interp_x = Vector(LinRange(coordinates_min, coordinates_max, n))
 interp_y = bottom_topography.(interp_x)
@@ -27,7 +27,11 @@ function initial_condition_convergence_test_spline(x, t, equations::ShallowWater
   
   H = c + cos(omega_x * x[1]) * cos(omega_t * t)
   v = 0.5
-  b = spline_func(x[1])
+  if t == 0
+    b = spline_func(x[1])
+  else
+    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
+  end
   return prim2cons(SVector(H, v, b), equations)
 end
 

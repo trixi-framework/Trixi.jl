@@ -1,7 +1,7 @@
 #################################################################
-# This script creates a plot from the the DGM dataset
-# using bicubic B-pline interpolation with free end condition
-# and smoothing
+# This script creates a plot from the the DGM dataset           #
+# using bicubic B-pline interpolation with free end condition   #
+# and smoothing                                                 #
 #################################################################
 
 # Include packages
