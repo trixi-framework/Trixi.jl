@@ -50,6 +50,30 @@ end
 
 
 """
+initial_condition_shock(x, t, equations::InviscidBurgersEquation1D)
+
+Discontinuous initial condition (Riemann Problem) leading to a shock to test e.g. correct shock speed.
+"""
+function initial_condition_shock(x, t, equation::InviscidBurgersEquation1D)
+  scalar = x[1] < 0.5 ? 1.5 : 0.5
+
+  return SVector(scalar)
+end
+
+
+"""
+initial_condition_rarefaction(x, t, equations::InviscidBurgersEquation1D)
+
+Discontinuous initial condition (Riemann Problem) leading to a rarefaction fan.
+"""
+function initial_condition_rarefaction(x, t, equation::InviscidBurgersEquation1D)
+  scalar = x[1] < 0.5 ? 0.5 : 1.5
+
+  return SVector(scalar)
+end
+
+
+"""
     source_terms_convergence_test(u, x, t, equations::InviscidBurgersEquation1D)
 
 Source terms used for convergence tests in combination with
@@ -87,6 +111,18 @@ end
 end
 
 
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  λ_min = min(u_L, u_R)
+  λ_max = max(u_L, u_R)
+
+  return λ_min, λ_max
+end
+
+
 @inline function max_abs_speeds(u, equation::InviscidBurgersEquation1D)
   return (abs(u[1]),)
 end
@@ -97,6 +133,26 @@ function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
   u_R = u_rr[1]
 
   return SVector((u_L^2 + u_L * u_R + u_R^2) / 6)
+end
+
+
+# See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
+# section 4.1.5 and especially equation (4.16).
+function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  return SVector(0.5 * max(max(u_L, 0)^2, min(u_R, 0)))
+end
+
+
+# See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
+# section 4.2.5 and especially equation (4.34).
+function flux_engquist_osher(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  return SVector(0.5 * (max(u_L, 0)^2 + min(u_R, 0)^2))
 end
 
 
@@ -115,6 +171,11 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
 @inline energy_total(u, equation::InviscidBurgersEquation1D) = energy_total(u[1], equation)
+
+# For shock capturing
+@inline function scalar(u, equations::InviscidBurgersEquation1D)
+  return u[1]
+end
 
 
 end # @muladd
