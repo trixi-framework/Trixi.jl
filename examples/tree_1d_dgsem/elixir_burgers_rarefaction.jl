@@ -19,9 +19,9 @@ volume_flux  = flux_central
 surface_flux = flux_lax_friedrichs
 
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg=surface_flux,
+                                                 volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
-                                                 
+                                          
 solver = DGSEM(basis, surface_flux, volume_integral)
 #solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs) # Non-shock capturing utilities
 
@@ -34,18 +34,18 @@ mesh = TreeMesh(coordinate_min, coordinate_max,
                 n_cells_max=10_000,
                 periodicity=false)
 
-# Discontinuous initial condition (Riemann Problem) leading to a shock to test e.g. correct shock speed.
-function initial_condition_shock(x, t, equation::InviscidBurgersEquation1D)
-  scalar = x[1] < 0.5 ? 1.5 : 0.5
+# Discontinuous initial condition (Riemann Problem) leading to a rarefaction fan.
+function initial_condition_rarefaction(x, t, equation::InviscidBurgersEquation1D)
+  scalar = x[1] < 0.5 ? 0.5 : 1.5
 
   return SVector(scalar)
-end
+end       
 
 ###############################################################################
 # Specify non-periodic boundary conditions
 
 function inflow(x, t, equations::InviscidBurgersEquation1D)
-  return initial_condition_shock(coordinate_min, t, equations)
+  return initial_condition_rarefaction(coordinate_min, t, equations)
 end
 boundary_condition_inflow = BoundaryConditionDirichlet(inflow)
 
@@ -60,8 +60,8 @@ end
 
 boundary_conditions = (x_neg=boundary_condition_inflow,
                        x_pos=boundary_condition_outflow)
-                       
-initial_condition = initial_condition_shock
+                                 
+initial_condition = initial_condition_rarefaction
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions)

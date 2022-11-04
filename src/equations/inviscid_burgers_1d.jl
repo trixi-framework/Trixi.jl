@@ -50,30 +50,6 @@ end
 
 
 """
-initial_condition_shock(x, t, equations::InviscidBurgersEquation1D)
-
-Discontinuous initial condition (Riemann Problem) leading to a shock to test e.g. correct shock speed.
-"""
-function initial_condition_shock(x, t, equation::InviscidBurgersEquation1D)
-  scalar = x[1] < 0.5 ? 1.5 : 0.5
-
-  return SVector(scalar)
-end
-
-
-"""
-initial_condition_rarefaction(x, t, equations::InviscidBurgersEquation1D)
-
-Discontinuous initial condition (Riemann Problem) leading to a rarefaction fan.
-"""
-function initial_condition_rarefaction(x, t, equation::InviscidBurgersEquation1D)
-  scalar = x[1] < 0.5 ? 0.5 : 1.5
-
-  return SVector(scalar)
-end
-
-
-"""
     source_terms_convergence_test(u, x, t, equations::InviscidBurgersEquation1D)
 
 Source terms used for convergence tests in combination with
@@ -110,18 +86,16 @@ end
   λ_max = max(abs(u_L), abs(u_R))
 end
 
-
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
-
+  
   λ_min = min(u_L, u_R)
   λ_max = max(u_L, u_R)
 
   return λ_min, λ_max
 end
-
 
 @inline function max_abs_speeds(u, equation::InviscidBurgersEquation1D)
   return (abs(u[1]),)
@@ -142,7 +116,7 @@ function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  return SVector(0.5 * max(max(u_L, 0)^2, min(u_R, 0)))
+  return SVector(0.5 * max(max(u_L, 0)^2, min(u_R, 0)^2))
 end
 
 
@@ -154,7 +128,6 @@ function flux_engquist_osher(u_ll, u_rr, orientation, equation::InviscidBurgersE
 
   return SVector(0.5 * (max(u_L, 0)^2 + min(u_R, 0)^2))
 end
-
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::InviscidBurgersEquation1D) = u
@@ -176,6 +149,5 @@ end
 @inline function scalar(u, equations::InviscidBurgersEquation1D)
   return u[1]
 end
-
 
 end # @muladd
