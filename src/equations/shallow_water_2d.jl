@@ -177,24 +177,18 @@ For details see Section 9.2.5 of the book:
   1st edition
   ISBN 0471987662
 """
-@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+@inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
                                               x, t,
                                               surface_flux_function,
                                               equations::ShallowWaterEquations2D)
-  # normalize the outward pointing direction
-  normal = normal_direction / norm(normal_direction)
-
-  # compute the normal velocity
-  u_normal = normal[1] * u_inner[2] + normal[2] * u_inner[3]
-
-  # create the "external" boundary solution state
-  u_boundary = SVector(u_inner[1],
-                       u_inner[2] - 2.0 * u_normal * normal[1],
-                       u_inner[3] - 2.0 * u_normal * normal[2],
+                                              
+   u_boundary = SVector(u_inner[1],
+                       -u_inner[2],
+                       -u_inner[3],
                        u_inner[4])
 
   # calculate the boundary flux
-  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+  flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
 
   return flux
 end
