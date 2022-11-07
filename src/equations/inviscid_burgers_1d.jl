@@ -146,9 +146,5 @@ end
 @inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
 @inline energy_total(u, equation::InviscidBurgersEquation1D) = energy_total(u[1], equation)
 
-# For shock capturing
-@inline function scalar(u, equations::InviscidBurgersEquation1D)
-  return u[1]
-end
 
 end # @muladd

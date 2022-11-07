@@ -13,7 +13,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=1.0,
                                          alpha_min=0.001,
                                          alpha_smooth=true,
-                                         variable=Trixi.scalar)
+                                         variable=first)
 
 volume_flux  = flux_ec
 surface_flux = flux_lax_friedrichs
