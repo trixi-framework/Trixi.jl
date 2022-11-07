@@ -6,7 +6,7 @@
 
 
 @doc raw"""
-    LinearizedEulerEquations2D(rho_mean, v1_mean, v2_mean, c)
+    LinearizedEulerEquations2D(v_mean_global, c_mean_global, rho_mean_global)
         
 Linearized euler equations in two space dimensions. The equations are given by
 ```math
@@ -30,27 +30,26 @@ Linearized euler equations in two space dimensions. The equations are given by
 \end{pmatrix}
 ```
 The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and c is the speed of sound. 
-The unknowns are the acoustic velocities ``v_1', v_2'``, the pressure ``p'`` and the density ``\rho'``.
+The unknowns are the acoustic velocities ``v' = (v_1', v_2')``, the pressure ``p'`` and the density ``\rho'``.
 """
 struct LinearizedEulerEquations2D{RealT<:Real} <: AbstractLinearizedEulerEquations{2, 4}
-    rho_mean::RealT
-    v1_mean::RealT
-    v2_mean::RealT
-    c::RealT
-  
-    function LinearizedEulerEquations2D(rho_mean, v1_mean, v2_mean, c)
-        if rho_mean < 0
-          throw(ArgumentError("rho_mean must be non-negative"))
-        elseif c < 0
-          throw(ArgumentError("c must be non-negative"))
-        end
-        
-        return new{typeof(rho_mean)}(rho_mean, v1_mean, v2_mean, c)
+    v_mean_global::SVector{2, RealT}
+    c_mean_global::RealT
+    rho_mean_global::RealT
+end
+
+function LinearizedEulerEquations2D(v_mean_global::NTuple{2,<:Real}, c_mean_global::Real, rho_mean_global::Real)
+    if rho_mean_global < 0
+      throw(ArgumentError("rho_mean_global must be non-negative"))
+    elseif c_mean_global < 0
+      throw(ArgumentError("c_mean_global must be non-negative"))
     end
+    
+    return LinearizedEulerEquations2D(SVector(v_mean_global), c_mean_global, rho_mean_global)
 end
     
-function LinearizedEulerEquations2D(; rho_mean, v1_mean, v2_mean, c)
-    return LinearizedEulerEquations2D(rho_mean, v1_mean, v2_mean, c)
+function LinearizedEulerEquations2D(; v_mean_global::NTuple{2,<:Real}, c_mean_global::Real, rho_mean_global::Real)
+    return LinearizedEulerEquations2D(SVector(v_mean_global), c_mean_global, rho_mean_global)
 end
     
     
@@ -67,7 +66,7 @@ function initial_condition_convergence_test(x, t, equations::LinearizedEulerEqua
     v1_prime = sinpi(2*t) * cospi(2*x[1])
     v2_prime = sinpi(2*t) * cospi(2*x[2])
     p_prime = rho_prime
-      
+    
     return SVector(rho_prime, v1_prime, v2_prime, p_prime)
 end
     
@@ -103,18 +102,18 @@ end
     
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LinearizedEulerEquations2D)
-    (; rho_mean, v1_mean, v2_mean, c) = equations
+    @unpack v_mean_global, c_mean_global, rho_mean_global = equations
     rho_prime, v1_prime, v2_prime, p_prime = u
     if orientation == 1
-        f1 = v1_mean * rho_prime + rho_mean * v1_prime
-        f2 = v1_mean * v1_prime + p_prime / rho_mean
-        f3 = v1_mean * v2_prime
-        f4 = v1_mean * p_prime + c^2 * rho_mean * v1_prime
+        f1 = v_mean_global[1] * rho_prime + rho_mean_global * v1_prime
+        f2 = v_mean_global[1] * v1_prime + p_prime / rho_mean_global
+        f3 = v_mean_global[1] * v2_prime
+        f4 = v_mean_global[1] * p_prime + c_mean_global^2 * rho_mean_global * v1_prime
     else
-        f1 = v2_mean * rho_prime + rho_mean * v2_prime
-        f2 = v2_mean * v1_prime
-        f3 = v2_mean * v2_prime + p_prime / rho_mean
-        f4 = v2_mean * p_prime + c^2 * rho_mean * v2_prime
+        f1 = v_mean_global[2] * rho_prime + rho_mean_global * v2_prime
+        f2 = v_mean_global[2] * v1_prime
+        f3 = v_mean_global[2] * v2_prime + p_prime / rho_mean_global
+        f4 = v_mean_global[2] * p_prime + c_mean_global^2 * rho_mean_global * v2_prime
     end
       
     return SVector(f1, f2, f3, f4)
@@ -124,51 +123,24 @@ end
 @inline have_constant_speed(::LinearizedEulerEquations2D) = Val(true)
     
 @inline function max_abs_speeds(equations::LinearizedEulerEquations2D)
-    (; v1_mean, v2_mean, c) = equations
-    return abs(v1_mean) + c, abs(v2_mean) + c
+    @unpack v_mean_global, c_mean_global = equations
+    return abs(v_mean_global[1]) + c_mean_global, abs(v_mean_global[2]) + c_mean_global
 end
     
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LinearizedEulerEquations2D)
-    (; v1_mean, v2_mean, c) = equations
+    @unpack v_mean_global, c_mean_global = equations
     if orientation == 1
-        return abs(v1_mean) + c
+        return abs(v_mean_global[1]) + c_mean_global
     else # orientation == 2
-        return abs(v2_mean) + c
+        return abs(v_mean_global[2]) + c_mean_global
     end
 end
     
     
 # Convert conservative variables to primitive
-@inline cons2prim(u, equations::LinearizedEulerEquations2D) = cons2cons(u, equations)
+@inline cons2prim(u, equations::LinearizedEulerEquations2D) = u
 @inline cons2entropy(u, ::LinearizedEulerEquations2D) = u
-    
-# Nondimensional variables
-@inline function cons2nondim(u, equations::LinearizedEulerEquations2D)
-    (; rho_mean, c) = equations
-    rho_prime, v1_prime, v2_prime, p_prime = u
-      
-    rho_tilde = rho_prime / rho_mean
-    v1_tilde = v1_prime / c
-    v2_tilde = v2_prime / c
-    p_tilde = p_prime / (rho_mean * c * c)
-      
-    return SVector(rho_tilde, v1_tilde, v2_tilde, p_tilde)
-end
-    
-@inline function nondim2cons(u, equations::LinearizedEulerEquations2D)
-    (; rho_mean, c) = equations
-    rho_tilde, v1_tilde, v2_tilde, p_tilde = u
-      
-    rho_prime = rho_tilde * rho_mean
-    v1_prime = v1_tilde * c
-    v2_prime = v2_tilde * c
-    p_prime = p_tilde * c * c * rho_mean
-      
-    return SVector(rho_prime, v1_prime, v2_prime, p_prime)
-end
-    
-varnames(::typeof(cons2nondim), ::LinearizedEulerEquations2D) = ("rho_tilde", "v1_tilde", "v2_tilde", "p_tilde")
-    
-    
+
+
 end # muladd
     

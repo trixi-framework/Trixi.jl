@@ -4,7 +4,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linearized Euler equations
 
-equations = LinearizedEulerEquations2D(rho_mean=1.0, v1_mean=0.0, v2_mean=0.0, c=1.0)
+equations = LinearizedEulerEquations2D(v_mean_global=(0.0, 0.0), c_mean_global=1.0, rho_mean_global=1.0)
 
 initial_condition = initial_condition_convergence_test
 
@@ -39,6 +39,9 @@ analysis_interval = 100
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
+# The SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval=analysis_interval, solution_variables=cons2prim)
+
 # The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
@@ -46,7 +49,7 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 stepsize_callback = StepsizeCallback(cfl=0.8)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, alive_callback, stepsize_callback)
 
 
 ###############################################################################
