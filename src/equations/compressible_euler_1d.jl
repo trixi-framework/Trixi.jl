@@ -472,6 +472,82 @@ function flux_hllc(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
 end
 
 
+"""
+  flux_hlle(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+
+Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
+Special estimates of the signal velocites and linearization of the Riemann problem developed
+by Einfeldt to ensure that the internal energy and density remain positive during the computation
+of the numerical flux.
+
+Original publication:
+- Bernd Einfeldt (1988)
+  On Godunov-type methods for gas dynamics.
+  [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
+
+Compactly summarized:
+- Siddhartha Mishra, Ulrik Skre Fjordholm and Rémi Abgrall
+  Numerical methods for conservation laws and related equations.
+  [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
+"""
+function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
+  # Calculate primitive variables, enthalpy and speed of sound
+  rho_ll, v_ll, p_ll = cons2prim(u_ll, equations)
+  rho_rr, v_rr, p_rr = cons2prim(u_rr, equations)
+
+  # `u_ll[3]` is total energy `rho_e_ll` on the left
+  H_ll = (u_ll[3] + p_ll) / rho_ll
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+
+  # `u_rr[3]` is total energy `rho_e_rr` on the right
+  H_rr = (u_rr[3] + p_rr) / rho_rr
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+  # Compute Roe averages
+  sqrt_rho_ll = sqrt(rho_ll)
+  sqrt_rho_rr = sqrt(rho_rr)
+  inv_sum_sqrt_rho = inv(sqrt_rho_ll + sqrt_rho_rr)
+
+  v_roe = (sqrt_rho_ll * v_ll + sqrt_rho_rr * v_rr) * inv_sum_sqrt_rho
+  v_roe_mag = v_roe^2
+
+  H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
+  c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
+
+  # Compute convenience constant
+  beta = sqrt(0.5 * (equations.gamma - 1) / equations.gamma)
+
+  # Estimate the edges of the Riemann fan (with positivity conservation)
+  SsL = min(v_roe - c_roe, v_ll - beta * c_ll, 0.0 )
+  SsR = max(v_roe + c_roe, v_rr + beta * c_rr, 0.0 )
+
+  if SsL >= 0.0 && SsR > 0.0
+    # Positive supersonic speed
+    f_ll = flux(u_ll, orientation, equations)
+
+    f1 = f_ll[1]
+    f2 = f_ll[2]
+    f3 = f_ll[3]
+  elseif SsR <= 0.0 && SsL < 0.0
+    # Negative supersonic speed
+    f_rr = flux(u_rr, orientation, equations)
+
+    f1 = f_rr[1]
+    f2 = f_rr[2]
+    f3 = f_rr[3]
+  else
+    # Subsonic case
+    # Compute left and right fluxes
+    f_ll = flux(u_ll, orientation, equations)
+    f_rr = flux(u_rr, orientation, equations)
+
+    f1 = (SsR * f_ll[1] - SsL * f_rr[1] + SsL * SsR * (u_rr[1] - u_ll[1])) / (SsR - SsL)
+    f2 = (SsR * f_ll[2] - SsL * f_rr[2] + SsL * SsR * (u_rr[2] - u_ll[2])) / (SsR - SsL)
+    f3 = (SsR * f_ll[3] - SsL * f_rr[3] + SsL * SsR * (u_rr[3] - u_ll[3])) / (SsR - SsL)
+  end
+
+  return SVector(f1, f2, f3)
+end
 
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations1D)
