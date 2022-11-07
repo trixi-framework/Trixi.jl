@@ -514,7 +514,8 @@ function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
   H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) * inv_sum_sqrt_rho
   c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5 * v_roe_mag))
 
-  # Compute convenience constant
+  # Compute convenience constant for positivity preservation, see
+  # https://doi.org/10.1016/0021-9991(91)90211-3
   beta = sqrt(0.5 * (equations.gamma - 1) / equations.gamma)
 
   # Estimate the edges of the Riemann fan (with positivity conservation)
