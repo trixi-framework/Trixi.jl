@@ -937,24 +937,28 @@ function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
     SsR = max( v2_roe + c_roe , v2_rr + beta * c_rr , 0.0 )
   end
 
-  # Compute left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   if SsL >= 0.0 && SsR > 0.0
     # Positive supersonic speed
+    f_ll = flux(u_ll, orientation, equations)
+
     f1 = f_ll[1]
     f2 = f_ll[2]
     f3 = f_ll[3]
     f4 = f_ll[4]
   elseif SsR <= 0.0 && SsL < 0.0
     # Negative supersonic speed
+    f_rr = flux(u_rr, orientation, equations)
+
     f1 = f_rr[1]
     f2 = f_rr[2]
     f3 = f_rr[3]
     f4 = f_rr[4]
   else
     # Subsonic case
+    # Compute left and right fluxes
+    f_ll = flux(u_ll, orientation, equations)
+    f_rr = flux(u_rr, orientation, equations)
+
     f1 = (SsR * f_ll[1] - SsL * f_rr[1] + SsL * SsR * (u_rr[1] - u_ll[1])) / (SsR - SsL)
     f2 = (SsR * f_ll[2] - SsL * f_rr[2] + SsL * SsR * (u_rr[2] - u_ll[2])) / (SsR - SsL)
     f3 = (SsR * f_ll[3] - SsL * f_rr[3] + SsL * SsR * (u_rr[3] - u_ll[3])) / (SsR - SsL)
