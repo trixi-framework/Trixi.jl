@@ -4,7 +4,10 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible moist Euler equation
 
-
+# Mountain Triggered Gravity Wave test from:
+# W. A. Gallus JR., J. B. Klemp, Behavior of Flow over Step Orography, Monthly Weather
+# Review Vol. 128.4, pages 1153–1164, 2000, 
+# https://doi.org/10.1175/1520-0493(2000)128<1153:BOFOSO>2.0.CO;2.
 function initial_condition_nonhydrostatic_gravity_wave(x, t, equations::CompressibleMoistEulerEquations2D)
   @unpack p_0, kappa, gamma, g, c_pd, c_vd, R_d, R_v = equations
   z = x[2]
