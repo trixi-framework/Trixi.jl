@@ -164,8 +164,8 @@ end
 
 
 """
-    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
-                                 equations::ShallowWaterEquations2D)
+    boundary_condition_slip_wall(u_inner, orientation_or_normal, direction, x, t, 
+                                 surface_flux_function, equations::ShallowWaterEquations2D)
 
 Create a boundary state by reflecting the normal velocity component and keep
 the tangential velocity component unchanged. The boundary water height is taken from
