@@ -102,6 +102,7 @@ end
 end
 
 
+# (Symmetric) Entropy Conserving flux
 function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]

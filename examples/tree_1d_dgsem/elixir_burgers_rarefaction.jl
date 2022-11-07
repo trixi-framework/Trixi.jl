@@ -15,7 +15,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_smooth=true,
                                          variable=Trixi.scalar)
 
-volume_flux  = flux_central
+volume_flux  = flux_ec
 surface_flux = flux_lax_friedrichs
 
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
