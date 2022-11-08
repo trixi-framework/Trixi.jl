@@ -607,7 +607,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
-    u = SVector(-42)
+    u = SVector(-42.0)
 
     orientations = [1]
     for orientation in orientations
