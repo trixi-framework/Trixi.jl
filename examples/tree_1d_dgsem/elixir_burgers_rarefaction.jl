@@ -23,7 +23,6 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
                                           
 solver = DGSEM(basis, surface_flux, volume_integral)
-#solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs) # Non-shock capturing utilities
 
 coordinate_min = 0.0
 coordinate_max = 1.0
