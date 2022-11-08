@@ -133,7 +133,10 @@ function (solution_callback::SaveSolutionCallback)(integrator)
       end
     end
 
-    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
+    node_variables = Dict{Symbol, Any}()
+    @trixi_timeit timer() "get node variables" get_node_variables!(node_variables, semi)
+
+    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables, node_variables)
   end
 
   # avoid re-evaluating possible FSAL stages
@@ -144,10 +147,11 @@ end
 
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::AbstractSemidiscretization, solution_callback,
-                                    element_variables=Dict{Symbol,Any}())
+                                    element_variables=Dict{Symbol,Any}(),
+                                    node_variables=Dict{Symbol,Any}())
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback, element_variables)
+  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback, element_variables, node_variables)
 end
 
 

@@ -153,12 +153,7 @@ function solve!(integrator::SimpleIntegratorSSP)
       end
       @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, indicator)
 
-      if indicator isa IndicatorIDP
-        update_alpha_per_timestep!(indicator.cache.alpha_max_per_timestep,
-                                   indicator.cache.alpha_mean_per_timestep,
-                                   indicator.cache.ContainerShockCapturingIndicator.alpha,
-                                   integrator.iter+1, length(alg.c), integrator.p)
-      end
+      @trixi_timeit timer() "update_alpha_per_timestep!" update_alpha_per_timestep!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 
       # Check that we are within bounds
       if indicator.IDPCheckBounds
@@ -176,12 +171,16 @@ function solve!(integrator::SimpleIntegratorSSP)
     # @. integrator.u_old = u_tmp + alg.a[i] * integrator.u_safe
     # solves the differences between the (not-)unrolled for-loop versions.
 
+    indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t
+
     if integrator.iter+1 == length(indicator.cache.alpha_max_per_timestep) && !integrator.finalstep
       new_length = length(indicator.cache.alpha_max_per_timestep) + 200
       resize!(indicator.cache.alpha_max_per_timestep,  new_length)
       resize!(indicator.cache.alpha_mean_per_timestep, new_length)
+      resize!(indicator.cache.time_per_timestep, new_length)
       indicator.cache.alpha_max_per_timestep[new_length - 199:new_length] .= 0.0
       indicator.cache.alpha_mean_per_timestep[new_length - 199:new_length] .= 0.0
+      indicator.cache.time_per_timestep[new_length - 199:new_length] .= 0.0
     end
 
     integrator.iter += 1
@@ -231,6 +230,7 @@ function terminate!(integrator::SimpleIntegratorSSP)
 
   resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  integrator.iter+1)
   resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
+  resize!(integrator.p.solver.volume_integral.indicator.cache.time_per_timestep, integrator.iter+1)
 end
 
 # used for AMR

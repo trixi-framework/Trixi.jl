@@ -8,7 +8,9 @@
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, StructuredMesh, UnstructuredMesh2D, SerialP4estMesh},
                             equations, dg::DG, cache,
-                            solution_callback, element_variables=Dict{Symbol,Any}();
+                            solution_callback,
+                            element_variables=Dict{Symbol,Any}(),
+                            node_variables=Dict{Symbol,Any}();
                             system="")
   @unpack output_directory, solution_variables = solution_callback
 
@@ -68,6 +70,16 @@ function save_solution_file(u, time, dt, timestep,
       var = file["element_variables_$v"]
       attributes(var)["name"] = string(key)
     end
+
+    # Store node variables
+    for (v, (key, node_variable)) in enumerate(node_variables)
+      # Add to file
+      file["node_variables_$v"] = node_variable
+
+      # Add variable name as attribute
+      var = file["node_variables_$v"]
+      attributes(var)["name"] = string(key)
+    end
   end
 
   return filename
@@ -76,7 +88,9 @@ end
 
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations, dg::DG, cache,
-                            solution_callback, element_variables=Dict{Symbol,Any}();
+                            solution_callback,
+                            element_variables=Dict{Symbol,Any}(),
+                            node_variables=Dict{Symbol,Any}();
                             system="")
   @unpack output_directory, solution_variables = solution_callback
 
@@ -120,6 +134,11 @@ function save_solution_file(u, time, dt, timestep,
       MPI.Gatherv!(element_variable, nothing, mpi_root(), mpi_comm())
     end
 
+    # Send node data to root
+    for (key, node_variable) in node_variables
+      MPI.Gatherv!(node_variable, nothing, mpi_root(), mpi_comm())
+    end
+
     return filename
   end
 
@@ -158,6 +177,18 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["element_variables_$v"]
+      attributes(var)["name"] = string(key)
+    end
+
+    # Store node variables
+    for (v, (key, node_variable)) in enumerate(node_variables)
+      # Add to file
+      recv = Vector{eltype(data)}(undef, sum(node_counts))
+      MPI.Gatherv!(node_variable, MPI.VBuffer(recv, node_counts), mpi_root(), mpi_comm())
+      file["node_variables_$v"] = recv
+
+      # Add variable name as attribute
+      var = file["node_variables_$v"]
       attributes(var)["name"] = string(key)
     end
   end

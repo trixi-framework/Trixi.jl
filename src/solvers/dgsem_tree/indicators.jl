@@ -16,6 +16,36 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
   return nothing
 end
 
+function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralShockCapturingSubcell)
+  element_variables[:smooth_indicator_elementwise] = indicator.IndicatorHG.cache.alpha
+  return nothing
+end
+
+function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralShockCapturingSubcell, equations)
+  node_variables[:indicator_shock_capturing] = indicator.cache.ContainerShockCapturingIndicator.alpha
+  # TODO BB: Im ersten Zeitschritt scheint alpha noch nicht befüllt zu sein.
+  return nothing
+end
+
+function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIntegralShockCapturingSubcell, equations)
+  if !indicator.Plotting
+    return nothing
+  end
+  @unpack volume_flux_difference = indicator.cache.ContainerShockCapturingIndicator
+  variables = varnames(cons2cons, equations)
+  for v in eachvariable(equations)
+    s = Symbol("shock_capturing_delta_volume_flux_", variables[v])
+    node_variables[s] = volume_flux_difference[v, ntuple(_ -> :, nvariables(equations) + 1)...]
+  end
+
+  if indicator.IDPPressureTVD
+    @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+    node_variables[:indicator_shock_capturing_pressure] = alpha_pressure
+  end
+
+  return nothing
+end
+
 
 
 """
@@ -164,7 +194,7 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
+struct IndicatorIDP{RealT<:Real, Cache, Indicator} <: AbstractIndicator
   alpha_maxIDP::RealT
   IDPDensityTVD::Bool
   IDPPressureTVD::Bool
@@ -178,6 +208,8 @@ struct IndicatorIDP{RealT<:Real, Cache} <: AbstractIndicator
   IDPgamma::RealT                 # Constant for the subcell limiting of convex (nonlinear) constraints
                                   # (must be IDPgamma>=2*d, where d is the number of dimensions of the problem)
   IDPCheckBounds::Bool
+  indicator_smooth::Bool          # activates smoothness indicator: IndicatorHennemannGassner
+  IndicatorHG::Indicator
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -190,7 +222,9 @@ function IndicatorIDP(equations::AbstractEquations, basis;
                       IDPMathEntropy=false,
                       positCorrFactor=0.1, IDPMaxIter=10,
                       newton_tol=(1.0e-12, 1.0e-14), IDP_gamma=2*ndims(equations),
-                      IDPCheckBounds=false)
+                      IDPCheckBounds=false,
+                      indicator_smooth=true,
+                      variable_smooth=density_pressure)
 
   if IDPMathEntropy && IDPSpecEntropy
     error("Only one of the two can be selected: IDPMathEntropy/IDPSpecEntropy")
@@ -200,9 +234,17 @@ function IndicatorIDP(equations::AbstractEquations, basis;
               min(IDPPositivity, !IDPDensityTVD) + min(IDPPositivity, !IDPPressureTVD)
 
   cache = create_cache(IndicatorIDP, equations, basis, length)
-  IndicatorIDP{typeof(alpha_maxIDP), typeof(cache)}(alpha_maxIDP,
+
+  if indicator_smooth
+    IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max=1.0, alpha_smooth=false,
+                                            variable=variable_smooth)
+  else
+    IndicatorHG = nothing
+  end
+  IndicatorIDP{typeof(alpha_maxIDP), typeof(cache), typeof(IndicatorHG)}(alpha_maxIDP,
       IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy,
-      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds)
+      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds,
+      indicator_smooth, IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -233,19 +275,31 @@ IndicatorMCL
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct IndicatorMCL{Cache} <: AbstractIndicator
+struct IndicatorMCL{Cache, Indicator} <: AbstractIndicator
   cache::Cache
   IDPPressureTVD::Bool    # synchronized pressure limiting
   IDPCheckBounds::Bool
+  indicator_smooth::Bool  # activates smoothness indicator: IndicatorHennemannGassner
+  IndicatorHG::Indicator
+  Plotting::Bool
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMCL(equations::AbstractEquations, basis;
-                      IDPPressureTVD=true,
-                      IDPCheckBounds=false)
+                      IDPPressureTVD=false,
+                      IDPCheckBounds=false,
+                      indicator_smooth=true,
+                      variable_smooth=density_pressure,
+                      Plotting=false)
 
   cache = create_cache(IndicatorMCL, equations, basis, 2*nvariables(equations)+IDPPressureTVD)
-  IndicatorMCL{typeof(cache)}(cache, IDPPressureTVD, IDPCheckBounds)
+  if indicator_smooth
+    IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth=false,
+                                            variable=variable_smooth)
+  else
+    IndicatorHG = nothing
+  end
+  IndicatorMCL{typeof(cache), typeof(IndicatorHG)}(cache, IDPPressureTVD, IDPCheckBounds, indicator_smooth, IndicatorHG, Plotting)
 end
 
 function Base.show(io::IO, indicator::IndicatorMCL)
@@ -254,6 +308,7 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   print(io, "IndicatorMCL(")
   print(io, "density, velocity, total energy")
   indicator.IDPPressureTVD && print(io, ", pressure")
+  indicator.indicator_smooth && print(io, ", Smoothness indicator: ", indicator.IndicatorHG)
   print(io, ")")
 end
 

@@ -10,6 +10,9 @@ abstract type AbstractVolumeIntegral end
 get_element_variables!(element_variables, u, mesh, equations,
                        volume_integral::AbstractVolumeIntegral, dg, cache) = nothing
 
+get_node_variables!(node_variables, mesh, equations,
+                    volume_integral::AbstractVolumeIntegral, dg, cache) = nothing
+
 
 """
     VolumeIntegralStrongForm
@@ -191,6 +194,19 @@ function get_element_variables!(element_variables, u, mesh, equations,
   get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
 end
 
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralShockCapturingSubcell, dg, cache)
+  if volume_integral.indicator.indicator_smooth
+    # call the indicator to get up-to-date values for IO
+    volume_integral.indicator.IndicatorHG(u, mesh, equations, dg, cache)
+    get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
+  end
+end
+
+function get_node_variables!(node_variables, mesh, equations,
+                             volume_integral::VolumeIntegralShockCapturingSubcell, dg, cache)
+  get_node_variables!(node_variables, volume_integral.indicator, volume_integral, equations)
+end
 
 
 
@@ -307,6 +323,10 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
   get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg, cache)
+end
+
+function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
+  get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
 end
 
 

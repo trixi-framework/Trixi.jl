@@ -200,11 +200,12 @@ function create_cache(indicator::Union{Type{IndicatorIDP}, Type{IndicatorMCL}}, 
 
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
+  time_per_timestep = zeros(real(basis), 200)
 
   idp_bounds_delta_threaded = [zeros(real(basis), length) for _ in 1:Threads.nthreads()]
 
   return (; ContainerShockCapturingIndicator,
-            alpha_max_per_timestep, alpha_mean_per_timestep,
+            alpha_max_per_timestep, alpha_mean_per_timestep, time_per_timestep,
             idp_bounds_delta_threaded)
 end
 
@@ -214,22 +215,27 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
                                        kwargs...)
   @unpack alpha = indicator_IDP.cache.ContainerShockCapturingIndicator
   alpha .= 0.0
+  if indicator_IDP.indicator_smooth
+    elements = cache.element_ids_dgfv
+  else
+    elements = eachelement(dg, cache)
+  end
 
   indicator_IDP.IDPDensityTVD  &&
-    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache)
+    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache, elements)
   indicator_IDP.IDPPressureTVD &&
-    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache)
+    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache, elements)
   indicator_IDP.IDPPositivity  &&
-    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache)
+    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache, elements)
   indicator_IDP.IDPSpecEntropy &&
-    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache)
+    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache, elements)
   indicator_IDP.IDPMathEntropy &&
-    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache)
+    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache, elements)
 
   # Clip the maximum amount of FV allowed (default: alpha_maxIDP = 1.0)
   @unpack alpha_maxIDP = indicator_IDP
   if alpha_maxIDP != 1.0
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in elements
       for j in eachnode(dg), i in eachnode(dg)
         alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
       end
@@ -238,7 +244,7 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
 
   # Calculate alpha1 and alpha2
   @unpack alpha1, alpha2 = indicator_IDP.cache.ContainerShockCapturingIndicator
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in elements
     for j in eachnode(dg), i in 2:nnodes(dg)
       alpha1[i, j, element] = max(alpha[i-1, j, element], alpha[i, j, element])
     end
@@ -370,7 +376,7 @@ end
   end
 end
 
-@inline function IDP_densityTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache)
+@inline function IDP_densityTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache, elements)
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   rho_min = var_bounds[1]
@@ -379,10 +385,15 @@ end
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
-  @threaded for element in eachelement(dg, cache)
-    inverse_jacobian = cache.elements.inverse_jacobian[element]
 
+  @threaded for element in elements
+    if mesh isa TreeMesh
+      inverse_jacobian = cache.elements.inverse_jacobian[element]
+    end
     for j in eachnode(dg), i in eachnode(dg)
+      if mesh isa StructuredMesh
+        inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+      end
       rho = u_safe[1, i, j, element]
       # Real Zalesak type limiter
       #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -390,41 +401,44 @@ end
       #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
       #         for each interface, not each node
 
-      # Calculate P_plus and P_minus
+      Qp = max(0.0, (rho_max[i, j, element] - rho) / dt)
+      Qm = min(0.0, (rho_min[i, j, element] - rho) / dt)
+
+      # Calculate Pp and Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
       val_flux1_local     =  inverse_weights[i] * antidiffusive_flux1[1,   i,   j, element]
       val_flux1_local_ip1 = -inverse_weights[i] * antidiffusive_flux1[1, i+1,   j, element]
       val_flux2_local     =  inverse_weights[j] * antidiffusive_flux2[1,   i,   j, element]
       val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[1,   i, j+1, element]
 
-      P_plus  = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
-                max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
-      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
-                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
-      P_plus  = dt * inverse_jacobian * P_plus
-      P_minus = dt * inverse_jacobian * P_minus
+      Pp = max(0.0, val_flux1_local) + max(0.0, val_flux1_local_ip1) +
+           max(0.0, val_flux2_local) + max(0.0, val_flux2_local_jp1)
+      Pm = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+           min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+      Pp = inverse_jacobian * Pp
+      Pm = inverse_jacobian * Pm
 
       # Calculate alpha_plus and alpha_minus
-      if P_plus == 0.0
-        frac_plus = 1.0
+      if Pp == 0.0
+        Qp = 1.0
       else
-        frac_plus = max(0.0, rho_max[i, j, element] - rho) / P_plus
+        Qp =  Qp / Pp
       end
-      if P_minus == 0.0
-        frac_minus = 1.0
+      if Pm == 0.0
+        Qm = 1.0
       else
-        frac_minus = min(0.0, rho_min[i, j, element] - rho) / P_minus
+        Qm =  Qm / Pm
       end
 
       # Calculate alpha at nodes
-      alpha[i, j, element]  = 1 - min(1.0, frac_plus, frac_minus)
+      alpha[i, j, element]  = 1 - min(1.0, Qp, Qm)
     end
   end
 
   return nothing
 end
 
-@inline function IDP_pressureTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache)
+@inline function IDP_pressureTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache, elements)
   # IDP limiter for pressure based on
   # - Kuzmin et al. (2020). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
@@ -436,10 +450,15 @@ end
 
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
-  @threaded for element in eachelement(dg, cache)
-    inverse_jacobian = cache.elements.inverse_jacobian[element]
 
+  @threaded for element in elements
+    if mesh isa TreeMesh
+      inverse_jacobian = cache.elements.inverse_jacobian[element]
+    end
     for j in eachnode(dg), i in eachnode(dg)
+      if mesh isa StructuredMesh
+        inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+      end
       p = pressure(get_node_vars(u_safe, equations, dg, i, j, element), equations)
       # Real Zalesak type limiter
       #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -447,7 +466,10 @@ end
       #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
       #         for each interface, not each node
 
-      # Calculate P_plus and P_minus
+      Qp = max(0.0, (p_max[i, j, element] - p) / dt)
+      Qm = min(0.0, (p_min[i, j, element] - p) / dt)
+
+      # Calculate Pp and Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
       v1 = u_safe[2, i, j, element] / u_safe[1, i, j, element]
       v2 = u_safe[3, i, j, element] / u_safe[1, i, j, element]
@@ -463,34 +485,34 @@ end
       val_flux2_local_jp1 = gamma_m1 * (antidiffusive_flux2[4, i, j+1, element] + v2s2 * antidiffusive_flux2[1, i, j+1, element] -
                                           v1 * antidiffusive_flux2[2, i, j+1, element] - v2 * antidiffusive_flux2[3, i, j+1, element])
 
-      P_plus  = max(0.0, inverse_weights[i] * val_flux1_local) + max(0.0, -inverse_weights[i] * val_flux1_local_ip1) +
-                max(0.0, inverse_weights[j] * val_flux2_local) + max(0.0, -inverse_weights[j] * val_flux2_local_jp1)
-      P_minus = min(0.0, inverse_weights[i] * val_flux1_local) + min(0.0, -inverse_weights[i] * val_flux1_local_ip1) +
-                min(0.0, inverse_weights[j] * val_flux2_local) + min(0.0, -inverse_weights[j] * val_flux2_local_jp1)
-      P_plus  = dt * inverse_jacobian * P_plus
-      P_minus = dt * inverse_jacobian * P_minus
+      Pp = max(0.0, inverse_weights[i] * val_flux1_local) + max(0.0, -inverse_weights[i] * val_flux1_local_ip1) +
+           max(0.0, inverse_weights[j] * val_flux2_local) + max(0.0, -inverse_weights[j] * val_flux2_local_jp1)
+      Pm = min(0.0, inverse_weights[i] * val_flux1_local) + min(0.0, -inverse_weights[i] * val_flux1_local_ip1) +
+           min(0.0, inverse_weights[j] * val_flux2_local) + min(0.0, -inverse_weights[j] * val_flux2_local_jp1)
+      Pp = inverse_jacobian * Pp
+      Pm = inverse_jacobian * Pm
 
       # Calculate alpha_plus and alpha_minus
-      if P_plus == 0.0
-        frac_plus = 1.0
+      if Pp == 0.0
+        Qp = 1.0
       else
-        frac_plus = max(0.0, p_max[i, j, element] - p) / P_plus
+        Qp = Qp / Pp
       end
-      if P_minus == 0.0
-        frac_minus = 1.0
+      if Pm == 0.0
+        Qm = 1.0
       else
-        frac_minus = min(0.0, p_min[i, j, element] - p) / P_minus
+        Qm =  Qm / Pm
       end
 
       # Calculate alpha at nodes
-      alpha[i, j, element]  = max(alpha[i, j, element], 1 - min(1.0, frac_plus, frac_minus))
+      alpha[i, j, element]  = max(alpha[i, j, element], 1 - min(1.0, Qp, Qm))
     end
   end
 
   return nothing
 end
 
-@inline function IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache)
+@inline function IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache, elements)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
@@ -499,7 +521,7 @@ end
   calc_bounds_1sided!(s_min, min, typemax, entropy_spec, u_old, mesh, equations, dg, cache)
 
   # Perform Newton's bisection method to find new alpha
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in elements
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u_safe, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_min[i, j, element], u_local, i, j, element,
@@ -515,7 +537,7 @@ specEntropy_goal(bound, u, equations) = bound - entropy_spec(u, equations)
 specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy_spec(u, equations), dt * antidiffusive_flux)
 specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache)
+@inline function IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache, elements)
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
@@ -525,7 +547,7 @@ specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol
   calc_bounds_1sided!(s_max, max, typemin, entropy_math, u_old, mesh, equations, dg, cache)
 
   # Perform Newton's bisection method to find new alpha
-  @threaded for element in eachelement(dg, cache)
+  @threaded for element in elements
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u_safe, equations, dg, i, j, element)
       newton_loops_alpha!(alpha, s_max[i, j, element], u_local, i, j, element,
@@ -541,7 +563,7 @@ mathEntropy_goal(bound, u, equations) = bound - entropy_math(u, equations)
 mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy(u, equations), dt * antidiffusive_flux)
 mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_positivity!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache)
+@inline function IDP_positivity!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache, elements)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
   @unpack positCorrFactor = indicator_IDP
@@ -561,10 +583,14 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
     end
   end
 
-  @threaded for element in eachelement(dg, cache)
-    inverse_jacobian = cache.elements.inverse_jacobian[element]
+  @threaded for element in elements
+    if mesh isa TreeMesh
+      inverse_jacobian = cache.elements.inverse_jacobian[element]
+    end
     for j in eachnode(dg), i in eachnode(dg)
-
+      if mesh isa StructuredMesh
+        inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+      end
       #######################
       # Correct density
       #######################
@@ -584,27 +610,27 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
       # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
       # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
       #       for each interface, not each node
-      frac_minus = min(0.0, rho_min[i, j, element] - u_safe[1, i, j, element])
+      Qm = min(0.0, (rho_min[i, j, element] - u_safe[1, i, j, element]) / dt)
 
-      # Calculate P_minus
+      # Calculate Pm
       # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
       val_flux1_local     =  inverse_weights[i] * antidiffusive_flux1[1,   i,   j, element]
       val_flux1_local_ip1 = -inverse_weights[i] * antidiffusive_flux1[1, i+1,   j, element]
       val_flux2_local     =  inverse_weights[j] * antidiffusive_flux2[1,   i,   j, element]
       val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[1,   i, j+1, element]
 
-      P_minus = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
+      Pm = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
                 min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
-      P_minus = dt * inverse_jacobian * P_minus
+      Pm = inverse_jacobian * Pm
 
-      if P_minus < 0.0
-        frac_minus = min(1.0, frac_minus / P_minus)
+      if Pm < 0.0
+        Qm = min(1.0, Qm / Pm)
       else
-        frac_minus = 1.0
+        Qm = 1.0
       end
 
       # Calculate alpha
-      alpha[i, j, element]  = max(alpha[i, j, element], 1 - frac_minus)
+      alpha[i, j, element]  = max(alpha[i, j, element], 1 - Qm)
 
       #######################
       # Correct pressure
@@ -642,7 +668,11 @@ pressure_finalCheck(bound, goal, newton_abstol) = (goal <= eps()) && (goal > -ma
                                      dt, mesh, equations, dg, cache, indicator_IDP)
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
-  inverse_jacobian = cache.elements.inverse_jacobian[element]
+  if mesh isa TreeMesh
+    inverse_jacobian = cache.elements.inverse_jacobian[element]
+  else # mesh isa StructuredMesh
+    inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
+  end
 
   @unpack IDPgamma = indicator_IDP
 
@@ -716,8 +746,10 @@ end
       # Check new beta for condition and update bounds
       as = goal_fct(bound, u_curr, equations)
       if initialCheck(bound, as, newton_abstol)
+        # New beta fulfills condition
         beta_L = beta
       else
+        # New beta does not fulfill condition
         beta_R = beta
       end
     else
@@ -743,6 +775,10 @@ end
     if finalCheck(bound, as, newton_abstol)
       break
     end
+
+    if iter == indicator_IDP.IDPMaxIter
+      @warn "Maximum number of iterations for the Newton-bisection algorithm reached."
+    end
   end
 
   new_alpha = 1.0 - beta
@@ -757,16 +793,32 @@ end
 
 standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function update_alpha_per_timestep!(alpha_max_per_timestep, alpha_mean_per_timestep, alpha,
-                                            timestep, n_stages, semi)
-  _, equations, solver, cache = mesh_equations_solver_cache(semi)
-  n_elements = nelements(solver, cache)
-  n_nodes = nnodes(solver)^ndims(equations)
+@inline function update_alpha_per_timestep!(indicator::IndicatorIDP, timestep, n_stages, semi, mesh::TreeMesh)
+  _, _, solver, cache = mesh_equations_solver_cache(semi)
+  @unpack weights = solver.basis
+  @unpack alpha_mean_per_timestep, alpha_max_per_timestep, time_per_timestep = indicator.cache
+  @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
+
   alpha_max_per_timestep[timestep] = max(alpha_max_per_timestep[timestep], maximum(alpha))
-  alpha_mean_per_timestep[timestep] += 1/(n_stages * n_nodes * n_elements) * sum(alpha)
+  alpha_avg = zero(eltype(alpha))
+  total_volume = zero(eltype(alpha))
+  for element in eachelement(solver, cache)
+    jacobian = inv(cache.elements.inverse_jacobian[element])
+    for j in eachnode(solver), i in eachnode(solver)
+      alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
+      total_volume += jacobian * weights[i] * weights[j]
+    end
+  end
+  alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
 
   return nothing
 end
+
+@inline function update_alpha_per_timestep!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)
+
+  return nothing
+end
+
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)

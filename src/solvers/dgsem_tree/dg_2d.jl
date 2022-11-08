@@ -79,12 +79,17 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
 end
 
 
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingSubcell, dg::DG, uEltype)
 
   cache = create_cache(mesh, equations,
                        VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                        dg, uEltype)
+  if volume_integral.indicator.indicator_smooth
+    element_ids_dg   = Int[]
+    element_ids_dgfv = Int[]
+    cache = (; cache..., element_ids_dg, element_ids_dgfv)
+  end
 
   A3dp1_x = Array{uEltype, 3}
   A3dp1_y = Array{uEltype, 3}
@@ -513,7 +518,7 @@ end
 
 
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingSubcell,
                                dg::DGSEM, cache)
@@ -526,6 +531,8 @@ function calc_volume_integral!(du, u,
   #   Remove 2, the first entropy analysis of the analysis_callback doesn't work.
   #             And we get different result because otherwise the lambdas are only updated once in a RK step.
   #   -> 4 times per timestep is actually not that bad. (3 times would be optimal)
+  # -- With option 1: I don't need to save all lambdas, just use threaded vector of 2 dimensions [i, j]
+  #    (wrong!, because I need the lambdas to calculate the bar states here)
   # Option two: Calculate lambdas after each RK stage plus in the init_stepsize_callback.
   #   Problem: Entropy change at t=0 only works if the stepsize callback is listed before analysis callback (to calculate the lambdas before)
   @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, volume_integral.indicator)
@@ -534,16 +541,44 @@ function calc_volume_integral!(du, u,
   # Calculate boundaries
   @trixi_timeit timer() "calc_var_bounds!" calc_var_bounds!(u, mesh, nonconservative_terms, equations, volume_integral.indicator, dg, cache)
 
-  @trixi_timeit timer() "subcell_limiting_kernel!" @threaded for element in eachelement(dg, cache)
-    subcell_limiting_kernel!(du, u, element, mesh,
-                             nonconservative_terms, equations,
-                             volume_integral, volume_integral.indicator,
-                             dg, cache)
+  @unpack indicator = volume_integral
+  if indicator.indicator_smooth
+    @unpack element_ids_dg, element_ids_dgfv = cache
+    # Calculate element-wise blending factors α
+    alpha_element = @trixi_timeit timer() "element-wise blending factors" indicator.IndicatorHG(u, mesh, equations, dg, cache)
+
+    # Determine element ids for DG-only and subcell-wise blended DG-FV volume integral
+    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha_element, dg, cache)
+
+    # Loop over pure DG elements
+    @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
+      element = element_ids_dg[idx_element]
+      split_form_kernel!(du, u, element, mesh,
+                         nonconservative_terms, equations,
+                         volume_integral.volume_flux_dg, dg, cache)
+    end
+
+    # Loop over blended DG-FV elements
+    @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
+      element = element_ids_dgfv[idx_element]
+      subcell_limiting_kernel!(du, u, element, mesh,
+                               nonconservative_terms, equations,
+                               volume_integral, indicator,
+                               dg, cache)
+    end
+  else # indicator.indicator_smooth == false
+    # Loop over all elements
+    @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for element in eachelement(dg, cache)
+      subcell_limiting_kernel!(du, u, element, mesh,
+                               nonconservative_terms, equations,
+                               volume_integral, indicator,
+                               dg, cache)
+    end
   end
 end
 
 @inline function subcell_limiting_kernel!(du, u,
-                                          element, mesh::TreeMesh{2},
+                                          element, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                           nonconservative_terms::Val{false}, equations,
                                           volume_integral, indicator::IndicatorIDP,
                                           dg::DGSEM, cache)
@@ -585,7 +620,7 @@ end
 end
 
 @inline function subcell_limiting_kernel!(du, u,
-                                          element, mesh::TreeMesh{2},
+                                          element, mesh::Union{TreeMesh{2},StructuredMesh{2}},
                                           nonconservative_terms::Val{false}, equations,
                                           volume_integral, indicator::IndicatorMCL,
                                           dg::DGSEM, cache)
@@ -623,6 +658,17 @@ end
 
       du[v, i, j, element] += inverse_weights[i] * (antidiffusive_flux1[v, i+1, j, element] - antidiffusive_flux1[v, i, j, element]) +
                               inverse_weights[j] * (antidiffusive_flux2[v, i, j+1, element] - antidiffusive_flux2[v, i, j, element])
+    end
+  end
+
+  if indicator.Plotting
+    @unpack volume_flux_difference = indicator.cache.ContainerShockCapturingIndicator
+    for j in eachnode(dg), i in eachnode(dg)
+      for v in eachvariable(equations)
+        volume_flux_difference[v, i, j, element] = abs(du[v, i, j, element] -
+                                                       (inverse_weights[i] * (fhat1[v, i+1, j] - fhat1[v, i, j]) +
+                                                        inverse_weights[j] * (fhat2[v, i, j+1] - fhat2[v, i, j])))
+      end
     end
   end
 
@@ -813,6 +859,13 @@ end
     end
   end
 
+  calc_var_bounds_interface!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
+
+  return nothing
+end
+
+@inline function calc_var_bounds_interface!(u, mesh::TreeMesh2D, nonconservative_terms, equations, indicator, dg, cache)
+  @unpack var_min, var_max, bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
   for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left_id  = cache.interfaces.neighbor_ids[1, interface]
@@ -894,6 +947,12 @@ end
                   rho_limited_im1 * (phi - var_max[v, i-1, j, element]))
       g_max = min(rho_limited_i   * (var_max[v, i, j, element] - phi),
                   rho_limited_im1 * (phi - var_min[v, i-1, j, element]))
+      # if isapprox(g_min, 0.0, atol=eps())
+      #   g_min = 0.0
+      # end
+      # if isapprox(g_max, 0.0, atol=eps())
+      #   g_max = 0.0
+      # end
 
       antidiffusive_flux1[v, i, j, element] = rho_limited_i * phi - bar_states_phi + max(g_min, min(g, g_max))
     end
@@ -933,6 +992,12 @@ end
                   rho_limited_jm1 * (phi - var_max[v, i, j-1, element]))
       g_max = min(rho_limited_j   * (var_max[v, i, j, element] - phi),
                   rho_limited_jm1 * (phi - var_min[v, i, j-1, element]))
+      # if isapprox(g_min, 0.0, atol=eps())
+      #   g_min = 0.0
+      # end
+      # if isapprox(g_max, 0.0, atol=eps())
+      #   g_max = 0.0
+      # end
 
       antidiffusive_flux2[v, i, j, element] = rho_limited_j * phi - bar_state_phi + max(g_min, min(g, g_max))
     end
@@ -940,12 +1005,25 @@ end
 
   # Limit pressure
   if indicator.IDPPressureTVD
+    @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+    if indicator.Plotting
+      alpha_pressure[:, :, element] .= one(eltype(alpha_pressure))
+    end
     for j in eachnode(dg), i in 2:nnodes(dg)
       bar_state_velocity = bar_states1[2, i, j, element]^2 + bar_states1[3, i, j, element]^2
       flux_velocity = antidiffusive_flux1[2, i, j, element]^2 + antidiffusive_flux1[3, i, j, element]^2
 
       Q = lambda1[i, j, element]^2 * (bar_states1[1, i, j, element] * bar_states1[4, i, j, element] -
                                       0.5 * bar_state_velocity)
+
+      # exact calculation of max(R_ij, R_ji)
+      # R_max = lambda1[i, j, element] *
+      #           abs(bar_states1[2, i, j, element] * antidiffusive_flux1[2, i, j, element] +
+      #               bar_states1[3, i, j, element] * antidiffusive_flux1[3, i, j, element] -
+      #               bar_states1[1, i, j, element] * antidiffusive_flux1[4, i, j, element] -
+      #               bar_states1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
+      # R_max += max(0, 0.5 * flux_velocity -
+      #                 antidiffusive_flux1[4, i, j, element] * antidiffusive_flux1[1, i, j, element])
 
       # approximation R_max
       R_max = lambda1[i, j, element] *
@@ -957,6 +1035,10 @@ end
 
       if R_max > Q
         alpha = Q / R_max
+        if indicator.Plotting
+          alpha_pressure[i-1, j, element] = min(alpha_pressure[i-1, j, element], alpha)
+          alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
+        end
         for v in eachvariable(equations)
           antidiffusive_flux1[v, i, j, element] *= alpha
         end
@@ -970,6 +1052,15 @@ end
       Q = lambda2[i, j, element]^2 * (bar_states2[1, i, j, element] * bar_states2[4, i, j, element] -
                                       0.5 * bar_state_velocity)
 
+      # exact calculation of max(R_ij, R_ji)
+      # R_max = lambda2[i, j, element] *
+      #           abs(bar_states2[2, i, j, element] * antidiffusive_flux2[2, i, j, element] +
+      #               bar_states2[3, i, j, element] * antidiffusive_flux2[3, i, j, element] -
+      #               bar_states2[1, i, j, element] * antidiffusive_flux2[4, i, j, element] -
+      #               bar_states2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
+      # R_max += max(0, 0.5 * flux_velocity -
+      #                 antidiffusive_flux2[4, i, j, element] * antidiffusive_flux2[1, i, j, element])
+
       # approximation R_max
       R_max = lambda2[i, j, element] *
                 (sqrt(bar_state_velocity * flux_velocity) +
@@ -980,6 +1071,10 @@ end
 
       if R_max > Q
         alpha = Q / R_max
+        if indicator.Plotting
+          alpha_pressure[i, j-1, element] = min(alpha_pressure[i, j-1, element], alpha)
+          alpha_pressure[i,   j, element] = min(alpha_pressure[i,   j, element], alpha)
+        end
         for v in eachvariable(equations)
           antidiffusive_flux2[v, i, j, element] *= alpha
         end
@@ -995,7 +1090,7 @@ end
   return nothing
 end
 
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh, equations, dg, cache, indicator::IndicatorMCL)
+@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh::TreeMesh2D, equations, dg, cache, indicator::IndicatorMCL)
   @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
 
   @threaded for element in eachelement(dg, cache)
@@ -1079,8 +1174,14 @@ end
   @unpack inverse_weights = dg.basis
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack alpha1, alpha2 = dg.volume_integral.indicator.cache.ContainerShockCapturingIndicator
+  if dg.volume_integral.indicator.indicator_smooth
+    elements = cache.element_ids_dgfv
+  else
+    elements = eachelement(dg, cache)
+  end
 
-  @threaded for element in eachelement(dg, cache)
+  # Loop over blended DG-FV elements
+  @threaded for element in elements
     inverse_jacobian = -cache.elements.inverse_jacobian[element]
 
     for j in eachnode(dg), i in eachnode(dg)
