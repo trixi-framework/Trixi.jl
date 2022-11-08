@@ -117,7 +117,7 @@ function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  return SVector(0.5 * max(max(u_L, 0)^2, min(u_R, 0)^2))
+  return SVector(0.5 * max(max(u_L, zero(u_L))^2, min(u_R, zero(u_R))^2))
 end
 
 
