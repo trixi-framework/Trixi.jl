@@ -600,7 +600,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "Consistency check for Engquist-Osher flux" begin
     # Set up equations and dummy conservative variables state
     equation = InviscidBurgersEquation1D()
-    u = SVector(42)
+    u = SVector(42.0)
 
     orientations = [1]
     for orientation in orientations
