@@ -164,6 +164,11 @@ end
 
 # This method is called as callback during the time integration.
 function (time_series_callback::TimeSeriesCallback)(integrator)
+  semi = extract_semidiscretization(integrator)
+  apply_time_series_callback(time_series_callback, integrator, semi)
+end
+
+@noinline function apply_time_series_callback(time_series_callback, integrator, semi)
   # Ensure this is not accidentally used with AMR enabled
   if uses_amr(integrator.opts.callback)
     error("the TimeSeriesCallback does not work with AMR enabled")
@@ -181,7 +186,6 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 
       # Unpack data
       u_ode = integrator.u
-      semi = extract_semidiscretization(integrator)
       mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
       u = wrap_array(u_ode, mesh, equations, solver, cache)
 
@@ -196,7 +200,6 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 
   # Store time_series if this is the last time step
   if isfinished(integrator)
-    semi = extract_semidiscretization(integrator)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
     save_time_series_file(time_series_callback, mesh, equations, solver)
   end

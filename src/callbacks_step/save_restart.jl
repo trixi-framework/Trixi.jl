@@ -57,13 +57,16 @@ function SaveRestartCallback(; interval=0,
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:SaveRestartCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:SaveRestartCallback}
   restart_callback = cb.affect!
-
-  mpi_isroot() && mkpath(restart_callback.output_directory)
-
   semi = extract_semidiscretization(integrator)
+  initialize_restart_callback!(restart_callback, semi)
+end
+
+@noinline function initialize_restart_callback!(restart_callback, semi)
+  mpi_isroot() && mkpath(restart_callback.output_directory)
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
   @trixi_timeit timer() "I/O" begin
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, restart_callback.output_directory)
@@ -92,10 +95,14 @@ end
 
 # this method is called when the callback is activated
 function (restart_callback::SaveRestartCallback)(integrator)
+  semi = extract_semidiscretization(integrator)
+  apply_restart_callback(restart_callback, integrator, semi)
+end
+
+@noinline function apply_restart_callback(restart_callback, integrator, semi)
   u_ode = integrator.u
   @unpack t, dt = integrator
   iter = integrator.destats.naccept
-  semi = extract_semidiscretization(integrator)
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
   @trixi_timeit timer() "I/O" begin

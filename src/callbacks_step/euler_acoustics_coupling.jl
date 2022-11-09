@@ -135,6 +135,10 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator_acoustics) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
   euler_acoustics_coupling = cb.affect!
   semi = extract_semidiscretization(integrator_acoustics)
+  initialize_euler_acoustics_coupling!(euler_acoustics_coupling, u_ode, semi, t, integrator)
+end
+
+@noinline function initialize_euler_acoustics_coupling!(euler_acoustics_coupling, u_ode, semi, t, integrator)
   @unpack semi_acoustics = semi
 
   # Initialize mean values in u_ode
@@ -155,6 +159,13 @@ end
 # time step, manages the time stepsize for both the acoustics and Euler solvers and calculates the
 # acoustic sources for the next acoustics time step
 function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_acoustics)
+  @unpack integrator_euler = euler_acoustics_coupling
+  semi = extract_semidiscretization(integrator_acoustics)
+  semi_euler = extract_semidiscretization(integrator_euler)
+  apply_euler_acoustics_coupling(euler_acoustics_coupling, integrator_acoustics, semi, semi_euler)
+end
+
+@noinline function apply_euler_acoustics_coupling(euler_acoustics_coupling, integrator_acoustics, semi, semi_euler)
   @unpack stepsize_callback_acoustics, stepsize_callback_euler, integrator_euler = euler_acoustics_coupling
 
   @assert integrator_acoustics.t == integrator_euler.t
@@ -186,8 +197,6 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
   end
 
   # Calculate acoustic sources based on linearized lamb vector
-  semi = extract_semidiscretization(integrator_acoustics)
-  semi_euler = extract_semidiscretization(integrator_euler)
   u_acoustics = wrap_array(integrator_acoustics.u, semi)
   u_euler = wrap_array(integrator_euler.u, semi_euler)
   @unpack acoustic_source_terms, coupled_element_ids = semi.cache
