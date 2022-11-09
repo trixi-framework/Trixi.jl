@@ -447,7 +447,7 @@ end
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
-  semi = sol.prob.p
+  semi = extract_semidiscretization(sol)
   @unpack analyzer = analysis_callback
   cache_analysis = analysis_callback.cache
 

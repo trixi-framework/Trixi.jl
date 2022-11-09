@@ -102,6 +102,19 @@ function extract_semidiscretization(integrator)
   end
 end
 
+function extract_semidiscretization(sol::ODESolution)
+  extract_semidiscretization(sol.prob)
+end
+
+function extract_semidiscretization(ode::ODEProblem)
+  f = unwrapped_f(ode.f.f)
+  if f isa RHSWrapper
+    return f.semi
+  else
+    return ode.p
+  end
+end
+
 
 """
     semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString)
