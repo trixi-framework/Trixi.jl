@@ -225,7 +225,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
   iip = true # is-inplace, i.e., we modify a vector when calling rhs!, rhs_parabolic!
   wrapper_hyperbolic = RHSWrapper(semi, rhs!) # wrap `rhs!`` and `semi` to reduce latency, see `RHSWrapper`
-  wrapper_parabolic = RHSWrapper(rhs_parabolic!, rhs!)
+  wrapper_parabolic = RHSWrapper(semi, rhs_parabolic!)
   return SplitODEProblem{iip}(wrapper_hyperbolic, wrapper_parabolic, u0_ode, tspan, semi)
 end
 

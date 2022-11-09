@@ -94,12 +94,14 @@ end
 
 # get the semidiscretization from an `ODEIntegrator`
 function extract_semidiscretization(integrator)
-  f = unwrapped_f(integrator.f.f)
-  if f isa RHSWrapper
-    return f.semi
-  else
-    return integrator.p
-  end
+  # TODO: check alternatives such as
+  # f = unwrapped_f(integrator.f.f)
+  # if f isa RHSWrapper
+  #   return f.semi
+  # else
+  #   return integrator.p
+  # end
+  extract_semidiscretization(integrator.sol)
 end
 
 function extract_semidiscretization(sol::ODESolution)
@@ -107,12 +109,20 @@ function extract_semidiscretization(sol::ODESolution)
 end
 
 function extract_semidiscretization(ode::ODEProblem)
-  f = unwrapped_f(ode.f.f)
+  _extract_semidiscretization(ode.f, ode.p)
+end
+
+function _extract_semidiscretization(f, p)
+  f = unwrapped_f(f.f)
   if f isa RHSWrapper
     return f.semi
   else
-    return ode.p
+    return p
   end
+end
+
+function _extract_semidiscretization(f::SplitFunction, p)
+  _extract_semidiscretization(f.f1, p)
 end
 
 

@@ -28,7 +28,7 @@ using Reexport: @reexport
 using SciMLBase: SciMLBase, unwrapped_f,
                  CallbackSet, DiscreteCallback,
                  ODEProblem, ODESolution, ODEFunction,
-                 SplitODEProblem
+                 SplitODEProblem, SplitFunction
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   AbstractODEIntegrator, init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
