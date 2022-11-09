@@ -155,6 +155,15 @@ function initial_condition_sod(x, t, equations::CompressibleEulerEquations1D)
   return SVector(rho, rho_v1, rho_e)
 end
 
+function initial_condition_shu_osher(x, t, equations::CompressibleEulerEquations1D)
+  rho = (x[1] < -4.0) ? 3.857143 : 1+.2*sin(5*x[1])
+  v1  = (x[1] < -4.0) ? 2.629369 : 0.0
+  p   = (x[1] < -4.0) ? 10.3333  : 1.0
+  rho_v1 = rho*v1
+  rho_e  = p / (equations.gamma - 1) + 1/2 * rho * v1^2
+  return SVector(rho, rho_v1, rho_e)
+end
+
 """
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations1D)
 
