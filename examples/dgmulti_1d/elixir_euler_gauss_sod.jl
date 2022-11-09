@@ -28,7 +28,7 @@ initial_condition = initial_condition_sod
 #  setup the boundary condition 
 
 left_boundary(x, tol=50*eps())  = abs(x[1]-0.0)<tol
-right_boundary(x, tol=50*eps()) = abs(x[1]-0.0)<tol
+right_boundary(x, tol=50*eps()) = abs(x[1]-1.0)<tol
 is_on_boundary = Dict(:left => left_boundary, :right => right_boundary)
 
 boundary_condition_sod = BoundaryConditionDirichlet(initial_condition)
