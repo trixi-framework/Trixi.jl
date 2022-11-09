@@ -95,7 +95,7 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
   @unpack cfl_number = stepsize_callback
   u_ode = ode.u0
   t = first(ode.tspan)
-  semi = ode.p
+  semi = extract_semidiscretization(ode)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
