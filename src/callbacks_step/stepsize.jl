@@ -67,7 +67,7 @@ end
   if !integrator.opts.adaptive
     t = integrator.t
     u_ode = integrator.u
-    semi = integrator.p
+    semi = extract_semidiscretization(integrator)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack cfl_number = stepsize_callback
     u = wrap_array(u_ode, mesh, equations, solver, cache)

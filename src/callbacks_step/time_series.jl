@@ -181,7 +181,7 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 
       # Unpack data
       u_ode = integrator.u
-      semi = integrator.p
+      semi = extract_semidiscretization(integrator)
       mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
       u = wrap_array(u_ode, mesh, equations, solver, cache)
 
@@ -196,7 +196,7 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 
   # Store time_series if this is the last time step
   if isfinished(integrator)
-    semi = integrator.p
+    semi = extract_semidiscretization(integrator)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
     save_time_series_file(time_series_callback, mesh, equations, solver)
   end

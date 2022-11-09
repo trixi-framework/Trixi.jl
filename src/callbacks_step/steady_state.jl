@@ -56,7 +56,7 @@ end
 
 # the condition
 function (steady_state_callback::SteadyStateCallback)(u_ode, t, integrator)
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
 
   u  = wrap_array(u_ode, semi)
   du = wrap_array(get_du(integrator), semi)

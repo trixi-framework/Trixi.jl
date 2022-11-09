@@ -25,7 +25,8 @@ using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, dropt
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-using SciMLBase: CallbackSet, DiscreteCallback,
+using SciMLBase: SciMLBase, unwrapped_f,
+                 CallbackSet, DiscreteCallback,
                  ODEProblem, ODESolution, ODEFunction,
                  SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache, u_modified!,

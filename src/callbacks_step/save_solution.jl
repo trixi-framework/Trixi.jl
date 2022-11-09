@@ -73,7 +73,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   mpi_isroot() && mkpath(solution_callback.output_directory)
 
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
   @trixi_timeit timer() "I/O" begin
     if mesh.unsaved_changes
@@ -110,7 +110,7 @@ function (solution_callback::SaveSolutionCallback)(integrator)
   u_ode = integrator.u
   @unpack t, dt = integrator
   iter = integrator.destats.naccept
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
   @trixi_timeit timer() "I/O" begin

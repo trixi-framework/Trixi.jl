@@ -122,7 +122,7 @@ end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
 
   @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
@@ -161,7 +161,7 @@ end
 
 function (amr_callback::AMRCallback)(integrator; kwargs...)
   u_ode = integrator.u
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
 
   @trixi_timeit timer() "AMR" begin
     has_changed = amr_callback(u_ode, semi,

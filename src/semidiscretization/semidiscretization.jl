@@ -92,6 +92,17 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan)
 end
 
 
+# get the semidiscretization from an `ODEIntegrator`
+function extract_semidiscretization(integrator)
+  f = unwrapped_f(integrator.f.f)
+  if f isa RHSWrapper
+    return f.semi
+  else
+    return integrator.p
+  end
+end
+
+
 """
     semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString)
 

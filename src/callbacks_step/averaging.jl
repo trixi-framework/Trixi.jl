@@ -67,7 +67,7 @@ end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AveragingCallback}
   averaging_callback = cb.affect!
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
@@ -86,7 +86,7 @@ function (averaging_callback::AveragingCallback)(integrator)
 
   u_ode = integrator.u
   u_prev_ode = integrator.uprev
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
   u_prev = wrap_array(u_prev_ode, mesh, equations, solver, cache)

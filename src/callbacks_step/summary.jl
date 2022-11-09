@@ -148,7 +148,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
                          :total_width => 100,
                          :indentation_level => 0)
 
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
   show(io_context, MIME"text/plain"(), semi)
   println(io, "\n")
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)

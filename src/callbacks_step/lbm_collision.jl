@@ -49,7 +49,7 @@ end
 @inline function lbm_collision_callback(integrator)
 
   dt = get_proposed_dt(integrator)
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack collision_op = equations
 
