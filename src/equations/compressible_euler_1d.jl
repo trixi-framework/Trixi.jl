@@ -137,6 +137,23 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
   return SVector(rho, rho_v1, rho_e)
 end
 
+function initial_condition_sine_wave(x, t, equations::CompressibleEulerEquations1D)
+  v1 = 1.0
+  rho = 1.0 + 1e-1 + sinpi(2 * (x[1] - t * v1))
+  rho_v1 = rho * v1
+  p = 1.0
+  rho_e = p / (equations.gamma - 1) + 1/2 * rho * v1^2
+  return SVector(rho, rho_v1, rho_e)
+end
+
+function initial_condition_sod(x, t, equations::CompressibleEulerEquations1D)
+  rho = (x[1] < 0.5) ? 1.0 : 0.125
+  v1  = (x[1] < 0.5) ? 0.0 : 0.0
+  p   = (x[1] < 0.5) ? 1.0 : 0.1
+  rho_v1 = rho*v1
+  rho_e  = p / (equations.gamma - 1) + 1/2 * rho * v1^2
+  return SVector(rho, rho_v1, rho_e)
+end
 
 """
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations1D)
