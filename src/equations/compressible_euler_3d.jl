@@ -1057,14 +1057,14 @@ function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
 
   # Estimate the edges of the Riemann fan (with positivity conservation)
   if orientation == 1 # x-direction
-    SsL = min( v1_roe - c_roe , v1_ll - beta * c_ll , 0.0 )
-    SsR = max( v1_roe + c_roe , v1_rr + beta * c_rr , 0.0 )
+    SsL = min(v1_roe - c_roe, v1_ll - beta * c_ll, zero(v1_roe))
+    SsR = max(v1_roe + c_roe, v1_rr + beta * c_rr, zero(v1_roe))
   elseif orientation == 2 # y-direction
-    SsL = min( v2_roe - c_roe , v2_ll - beta * c_ll , 0.0 )
-    SsR = max( v2_roe + c_roe , v2_rr + beta * c_rr , 0.0 )
+    SsL = min(v2_roe - c_roe, v2_ll - beta * c_ll, zero(v2_roe))
+    SsR = max(v2_roe + c_roe, v2_rr + beta * c_rr, zero(v2_roe))
   else # z-direction
-    SsL = min( v3_roe - c_roe , v3_ll - beta * c_ll , 0.0 )
-    SsR = max( v3_roe + c_roe , v3_rr + beta * c_rr , 0.0 )
+    SsL = min(v3_roe - c_roe, v3_ll - beta * c_ll, zero(v3_roe))
+    SsR = max(v3_roe + c_roe, v3_rr + beta * c_rr, zero(v3_roe))
   end
 
   if SsL >= 0.0 && SsR > 0.0

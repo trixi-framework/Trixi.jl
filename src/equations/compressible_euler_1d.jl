@@ -473,7 +473,7 @@ end
 
 
 """
-  flux_hlle(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
+    flux_hlle(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
 Special estimates of the signal velocites and linearization of the Riemann problem developed
@@ -519,8 +519,8 @@ function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
   beta = sqrt(0.5 * (equations.gamma - 1) / equations.gamma)
 
   # Estimate the edges of the Riemann fan (with positivity conservation)
-  SsL = min(v_roe - c_roe, v_ll - beta * c_ll, 0.0 )
-  SsR = max(v_roe + c_roe, v_rr + beta * c_rr, 0.0 )
+  SsL = min(v_roe - c_roe, v_ll - beta * c_ll, zero(v_roe))
+  SsR = max(v_roe + c_roe, v_rr + beta * c_rr, zero(v_roe))
 
   if SsL >= 0.0 && SsR > 0.0
     # Positive supersonic speed
