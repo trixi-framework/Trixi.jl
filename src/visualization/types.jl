@@ -282,7 +282,7 @@ returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], extract_semidiscretization(sol.prob); kwargs...)
+PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], extract_semidiscretization(sol); kwargs...)
 
 # Also redirect when using PlotData2DTriangulate.
 PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], extract_semidiscretization(sol.prob); kwargs...)
