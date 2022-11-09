@@ -157,7 +157,7 @@ end
 # Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(sol::TrixiODESolution)
   # Redirect everything to the recipes below
-  return sol.u[end], sol.prob.p
+  return sol.u[end], extract_semidiscretization(sol.prob)
 end
 
 # Recipe for general semidiscretizations

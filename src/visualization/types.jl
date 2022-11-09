@@ -282,10 +282,10 @@ returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], extract_semidiscretization(sol.prob); kwargs...)
 
 # Also redirect when using PlotData2DTriangulate.
-PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
+PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], extract_semidiscretization(sol.prob); kwargs...)
 
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
@@ -626,7 +626,7 @@ Create a `PlotData1D` object from a solution object created by either `OrdinaryD
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
+PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], extract_semidiscretization(sol.prob); kwargs...)
 
 function PlotData1D(time_series_callback::TimeSeriesCallback, point_id::Integer)
   @unpack time, variable_names, point_data = time_series_callback

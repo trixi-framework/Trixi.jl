@@ -129,7 +129,7 @@ function iplot(u, mesh, equations, solver, cache;
 end
 
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
-iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
+iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], extract_semidiscretization(sol.prob); kwargs...)
 iplot(u, semi; kwargs...) = iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
 
 # Interactive visualization of user-defined ScalarData.
