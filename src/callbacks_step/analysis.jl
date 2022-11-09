@@ -115,6 +115,10 @@ end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = extract_semidiscretization(integrator)
+  initialize_analysis_callback!(cb, u_ode, semi, t, integrator)
+end
+
+@noinline function initialize_analysis_callback!(cb, u_ode, semi, t, integrator)
   initial_state_integrals = integrate(u_ode, semi)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -179,6 +183,10 @@ end
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = extract_semidiscretization(integrator)
+  apply_analysis_callback_to_integrator(analysis_callback, integrator, semi)
+end
+
+@noinline function apply_analysis_callback_to_integrator(analysis_callback, integrator, semi)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack dt, t = integrator
   iter = integrator.destats.naccept
@@ -448,6 +456,10 @@ end
 function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
   semi = extract_semidiscretization(sol)
+  apply_analysis_callback_to_sol(analysis_callback, sol, semi)
+end
+
+@noinline function apply_analysis_callback_to_sol(analysis_callback, sol, semi)
   @unpack analyzer = analysis_callback
   cache_analysis = analysis_callback.cache
 
