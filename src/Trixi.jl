@@ -18,7 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
-using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling, det
+using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I, UniformScaling, det, Tridiagonal, diagm, SymTridiagonal
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!, rowvals, nzrange, nonzeros, spzeros
 
@@ -120,6 +120,9 @@ include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
+
+# River bed modelling using splines
+include("bottom_topography/spline_interpolation.jl")
 
 # export types/functions that define the public API of Trixi
 
@@ -228,7 +231,12 @@ export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 export DGMulti, estimate_dt, DGMultiMesh, GaussSBP
 export VertexMappedMesh # TODO: DGMulti, v0.5. Remove deprecated VertexMappedMesh in next release
 
+
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
+
+# Spline interpolation
+export linear_b_spline, cubic_b_spline, bilinear_b_spline, bicubic_b_spline, spline_interpolation
+
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
