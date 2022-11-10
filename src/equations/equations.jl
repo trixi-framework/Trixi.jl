@@ -225,7 +225,7 @@ Return the conserved variables `u`. While this function is as trivial as `identi
 it is also as useful.
 """
 @inline cons2cons(u, ::AbstractEquations) = u
-function cons2prim#=(u, ::AbstractEquations)=# end
+                                                                            
 @inline Base.first(u, ::AbstractEquations) = first(u)
 
 """

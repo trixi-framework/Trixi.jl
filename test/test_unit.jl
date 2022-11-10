@@ -579,6 +579,42 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @timed_testset "Consistency check for Godunov flux" begin
+    # Set up equations and dummy conservative variables state
+    equation = InviscidBurgersEquation1D()
+    u = SVector(42.0)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    u = SVector(-42.0)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+  end
+
+  @timed_testset "Consistency check for Engquist-Osher flux" begin
+    # Set up equations and dummy conservative variables state
+    equation = InviscidBurgersEquation1D()
+    u = SVector(42.0)
+
+    orientations = [1]
+    for orientation in orientations
+      @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    u = SVector(-42.0)
+
+    orientations = [1]
+    for orientation in orientations
+      @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+  end
+
   @testset "FluxRotated vs. direct implementation" begin
     @timed_testset "CompressibleEulerEquations2D" begin
       equations = CompressibleEulerEquations2D(1.4)
