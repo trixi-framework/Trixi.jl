@@ -43,6 +43,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Shallow water 
   include("test_tree_1d_shallowwater.jl")
+
+  # Two-layer Shallow Water
+  include("test_tree_1d_shallowwater_twolayer.jl")
 end
 
 # Coverage test for all initial conditions
