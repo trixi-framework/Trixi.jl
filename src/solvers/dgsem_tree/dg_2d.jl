@@ -490,6 +490,7 @@ end
 end
 
 
+# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
   @unpack interfaces = cache
@@ -1000,6 +1001,7 @@ end
 end
 
 
+# we pass in the hyperbolic `dg.surface_integral` as a dummy argument for dispatch
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG, cache)
