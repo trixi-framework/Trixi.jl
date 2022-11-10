@@ -120,7 +120,7 @@ function get_element_variables!(element_variables, u, mesh, equations, solver, c
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
   semi = extract_semidiscretization(integrator)
   initialize_amr_callback!(amr_callback, u_ode, semi, t, integrator)
