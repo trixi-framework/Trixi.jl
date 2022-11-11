@@ -601,7 +601,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     # Linear Advection 2D
-    equation = LinearScalarAdvectionEquation2D(-4.2, 4.2)
+    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
     u = SVector(3.14159)
 
     orientations = [1, 2]
@@ -619,7 +619,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
     
     # Linear Advection 3D
-    equation = LinearScalarAdvectionEquation3D(-4.2, 4.2, 2.4)
+    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
     u = SVector(3.14159)
 
     orientations = [1, 2, 3]
@@ -680,7 +680,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     # Linear Advection 2D
-    equation = LinearScalarAdvectionEquation2D(-4.2, 4.2)
+    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
     u = SVector(3.14159)
 
     orientations = [1, 2]
@@ -698,7 +698,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
     
     # Linear Advection 3D
-    equation = LinearScalarAdvectionEquation3D(-4.2, 4.2, 2.4)
+    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
     u = SVector(3.14159)
 
     orientations = [1, 2, 3]
