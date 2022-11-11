@@ -662,17 +662,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     # Burger's Equation 
 
     equation = InviscidBurgersEquation1D()
-    u = SVector(42.0)
+    u_values = [SVector(42.0), SVector(-42.0)]
 
     orientations = [1]
-    for orientation in orientations
-      @test flux_godunov(u, u, orientation, equation) == Trixi.flux_engquist_osher(u, u, orientation, equation)
-    end
-
-    u = SVector(-42.0)
-
-    orientations = [1]
-    for orientation in orientations
+    for orientation in orientations, u in u_values
       @test flux_godunov(u, u, orientation, equation) == Trixi.flux_engquist_osher(u, u, orientation, equation)
     end
 
