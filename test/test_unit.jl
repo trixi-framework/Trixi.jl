@@ -581,6 +581,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @timed_testset "Consistency check for Godunov flux" begin
     # Set up equations and dummy conservative variables state
+    # Burger's Equation 
+
     equation = InviscidBurgersEquation1D()
     u = SVector(42.0)
 
@@ -594,6 +596,52 @@ isdir(outdir) && rm(outdir, recursive=true)
     orientations = [1]
     for orientation in orientations
       @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    # Linear Advection 1D
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    # Linear Advection 2D
+    equation = LinearScalarAdvectionEquation2D(-4.2, 4.2)
+    u = SVector(3.14159)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
+    end
+    
+    # Linear Advection 3D
+    equation = LinearScalarAdvectionEquation3D(-4.2, 4.2, 2.4)
+    u = SVector(3.14159)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
     end
   end
 
@@ -608,6 +656,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     u = SVector(-42.0)
+
+    orientations = [1]
+    for orientation in orientations
+      @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
 
     orientations = [1]
     for orientation in orientations
