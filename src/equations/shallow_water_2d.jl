@@ -164,35 +164,84 @@ end
 
 
 """
-    boundary_condition_slip_wall(u_inner, orientation_or_normal, direction, x, t, 
-                                 surface_flux_function, equations::ShallowWaterEquations2D)
-
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::ShallowWaterEquations2D)
 Create a boundary state by reflecting the normal velocity component and keep
 the tangential velocity component unchanged. The boundary water height is taken from
 the internal value.
-
 For details see Section 9.2.5 of the book:
 - Eleuterio F. Toro (2001)
   Shock-Capturing Methods for Free-Surface Shallow Flows
   1st edition
   ISBN 0471987662
 """
-@inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
                                               surface_flux_function,
                                               equations::ShallowWaterEquations2D)
-                                              
-   u_boundary = SVector(u_inner[1],
-                       -u_inner[2],
-                       -u_inner[3],
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal velocity
+  u_normal = normal[1] * u_inner[2] + normal[2] * u_inner[3]
+
+  # create the "external" boundary solution state
+  u_boundary = SVector(u_inner[1],
+                       u_inner[2] - 2.0 * u_normal * normal[1],
+                       u_inner[3] - 2.0 * u_normal * normal[2],
                        u_inner[4])
 
   # calculate the boundary flux
-  flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal, equations)
+  flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
   return flux
 end
 
+
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::ShallowWaterEquations2D)
+
+Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::ShallowWaterEquations2D)
+  # get the appropriate normal vector from the orientation
+  if orientation == 1
+    normal_direction = SVector(1, 0)
+  else # orientation == 2
+    normal_direction = SVector(0, 1)
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  return boundary_condition_slip_wall(u_inner, normal_direction, direction,
+                                      x, t, surface_flux_function, equations)
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
+                                 surface_flux_function, equations::ShallowWaterEquations2D)
+
+Should be used together with [`StructuredMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::ShallowWaterEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+                                                  x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                 x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
+end
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography has no flux
@@ -549,7 +598,7 @@ end
   v1_avg = 0.5 * (v1_ll  + v1_rr )
   v2_avg = 0.5 * (v2_ll  + v2_rr )
   h2_avg = 0.5 * (h_ll^2 + h_rr^2)
-  p_avg  = 0.5 * equations.gravity * h2_avg
+  p_avg  = 0.5 * equations.gravity * h2_avg 
   v_dot_n_avg = 0.5 * (v_dot_n_ll + v_dot_n_rr)
 
   # Calculate fluxes depending on normal_direction
