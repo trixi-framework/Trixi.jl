@@ -73,8 +73,8 @@ where
 w_2 = \frac{\rho v_1}{p},\, w_3 = \frac{\rho v_2}{p},\, w_4 = -\frac{\rho}{p}
 ```
 
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
 """
 struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <: AbstractCompressibleEulerEquations{2}} <: AbstractCompressibleNavierStokesDiffusion{2, 4}
   # TODO: parabolic
@@ -92,9 +92,6 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, E <
 end
 
 """
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
-
 `GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
 for `CompressibleNavierStokesDiffusion2D`. By default, the gradient variables are set to be
 `GradientVariablesPrimitive`. Specifying `GradientVariablesEntropy` instead uses the entropy variable
@@ -105,6 +102,9 @@ formulation from
   [https://doi.org/10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
 
 Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably entropy stable.
+
+!!! warning "Experimental code"
+    This code is experimental and may be changed or removed in any future release.
 """
 struct GradientVariablesPrimitive end
 struct GradientVariablesEntropy end

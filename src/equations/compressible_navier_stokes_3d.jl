@@ -66,7 +66,7 @@ primitive quantities
 ```
 or the entropy variables
 ```math
-\nabla w_2,\, \nabla w_3,\, \nabla w_4\, \nabla w_5
+\nabla w_2,\, \nabla w_3,\, \nabla w_4,\, \nabla w_5
 ```
 where
 ```math
