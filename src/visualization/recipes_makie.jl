@@ -106,8 +106,12 @@ function iplot(pd::PlotData2DTriangulated;
   # see https://github.com/MakieOrg/Makie.jl/issues/931 for more details.
   # the colorbar range is perturbed by 1e-5 * the magnitude of the solution.
   function scaled_extrema(x)
-    ex = extrema(x) 
-    return ex .+ 1e-5 .* maximum(abs.(ex)) .* (-1, 1)
+    ex = extrema(x)
+    if ex[2] ≈ ex[1] # if solution is close to constant, perturb colorbar
+      return ex .+ 1e-5 .* maximum(abs.(ex)) .* (-1, 1)
+    else
+      return ex
+    end
   end
 
   # Resets the colorbar each time the solution changes.
