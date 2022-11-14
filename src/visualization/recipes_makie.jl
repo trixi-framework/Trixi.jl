@@ -105,7 +105,10 @@ function iplot(pd::PlotData2DTriangulated;
   # create a small variation in the extrema to avoid the Makie `range_step` cannot be zero error.
   # see https://github.com/MakieOrg/Makie.jl/issues/931 for more details.
   # the colorbar range is perturbed by 1e-5 * the magnitude of the solution.
-  scaled_extrema(x) = extrema(x) .+ 1e-5 .* maximum(abs.(extrema(x))) .* (-1, 1)
+  function scaled_extrema(x)
+    ex = extrema(x) 
+    return ex .+ 1e-5 .* maximum(abs.(ex)) .* (-1, 1)
+  end
 
   # Resets the colorbar each time the solution changes.
   Makie.Colorbar(fig[1, 3], limits = Makie.@lift(scaled_extrema($solution_z)), colormap=colormap)
