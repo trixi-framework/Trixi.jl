@@ -210,14 +210,35 @@ Should be used together with [`TreeMesh`](@ref).
                                               equations::ShallowWaterEquations2D)
   # get the appropriate normal vector from the orientation
   if orientation == 1
-    normal_direction = SVector(1, 0)
+    if isodd(direction)
+      normal_direction = SVector(-1, 0)
+    else
+      normal_direction = SVector(1, 0)
+    end
   else # orientation == 2
-    normal_direction = SVector(0, 1)
+    if isodd(direction)
+      normal_direction = SVector(0, -1)
+    else
+      normal_direction = SVector(0, 1)
+    end
   end
 
+  # normalize the outward pointing direction
+  normal = normal_direction / norm(normal_direction)
+
+  # compute the normal velocity
+  u_normal = normal[1] * u_inner[2] + normal[2] * u_inner[3]
+
+  # create the "external" boundary solution state
+  u_boundary = SVector(u_inner[1],
+                       u_inner[2] - 2.0 * u_normal * normal[1],
+                       u_inner[3] - 2.0 * u_normal * normal[2],
+                       u_inner[4])
+
   # compute and return the flux using `boundary_condition_slip_wall` routine above
-  return boundary_condition_slip_wall(u_inner, normal_direction, direction,
-                                      x, t, surface_flux_function, equations)
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+
+  return flux
 end
 
 """
