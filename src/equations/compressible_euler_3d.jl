@@ -351,7 +351,8 @@ end
     boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
                                  surface_flux_function, equations::CompressibleEulerEquations3D)
 
-Should be used together with [`StructuredMesh`](@ref).
+Should be used together with [`StructuredMesh`](@ref) and other possible curved
+mesh types.
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               direction, x, t,
