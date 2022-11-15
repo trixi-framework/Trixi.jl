@@ -8,7 +8,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the shallow water equations
 
-equations = TwoLayerShallowWaterEquations1D(gravity_constant=9.81,H0=2.0,rho1=1.0,rho2=0.9)
+equations = TwoLayerShallowWaterEquations1D(gravity_constant=9.81,H0=2.0,rho1=0.9,rho2=1.0)
 
 initial_condition = initial_condition_convergence_test
 
@@ -52,15 +52,15 @@ function initial_condition_dam_break(x, t, element_id, equations::TwoLayerShallo
   v2 = 0.0
   # TODO: Discontinuity cannot be represented this way with LGL 
   if element_id <= 32
-    H1 = 2.0
-    H2 = 4.0
+    H2 = 2.0
+    H1 = 4.0
   else
-    H1 = 1.5
-    H2 = 3.0
+    H2 = 1.5
+    H1 = 3.0
   end
 
   b  = 0.0
-  return prim2cons(SVector(H1, H2, v1, v2, b), equations)
+  return prim2cons(SVector(H1, v1, H2, v2, b), equations)
 end
 
 

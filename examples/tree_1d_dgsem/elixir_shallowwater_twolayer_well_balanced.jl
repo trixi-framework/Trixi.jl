@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the two-layer shallow water equations
 
-equations = TwoLayerShallowWaterEquations1D(gravity_constant=1.0,H0=0.6,rho1=1.0,rho2=0.9)
+equations = TwoLayerShallowWaterEquations1D(gravity_constant=1.0,H0=0.6,rho1=0.9,rho2=1.0)
 
 # Initial Conditions from Fjordholm testcase
 function initial_condition_eec_test(x, t, equations::TwoLayerShallowWaterEquations1D)
@@ -16,17 +16,17 @@ function initial_condition_eec_test(x, t, equations::TwoLayerShallowWaterEquatio
   
     # Add perturbation to h2
     if add_perturbation == true
-      h2 = 0.38<=x[1]<=0.42 ? 0.15 : 0.1
+      h1 = 0.38<=x[1]<=0.42 ? 0.15 : 0.1
     else 
-      h2 = 0.1
+      h1 = 0.1
     end
   
     v1 = 0.0
     v2 = 0.0
-    H1 = 0.5
-    H2 = H1 + h2
+    H2 = 0.5
+    H1 = H2 + h1
     b  = r <= 0.1 ? 0.2 * (cos(10*π*(x[1] - 0.5)) + 1) : 0.0
-    return prim2cons(SVector(H1, H2, v1, v2, b), equations)
+    return prim2cons(SVector(H1, v1, H2, v2, b), equations)
   end
 
 initial_condition = initial_condition_eec_test
