@@ -283,9 +283,13 @@ returns a `SciMLBase.ODESolution`) or Trixi's own `solve!` (which returns a
     This is an experimental feature and may change in future releases.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+PlotData2D(sol::TrixiODESolution, time::Real; kwargs...) = PlotData2D(sol(time), sol.prob.p; kwargs...)
+PlotData2D(sol::TrixiODESolution, iter::Int; kwargs...) = PlotData2D(sol.u[iter], sol.prob.p; kwargs...)
 
 # Also redirect when using PlotData2DTriangulate.
 PlotData2DTriangulated(sol::TrixiODESolution; kwargs...) = PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
+PlotData2DTriangulated(sol::TrixiODESolution, time::Real; kwargs...) = PlotData2DTriangulated(sol(time), sol.prob.p; kwargs...)
+PlotData2DTriangulated(sol::TrixiODESolution, iter::Int; kwargs...) = PlotData2DTriangulated(sol.u[iter], sol.prob.p; kwargs...)
 
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
@@ -627,6 +631,8 @@ Create a `PlotData1D` object from a solution object created by either `OrdinaryD
     This is an experimental feature and may change in future releases.
 """
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
+PlotData1D(sol::TrixiODESolution, time::Real; kwargs...) = PlotData1D(sol(time), sol.prob.p; kwargs...)
+PlotData1D(sol::TrixiODESolution, iter::Int; kwargs...) = PlotData1D(sol.u[iter], sol.prob.p; kwargs...)
 
 function PlotData1D(time_series_callback::TimeSeriesCallback, point_id::Integer)
   @unpack time, variable_names, point_data = time_series_callback

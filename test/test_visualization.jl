@@ -38,10 +38,14 @@ isdir(outdir) && rm(outdir, recursive=true)
     # Constructor tests
     if mesh == "TreeMesh"
       @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
+      @test PlotData2D(sol, 1) isa Trixi.PlotData2DCartesian
+      @test PlotData2D(sol, 0.05) isa Trixi.PlotData2DCartesian
       @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa Trixi.PlotData2DCartesian
       @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
     else
       @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+      @test PlotData2D(sol, 1) isa Trixi.PlotData2DTriangulated
+      @test PlotData2D(sol, 0.05) isa Trixi.PlotData2DTriangulated
       @test PlotData2D(sol; nvisnodes=0, solution_variables=cons2cons) isa Trixi.PlotData2DTriangulated
     end
     pd = PlotData2D(sol)
@@ -128,6 +132,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # Constructor
     @test PlotData1D(sol) isa PlotData1D
+    @test PlotData1D(sol, 1) isa PlotData1D
+    @test PlotData1D(sol, 0.05) isa PlotData1D
     pd = PlotData1D(sol)
 
     # show
