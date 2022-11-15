@@ -620,7 +620,7 @@ mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_absto
       val_flux2_local_jp1 = -inverse_weights[j] * antidiffusive_flux2[1,   i, j+1, element]
 
       Pm = min(0.0, val_flux1_local) + min(0.0, val_flux1_local_ip1) +
-                min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
+           min(0.0, val_flux2_local) + min(0.0, val_flux2_local_jp1)
       Pm = inverse_jacobian * Pm
 
       if Pm < 0.0
@@ -776,9 +776,9 @@ end
       break
     end
 
-    if iter == indicator_IDP.IDPMaxIter
-      @warn "Maximum number of iterations for the Newton-bisection algorithm reached."
-    end
+    # if iter == indicator_IDP.IDPMaxIter
+    #   @warn "Maximum number of iterations for the Newton-bisection algorithm reached."
+    # end
   end
 
   new_alpha = 1.0 - beta
@@ -799,17 +799,25 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
   @unpack alpha_mean_per_timestep, alpha_max_per_timestep, time_per_timestep = indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
+  if indicator.indicator_smooth
+    elements = cache.element_ids_dgfv
+  else
+    elements = eachelement(solver, cache)
+  end
+
   alpha_max_per_timestep[timestep] = max(alpha_max_per_timestep[timestep], maximum(alpha))
   alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
-  for element in eachelement(solver, cache)
+  for element in elements
     jacobian = inv(cache.elements.inverse_jacobian[element])
     for j in eachnode(solver), i in eachnode(solver)
       alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
-  alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
+  if total_volume > 0
+    alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
+  end
 
   return nothing
 end

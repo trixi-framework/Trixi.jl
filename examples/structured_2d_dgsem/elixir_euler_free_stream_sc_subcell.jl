@@ -7,60 +7,52 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-"""
-    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-
-A medium blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
-function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-  # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-  phi = atan(y_norm, x_norm)
-  sin_phi, cos_phi = sincos(phi)
-
-  # Calculate primitive variables
-  rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  p   = r > 0.5 ? 1.0E-3 : 1.245
-
-  return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-initial_condition = initial_condition_blast_wave
+initial_condition = initial_condition_constant
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
-basis = LobattoLegendreBasis(3)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorIDP(equations, basis;
-                            IDPDensityTVD=true,
-                            IDPPressureTVD=true,
-                            indicator_smooth=true)
+                            IDPDensityTVD=false,
+                            IDPPressureTVD=false,
+                            IDPPositivity=false,
+                            indicator_smooth=false)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_dg=volume_flux,
                                                       volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2.0, -2.0)
-coordinates_max = ( 2.0,  2.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
-                n_cells_max=10_000)
+# Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D.
+# This particular mesh is unstructured in the yz-plane, but extruded in x-direction.
+# Apply the warping mapping in the yz-plane to get a curved 2D mesh that is extruded
+# in x-direction to ensure free stream preservation on a non-conforming mesh.
+# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
 
+# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+function mapping(xi_, eta_)
+  # Transform input variables between -1 and 1 onto [0,3]
+  xi = 1.5 * xi_ + 1.5
+  eta = 1.5 * eta_ + 1.5
+
+  y = eta + 3/8 * (cos(1.5 * pi * (2 * xi - 3)/3) *
+                   cos(0.5 * pi * (2 * eta - 3)/3))
+
+  x = xi + 3/8 * (cos(0.5 * pi * (2 * xi - 3)/3) *
+                  cos(2 * pi * (2 * y - 3)/3))
+
+  return SVector(x, y)
+end
+
+cells_per_dimension = (32, 32)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 20000.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -70,12 +62,12 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(interval=100000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.3)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

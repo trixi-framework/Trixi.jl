@@ -69,17 +69,25 @@ end
   @unpack alpha_mean_per_timestep, alpha_max_per_timestep= indicator.cache
   @unpack alpha = indicator.cache.ContainerShockCapturingIndicator
 
+  if indicator.indicator_smooth
+    elements = cache.element_ids_dgfv
+  else
+    elements = eachelement(solver, cache)
+  end
+
   alpha_max_per_timestep[timestep] = max(alpha_max_per_timestep[timestep], maximum(alpha))
   alpha_avg = zero(eltype(alpha))
   total_volume = zero(eltype(alpha))
-  for element in eachelement(solver, cache)
+  for element in elements
     for j in eachnode(solver), i in eachnode(solver)
       jacobian = inv(cache.elements.inverse_jacobian[i, j, element])
       alpha_avg += jacobian * weights[i] * weights[j] * alpha[i, j, element]
       total_volume += jacobian * weights[i] * weights[j]
     end
   end
-  alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
+  if total_volume > 0
+    alpha_mean_per_timestep[timestep] += 1/(n_stages * total_volume) * alpha_avg
+  end
 
   return nothing
 end

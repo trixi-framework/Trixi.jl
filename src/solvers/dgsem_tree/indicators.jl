@@ -21,32 +21,6 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
   return nothing
 end
 
-function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralShockCapturingSubcell, equations)
-  node_variables[:indicator_shock_capturing] = indicator.cache.ContainerShockCapturingIndicator.alpha
-  # TODO BB: Im ersten Zeitschritt scheint alpha noch nicht befüllt zu sein.
-  return nothing
-end
-
-function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIntegralShockCapturingSubcell, equations)
-  if !indicator.Plotting
-    return nothing
-  end
-  @unpack volume_flux_difference = indicator.cache.ContainerShockCapturingIndicator
-  variables = varnames(cons2cons, equations)
-  for v in eachvariable(equations)
-    s = Symbol("shock_capturing_delta_volume_flux_", variables[v])
-    node_variables[s] = volume_flux_difference[v, ntuple(_ -> :, nvariables(equations) + 1)...]
-  end
-
-  if indicator.IDPPressureTVD
-    @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
-    node_variables[:indicator_shock_capturing_pressure] = alpha_pressure
-  end
-
-  return nothing
-end
-
-
 
 """
     IndicatorHennemannGassner
@@ -257,7 +231,8 @@ function Base.show(io::IO, indicator::IndicatorIDP)
   else
     print(io, "limiter=(")
     IDPDensityTVD  && print(io, "IDPDensityTVD, ")
-    IDPPressureTVD && print(io, "IDPPressureTVD, ")
+    IDPPressureTVD && print(io, "IDPPressureTVD with positivity correlation factor of ",
+                            indicator.positCorrFactor, ", ")
     IDPPositivity  && print(io, "IDPPositivity, ")
     IDPSpecEntropy && print(io, "IDPSpecEntropy, ")
     IDPMathEntropy && print(io, "IDPMathEntropy, ")
@@ -265,6 +240,12 @@ function Base.show(io::IO, indicator::IndicatorIDP)
   end
   indicator.alpha_maxIDP != 1.0 && print(io, "alpha_maxIDP=", indicator.alpha_maxIDP)
   print(io, ")")
+end
+
+function get_node_variables!(node_variables, indicator::IndicatorIDP, ::VolumeIntegralShockCapturingSubcell, equations)
+  node_variables[:indicator_shock_capturing] = indicator.cache.ContainerShockCapturingIndicator.alpha
+  # TODO BB: Im ersten Zeitschritt scheint alpha noch nicht befüllt zu sein.
+  return nothing
 end
 
 
@@ -311,6 +292,26 @@ function Base.show(io::IO, indicator::IndicatorMCL)
   indicator.indicator_smooth && print(io, ", Smoothness indicator: ", indicator.IndicatorHG)
   print(io, ")")
 end
+
+function get_node_variables!(node_variables, indicator::IndicatorMCL, ::VolumeIntegralShockCapturingSubcell, equations)
+  if !indicator.Plotting
+    return nothing
+  end
+  @unpack volume_flux_difference = indicator.cache.ContainerShockCapturingIndicator
+  variables = varnames(cons2cons, equations)
+  for v in eachvariable(equations)
+    s = Symbol("shock_capturing_delta_volume_flux_", variables[v])
+    node_variables[s] = volume_flux_difference[v, ntuple(_ -> :, nvariables(equations) + 1)...]
+  end
+
+  if indicator.IDPPressureTVD
+    @unpack alpha_pressure = indicator.cache.ContainerShockCapturingIndicator
+    node_variables[:indicator_shock_capturing_pressure] = alpha_pressure
+  end
+
+  return nothing
+end
+
 
 struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   variable::Variable

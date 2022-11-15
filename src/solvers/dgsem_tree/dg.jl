@@ -27,7 +27,12 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
 
   for element in eachelement(dg, cache)
     # Clip blending factor for values close to zero (-> pure DG)
-    dg_only = isapprox(alpha[element], 0, atol=0.1)
+    if dg.volume_integral isa VolumeIntegralShockCapturingSubcell
+      tol = 0.1
+    else
+      tol = 1e-12
+    end
+    dg_only = isapprox(alpha[element], 0, atol=tol)
     if dg_only
       push!(element_ids_dg, element)
     else

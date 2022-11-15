@@ -92,7 +92,7 @@ max_dt(u, t, mesh, constant_speed, equations, dg, cache, volume_integral) = max_
                         constant_speed, equations, dg, cache, volume_integral::VolumeIntegralShockCapturingSubcell)
 
   return max_dt(u, t, mesh,
-                constant_speed, equations, dg::DG, cache, volume_integral.indicator)
+                constant_speed, equations, dg, cache, volume_integral.indicator)
 end
 
 max_dt(u, t, mesh, constant_speed, equations, dg, cache, indicator::AbstractIndicator) = max_dt(u, t, mesh, constant_speed, equations, dg, cache)
