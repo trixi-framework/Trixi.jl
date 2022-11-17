@@ -10,14 +10,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_euler_astro_jet_subcell.jl
 ###############################################################################
 # adapt the parameters that have changed compared to "elixir_euler_astro_jet_subcell.jl"
 
-restart_filename = joinpath("out", "restart_000001.h5")
-# setups:
-# - refinement level = 6:
-#   * Limiter: IDPPressureTVD, IDPPositivity: T_1=2.5e-6 (CFL=0.004, 1 timestep)
-# - refinement level = 7:
-#   * Limiter: IDPPressureTVD, IDPPositivity: T_1=5.0e-6 (CFL=0.004, 260 timesteps)
-# - refinement level = 8:
-#   * Limiter: IDPPressureTVD, IDPPositivity: T_1=2.5e-6 (CFL=0.004, 269 timesteps)
+restart_filename = joinpath("out", "restart_000271.h5")
 mesh = load_mesh(restart_filename)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
@@ -25,12 +18,12 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
 tspan = (load_time(restart_filename), 0.001)
 ode = semidiscretize(semi, tspan, restart_filename);
 
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=false,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.6)
+stepsize_callback = StepsizeCallback(cfl=0.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

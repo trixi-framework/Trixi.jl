@@ -38,15 +38,19 @@ boundary_conditions = (
                       )
 
 surface_flux = flux_lax_friedrichs # HLLC needs more shock capturing (alpha_max)
-volume_flux  = flux_ranocha # works with Chandrashekar flux as well
+volume_flux  = flux_chandrashekar # works with Chandrashekar flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=true,
-                            IDPPressureTVD=false,
-                            IDPPositivity=true)
+                            IDPPressureTVD=true,
+                            IDPSpecEntropy=true,
+                            IDPPositivity=true,
+                            IDPCheckBounds=true,
+                            IDPMaxIter=25,
+                            indicator_smooth=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -55,7 +59,7 @@ coordinates_min = (-0.5, -0.5)
 coordinates_max = ( 0.5,  0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=8,
                 periodicity=(false,true),
                 n_cells_max=100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
