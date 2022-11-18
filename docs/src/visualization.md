@@ -277,7 +277,7 @@ line plot:
 To customize your 1D plot, you can create a `PlotData1D` object manually as follows:
 ```julia
 julia> pd = PlotData1D(sol)
-julia> pd = PlotData1D(u, sol.prob)
+julia> pd = PlotData1D(u, semi)
 ```
 The behavior is analogous to the [`PlotData2D`](@ref) behavior.
 
