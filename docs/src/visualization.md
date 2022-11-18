@@ -59,11 +59,12 @@ For further details on both of these see below:
 [`PlotData2D`](@ref) object by executing
 ```julia
 julia> pd = PlotData2D(sol)
-julia> pd = PlotData2D(u, sol.prob) # sol.prob should be a AbstractSemidiscretization object
+julia> pd = PlotData2D(u, semi)
 ```
-where `u` is an array containing the solution. For example, if
-`PlotData2D(sol.u[2], sol.prob)` is specified, this will create a `PlotData2D`
-instance from the 2nd saved time-step. If `PlotData2D(sol(0.5), sol.prob)` is
+where `u` is an array containing the solution and `semi` is the semidiscretization.
+For example, if
+`PlotData2D(sol.u[2], semi)` is specified, this will create a `PlotData2D`
+instance from the 2nd saved time-step. If `PlotData2D(sol(0.5), semi)` is
 specified, it will construct a `PlotData2D` instance using OrdinaryDiffEq.jl's
 interpolation to evaluate the solution at time `t=0.5`.
 
