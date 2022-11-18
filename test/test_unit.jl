@@ -584,10 +584,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     # Burger's Equation 
 
     equation = InviscidBurgersEquation1D()
-    u_vales = [SVector(42.0), SVector(-42.0)]
+    u_values = [SVector(42.0), SVector(-42.0)]
 
     orientations = [1]
-    for orientation in orientations, u in u_vales
+    for orientation in orientations, u in u_values
       @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
@@ -641,10 +641,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   @timed_testset "Consistency check for Engquist-Osher flux" begin
     # Set up equations and dummy conservative variables state
     equation = InviscidBurgersEquation1D()
-    u_vales = [SVector(42.0), SVector(-42.0)]
+    u_values = [SVector(42.0), SVector(-42.0)]
 
     orientations = [1]
-    for orientation in orientations, u in u_vales
+    for orientation in orientations, u in u_values
       @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
