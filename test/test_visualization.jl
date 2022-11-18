@@ -357,6 +357,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug Base.show(fa) === nothing
     @test_nowarn_debug typeof(fig) <: Makie.Figure
     @test_nowarn_debug typeof(axes) <: AbstractArray{<:Makie.Axis}
+
+    # test plotting of constant solutions with Makie
+    # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
+    for i in eachindex(sol.u)
+      fill!(sol.u[i], one(eltype(sol.u[i])))
+    end
+    @test_nowarn_debug Trixi.iplot(sol)
   end
 end
 

@@ -66,7 +66,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
       end
 
       # Wait for all non-blocking MPI send/receive operations to finish
-      MPI.Waitall!(requests)
+      MPI.Waitall(requests, MPI.Status)
     end
   end # GC.@preserve old_u_ode
 end
