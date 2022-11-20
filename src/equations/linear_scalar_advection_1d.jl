@@ -147,21 +147,22 @@ end
 
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
-function flux_godunov(u_ll, u_rr, orientation::Int, equation::LinearScalarAdvectionEquation1D)
+function flux_godunov(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  if equation.advection_velocity[orientation] >= 0
-    return SVector(equation.advection_velocity[orientation] * u_L)
+  v_normal = equation.advection_velocity[orientation] 
+  if v_normal >= 0
+    return SVector(v_normal * u_L)
   else 
-    return SVector(equation.advection_velocity[orientation] * u_R)
+    return SVector(v_normal* u_R)
   end
 end
 
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 # section 4.2.5 and especially equation (4.33).
-function flux_engquist_osher(u_ll, u_rr, orientation::Int, equation::LinearScalarAdvectionEquation1D)
+function flux_engquist_osher(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 

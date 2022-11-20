@@ -249,13 +249,13 @@ function flux_godunov(u_ll, u_rr, orientation::Integer, equation::LinearScalarAd
   u_L = u_ll[1]
   u_R = u_rr[1]
 
-  if equation.advection_velocity[orientation] >= 0
-    return SVector(equation.advection_velocity[orientation] * u_L)
+  v_normal = equation.advection_velocity[orientation] 
+  if v_normal >= 0
+    return SVector(v_normal * u_L)
   else 
-    return SVector(equation.advection_velocity[orientation] * u_R)
+    return SVector(v_normal* u_R)
   end
 end
-
 
 # Essentially first order upwind, see e.g.
 # https://math.stackexchange.com/a/4355076/805029
