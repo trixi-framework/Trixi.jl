@@ -253,7 +253,7 @@ function flux_godunov(u_ll, u_rr, orientation::Integer, equation::LinearScalarAd
   if v_normal >= 0
     return SVector(v_normal * u_L)
   else 
-    return SVector(v_normal* u_R)
+    return SVector(v_normal * u_R)
   end
 end
 
