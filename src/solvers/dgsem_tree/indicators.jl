@@ -169,7 +169,6 @@ Blending indicator used for subcell shock-capturing [`VolumeIntegralShockCapturi
     This is an experimental feature and may change in future releases.
 """
 struct IndicatorIDP{RealT<:Real, Cache, Indicator} <: AbstractIndicator
-  alpha_maxIDP::RealT
   IDPDensityTVD::Bool
   IDPPressureTVD::Bool
   IDPPositivity::Bool
@@ -188,7 +187,6 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorIDP(equations::AbstractEquations, basis;
-                      alpha_maxIDP=1.0,
                       IDPDensityTVD=false,
                       IDPPressureTVD=false,
                       IDPPositivity=false,
@@ -215,10 +213,9 @@ function IndicatorIDP(equations::AbstractEquations, basis;
   else
     IndicatorHG = nothing
   end
-  IndicatorIDP{typeof(alpha_maxIDP), typeof(cache), typeof(IndicatorHG)}(alpha_maxIDP,
-      IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy, IDPMathEntropy,
-      cache, positCorrFactor, IDPMaxIter, newton_tol, IDP_gamma, IDPCheckBounds,
-      indicator_smooth, IndicatorHG)
+  IndicatorIDP{typeof(positCorrFactor), typeof(cache), typeof(IndicatorHG)}(IDPDensityTVD, IDPPressureTVD,
+      IDPPositivity, IDPSpecEntropy, IDPMathEntropy, cache, positCorrFactor, IDPMaxIter,
+      newton_tol, IDP_gamma, IDPCheckBounds, indicator_smooth, IndicatorHG)
 end
 
 function Base.show(io::IO, indicator::IndicatorIDP)
@@ -238,7 +235,6 @@ function Base.show(io::IO, indicator::IndicatorIDP)
     IDPMathEntropy && print(io, "IDPMathEntropy, ")
     print(io, "), ")
   end
-  indicator.alpha_maxIDP != 1.0 && print(io, "alpha_maxIDP=", indicator.alpha_maxIDP)
   print(io, ")")
 end
 

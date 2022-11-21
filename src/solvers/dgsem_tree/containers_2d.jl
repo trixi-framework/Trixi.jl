@@ -1308,7 +1308,7 @@ end
 
 
 mutable struct ContainerShockCapturingIndicatorIDP{uEltype<:Real}
-  alpha::Array{uEltype, 3} # [i, j, element]
+  alpha::Array{uEltype, 3}                  # [i, j, element]
   alpha1::Array{uEltype, 3}
   alpha2::Array{uEltype, 3}
   var_bounds::Vector{Array{uEltype, 3}}
@@ -1337,7 +1337,7 @@ function ContainerShockCapturingIndicatorIDP{uEltype}(capacity::Integer, n_nodes
     var_bounds[i] = unsafe_wrap(Array, pointer(_var_bounds[i]), (n_nodes, n_nodes, capacity))
   end
 
-  return ContainerShockCapturingIndicatorIDP{uEltype}(alpha,   alpha1,  alpha2,  var_bounds,
+  return ContainerShockCapturingIndicatorIDP{uEltype}(alpha,  alpha1,  alpha2,  var_bounds,
                                                       _alpha, _alpha1, _alpha2, _var_bounds)
 end
 

@@ -191,12 +191,8 @@ end
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(indicator::Union{Type{IndicatorIDP}, Type{IndicatorMCL}}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
-  if indicator == IndicatorIDP
-    ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), length)
-  else # indicator == IndicatorMCL
-    ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorMCL{real(basis)}(0, nvariables(equations), nnodes(basis))
-  end
+function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
+  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorIDP{real(basis)}(0, nnodes(basis), length)
 
   alpha_max_per_timestep  = zeros(real(basis), 200)
   alpha_mean_per_timestep = zeros(real(basis), 200)
@@ -204,9 +200,8 @@ function create_cache(indicator::Union{Type{IndicatorIDP}, Type{IndicatorMCL}}, 
 
   idp_bounds_delta_threaded = [zeros(real(basis), length) for _ in 1:Threads.nthreads()]
 
-  return (; ContainerShockCapturingIndicator,
-            alpha_max_per_timestep, alpha_mean_per_timestep, time_per_timestep,
-            idp_bounds_delta_threaded)
+  return (; alpha_max_per_timestep, alpha_mean_per_timestep, time_per_timestep,
+            ContainerShockCapturingIndicator, idp_bounds_delta_threaded)
 end
 
 function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
@@ -231,16 +226,6 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
     @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache, elements)
   indicator_IDP.IDPMathEntropy &&
     @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache, elements)
-
-  # Clip the maximum amount of FV allowed (default: alpha_maxIDP = 1.0)
-  @unpack alpha_maxIDP = indicator_IDP
-  if alpha_maxIDP != 1.0
-    @threaded for element in elements
-      for j in eachnode(dg), i in eachnode(dg)
-        alpha[i, j, element] = min(alpha_maxIDP, alpha[i, j, element])
-      end
-    end
-  end
 
   # Calculate alpha1 and alpha2
   @unpack alpha1, alpha2 = indicator_IDP.cache.ContainerShockCapturingIndicator
@@ -820,6 +805,15 @@ standard_finalCheck(bound, goal, newton_abstol) = abs(goal) < max(newton_abstol,
   end
 
   return nothing
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(indicator::Type{IndicatorMCL}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, length)
+  ContainerShockCapturingIndicator = Trixi.ContainerShockCapturingIndicatorMCL{real(basis)}(0, nvariables(equations), nnodes(basis))
+
+  idp_bounds_delta_threaded = [zeros(real(basis), length) for _ in 1:Threads.nthreads()]
+
+  return (; ContainerShockCapturingIndicator, idp_bounds_delta_threaded)
 end
 
 @inline function update_alpha_per_timestep!(indicator::IndicatorMCL, timestep, n_stages, semi, mesh)

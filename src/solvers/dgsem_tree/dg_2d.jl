@@ -522,26 +522,14 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingSubcell,
                                dg::DGSEM, cache)
-  # Calculate maximum wave speeds lambda
-  # TODO:
-  # Option one: (Right now) Calculate the lambdas 4 times each time step (before each RK stage and in callback) plus one time to init the callback
-  #   1 In the stepsize callback to get the right time step
-  #   Remove 1, the first time step cannot be calculated and the others are not accurate (with old lambdas)
-  #   2 In the volume integral (here).
-  #   Remove 2, the first entropy analysis of the analysis_callback doesn't work.
-  #             And we get different result because otherwise the lambdas are only updated once in a RK step.
-  #   -> 4 times per timestep is actually not that bad. (3 times would be optimal)
-  # -- With option 1: I don't need to save all lambdas, just use threaded vector of 2 dimensions [i, j]
-  #    (wrong!, because I need the lambdas to calculate the bar states here)
-  # Option two: Calculate lambdas after each RK stage plus in the init_stepsize_callback.
-  #   Problem: Entropy change at t=0 only works if the stepsize callback is listed before analysis callback (to calculate the lambdas before)
-  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, volume_integral.indicator)
-  # Calculate bar states
-  @trixi_timeit timer() "calc_bar_states!" calc_bar_states!(u, mesh, nonconservative_terms, equations, volume_integral.indicator, dg, cache)
-  # Calculate boundaries
-  @trixi_timeit timer() "calc_var_bounds!" calc_var_bounds!(u, mesh, nonconservative_terms, equations, volume_integral.indicator, dg, cache)
-
   @unpack indicator = volume_integral
+  # Calculate maximum wave speeds lambda
+  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, indicator)
+  # Calculate bar states
+  @trixi_timeit timer() "calc_bar_states!" calc_bar_states!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
+  # Calculate boundaries
+  @trixi_timeit timer() "calc_var_bounds!" calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
+
   if indicator.indicator_smooth
     @unpack element_ids_dg, element_ids_dgfv = cache
     # Calculate element-wise blending factors α
@@ -1215,37 +1203,34 @@ end
   @threaded for element in eachelement(solver, cache)
     idp_bounds_delta = idp_bounds_delta_threaded[Threads.threadid()]
     for j in eachnode(solver), i in eachnode(solver)
-      counter = 0
+      counter = 1
       if IDPDensityTVD
-        counter += 1 # rho_min
-        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[1][i, j, element] - u[1, i, j, element])
-        counter += 1 # rho_max
-        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], u[1, i, j, element] - var_bounds[2][i, j, element])
+        idp_bounds_delta[1] = max(idp_bounds_delta[1], var_bounds[1][i, j, element] - u[1, i, j, element])
+        idp_bounds_delta[2] = max(idp_bounds_delta[2], u[1, i, j, element] - var_bounds[2][i, j, element])
+        counter += 2
       end
       if IDPPressureTVD
         p = pressure(get_node_vars(u, equations, solver, i, j, element), equations)
-        counter += 1 # p_min
-        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - p)
-        counter += 1 # p_max
-        idp_bounds_delta[counter] = max(idp_bounds_delta[counter], p - var_bounds[counter][i, j, element])
+        idp_bounds_delta[counter]   = max(idp_bounds_delta[counter],   var_bounds[counter][i, j, element] - p)
+        idp_bounds_delta[counter+1] = max(idp_bounds_delta[counter+1], p - var_bounds[counter+1][i, j, element])
+        counter += 2
       end
       if IDPPositivity && !IDPDensityTVD
-        counter += 1 # rho_min
         idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - u[1, i, j, element])
+        counter += 1
       end
       if IDPPositivity && !IDPPressureTVD
         p = pressure(get_node_vars(u, equations, solver, i, j, element), equations)
-        counter += 1 # p_min
         idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - p)
+        counter += 1
       end
       if IDPSpecEntropy
         s = entropy_spec(get_node_vars(u, equations, solver, i, j, element), equations)
-        counter += 1 # s_min
         idp_bounds_delta[counter] = max(idp_bounds_delta[counter], var_bounds[counter][i, j, element] - s)
+        counter += 1
       end
       if IDPMathEntropy
         s = entropy_math(get_node_vars(u, equations, solver, i, j, element), equations)
-        counter += 1 # s_max
         idp_bounds_delta[counter] = max(idp_bounds_delta[counter], s - var_bounds[counter][i, j, element])
       end
     end
