@@ -265,7 +265,7 @@ end
 function IndicatorMCL(equations::AbstractEquations, basis;
                       IDPPressureTVD=false,
                       IDPCheckBounds=false,
-                      indicator_smooth=true,
+                      indicator_smooth=false,
                       variable_smooth=density_pressure,
                       Plotting=false)
 

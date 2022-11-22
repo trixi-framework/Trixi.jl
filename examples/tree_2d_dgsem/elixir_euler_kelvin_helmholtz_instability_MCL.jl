@@ -38,7 +38,9 @@ basis = LobattoLegendreBasis(polydeg)
 
 indicator_sc = IndicatorMCL(equations, basis;
                             IDPCheckBounds=true,
-                            IDPPressureTVD=true)
+                            IDPPressureTVD=false,
+                            indicator_smooth=false,
+                            Plotting=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -53,7 +55,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 3.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

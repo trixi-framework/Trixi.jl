@@ -171,9 +171,12 @@ function solve!(integrator::SimpleIntegratorSSP)
     # @. integrator.u_old = u_tmp + alg.a[i] * integrator.u_safe
     # solves the differences between the (not-)unrolled for-loop versions.
 
-    indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t
+    if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
+      indicator.cache.time_per_timestep[integrator.iter+1] = integrator.t
+    end
 
-    if integrator.iter+1 == length(indicator.cache.alpha_max_per_timestep) && !integrator.finalstep
+    if integrator.p.solver.volume_integral.indicator isa IndicatorIDP &&
+      integrator.iter+1 == length(indicator.cache.alpha_max_per_timestep) && !integrator.finalstep
       new_length = length(indicator.cache.alpha_max_per_timestep) + 200
       resize!(indicator.cache.alpha_max_per_timestep,  new_length)
       resize!(indicator.cache.alpha_mean_per_timestep, new_length)
@@ -228,9 +231,11 @@ function terminate!(integrator::SimpleIntegratorSSP)
   integrator.finalstep = true
   empty!(integrator.opts.tstops)
 
-  resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  integrator.iter+1)
-  resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
-  resize!(integrator.p.solver.volume_integral.indicator.cache.time_per_timestep, integrator.iter+1)
+  if integrator.p.solver.volume_integral.indicator isa IndicatorIDP
+    resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_max_per_timestep,  integrator.iter+1)
+    resize!(integrator.p.solver.volume_integral.indicator.cache.alpha_mean_per_timestep, integrator.iter+1)
+    resize!(integrator.p.solver.volume_integral.indicator.cache.time_per_timestep, integrator.iter+1)
+  end
 end
 
 # used for AMR
