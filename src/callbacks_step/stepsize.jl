@@ -91,13 +91,10 @@ max_dt(u, t, mesh, constant_speed, equations, dg, cache, volume_integral::Abstra
 
 @inline function max_dt(u, t, mesh,
                         constant_speed, equations, dg, cache, volume_integral::VolumeIntegralShockCapturingSubcell)
-  @unpack indicator = volume_integral
-  if indicator isa IndicatorIDP
-    return max_dt(u, t, mesh, constant_speed, equations, dg, cache)
-  else
-    return max_dt(u, t, mesh, constant_speed, equations, dg, cache, indicator)
-  end
+    return max_dt(u, t, mesh, constant_speed, equations, dg, cache, volume_integral.indicator)
 end
+
+max_dt(u, t, mesh, constant_speed, equations, dg, cache, indicator::IndicatorIDP) = max_dt(u, t, mesh, constant_speed, equations, dg, cache)
 
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own

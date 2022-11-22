@@ -42,7 +42,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-@inline function max_dt(u, t, mesh::TreeMesh2D,
+@inline function max_dt(u, t, mesh::Union{TreeMesh,StructuredMesh},
                         constant_speed::Val{false}, equations, dg::DG, cache, indicator::IndicatorMCL)
   @unpack inverse_weights = dg.basis
   @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, indicator)
@@ -54,23 +54,28 @@ end
     alpha_element = @trixi_timeit timer() "element-wise blending factors" indicator.IndicatorHG(u, mesh, equations, dg, cache)
     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha_element, dg, cache)
   else
-    element_ids_dg = Int[]
     element_ids_dgfv = eachelement(dg, cache)
   end
 
   for idx_element in eachindex(element_ids_dgfv)
     element = element_ids_dgfv[idx_element]
-    J = 1 / cache.elements.inverse_jacobian[element]
-
+    if mesh isa TreeMesh
+      J = 1 / cache.elements.inverse_jacobian[element]
+    end
     for j in eachnode(dg), i in eachnode(dg)
+      if mesh isa StructuredMesh{2}
+        J = 1 / cache.elements.inverse_jacobian[i, j, element]
+      end
       denom = inverse_weights[i] * (lambda1[i, j, element] + lambda1[i+1, j, element]) +
               inverse_weights[j] * (lambda2[i, j, element] + lambda2[i, j+1, element])
       maxdt = min(maxdt, J / denom)
     end
   end
 
-  maxdt = min(maxdt,
-              max_dt_RK(u, t, mesh, constant_speed, equations, dg, cache, indicator, element_ids_dg))
+  if indicator.indicator_smooth && !isempty(element_ids_dg)
+    maxdt = min(maxdt,
+                max_dt_RK(u, t, mesh, constant_speed, equations, dg, cache, indicator, element_ids_dg))
+  end
 
   return maxdt
 end
