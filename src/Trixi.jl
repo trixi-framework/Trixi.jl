@@ -275,8 +275,8 @@ function __init__()
 end
 
 
-include("auxiliary/precompile.jl")
-_precompile_manual_()
+#include("auxiliary/precompile.jl")
+#_precompile_manual_()
 
 
 end
