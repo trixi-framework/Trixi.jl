@@ -148,7 +148,7 @@ function integrate(func::typeof(enstrophy), u,
   local_gradient_quadrature_values = ntuple(_ -> similar(cache_parabolic.local_u_values_threaded), 3)
 
   integral = zero(eltype(u))
-  @threaded for e in eachelement(mesh, dg)
+  for e in eachelement(mesh, dg)
     u_quadrature_values = cache_parabolic.local_u_values_threaded[Threads.threadid()]
     gradient_x_quadrature_values = local_gradient_quadrature_values[1][Threads.threadid()]
     gradient_y_quadrature_values = local_gradient_quadrature_values[2][Threads.threadid()]
