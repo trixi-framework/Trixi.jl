@@ -59,7 +59,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
 
   # Permutation of indices in a tensor product form
   indices = reshape(1:length(rd.rf), nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.elementType))
+  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.element_type))
   for i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, 1] .= indices[i, 1:2]
     face_indices_tensor_product[:, i, 2] .= indices[i, 3:4]
@@ -88,7 +88,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
 
   # Permutation of indices in a tensor product form
   indices = reshape(1:length(rd.rf), nnodes_1d, nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.elementType))
+  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.element_type))
   for j in 1:nnodes_1d, i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, j, 1] .= indices[i, j, 1:2]
     face_indices_tensor_product[:, i, j, 2] .= indices[i, j, 3:4]
@@ -379,7 +379,7 @@ function create_cache(mesh::DGMultiMesh, equations,
   rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
   interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
   interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
-  NDIMS = ndims(rd.elementType)
+  NDIMS = ndims(rd.element_type)
   interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
   interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
   inv_gauss_weights = inv.(rd.wq)
