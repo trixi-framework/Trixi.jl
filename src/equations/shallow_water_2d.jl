@@ -197,6 +197,28 @@ For details see Section 9.2.5 of the book:
   return flux
 end
 
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
+                                 surface_flux_function, equations::ShallowWaterEquations2D)
+
+Should be used together with [`StructuredMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::ShallowWaterEquations2D)
+  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+  if isodd(direction)
+    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+                                                  x, t, surface_flux_function, equations)
+  else
+    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                 x, t, surface_flux_function, equations)
+  end
+
+  return boundary_flux
+end
 
 """
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
@@ -239,29 +261,6 @@ Should be used together with [`TreeMesh`](@ref).
   flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
 
   return flux
-end
-
-"""
-    boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
-                                 surface_flux_function, equations::ShallowWaterEquations2D)
-
-Should be used together with [`StructuredMesh`](@ref).
-"""
-@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
-                                              direction, x, t,
-                                              surface_flux_function,
-                                              equations::ShallowWaterEquations2D)
-  # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
-  # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
-  if isodd(direction)
-    boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
-                                                  x, t, surface_flux_function, equations)
-  else
-    boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
-                                                 x, t, surface_flux_function, equations)
-  end
-
-  return boundary_flux
 end
 
 # Calculate 1D flux for a single point
