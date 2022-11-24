@@ -57,7 +57,8 @@ nmortars(mortar) = 0
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
                               nonconservative_terms::Val{false}, equations,
-                              surface_integral, dg::FDSBP, cache)
+                              surface_integral::SurfaceIntegralUpwind,
+                              dg::FDSBP, cache)
   @unpack splitting = surface_integral
   @unpack u, neighbor_ids, orientations = cache.interfaces
 
