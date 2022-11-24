@@ -4,51 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
-##############################################################################
-# All of these routines and such are dimension agnostic and are defined
-# in the 2D file
-#
-# # General interface methods for SummationByPartsOperators.jl and Trixi.jl
-# # TODO: FD. Move to another file
-# nnodes(D::AbstractDerivativeOperator) = size(D, 1)
-# eachnode(D::AbstractDerivativeOperator) = Base.OneTo(nnodes(D))
-# get_nodes(D::AbstractDerivativeOperator) = grid(D)
-#
-# # For dispatch
-# # TODO: FD. Move to another file
-# const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
-#
-# # TODO: This is hack to enable the FDSBP solver to use the
-# #       `SaveSolutionCallback`.
-# polydeg(D::AbstractDerivativeOperator) = size(D, 1) - 1
-# polydeg(fdsbp::FDSBP) = polydeg(fdsbp.basis)
-#
-#
-# 2D containers
-# TODO: FD. Move to another file
-#init_mortars(cell_ids, mesh, elements, mortar) = nothing
-#
-# create_cache(mesh, equations, mortar, uEltype) = NamedTuple()
-# nmortars(mortar) = 0
-#
-# function prolong2mortars!(cache, u, mesh, equations, mortar,
-#   surface_integral, dg::DG)
-# @assert isempty(eachmortar(dg, cache))
-# end
-#
-# function calc_mortar_flux!(surface_flux_values, mesh,
-#    nonconservative_terms, equations,
-#    mortar,
-#    surface_integral, dg::DG, cache)
-# @assert isempty(eachmortar(dg, cache))
-# end
-#
-# TODO: FD. Move to another file
-# SolutionAnalyzer(D::AbstractDerivativeOperator) = D
-#
-########################################################################
-
-# 2D caches
+# 3D caches
 function create_cache(mesh::TreeMesh{3}, equations,
                       volume_integral::VolumeIntegralStrongForm, dg, uEltype)
 
