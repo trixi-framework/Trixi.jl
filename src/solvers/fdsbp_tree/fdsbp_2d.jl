@@ -79,8 +79,8 @@ function calc_interface_flux!(surface_flux_values,
       # Compute the upwind coupling terms where right-traveling
       # information comes from the left and left-traveling information
       # comes from the right
-      flux_plus_ll  = splitting(u_ll, Val(:plus),  orientations[interface], equations)
-      flux_minus_rr = splitting(u_rr, Val(:minus), orientations[interface], equations)
+      flux_plus_ll  = splitting(u_ll, Val{:plus}(),  orientations[interface], equations)
+      flux_minus_rr = splitting(u_rr, Val{:minus}(), orientations[interface], equations)
 
       # Save the upwind coupling into the approriate side of the elements
       for v in eachvariable(equations)
@@ -184,10 +184,8 @@ function calc_volume_integral!(du, u,
 
     # x direction
 
-    @. f_plus_element  = steger_warming_splitting_plus(u_element, 1, equations)
-    @. f_minus_element = steger_warming_splitting_minus(u_element, 1, equations)
-    # @. f_plus_element  = splitting(u_element, Val(:plus),  1, equations)
-    # @. f_minus_element = splitting(u_element, Val(:minus), 1, equations)
+    @. f_plus_element  = splitting(u_element, Val{:plus}(),  1, equations)
+    @. f_minus_element = splitting(u_element, Val{:minus}(), 1, equations)
     for j in eachnode(dg)
       mul!(view(du_vectors, :, j, element), D_minus, view(f_plus_element, :, j),
            one(eltype(du)), one(eltype(du)))
@@ -196,11 +194,8 @@ function calc_volume_integral!(du, u,
     end
 
     # y direction
-    @. f_plus_element  = steger_warming_splitting_plus(u_element, 2, equations)
-    @. f_minus_element = steger_warming_splitting_minus(u_element, 2, equations)
-
-    # @. f_plus_element  = splitting(u_element, Val(:plus),  2, equations)
-    # @. f_minus_element = splitting(u_element, Val(:minus), 2, equations)
+    @. f_plus_element  = splitting(u_element, Val{:plus}(),  2, equations)
+    @. f_minus_element = splitting(u_element, Val{:minus}(), 2, equations)
     for i in eachnode(dg)
       mul!(view(du_vectors, i, :, element), D_minus, view(f_plus_element, i, :),
            one(eltype(du)), one(eltype(du)))
@@ -283,28 +278,28 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
     for l in eachnode(dg)
       # surface at -x
       u_node = get_node_vars(u, equations, dg, 1, l, element)
-      f_node = splitting(u_node, Val(:plus), 1, equations)
+      f_node = splitting(u_node, Val{:plus}(), 1, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
                                  equations, dg, 1, l, element)
 
       # surface at +x
       u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
-      f_node = splitting(u_node, Val(:minus), 1, equations)
+      f_node = splitting(u_node, Val{:minus}(), 1, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
                                  equations, dg, nnodes(dg), l, element)
 
       # surface at -y
       u_node = get_node_vars(u, equations, dg, l, 1, element)
-      f_node = splitting(u_node, Val(:plus), 2, equations)
+      f_node = splitting(u_node, Val{:plus}(), 2, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
       multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
                                  equations, dg, l, 1, element)
 
       # surface at +y
       u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
-      f_node = splitting(u_node, Val(:minus), 2, equations)
+      f_node = splitting(u_node, Val{:minus}(), 2, equations)
       f_num  = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
       multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
                                  equations, dg, l, nnodes(dg), element)
