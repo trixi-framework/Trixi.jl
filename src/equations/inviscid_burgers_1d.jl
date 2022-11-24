@@ -62,7 +62,7 @@ Source terms used for convergence tests in combination with
   L = 1
   f = 1/L
   omega = 2 * pi * f
-  du = omega * cos(omega * (x[1] - t)) * (1 + sin(omega * (x[1] - t)))
+  du = omega * A * cos(omega * (x[1] - t)) * (1 + A * sin(omega * (x[1] - t)))
 
   return SVector(du)
 end
