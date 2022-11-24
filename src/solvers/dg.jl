@@ -20,6 +20,18 @@ struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
 
 
 """
+    VolumeIntegralUpwind
+
+Specialized volume integral for finite difference summation-by-parts (FDSBP)
+solver. Must use the upwind SBP operators developed in
+- Mattsson (2017)
+  Diagonal-norm upwind SBP operators
+  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+"""
+struct VolumeIntegralUpwind <: AbstractVolumeIntegral end
+
+
+"""
     VolumeIntegralWeakForm
 
 The classical weak form volume integral type for DG methods as explained in standard
