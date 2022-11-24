@@ -25,19 +25,23 @@ end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
 D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
+#D_plus  = derivative_operator(SummationByPartsOperators.WIP(:plus),
                               derivative_order=1,
+                              #accuracy_order=1,
                               accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
                               N=16)
 D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
+#D_minus = derivative_operator(SummationByPartsOperators.WIP(:minus),
                               derivative_order=1,
+                              #accuracy_order=1,
                               accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
                               N=16)
-
 # TODO: Super hacky.
 # Abuse the mortars to save the second derivative operator and get it into the run
-flux_splitting = steger_warming_splitting
+#flux_splitting = steger_warming_splitting
+flux_splitting = vanleer_splitting
 solver = DG(D_plus, D_minus #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))
