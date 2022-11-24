@@ -20,7 +20,7 @@ function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations
   p =  0.4127
   # add inflow for t>0 at x=-0.5
   # domain size is [-0.5,+0.5]^2
-  if (t > 0) && (x[1] ≈ -0.5) && (abs(x[2]) < 0.05)
+  if (x[1] ≈ -0.5) && (abs(x[2]) < 0.05)
     rho = 5
     v1 = 800 # about Mach number Ma = 2000
     v2 = 0
@@ -45,7 +45,8 @@ basis = LobattoLegendreBasis(polydeg)
 # shock capturing necessary for this tough example
 indicator_sc = IndicatorMCL(equations, basis;
                             IDPCheckBounds=true,
-                            IDPPressureTVD=true)
+                            IDPPressureTVD=true,
+                            Plotting=true)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -54,7 +55,7 @@ coordinates_min = (-0.5, -0.5)
 coordinates_max = ( 0.5,  0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=8,
                 periodicity=(false,true),
                 n_cells_max=100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
@@ -62,7 +63,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.5e-6) # simulation with end time T=0.001 in the restart file
+tspan = (0.0, 0.001)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
