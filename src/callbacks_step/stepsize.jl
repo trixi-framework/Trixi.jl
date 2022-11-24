@@ -74,7 +74,7 @@ end
 
     dt = @trixi_timeit timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
                                                                   have_constant_speed(equations), equations,
-                                                                  solver, cache, solver.volume_integral)
+                                                                  semi, solver, cache, solver.volume_integral)
 
     set_proposed_dt!(integrator, dt)
     integrator.opts.dtmax = dt
@@ -86,15 +86,15 @@ end
   return nothing
 end
 
-max_dt(u, t, mesh, constant_speed, equations, dg, cache, volume_integral::AbstractVolumeIntegral) =
+max_dt(u, t, mesh, constant_speed, equations, semi, dg, cache, volume_integral::AbstractVolumeIntegral) =
     max_dt(u, t, mesh, constant_speed, equations, dg, cache)
 
 @inline function max_dt(u, t, mesh,
-                        constant_speed, equations, dg, cache, volume_integral::VolumeIntegralShockCapturingSubcell)
-    return max_dt(u, t, mesh, constant_speed, equations, dg, cache, volume_integral.indicator)
+                        constant_speed, equations, semi, dg, cache, volume_integral::VolumeIntegralShockCapturingSubcell)
+  return max_dt(u, t, mesh, constant_speed, equations, semi, dg, cache, volume_integral.indicator)
 end
 
-max_dt(u, t, mesh, constant_speed, equations, dg, cache, indicator::IndicatorIDP) = max_dt(u, t, mesh, constant_speed, equations, dg, cache)
+max_dt(u, t, mesh, constant_speed, equations, semi, dg, cache, indicator::IndicatorIDP) = max_dt(u, t, mesh, constant_speed, equations, dg, cache)
 
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own

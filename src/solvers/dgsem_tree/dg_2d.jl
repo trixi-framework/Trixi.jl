@@ -135,7 +135,7 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
+    dg.volume_integral, dg, cache, t, boundary_conditions)
 
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
@@ -176,6 +176,19 @@ function rhs!(du, u, t,
   # Calculate source terms
   @trixi_timeit timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
+
+  return nothing
+end
+
+
+function calc_volume_integral!(du, u, mesh,
+                               nonconservative_terms, equations,
+                               volume_integral::AbstractVolumeIntegral,
+                               dg, cache, t, boundary_conditions)
+
+  calc_volume_integral!(du, u, mesh,
+                        nonconservative_terms, equations,
+                        volume_integral, dg, cache)
 
   return nothing
 end
@@ -521,12 +534,12 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingSubcell,
-                               dg::DGSEM, cache)
+                               dg::DGSEM, cache, t, boundary_conditions)
   @unpack indicator = volume_integral
   # Calculate maximum wave speeds lambda
-  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, indicator)
+  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, t, mesh, equations, dg, cache, indicator, boundary_conditions)
   # Calculate bar states
-  @trixi_timeit timer() "calc_bar_states!" calc_bar_states!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
+  @trixi_timeit timer() "calc_bar_states!" calc_bar_states!(u, t, mesh, nonconservative_terms, equations, indicator, dg, cache, boundary_conditions)
   # Calculate boundaries
   @trixi_timeit timer() "calc_var_bounds!" calc_var_bounds!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
 
@@ -765,15 +778,16 @@ end
   return nothing
 end
 
-@inline function calc_bar_states!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
+@inline function calc_bar_states!(u, t, mesh, nonconservative_terms, equations, indicator, dg, cache, boundary_conditions)
 
   return nothing
 end
 
-@inline function calc_bar_states!(u, mesh,
-                                  nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache)
+@inline function calc_bar_states!(u, t, mesh::TreeMesh,
+                                  nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache, boundary_conditions)
   @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerShockCapturingIndicator
 
+  # Calc bar states inside elements
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
       u_node     = get_node_vars(u, equations, dg, i,   j, element)
@@ -800,6 +814,116 @@ end
     end
   end
 
+  # Calc bar states at interfaces and periodic boundaries
+  @threaded for interface in eachinterface(dg, cache)
+    # Get neighboring element ids
+    left_id  = cache.interfaces.neighbor_ids[1, interface]
+    right_id = cache.interfaces.neighbor_ids[2, interface]
+
+    orientation = cache.interfaces.orientations[interface]
+
+    if orientation == 1
+      for j in eachnode(dg)
+        u_left  = get_node_vars(u, equations, dg, nnodes(dg), j, left_id)
+        u_right = get_node_vars(u, equations, dg, 1,          j, right_id)
+
+        flux_left  = flux(u_left,  orientation, equations)
+        flux_right = flux(u_right, orientation, equations)
+
+        lambda = lambda1[1, j, right_id]
+        bar_state = 0.5 * (u_left + u_right) - 0.5 * (flux_right - flux_left) / lambda
+        for v in eachvariable(equations)
+          bar_states1[v, nnodes(dg)+1, j, left_id]  = bar_state[v]
+          bar_states1[v, 1,            j, right_id] = bar_state[v]
+        end
+      end
+    else # orientation == 2
+      for i in eachnode(dg)
+        u_left  = get_node_vars(u, equations, dg, i, nnodes(dg), left_id)
+        u_right = get_node_vars(u, equations, dg, i, 1,          right_id)
+
+        flux_left  = flux(u_left,  orientation, equations)
+        flux_right = flux(u_right, orientation, equations)
+
+        lambda = lambda2[i, 1, right_id]
+        bar_state = 0.5 * (u_left + u_right) - 0.5 * (flux_right - flux_left) / lambda
+        for v in eachvariable(equations)
+          bar_states2[v, i, nnodes(dg)+1, left_id]  = bar_state[v]
+          bar_states2[v, i,            1, right_id] = bar_state[v]
+        end
+      end
+    end
+  end
+
+  # Calc bar states at physical boundaries
+  @threaded for boundary in eachboundary(dg, cache)
+    element = cache.boundaries.neighbor_ids[boundary]
+    orientation = cache.boundaries.orientations[boundary]
+    neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+    if orientation == 1
+      if neighbor_side == 2 # boundary_side == 1
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, 1, j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+                                             equations, dg, 1, j, element)
+          flux_inner = flux(u_inner, orientation, equations)
+          flux_outer = flux(u_outer, orientation, equations)
+
+          lambda = lambda1[1, j, element]
+          bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_inner - flux_outer) / lambda
+          for v in eachvariable(equations)
+            bar_states1[v, 1, j, element] = bar_state[v]
+          end
+        end
+      else # boundary_side == 2
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+                                             equations, dg, nnodes(dg), j, element)
+          flux_inner = flux(u_inner, orientation, equations)
+          flux_outer = flux(u_outer, orientation, equations)
+
+          lambda = lambda1[nnodes(dg)+1, j, element]
+          bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_outer - flux_inner) / lambda
+          for v in eachvariable(equations)
+            bar_states1[v, nnodes(dg)+1, j, element] = bar_state[v]
+          end
+        end
+      end
+    else # orientation == 2
+      if neighbor_side == 2 # boundary_side == 1
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, 1, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+                                             equations, dg, i, 1, element)
+          flux_inner = flux(u_inner, orientation, equations)
+          flux_outer = flux(u_outer, orientation, equations)
+
+          lambda = lambda2[i, 1, element]
+          bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_inner - flux_outer) / lambda
+          for v in eachvariable(equations)
+            bar_states2[v, i, 1, element] = bar_state[v]
+          end
+        end
+      else # boundary_side == 2
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+                                             equations, dg, i, nnodes(dg), element)
+          flux_inner = flux(u_inner, orientation, equations)
+          flux_outer = flux(u_outer, orientation, equations)
+
+          lambda = lambda2[i, nnodes(dg)+1, element]
+          bar_state = 0.5 * (u_inner + u_outer) - 0.5 * (flux_outer - flux_inner) / lambda
+          for v in eachvariable(equations)
+            bar_states2[v, i, nnodes(dg)+1, element] = bar_state[v]
+          end
+        end
+      end
+    end
+  end
+
   return nothing
 end
 
@@ -817,79 +941,42 @@ end
       var_max[v, :, :, element] .= typemin(eltype(var_max))
     end
 
-    for j in eachnode(dg), i in 2:nnodes(dg)
+    for j in eachnode(dg), i in eachnode(dg)
+      # - xi direction
       bar_state_rho = bar_states1[1, i, j, element]
-      var_min[1, i-1, j, element] = min(var_min[1, i-1, j, element], bar_state_rho)
-      var_max[1, i-1, j, element] = max(var_max[1, i-1, j, element], bar_state_rho)
-      var_min[1, i  , j, element] = min(var_min[1, i  , j, element], bar_state_rho)
-      var_max[1, i  , j, element] = max(var_max[1, i  , j, element], bar_state_rho)
+      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
       for v in 2:nvariables(equations)
         bar_state_phi = bar_states1[v, i, j, element] / bar_state_rho
-        var_min[v, i-1, j, element] = min(var_min[v, i-1, j, element], bar_state_phi)
-        var_max[v, i-1, j, element] = max(var_max[v, i-1, j, element], bar_state_phi)
-        var_min[v, i  , j, element] = min(var_min[v, i  , j, element], bar_state_phi)
-        var_max[v, i  , j, element] = max(var_max[v, i  , j, element], bar_state_phi)
+        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+        var_max[v, i, j, element] = max(var_max[v, 1, j, element], bar_state_phi)
       end
-    end
-    for j in 2:nnodes(dg), i in eachnode(dg)
+      # + xi direction
+      bar_state_rho = bar_states1[1, i+1, j, element]
+      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
+      for v in 2:nvariables(equations)
+        bar_state_phi = bar_states1[v, i+1, j, element] / bar_state_rho
+        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
+      end
+      # - eta direction
       bar_state_rho = bar_states2[1, i, j, element]
-      var_min[1, i, j-1, element] = min(var_min[1, i, j-1, element], bar_state_rho)
-      var_max[1, i, j-1, element] = max(var_max[1, i, j-1, element], bar_state_rho)
-      var_min[1, i, j  , element] = min(var_min[1, i, j,   element], bar_state_rho)
-      var_max[1, i, j  , element] = max(var_max[1, i, j,   element], bar_state_rho)
+      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
       for v in 2:nvariables(equations)
         bar_state_phi = bar_states2[v, i, j, element] / bar_state_rho
-        var_min[v, i, j-1, element] = min(var_min[v, i, j-1, element], bar_state_phi)
-        var_max[v, i, j-1, element] = max(var_max[v, i, j-1, element], bar_state_phi)
-        var_min[v, i, j  , element] = min(var_min[v, i, j,   element], bar_state_phi)
-        var_max[v, i, j  , element] = max(var_max[v, i, j,   element], bar_state_phi)
+        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
       end
-    end
-  end
-
-  calc_var_bounds_interface!(u, mesh, nonconservative_terms, equations, indicator, dg, cache)
-
-  return nothing
-end
-
-@inline function calc_var_bounds_interface!(u, mesh::TreeMesh2D, nonconservative_terms, equations, indicator, dg, cache)
-  @unpack var_min, var_max, bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
-  for interface in eachinterface(dg, cache)
-    # Get neighboring element ids
-    left_id  = cache.interfaces.neighbor_ids[1, interface]
-    right_id = cache.interfaces.neighbor_ids[2, interface]
-
-    orientation = cache.interfaces.orientations[interface]
-
-    for i in eachnode(dg)
-      if orientation == 1
-        index_left  = (nnodes(dg), i, left_id)
-        index_right = (1,          i, right_id)
-        lambda = lambda1[1, i, right_id]
-      else
-        index_left  = (i, nnodes(dg), left_id)
-        index_right = (i,          1, right_id)
-        lambda = lambda2[i, 1, right_id]
-      end
-
-      u_left  = get_node_vars(u, equations, dg, index_left...)
-      u_right = get_node_vars(u, equations, dg, index_right...)
-
-      flux_left  = flux(u_left,  orientation, equations)
-      flux_right = flux(u_right, orientation, equations)
-
-      bar_state_rho = 0.5 * (u_left[1] + u_right[1]) - 0.5 * (flux_right[1] - flux_left[1]) / lambda
-      var_min[1, index_left...]  = min(var_min[1, index_left...], bar_state_rho)
-      var_max[1, index_left...]  = max(var_max[1, index_left...], bar_state_rho)
-      var_min[1, index_right...] = min(var_min[1, index_right...], bar_state_rho)
-      var_max[1, index_right...] = max(var_max[1, index_right...], bar_state_rho)
+      # + eta direction
+      bar_state_rho = bar_states2[1, i, j+1, element]
+      var_min[1, i, j, element] = min(var_min[1, i, j, element], bar_state_rho)
+      var_max[1, i, j, element] = max(var_max[1, i, j, element], bar_state_rho)
       for v in 2:nvariables(equations)
-        bar_state_phi = 0.5 * (u_left[v] + u_right[v]) - 0.5 * (flux_right[v] - flux_left[v]) / lambda
-        bar_state_phi = bar_state_phi / bar_state_rho
-        var_min[v, index_left...]  = min(var_min[v, index_left...], bar_state_phi)
-        var_max[v, index_left...]  = max(var_max[v, index_left...], bar_state_phi)
-        var_min[v, index_right...] = min(var_min[v, index_right...], bar_state_phi)
-        var_max[v, index_right...] = max(var_max[v, index_right...], bar_state_phi)
+        bar_state_phi = bar_states2[v, i, j+1, element] / bar_state_rho
+        var_min[v, i, j, element] = min(var_min[v, i, j, element], bar_state_phi)
+        var_max[v, i, j, element] = max(var_max[v, i, j, element], bar_state_phi)
       end
     end
   end
@@ -1078,9 +1165,10 @@ end
   return nothing
 end
 
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh::TreeMesh2D, equations, dg, cache, indicator::IndicatorMCL)
+@inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh2D, equations, dg, cache, indicator::IndicatorMCL, boundary_conditions)
   @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
 
+  # Calc lambdas inside the elements
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
       u_node     = get_node_vars(u, equations, dg, i,   j, element)
@@ -1095,6 +1183,7 @@ end
     end
   end
 
+  # Calc lambdas at interfaces and periodic boundaries
   @threaded for interface in eachinterface(dg, cache)
     left  = cache.interfaces.neighbor_ids[1, interface]
     right = cache.interfaces.neighbor_ids[2, interface]
@@ -1122,6 +1211,7 @@ end
     end
   end
 
+  # Calc lambdas at physical boundaries
   @threaded for boundary in eachboundary(dg, cache)
     element = cache.boundaries.neighbor_ids[boundary]
     orientation = cache.boundaries.orientations[boundary]
@@ -1129,21 +1219,53 @@ end
 
     if orientation == 1
       if neighbor_side == 2 # boundary_side == 1
-        lambda1[1,            :, element] .= zero(eltype(lambda1))
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, 1, j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+                                             equations, dg, 1, j, element)
+          lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
+        end
       else # boundary_side == 2
-        lambda1[nnodes(dg)+1, :, element] .= zero(eltype(lambda1))
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+                                             equations, dg, nnodes(dg), j, element)
+          lambda1[nnodes(dg)+1, j, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
+        end
       end
     else # orientation == 2
       if neighbor_side == 2 # boundary_side == 1
-        lambda2[:, 1,            element] .= zero(eltype(lambda2))
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, 1, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+                                             equations, dg, i, 1, element)
+          lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
+        end
       else # boundary_side == 2
-        lambda2[:, nnodes(dg)+1, element] .= zero(eltype(lambda2))
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+                                             equations, dg, i, nnodes(dg), element)
+          lambda2[i, nnodes(dg)+1, element] = max_abs_speed_naive(u_inner, u_outer, orientation, equations)
+        end
       end
     end
   end
 
   return nothing
 end
+
+get_boundary_outer_state(u_inner, cache, t, boundary_condition, equations, dg, indices...) = u_inner
+
+@inline function get_boundary_outer_state(u_inner, cache, t, boundary_condition::BoundaryConditionDirichlet, equations, dg, indices...)
+  @unpack node_coordinates = cache.elements
+
+  x = get_node_coords(node_coordinates, equations, dg, indices...)
+  u_outer = boundary_condition.boundary_value_function(x, t, equations)
+
+  return u_outer
+end
+
 
 @inline function antidiffusive_stage!(u_ode, u_old_ode, dt, semi, indicator::IndicatorIDP)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)

@@ -43,9 +43,9 @@ function max_dt(u, t, mesh::TreeMesh{2},
 end
 
 @inline function max_dt(u, t, mesh::Union{TreeMesh,StructuredMesh},
-                        constant_speed::Val{false}, equations, dg::DG, cache, indicator::IndicatorMCL)
+                        constant_speed::Val{false}, equations, semi, dg::DG, cache, indicator::IndicatorMCL)
   @unpack inverse_weights = dg.basis
-  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, mesh, equations, dg, cache, indicator)
+  @trixi_timeit timer() "calc_lambda!" calc_lambda!(u, t, mesh, equations, dg, cache, indicator, semi.boundary_conditions)
   @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
 
   maxdt = typemax(eltype(u))
