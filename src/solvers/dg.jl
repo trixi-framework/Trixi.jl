@@ -20,18 +20,6 @@ struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
 
 
 """
-    VolumeIntegralUpwind
-
-Specialized volume integral for finite difference summation-by-parts (FDSBP)
-solver. Must use the upwind SBP operators developed in
-- Mattsson (2017)
-  Diagonal-norm upwind SBP operators
-  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
-"""
-struct VolumeIntegralUpwind <: AbstractVolumeIntegral end
-
-
-"""
     VolumeIntegralWeakForm
 
 The classical weak form volume integral type for DG methods as explained in standard
@@ -117,6 +105,36 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
     summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
     show(increment_indent(io), mime, integral.indicator)
     summary_footer(io)
+  end
+end
+
+
+"""
+    VolumeIntegralUpwind
+
+Specialized volume integral for finite difference summation-by-parts (FDSBP)
+solver. Uses the upwind SBP operators developed in
+- Mattsson (2017)
+  Diagonal-norm upwind SBP operators
+  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+
+Depends on a particular `FluxSplitting` like that of Steger-Warming
+TODO: put in refs
+"""
+struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
+  splitting::FluxSplitting
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "flux splitting" => integral.splitting
+            ]
+    summary_box(io, "VolumeIntegralUpwind", setup)
   end
 end
 
