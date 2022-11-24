@@ -27,15 +27,13 @@ initial_condition = initial_condition_kelvin_helmholtz_instability
 D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
 #D_plus  = derivative_operator(SummationByPartsOperators.WIP(:plus),
                               derivative_order=1,
-                              #accuracy_order=1,
-                              accuracy_order=7,
+                              accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
                               N=64)
 D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
 #D_minus = derivative_operator(SummationByPartsOperators.WIP(:minus),
                               derivative_order=1,
-                              #accuracy_order=1,
-                              accuracy_order=7,
+                              accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
                               N=64)
 # TODO: Super hacky.
@@ -68,7 +66,9 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(energy_total,))
+                                     save_analysis=true,
+                                     extra_analysis_integrals=(entropy,
+                                                               energy_total,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 

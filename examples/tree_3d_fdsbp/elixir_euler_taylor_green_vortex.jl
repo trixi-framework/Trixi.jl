@@ -65,7 +65,9 @@ summary_callback = SummaryCallback()
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      save_analysis=true,
-                                     extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal))
+                                     extra_analysis_integrals=(energy_total,
+                                                               energy_kinetic,
+                                                               energy_internal,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
@@ -74,21 +76,14 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-#stepsize_callback = StepsizeCallback(cfl=1.4)
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        save_solution)#,
-                        # stepsize_callback)
-
+                        save_solution)
 
 ###############################################################################
 # run the simulation
 
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-#             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#             save_everystep=false, callback=callbacks);
 sol = solve(ode, SSPRK43(), abstol=1.0e-6, reltol=1.0e-6,
             save_everystep=false, callback=callbacks)
 summary_callback() # print the timer summary
