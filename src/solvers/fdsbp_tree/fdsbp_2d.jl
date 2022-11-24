@@ -11,6 +11,10 @@ nnodes(D::AbstractDerivativeOperator) = size(D, 1)
 eachnode(D::AbstractDerivativeOperator) = Base.OneTo(nnodes(D))
 get_nodes(D::AbstractDerivativeOperator) = grid(D)
 
+# TODO: This is hack to enable the FDSBP solver to use the
+#       `SaveSolutionCallback`.
+polydeg(D::AbstractDerivativeOperator) = size(D, 1)
+
 
 # For dispatch
 # TODO: FD. Move to another file
