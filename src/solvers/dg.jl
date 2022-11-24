@@ -121,6 +121,8 @@ solver. Uses the upwind SBP operators developed in
 Depends on a particular `FluxSplitting` like that of Steger-Warming
 TODO: put in refs
 """
+# TODO: should this definition live in a different file because it is
+# not a DG method
 struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
   splitting::FluxSplitting
 end
@@ -250,6 +252,8 @@ that use a particular `FluxSplitting`.
 
 See also [`VolumeIntegralUpwind`](@ref).
 """
+# TODO: should this definition live in a different file because it is
+# not a DG method
 struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
   splitting::FluxSplitting
 end
