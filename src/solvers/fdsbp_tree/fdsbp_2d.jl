@@ -17,7 +17,7 @@ const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
 
 # TODO: This is hack to enable the FDSBP solver to use the
 #       `SaveSolutionCallback`.
-polydeg(D::AbstractDerivativeOperator) = size(D, 1)
+polydeg(D::AbstractDerivativeOperator) = size(D, 1) - 1
 polydeg(fdsbp::FDSBP) = polydeg(fdsbp.basis)
 
 
@@ -183,8 +183,11 @@ function calc_volume_integral!(du, u,
     u_element = view(u_vectors, :, :, element)
 
     # x direction
-    @. f_plus_element  = splitting(u_element, Val(:plus),  1, equations)
-    @. f_minus_element = splitting(u_element, Val(:minus), 1, equations)
+
+    @. f_plus_element  = steger_warming_splitting_plus(u_element, 1, equations)
+    @. f_minus_element = steger_warming_splitting_minus(u_element, 1, equations)
+    # @. f_plus_element  = splitting(u_element, Val(:plus),  1, equations)
+    # @. f_minus_element = splitting(u_element, Val(:minus), 1, equations)
     for j in eachnode(dg)
       mul!(view(du_vectors, :, j, element), D_minus, view(f_plus_element, :, j),
            one(eltype(du)), one(eltype(du)))
@@ -193,8 +196,11 @@ function calc_volume_integral!(du, u,
     end
 
     # y direction
-    @. f_plus_element  = splitting(u_element, Val(:plus),  2, equations)
-    @. f_minus_element = splitting(u_element, Val(:minus), 2, equations)
+    @. f_plus_element  = steger_warming_splitting_plus(u_element, 2, equations)
+    @. f_minus_element = steger_warming_splitting_minus(u_element, 2, equations)
+
+    # @. f_plus_element  = splitting(u_element, Val(:plus),  2, equations)
+    # @. f_minus_element = splitting(u_element, Val(:minus), 2, equations)
     for i in eachnode(dg)
       mul!(view(du_vectors, i, :, element), D_minus, view(f_plus_element, i, :),
            one(eltype(du)), one(eltype(du)))
