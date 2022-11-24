@@ -242,6 +242,31 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
 end
 
 
+"""
+    SurfaceIntegralUpwind(splitting)
+
+Couple elements with upwind simulataneous approximation terms (SATs)
+that use a particular `FluxSplitting`.
+
+See also [`VolumeIntegralUpwind`](@ref).
+"""
+struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
+  splitting::FluxSplitting
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "flux splitting" => integral.splitting
+            ]
+    summary_box(io, "SurfaceIntegralUpwind", setup)
+  end
+end
+
 
 """
     DG(; basis, mortar, surface_integral, volume_integral)

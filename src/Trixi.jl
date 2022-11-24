@@ -190,6 +190,7 @@ export DG,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
+       SurfaceIntegralUpwind,
        MortarL2
 
 export nelements, nnodes, nvariables,
