@@ -544,6 +544,6 @@ include("dgsem_p4est/dg.jl")
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
 # functionality implemented for DGSEM.
 include("fdsbp_tree/fdsbp_2d.jl")
-
+include("fdsbp_tree/fdsbp_3d.jl")
 
 end # @muladd
