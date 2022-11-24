@@ -823,6 +823,56 @@ end
    return SVector(f1m, f2m, f3m, f4m)
  end
 
+@inline function lax_friedrichs_splitting(u, ::Val{:plus}, orientation::Integer, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+  lambda = 0.5 * (sqrt(v1^2+v2^2) + a)
+
+  if orientation == 1
+    #lambda = 0.5 * (abs(v1) + a)
+    f1p = 0.5 * rho * v1 + lambda * u[1]
+    f2p = 0.5 * rho * v1 * v1 + 0.5 * p+ lambda * u[2]
+    f3p = 0.5 * rho * v1 * v2 + lambda * u[3]
+    f4p = 0.5 * rho * v1 * H + lambda * u[4]
+  else
+    #lambda = 0.5 * (abs(v2) + a)
+    f1p = 0.5 * rho * v2 + lambda * u[1]
+    f2p = 0.5 * rho * v2 * v1 + lambda * u[2]
+    f3p = 0.5 * rho * v2 * v2 + 0.5 * p + lambda * u[3]
+    f4p = 0.5 * rho * v2 * H + lambda * u[4]
+  end
+  return SVector(f1p, f2p, f3p, f4p)
+end
+@inline function lax_friedrichs_splitting(u,  ::Val{:minus}, orientation::Integer, equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+  lambda = 0.5 * (sqrt(v1^2+v2^2) + a)
+
+  if orientation == 1
+    #lambda = 0.5 * (abs(v1) + a)
+    f1m = 0.5 * rho * v1 - lambda * u[1]
+    f2m = 0.5 * rho * v1 * v1 + 0.5 * p- lambda * u[2]
+    f3m = 0.5 * rho * v1 * v2 - lambda * u[3]
+    f4m = 0.5 * rho * v1 * H - lambda * u[4]
+  else
+    #lambda = 0.5 * (abs(v2) + a)
+    f1m = 0.5 * rho * v2 - lambda * u[1]
+    f2m = 0.5 * rho * v2 * v1 - lambda * u[2]
+    f3m = 0.5 * rho * v2 * v2 + 0.5 * p- lambda * u[3]
+    f4m = 0.5 * rho * v2 * H - lambda * u[4]
+  end
+  return SVector(f1m, f2m, f3m, f4m)
+end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
