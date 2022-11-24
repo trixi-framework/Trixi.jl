@@ -154,6 +154,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxHydrostaticReconstruction
 
+export steger_warming_splitting
+
 export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave,
