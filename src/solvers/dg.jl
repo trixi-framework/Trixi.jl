@@ -543,6 +543,8 @@ include("dgsem_p4est/dg.jl")
 # These methods are very similar to DG methods since they also impose interface
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
 # functionality implemented for DGSEM.
+include("fdsbp_tree/fdsbp.jl")
+include("fdsbp_tree/fdsbp_1d.jl")
 include("fdsbp_tree/fdsbp_2d.jl")
 include("fdsbp_tree/fdsbp_3d.jl")
 

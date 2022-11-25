@@ -360,6 +360,69 @@ end
 end
 
 
+"""
+    steger_warming_splitting(u, ::Symbol, orientation::Integer
+                             equations::CompressibleEulerEquations1D)
+
+Splitting of the compressible Euler flux of Steger and Warming. The `Symbol`
+indicates if the routine computes all the comnents with positive eigenvalue `:plus`
+or all the negative eigenvalue components `:minus`.
+- Joseph L. Steger and R. F. Warming (1979)
+  Flux Vector Splitting of the Inviscid Gasdynamic Equations
+  With Application to Finite Difference Methods
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
+"""
+@inline function steger_warming_splitting(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+  a = sqrt(equations.gamma * p / rho)
+
+  lambda1 = v1
+  lambda2 = v1 + a
+  lambda3 = v1 - a
+
+  lambda1_p = 0.5 * (lambda1 + abs(lambda1))
+  lambda2_p = 0.5 * (lambda2 + abs(lambda2))
+  lambda3_p = 0.5 * (lambda3 + abs(lambda3))
+
+  alpha_p = 2.0 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+  f1p = 0.5 * rho / equations.gamma * alpha_p
+  f2p = 0.5 * rho / equations.gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
+  f3p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * v1^2 + a * v1 * (lambda2_p - lambda3_p)
+                                       + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
+
+  return SVector(f1p, f2p, f3p)
+end
+
+@inline function steger_warming_splitting(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1 * v1)
+  a = sqrt(equations.gamma * p / rho)
+
+    lambda1 = v1
+    lambda2 = v1 + a
+    lambda3 = v1 - a
+
+    lambda1_m = 0.5 * (lambda1 - abs(lambda1))
+    lambda2_m = 0.5 * (lambda2 - abs(lambda2))
+    lambda3_m = 0.5 * (lambda3 - abs(lambda3))
+
+    alpha_m = 2.0 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    f1m = 0.5 * rho / equations.gamma * alpha_m
+    f2m = 0.5 * rho / equations.gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
+    f3m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * v1^2 + a * v1 * (lambda2_m - lambda3_m)
+                                         + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
+
+  return SVector(f1m, f2m, f3m)
+end
+
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations1D)
