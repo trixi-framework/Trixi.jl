@@ -63,11 +63,15 @@ end
 
 # This method is called as callback during the time integration.
 @inline function (stepsize_callback::StepsizeCallback)(integrator)
+  semi = extract_semidiscretization(integrator)
+  apply_stepsize_callback(stepsize_callback, integrator, semi)
+end
+
+@noinline function apply_stepsize_callback(stepsize_callback, integrator, semi)
   # TODO: Taal decide, shall we set the time step even if the integrator is adaptive?
   if !integrator.opts.adaptive
     t = integrator.t
     u_ode = integrator.u
-    semi = integrator.p
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack cfl_number = stepsize_callback
     u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -92,10 +96,14 @@ end
 # many examples in `solve(ode, ..., dt=stepsize_callback(ode), ...)`.
 function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:StepsizeCallback}
   stepsize_callback = cb.affect!
+  semi = extract_semidiscretization(ode)
+  apply_stepsize_callback_to_ode(stepsize_callback, ode, semi)
+end
+
+@noinline function apply_stepsize_callback_to_ode(stepsize_callback, ode, semi)
   @unpack cfl_number = stepsize_callback
   u_ode = ode.u0
   t = first(ode.tspan)
-  semi = ode.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 

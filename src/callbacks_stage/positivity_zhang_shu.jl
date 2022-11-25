@@ -35,6 +35,10 @@ function (limiter!::PositivityPreservingLimiterZhangShu)(
     u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
 end
 
+function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator, parameters, t)
+  semi = extract_semidiscretization(integrator)
+  limiter!(u_ode, integrator, semi, t)
+end
 
 # Iterate over tuples in a type-stable way using "lispy tuple programming",
 # similar to https://stackoverflow.com/a/55849398:

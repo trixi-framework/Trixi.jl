@@ -67,7 +67,11 @@ end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AveragingCallback}
   averaging_callback = cb.affect!
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
+  initialize_averaging_callback!(averaging_callback, u_ode, semi, t, integrator)
+end
+
+@noinline function initialize_averaging_callback!(averaging_callback, u_ode, semi, t, integrator)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
@@ -82,11 +86,15 @@ end
 # This function is called during time integration and updates the mean values according to the
 # trapezoidal rule
 function (averaging_callback::AveragingCallback)(integrator)
+  semi = extract_semidiscretization(integrator)
+  apply_averaging_callback(averaging_callback, integrator, semi)
+end
+
+@noinline function apply_averaging_callback(averaging_callback, integrator, semi)
   @unpack mean_values = averaging_callback
 
   u_ode = integrator.u
   u_prev_ode = integrator.uprev
-  semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
   u_prev = wrap_array(u_prev_ode, mesh, equations, solver, cache)

@@ -108,7 +108,7 @@ The mean values for the acoustic perturbation equations are read from `averaging
 """
 function EulerAcousticsCouplingCallback(ode_euler, averaging_file::AbstractString, alg,
                                         cfl_acoustics::Real, cfl_euler::Real; kwargs...)
-  semi_euler = ode_euler.p
+  semi_euler = extract_semidiscretization(ode_euler)
   mean_values = load_averaging_file(averaging_file, semi_euler)
 
   return EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acoustics, cfl_euler;
@@ -134,7 +134,11 @@ end
 # This is called before the main loop and initializes the mean values in u_ode
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator_acoustics) where {Condition, Affect!<:EulerAcousticsCouplingCallback}
   euler_acoustics_coupling = cb.affect!
-  semi = integrator_acoustics.p
+  semi = extract_semidiscretization(integrator_acoustics)
+  initialize_euler_acoustics_coupling!(euler_acoustics_coupling, u_ode, semi, t, integrator)
+end
+
+@noinline function initialize_euler_acoustics_coupling!(euler_acoustics_coupling, u_ode, semi, t, integrator)
   @unpack semi_acoustics = semi
 
   # Initialize mean values in u_ode
@@ -155,6 +159,13 @@ end
 # time step, manages the time stepsize for both the acoustics and Euler solvers and calculates the
 # acoustic sources for the next acoustics time step
 function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_acoustics)
+  @unpack integrator_euler = euler_acoustics_coupling
+  semi = extract_semidiscretization(integrator_acoustics)
+  semi_euler = extract_semidiscretization(integrator_euler)
+  apply_euler_acoustics_coupling(euler_acoustics_coupling, integrator_acoustics, semi, semi_euler)
+end
+
+@noinline function apply_euler_acoustics_coupling(euler_acoustics_coupling, integrator_acoustics, semi, semi_euler)
   @unpack stepsize_callback_acoustics, stepsize_callback_euler, integrator_euler = euler_acoustics_coupling
 
   @assert integrator_acoustics.t == integrator_euler.t
@@ -177,7 +188,7 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
     @trixi_timeit timer() "Euler solver" step!(integrator_euler)
     return_code = check_error(integrator_euler)
     # Check the return code with `!=` instead of `!==` recommended for
-    # `Symbol`s in general since the return code can be a plain symbol 
+    # `Symbol`s in general since the return code can be a plain symbol
     # or an enum overloading `==` and `!=`, depending on the version of
     # SciMLBase.jl.
     if return_code != :Success && return_code != :Default
@@ -186,8 +197,6 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
   end
 
   # Calculate acoustic sources based on linearized lamb vector
-  semi = integrator_acoustics.p
-  semi_euler = integrator_euler.p
   u_acoustics = wrap_array(integrator_acoustics.u, semi)
   u_euler = wrap_array(integrator_euler.u, semi_euler)
   @unpack acoustic_source_terms, coupled_element_ids = semi.cache

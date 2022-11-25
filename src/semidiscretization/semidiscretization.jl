@@ -61,6 +61,20 @@ for regression tests.
 calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis) = calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache_analysis)
 
 
+# An internal wrapper of a semidiscretization and a right-hand side function.
+# This allows setting up an `ODEProblem` "knowing" the semidiscretization
+# without passing it as an explicit parameter. Doing so enables the use of
+# more precompiled methods from OrdinaryDiffEq.jl and can thus reduce latency.
+struct RHSWrapper{Semi, Rhs!}
+  semi::Semi
+  rhs!::Rhs!
+end
+
+function (wrapper::RHSWrapper)(du_ode, u_ode, parameters, t)
+  wrapper.rhs!(du_ode, u_ode, wrapper.semi, t)
+end
+
+
 """
     semidiscretize(semi::AbstractSemidiscretization, tspan)
 
@@ -72,8 +86,43 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan)
   # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
   #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+  wrapper = RHSWrapper(semi, rhs!) # wrap `rhs!`` and `semi` to reduce latency, see `RHSWrapper`
   iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-  return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
+  return ODEProblem{iip}(wrapper, u0_ode, tspan)
+end
+
+
+# get the semidiscretization from an `ODEIntegrator`
+function extract_semidiscretization(integrator)
+  # TODO: check alternatives such as
+  # f = unwrapped_f(integrator.f.f)
+  # if f isa RHSWrapper
+  #   return f.semi
+  # else
+  #   return integrator.p
+  # end
+  extract_semidiscretization(integrator.sol)
+end
+
+function extract_semidiscretization(sol::ODESolution)
+  extract_semidiscretization(sol.prob)
+end
+
+function extract_semidiscretization(ode::ODEProblem)
+  _extract_semidiscretization(ode.f, ode.p)
+end
+
+function _extract_semidiscretization(f, p)
+  f = unwrapped_f(f.f)
+  if f isa RHSWrapper
+    return f.semi
+  else
+    return p
+  end
+end
+
+function _extract_semidiscretization(f::SplitFunction, p)
+  _extract_semidiscretization(f.f1, p)
 end
 
 

@@ -47,9 +47,12 @@ end
 
 # This method is called as callback after the StepsizeCallback during the time integration.
 @inline function lbm_collision_callback(integrator)
+  semi = extract_semidiscretization(integrator)
+  apply_lbm_collision_callback(integrator, semi)
+end
 
+@noinline function apply_lbm_collision_callback(integrator, semi)
   dt = get_proposed_dt(integrator)
-  semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack collision_op = equations
 

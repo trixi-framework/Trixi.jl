@@ -253,7 +253,7 @@ function adapt_to_mesh_level!(u_ode, semi, level)
   return u_ode, semi
 end
 
-adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
+adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[end], extract_semidiscretization(sol.prob), level)
 
 
 """
@@ -277,7 +277,7 @@ function adapt_to_mesh_level(u_ode, semi, level)
   return adapt_to_mesh_level!(deepcopy(u_ode), new_semi, level)
 end
 
-adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
+adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[end], extract_semidiscretization(sol.prob), level)
 
 
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.

@@ -138,8 +138,12 @@ end
 
 # this method is called when the callback is activated
 function (visualization_callback::VisualizationCallback)(integrator)
+  semi = extract_semidiscretization(integrator)
+  apply_visualization_callback(integrator, semi)
+end
+
+@noinline function apply_visualization_callback(integrator, semi)
   u_ode = integrator.u
-  semi = integrator.p
   @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator = visualization_callback
 
   # Extract plot data

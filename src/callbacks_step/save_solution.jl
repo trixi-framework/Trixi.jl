@@ -68,13 +68,16 @@ function SaveSolutionCallback(; interval=0,
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:SaveSolutionCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:SaveSolutionCallback}
   solution_callback = cb.affect!
+  semi = extract_semidiscretization(integrator)
+  initialize_solution_callback!(solution_callback, semi, integrator)
+end
 
+@noinline function initialize_solution_callback!(solution_callback, semi, integrator)
   mpi_isroot() && mkpath(solution_callback.output_directory)
-
-  semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
   @trixi_timeit timer() "I/O" begin
     if mesh.unsaved_changes
       mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory)
@@ -107,10 +110,14 @@ end
 
 # this method is called when the callback is activated
 function (solution_callback::SaveSolutionCallback)(integrator)
+  semi = extract_semidiscretization(integrator)
+  apply_solution_callback(solution_callback, integrator, semi)
+end
+
+@noinline function apply_solution_callback(solution_callback, integrator, semi)
   u_ode = integrator.u
   @unpack t, dt = integrator
   iter = integrator.destats.naccept
-  semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
   @trixi_timeit timer() "I/O" begin

@@ -13,6 +13,14 @@ struct TimeIntegratorSolution{tType, uType, P}
   prob::P
 end
 
+function extract_semidiscretization(sol::TimeIntegratorSolution)
+  extract_semidiscretization(sol.prob)
+end
+
+function extract_semidiscretization(sol::NamedTuple) # for faked solution type
+  extract_semidiscretization(sol.prob)
+end
+
 include("methods_2N.jl")
 include("methods_3Sstar.jl")
 

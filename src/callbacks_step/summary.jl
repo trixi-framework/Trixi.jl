@@ -136,7 +136,11 @@ end
 # Print information about the current simulation setup
 # Note: This is called *after* all initialization is done, but *before* the first time step
 function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
+  semi = extract_semidiscretization(integrator)
+  _initialize_summary_callback(u, semi, t, integrator)
+end
 
+@noinline function _initialize_summary_callback(u, semi, t, integrator)
   mpi_isroot() || return nothing
 
   print_startup_message()
@@ -148,7 +152,6 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
                          :total_width => 100,
                          :indentation_level => 0)
 
-  semi = integrator.p
   show(io_context, MIME"text/plain"(), semi)
   println(io, "\n")
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)

@@ -167,3 +167,18 @@ As a rule of thumb:
 - Do not use `@nospecialize` in performance-critical parts, in particular not for methods involved
   in computing `Trixi.rhs!`.
 - Consider using `@nospecialize` for methods like custom implementations of `Base.show`.
+
+
+## Latency in combination with OrdinaryDiffEq.jl
+
+To benefit from compile time reductions with recent versions of OrdinaryDiffEq.jl,
+you should consider setting
+
+```julia
+using Preferences, UUIDs # Preferences needs to be added, UUIDs is a standard library
+set_preferences!(UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"), "PrecompileLowStorage" => true)
+```
+
+in your project (local project or the default environment). For more information,
+see the [SciML blog post](https://sciml.ai/news/2022/09/21/compile_time/) and
+the documentation of OrdinaryDiffEq.jl.

@@ -120,10 +120,13 @@ function get_element_variables!(element_variables, u, mesh, equations, solver, c
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
+  initialize_amr_callback!(amr_callback, u_ode, semi, t, integrator)
+end
 
+@noinline function initialize_amr_callback!(amr_callback, u_ode, semi, t, integrator)
   @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
     has_changed = amr_callback(integrator,
@@ -143,7 +146,7 @@ end
 # TODO: Taal remove?
 # function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
 #   amr_callback = cb.affect!
-#   semi = ode.p
+#   semi = extract_semidiscretization(ode)
 
 #   @trixi_timeit timer() "initial condition AMR" if amr_callback.adapt_initial_condition
 #     # iterate until mesh does not change anymore
@@ -161,8 +164,11 @@ end
 
 function (amr_callback::AMRCallback)(integrator; kwargs...)
   u_ode = integrator.u
-  semi = integrator.p
+  semi = extract_semidiscretization(integrator)
+  apply_amr_callback(amr_callback, integrator, semi)
+end
 
+@noinline function apply_amr_callback(amr_callback, integrator, semi)
   @trixi_timeit timer() "AMR" begin
     has_changed = amr_callback(u_ode, semi,
                                integrator.t, integrator.iter; kwargs...)
