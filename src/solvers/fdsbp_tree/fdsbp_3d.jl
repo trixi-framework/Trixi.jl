@@ -27,7 +27,11 @@ function create_cache(mesh::TreeMesh{3}, equations,
 end
 
 
-# TODO: comments. Why we need this new interface flux computation
+# Specialized interface flux computation because the upwind solver does
+# not require a standard numerical flux (Riemann solver). The flux splitting
+# already separates the solution infomation into right-traveling and
+# left traveling information. So we only need to compute the approriate
+# flux information at each side of an interface.
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{3},
                               nonconservative_terms::Val{false}, equations,
@@ -70,7 +74,7 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 
-# 2D volume integral contributions for `VolumeIntegralStrongForm`
+# 3D volume integral contributions for `VolumeIntegralStrongForm`
 function calc_volume_integral!(du, u,
                                mesh::TreeMesh{3},
                                nonconservative_terms::Val{false}, equations,
@@ -126,7 +130,7 @@ function calc_volume_integral!(du, u,
 end
 
 
-# 2D volume integral contributions for `VolumeIntegralUpwind`.
+# 3D volume integral contributions for `VolumeIntegralUpwind`.
 # Note that the plus / minus notation does not refer to the upwind / downwind directions.
 # Instead, the plus / minus refers to the direction of the biasing within
 # the finite difference stencils. Thus, the D^- operator acts on the positive
@@ -257,7 +261,10 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{3},
 end
 
 
-# TODO: comments about this crazy SATs
+# Implementation of fully upwind SATs. The surface flux values are pre-computed
+# in the specialized `calc_interface_flux` routine. These SATs are still of
+# a strong form penalty type, except that the interior flux at a particular
+# side of the element are computed in the upwind direction.
 function calc_surface_integral!(du, u, mesh::TreeMesh{3},
                                 equations, surface_integral::SurfaceIntegralUpwind,
                                 dg::FDSBP, cache)
