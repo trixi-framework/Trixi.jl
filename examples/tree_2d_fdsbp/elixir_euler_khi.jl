@@ -29,19 +29,19 @@ D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
                               derivative_order=1,
                               accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
-                              N=64)
+                              N=16)
 D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
 #D_minus = derivative_operator(SummationByPartsOperators.WIP(:minus),
                               derivative_order=1,
                               accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
-                              N=64)
+                              N=16)
 # TODO: Super hacky.
 # Abuse the mortars to save the second derivative operator and get it into the run
-flux_splitting = steger_warming_splitting
-#flux_splitting = vanleer_splitting
+#flux_splitting = steger_warming_splitting
+flux_splitting = vanleer_haenel_splitting
 #flux_splitting = lax_friedrichs_splitting
-surface_flux = flux_hllc
+#surface_flux = flux_hllc
 solver = DG(D_plus, D_minus #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             #SurfaceIntegralStrongForm(surface_flux),
@@ -50,7 +50,7 @@ solver = DG(D_plus, D_minus #= mortar =#,
 coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=4,
                 n_cells_max=30_000,
                 periodicity=true)
 
@@ -64,7 +64,7 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 75
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      save_analysis=true,
                                      extra_analysis_integrals=(entropy,
