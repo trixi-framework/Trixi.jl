@@ -121,9 +121,10 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)
-  D_plus = dg.basis # Upwind SBP D^+ derivative operator
-  # TODO: Super hacky. For now the other derivative operator is passed via the mortars
-  D_minus = dg.mortar # Upwind SBP D^- derivative operator
+  # Assume that
+  # dg.basis isa SummationByPartsOperators.UpwindOperators
+  D_plus = dg.basis.plus   # Upwind SBP D^+ derivative operator
+  D_minus = dg.basis.minus # Upwind SBP D^- derivative operator
   @unpack f_plus_threaded, f_minus_threaded = cache
   @unpack splitting = volume_integral
 
