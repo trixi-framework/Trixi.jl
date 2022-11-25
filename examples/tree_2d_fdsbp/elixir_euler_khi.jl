@@ -64,7 +64,7 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 75
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      save_analysis=true,
                                      extra_analysis_integrals=(entropy,
