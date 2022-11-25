@@ -166,7 +166,6 @@ function calc_volume_integral!(du, u,
     u_element = view(u_vectors, :, :, :, element)
 
     # x direction
-
     @. f_plus_element  = splitting(u_element, Val{:plus}(),  1, equations)
     @. f_minus_element = splitting(u_element, Val{:minus}(), 1, equations)
     for j in eachnode(dg), k in eachnode(dg)
