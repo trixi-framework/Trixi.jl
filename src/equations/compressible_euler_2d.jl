@@ -765,65 +765,75 @@ end
 end
 
 
- @inline function vanleer_splitting(u, ::Val{:plus},orientation::Integer, equations::CompressibleEulerEquations2D)
-   rho, rho_v1, rho_v2, rho_e = u
-   v1 = rho_v1 / rho
-   v2 = rho_v2 / rho
-   p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+"""
+TODO: docstring
+"""
+@inline function vanleer_splitting(u, ::Val{:plus}, orientation::Integer,
+                                   equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
-   a = sqrt(equations.gamma * p / rho)
-   H = (rho_e + p) / rho
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
 
-   if orientation == 1
-     M = (v1 / a)
-     p_plus = 0.5 * (1 + equations.gamma * M) * p
+  if orientation == 1
+    M = (v1 / a)
+    p_plus = 0.5 * (1 + equations.gamma * M) * p
 
-     f1p = 0.25 * rho * a * (M + 1)^2
-     f2p = f1p * v1 + p_plus
-     f3p = f1p * v2
-     f4p = f1p * H
-   else
-     M = (v2 / a)
-     p_plus = 0.5 * (1 + equations.gamma * M) * p
+    f1p = 0.25 * rho * a * (M + 1)^2
+    f2p = f1p * v1 + p_plus
+    f3p = f1p * v2
+    f4p = f1p * H
+  else
+    M = (v2 / a)
+    p_plus = 0.5 * (1 + equations.gamma * M) * p
 
-     f1p = 0.25 * rho * a * (M + 1)^2
-     f2p = f1p * v1
-     f3p = f1p * v2 + p_plus
-     f4p = f1p * H
-   end
-   return SVector(f1p, f2p, f3p, f4p)
- end
+    f1p = 0.25 * rho * a * (M + 1)^2
+    f2p = f1p * v1
+    f3p = f1p * v2 + p_plus
+    f4p = f1p * H
+  end
+  return SVector(f1p, f2p, f3p, f4p)
+end
 
- @inline function vanleer_splitting(u, ::Val{:minus},orientation::Integer, equations::CompressibleEulerEquations2D)
-   rho, rho_v1, rho_v2, rho_e = u
-   v1 = rho_v1 / rho
-   v2 = rho_v2 / rho
-   p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+@inline function vanleer_splitting(u, ::Val{:minus}, orientation::Integer,
+                                   equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
-   a = sqrt(equations.gamma * p / rho)
-   H = (rho_e + p) / rho
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
 
-   if orientation == 1
-     M = (v1 / a)
-     p_minus = 0.5 * (1 - equations.gamma * M) * p
+  if orientation == 1
+    M = (v1 / a)
+    p_minus = 0.5 * (1 - equations.gamma * M) * p
 
-     f1m= -0.25 * rho * a * (M - 1)^2
-     f2m = f1m * v1 + p_minus
-     f3m = f1m * v2
-     f4m = f1m * H
-   else
-     M = (v2 / a)
-     p_minus = 0.5 * (1 - equations.gamma * M) * p
+    f1m= -0.25 * rho * a * (M - 1)^2
+    f2m = f1m * v1 + p_minus
+    f3m = f1m * v2
+    f4m = f1m * H
+  else
+    M = (v2 / a)
+    p_minus = 0.5 * (1 - equations.gamma * M) * p
 
-     f1m= -0.25 * rho * a * (M - 1)^2
-     f2m = f1m * v1
-     f3m = f1m * v2 + p_minus
-     f4m = f1m * H
-   end
-   return SVector(f1m, f2m, f3m, f4m)
- end
+    f1m= -0.25 * rho * a * (M - 1)^2
+    f2m = f1m * v1
+    f3m = f1m * v2 + p_minus
+    f4m = f1m * H
+  end
+  return SVector(f1m, f2m, f3m, f4m)
+end
 
-@inline function lax_friedrichs_splitting(u, ::Val{:plus}, orientation::Integer, equations::CompressibleEulerEquations2D)
+
+"""
+TODO: docstring
+"""
+@inline function lax_friedrichs_splitting(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
@@ -848,7 +858,9 @@ end
   end
   return SVector(f1p, f2p, f3p, f4p)
 end
-@inline function lax_friedrichs_splitting(u,  ::Val{:minus}, orientation::Integer, equations::CompressibleEulerEquations2D)
+
+@inline function lax_friedrichs_splitting(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
@@ -873,6 +885,7 @@ end
   end
   return SVector(f1m, f2m, f3m, f4m)
 end
+
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
