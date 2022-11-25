@@ -15,7 +15,9 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       linf = [8.491517930142578e-6],
       rtol = 1.0e-7) # These results change a little bit and depend on the CI system
   end
+end
 
+@testset "Compressible Euler" begin
   @trixi_testset "elixir_euler_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
       l2   = [1.7088389997042244e-6, 1.7437997855125774e-6, 1.7437997855350776e-6, 5.457223460127621e-6],
