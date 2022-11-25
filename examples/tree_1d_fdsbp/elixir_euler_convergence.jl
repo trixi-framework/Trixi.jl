@@ -14,12 +14,12 @@ D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
                               derivative_order=1,
                               accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
-                              N=16)
+                              N=32)
 D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
                               derivative_order=1,
                               accuracy_order=4,
                               xmin=-1.0, xmax=1.0,
-                              N=16)
+                              N=32)
 
 # TODO: Super hacky.
 # Abuse the mortars to save the second derivative operator and get it into the run
@@ -31,7 +31,7 @@ solver = DG(D_plus, D_minus #= mortar =#,
 coordinates_min = 0.0
 coordinates_max = 2.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
+                initial_refinement_level=1,
                 n_cells_max=10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -57,17 +57,13 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.8)
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+                        save_solution)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(), abstol=1.0e-6, reltol=1.0e-6,
+            save_everystep=false, callback=callbacks)
 summary_callback() # print the timer summary
