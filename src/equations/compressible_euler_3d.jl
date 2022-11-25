@@ -714,8 +714,8 @@ or all the negative eigenvalue components `:minus`.
 
     f1p = 0.5 * rho / equations.gamma * alpha_p
     f2p = 0.5 * rho / equations.gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
-    f3p = 0.5 * rho / equations.gamma * (alpha_p * v2)
-    f4p = 0.5 * rho / equations.gamma * (alpha_p * v3)
+    f3p = 0.5 * rho / equations.gamma * alpha_p * v2
+    f4p = 0.5 * rho / equations.gamma * alpha_p * v3
     f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_p - lambda3_p)
                                          + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
   elseif orientation == 2
@@ -730,9 +730,9 @@ or all the negative eigenvalue components `:minus`.
     alpha_p = 2.0 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
     f1p = 0.5 * rho / equations.gamma * alpha_p
-    f2p = 0.5 * rho / equations.gamma * (alpha_p * v1)
-    f3p = 0.5 * rho / equations.gamma * (alpha_p * v2+ a * (lambda2_p - lambda3_p))
-    f4p = 0.5 * rho / equations.gamma * (alpha_p * v3)
+    f2p = 0.5 * rho / equations.gamma * alpha_p * v1
+    f3p = 0.5 * rho / equations.gamma * (alpha_p * v2 + a * (lambda2_p - lambda3_p))
+    f4p = 0.5 * rho / equations.gamma * alpha_p * v3
     f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_p - lambda3_p)
                                          + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
   else
@@ -747,8 +747,8 @@ or all the negative eigenvalue components `:minus`.
     alpha_p = 2.0 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
     f1p = 0.5 * rho / equations.gamma * alpha_p
-    f2p = 0.5 * rho / equations.gamma * (alpha_p * v1)
-    f3p = 0.5 * rho / equations.gamma * (alpha_p * v2)
+    f2p = 0.5 * rho / equations.gamma * alpha_p * v1
+    f3p = 0.5 * rho / equations.gamma * alpha_p * v2
     f4p = 0.5 * rho / equations.gamma * (alpha_p * v3 + a * (lambda2_p - lambda3_p))
     f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_p - lambda3_p)
                                          + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
@@ -778,8 +778,8 @@ end
 
     f1m = 0.5 * rho / equations.gamma * alpha_m
     f2m = 0.5 * rho / equations.gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
-    f3m = 0.5 * rho / equations.gamma * (alpha_m * v2)
-    f4m = 0.5 * rho / equations.gamma * (alpha_m * v3)
+    f3m = 0.5 * rho / equations.gamma * alpha_m * v2
+    f4m = 0.5 * rho / equations.gamma * alpha_m * v3
     f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_m - lambda3_m)
                                          + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
   elseif orientation == 2
@@ -794,9 +794,9 @@ end
     alpha_m = 2.0 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
     f1m = 0.5 * rho / equations.gamma * alpha_m
-    f2m = 0.5 * rho / equations.gamma * (alpha_m * v1)
+    f2m = 0.5 * rho / equations.gamma * alpha_m * v1
     f3m = 0.5 * rho / equations.gamma * (alpha_m * v2 + a * (lambda2_m - lambda3_m))
-    f4m = 0.5 * rho / equations.gamma * (alpha_m * v3)
+    f4m = 0.5 * rho / equations.gamma * alpha_m * v3
     f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_m - lambda3_m)
                                          + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
   else
@@ -811,8 +811,8 @@ end
     alpha_m = 2.0 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
     f1m = 0.5 * rho / equations.gamma * alpha_m
-    f2m = 0.5 * rho / equations.gamma * (alpha_m * v1)
-    f3m = 0.5 * rho / equations.gamma * (alpha_m * v2)
+    f2m = 0.5 * rho / equations.gamma * alpha_m * v1
+    f3m = 0.5 * rho / equations.gamma * alpha_m * v2
     f4m = 0.5 * rho / equations.gamma * (alpha_m * v3 + a * (lambda2_m - lambda3_m))
     f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_m - lambda3_m)
                                          + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
