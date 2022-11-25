@@ -766,28 +766,31 @@ end
 
 
 """
-    vanleer_splitting(u, ::Symbol, orientation::Integer,
-                      equations::CompressibleEulerEquations2D)
+    vanleer_haenel_splitting(u, ::Symbol, orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
 
 Splitting of the compressible Euler flux from van Leer. The `Symbol`
 indicates if the routine computes all the components with positive eigenvalue `:plus`
 or all the negative eigenvalue components `:minus`. This splitting further contains
 a reformulation due to Hänel et al. where the energy flux uses the enthalpy.
-
-Note, the pressure splitting comes in many flavors. For example, an alternative
-to the one implemented below is
-  `p_plus  = 0.25 * rho * a^2 / equations.gamma * (M + 1)^2 * (2 - M)`
-  `p_minus = 0.25 * rho * a^2 / equations.gamma * (M - 1)^2 * (2 + M)`
+The pressure splitting is independent from the splitting of the convective terms. As
+such there are many pressure splittings suggested across the literature. We implement
+the 'p4' variant suggested by Liou and Steffen as it proved the most robust in practice.
 
 - Bram van Leer (1982)
   Flux-Vector Splitting for the Euler Equation
   [DOI: 10.1007/978-3-642-60543-7_5](https://doi.org/10.1007/978-3-642-60543-7_5)
-- D. Hänel, R. Schwane and G. Seider
+- D. Hänel, R. Schwane and G. Seider (1987)
   On the accuracy of upwind schemes for the solution of the Navier-Stokes equations
   [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
+- Meng-Sing Liou and Chris J. Steffen, Jr. (1991)
+  High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
 """
-@inline function vanleer_splitting(u, ::Val{:plus}, orientation::Integer,
-                                   equations::CompressibleEulerEquations2D)
+#TODO: generic central flux where f_plus = 0.5 * f and f_minus = 0.5 * f
+#      combine with interface terms for experimentation
+@inline function vanleer_haenel_splitting(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
@@ -816,8 +819,8 @@ to the one implemented below is
   return SVector(f1p, f2p, f3p, f4p)
 end
 
-@inline function vanleer_splitting(u, ::Val{:minus}, orientation::Integer,
-                                   equations::CompressibleEulerEquations2D)
+@inline function vanleer_haenel_splitting(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho

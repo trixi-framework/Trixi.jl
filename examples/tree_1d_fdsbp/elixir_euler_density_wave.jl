@@ -21,7 +21,7 @@ D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
 
 # TODO: Super hacky.
 # Abuse the mortars to save the second derivative operator and get it into the run
-flux_splitting = steger_warming_splitting
+flux_splitting = coirier_vanleer_splitting
 solver = DG(D_plus, D_minus #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))
@@ -37,12 +37,12 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 100.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 2000
+analysis_interval = 10000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
