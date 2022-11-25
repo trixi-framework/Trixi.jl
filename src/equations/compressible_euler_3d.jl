@@ -681,11 +681,11 @@ end
 
 
 """
-    steger_warming_splitting(u, ::Symbol, orientation::Integer
+    steger_warming_splitting(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations3D)
 
 Splitting of the compressible Euler flux of Steger and Warming. The `Symbol`
-indicates if the routine computes all the comnents with positive eigenvalue `:plus`
+indicates if the routine computes all the components with positive eigenvalue `:plus`
 or all the negative eigenvalue components `:minus`.
 - Joseph L. Steger and R. F. Warming (1979)
   Flux Vector Splitting of the Inviscid Gasdynamic Equations

@@ -665,11 +665,11 @@ end
 
 
 """
-    steger_warming_splitting(u, ::Symbol, orientation::Integer
+    steger_warming_splitting(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations2D)
 
 Splitting of the compressible Euler flux of Steger and Warming. The `Symbol`
-indicates if the routine computes all the comnents with positive eigenvalue `:plus`
+indicates if the routine computes all the components with positive eigenvalue `:plus`
 or all the negative eigenvalue components `:minus`.
 - Joseph L. Steger and R. F. Warming (1979)
   Flux Vector Splitting of the Inviscid Gasdynamic Equations
@@ -766,7 +766,25 @@ end
 
 
 """
-TODO: docstring
+    vanleer_splitting(u, ::Symbol, orientation::Integer,
+                      equations::CompressibleEulerEquations2D)
+
+Splitting of the compressible Euler flux from van Leer. The `Symbol`
+indicates if the routine computes all the components with positive eigenvalue `:plus`
+or all the negative eigenvalue components `:minus`. This splitting further contains
+a reformulation due to Hänel et al. where the energy flux uses the enthalpy.
+
+Note, the pressure splitting comes in many flavors. For example, an alternative
+to the one implemented below is
+  `p_plus  = 0.25 * rho * a^2 / equations.gamma * (M + 1)^2 * (2 - M)`
+  `p_minus = 0.25 * rho * a^2 / equations.gamma * (M - 1)^2 * (2 + M)`
+
+- Bram van Leer (1982)
+  Flux-Vector Splitting for the Euler Equation
+  [DOI: 10.1007/978-3-642-60543-7_5](https://doi.org/10.1007/978-3-642-60543-7_5)
+- D. Hänel, R. Schwane and G. Seider
+  On the accuracy of upwind schemes for the solution of the Navier-Stokes equations
+  [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
 """
 @inline function vanleer_splitting(u, ::Val{:plus}, orientation::Integer,
                                    equations::CompressibleEulerEquations2D)
@@ -779,7 +797,7 @@ TODO: docstring
   H = (rho_e + p) / rho
 
   if orientation == 1
-    M = (v1 / a)
+    M = v1 / a
     p_plus = 0.5 * (1 + equations.gamma * M) * p
 
     f1p = 0.25 * rho * a * (M + 1)^2
@@ -787,7 +805,7 @@ TODO: docstring
     f3p = f1p * v2
     f4p = f1p * H
   else
-    M = (v2 / a)
+    M = v2 / a
     p_plus = 0.5 * (1 + equations.gamma * M) * p
 
     f1p = 0.25 * rho * a * (M + 1)^2
@@ -809,7 +827,7 @@ end
   H = (rho_e + p) / rho
 
   if orientation == 1
-    M = (v1 / a)
+    M = v1 / a
     p_minus = 0.5 * (1 - equations.gamma * M) * p
 
     f1m= -0.25 * rho * a * (M - 1)^2
@@ -817,7 +835,7 @@ end
     f3m = f1m * v2
     f4m = f1m * H
   else
-    M = (v2 / a)
+    M = v2 / a
     p_minus = 0.5 * (1 - equations.gamma * M) * p
 
     f1m= -0.25 * rho * a * (M - 1)^2
