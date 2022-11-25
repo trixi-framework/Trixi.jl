@@ -108,7 +108,7 @@ function DGMultiMesh(vertex_coordinates::NTuple{NDIMS, Vector{Tv}}, EToV::Array{
     md = StartUpDG.make_periodic(md, periodicity)
   end
   boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
-  return DGMultiMesh{NDIMS, typeof(rd.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, typeof(rd.element_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict{Symbol, Int})
@@ -116,7 +116,7 @@ function DGMultiMesh(triangulateIO, rd::RefElemData{2, Tri}, boundary_dict::Dict
   vertex_coordinates, EToV = StartUpDG.triangulateIO_to_VXYEToV(triangulateIO)
   md = MeshData(vertex_coordinates, EToV, rd)
   boundary_faces = StartUpDG.tag_boundary_faces(triangulateIO, rd, md, boundary_dict)
-  return DGMultiMesh{2, typeof(rd.elementType), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{2, typeof(rd.element_type), typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # TODO: DGMulti, v0.5. Remove deprecated constructor
@@ -133,7 +133,7 @@ struct Affine <: GeometricTermsType end # mesh produces constant geometric terms
 struct NonAffine <: GeometricTermsType end # mesh produces non-constant geometric terms
 
 # choose MeshType based on the constructor and element type
-GeometricTermsType(mesh_type, dg::DGMulti) = GeometricTermsType(mesh_type, dg.basis.elementType)
+GeometricTermsType(mesh_type, dg::DGMulti) = GeometricTermsType(mesh_type, dg.basis.element_type)
 GeometricTermsType(mesh_type::Cartesian, element_type::AbstractElemShape) = Affine()
 GeometricTermsType(mesh_type::TriangulateIO, element_type::Tri) = Affine()
 GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Tri, Tet}) = Affine()
@@ -202,7 +202,7 @@ end
                 is_on_boundary=nothing,
                 periodicity=ntuple(_ -> false, NDIMS))
 
-Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.elementType`. The domain is
+Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`. The domain is
 the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
@@ -219,7 +219,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension,
     periodicity=kwargs[:is_periodic]
   end
 
-  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
+  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.element_type, cells_per_dimension...)
   domain_lengths = coordinates_max .- coordinates_min
   for i in 1:NDIMS
     @. vertex_coordinates[i] = 0.5 * (vertex_coordinates[i] + 1) * domain_lengths[i] + coordinates_min[i]
@@ -241,7 +241,7 @@ end
                 is_on_boundary=nothing,
                 periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
 
-Constructs a `Curved()` [`DGMultiMesh`](@ref) with element type `dg.basis.elementType`.
+Constructs a `Curved()` [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`.
 - `mapping` is a function which maps from a reference [-1, 1]^NDIMS domain to a mapped domain,
    e.g., `xy = mapping(x, y)` in 2D.
 - `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
@@ -251,7 +251,7 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
                      is_on_boundary=nothing,
                      periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
 
-  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.elementType, cells_per_dimension...)
+  vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.element_type, cells_per_dimension...)
   md = MeshData(vertex_coordinates, EToV, dg.basis)
   md = NDIMS==1 ? StartUpDG.make_periodic(md, periodicity...) : StartUpDG.make_periodic(md, periodicity)
 
