@@ -848,7 +848,12 @@ end
 
 
 """
-TODO: docstring
+    lax_friedrichs_splitting(u, ::Symbol, orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
+
+Naive Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
+and `f⁻ = 0.5 (f - λ u)` similar to a flux splitting one would apply, e.g.,
+to Burgers' equation.
 """
 @inline function lax_friedrichs_splitting(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
@@ -864,7 +869,7 @@ TODO: docstring
   if orientation == 1
     #lambda = 0.5 * (abs(v1) + a)
     f1p = 0.5 * rho * v1 + lambda * u[1]
-    f2p = 0.5 * rho * v1 * v1 + 0.5 * p+ lambda * u[2]
+    f2p = 0.5 * rho * v1 * v1 + 0.5 * p + lambda * u[2]
     f3p = 0.5 * rho * v1 * v2 + lambda * u[3]
     f4p = 0.5 * rho * v1 * H + lambda * u[4]
   else
@@ -891,14 +896,14 @@ end
   if orientation == 1
     #lambda = 0.5 * (abs(v1) + a)
     f1m = 0.5 * rho * v1 - lambda * u[1]
-    f2m = 0.5 * rho * v1 * v1 + 0.5 * p- lambda * u[2]
+    f2m = 0.5 * rho * v1 * v1 + 0.5 * p - lambda * u[2]
     f3m = 0.5 * rho * v1 * v2 - lambda * u[3]
     f4m = 0.5 * rho * v1 * H - lambda * u[4]
   else
     #lambda = 0.5 * (abs(v2) + a)
     f1m = 0.5 * rho * v2 - lambda * u[1]
     f2m = 0.5 * rho * v2 * v1 - lambda * u[2]
-    f3m = 0.5 * rho * v2 * v2 + 0.5 * p- lambda * u[3]
+    f3m = 0.5 * rho * v2 * v2 + 0.5 * p - lambda * u[3]
     f4m = 0.5 * rho * v2 * H - lambda * u[4]
   end
   return SVector(f1m, f2m, f3m, f4m)
