@@ -4,7 +4,6 @@
 
 using OrdinaryDiffEq
 using Trixi
-using SummationByPartsOperators
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -13,10 +12,11 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-D = upwind_operators(Mattsson2017, derivative_order=1,
-                                   accuracy_order=4,
-                                   xmin=-1.0, xmax=1.0,
-                                   N=16)
+D = upwind_operators(SummationByPartsOperators.Mattsson2017,
+                     derivative_order=1,
+                     accuracy_order=4,
+                     xmin=-1.0, xmax=1.0,
+                     N=16)
 flux_splitting = steger_warming_splitting
 solver = DG(D, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
