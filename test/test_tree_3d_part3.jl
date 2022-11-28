@@ -18,6 +18,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Lattice-Boltzmann
   include("test_tree_3d_lbm.jl")
+
+  # FDSBP methods on the TreeMesh
+  include("test_tree_3d_fdsbp.jl")
 end
 
 
