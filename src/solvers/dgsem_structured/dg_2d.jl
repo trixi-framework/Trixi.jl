@@ -419,9 +419,55 @@ end
 @inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh,
     nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache, boundary_conditions)
   @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerShockCapturingIndicator
+  @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
-  for element in eachelement(dg, cache)
+  # Calc lambdas and bar states inside elements
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg)
+      normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
+      for i in 2:nnodes(dg)
+        u_node     = get_node_vars(u, equations, dg, i,   j, element)
+        u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
+
+        for m in 1:nnodes(dg)
+          normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, element)
+        end
+
+        lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, normal_direction, equations)
+        flux1     = flux(u_node,     normal_direction, equations)
+        flux1_im1 = flux(u_node_im1, normal_direction, equations)
+
+        for v in eachvariable(equations)
+          bar_states1[v, i, j, element] = 0.5 * (u_node[v] + u_node_im1[v]) - 0.5 * (flux1[v] - flux1_im1[v]) / lambda1[i, j, element]
+        end
+      end
+    end
+
+    for i in eachnode(dg)
+      normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+      for j in 2:nnodes(dg)
+        u_node     = get_node_vars(u, equations, dg, i,   j, element)
+        u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
+
+        for m in 1:nnodes(dg)
+          normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, element)
+        end
+
+        lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, normal_direction, equations)
+        flux2     = flux(u_node,     normal_direction, equations)
+        flux2_jm1 = flux(u_node_jm1, normal_direction, equations)
+
+        for v in eachvariable(equations)
+          bar_states2[v, i, j, element] = 0.5 * (u_node[v] + u_node_jm1[v]) - 0.5 * (flux2[v] - flux2_jm1[v]) / lambda2[i, j, element]
+        end
+      end
+    end
+  end
+
+  # Calc lambdas and bar states at interfaces and periodic boundaries
+  # TODO: Speed this for loop up with mesh.periodicity?
+  @threaded for element in eachelement(dg, cache)
     # Get neighboring element ids
     left  = cache.elements.left_neighbors[1, element]
     lower = cache.elements.left_neighbors[2, element]
@@ -429,56 +475,118 @@ end
     if left != 0
       for i in eachnode(dg)
         u_left    = get_node_vars(u, equations, dg, nnodes(dg), i, left)
-        u_element = get_node_vars(u, equations, dg,          1, i, element)
+        u_element = get_node_vars(u, equations, dg, 1,          i, element)
 
-        # Ja1_left    = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), i, left)
-        Ja1_element = get_contravariant_vector(1, contravariant_vectors,          1, i, element)
-        # Ja1_avg = 0.5 * (Ja1_left + Ja1_element)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, i, element)
+        lambda = max_abs_speed_naive(u_left, u_element, Ja1, equations)
 
-        flux_left  = flux(u_left, Ja1_element, equations)
-        flux_element = flux(u_element, Ja1_element, equations)
-        lambda = lambda1[1, i, element]
+        lambda1[nnodes(dg)+1, i, left]    = lambda
+        lambda1[1,            i, element] = lambda
+        flux_left    = flux(u_left,    Ja1, equations)
+        flux_element = flux(u_element, Ja1, equations)
 
-        bar_state_rho = 0.5 * (u_element[1] + u_left[1]) - 0.5 * (flux_element[1] - flux_left[1]) / lambda
-        var_min[1, nnodes(dg), i, left] = min(var_min[1, nnodes(dg), i, left], bar_state_rho)
-        var_max[1, nnodes(dg), i, left] = max(var_max[1, nnodes(dg), i, left], bar_state_rho)
-        var_min[1, 1, i, element] = min(var_min[1, 1, i, element], bar_state_rho)
-        var_max[1, 1, i, element] = max(var_max[1, 1, i, element], bar_state_rho)
-        for v in 2:nvariables(equations)
-          bar_state_phi = 0.5 * (u_element[v] + u_left[v]) - 0.5 * (flux_element[v] - flux_left[v]) / lambda
-          bar_state_phi = bar_state_phi / bar_state_rho
-          var_min[v, nnodes(dg), i, left] = min(var_min[v, nnodes(dg), i, left], bar_state_phi)
-          var_max[v, nnodes(dg), i, left] = max(var_max[v, nnodes(dg), i, left], bar_state_phi)
-          var_min[v, 1, i, element] = min(var_min[v, 1, i, element], bar_state_phi)
-          var_max[v, 1, i, element] = max(var_max[v, 1, i, element], bar_state_phi)
+        bar_state = 0.5 * (u_element + u_left) - 0.5 * (flux_element - flux_left) / lambda
+        for v in eachvariable(equations)
+          bar_states1[v, nnodes(dg)+1, i, left]    = bar_state[v]
+          bar_states1[v, 1,            i, element] = bar_state[v]
         end
       end
     end
     if lower != 0
       for i in eachnode(dg)
-        u_lower    = get_node_vars(u, equations, dg, i, nnodes(dg), lower)
+        u_lower   = get_node_vars(u, equations, dg, i, nnodes(dg), lower)
         u_element = get_node_vars(u, equations, dg, i,          1, element)
 
-        # Ja2_lower = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), lower)
-        Ja2_element = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
-        # Ja2_avg = 0.5 * (Ja2_lower + Ja2_element)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+        lambda = max_abs_speed_naive(u_lower, u_element, Ja2, equations)
 
-        flux_lower   = flux(u_lower,   Ja2_element, equations)
-        flux_element = flux(u_element, Ja2_element, equations)
-        lambda = lambda1[i, 1, element]
+        lambda2[i, nnodes(dg)+1, lower]   = lambda
+        lambda2[i,            1, element] = lambda
+        flux_lower   = flux(u_lower,   Ja2, equations)
+        flux_element = flux(u_element, Ja2, equations)
 
-        bar_state_rho = 0.5 * (u_element[1] + u_lower[1]) - 0.5 * (flux_element[1] - flux_lower[1]) / lambda
-        var_min[1, i, nnodes(dg), lower] = min(var_min[1, i, nnodes(dg), lower], bar_state_rho)
-        var_max[1, i, nnodes(dg), lower] = max(var_max[1, i, nnodes(dg), lower], bar_state_rho)
-        var_min[1, i, 1, element] = min(var_min[1, i, 1, element], bar_state_rho)
-        var_max[1, i, 1, element] = max(var_max[1, i, 1, element], bar_state_rho)
-        for v in 2:nvariables(equations)
-          bar_state_phi = 0.5 * (u_element[v] + u_lower[v]) - 0.5 * (flux_element[v] - flux_lower[v]) / lambda
-          bar_state_phi = bar_state_phi / bar_state_rho
-          var_min[v, i, nnodes(dg), lower] = min(var_min[v, i, nnodes(dg), lower], bar_state_phi)
-          var_max[v, i, nnodes(dg), lower] = max(var_max[v, i, nnodes(dg), lower], bar_state_phi)
-          var_min[v, i, 1, element] = min(var_min[v, i, 1, element], bar_state_phi)
-          var_max[v, i, 1, element] = max(var_max[v, i, 1, element], bar_state_phi)
+        bar_state = 0.5 * (u_element + u_lower) - 0.5 * (flux_element - flux_lower) / lambda
+        for v in eachvariable(equations)
+          bar_states2[v, i, nnodes(dg)+1, lower]   = bar_state[v]
+          bar_states2[v, i,            1, element] = bar_state[v]
+        end
+      end
+    end
+  end
+
+  # Calc lambdas and bar states at physical boundaries
+  # TODO: Speed this for loop up with mesh.periodicity?
+  if boundary_conditions isa BoundaryConditionPeriodic
+    return nothing
+  end
+  linear_indices = LinearIndices(size(mesh))
+  # x-direction
+  for cell_y in axes(mesh, 2)
+    element     = linear_indices[begin, cell_y]
+    element_opp = linear_indices[end,   cell_y]
+    left = cache.elements.left_neighbors[1, element]
+    if left == 0 # element is at boundary
+      for j in eachnode(dg)
+        # left side of the domain
+        u_inner = get_node_vars(u, equations, dg, 1, j, element)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+                                            equations, dg, 1, j, element)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
+        lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
+
+        flux_inner = flux(u_inner, Ja1, equations)
+        flux_outer = flux(u_outer, Ja1, equations)
+        for v in eachvariable(equations)
+          bar_states1[v, 1, j, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_inner[v] - flux_outer[v]) / lambda1[1, j, element]
+        end
+
+        # right side of the domain
+        u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element_opp)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+                                            equations, dg, nnodes(dg), j, element_opp)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j, element_opp)
+        lambda1[nnodes(dg)+1, j, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
+
+        flux_inner = flux(u_inner, Ja1, equations)
+        flux_outer = flux(u_outer, Ja1, equations)
+        for v in eachvariable(equations)
+          # TODO: Or change the order of the fluxes? Right - Left
+          bar_states1[v, nnodes(dg), j, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_outer[v] - flux_inner[v]) / lambda1[nnodes(dg)+1, j, element_opp]
+        end
+      end
+    end
+  end
+  # y-direction
+  for cell_x in axes(mesh, 1)
+    element     = linear_indices[cell_x, begin]
+    element_opp = linear_indices[cell_x, end]
+    lower = cache.elements.left_neighbors[2, element]
+    if lower == 0 # element is at boundary
+      for i in eachnode(dg)
+        # bottom side of the domain
+        u_inner = get_node_vars(u, equations, dg, i, 1, element)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+                                            equations, dg, i, 1, element)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+        lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
+
+        flux_inner = flux(u_inner, Ja2, equations)
+        flux_outer = flux(u_outer, Ja2, equations)
+        for v in eachvariable(equations)
+          bar_states2[v, i, 1, element] = 0.5 * (u_inner[v] + u_outer[v]) - 0.5 * (flux_inner[v] - flux_outer[v]) / lambda2[i, 1, element]
+        end
+
+        # top side of the domain
+        u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element_opp)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+                                            equations, dg, i, nnodes(dg), element_opp)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), element_opp)
+        lambda2[i, nnodes(dg)+1, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
+
+        flux_inner = flux(u_inner, Ja2, equations)
+        flux_outer = flux(u_outer, Ja2, equations)
+        for v in eachvariable(equations)
+          bar_states2[v, i, nnodes(dg), element] = 0.5 * (u_outer[v] + u_inner[v]) - 0.5 * (flux_inner[v] - flux_outer[v]) / lambda2[i, nnodes(dg)+1, element_opp]
         end
       end
     end
@@ -490,31 +598,42 @@ end
 
 @inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh, equations, dg, cache, indicator::IndicatorMCL, boundary_conditions)
   @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
+  @unpack weights, derivative_matrix = dg.basis
   @unpack contravariant_vectors = cache.elements
 
+  # Calc lambdas inside the elements
   @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in 2:nnodes(dg)
-      u_node     = get_node_vars(u, equations, dg, i,   j, element)
-      u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
+    for j in eachnode(dg)
+      normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
+      for i in 2:nnodes(dg)
+        u_node     = get_node_vars(u, equations, dg, i,   j, element)
+        u_node_im1 = get_node_vars(u, equations, dg, i-1, j, element)
 
-      Ja1_node     = get_contravariant_vector(1, contravariant_vectors, i,   j, element)
-      Ja1_node_im1 = get_contravariant_vector(1, contravariant_vectors, i-1, j, element)
-      Ja1_avg = 0.5 * (Ja1_node + Ja1_node_im1)
+        for m in 1:nnodes(dg)
+          normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, element)
+        end
 
-      lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, Ja1_avg, equations)
+        lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node, normal_direction, equations)
+      end
     end
 
-    for j in 2:nnodes(dg), i in eachnode(dg)
-      u_node     = get_node_vars(u, equations, dg, i,   j, element)
-      u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
-      Ja2_node     = get_contravariant_vector(2, contravariant_vectors, i,   j, element)
-      Ja2_node_jm1 = get_contravariant_vector(2, contravariant_vectors, i, j-1, element)
-      Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jm1)
+    for i in eachnode(dg)
+      normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+      for j in 2:nnodes(dg)
+        u_node     = get_node_vars(u, equations, dg, i,   j, element)
+        u_node_jm1 = get_node_vars(u, equations, dg, i, j-1, element)
 
-      lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, Ja2_avg, equations)
+        for m in 1:nnodes(dg)
+          normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, element)
+        end
+
+        lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node, normal_direction, equations)
+      end
     end
   end
 
+  # Calc lambdas at interfaces and periodic boundaries
+  # TODO: Speed this for loop up with mesh.periodicity?
   @threaded for element in eachelement(dg, cache)
     # Get neighboring element ids
     left  = cache.elements.left_neighbors[1, element]
@@ -525,10 +644,8 @@ end
         u_left    = get_node_vars(u, equations, dg, nnodes(dg), i, left)
         u_element = get_node_vars(u, equations, dg, 1,          i, element)
 
-        # Ja1_left    = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), i, left)
-        Ja1_element = get_contravariant_vector(1, contravariant_vectors,          1, i, element)
-        # Ja1_avg = 0.5 * (Ja1_left + Ja1_element)
-        lambda = max_abs_speed_naive(u_left, u_element, Ja1_element, equations)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, i, element)
+        lambda = max_abs_speed_naive(u_left, u_element, Ja1, equations)
 
         lambda1[nnodes(dg)+1, i, left]    = lambda
         lambda1[1,            i, element] = lambda
@@ -539,10 +656,8 @@ end
         u_lower   = get_node_vars(u, equations, dg, i, nnodes(dg), lower)
         u_element = get_node_vars(u, equations, dg, i,          1, element)
 
-        # Ja2_lower   = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), lower)
-        Ja2_element = get_contravariant_vector(2, contravariant_vectors, i,          1, element)
-        # Ja2_avg = 0.5 * (Ja2_lower + Ja2_element)
-        lambda = max_abs_speed_naive(u_lower, u_element, Ja2_element, equations)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+        lambda = max_abs_speed_naive(u_lower, u_element, Ja2, equations)
 
         lambda2[i, nnodes(dg)+1, lower]   = lambda
         lambda2[i,            1, element] = lambda
@@ -550,23 +665,56 @@ end
     end
   end
 
+  # Calc lambdas at physical boundaries
+  # TODO: Speed this for loop up with mesh.periodicity?
+  if boundary_conditions isa BoundaryConditionPeriodic
+    return nothing
+  end
   linear_indices = LinearIndices(size(mesh))
   # x-direction
   for cell_y in axes(mesh, 2)
-    element = linear_indices[begin, cell_y]
+    element     = linear_indices[begin, cell_y]
+    element_opp = linear_indices[end,   cell_y]
     left = cache.elements.left_neighbors[1, element]
     if left == 0 # element is at boundary
-      lambda1[1, :, element] .= zero(eltype(lambda1))
-      lambda1[nnodes(dg)+1, :, linear_indices[end, cell_y]] .= zero(eltype(lambda1))
+      for j in eachnode(dg)
+        # left side of the domain
+        u_inner = get_node_vars(u, equations, dg, 1, j, element)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+                                           equations, dg, 1, j, element)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
+        lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
+
+        # right side of the domain
+        u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element_opp)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+                                           equations, dg, nnodes(dg), j, element_opp)
+        Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j, element_opp)
+        lambda1[nnodes(dg)+1, j, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja1, equations)
+      end
     end
   end
   # y-direction
   for cell_x in axes(mesh, 1)
-    element = linear_indices[cell_x, begin]
+    element     = linear_indices[cell_x, begin]
+    element_opp = linear_indices[cell_x, end]
     lower = cache.elements.left_neighbors[2, element]
     if lower == 0 # element is at boundary
-      lambda2[:, 1, element] .= zero(eltype(lambda2))
-      lambda2[:, nnodes(dg)+1, linear_indices[cell_x, end]] .= zero(eltype(lambda2))
+      for i in eachnode(dg)
+        # bottom side of the domain
+        u_inner = get_node_vars(u, equations, dg, i, 1, element)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+                                           equations, dg, i, 1, element)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+        lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
+
+        # top side of the domain
+        u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element_opp)
+        u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+                                           equations, dg, i, nnodes(dg), element_opp)
+        Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg), element_opp)
+        lambda2[i, nnodes(dg)+1, element_opp] = max_abs_speed_naive(u_inner, u_outer, Ja2, equations)
+      end
     end
   end
 

@@ -327,7 +327,7 @@ end
           u_inner = get_node_vars(u, equations, dg, 1, j, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
                                              equations, dg, 1, j, element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_min[1, j, element] = min(var_min[1, j, element], var_outer)
           var_max[1, j, element] = max(var_max[1, j, element], var_outer)
@@ -337,7 +337,7 @@ end
           u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
                                              equations, dg, nnodes(dg), j, element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_min[nnodes(dg), j, element] = min(var_min[nnodes(dg), j, element], var_outer)
           var_max[nnodes(dg), j, element] = max(var_max[nnodes(dg), j, element], var_outer)
@@ -349,7 +349,7 @@ end
           u_inner = get_node_vars(u, equations, dg, i, 1, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
                                              equations, dg, i, 1, element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_min[i, 1, element] = min(var_min[i, 1, element], var_outer)
           var_max[i, 1, element] = max(var_max[i, 1, element], var_outer)
@@ -359,7 +359,7 @@ end
           u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
                                              equations, dg, i, nnodes(dg), element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_min[i, nnodes(dg), element] = min(var_min[i, nnodes(dg), element], var_outer)
           var_max[i, nnodes(dg), element] = max(var_max[i, nnodes(dg), element], var_outer)
@@ -447,7 +447,7 @@ end
           u_inner = get_node_vars(u, equations, dg, 1, j, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
                                              equations, dg, 1, j, element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_minmax[1, j, element] = minmax(var_minmax[1, j, element], var_outer)
         end
@@ -456,7 +456,7 @@ end
           u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
                                              equations, dg, nnodes(dg), j, element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_minmax[nnodes(dg), j, element] = minmax(var_minmax[nnodes(dg), j, element], var_outer)
         end
@@ -467,7 +467,7 @@ end
           u_inner = get_node_vars(u, equations, dg, i, 1, element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
                                              equations, dg, i, 1, element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_minmax[i, 1, element] = minmax(var_minmax[i, 1, element], var_outer)
         end
@@ -476,7 +476,7 @@ end
           u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
           u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
                                              equations, dg, i, nnodes(dg), element)
-          var_outer = variable(u_outer)
+          var_outer = variable(u_outer, equations)
 
           var_minmax[i, nnodes(dg), element] = minmax(var_minmax[i, nnodes(dg), element], var_outer)
         end
