@@ -109,6 +109,8 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
 end
 
 
+# TODO: FD. Should this definition live in a different file because it is
+# not a DG method?
 """
     VolumeIntegralUpwind
 
@@ -121,8 +123,6 @@ solver. Uses the upwind SBP operators developed in
 Depends on a particular `FluxSplitting` like that of Steger-Warming
 TODO: put in refs
 """
-# TODO: should this definition live in a different file because it is
-# not a DG method
 struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
   splitting::FluxSplitting
 end
