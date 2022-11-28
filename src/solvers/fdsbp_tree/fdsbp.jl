@@ -4,6 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 
+
 # For dispatch
 const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
 
@@ -19,28 +20,32 @@ polydeg(D::AbstractDerivativeOperator) = size(D, 1) - 1
 polydeg(fdsbp::FDSBP) = polydeg(fdsbp.basis)
 
 
-# 2D containers
-init_mortars(cell_ids, mesh, elements, mortar) = nothing
+# TODO: FD. No mortars supported at the moment
+init_mortars(cell_ids, mesh, elements, mortar::Nothing) = nothing
+create_cache(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
+nmortars(mortar::Nothing) = 0
 
-
-create_cache(mesh, equations, mortar, uEltype) = NamedTuple()
-nmortars(mortar) = 0
-
-
-function prolong2mortars!(cache, u, mesh, equations, mortar,
-        surface_integral, dg::DG)
-@assert isempty(eachmortar(dg, cache))
+function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,
+                          surface_integral, dg::DG)
+  @assert isempty(eachmortar(dg, cache))
 end
-
 
 function calc_mortar_flux!(surface_flux_values, mesh,
-         nonconservative_terms, equations,
-         mortar,
-         surface_integral, dg::DG, cache)
-@assert isempty(eachmortar(dg, cache))
+                           nonconservative_terms, equations,
+                           mortar::Nothing,
+                           surface_integral, dg::DG, cache)
+  @assert isempty(eachmortar(dg, cache))
 end
 
 
+# We do not use a specialized setup to analyze solutions
 SolutionAnalyzer(D::AbstractDerivativeOperator) = D
+
+
+# dimension-specific implementations
+include("fdsbp_1d.jl")
+include("fdsbp_2d.jl")
+include("fdsbp_3d.jl")
+
 
 end
