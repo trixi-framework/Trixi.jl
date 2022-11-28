@@ -176,11 +176,8 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
   if !isfinished(integrator_euler)
     @trixi_timeit timer() "Euler solver" step!(integrator_euler)
     return_code = check_error(integrator_euler)
-    # Check the return code with `!=` instead of `!==` recommended for
-    # `Symbol`s in general since the return code can be a plain symbol 
-    # or an enum overloading `==` and `!=`, depending on the version of
-    # SciMLBase.jl.
-    if return_code != :Success && return_code != :Default
+    if !(SciMLBase.successful_retcode(return_code) ||
+         return_code != SciMLBase.ReturnCode.Default)
       error("Error during compressible Euler time integration. Received return code $(return_code)")
     end
   end

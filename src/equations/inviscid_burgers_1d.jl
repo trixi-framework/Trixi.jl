@@ -62,7 +62,7 @@ Source terms used for convergence tests in combination with
   L = 1
   f = 1/L
   omega = 2 * pi * f
-  du = omega * cos(omega * (x[1] - t)) * (1 + sin(omega * (x[1] - t)))
+  du = omega * A * cos(omega * (x[1] - t)) * (c - 1 + A * sin(omega * (x[1] - t)))
 
   return SVector(du)
 end
@@ -90,7 +90,7 @@ end
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
-  
+
   λ_min = min(u_L, u_R)
   λ_max = max(u_L, u_R)
 
@@ -129,6 +129,30 @@ function flux_engquist_osher(u_ll, u_rr, orientation, equation::InviscidBurgersE
 
   return SVector(0.5 * (max(u_L, zero(u_L))^2 + min(u_R, zero(u_R))^2))
 end
+
+
+"""
+    lax_friedrichs_splitting(u, ::Symbol, orientation::Integer,
+                             equations::InviscidBurgersEquation1D)
+
+Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
+and `f⁻ = 0.5 (f - λ u)` where λ = abs(u).
+"""
+@inline function lax_friedrichs_splitting(u, ::Val{:plus}, orientation::Integer,
+                                          equations::InviscidBurgersEquation1D)
+  f = 0.5 * u[1]^2
+  lambda = abs(u[1])
+  return SVector(0.5 * (f + lambda * u[1]))
+end
+
+@inline function lax_friedrichs_splitting(u, ::Val{:minus}, orientation::Integer,
+                                          equations::InviscidBurgersEquation1D)
+  f = 0.5 * u[1]^2
+  lambda = abs(u[1])
+
+  return SVector(0.5 * (f - lambda * u[1]))
+end
+
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::InviscidBurgersEquation1D) = u
