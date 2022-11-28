@@ -681,7 +681,7 @@ end
 
 
 """
-    steger_warming_splitting(u, ::Symbol, orientation::Integer,
+    splitting_steger_warming(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations3D)
 
 Splitting of the compressible Euler flux of Steger and Warming. The `Symbol`
@@ -692,7 +692,7 @@ or all the negative eigenvalue components `:minus`.
   With Application to Finite Difference Methods
   [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
 """
-@inline function steger_warming_splitting(u, ::Val{:plus}, orientation::Integer,
+@inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
   v1 = rho_v1 / rho
@@ -756,7 +756,7 @@ or all the negative eigenvalue components `:minus`.
   return SVector(f1p, f2p, f3p, f4p, f5p)
 end
 
-@inline function steger_warming_splitting(u, ::Val{:minus}, orientation::Integer,
+@inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
   v1 = rho_v1 / rho

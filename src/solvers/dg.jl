@@ -251,7 +251,7 @@ end
 
 Couple elements with upwind simultaneous approximation terms (SATs)
 that use a particular flux `splitting`, e.g.,
-[`steger_warming_splitting`](@ref).
+[`splitting_steger_warming`](@ref).
 
 See also [`VolumeIntegralUpwind`](@ref).
 """
