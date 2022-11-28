@@ -16,7 +16,7 @@ function rhs!(du, u, t,
   @trixi_timeit timer() "volume integral" calc_volume_integral!(
     du, u, mesh,
     have_nonconservative_terms(equations), equations,
-    dg.volume_integral, dg, cache)
+    dg.volume_integral, dg, cache, t, boundary_conditions)
 
   # Calculate interface fluxes
   @trixi_timeit timer() "interface flux" calc_interface_flux!(
@@ -416,8 +416,9 @@ end
 end
 
 
-@inline function calc_var_bounds_interface!(u, mesh::StructuredMesh, nonconservative_terms, equations, indicator, dg, cache)
-  @unpack var_min, var_max, bar_states1, bar_states2, lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
+@inline function calc_lambdas_bar_states!(u, t, mesh::StructuredMesh,
+    nonconservative_terms, equations, indicator::IndicatorMCL, dg, cache, boundary_conditions)
+  @unpack lambda1, lambda2, bar_states1, bar_states2 = indicator.cache.ContainerShockCapturingIndicator
   @unpack contravariant_vectors = cache.elements
 
   for element in eachelement(dg, cache)
@@ -487,7 +488,7 @@ end
 end
 
 
-@inline function calc_lambda!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh, equations, dg, cache, indicator::IndicatorMCL)
+@inline function calc_lambda!(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh, equations, dg, cache, indicator::IndicatorMCL, boundary_conditions)
   @unpack lambda1, lambda2 = indicator.cache.ContainerShockCapturingIndicator
   @unpack contravariant_vectors = cache.elements
 

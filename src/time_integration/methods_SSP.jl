@@ -151,7 +151,8 @@ function solve!(integrator::SimpleIntegratorSSP)
         @. integrator.u_old = (1.0 - alg.a[stage]) * integrator.u + alg.a[stage] * integrator.u_safe
         @. integrator.u_safe = integrator.u_old + alg.b[stage] * integrator.dt * integrator.du
       end
-      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old, alg.b[stage] * integrator.dt, integrator.p, indicator)
+      @trixi_timeit timer() "Antidiffusive stage" antidiffusive_stage!(integrator.u_safe, integrator.u_old,
+        integrator.t, alg.b[stage] * integrator.dt, integrator.p, indicator)
 
       @trixi_timeit timer() "update_alpha_per_timestep!" update_alpha_per_timestep!(indicator, integrator.iter+1, length(alg.c), integrator.p, integrator.p.mesh)
 

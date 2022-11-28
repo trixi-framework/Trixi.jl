@@ -205,27 +205,26 @@ function create_cache(indicator::Type{IndicatorIDP}, equations::AbstractEquation
 end
 
 function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::AbstractArray{<:Any,4},
-                                       mesh, equations, dg::DGSEM,
-                                       dt, cache;
+                                       semi, dg::DGSEM, t, dt;
                                        kwargs...)
   @unpack alpha = indicator_IDP.cache.ContainerShockCapturingIndicator
   alpha .= 0.0
   if indicator_IDP.indicator_smooth
-    elements = cache.element_ids_dgfv
+    elements = semi.cache.element_ids_dgfv
   else
-    elements = eachelement(dg, cache)
+    elements = eachelement(dg, semi.cache)
   end
 
   indicator_IDP.IDPDensityTVD  &&
-    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache, elements)
+    @trixi_timeit timer() "IDPDensityTVD"  IDP_densityTVD!( alpha, indicator_IDP, u_safe,         t, dt, semi, elements)
   indicator_IDP.IDPPressureTVD &&
-    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache, elements)
+    @trixi_timeit timer() "IDPPressureTVD" IDP_pressureTVD!(alpha, indicator_IDP, u_safe,         t, dt, semi, elements)
   indicator_IDP.IDPPositivity  &&
-    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,         dt, mesh, equations, dg, cache, elements)
+    @trixi_timeit timer() "IDPPositivity"  IDP_positivity!( alpha, indicator_IDP, u_safe,            dt, semi, elements)
   indicator_IDP.IDPSpecEntropy &&
-    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache, elements)
+    @trixi_timeit timer() "IDPSpecEntropy" IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_safe, t, dt, semi, elements)
   indicator_IDP.IDPMathEntropy &&
-    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, dt, mesh, equations, dg, cache, elements)
+    @trixi_timeit timer() "IDPMathEntropy" IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_safe, t, dt, semi, elements)
 
   # Calculate alpha1 and alpha2
   @unpack alpha1, alpha2 = indicator_IDP.cache.ContainerShockCapturingIndicator
@@ -245,8 +244,9 @@ function (indicator_IDP::IndicatorIDP)(u_safe::AbstractArray{<:Any,4}, u_old::Ab
   return nothing
 end
 
-@inline function calc_bounds_2sided!(var_min, var_max, variable, u, mesh, equations, dg, cache)
-  # Values inside each element
+@inline function calc_bounds_2sided!(var_min, var_max, variable, u, t, semi)
+  mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+  # Calc bounds inside elements
   @threaded for element in eachelement(dg, cache)
     var_min[:, :, element] .= typemax(eltype(var_min))
     var_max[:, :, element] .= typemin(eltype(var_max))
@@ -276,10 +276,13 @@ end
   end
 
   # Values at element boundary
-  calc_bounds_2sided_interface!(var_min, var_max, variable, u, mesh, equations, dg, cache)
+  calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, mesh)
 end
 
-@inline function calc_bounds_2sided_interface!(var_min, var_max, variable, u, mesh::TreeMesh2D, equations, dg, cache)
+@inline function calc_bounds_2sided_interface!(var_min, var_max, variable, u, t, semi, mesh::TreeMesh2D)
+  _, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack boundary_conditions = semi
+  # Calc bounds at interfaces and periodic boundaries
   for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
@@ -287,28 +290,91 @@ end
 
     orientation = cache.interfaces.orientations[interface]
 
-    for i in eachnode(dg)
-      if orientation == 1
-        index_left  = (nnodes(dg), i, left)
-        index_right = (1,          i, right)
-      else
-        index_left  = (i, nnodes(dg), left)
-        index_right = (i,          1, right)
+    if orientation == 1
+      for j in eachnode(dg)
+        var_left  = variable(get_node_vars(u, equations, dg, nnodes(dg), j, left),  equations)
+        var_right = variable(get_node_vars(u, equations, dg, 1,          j, right), equations)
+
+        var_min[1, j, right] = min(var_min[1, j, right], var_left)
+        var_max[1, j, right] = max(var_max[1, j, right], var_left)
+
+        var_min[nnodes(dg), j, left] = min(var_min[nnodes(dg), j, left], var_right)
+        var_max[nnodes(dg), j, left] = max(var_max[nnodes(dg), j, left], var_right)
       end
-      var_left  = variable(get_node_vars(u, equations, dg, index_left...), equations)
-      var_right = variable(get_node_vars(u, equations, dg, index_right...), equations)
+    else # orientation == 2
+      for i in eachnode(dg)
+        var_left  = variable(get_node_vars(u, equations, dg, i, nnodes(dg), left),  equations)
+        var_right = variable(get_node_vars(u, equations, dg, i,          1, right), equations)
 
-      var_min[index_right...] = min(var_min[index_right...], var_left)
-      var_max[index_right...] = max(var_max[index_right...], var_left)
+        var_min[i, 1, right] = min(var_min[i, 1, right], var_left)
+        var_max[i, 1, right] = max(var_max[i, 1, right], var_left)
 
-      var_min[index_left...] = min(var_min[index_left...], var_right)
-      var_max[index_left...] = max(var_max[index_left...], var_right)
+        var_min[i, nnodes(dg), left] = min(var_min[i, nnodes(dg), left], var_right)
+        var_max[i, nnodes(dg), left] = max(var_max[i, nnodes(dg), left], var_right)
+      end
     end
   end
+
+  # Calc bounds at physical boundaries
+  for boundary in eachboundary(dg, cache)
+    element = cache.boundaries.neighbor_ids[boundary]
+    orientation = cache.boundaries.orientations[boundary]
+    neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+    if orientation == 1
+      if neighbor_side == 2 # boundary_side == 1
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, 1, j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+                                             equations, dg, 1, j, element)
+          var_outer = variable(u_outer)
+
+          var_min[1, j, element] = min(var_min[1, j, element], var_outer)
+          var_max[1, j, element] = max(var_max[1, j, element], var_outer)
+        end
+      else # boundary_side == 2
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+                                             equations, dg, nnodes(dg), j, element)
+          var_outer = variable(u_outer)
+
+          var_min[nnodes(dg), j, element] = min(var_min[nnodes(dg), j, element], var_outer)
+          var_max[nnodes(dg), j, element] = max(var_max[nnodes(dg), j, element], var_outer)
+        end
+      end
+    else # orientation == 2
+      if neighbor_side == 2 # boundary_side == 1
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, 1, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+                                             equations, dg, i, 1, element)
+          var_outer = variable(u_outer)
+
+          var_min[i, 1, element] = min(var_min[i, 1, element], var_outer)
+          var_max[i, 1, element] = max(var_max[i, 1, element], var_outer)
+        end
+      else # boundary_side == 2
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+                                             equations, dg, i, nnodes(dg), element)
+          var_outer = variable(u_outer)
+
+          var_min[i, nnodes(dg), element] = min(var_min[i, nnodes(dg), element], var_outer)
+          var_max[i, nnodes(dg), element] = max(var_max[i, nnodes(dg), element], var_outer)
+        end
+      end
+    end
+  end
+
+  return nothing
 end
 
-@inline function calc_bounds_1sided!(var_minmax, minmax, typeminmax, variable, u, mesh, equations, dg, cache)
-  # Values inside each element
+
+@inline function calc_bounds_1sided!(var_minmax, minmax, typeminmax, variable, u, t, semi)
+  mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+  # Calc bounds inside elements
   @threaded for element in eachelement(dg, cache)
     var_minmax[:, :, element] .= typeminmax(eltype(var_minmax))
 
@@ -333,10 +399,13 @@ end
   end
 
   # Values at element boundary
-  calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, mesh, equations, dg, cache)
+  calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi, mesh)
 end
 
-@inline function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, mesh::TreeMesh2D, equations, dg, cache)
+@inline function calc_bounds_1sided_interface!(var_minmax, minmax, variable, u, t, semi, mesh::TreeMesh2D)
+  _, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack boundary_conditions = semi
+  # Calc bounds at interfaces and periodic boundaries
   for interface in eachinterface(dg, cache)
     # Get neighboring element ids
     left  = cache.interfaces.neighbor_ids[1, interface]
@@ -344,24 +413,83 @@ end
 
     orientation = cache.interfaces.orientations[interface]
 
-    for i in eachnode(dg)
-      if orientation == 1
-        index_left  = (nnodes(dg), i, left)
-        index_right = (1,          i, right)
-      else
-        index_left  = (i, nnodes(dg), left)
-        index_right = (i,          1, right)
-      end
-      var_left  = variable(get_node_vars(u, equations, dg, index_left...), equations)
-      var_right = variable(get_node_vars(u, equations, dg, index_right...), equations)
+    if orientation == 1
+      for j in eachnode(dg)
+        var_left  = variable(get_node_vars(u, equations, dg, nnodes(dg), j, left),  equations)
+        var_right = variable(get_node_vars(u, equations, dg, 1,          j, right), equations)
 
-      var_minmax[index_right...] = minmax(var_minmax[index_right...], var_left)
-      var_minmax[index_left...]  = minmax(var_minmax[index_left...],  var_right)
+        var_minmax[1,          j, right] = minmax(var_minmax[1,          j, right], var_left)
+        var_minmax[nnodes(dg), j, left]  = minmax(var_minmax[nnodes(dg), j, left],  var_right)
+      end
+    else # orientation == 2
+      for i in eachnode(dg)
+        var_left  = variable(get_node_vars(u, equations, dg, i, nnodes(dg), left),  equations)
+        var_right = variable(get_node_vars(u, equations, dg, i,          1, right), equations)
+
+        var_minmax[i,          1, right] = minmax(var_minmax[i,          1, right], var_left)
+        var_minmax[i, nnodes(dg), left]  = minmax(var_minmax[i, nnodes(dg), left],  var_right)
+      end
     end
   end
+
+  if boundary_conditions isa BoundaryConditionPeriodic
+    return nothing
+  end
+  # Calc bounds at physical boundaries
+  for boundary in eachboundary(dg, cache)
+    element = cache.boundaries.neighbor_ids[boundary]
+    orientation = cache.boundaries.orientations[boundary]
+    neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+    if orientation == 1
+      if neighbor_side == 2 # boundary_side == 1
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, 1, j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[1],
+                                             equations, dg, 1, j, element)
+          var_outer = variable(u_outer)
+
+          var_minmax[1, j, element] = minmax(var_minmax[1, j, element], var_outer)
+        end
+      else # boundary_side == 2
+        for j in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[2],
+                                             equations, dg, nnodes(dg), j, element)
+          var_outer = variable(u_outer)
+
+          var_minmax[nnodes(dg), j, element] = minmax(var_minmax[nnodes(dg), j, element], var_outer)
+        end
+      end
+    else # orientation == 2
+      if neighbor_side == 2 # boundary_side == 1
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, 1, element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[3],
+                                             equations, dg, i, 1, element)
+          var_outer = variable(u_outer)
+
+          var_minmax[i, 1, element] = minmax(var_minmax[i, 1, element], var_outer)
+        end
+      else # boundary_side == 2
+        for i in eachnode(dg)
+          u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+          u_outer = get_boundary_outer_state(u_inner, cache, t, boundary_conditions[4],
+                                             equations, dg, i, nnodes(dg), element)
+          var_outer = variable(u_outer)
+
+          var_minmax[i, nnodes(dg), element] = minmax(var_minmax[i, nnodes(dg), element], var_outer)
+        end
+      end
+    end
+  end
+
+  return nothing
 end
 
-@inline function IDP_densityTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache, elements)
+@inline function IDP_densityTVD!(alpha, indicator_IDP, u_safe, t, dt, semi, elements)
+  mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack boundary_conditions = semi
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   rho_min = var_bounds[1]
@@ -423,9 +551,11 @@ end
   return nothing
 end
 
-@inline function IDP_pressureTVD!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache, elements)
+@inline function IDP_pressureTVD!(alpha, indicator_IDP, u_safe, t, dt, semi, elements)
   # IDP limiter for pressure based on
   # - Kuzmin et al. (2020). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+  mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack boundary_conditions = semi
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
   offset = 2 * indicator_IDP.IDPDensityTVD
@@ -497,7 +627,9 @@ end
   return nothing
 end
 
-@inline function IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache, elements)
+@inline function IDP_specEntropy!(alpha, indicator_IDP, u_safe, u_old, t, dt, semi, elements)
+  mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack boundary_conditions = semi
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
@@ -522,7 +654,9 @@ specEntropy_goal(bound, u, equations) = bound - entropy_spec(u, equations)
 specEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy_spec(u, equations), dt * antidiffusive_flux)
 specEntropy_initialCheck(bound, goal, newton_abstol) = goal <= max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_old, dt, mesh, equations, dg, cache, elements)
+@inline function IDP_mathEntropy!(alpha, indicator_IDP, u_safe, u_old, t, dt, semi, elements)
+  mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+  @unpack boundary_conditions = semi
   @unpack IDPDensityTVD, IDPPressureTVD, IDPPositivity, IDPSpecEntropy = indicator_IDP
   @unpack var_bounds = indicator_IDP.cache.ContainerShockCapturingIndicator
 
@@ -548,7 +682,8 @@ mathEntropy_goal(bound, u, equations) = bound - entropy_math(u, equations)
 mathEntropy_dGoal_dbeta(u, dt, antidiffusive_flux, equations) = -dot(cons2entropy(u, equations), dt * antidiffusive_flux)
 mathEntropy_initialCheck(bound, goal, newton_abstol) = goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 
-@inline function IDP_positivity!(alpha, indicator_IDP, u_safe, dt, mesh, equations, dg, cache, elements)
+@inline function IDP_positivity!(alpha, indicator_IDP, u_safe, dt, semi, elements)
+  mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
   @unpack antidiffusive_flux1, antidiffusive_flux2 = cache.ContainerAntidiffusiveFlux2D
   @unpack inverse_weights = dg.basis
   @unpack positCorrFactor = indicator_IDP
