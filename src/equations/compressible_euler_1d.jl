@@ -361,12 +361,19 @@ end
 
 
 """
-    splitting_steger_warming(u, ::Symbol, orientation::Integer,
+    splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
                              equations::CompressibleEulerEquations1D)
 
-Splitting of the compressible Euler flux of Steger and Warming. The `Symbol`
-indicates if the routine computes all the components with positive eigenvalue `:plus`
-or all the negative eigenvalue components `:minus`.
+Splitting of the compressible Euler flux of Steger and Warming.
+
+Returns the flux "minus" (associated with waves going into the
+negative axis direction) or "plus" (associated with waves going into the
+positive axis direction), determined by the argument `which` set to
+`Val{:minus}()` or `Val{:plus}`.
+
+## References
+
 - Joseph L. Steger and R. F. Warming (1979)
   Flux Vector Splitting of the Inviscid Gasdynamic Equations
   With Application to Finite Difference Methods
@@ -424,16 +431,23 @@ end
 
 
 """
-    splitting_vanleer_haenel(u, ::Symbol, orientation::Integer,
+    splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
                              equations::CompressibleEulerEquations1D)
 
-Splitting of the compressible Euler flux from van Leer. The `Symbol`
-indicates if the routine computes all the components with positive eigenvalue `:plus`
-or all the negative eigenvalue components `:minus`. This splitting further contains
-a reformulation due to Hänel et al. where the energy flux uses the enthalpy.
-The pressure splitting is independent from the splitting of the convective terms. As
-such there are many pressure splittings suggested across the literature. We implement
-the 'p4' variant suggested by Liou and Steffen as it proved the most robust in practice.
+Splitting of the compressible Euler flux from van Leer. This splitting further
+contains a reformulation due to Hänel et al. where the energy flux uses the
+enthalpy. The pressure splitting is independent from the splitting of the
+convective terms. As such there are many pressure splittings suggested across
+the literature. We implement the 'p4' variant suggested by Liou and Steffen as
+it proved the most robust in practice.
+
+Returns the flux "minus" (associated with waves going into the
+negative axis direction) or "plus" (associated with waves going into the
+positive axis direction), determined by the argument `which` set to
+`Val{:minus}()` or `Val{:plus}`.
+
+## References
 
 - Bram van Leer (1982)
   Flux-Vector Splitting for the Euler Equation
@@ -445,7 +459,6 @@ the 'p4' variant suggested by Liou and Steffen as it proved the most robust in p
   High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
   [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
 """
-# TODO: separate this as a separate splitting the runs el_diablo
 @inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
@@ -491,21 +504,7 @@ end
 end
 
 
-"""
-    splitting_coirier_vanleer(u, ::Symbol, orientation::Integer,
-                               equations::CompressibleEulerEquations1D)
-
-Splitting of the compressible Euler flux from Coirier and van Leer. The `Symbol`
-indicates if the routine computes all the components with positive eigenvalue `:plus`
-or all the negative eigenvalue components `:minus`. The splitting has correction
-terms in the pressure splitting as well as the mass and energy flux components. The
-motivation for these corrections are to handle flows at the low Mach number limit.
-
-- William Coirier and Bram van Leer (1991)
-  Numerical flux formulas for the Euler and Navier-Stokes equations.
-  II - Progress in flux-vector splitting
-  [DOI: 10.2514/6.1991-1566](https://doi.org/10.2514/6.1991-1566)
-"""
+# TODO: FD
 # This splitting is interesting because it can handle the "el diablo" wave
 # for long time runs. Computing the eigenvalues of the operator we see
 #   J = jacobian_ad_forward(semi);
@@ -515,6 +514,28 @@ motivation for these corrections are to handle flows at the low Mach number limi
 # So the instability of this splitting is very weak. However, the 2D variant
 # of this splitting on "el diablo" still crashes early. Can we learn anything
 # from the design of this splitting?
+"""
+    splitting_coirier_vanleer(u, which::Union{Val{:minus}, Val{:plus}}
+                              orientation::Integer,
+                              equations::CompressibleEulerEquations1D)
+
+Splitting of the compressible Euler flux from Coirier and van Leer.
+The splitting has correction terms in the pressure splitting as well as
+the mass and energy flux components. The motivation for these corrections
+are to handle flows at the low Mach number limit.
+
+Returns the flux "minus" (associated with waves going into the
+negative axis direction) or "plus" (associated with waves going into the
+positive axis direction), determined by the argument `which` set to
+`Val{:minus}()` or `Val{:plus}`.
+
+## References
+
+- William Coirier and Bram van Leer (1991)
+  Numerical flux formulas for the Euler and Navier-Stokes equations.
+  II - Progress in flux-vector splitting
+  [DOI: 10.2514/6.1991-1566](https://doi.org/10.2514/6.1991-1566)
+"""
 @inline function splitting_coirier_vanleer(u, ::Val{:plus}, orientation::Integer,
                                             equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
