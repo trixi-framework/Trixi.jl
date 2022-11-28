@@ -129,6 +129,38 @@ end
 
 
 """
+    VolumeIntegralUpwind
+
+Specialized volume integral for finite difference summation-by-parts (FDSBP)
+solver. Uses the upwind SBP operators developed in
+- Mattsson (2017)
+  Diagonal-norm upwind SBP operators
+  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+
+Depends on a particular `FluxSplitting` like that of Steger-Warming
+TODO: put in refs
+"""
+# TODO: should this definition live in a different file because it is
+# not a DG method
+struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
+  splitting::FluxSplitting
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "flux splitting" => integral.splitting
+            ]
+    summary_box(io, "VolumeIntegralUpwind", setup)
+  end
+end
+
+
+"""
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
 
 A volume integral that only uses the subcell finite volume schemes of the
@@ -241,6 +273,33 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
   end
 end
 
+
+"""
+    SurfaceIntegralUpwind(splitting)
+
+Couple elements with upwind simulataneous approximation terms (SATs)
+that use a particular `FluxSplitting`.
+
+See also [`VolumeIntegralUpwind`](@ref).
+"""
+# TODO: should this definition live in a different file because it is
+# not a DG method
+struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
+  splitting::FluxSplitting
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "flux splitting" => integral.splitting
+            ]
+    summary_box(io, "SurfaceIntegralUpwind", setup)
+  end
+end
 
 
 """
@@ -514,7 +573,9 @@ include("dgsem_p4est/dg.jl")
 # These methods are very similar to DG methods since they also impose interface
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
 # functionality implemented for DGSEM.
+include("fdsbp_tree/fdsbp.jl")
+include("fdsbp_tree/fdsbp_1d.jl")
 include("fdsbp_tree/fdsbp_2d.jl")
-
+include("fdsbp_tree/fdsbp_3d.jl")
 
 end # @muladd
