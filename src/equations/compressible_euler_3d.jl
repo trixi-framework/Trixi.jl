@@ -308,7 +308,7 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
   if v_normal <= 0.0
     sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 * equations.gamma * equations.inv_gamma_minus_one)
   else # v_normal > 0.0
     A = 2.0 / ((equations.gamma + 1) * rho_local)
     B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
@@ -717,14 +717,14 @@ positive axis direction), determined by the argument `which` set to
     lambda2_p = 0.5 * (lambda2 + abs(lambda2))
     lambda3_p = 0.5 * (lambda3 + abs(lambda3))
 
-    alpha_p = 2.0 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
     f1p = 0.5 * rho / equations.gamma * alpha_p
     f2p = 0.5 * rho / equations.gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
     f3p = 0.5 * rho / equations.gamma * alpha_p * v2
     f4p = 0.5 * rho / equations.gamma * alpha_p * v3
     f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_p - lambda3_p)
-                                         + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
+                                         + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
   elseif orientation == 2
     lambda1 = v2
     lambda2 = v2 + a
@@ -734,14 +734,14 @@ positive axis direction), determined by the argument `which` set to
     lambda2_p = 0.5 * (lambda2 + abs(lambda2))
     lambda3_p = 0.5 * (lambda3 + abs(lambda3))
 
-    alpha_p = 2.0 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
     f1p = 0.5 * rho / equations.gamma * alpha_p
     f2p = 0.5 * rho / equations.gamma * alpha_p * v1
     f3p = 0.5 * rho / equations.gamma * (alpha_p * v2 + a * (lambda2_p - lambda3_p))
     f4p = 0.5 * rho / equations.gamma * alpha_p * v3
     f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_p - lambda3_p)
-                                         + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
+                                         + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
   else
     lambda1 = v3
     lambda2 = v3 + a
@@ -751,14 +751,14 @@ positive axis direction), determined by the argument `which` set to
     lambda2_p = 0.5 * (lambda2 + abs(lambda2))
     lambda3_p = 0.5 * (lambda3 + abs(lambda3))
 
-    alpha_p = 2.0 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
     f1p = 0.5 * rho / equations.gamma * alpha_p
     f2p = 0.5 * rho / equations.gamma * alpha_p * v1
     f3p = 0.5 * rho / equations.gamma * alpha_p * v2
     f4p = 0.5 * rho / equations.gamma * (alpha_p * v3 + a * (lambda2_p - lambda3_p))
     f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_p - lambda3_p)
-                                         + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
+                                         + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
   end
   return SVector(f1p, f2p, f3p, f4p, f5p)
 end
@@ -781,14 +781,14 @@ end
     lambda2_m = 0.5 * (lambda2 - abs(lambda2))
     lambda3_m = 0.5 * (lambda3 - abs(lambda3))
 
-    alpha_m = 2.0 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
     f1m = 0.5 * rho / equations.gamma * alpha_m
     f2m = 0.5 * rho / equations.gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
     f3m = 0.5 * rho / equations.gamma * alpha_m * v2
     f4m = 0.5 * rho / equations.gamma * alpha_m * v3
     f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_m - lambda3_m)
-                                         + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
+                                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
   elseif orientation == 2
     lambda1 = v2
     lambda2 = v2 + a
@@ -798,14 +798,14 @@ end
     lambda2_m = 0.5 * (lambda2 - abs(lambda2))
     lambda3_m = 0.5 * (lambda3 - abs(lambda3))
 
-    alpha_m = 2.0 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
     f1m = 0.5 * rho / equations.gamma * alpha_m
     f2m = 0.5 * rho / equations.gamma * alpha_m * v1
     f3m = 0.5 * rho / equations.gamma * (alpha_m * v2 + a * (lambda2_m - lambda3_m))
     f4m = 0.5 * rho / equations.gamma * alpha_m * v3
     f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_m - lambda3_m)
-                                         + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
+                                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
   else
     lambda1 = v3
     lambda2 = v3 + a
@@ -815,14 +815,14 @@ end
     lambda2_m = 0.5 * (lambda2 - abs(lambda2))
     lambda3_m = 0.5 * (lambda3 - abs(lambda3))
 
-    alpha_m = 2.0 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
     f1m = 0.5 * rho / equations.gamma * alpha_m
     f2m = 0.5 * rho / equations.gamma * alpha_m * v1
     f3m = 0.5 * rho / equations.gamma * alpha_m * v2
     f4m = 0.5 * rho / equations.gamma * (alpha_m * v3 + a * (lambda2_m - lambda3_m))
     f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_m - lambda3_m)
-                                         + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
+                                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
   end
   return SVector(f1m, f2m, f3m, f4m, f5m)
 end
