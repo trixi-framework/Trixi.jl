@@ -1,3 +1,6 @@
+# TODO: FD
+# !!! warning "Experimental feature"
+#     This is an experimental feature and may change in any future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -26,6 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
+
 ###############################################################################
 # ODE solvers, callbacks etc.
 
@@ -47,6 +51,7 @@ save_solution = SaveSolutionCallback(interval=100,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution)
+
 
 ###############################################################################
 # run the simulation
