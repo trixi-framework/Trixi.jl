@@ -110,18 +110,23 @@ end
 
 
 # TODO: FD. Should this definition live in a different file because it is
-# not a DG method?
+# not strictly a DG method?
 """
-    VolumeIntegralUpwind
+    VolumeIntegralUpwind(splitting)
 
 Specialized volume integral for finite difference summation-by-parts (FDSBP)
-solver. Uses the upwind SBP operators developed in
+solvers. Can be used together with the upwind SBP operators of Mattsson (2017)
+implemented in SummationByPartsOperators.jl. The `splitting` controls the
+discretization.
+
+See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
+[`splitting_vanleer_haenel`](@ref).
+
+## References
+
 - Mattsson (2017)
   Diagonal-norm upwind SBP operators
   [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
-
-Depends on a particular `FluxSplitting` like that of Steger-Warming
-TODO: put in refs
 """
 struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
   splitting::FluxSplitting
@@ -245,7 +250,7 @@ end
 
 
 # TODO: FD. Should this definition live in a different file because it is
-# not a DG method?
+# not strictly a DG method?
 """
     SurfaceIntegralUpwind(splitting)
 
@@ -545,8 +550,6 @@ include("dgsem_p4est/dg.jl")
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
 # functionality implemented for DGSEM.
 include("fdsbp_tree/fdsbp.jl")
-include("fdsbp_tree/fdsbp_1d.jl")
-include("fdsbp_tree/fdsbp_2d.jl")
-include("fdsbp_tree/fdsbp_3d.jl")
+
 
 end # @muladd

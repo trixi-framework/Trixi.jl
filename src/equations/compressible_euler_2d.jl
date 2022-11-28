@@ -1238,9 +1238,9 @@ end
 # Should be used together with [SurfaceIntegralStrongForm](@ref) and a finite difference
 # summation-by-parts (FDSBP) solver.
 
-# TODO: reference? Maybe van Leer paper "...for the 90s"
+# TODO: FD. reference? Maybe van Leer paper "...for the 90s"
 # """
-# # TODO: do we want this?
+# # TODO: FD. Do we want this?
 # @inline function flux_upwind(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
 
 #   # Compute the upwind coupling terms with right-traveling from the left
