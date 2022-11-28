@@ -361,7 +361,7 @@ end
 
 
 """
-    steger_warming_splitting(u, ::Symbol, orientation::Integer,
+    splitting_steger_warming(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations1D)
 
 Splitting of the compressible Euler flux of Steger and Warming. The `Symbol`
@@ -372,7 +372,7 @@ or all the negative eigenvalue components `:minus`.
   With Application to Finite Difference Methods
   [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
 """
-@inline function steger_warming_splitting(u, ::Val{:plus}, orientation::Integer,
+@inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
@@ -397,7 +397,7 @@ or all the negative eigenvalue components `:minus`.
   return SVector(f1p, f2p, f3p)
 end
 
-@inline function steger_warming_splitting(u, ::Val{:minus}, orientation::Integer,
+@inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
@@ -424,7 +424,7 @@ end
 
 
 """
-    vanleer_haenel_splitting(u, ::Symbol, orientation::Integer,
+    splitting_vanleer_haenel(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations1D)
 
 Splitting of the compressible Euler flux from van Leer. The `Symbol`
@@ -446,7 +446,7 @@ the 'p4' variant suggested by Liou and Steffen as it proved the most robust in p
   [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
 """
 # TODO: separate this as a separate splitting the runs el_diablo
-@inline function vanleer_haenel_splitting(u, ::Val{:plus}, orientation::Integer,
+@inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
@@ -468,7 +468,7 @@ the 'p4' variant suggested by Liou and Steffen as it proved the most robust in p
   return SVector(f1p, f2p, f3p)
 end
 
-@inline function vanleer_haenel_splitting(u, ::Val{:minus}, orientation::Integer,
+@inline function splitting_vanleer_haenel(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
@@ -492,7 +492,7 @@ end
 
 
 """
-    coirier_vanleer_splitting(u, ::Symbol, orientation::Integer,
+    splitting_coirier_vanleer(u, ::Symbol, orientation::Integer,
                                equations::CompressibleEulerEquations1D)
 
 Splitting of the compressible Euler flux from Coirier and van Leer. The `Symbol`
@@ -515,7 +515,7 @@ motivation for these corrections are to handle flows at the low Mach number limi
 # So the instability of this splitting is very weak. However, the 2D variant
 # of this splitting on "el diablo" still crashes early. Can we learn anything
 # from the design of this splitting?
-@inline function coirier_vanleer_splitting(u, ::Val{:plus}, orientation::Integer,
+@inline function splitting_coirier_vanleer(u, ::Val{:plus}, orientation::Integer,
                                             equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
@@ -542,7 +542,7 @@ motivation for these corrections are to handle flows at the low Mach number limi
   return SVector(f1p, f2p, f3p)
 end
 
-@inline function coirier_vanleer_splitting(u, ::Val{:minus}, orientation::Integer,
+@inline function splitting_coirier_vanleer(u, ::Val{:minus}, orientation::Integer,
                                             equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho

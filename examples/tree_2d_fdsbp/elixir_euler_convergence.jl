@@ -17,7 +17,7 @@ D = upwind_operators(SummationByPartsOperators.Mattsson2017,
                      accuracy_order=4,
                      xmin=-1.0, xmax=1.0,
                      N=16)
-flux_splitting = steger_warming_splitting
+flux_splitting = splitting_steger_warming
 solver = DG(D, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))

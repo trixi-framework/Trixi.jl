@@ -16,7 +16,7 @@ D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
                          accuracy_order=4,
                          xmin=-1.0, xmax=1.0,
                          N=16)
-flux_splitting = coirier_vanleer_splitting
+flux_splitting = splitting_coirier_vanleer
 solver = DG(D_upw, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))

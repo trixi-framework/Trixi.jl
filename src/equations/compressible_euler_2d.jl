@@ -665,7 +665,7 @@ end
 
 
 """
-    steger_warming_splitting(u, ::Symbol, orientation::Integer,
+    splitting_steger_warming(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations2D)
 
 Splitting of the compressible Euler flux of Steger and Warming. The `Symbol`
@@ -676,7 +676,7 @@ or all the negative eigenvalue components `:minus`.
   With Application to Finite Difference Methods
   [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
 """
-@inline function steger_warming_splitting(u, ::Val{:plus}, orientation::Integer,
+@inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
@@ -720,7 +720,7 @@ or all the negative eigenvalue components `:minus`.
   return SVector(f1p, f2p, f3p, f4p)
 end
 
-@inline function steger_warming_splitting(u, ::Val{:minus}, orientation::Integer,
+@inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
@@ -766,7 +766,7 @@ end
 
 
 """
-    vanleer_haenel_splitting(u, ::Symbol, orientation::Integer,
+    splitting_vanleer_haenel(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations1D)
 
 Splitting of the compressible Euler flux from van Leer. The `Symbol`
@@ -789,7 +789,7 @@ the 'p4' variant suggested by Liou and Steffen as it proved the most robust in p
 """
 #TODO: generic central flux where f_plus = 0.5 * f and f_minus = 0.5 * f
 #      combine with interface terms for experimentation
-@inline function vanleer_haenel_splitting(u, ::Val{:plus}, orientation::Integer,
+@inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
@@ -819,7 +819,7 @@ the 'p4' variant suggested by Liou and Steffen as it proved the most robust in p
   return SVector(f1p, f2p, f3p, f4p)
 end
 
-@inline function vanleer_haenel_splitting(u, ::Val{:minus}, orientation::Integer,
+@inline function splitting_vanleer_haenel(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
@@ -851,14 +851,14 @@ end
 
 
 """
-    lax_friedrichs_splitting(u, ::Symbol, orientation::Integer,
+    splitting_lax_friedrichs(u, ::Symbol, orientation::Integer,
                              equations::CompressibleEulerEquations2D)
 
 Naive Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
 and `f⁻ = 0.5 (f - λ u)` similar to a flux splitting one would apply, e.g.,
 to Burgers' equation.
 """
-@inline function lax_friedrichs_splitting(u, ::Val{:plus}, orientation::Integer,
+@inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
@@ -885,7 +885,7 @@ to Burgers' equation.
   return SVector(f1p, f2p, f3p, f4p)
 end
 
-@inline function lax_friedrichs_splitting(u, ::Val{:minus}, orientation::Integer,
+@inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
@@ -1228,8 +1228,8 @@ end
 #   # Compute the upwind coupling terms with right-traveling from the left
 #   # and left-traveling information from the right
 #   # TODO: How to make this easier to switch out other splittings?
-#   f_plus_ll  = steger_warming_splitting(u_ll, :plus,  orientation, equations)
-#   f_minus_rr = steger_warming_splitting(u_rr, :minus, orientation, equations)
+#   f_plus_ll  = splitting_steger_warming(u_ll, :plus,  orientation, equations)
+#   f_minus_rr = splitting_steger_warming(u_rr, :minus, orientation, equations)
 
 #   # Combine the upwind terms to pass back as a type of numerical flux
 #   f1 = f_plus_ll[1] + f_minus_rr[1]
