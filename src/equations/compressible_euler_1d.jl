@@ -394,12 +394,12 @@ positive axis direction), determined by the argument `which` set to
   lambda2_p = 0.5 * (lambda2 + abs(lambda2))
   lambda3_p = 0.5 * (lambda3 + abs(lambda3))
 
-  alpha_p = 2.0 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+  alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
   f1p = 0.5 * rho / equations.gamma * alpha_p
   f2p = 0.5 * rho / equations.gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
   f3p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * v1^2 + a * v1 * (lambda2_p - lambda3_p)
-                                       + a^2 * (lambda2_p + lambda3_p) / (equations.gamma - 1))
+                                       + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
 
   return SVector(f1p, f2p, f3p)
 end
@@ -419,12 +419,12 @@ end
     lambda2_m = 0.5 * (lambda2 - abs(lambda2))
     lambda3_m = 0.5 * (lambda3 - abs(lambda3))
 
-    alpha_m = 2.0 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
     f1m = 0.5 * rho / equations.gamma * alpha_m
     f2m = 0.5 * rho / equations.gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
     f3m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * v1^2 + a * v1 * (lambda2_m - lambda3_m)
-                                         + a^2 * (lambda2_m + lambda3_m) / (equations.gamma - 1))
+                                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
 
   return SVector(f1m, f2m, f3m)
 end
@@ -472,7 +472,7 @@ positive axis direction), determined by the argument `which` set to
   # signed Mach number
   M = v1 / a
 
-  p_plus = 0.5 * (1.0 + equations.gamma * M) * p
+  p_plus = 0.5 * (1 + equations.gamma * M) * p
 
   f1p = 0.25 * rho * a * (M + 1)^2
   f2p = f1p * v1 + p_plus
@@ -494,7 +494,7 @@ end
   # signed Mach number
   M = v1 / a
 
-  p_minus = 0.5 * (1.0 - equations.gamma * M) * p
+  p_minus = 0.5 * (1 - equations.gamma * M) * p
 
   f1m= -0.25 * rho * a * (M - 1)^2
   f2m = f1m * v1 + p_minus
