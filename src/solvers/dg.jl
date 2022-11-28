@@ -244,16 +244,17 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
 end
 
 
+# TODO: FD. Should this definition live in a different file because it is
+# not a DG method?
 """
     SurfaceIntegralUpwind(splitting)
 
-Couple elements with upwind simulataneous approximation terms (SATs)
-that use a particular `FluxSplitting`.
+Couple elements with upwind simultaneous approximation terms (SATs)
+that use a particular flux `splitting`, e.g.,
+[`steger_warming_splitting`](@ref).
 
 See also [`VolumeIntegralUpwind`](@ref).
 """
-# TODO: should this definition live in a different file because it is
-# not a DG method
 struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
   splitting::FluxSplitting
 end
