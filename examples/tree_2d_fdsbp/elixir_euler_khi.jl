@@ -30,13 +30,9 @@ D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
                          accuracy_order=4,
                          xmin=-1.0, xmax=1.0,
                          N=16)
-#flux_splitting = steger_warming_splitting
 flux_splitting = vanleer_haenel_splitting
-#flux_splitting = lax_friedrichs_splitting
-# surface_flux = flux_hllc
 solver = DG(D_upw, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
-            #SurfaceIntegralStrongForm(surface_flux),
             VolumeIntegralUpwind(flux_splitting))
 
 coordinates_min = (-1.0, -1.0)
@@ -47,6 +43,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -73,6 +70,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         save_solution,
                         alive_callback)
+
 
 ###############################################################################
 # run the simulation

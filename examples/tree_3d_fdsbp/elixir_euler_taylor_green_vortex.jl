@@ -46,8 +46,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
                 n_cells_max=100_000)
 
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -75,6 +75,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution)
+
 
 ###############################################################################
 # run the simulation

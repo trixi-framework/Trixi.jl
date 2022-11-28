@@ -31,6 +31,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)
 
+
 ###############################################################################
 # ODE solvers, callbacks etc.
 
