@@ -146,15 +146,10 @@ The classical isentropic vortex test case of
   [NASA/CR-97-206253](https://ntrs.nasa.gov/citations/19980007543)
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
-  # for error convergence: make sure that the end time such, that the vortex is back at the initial state!!
-  # for the current vel and domain size: t_end should be a multiple of 20s
-  # initial center of the vortex
-  inicenter = SVector(0.0, 0.0)
-  # size and strength of the vortex
-  iniamplitude = 5.0
+  inicenter = SVector(0.0, 0.0) # initial center of the vortex
+  iniamplitude = 5.0            # size and strength of the vortex
 
-  # base flow
-  rho = 1.0
+  rho = 1.0  # base flow
   v1 = 1.0
   v2 = 1.0
   vel = SVector(v1, v2)
@@ -162,12 +157,11 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 
   rt = p / rho                      # ideal gas equation
   t_loc = 0.0
-  cent = inicenter + vel*t_loc      # advection of center
-  # ATTENTION: handle periodic BC, but only for v1 = v2 = 1.0 (!!!!)
-  cent = x - cent # distance to center point
-  # cent = cross(iniaxis, cent) # distance to axis, tangent vector, length r
-  # cross product with iniaxis = [0, 0, 1]
+
+  cent = inicenter + vel*t_loc      # shift advection of center to handle periodic BC, but only for v1 = v2 = 1.0
+  cent = x - cent                   # distance to center point
   cent = SVector(-cent[2], cent[1])
+
   r2 = cent[1]^2 + cent[2]^2
   du = iniamplitude / (2*π) * exp(0.5 * (1 - r2)) # vel. perturbation
   dtemp = -(equations.gamma - 1) / (2 * equations.gamma * rt) * du^2 # isentropic
