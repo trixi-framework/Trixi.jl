@@ -18,8 +18,8 @@ The classical isentropic vortex test case of
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
-  # for error convergence: make sure that the end time such, that the vortex is back at the initial state!!
-  # for the current vel and domain size: t_end should be a multiple of 20s
+  # for error convergence: make sure that the end time is such that the vortex is back at the initial state!!
+  # for the current velocity and domain size: t_end should be a multiple of 20s
   # initial center of the vortex
   inicenter = SVector(0.0, 0.0)
   # size and strength of the vortex
