@@ -11,7 +11,7 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-@testset "SemidiscretizationHyperbolicParabolic" begin
+@testset "SemidiscretizationHyperbolicParabolic (2D)" begin
 
   @trixi_testset "DGMulti 2D rhs_parabolic!" begin
 
