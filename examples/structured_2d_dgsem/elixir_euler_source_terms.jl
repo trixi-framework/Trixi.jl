@@ -7,8 +7,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-gamma = 1004.0 / 717.0 # = c_pd / c_vd (from moist Euler)
-equations = CompressibleEulerEquations2D(gamma)
+equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
