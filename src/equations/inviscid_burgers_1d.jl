@@ -155,7 +155,6 @@ end
                                           equations::InviscidBurgersEquation1D)
   f = 0.5 * u[1]^2
   lambda = abs(u[1])
-
   return SVector(0.5 * (f - lambda * u[1]))
 end
 

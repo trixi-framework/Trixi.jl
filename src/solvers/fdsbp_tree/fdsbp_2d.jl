@@ -189,7 +189,7 @@ end
 # Specialized interface flux computation because the upwind solver does
 # not require a standard numerical flux (Riemann solver). The flux splitting
 # already separates the solution infomation into right-traveling and
-# left traveling information. So we only need to compute the approriate
+# left-traveling information. So we only need to compute the appropriate
 # flux information at each side of an interface.
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
@@ -220,7 +220,7 @@ function calc_interface_flux!(surface_flux_values,
       flux_minus_rr = splitting(u_rr, Val{:minus}(), orientations[interface], equations)
       flux_plus_ll  = splitting(u_ll, Val{:plus}(),  orientations[interface], equations)
 
-      # Save the upwind coupling into the approriate side of the elements
+      # Save the upwind coupling into the appropriate side of the elements
       for v in eachvariable(equations)
         surface_flux_values[v, i, left_direction,  left_id]  = flux_minus_rr[v]
         surface_flux_values[v, i, right_direction, right_id] = flux_plus_ll[v]
@@ -230,6 +230,7 @@ function calc_interface_flux!(surface_flux_values,
 
   return nothing
 end
+
 
 # Implementation of fully upwind SATs. The surface flux values are pre-computed
 # in the specialized `calc_interface_flux` routine. These SATs are still of
