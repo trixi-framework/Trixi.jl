@@ -262,6 +262,11 @@ function Base.resize!(semi::AbstractSemidiscretization, new_size)
 
   # Resize ContainerShockCapturingIndicator
   resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
+  # Calc subcell normal directions before StepsizeCallback
+  @unpack indicator = semi.solver.volume_integral
+  if indicator isa IndicatorMCL
+    calc_normal_directions!(indicator.cache.ContainerShockCapturingIndicator, mesh_equations_solver_cache(semi)...)
+  end
 end
 
 function calc_normal_directions!(ContainerShockCapturingIndicator, mesh::TreeMesh, dg, cache)
