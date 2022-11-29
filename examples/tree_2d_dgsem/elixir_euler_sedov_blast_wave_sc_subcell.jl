@@ -45,7 +45,6 @@ indicator_sc = IndicatorIDP(equations, basis;
                             IDPDensityTVD=true,
                             IDPPressureTVD=true,
                             IDPPositivity=true,
-                            IDPCheckBounds=true,
                             indicator_smooth=true,
                             IDPMaxIter=15)
 volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;

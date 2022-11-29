@@ -1441,7 +1441,6 @@ function Base.resize!(container::ContainerShockCapturingIndicatorMCL, capacity)
   @unpack _var_min, _var_max = container
   resize!(_var_min, n_variables * n_nodes * n_nodes * capacity)
   container.var_min = unsafe_wrap(Array, pointer(_var_min), (n_variables, n_nodes, n_nodes, capacity))
-  @unpack _var_max, _var_max = container
   resize!(_var_max, n_variables * n_nodes * n_nodes * capacity)
   container.var_max = unsafe_wrap(Array, pointer(_var_max), (n_variables, n_nodes, n_nodes, capacity))
 

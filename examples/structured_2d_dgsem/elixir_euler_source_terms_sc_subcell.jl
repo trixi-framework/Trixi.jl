@@ -8,6 +8,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
+source_terms = source_terms_convergence_test
 
 # Get the DG approximation space
 surface_flux = flux_lax_friedrichs
@@ -24,14 +25,18 @@ volume_integral = VolumeIntegralShockCapturingSubcell(indicator_sc;
                                                       volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (2.0, 2.0)
+# Waving flag
+f1(s) = SVector(-1.0, s - 1.0)
+f2(s) = SVector( 1.0, s + 1.0)
+f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
+f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
+mapping = Trixi.transfinite_mapping((f1, f2, f3, f4))
 
 cells_per_dimension = (16, 16)
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max, periodicity=true)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+                                    source_terms=source_terms)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

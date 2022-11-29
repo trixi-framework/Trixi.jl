@@ -20,7 +20,7 @@ function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations
   p =  0.4127
   # add inflow for t>0 at x=-0.5
   # domain size is [-0.5,+0.5]^2
-  if (t > 0) && (x[1] ≈ -0.5) && (abs(x[2]) < 0.05)
+  if (x[1] ≈ -0.5) && (abs(x[2]) < 0.05)
     rho = 5
     v1 = 800 # about Mach number Ma = 2000
     v2 = 0
@@ -50,7 +50,7 @@ indicator_sc = IndicatorIDP(equations, basis;
                             IDPPositivity=true,
                             IDPCheckBounds=true,
                             IDPMaxIter=25,
-                            indicator_smooth=true)
+                            indicator_smooth=true, thr_smooth=0.05)
 volume_integral=VolumeIntegralShockCapturingSubcell(indicator_sc; volume_flux_dg=volume_flux,
                                                                   volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -67,7 +67,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.5e-6) # simulation with end time T=0.001 in the restart file
+tspan = (0.0, 0.001)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -77,20 +77,16 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
-save_restart = SaveRestartCallback(interval=5000,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=true,
-                                     save_final_solution=false,
+                                     save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.004)
+stepsize_callback = StepsizeCallback(cfl=0.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         stepsize_callback)
 
 ###############################################################################
