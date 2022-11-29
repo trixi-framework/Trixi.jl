@@ -23,15 +23,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       l2   = [8.316190308678742e-7],
       linf = [7.1087263324720595e-6],
       tspan = (0.0, 0.5),
-      solver = DG(D_upw, nothing, SurfaceIntegralStrongForm(FluxUpwind(flux_splitting)),  VolumeIntegralUpwind(flux_splitting)))
+      solver = DG(D_upw, nothing, SurfaceIntegralStrongForm(FluxUpwind(flux_splitting)), VolumeIntegralUpwind(flux_splitting)))
   end
 
   @trixi_testset "elixir_burgers_basic.jl with VolumeIntegralStrongForm" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_basic.jl"),
-      l2   = [1.1822159209119987e-7],
-      linf = [8.795292298913182e-7],
-      tspan = (0.0, 0.5),
-      solver = DG(D_upw.central, nothing, SurfaceIntegralStrongForm(), VolumeIntegralStrongForm()))
+      l2   = [9.070360439372959e-7],
+      linf = [6.3308783495585885e-6],
+      tspan = (0.0, 0.005),
+      solver = DG(D_upw.central, nothing, SurfaceIntegralStrongForm(), VolumeIntegralStrongForm()),
+      abstol = 1.0e-12, reltol = 1.0e-12)
   end
 
   @trixi_testset "elixir_burgers_linear_stability.jl" begin
