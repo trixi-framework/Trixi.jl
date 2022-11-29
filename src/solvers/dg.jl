@@ -127,6 +127,9 @@ See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
 - Mattsson (2017)
   Diagonal-norm upwind SBP operators
   [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
   splitting::FluxSplitting
@@ -259,6 +262,9 @@ that use a particular flux `splitting`, e.g.,
 [`splitting_steger_warming`](@ref).
 
 See also [`VolumeIntegralUpwind`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
   splitting::FluxSplitting
