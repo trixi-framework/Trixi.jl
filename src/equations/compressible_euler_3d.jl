@@ -688,12 +688,11 @@ end
                              equations::CompressibleEulerEquations3D)
 
 Splitting of the compressible Euler flux of Steger and Warming.
+
 Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
-positive axis direction).
-
-If only one of the fluxes is required, use the function signature with an
-additional argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 
 ## References
 

@@ -1231,33 +1231,6 @@ function flux_hlle(u_ll, u_rr, orientation::Integer, equations::CompressibleEule
 end
 
 
-# """
-#     flux_upwind(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
-
-# Fully upwind SAT coupling but written in the style of the strong form DG type method.
-# Should be used together with [SurfaceIntegralStrongForm](@ref) and a finite difference
-# summation-by-parts (FDSBP) solver.
-
-# TODO: FD. reference? Maybe van Leer paper "...for the 90s"
-# """
-# # TODO: FD. Do we want this?
-# @inline function flux_upwind(u_ll, u_rr, orientation::Integer, equations::CompressibleEulerEquations2D)
-
-#   # Compute the upwind coupling terms with right-traveling from the left
-#   # and left-traveling information from the right
-#   # TODO: How to make this easier to switch out other splittings?
-#   f_plus_ll  = splitting_steger_warming(u_ll, :plus,  orientation, equations)
-#   f_minus_rr = splitting_steger_warming(u_rr, :minus, orientation, equations)
-
-#   # Combine the upwind terms to pass back as a type of numerical flux
-#   f1 = f_plus_ll[1] + f_minus_rr[1]
-#   f2 = f_plus_ll[2] + f_minus_rr[2]
-#   f3 = f_plus_ll[3] + f_minus_rr[3]
-#   f4 = f_plus_ll[4] + f_minus_rr[4]
-#   return SVector(f1, f2, f3, f4)
-# end
-
-
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations2D)
   rho, v1, v2, p = cons2prim(u, equations)
   c = sqrt(equations.gamma * p / rho)
