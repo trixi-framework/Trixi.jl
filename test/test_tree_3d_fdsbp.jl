@@ -16,6 +16,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_3
       tspan = (0.0, 0.2))
   end
 
+  @trixi_testset "elixir_euler_convergence.jl with VolumeIntegralStrongForm" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
+      l2   = [4.084919840272202e-5, 4.1320630860402814e-5, 4.132063086040211e-5, 4.132063086039092e-5, 8.502518355874354e-5],
+      linf = [0.0001963934848161486, 0.00020239883896255861, 0.0002023988389729947, 0.00020239883896766564, 0.00052605624510349],
+      tspan = (0.0, 0.2),
+      solver = DG(D_upw.central, nothing, SurfaceIntegralStrongForm(), VolumeIntegralStrongForm()))
+  end
+
   @trixi_testset "elixir_euler_taylor_green_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
       l2   = [3.529693407280806e-6, 0.0004691301922633193, 0.00046913019226332234, 0.0006630180220973541, 0.0015732759680929076],

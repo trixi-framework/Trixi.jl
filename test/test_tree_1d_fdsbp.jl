@@ -16,11 +16,21 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_1
       tspan = (0.0, 0.5))
   end
 
+  # same tolerances as above since the methods should be identical (up to
+  # machine precision)
+  @trixi_testset "elixir_burgers_basic.jl with SurfaceIntegralStrongForm and FluxUpwind" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_basic.jl"),
+      l2   = [8.316190308678742e-7],
+      linf = [7.1087263324720595e-6],
+      tspan = (0.0, 0.5),
+      solver = DG(D_upw, nothing, SurfaceIntegralStrongForm(FluxUpwind(flux_splitting)), VolumeIntegralUpwind(flux_splitting)))
+  end
+
   @trixi_testset "elixir_burgers_linear_stability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_linear_stability.jl"),
       l2   = [0.9999995642691271],
       linf = [1.824702804788453],
-      tspan=(0.0, 0.25))
+      tspan = (0.0, 0.25))
   end
 end
 
@@ -38,6 +48,14 @@ end
       linf = [1.4228079689537765e-5, 1.3249887941046978e-5, 3.201552933251861e-5],
       tspan = (0.0, 0.5),
       flux_splitting = splitting_vanleer_haenel)
+  end
+
+  @trixi_testset "elixir_euler_convergence.jl with VolumeIntegralStrongForm" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
+      l2   = [8.6126767518378e-6, 7.670897071480729e-6, 1.4972772284191368e-5],
+      linf = [6.707982777909294e-5, 3.487256699541419e-5, 0.00010170331350556339],
+      tspan = (0.0, 0.5),
+      solver = DG(D_upw.central, nothing, SurfaceIntegralStrongForm(), VolumeIntegralStrongForm()))
   end
 
   @trixi_testset "elixir_euler_density_wave.jl" begin
