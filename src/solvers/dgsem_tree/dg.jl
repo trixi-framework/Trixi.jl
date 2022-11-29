@@ -28,7 +28,7 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
   for element in eachelement(dg, cache)
     # Clip blending factor for values close to zero (-> pure DG)
     if dg.volume_integral isa VolumeIntegralShockCapturingSubcell
-      tol = 0.1
+      tol = dg.volume_integral.indicator.thr_smooth
     else
       tol = 1e-12
     end
