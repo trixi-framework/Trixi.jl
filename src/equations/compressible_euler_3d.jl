@@ -722,9 +722,9 @@ end
     lambda2 = v1 + a
     lambda3 = v1 - a
 
-    lambda1_p = 0.5 * (lambda1 + abs(lambda1))
-    lambda2_p = 0.5 * (lambda2 + abs(lambda2))
-    lambda3_p = 0.5 * (lambda3 + abs(lambda3))
+    lambda1_p = positive_part(lambda1)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
 
     alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
@@ -739,9 +739,9 @@ end
     lambda2 = v2 + a
     lambda3 = v2 - a
 
-    lambda1_p = 0.5 * (lambda1 + abs(lambda1))
-    lambda2_p = 0.5 * (lambda2 + abs(lambda2))
-    lambda3_p = 0.5 * (lambda3 + abs(lambda3))
+    lambda1_p = positive_part(lambda1)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
 
     alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
@@ -751,14 +751,14 @@ end
     f4p = 0.5 * rho / equations.gamma * alpha_p * v3
     f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_p - lambda3_p)
                                          + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
-  else
+  else # orientation == 3
     lambda1 = v3
     lambda2 = v3 + a
     lambda3 = v3 - a
 
-    lambda1_p = 0.5 * (lambda1 + abs(lambda1))
-    lambda2_p = 0.5 * (lambda2 + abs(lambda2))
-    lambda3_p = 0.5 * (lambda3 + abs(lambda3))
+    lambda1_p = positive_part(lambda1)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
 
     alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
@@ -786,9 +786,9 @@ end
     lambda2 = v1 + a
     lambda3 = v1 - a
 
-    lambda1_m = 0.5 * (lambda1 - abs(lambda1))
-    lambda2_m = 0.5 * (lambda2 - abs(lambda2))
-    lambda3_m = 0.5 * (lambda3 - abs(lambda3))
+    lambda1_m = negative_part(lambda1)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
 
     alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
@@ -803,9 +803,9 @@ end
     lambda2 = v2 + a
     lambda3 = v2 - a
 
-    lambda1_m = 0.5 * (lambda1 - abs(lambda1))
-    lambda2_m = 0.5 * (lambda2 - abs(lambda2))
-    lambda3_m = 0.5 * (lambda3 - abs(lambda3))
+    lambda1_m = negative_part(lambda1)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
 
     alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
@@ -815,14 +815,14 @@ end
     f4m = 0.5 * rho / equations.gamma * alpha_m * v3
     f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_m - lambda3_m)
                                          + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
-  else
+  else # orientation == 3
     lambda1 = v3
     lambda2 = v3 + a
     lambda3 = v3 - a
 
-    lambda1_m = 0.5 * (lambda1 - abs(lambda1))
-    lambda2_m = 0.5 * (lambda2 - abs(lambda2))
-    lambda3_m = 0.5 * (lambda3 - abs(lambda3))
+    lambda1_m = negative_part(lambda1)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
 
     alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 

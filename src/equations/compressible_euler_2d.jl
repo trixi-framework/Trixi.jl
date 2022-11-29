@@ -716,7 +716,7 @@ end
     f3p = 0.5 * rho / equations.gamma * alpha_p * v2
     f4p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2) + a * v1 * (lambda2_p - lambda3_p)
                                          + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
-  else
+  else # orientation == 2
     lambda1 = v2
     lambda2 = v2 + a
     lambda3 = v2 - a
@@ -760,7 +760,7 @@ end
     f3m = 0.5 * rho / equations.gamma * alpha_m * v2
     f4m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2) + a * v1 * (lambda2_m - lambda3_m)
                                          + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
-  else
+  else # orientation == 2
     lambda1 = v2
     lambda2 = v2 + a
     lambda3 = v2 - a
@@ -837,7 +837,7 @@ end
     f2p = f1p * v1 + p_plus
     f3p = f1p * v2
     f4p = f1p * H
-  else
+  else # orientation == 2
     M = v2 / a
     p_plus = 0.5 * (1 + equations.gamma * M) * p
 
@@ -867,7 +867,7 @@ end
     f2m = f1m * v1 + p_minus
     f3m = f1m * v2
     f4m = f1m * H
-  else
+  else # orientation == 2
     M = v2 / a
     p_minus = 0.5 * (1 - equations.gamma * M) * p
 
@@ -920,7 +920,7 @@ end
     f2p = 0.5 * rho * v1 * v1 + 0.5 * p + lambda * u[2]
     f3p = 0.5 * rho * v1 * v2 + lambda * u[3]
     f4p = 0.5 * rho * v1 * H + lambda * u[4]
-  else
+  else # orientation == 2
     #lambda = 0.5 * (abs(v2) + a)
     f1p = 0.5 * rho * v2 + lambda * u[1]
     f2p = 0.5 * rho * v2 * v1 + lambda * u[2]
@@ -947,7 +947,7 @@ end
     f2m = 0.5 * rho * v1 * v1 + 0.5 * p - lambda * u[2]
     f3m = 0.5 * rho * v1 * v2 - lambda * u[3]
     f4m = 0.5 * rho * v1 * H - lambda * u[4]
-  else
+  else # orientation == 2
     #lambda = 0.5 * (abs(v2) + a)
     f1m = 0.5 * rho * v2 - lambda * u[1]
     f2m = 0.5 * rho * v2 * v1 - lambda * u[2]
