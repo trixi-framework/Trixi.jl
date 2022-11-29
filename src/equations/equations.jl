@@ -284,6 +284,7 @@ abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <: AbstractEquations{N
 include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
 include("shallow_water_two_layer_1d.jl")
+include("shallow_water_two_layer_2d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
