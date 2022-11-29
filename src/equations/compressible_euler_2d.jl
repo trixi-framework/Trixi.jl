@@ -912,7 +912,7 @@ end
 
   a = sqrt(equations.gamma * p / rho)
   H = (rho_e + p) / rho
-  lambda = 0.5 * (sqrt(v1^2+v2^2) + a)
+  lambda = 0.5 * (sqrt(v1^2 + v2^2) + a)
 
   if orientation == 1
     #lambda = 0.5 * (abs(v1) + a)
