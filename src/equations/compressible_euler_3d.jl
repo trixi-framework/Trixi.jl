@@ -728,12 +728,13 @@ end
 
     alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
-    f1p = 0.5 * rho / equations.gamma * alpha_p
-    f2p = 0.5 * rho / equations.gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
-    f3p = 0.5 * rho / equations.gamma * alpha_p * v2
-    f4p = 0.5 * rho / equations.gamma * alpha_p * v3
-    f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_p - lambda3_p)
-                                         + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
+    f3p = rho_2gamma * alpha_p * v2
+    f4p = rho_2gamma * alpha_p * v3
+    f5p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
   elseif orientation == 2
     lambda1 = v2
     lambda2 = v2 + a
@@ -745,12 +746,13 @@ end
 
     alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
-    f1p = 0.5 * rho / equations.gamma * alpha_p
-    f2p = 0.5 * rho / equations.gamma * alpha_p * v1
-    f3p = 0.5 * rho / equations.gamma * (alpha_p * v2 + a * (lambda2_p - lambda3_p))
-    f4p = 0.5 * rho / equations.gamma * alpha_p * v3
-    f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_p - lambda3_p)
-                                         + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * alpha_p * v1
+    f3p = rho_2gamma * (alpha_p * v2 + a * (lambda2_p - lambda3_p))
+    f4p = rho_2gamma * alpha_p * v3
+    f5p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
   else # orientation == 3
     lambda1 = v3
     lambda2 = v3 + a
@@ -762,12 +764,13 @@ end
 
     alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
 
-    f1p = 0.5 * rho / equations.gamma * alpha_p
-    f2p = 0.5 * rho / equations.gamma * alpha_p * v1
-    f3p = 0.5 * rho / equations.gamma * alpha_p * v2
-    f4p = 0.5 * rho / equations.gamma * (alpha_p * v3 + a * (lambda2_p - lambda3_p))
-    f5p = 0.5 * rho / equations.gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_p - lambda3_p)
-                                         + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * alpha_p * v1
+    f3p = rho_2gamma * alpha_p * v2
+    f4p = rho_2gamma * (alpha_p * v3 + a * (lambda2_p - lambda3_p))
+    f5p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
   end
   return SVector(f1p, f2p, f3p, f4p, f5p)
 end
@@ -792,12 +795,13 @@ end
 
     alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
-    f1m = 0.5 * rho / equations.gamma * alpha_m
-    f2m = 0.5 * rho / equations.gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
-    f3m = 0.5 * rho / equations.gamma * alpha_m * v2
-    f4m = 0.5 * rho / equations.gamma * alpha_m * v3
-    f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_m - lambda3_m)
-                                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
+    f3m = rho_2gamma * alpha_m * v2
+    f4m = rho_2gamma * alpha_m * v3
+    f5m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v1 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
   elseif orientation == 2
     lambda1 = v2
     lambda2 = v2 + a
@@ -809,12 +813,13 @@ end
 
     alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
-    f1m = 0.5 * rho / equations.gamma * alpha_m
-    f2m = 0.5 * rho / equations.gamma * alpha_m * v1
-    f3m = 0.5 * rho / equations.gamma * (alpha_m * v2 + a * (lambda2_m - lambda3_m))
-    f4m = 0.5 * rho / equations.gamma * alpha_m * v3
-    f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_m - lambda3_m)
-                                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * alpha_m * v1
+    f3m = rho_2gamma * (alpha_m * v2 + a * (lambda2_m - lambda3_m))
+    f4m = rho_2gamma * alpha_m * v3
+    f5m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v2 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
   else # orientation == 3
     lambda1 = v3
     lambda2 = v3 + a
@@ -826,12 +831,13 @@ end
 
     alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
 
-    f1m = 0.5 * rho / equations.gamma * alpha_m
-    f2m = 0.5 * rho / equations.gamma * alpha_m * v1
-    f3m = 0.5 * rho / equations.gamma * alpha_m * v2
-    f4m = 0.5 * rho / equations.gamma * (alpha_m * v3 + a * (lambda2_m - lambda3_m))
-    f5m = 0.5 * rho / equations.gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_m - lambda3_m)
-                                         + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * alpha_m * v1
+    f3m = rho_2gamma * alpha_m * v2
+    f4m = rho_2gamma * (alpha_m * v3 + a * (lambda2_m - lambda3_m))
+    f5m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2 + v3^2) + a * v3 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
   end
   return SVector(f1m, f2m, f3m, f4m, f5m)
 end
