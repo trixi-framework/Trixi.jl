@@ -361,16 +361,18 @@ end
 
 
 """
+    splitting_steger_warming(u, orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
     splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
                              orientation::Integer,
                              equations::CompressibleEulerEquations1D)
 
 Splitting of the compressible Euler flux of Steger and Warming.
 
-Returns the flux "minus" (associated with waves going into the
-negative axis direction) or "plus" (associated with waves going into the
-positive axis direction), determined by the argument `which` set to
-`Val{:minus}()` or `Val{:plus}`.
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 
 ## References
 
@@ -379,6 +381,13 @@ positive axis direction), determined by the argument `which` set to
   With Application to Finite Difference Methods
   [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
 """
+@inline function splitting_steger_warming(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  fm = splitting_steger_warming(u, Val{:minus}(), orientation, equations)
+  fp = splitting_steger_warming(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
 @inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
@@ -431,6 +440,8 @@ end
 
 
 """
+    splitting_vanleer_haenel(u, orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
     splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}
                              orientation::Integer,
                              equations::CompressibleEulerEquations1D)
@@ -442,10 +453,10 @@ convective terms. As such there are many pressure splittings suggested across
 the literature. We implement the 'p4' variant suggested by Liou and Steffen as
 it proved the most robust in practice.
 
-Returns the flux "minus" (associated with waves going into the
-negative axis direction) or "plus" (associated with waves going into the
-positive axis direction), determined by the argument `which` set to
-`Val{:minus}()` or `Val{:plus}`.
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 
 ## References
 
@@ -459,6 +470,13 @@ positive axis direction), determined by the argument `which` set to
   High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
   [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
 """
+@inline function splitting_vanleer_haenel(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  fm = splitting_vanleer_haenel(u, Val{:minus}(), orientation, equations)
+  fp = splitting_vanleer_haenel(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
 @inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
@@ -515,6 +533,8 @@ end
 # of this splitting on "el diablo" still crashes early. Can we learn anything
 # from the design of this splitting?
 """
+    splitting_coirier_vanleer(u, orientation::Integer,
+                              equations::CompressibleEulerEquations1D)
     splitting_coirier_vanleer(u, which::Union{Val{:minus}, Val{:plus}}
                               orientation::Integer,
                               equations::CompressibleEulerEquations1D)
@@ -524,10 +544,10 @@ The splitting has correction terms in the pressure splitting as well as
 the mass and energy flux components. The motivation for these corrections
 are to handle flows at the low Mach number limit.
 
-Returns the flux "minus" (associated with waves going into the
-negative axis direction) or "plus" (associated with waves going into the
-positive axis direction), determined by the argument `which` set to
-`Val{:minus}()` or `Val{:plus}`.
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 
 ## References
 
@@ -536,6 +556,13 @@ positive axis direction), determined by the argument `which` set to
   II - Progress in flux-vector splitting
   [DOI: 10.2514/6.1991-1566](https://doi.org/10.2514/6.1991-1566)
 """
+@inline function splitting_coirier_vanleer(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+  fm = splitting_coirier_vanleer(u, Val{:minus}(), orientation, equations)
+  fp = splitting_coirier_vanleer(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
 @inline function splitting_coirier_vanleer(u, ::Val{:plus}, orientation::Integer,
                                             equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
