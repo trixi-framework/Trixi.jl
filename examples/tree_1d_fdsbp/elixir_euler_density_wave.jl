@@ -1,3 +1,6 @@
+# TODO: FD
+# !!! warning "Experimental feature"
+#     This is an experimental feature and may change in any future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -8,21 +11,13 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_density_wave
 
-D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=16)
-D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=16)
-
-# TODO: Super hacky.
-# Abuse the mortars to save the second derivative operator and get it into the run
-flux_splitting = coirier_vanleer_splitting
-solver = DG(D_plus, D_minus #= mortar =#,
+D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
+                         derivative_order=1,
+                         accuracy_order=4,
+                         xmin=-1.0, xmax=1.0,
+                         N=16)
+flux_splitting = splitting_coirier_vanleer
+solver = DG(D_upw, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))
 
@@ -33,6 +28,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -55,6 +51,7 @@ save_solution = SaveSolutionCallback(interval=100,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution)
+
 
 ###############################################################################
 # run the simulation

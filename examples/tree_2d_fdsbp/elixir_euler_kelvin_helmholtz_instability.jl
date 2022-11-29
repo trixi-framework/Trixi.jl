@@ -1,6 +1,7 @@
 # TODO: FD
 # !!! warning "Experimental feature"
 #     This is an experimental feature and may change in any future releases.
+
 using OrdinaryDiffEq
 using Trixi
 
@@ -24,27 +25,14 @@ end
 
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
-#D_plus  = derivative_operator(SummationByPartsOperators.WIP(:plus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=16)
-D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
-#D_minus = derivative_operator(SummationByPartsOperators.WIP(:minus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=16)
-# TODO: Super hacky.
-# Abuse the mortars to save the second derivative operator and get it into the run
-#flux_splitting = steger_warming_splitting
-flux_splitting = vanleer_haenel_splitting
-#flux_splitting = lax_friedrichs_splitting
-#surface_flux = flux_hllc
-solver = DG(D_plus, D_minus #= mortar =#,
+D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
+                         derivative_order=1,
+                         accuracy_order=4,
+                         xmin=-1.0, xmax=1.0,
+                         N=16)
+flux_splitting = splitting_vanleer_haenel
+solver = DG(D_upw, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
-            #SurfaceIntegralStrongForm(surface_flux),
             VolumeIntegralUpwind(flux_splitting))
 
 coordinates_min = (-1.0, -1.0)
@@ -55,6 +43,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -81,6 +70,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         save_solution,
                         alive_callback)
+
 
 ###############################################################################
 # run the simulation

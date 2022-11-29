@@ -12,21 +12,13 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
-D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=16)
-D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=16)
-
-# TODO: Super hacky.
-# Abuse the mortars to save the second derivative operator and get it into the run
-flux_splitting = steger_warming_splitting
-solver = DG(D_plus, D_minus #= mortar =#,
+D = upwind_operators(SummationByPartsOperators.Mattsson2017,
+                     derivative_order=1,
+                     accuracy_order=4,
+                     xmin=-1.0, xmax=1.0,
+                     N=16)
+flux_splitting = splitting_steger_warming
+solver = DG(D, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))
 
