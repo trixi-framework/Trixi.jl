@@ -5,7 +5,6 @@ using Trixi
 
 include("test_trixi.jl")
 
-# EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
