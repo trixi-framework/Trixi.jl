@@ -298,12 +298,12 @@ function Base.show(io::IO, mime::MIME"text/plain", rd::RefElemData{NDIMS, Elemen
   @nospecialize rd
   print(io, "RefElemData for an approximation using an ")
   show(IOContext(io, :compact => true), rd.approximation_type)
-  print(io, " on $(rd.elementType) element")
+  print(io, " on $(rd.element_type) element")
 end
 
 function Base.show(io::IO, rd::RefElemData{NDIMS, ElementType, ApproximationType}) where {NDIMS, ElementType<:StartUpDG.AbstractElemShape, ApproximationType<:AbstractDerivativeOperator}
   @nospecialize rd
-  print(io, "RefElemData{", summary(rd.approximation_type), ", ", rd.elementType, "}")
+  print(io, "RefElemData{", summary(rd.approximation_type), ", ", rd.element_type, "}")
 end
 
 function StartUpDG.inverse_trace_constant(rd::RefElemData{NDIMS, ElementType, ApproximationType})  where {NDIMS, ElementType<:Union{Line, Quad, Hex}, ApproximationType<:AbstractDerivativeOperator}
@@ -400,7 +400,7 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
                 periodicity)
 
   boundary_faces = []
-  return DGMultiMesh{NDIMS, rd.elementType, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
+  return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).

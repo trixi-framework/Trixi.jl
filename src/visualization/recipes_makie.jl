@@ -102,8 +102,20 @@ function iplot(pd::PlotData2DTriangulated;
   flat_wire_points = Makie.@lift get_flat_points($wire_points, $z_offset)
   wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color=:black)
 
+  # create a small variation in the extrema to avoid the Makie `range_step` cannot be zero error.
+  # see https://github.com/MakieOrg/Makie.jl/issues/931 for more details.
+  # the colorbar range is perturbed by 1e-5 * the magnitude of the solution.
+  function scaled_extrema(x)
+    ex = extrema(x)
+    if ex[2] ≈ ex[1] # if solution is close to constant, perturb colorbar
+      return ex .+ 1e-5 .* maximum(abs.(ex)) .* (-1, 1)
+    else
+      return ex
+    end
+  end
+
   # Resets the colorbar each time the solution changes.
-  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(extrema($solution_z)), colormap=colormap)
+  Makie.Colorbar(fig[1, 3], limits = Makie.@lift(scaled_extrema($solution_z)), colormap=colormap)
 
   # This syncs the toggle buttons to the mesh plots.
   Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)

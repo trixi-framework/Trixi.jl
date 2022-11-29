@@ -579,6 +579,144 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @timed_testset "Consistency check for Godunov flux" begin
+    # Set up equations and dummy conservative variables state
+    # Burger's Equation 
+
+    equation = InviscidBurgersEquation1D()
+    u_values = [SVector(42.0), SVector(-42.0)]
+
+    orientations = [1]
+    for orientation in orientations, u in u_values
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    # Linear Advection 1D
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    # Linear Advection 2D
+    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
+    u = SVector(3.14159)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
+    end
+    
+    # Linear Advection 3D
+    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
+    u = SVector(3.14159)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(u, u, normal_direction, equation) ≈ flux(u, normal_direction, equation)
+    end   
+  end
+
+  @timed_testset "Consistency check for Engquist-Osher flux" begin
+    # Set up equations and dummy conservative variables state
+    equation = InviscidBurgersEquation1D()
+    u_values = [SVector(42.0), SVector(-42.0)]
+
+    orientations = [1]
+    for orientation in orientations, u in u_values
+      @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
+
+    orientations = [1]
+    for orientation in orientations
+      @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈ flux(u, orientation, equation)
+    end
+  end
+
+  @testset "Equivalent Fluxes" begin
+    # Set up equations and dummy conservative variables state
+    # Burger's Equation 
+
+    equation = InviscidBurgersEquation1D()
+    u_values = [SVector(42.0), SVector(-42.0)]
+
+    orientations = [1]
+    for orientation in orientations, u in u_values
+      @test flux_godunov(0.75*u, u, orientation, equation) ≈ Trixi.flux_engquist_osher(0.75*u, u, orientation, equation)
+    end
+
+    # Linear Advection 1D
+    equation = LinearScalarAdvectionEquation1D(-4.2)
+    u = SVector(3.14159)
+
+    orientations = [1]
+    for orientation in orientations
+      @test flux_godunov(0.5*u, u, orientation, equation) ≈ flux_lax_friedrichs(0.5*u, u, orientation, equation)
+      @test flux_godunov(2*u, u, orientation, equation) ≈ Trixi.flux_engquist_osher(2*u, u, orientation, equation)
+    end
+
+    # Linear Advection 2D
+    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
+    u = SVector(3.14159)
+
+    orientations = [1, 2]
+    for orientation in orientations
+      @test flux_godunov(0.25*u, u, orientation, equation) ≈ flux_lax_friedrichs(0.25*u, u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0),
+                         SVector(0.0, 1.0),
+                         SVector(0.5, -0.5),
+                         SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(3*u, u, normal_direction, equation)
+    end
+    
+    # Linear Advection 3D
+    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
+    u = SVector(3.14159)
+
+    orientations = [1, 2, 3]
+    for orientation in orientations
+      @test flux_godunov(1.5*u, u, orientation, equation) ≈ flux_lax_friedrichs(1.5*u, u, orientation, equation)
+    end
+
+    normal_directions = [SVector(1.0, 0.0, 0.0),
+                         SVector(0.0, 1.0, 0.0),
+                         SVector(0.0, 0.0, 1.0),
+                         SVector(0.5, -0.5, 0.2),
+                         SVector(-1.2, 0.3, 1.4)]
+
+    for normal_direction in normal_directions
+      @test flux_godunov(1.3*u, u, normal_direction, equation) ≈ flux_lax_friedrichs(1.3*u, u, normal_direction, equation)
+    end   
+  end
+
   @testset "FluxRotated vs. direct implementation" begin
     @timed_testset "CompressibleEulerEquations2D" begin
       equations = CompressibleEulerEquations2D(1.4)
