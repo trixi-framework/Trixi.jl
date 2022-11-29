@@ -1,3 +1,6 @@
+# TODO: FD
+# !!! warning "Experimental feature"
+#     This is an experimental feature and may change in any future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -9,22 +12,13 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-# Note that the expected EOC of 4 when the value of N is increased
-D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=32)
-D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=32)
-
-# TODO: Super hacky.
-# Abuse the mortars to save the second derivative operator and get it into the run
-flux_splitting = steger_warming_splitting
-solver = DG(D_plus, D_minus #= mortar =#,
+D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
+                          derivative_order=1,
+                          accuracy_order=4,
+                          xmin=-1.0, xmax=1.0,
+                          N=32)
+flux_splitting = splitting_steger_warming
+solver = DG(D_upw, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))
 
@@ -36,6 +30,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -60,6 +55,7 @@ save_solution = SaveSolutionCallback(interval=100,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution)
+
 
 ###############################################################################
 # run the simulation

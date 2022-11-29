@@ -72,7 +72,8 @@ using SummationByPartsOperators: AbstractDerivativeOperator,
 import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators:
-  SummationByPartsOperators, derivative_operator, periodic_derivative_operator
+  SummationByPartsOperators, derivative_operator, periodic_derivative_operator,
+  upwind_operators
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, SBP, Line, Tri, Quad, Hex, Tet
@@ -154,8 +155,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxHydrostaticReconstruction
 
-export steger_warming_splitting, vanleer_haenel_splitting,
-       coirier_vanleer_splitting, lax_friedrichs_splitting
+export splitting_steger_warming, splitting_vanleer_haenel,
+       splitting_coirier_vanleer, splitting_lax_friedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,

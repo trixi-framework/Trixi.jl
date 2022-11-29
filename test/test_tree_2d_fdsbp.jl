@@ -25,8 +25,8 @@ end
       tspan=(0.0, 0.1))
   end
 
-  @trixi_testset "elixir_euler_khi.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi.jl"),
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       l2   = [0.02607850081951497, 0.020357717558016252, 0.028510191844948945, 0.02951535039734857],
       linf = [0.12185328623662173, 0.1065055387595834, 0.06257122956937419, 0.11992349951978643],
       tspan=(0.0, 0.1))

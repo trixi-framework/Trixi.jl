@@ -32,12 +32,12 @@ end
       tspan = (0.0, 0.5))
   end
 
-  @trixi_testset "elixir_euler_convergence.jl with vanleer_haenel_splitting" begin
+  @trixi_testset "elixir_euler_convergence.jl with splitting_vanleer_haenel" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
       l2   = [3.413790589105506e-6, 4.243957977156001e-6, 8.667369423676437e-6],
       linf = [1.4228079689537765e-5, 1.3249887941046978e-5, 3.201552933251861e-5],
       tspan = (0.0, 0.5),
-      flux_splitting = vanleer_haenel_splitting)
+      flux_splitting = splitting_vanleer_haenel)
   end
 
   @trixi_testset "elixir_euler_density_wave.jl" begin

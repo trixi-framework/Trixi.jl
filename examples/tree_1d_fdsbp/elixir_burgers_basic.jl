@@ -1,3 +1,6 @@
+# TODO: FD
+# !!! warning "Experimental feature"
+#     This is an experimental feature and may change in any future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -9,21 +12,13 @@ equations = InviscidBurgersEquation1D()
 
 initial_condition = initial_condition_convergence_test
 
-D_plus  = derivative_operator(SummationByPartsOperators.Mattsson2017(:plus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=32)
-D_minus = derivative_operator(SummationByPartsOperators.Mattsson2017(:minus),
-                              derivative_order=1,
-                              accuracy_order=4,
-                              xmin=-1.0, xmax=1.0,
-                              N=32)
-
-# TODO: Super hacky.
-# Abuse the mortars to save the second derivative operator and get it into the run
-flux_splitting = lax_friedrichs_splitting
-solver = DG(D_plus, D_minus #= mortar =#,
+D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
+                         derivative_order=1,
+                         accuracy_order=4,
+                         xmin=-1.0, xmax=1.0,
+                         N=32)
+flux_splitting = splitting_lax_friedrichs
+solver = DG(D_upw, nothing #= mortar =#,
             SurfaceIntegralUpwind(flux_splitting),
             VolumeIntegralUpwind(flux_splitting))
 
@@ -32,7 +27,6 @@ coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=10_000)
-
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)

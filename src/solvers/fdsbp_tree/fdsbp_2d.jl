@@ -21,56 +21,10 @@ function create_cache(mesh::TreeMesh{2}, equations,
 
   prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(
     undef, ntuple(_ -> nnodes(dg), ndims(mesh))...)
-  f_plus_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
   f_minus_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  f_plus_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
 
-  return (; f_plus_threaded, f_minus_threaded,)
-end
-
-
-# Specialized interface flux computation because the upwind solver does
-# not require a standard numerical flux (Riemann solver). The flux splitting
-# already separates the solution infomation into right-traveling and
-# left traveling information. So we only need to compute the approriate
-# flux information at each side of an interface.
-function calc_interface_flux!(surface_flux_values,
-                              mesh::TreeMesh{2},
-                              nonconservative_terms::Val{false}, equations,
-                              surface_integral::SurfaceIntegralUpwind,
-                              dg::FDSBP, cache)
-  @unpack splitting = surface_integral
-  @unpack u, neighbor_ids, orientations = cache.interfaces
-
-  @threaded for interface in eachinterface(dg, cache)
-    # Get neighboring elements
-    left_id  = neighbor_ids[1, interface]
-    right_id = neighbor_ids[2, interface]
-
-    # Determine interface direction with respect to elements:
-    # orientation = 1: left -> 2, right -> 1
-    # orientation = 2: left -> 4, right -> 3
-    left_direction  = 2 * orientations[interface]
-    right_direction = 2 * orientations[interface] - 1
-
-    for i in eachnode(dg)
-      # Pull the left and right solution data
-      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-
-      # Compute the upwind coupling terms where right-traveling
-      # information comes from the left and left-traveling information
-      # comes from the right
-      flux_plus_ll  = splitting(u_ll, Val{:plus}(),  orientations[interface], equations)
-      flux_minus_rr = splitting(u_rr, Val{:minus}(), orientations[interface], equations)
-
-      # Save the upwind coupling into the approriate side of the elements
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, left_direction,  left_id]  = flux_minus_rr[v]
-        surface_flux_values[v, i, right_direction, right_id] = flux_plus_ll[v]
-      end
-    end
-  end
-
-  return nothing
+  return (; f_minus_threaded, f_plus_threaded,)
 end
 
 
@@ -124,7 +78,8 @@ end
 
 
 # 2D volume integral contributions for `VolumeIntegralUpwind`.
-# Note that the plus / minus notation does not refer to the upwind / downwind directions.
+# Note that the plus / minus notation of the operators does not refer to the
+# upwind / downwind directions of the fluxes.
 # Instead, the plus / minus refers to the direction of the biasing within
 # the finite difference stencils. Thus, the D^- operator acts on the positive
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
@@ -134,10 +89,11 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)
-  D_plus = dg.basis # Upwind SBP D^+ derivative operator
-  # TODO: Super hacky. For now the other derivative operator is passed via the mortars
-  D_minus = dg.mortar # Upwind SBP D^- derivative operator
-  @unpack f_plus_threaded, f_minus_threaded = cache
+  # Assume that
+  # dg.basis isa SummationByPartsOperators.UpwindOperators
+  D_minus = dg.basis.minus # Upwind SBP D^- derivative operator
+  D_plus = dg.basis.plus   # Upwind SBP D^+ derivative operator
+  @unpack f_minus_threaded, f_plus_threaded = cache
   @unpack splitting = volume_integral
 
   # SBP operators from SummationByPartsOperators.jl implement the basic interface
@@ -158,13 +114,13 @@ function calc_volume_integral!(du, u,
   # Use the tensor product structure to compute the discrete derivatives of
   # the fluxes line-by-line and add them to `du` for each element.
   @threaded for element in eachelement(dg, cache)
-    f_plus_element = f_plus_threaded[Threads.threadid()]
     f_minus_element = f_minus_threaded[Threads.threadid()]
+    f_plus_element = f_plus_threaded[Threads.threadid()]
     u_element = view(u_vectors, :, :, element)
 
     # x direction
-    @. f_plus_element  = splitting(u_element, Val{:plus}(),  1, equations)
     @. f_minus_element = splitting(u_element, Val{:minus}(), 1, equations)
+    @. f_plus_element  = splitting(u_element, Val{:plus}(),  1, equations)
     for j in eachnode(dg)
       mul!(view(du_vectors, :, j, element), D_minus, view(f_plus_element, :, j),
            one(eltype(du)), one(eltype(du)))
@@ -173,8 +129,8 @@ function calc_volume_integral!(du, u,
     end
 
     # y direction
-    @. f_plus_element  = splitting(u_element, Val{:plus}(),  2, equations)
     @. f_minus_element = splitting(u_element, Val{:minus}(), 2, equations)
+    @. f_plus_element  = splitting(u_element, Val{:plus}(),  2, equations)
     for i in eachnode(dg)
       mul!(view(du_vectors, i, :, element), D_minus, view(f_plus_element, i, :),
            one(eltype(du)), one(eltype(du)))
@@ -229,6 +185,51 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
   return nothing
 end
 
+
+# Specialized interface flux computation because the upwind solver does
+# not require a standard numerical flux (Riemann solver). The flux splitting
+# already separates the solution infomation into right-traveling and
+# left traveling information. So we only need to compute the approriate
+# flux information at each side of an interface.
+function calc_interface_flux!(surface_flux_values,
+                              mesh::TreeMesh{2},
+                              nonconservative_terms::Val{false}, equations,
+                              surface_integral::SurfaceIntegralUpwind,
+                              dg::FDSBP, cache)
+  @unpack splitting = surface_integral
+  @unpack u, neighbor_ids, orientations = cache.interfaces
+
+  @threaded for interface in eachinterface(dg, cache)
+    # Get neighboring elements
+    left_id  = neighbor_ids[1, interface]
+    right_id = neighbor_ids[2, interface]
+
+    # Determine interface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    left_direction  = 2 * orientations[interface]
+    right_direction = 2 * orientations[interface] - 1
+
+    for i in eachnode(dg)
+      # Pull the left and right solution data
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+
+      # Compute the upwind coupling terms where right-traveling
+      # information comes from the left and left-traveling information
+      # comes from the right
+      flux_minus_rr = splitting(u_rr, Val{:minus}(), orientations[interface], equations)
+      flux_plus_ll  = splitting(u_ll, Val{:plus}(),  orientations[interface], equations)
+
+      # Save the upwind coupling into the approriate side of the elements
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, left_direction,  left_id]  = flux_minus_rr[v]
+        surface_flux_values[v, i, right_direction, right_id] = flux_plus_ll[v]
+      end
+    end
+  end
+
+  return nothing
+end
 
 # Implementation of fully upwind SATs. The surface flux values are pre-computed
 # in the specialized `calc_interface_flux` routine. These SATs are still of
