@@ -108,6 +108,12 @@ function solve(ode::ODEProblem; alg=SimpleSSPRK33()::SimpleAlgorithmSSP,
   # Resize container
   resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
 
+  # Calc subcell normal directions before StepsizeCallback
+  @unpack indicator = integrator.p.solver.volume_integral
+  if indicator isa IndicatorMCL
+    calc_normal_directions!(indicator.cache.ContainerShockCapturingIndicator, mesh_equations_solver_cache(integrator.p)...)
+  end
+
   # initialize callbacks
   if callback isa CallbackSet
     for cb in callback.continuous_callbacks
@@ -256,6 +262,44 @@ function Base.resize!(semi::AbstractSemidiscretization, new_size)
 
   # Resize ContainerShockCapturingIndicator
   resize!(semi.solver.volume_integral.indicator.cache.ContainerShockCapturingIndicator, new_size)
+end
+
+function calc_normal_directions!(ContainerShockCapturingIndicator, mesh::TreeMesh, dg, cache)
+
+  return nothing
+end
+
+function calc_normal_directions!(ContainerShockCapturingIndicator, mesh::StructuredMesh, equations, dg, cache)
+  @unpack weights, derivative_matrix = dg.basis
+  @unpack contravariant_vectors = cache.elements
+
+  @unpack normal_direction_xi, normal_direction_eta = ContainerShockCapturingIndicator
+  @threaded for element in eachelement(dg, cache)
+    for j in eachnode(dg)
+      normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
+      for i in 2:nnodes(dg)
+        for m in 1:nnodes(dg)
+          normal_direction += weights[i-1] * derivative_matrix[i-1, m] * get_contravariant_vector(1, contravariant_vectors, m, j, element)
+        end
+        for v in 1:nvariables(equations)-2
+          normal_direction_xi[v, i-1, j, element] = normal_direction[v]
+        end
+      end
+    end
+    for i in eachnode(dg)
+      normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+      for j in 2:nnodes(dg)
+        for m in 1:nnodes(dg)
+          normal_direction += weights[j-1] * derivative_matrix[j-1, m] * get_contravariant_vector(2, contravariant_vectors, i, m, element)
+        end
+        for v in 1:nvariables(equations)-2
+          normal_direction_eta[v, i, j-1, element] = normal_direction[v]
+        end
+      end
+    end
+  end
+
+  return nothing
 end
 
 # check deviation from boundaries of IDP indicator
