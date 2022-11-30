@@ -106,7 +106,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
-                                       nothing,
+                                       zero(uEltype),
                                        cache_analysis)
 
   DiscreteCallback(condition, analysis_callback,
