@@ -251,6 +251,13 @@ isdir(outdir) && rm(outdir, recursive=true)
       tspan = (0.0, 0.05))
   end
 
+  @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
+      l2   = [0.7920927046419308, 9.92129670988898e-15, 1.0118635033124588e-14, 0.7920927046419308],
+      linf = [2.408429868800133, 5.5835419986809516e-14, 5.448874313931364e-14, 2.4084298688001335],
+      tspan = (0.0, 0.25))
+  end
+
   @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
       l2   = [0.0364192725149364, 0.0426667193422069, 0.04261673001449095, 0.025884071405646924,

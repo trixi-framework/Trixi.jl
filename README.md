@@ -3,12 +3,13 @@
 [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
-[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg/videos)
+[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/@trixi-framework)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
+[![Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/Trixi)](https://pkgs.genieframework.com?packages=Trixi)
 <!-- [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.43.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl) -->
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 
@@ -29,7 +30,7 @@ installation and postprocessing procedures. Its features include:
   * Structured and unstructured meshes
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
   * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
-* High-order accuracy in space in time
+* High-order accuracy in space and time
 * Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
@@ -134,7 +135,7 @@ julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
 <p align="center">
-  <img width="300px" src="https://user-images.githubusercontent.com/72009492/130952732-633159ff-c167-4d36-ba36-f2a2eac0a8d6.PNG">
+  <img width="300px" src="https://user-images.githubusercontent.com/26361975/177492363-74cee347-7abe-4522-8b2d-0dfadc317f7e.png">
 </p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a
@@ -155,6 +156,13 @@ of a Julia method is typically slow, with subsequent runs being much faster. For
 instance, in the example above the first execution of `trixi_include` takes about
 20 seconds, while subsequent runs require less than 60 *milli*seconds.
 
+### Showcase of advanced features
+The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),
+originally given as part of JuliaCon 2022, outlines how to use Trixi for an adaptive simulation
+of the compressible Euler equations in two spatial dimensions on a complex domain. More details
+as well as code to run the simulation presented can be found at the
+[reproducibility repository](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
+for the presentation.
 
 ## Documentation
 Additional documentation is available that contains more information on how to
@@ -219,8 +227,8 @@ In addition, you can also refer to Trixi directly as
 
 ## Authors
 Trixi was initiated by [Michael
-Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
-(University of Stuttgart, Germany) and
+Schlottke-Lakemper](https://lakemper.eu)
+(RWTH Aachen University, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Hamburg, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)

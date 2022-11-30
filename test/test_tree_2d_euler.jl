@@ -164,6 +164,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
       coverage_override = (maxiters=10^5,))
   end
 
+  @trixi_testset "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl"),
+      l2   = [0.1057230211245312, 0.10621112311257341, 0.07260957505339989, 0.11178239111065721],
+      linf = [2.998719417992662, 2.1400285015556166, 1.1569648700415078, 1.8922492268110913],
+      tspan = (0.0, 0.1))
+  end
+
   @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
       l2   = [0.055691508271624536, 0.032986009333751655, 0.05224390923711999, 0.08009536362771563],
@@ -215,40 +222,40 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
 
   @trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
-      l2   = [3.53375983916925e-6, 0.0032123259330577325, 0.00321232443824996, 0.004547280616310348],
-      linf = [7.719164482999918e-5, 0.030543222729985442, 0.0304822911023237, 0.042888536761282126])
+      l2   = [0.00013492249515826863, 0.006615696236378061, 0.006782108219800376, 0.016393831451740604],
+      linf = [0.0020782600954247776, 0.08150078921935999, 0.08663621974991986, 0.2829930622010579])
   end
 
   @trixi_testset "elixir_euler_vortex_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
       # Expected errors are exactly the same as in the parallel test!
-      l2   = [2.110390460364181e-6, 2.7230027429598542e-5, 3.657273339760332e-5, 8.735519818394382e-5],
-      linf = [5.9743882399154735e-5, 0.000731856753784843, 0.0007915976735435315, 0.0022215051634404404])
+      l2   = [0.0017208369388227673, 0.09628684992237334, 0.09620157717330868, 0.1758809552387432],
+      linf = [0.021869936355319086, 0.9956698009442038, 1.0002507727219028, 2.223249697515648])
   end
 
   @trixi_testset "elixir_euler_vortex_mortar_split.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
-      l2   = [2.1104708260273183e-6, 2.7351867233787183e-5, 3.657480146175434e-5, 8.762994487073319e-5],
-      linf = [5.9784376802540784e-5, 0.0007362412469449353, 0.0007903523992238703, 0.0022167215782289418])
+      l2   = [0.0017203323613648241, 0.09628962878682261, 0.09621241164155782, 0.17585995600340926],
+      linf = [0.021740570456931674, 0.9938841665880938, 1.004140123355135, 2.224108857746245])
   end
 
   @trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
-      l2   = [3.7412276700966986e-6, 5.4150680347525463e-5, 5.415287159571093e-5, 0.0001542834620109727],
-      linf = [8.473507257800161e-5, 0.0009317864493174621, 0.0009371841830909666, 0.0030735931384739956])
+      l2   = [0.0017158367642679273, 0.09619888722871434, 0.09616432767924141, 0.17553381166255197],
+      linf = [0.021853862449723982, 0.9878047229255944, 0.9880191167111795, 2.2154030488035588])
   end
 
   @trixi_testset "elixir_euler_vortex_mortar_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_shockcapturing.jl"),
-      l2   = [2.1106705938658844e-6, 2.73520503434512e-5, 3.6574899482028756e-5, 8.763675702381447e-5],
-      linf = [5.9783989705297635e-5, 0.000736247574993687, 0.0007903506762051427, 0.002216704220305843])
+      l2   = [0.0017203324051381415, 0.09628962899999398, 0.0962124115572114, 0.1758599596626405],
+      linf = [0.021740568112562086, 0.9938841624655501, 1.0041401179009877, 2.2241087041100798])
   end
 
   @trixi_testset "elixir_euler_vortex_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
       # Expected errors are exactly the same as in the parallel test!
-      l2   = [2.120552206480055e-6, 0.003281541473561042, 0.003280625257336616, 0.004645872821313438],
-      linf = [4.500266027052113e-5, 0.031765399304366726, 0.03179340562764421, 0.04563622772500864],
+      l2   = [5.051719943432265e-5, 0.0022574259317084747, 0.0021755998463189713, 0.004346492398617521],
+      linf = [0.0012880114865917447, 0.03857193149447702, 0.031090457959835893, 0.12125130332971423],
       # Let this test run longer to cover some lines in the AMR indicator
       coverage_override = (maxiters=10^5, tspan=(0.0, 10.5)))
   end

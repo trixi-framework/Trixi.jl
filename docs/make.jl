@@ -29,15 +29,24 @@ DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
+    # Topic: DG semidiscretizations
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
     "Shock capturing with flux differencing and stage limiter" => "shock_capturing.jl",
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
+    "DG schemes via `DGMulti` solver" => "DGMulti_1.jl",
+    "Other SBP schemes (FD, CGSEM) via `DGMulti` solver" => "DGMulti_2.jl",
+    # Topic: equations
     "Adding a new scalar conservation law" => "adding_new_scalar_equations.jl",
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
+    "Parabolic terms" => "parabolic_terms.jl",
+    "Adding new parabolic terms" => "adding_new_parabolic_terms.jl",
+    # Topic: meshes
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
     "Unstructured meshes with HOHQMesh.jl" => "hohqmesh_tutorial.jl",
+    # Topic: other stuff
+    "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
     ]
 tutorials = create_tutorials(files)

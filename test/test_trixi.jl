@@ -63,8 +63,8 @@ macro test_trixi_include(elixir, args...)
     # run only a few steps - ignore possible warnings coming from that
     if any(==(:maxiters) ∘ first, $kwargs)
       additional_ignore_content = [
-        r"┌ Warning: Interrupted\. Larger maxiters is needed\.\n└ @ SciMLBase .+\n",
-        r"┌ Warning: Interrupted\. Larger maxiters is needed\.\n└ @ Trixi .+\n"]
+        r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ SciMLBase .+\n",
+        r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n"]
     else
       additional_ignore_content = []
     end

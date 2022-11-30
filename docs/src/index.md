@@ -3,7 +3,7 @@
 [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
-[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/channel/UCpd92vU2HjjTPup-AIN0pkg/videos)
+[![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/@trixi-framework)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
@@ -24,7 +24,7 @@ installation and postprocessing procedures. Its features include:
   * Structured and unstructured meshes
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
   * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
-* High-order accuracy in space in time
+* High-order accuracy in space and time
 * Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
@@ -174,7 +174,7 @@ julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
 
-![image](https://user-images.githubusercontent.com/72009492/130952732-633159ff-c167-4d36-ba36-f2a2eac0a8d6.PNG)
+![image](https://user-images.githubusercontent.com/26361975/177492363-74cee347-7abe-4522-8b2d-0dfadc317f7e.png)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
@@ -269,6 +269,13 @@ mean      3.94      mean      3.94      mean      3.94      mean      3.93
 --------------------------------------------------------------------------------
 ```
 
+### Showcase of advanced features
+The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),
+originally given as part of JuliaCon 2022, outlines how to use Trixi for an adaptive simulation
+of the compressible Euler equations in two spatial dimensions on a complex domain. More details
+as well as code to run the simulation presented can be found at the
+[reproducibility repository](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
+for the presentation.
 
 ## Referencing
 If you use Trixi in your own research or write a paper using results obtained
@@ -324,8 +331,8 @@ In addition, you can also refer to Trixi directly as
 
 ## [Authors](@id authors-index-md)
 Trixi was initiated by [Michael
-Schlottke-Lakemper](https://www.hlrs.de/people/schlottke-lakemper)
-(University of Stuttgart, Germany) and
+Schlottke-Lakemper](https://lakemper.eu)
+(RWTH Aachen University, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (University of Hamburg, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)

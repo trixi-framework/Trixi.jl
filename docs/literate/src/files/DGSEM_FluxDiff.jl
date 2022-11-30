@@ -82,7 +82,13 @@
 # When using the diagonal SBP property it is possible to rewrite the application of the derivative
 # operator $D$ in the calculation of the volume integral into a subcell based finite volume type
 # differencing formulation ([Fisher, Carpenter (2013)](https://doi.org/10.1016/j.jcp.2013.06.014)).
-# We replace $D \underline{f}$ in the strong form by $2D \underline{f}_{vol}(u^-, u^+)$ with
+# Generalizing
+# ```math
+# (D \underline{f})_i = \sum_j D_{i,j} \underline{f}_j
+# = 2\sum_j \frac{1}{2} D_{i,j} (\underline{f}_j + \underline{f}_i)
+# \eqqcolon 2\sum_j  D_{i,j} f_\text{central}(u_i, u_j),
+# ```
+# we replace $D \underline{f}$ in the strong form by $2D \underline{f}_{vol}(u^-, u^+)$ with
 # the consistent two-point volume flux $f_{vol}$ and receive the DGSEM formulation with flux differencing
 # (split form DGSEM) ([Gassner, Winters, Kopriva (2016)](https://doi.org/10.1016/j.jcp.2016.09.013)).
 
@@ -109,7 +115,7 @@
 
 
 
-# ## Implementation in Trixi
+# ## [Implementation in Trixi](@id fluxDiffExample)
 # Now, we have a look at the implementation of DGSEM with flux differencing with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
 using OrdinaryDiffEq, Trixi
 

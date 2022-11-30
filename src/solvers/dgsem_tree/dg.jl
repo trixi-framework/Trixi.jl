@@ -60,6 +60,7 @@ include("dg_1d.jl")
 # 2D DG implementation
 include("dg_2d.jl")
 include("dg_2d_parallel.jl")
+include("dg_2d_parabolic.jl")
 
 # 3D DG implementation
 include("dg_3d.jl")

@@ -140,8 +140,34 @@ end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation1D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Int, equation::LinearScalarAdvectionEquation1D)
   λ_max = abs(equation.advection_velocity[orientation])
+end
+
+
+# Essentially first order upwind, see e.g.
+# https://math.stackexchange.com/a/4355076/805029
+function flux_godunov(u_ll, u_rr, orientation::Int, equation::LinearScalarAdvectionEquation1D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  v_normal = equation.advection_velocity[orientation] 
+  if v_normal >= 0
+    return SVector(v_normal * u_L)
+  else 
+    return SVector(v_normal * u_R)
+  end
+end
+
+
+# See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
+# section 4.2.5 and especially equation (4.33).
+function flux_engquist_osher(u_ll, u_rr, orientation::Int, equation::LinearScalarAdvectionEquation1D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  return SVector(0.5 * (flux(u_L, orientation, equation) + flux(u_R, orientation, equation) - 
+                        abs(equation.advection_velocity[orientation]) * (u_R - u_L)))
 end
 
 

@@ -12,6 +12,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 @testset "DGMulti 2D" begin
+
   @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
       cells_per_dimension = (4, 4),
@@ -86,7 +87,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
-      l2 = [1.5914065936559232e-5, 1.4757575957005155e-5, 1.4757575956508324e-5, 4.511709781155535e-5],
+      l2 = [1.720476068165337e-5, 1.592168205710526e-5, 1.592168205812963e-5, 4.894094865697305e-5],
       linf = [0.00010525416930584619, 0.00010003778091061122, 0.00010003778085621029, 0.00036426282101720275]
     )
   end
@@ -94,7 +95,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
       approximation_type = GaussSBP(),
-      l2 = [3.578819171269236e-6, 3.4797454435720057e-6, 3.4797454434088854e-6, 1.0812715223492364e-5],
+      l2 = [3.890039406408632e-6, 3.7759123007255403e-6, 3.775912300349982e-6, 1.176119366880501e-5],
       linf = [1.2963211813321607e-5, 1.2570312152959673e-5, 1.2570312227122571e-5, 3.9389540817946767e-5]
     )
   end

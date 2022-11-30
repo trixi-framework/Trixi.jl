@@ -222,7 +222,7 @@ end
 # searches the parameter that specifies the mesh reslution in the elixir
 function extract_initial_resolution(elixir, kwargs)
   code = read(elixir, String)
-  expr = Meta.parse("begin $code end")
+  expr = Meta.parse("begin \n$code \nend")
 
   try
     # get the initial_refinement_level from the elixir
