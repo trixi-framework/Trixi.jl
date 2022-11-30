@@ -151,7 +151,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxLMARS, flux_LMARS
+       FluxLMARS, flux_LMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxHydrostaticReconstruction

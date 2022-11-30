@@ -118,7 +118,10 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
   initial_state_integrals = integrate(u_ode, semi)
-  initial_entropy_state_integrals = integrate(entropy,u_ode, semi)
+  initial_entropy_state_integrals = nothing
+  if :entropy_conservation_error in analysis_errors
+    initial_entropy_state_integrals = integrate(entropy,u_ode, semi)
+  end
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
   analysis_callback = cb.affect!
