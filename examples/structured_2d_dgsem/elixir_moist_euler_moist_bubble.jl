@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the compressible moist Euler equations
 
 equations = CompressibleMoistEulerEquations2D()
 
@@ -96,7 +96,10 @@ function AtmossphereLayers(equations ; total_hight=10010.0, preciseness=10, grou
   return AtmossphereLayers{RealT}(equations, LayerData, total_hight, dz, n, ground_state, theta_e0, mixing_ratios)
 end
 
-
+# Moist bubble test case from paper:
+# G.H. Bryan, J.M. Fritsch, A Benchmark Simulation for Moist Nonhydrostatic Numerical
+# Models, MonthlyWeather Review Vol.130, 2917–2928, 2002, 
+# https://journals.ametsoc.org/view/journals/mwre/130/12/1520-0493_2002_130_2917_absfmn_2.0.co_2.xml.
 function initial_condition_moist_bubble(x, t, equations::CompressibleMoistEulerEquations2D, AtmosphereLayers::AtmossphereLayers)
   @unpack LayerData, preciseness, total_hight = AtmosphereLayers
   dz = preciseness
@@ -162,11 +165,15 @@ function PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::Compr
 
   # Assume pressure stays constant
   if (r < rc && Δθ > 0) 
+    # Calculate background density potential temperature
     θ_dens = rho_theta / rho * (p_loc / p_0)^(kappa_M - kappa)
+    # Calculate perturbed density potential temperature
     θ_dens_new = θ_dens * (1 + Δθ * cospi(0.5*r/rc)^2 / 300)
     rt =(rho_qv + rho_ql) / rho_d 
     rv = rho_qv / rho_d
+    # Calculate moist potential temperature
     θ_loc = θ_dens_new * (1 + rt)/(1 + (R_v / R_d) * rv)
+    # Adjust varuables until the temperature is met
     if rt > 0 
       while true 
         T_loc = θ_loc * (p_loc / p_0)^kappa
@@ -199,8 +206,10 @@ function PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::Compr
   return SVector(rho, rho_e, rho_qv, rho_ql)
 end
 
+# Create background atmosphere data set
 AtmossphereData = AtmossphereLayers(equations)
 
+# Create the initial condition with the initial data set
 function initial_condition_moist(x, t, equations)
   return initial_condition_moist_bubble(x, t, equations, AtmossphereData)
 end
@@ -234,7 +243,7 @@ coordinates_max = (20000.0, 10000.0)
 
 cells_per_dimension = (64, 32)
 
-# Create curved mesh with 16 x 16 elements
+# Create curved mesh with 64 x 32 elements
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 ###############################################################################

@@ -123,7 +123,7 @@ include("visualization/visualization.jl")
 
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
-       CompressibleDryEulerEquations2D, CompressibleMoistEulerEquations2D,
+       CompressibleMoistEulerEquations2D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
@@ -142,7 +142,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle, 
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive,
-       FluxLMARS, flux_LMARS, flux_LMARS_rain
+       FluxLMARS, flux_LMARS
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo
 

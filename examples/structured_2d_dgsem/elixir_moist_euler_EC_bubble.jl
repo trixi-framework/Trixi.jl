@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the compressible moist Euler equations
 
 equations = CompressibleMoistEulerEquations2D()
 
@@ -40,17 +40,17 @@ function generate_function_of_y(dz, y0, r_t0, theta_e0, equations::CompressibleM
     return moist_state(y, dz, y0, r_t0, theta_e0, equations)
   end
 end
-
+#Create Initial atmosphere by generating a layer data set
 struct AtmossphereLayers{RealT<:Real}
   equations::CompressibleMoistEulerEquations2D
   # structure:  1--> i-layer (z = total_hight/precision *(i-1)),  2--> rho, rho_theta, rho_qv, rho_ql
-  LayerData::Matrix{RealT}
-  total_hight::RealT
-  preciseness::Int
-  layers::Int
-  ground_state::NTuple{2, RealT}
-  equivalentpotential_temperature::RealT
-  mixing_ratios::NTuple{2, RealT}
+  LayerData::Matrix{RealT} # Contains the layer data for each height
+  total_hight::RealT # Total height of the atmosphere
+  preciseness::Int # Space between each layer data (dz)
+  layers::Int # Amount of layers (total height / dz)
+  ground_state::NTuple{2, RealT} # (rho_0, p_tilde_0) to define the initial values at height z=0
+  equivalentpotential_temperature::RealT  # Value for theta_e since we have a constant temperature theta_e0=theta_e.
+  mixing_ratios::NTuple{2, RealT} # Constant mixing ratio. Also defines initial guess for rho_qv0 = r_v0 * rho_0.
 end
 
 
@@ -96,7 +96,7 @@ function AtmossphereLayers(equations ; total_hight=10010.0, preciseness=10, grou
   return AtmossphereLayers{RealT}(equations, LayerData, total_hight, dz, n, ground_state, theta_e0, mixing_ratios)
 end
 
-
+# Generate background state from the Layer data set by linearely interpolating the layers
 function initial_condition_moist_bubble(x, t, equations::CompressibleMoistEulerEquations2D, AtmosphereLayers::AtmossphereLayers)
   @unpack LayerData, preciseness, total_hight = AtmosphereLayers
   dz = preciseness
@@ -130,11 +130,13 @@ function initial_condition_moist_bubble(x, t, equations::CompressibleMoistEulerE
   return SVector(rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql)
 end
 
+# Add perturbation to the profile
 function PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::CompressibleMoistEulerEquations2D)
   @unpack kappa, p_0, c_pd, c_vd, c_pv, c_vv, R_d, R_v, c_pl, L_00 = equations
   xc = 2000
   zc = 2000
   rc = 2000
+  # Peak perturbation at center
   Δθ = 10
   
   r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
@@ -144,21 +146,6 @@ function PerturbMoistProfile(x, rho, rho_theta, rho_qv, rho_ql, equations::Compr
   T_loc = p_loc / (R_d * rho_d + R_v * rho_qv)
   rho_e = (c_vd * rho_d + c_vv * rho_qv + c_pl * rho_ql) * T_loc + L_00 * rho_qv
 
-  p_v = rho_qv * R_v * T_loc
-  p_d = p_loc - p_v
-  T_C = T_loc - 273.15
-  p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
-  H = p_v / p_vs
-  r_v = rho_qv / rho_d
-  r_l = rho_ql / rho_d
-  r_t = r_v + r_l
-
-  # Aequivalentpotential temperature
-  a=T_loc * (p_0 / p_d)^(R_d / (c_pd + r_t * c_pl))
-  b=H^(- r_v * R_v /c_pd)
-  L_v = L_00 + (c_pv - c_pl) * T_loc
-  c=exp(L_v * r_v / ((c_pd + r_t * c_pl) * T_loc))
-  aeq_pot = (a * b *c)
 
   # Assume pressure stays constant
   if (r < rc && Δθ > 0) 
@@ -224,8 +211,6 @@ basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_chandrashekar
 volume_flux = flux_chandrashekar
-#surface_flux = flux_central
-#volume_flux = flux_central
 
 
 volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
@@ -239,7 +224,6 @@ coordinates_max = (4000.0, 4000.0)
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-#mesh = StructuredMesh(cells_per_dimension, mapping)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 ###############################################################################
@@ -270,7 +254,7 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution=true,
                                      solution_variables=solution_variables)
 
-stepsize_callback = StepsizeCallback(cfl=0.4)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

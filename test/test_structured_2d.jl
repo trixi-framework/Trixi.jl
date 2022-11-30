@@ -260,6 +260,65 @@ isdir(outdir) && rm(outdir, recursive=true)
               0.9927517314507455, 0.1105172121361323, 0.1257708104676617, 0.1628334844841588,
               0.02624301627479052])
   end
+
+  @trixi_testset "elixir_moist_euler_dry_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_moist_euler_dry_bubble.jl"),
+      l2   = [0.00015033868456964082, 0.02652316391420128, 0.037216491096174115, 22.518969004017357,
+              0.0, 0.0],
+      linf = [0.0011390999145537428, 0.16608251669049423, 0.31064720445763655, 140.1590593745059,
+              0.0, 0.0],
+      tspan = (0.0, 10.0))
+  end
+  
+  @trixi_testset "elixir_moist_euler_EC_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_moist_euler_EC_bubble.jl"),
+      l2   = [0.11138135545153216, 6.717064033835484, 290.3649999497055, 48478.256095063094,
+              0.004607796318441719, 0.003456661638619845],
+      linf = [0.33032362564822115, 19.912638003857083, 365.42528238736617, 139291.992665535,
+              0.009332166011686824, 0.009538261767000747])
+  end
+
+  @trixi_testset "elixir_moist_euler_moist_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_moist_euler_moist_bubble.jl"),
+      l2   = [8.604129781898375e-5, 0.02564885838111472, 0.0426907885147211, 27.2002162878927,
+              2.219689722682066e-6, 9.156209777766153e-7],
+      linf = [0.00043185603079121115, 0.1556349282482595, 0.2921880895228624, 145.45418045285624,
+              1.4122589408402386e-5, 5.776216050197569e-6],
+      tspan = (0.0, 10.0))
+  end
+
+  @trixi_testset "elixir_moist_euler_nonhydrostatic_gravity_waves.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_moist_euler_nonhydrostatic_gravity_waves.jl"),
+      l2   = [0.00037492165085407827, 0.16266422511829073, 0.15457877898414651, 99.46582704120684,
+              0.0, 0.0],
+      linf = [0.006606499157988943, 5.764377712855307, 3.617459418417474, 1701.2324575781531,
+              0.0, 0.0],
+      tspan = (0.0, 10.0))
+  end
+
+  @trixi_testset "elixir_moist_euler_source_terms_dry.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_moist_euler_source_terms_dry.jl"),
+      l2   = [9.300852163549643e-7, 1.4170349926375814e-6, 1.4170349926157451e-6, 4.819724996590055e-6,
+              0.0, 0.0],
+      linf = [9.622682643151137e-6, 1.1738751243051126e-5, 1.1738751242829082e-5, 4.892895420738341e-5,
+              0.0, 0.0]) 
+  end 
+
+  @trixi_testset "elixir_moist_euler_source_terms_moist.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_moist_euler_source_terms_moist.jl"),
+      l2   = [0.0014094256052461678, 0.8134961859965214, 0.8144925487174767, 9.015706013664389,
+              2.1355576537254092e-8, 2.998138141698928e-8],
+      linf = [0.008476629048504769, 1.957595836151809, 1.9590561048787887, 54.613195043326414,
+              1.2248000242953737e-7, 1.7375308648481053e-7]) 
+  end
+
+  @trixi_testset "elixir_moist_euler_source_terms_split_moist.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_moist_euler_source_terms_split_moist.jl"),
+      l2   = [4.918756755029736e-5, 0.13070087426439722, 0.13088066015991837, 0.9334176361086441,
+              1.1310774742985023e-9, 9.179318575753379e-10],
+      linf = [0.00040318287223484184, 0.5657580607791011, 0.5771715673216171, 7.840767829475226,
+              1.1238597111656022e-8, 5.4327794459818905e-9])
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
