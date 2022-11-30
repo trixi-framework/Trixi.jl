@@ -7,12 +7,13 @@
 
 # The first step is to set up an SBP operator. A classical (central) SBP
 # operator can be created as follows.
+using Trixi
 D_SBP = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                             derivative_order=1, accuracy_order=2,
                             xmin=0.0, xmax=1.0, N=11)
 # Instead of prefixing the source of coefficients `MattssonNordström2004()`,
-# you can also load the package SummationByPartsOperators.jl.
-# This yields an object representing the operator efficiently. If you want to
+# you can also load the package SummationByPartsOperators.jl. Either way,
+# this yields an object representing the operator efficiently. If you want to
 # compare it to coefficients presented in the literature, you can convert it
 # to a matrix.
 Matrix(D_SBP)
