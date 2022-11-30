@@ -30,3 +30,31 @@ Matrix(D_upw.plus)
 # For more information on upwind SBP operators, please refer to the documentation
 # of [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
 # and references cited there.
+
+# The basic idea of upwind SBP schemes is to apply a flux vector splitting and
+# use appropriate upwind operators for both parts of the flux. In 1D, this means
+# to split the flux
+# ```math
+# f(u) = f^-(u) + f^+(u)
+# ```
+# such that $f^-(u)$ is associated with left-going waves and `f^+(u)` with
+# right-going waves. Then, we apply upwind SBP operators $D^-, D^+$ with an
+# appropriate upwind bias, resulting in
+# ```math
+# \partial_x f(u) \approx D^+ f^-(u) + D^- f^+(u)
+# ```
+# Note that the established notations of upwind operators $D^\pm$ and flux
+# splittings $f^\pm$ clash. The right-going waves from $f^+$ need an operator
+# biased towards their upwind side, i.e., the left side. This upwind bias is
+# provided by the operator $D^-$.
+
+# Many classical flux vector splittings have been developed for finite volume
+# methods and are described in the book "Riemann Solvers and Numerical Methods
+# for Fluid Dynamics: A Pratical Introduction" of Eleuterio F. Toro (2009),
+# [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761). Such a well-known
+# splitting provided by Trixi.jl is [`splitting_steger_warming`](@ref).
+
+# Trixi.jl comes with several example setups using upwind SBP methods with
+# flux vector splitting, e.g.,
+# - [`elixir_euler_vortex.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_fdsbp/elixir_euler_vortex.jl)
+# - [`elixir_euler_taylor_green_vortex.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_3d_fdsbp/elixir_euler_taylor_green_vortex.jl)
