@@ -38,7 +38,7 @@ Matrix(D_upw.plus)
 # ```math
 # f(u) = f^-(u) + f^+(u)
 # ```
-# such that $f^-(u)$ is associated with left-going waves and `f^+(u)` with
+# such that $f^-(u)$ is associated with left-going waves and $f^+(u)$ with
 # right-going waves. Then, we apply upwind SBP operators $D^-, D^+$ with an
 # appropriate upwind bias, resulting in
 # ```math
