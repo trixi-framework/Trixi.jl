@@ -269,7 +269,7 @@ function Base.resize!(semi::AbstractSemidiscretization, new_size)
   end
 end
 
-function calc_normal_directions!(ContainerShockCapturingIndicator, mesh::TreeMesh, dg, cache)
+function calc_normal_directions!(ContainerShockCapturingIndicator, mesh::TreeMesh, equations, dg, cache)
 
   return nothing
 end
