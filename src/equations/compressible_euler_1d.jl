@@ -399,7 +399,7 @@ end
   lambda2 = v1 + a
   lambda3 = v1 - a
 
-  lambda1_p = positive_part(lambda1)
+  lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
   lambda2_p = positive_part(lambda2)
   lambda3_p = positive_part(lambda3)
 
@@ -425,7 +425,7 @@ end
     lambda2 = v1 + a
     lambda3 = v1 - a
 
-    lambda1_m = negative_part(lambda1)
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
     lambda2_m = negative_part(lambda2)
     lambda3_m = negative_part(lambda3)
 
