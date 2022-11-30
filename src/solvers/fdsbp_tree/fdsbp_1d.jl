@@ -113,6 +113,10 @@ function calc_volume_integral!(du, u,
   # Use the tensor product structure to compute the discrete derivatives of
   # the fluxes line-by-line and add them to `du` for each element.
   @threaded for element in eachelement(dg, cache)
+    # f_minus_plus_element wraps the storage provided by f_minus_element and
+    # f_plus_element such that we can use plain broadcasting below. Thus,
+    # f_minus_element and f_plus_element are updated in broadcasting calls
+    # of the form `@. f_minus_plus_element = ...`.
     f_minus_plus_element = f_minus_plus_threaded[Threads.threadid()]
     f_minus_element = f_minus_threaded[Threads.threadid()]
     f_plus_element = f_plus_threaded[Threads.threadid()]
