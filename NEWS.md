@@ -42,6 +42,10 @@ for human readability.
 #### Changed
 
 - The required Julia version is updated to v1.7.
+- The isentropic vortex setups contained a bug that was fixed in Trixi.jl v0.4.54.
+  Moreover, the setup was made a bit more challenging. See
+  https://github.com/trixi-framework/Trixi.jl/issues/1269 for further
+  information.
 
 #### Deprecated
 
