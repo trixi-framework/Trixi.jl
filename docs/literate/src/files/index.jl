@@ -56,33 +56,41 @@
 # For instance, we show how to set up a finite differences (FD) scheme and a continuous Galerkin
 # (CGSEM) method.
 
-# ### [7 Adding a new scalar conservation law](@ref adding_new_scalar_equations)
+# ### [7 Upwind FD SBP schemes](@ref upwind_fdsbp)
+#-
+# General SBP schemes can not only be used via the [`DGMulti`](@ref) solver but
+# also with a general `DG` solver. In particular, upwind finite difference SBP
+# methods can be used together with the `TreeMesh`. Similar to general SBP
+# schemes in the `DGMulti` framework, the interface is based on the package
+# [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl).
+
+# ### [8 Adding a new scalar conservation law](@ref adding_new_scalar_equations)
 #-
 # This tutorial explains how to add a new physics model using the example of the cubic conservation
 # law. First, we define the equation using a `struct` `CubicEquation` and the physical flux. Then,
 # the corresponding standard setup in Trixi.jl (`mesh`, `solver`, `semi` and `ode`) is implemented
 # and the ODE problem is solved by OrdinaryDiffEq's `solve` method.
 
-# ### [8 Adding a non-conservative equation](@ref adding_nonconservative_equation)
+# ### [9 Adding a non-conservative equation](@ref adding_nonconservative_equation)
 #-
 # In this part, another physics model is implemented, the nonconservative linear advection equation.
 # We run two different simulations with different levels of refinement and compare the resulting errors.
 
-# ### [9 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
+# ### [10 Adaptive mesh refinement](@ref adaptive_mesh_refinement)
 #-
 # Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbolent regions while
 # not wasting ressources for less interesting parts of the domain. This leads to much more efficient
 # simulations. This tutorial presents the implementation strategy of AMR in Trixi, including the use of
 # different indicators and controllers.
 
-# ### [10 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
+# ### [11 Structured mesh with curvilinear mapping](@ref structured_mesh_mapping)
 #-
 # In this tutorial, the use of Trixi's structured curved mesh type [`StructuredMesh`](@ref) is explained.
 # We present the two basic option to initialize such a mesh. First, the curved domain boundaries
 # of a circular cylinder are set by explicit boundary functions. Then, a fully curved mesh is
 # defined by passing the transformation mapping.
 
-# ### [11 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
+# ### [12 Unstructured meshes with HOHQMesh.jl](@ref hohqmesh_tutorial)
 #-
 # The purpose of this tutorial is to demonstrate how to use the [`UnstructuredMesh2D`](@ref)
 # functionality of Trixi.jl. This begins by running and visualizing an available unstructured
@@ -91,13 +99,13 @@
 # software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.
 # In the end, the tutorial briefly explains how to simulate an example using AMR via `P4estMesh`.
 
-# ### [12 Explicit time stepping](@ref time_stepping)
+# ### [13 Explicit time stepping](@ref time_stepping)
 # -
 # This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 # It explains how to use their algorithms and presents two types of time step choices - with error-based
 # and CFL-based adaptive step size control.
 
-# ### [13 Differentiable programming](@ref differentiable_programming)
+# ### [14 Differentiable programming](@ref differentiable_programming)
 #-
 # This part deals with some basic differentiable programming topics. For example, a Jacobian, its
 # eigenvalues and a curve of total energy (through the simulation) are calculated and plotted for
