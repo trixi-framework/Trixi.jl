@@ -106,7 +106,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
-                                       zero(uEltype),
+                                       nothing,
                                        cache_analysis)
 
   DiscreteCallback(condition, analysis_callback,
@@ -118,16 +118,15 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
   initial_state_integrals = integrate(u_ode, semi)
-  initial_entropy_state_integrals = zero(eltype(u_ode))
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
   analysis_callback = cb.affect!
   analysis_callback.initial_state_integrals = initial_state_integrals
-  analysis_callback.initial_entropy_state_integrals = initial_entropy_state_integrals
   @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
 
   if :entropy_conservation_error in analysis_errors
     initial_entropy_state_integrals = integrate(entropy,u_ode, semi)
+    analysis_callback.initial_entropy_state_integrals = initial_entropy_state_integrals  
   end
 
   if save_analysis && mpi_isroot()
