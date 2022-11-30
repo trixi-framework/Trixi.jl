@@ -192,5 +192,27 @@ julia> min(2, 5, 1)
 
 
 
+"""
+    positive_part(x)
+
+Return `x` if `x` is positive, else zero. In other words, return
+`(x + abs(x)) / 2` for real numbers `x`.
+"""
+@inline function positive_part(x)
+  o = zero(x)
+  return ifelse(x > o, x, o)
+end
+
+"""
+    negative_part(x)
+
+Return `x` if `x` is negative, else zero. In other words, return
+`(x - abs(x)) / 2` for real numbers `x`.
+"""
+@inline function negative_part(x)
+  o = zero(x)
+  return ifelse(x < o, x, o)
+end
+
 
 end # @muladd

@@ -19,12 +19,20 @@ end
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralUpwind, dg, uEltype)
 
-  prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(
-    undef, ntuple(_ -> nnodes(dg), ndims(mesh))...)
-  f_minus_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
-  f_plus_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+  u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype), Val{nvariables(equations)}()))
+  f = StructArray([(u_node, u_node)])
+  f_minus_plus_threaded = [similar(f, ntuple(_ -> nnodes(dg), ndims(mesh))...) for _ in 1:Threads.nthreads()]
 
-  return (; f_minus_threaded, f_plus_threaded,)
+  f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[1])
+  f_minus_threaded = [f_minus]
+  f_plus_threaded = [f_plus]
+  for i in 2:Threads.nthreads()
+    f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[i])
+    push!(f_minus_threaded, f_minus)
+    push!(f_plus_threaded, f_plus)
+  end
+
+  return (; f_minus_plus_threaded, f_minus_threaded, f_plus_threaded,)
 end
 
 
@@ -93,7 +101,7 @@ function calc_volume_integral!(du, u,
   # dg.basis isa SummationByPartsOperators.UpwindOperators
   D_minus = dg.basis.minus # Upwind SBP D^- derivative operator
   D_plus = dg.basis.plus   # Upwind SBP D^+ derivative operator
-  @unpack f_minus_threaded, f_plus_threaded = cache
+  @unpack f_minus_plus_threaded, f_minus_threaded, f_plus_threaded = cache
   @unpack splitting = volume_integral
 
   # SBP operators from SummationByPartsOperators.jl implement the basic interface
@@ -114,13 +122,17 @@ function calc_volume_integral!(du, u,
   # Use the tensor product structure to compute the discrete derivatives of
   # the fluxes line-by-line and add them to `du` for each element.
   @threaded for element in eachelement(dg, cache)
+    # f_minus_plus_element wraps the storage provided by f_minus_element and
+    # f_plus_element such that we can use a single plain broadcasting below.
+    # f_minus_element and f_plus_element are updated in broadcasting calls
+    # of the form `@. f_minus_plus_element = ...`.
+    f_minus_plus_element = f_minus_plus_threaded[Threads.threadid()]
     f_minus_element = f_minus_threaded[Threads.threadid()]
     f_plus_element = f_plus_threaded[Threads.threadid()]
     u_element = view(u_vectors, :, :, element)
 
     # x direction
-    @. f_minus_element = splitting(u_element, Val{:minus}(), 1, equations)
-    @. f_plus_element  = splitting(u_element, Val{:plus}(),  1, equations)
+    @. f_minus_plus_element = splitting(u_element, 1, equations)
     for j in eachnode(dg)
       mul!(view(du_vectors, :, j, element), D_minus, view(f_plus_element, :, j),
            one(eltype(du)), one(eltype(du)))
@@ -129,8 +141,7 @@ function calc_volume_integral!(du, u,
     end
 
     # y direction
-    @. f_minus_element = splitting(u_element, Val{:minus}(), 2, equations)
-    @. f_plus_element  = splitting(u_element, Val{:plus}(),  2, equations)
+    @. f_minus_plus_element = splitting(u_element, 2, equations)
     for i in eachnode(dg)
       mul!(view(du_vectors, i, :, element), D_minus, view(f_plus_element, i, :),
            one(eltype(du)), one(eltype(du)))

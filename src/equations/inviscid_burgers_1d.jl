@@ -132,6 +132,8 @@ end
 
 
 """
+    splitting_lax_friedrichs(u, orientation::Integer,
+                             equations::InviscidBurgersEquation1D)
     splitting_lax_friedrichs(u, which::Union{Val{:minus}, Val{:plus}}
                              orientation::Integer,
                              equations::InviscidBurgersEquation1D)
@@ -139,11 +141,18 @@ end
 Naive local Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
 and `f⁻ = 0.5 (f - λ u)` where λ = abs(u).
 
-Returns the flux "minus" (associated with waves going into the
-negative axis direction) or "plus" (associated with waves going into the
-positive axis direction), determined by the argument `which` set to
-`Val{:minus}()` or `Val{:plus}`.
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 """
+@inline function splitting_lax_friedrichs(u, orientation::Integer,
+                                          equations::InviscidBurgersEquation1D)
+  fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation, equations)
+  fp = splitting_lax_friedrichs(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
 @inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
                                           equations::InviscidBurgersEquation1D)
   f = 0.5 * u[1]^2
