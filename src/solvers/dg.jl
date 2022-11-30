@@ -127,44 +127,11 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
   end
 end
 
-
-# TODO: FD. Should this definition live in a different file because it is
-# not strictly a DG method?
-"""
-    VolumeIntegralUpwind(splitting)
-
-Specialized volume integral for finite difference summation-by-parts (FDSBP)
-solvers. Can be used together with the upwind SBP operators of Mattsson (2017)
-implemented in SummationByPartsOperators.jl. The `splitting` controls the
-discretization.
-
-See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
-[`splitting_vanleer_haenel`](@ref).
-
-## References
-
-- Mattsson (2017)
-  Diagonal-norm upwind SBP operators
-  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
-  splitting::FluxSplitting
-end
-
-function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
-  @nospecialize integral # reduce precompilation time
-
-  if get(io, :compact, false)
-    show(io, integral)
-  else
-    setup = [
-            "flux splitting" => integral.splitting
-            ]
-    summary_box(io, "VolumeIntegralUpwind", setup)
-  end
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
+  # call the indicator to get up-to-date values for IO
+  volume_integral.indicator(u, mesh, equations, dg, cache)
+  get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
 end
 
 
@@ -205,13 +172,44 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFi
 end
 
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
-  # call the indicator to get up-to-date values for IO
-  volume_integral.indicator(u, mesh, equations, dg, cache)
-  get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
+# TODO: FD. Should this definition live in a different file because it is
+# not strictly a DG method?
+"""
+    VolumeIntegralUpwind(splitting)
+
+Specialized volume integral for finite difference summation-by-parts (FDSBP)
+solvers. Can be used together with the upwind SBP operators of Mattsson (2017)
+implemented in SummationByPartsOperators.jl. The `splitting` controls the
+discretization.
+
+See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
+[`splitting_vanleer_haenel`](@ref).
+
+## References
+
+- Mattsson (2017)
+  Diagonal-norm upwind SBP operators
+  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
+  splitting::FluxSplitting
 end
 
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "flux splitting" => integral.splitting
+            ]
+    summary_box(io, "VolumeIntegralUpwind", setup)
+  end
+end
 
 
 abstract type AbstractSurfaceIntegral end
