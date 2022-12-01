@@ -24,7 +24,10 @@ D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
                          derivative_order=1, accuracy_order=2,
                          xmin=0.0, xmax=1.0, N=11)
 # Upwind operators are derivative operators biased towards one direction.
-# The "minus" variants has a bias towards the left side.
+# The "minus" variants has a bias towards the left side, i.e., it uses values
+# from more nodes to the left than from the right to compute the discrete
+# derivative approximation at a given node (in the interior of the domain).
+# In matrix form, this means more non-zero entries are left from the diagonal.
 Matrix(D_upw.minus)
 # Analogously, the "plus" variant has a bias towards the right side.
 Matrix(D_upw.plus)
