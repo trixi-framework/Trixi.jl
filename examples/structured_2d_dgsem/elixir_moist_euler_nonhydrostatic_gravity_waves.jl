@@ -61,16 +61,17 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 
 # Deformed rectangle that has "witch of agnesi" as bottom 
-
-function bottom(x)
-  h = 400.0
-  a = 1000.0
-  x_length = 40000.0
-  # linear function cx for x in [-1,1]
-  c = x_length / 2
-  # return (cx , f(cx)-f(c))
-  return SVector(c * x , (h * a^2 * inv((c * x)^2+a^2)) - (h * a^2 * inv((c)^2+a^2)))
-end
+# 
+# function bottom(x)
+#   h = 400.0
+#   a = 1000.0
+#   x_length = 40000.0
+#   # linear function cx for x in [-1,1]
+#   c = x_length / 2
+#   # return (cx , f(cx)-f(c))
+#   return SVector(c * x , (h * a^2 * inv((c * x)^2+a^2)) - (h * a^2 * inv((c)^2+a^2)))
+# end
+# We need to write it out in order to be saved as a string
 
 f1(s) = SVector(-20000.0, 8000.0 * s + 8000.0)
 f2(s) = SVector( 20000.0, 8000.0 * s + 8000.0)

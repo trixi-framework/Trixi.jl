@@ -184,7 +184,7 @@ export source_terms_geopotential
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons, cons2drypot, cons2moistpot, cons2aeqpot
 export density, pressure, density_pressure, velocity, global_mean_vars, equilibrium_distribution, waterheight_pressure,
-       density_vapor, density_liquid
+       density_dry, density_vapor, density_liquid, ratio_vapor, ratio_liquid, temperature
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity,
        dry_pottemp_thermodynamic, moist_pottemp_thermodynamic, aequivalent_pottemp_thermodynamic
 export lake_at_rest_error

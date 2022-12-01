@@ -40,10 +40,8 @@ function CompressibleMoistEulerEquations2D(;g= 9.81, RealT=Float64)
 
 varnames(::typeof(cons2cons), ::CompressibleMoistEulerEquations2D) = ("rho", "rho_v1", "rho_v2", "rho_E", "rho_qv", "rho_ql")
 varnames(::typeof(cons2prim), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "p", "qv", "ql")
-varnames(::typeof(cons2temp), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "T", "qv", "ql")
 varnames(::typeof(cons2drypot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "drypottemp", "qv", "ql")
 varnames(::typeof(cons2moistpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "moistpottemp", "qv", "ql")
-varnames(::typeof(cons2moist), ::CompressibleMoistEulerEquations2D) = ("qv", "ql", "rt", "T", "H", "aeqpottemp")
 varnames(::typeof(cons2aeqpot), ::CompressibleMoistEulerEquations2D) = ("rho", "v1", "v2", "aeqpottemp", "rv", "rt")
 
 
@@ -496,19 +494,6 @@ end
 end
 
 
-# Convert conservative variables to primitive with 
-# temperature instead of pressure.
-@inline function cons2temp(u, equations::CompressibleMoistEulerEquations2D)
-  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  T = get_current_condition(u, equations)[2]
-  qv = rho_qv / rho
-  ql = rho_ql / rho
-
-  return SVector(rho, v1, v2, T, qv, ql)
-end
-
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
   @unpack R_d, R_v, c_pd, c_pv, c_pl, L_00 = equations
@@ -606,42 +591,6 @@ end
   return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
 end
 
-
-# Convert conservative variables to moisture related variables.
-@inline function cons2moist(u, equations::CompressibleMoistEulerEquations2D)
-  @unpack R_d, R_v, c_pd, c_pv, c_pl, p_0 = equations
-  rho, rho_v1, rho_v2, rho_E, rho_qv, rho_ql = u
-
-  v1 = rho_v1 / rho
-  v2 = rho_v2 / rho
-  qv = rho_qv / rho
-  ql = rho_ql / rho
-  p, T = get_current_condition(u, equations)
- 
-  p_v = rho_qv * R_v * T
-  T_C = T - 273.15
-  p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
-  H = p_v * inv(p_vs) 
-
-  rho_d = rho - (rho_qv + rho_ql)
-  r_v = inv(rho_d) * rho_qv
-  r_l = inv(rho_d) * rho_ql
-
-  # Potential temperature
-  R_m = R_d + r_v * R_v
-  c_pml = c_pd + r_v * c_pv + r_l * c_pl
-  kappa_m =  R_m * inv(c_pml)
-  pot = T * (p_0 / p)^(kappa_m)
-
-  pot1 = qv
-  pot2 = ql
-  pot3 = r_v + r_l
-  pot4 = T
-  pot5 = H
-  pot6 = aequivalent_pottemp_thermodynamic(u, equations)
-
-  return SVector(pot1, pot2, pot3, pot4, pot5, pot6)
-end
 
 
 @inline function density(u, equations::CompressibleMoistEulerEquations2D)
