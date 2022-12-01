@@ -1,6 +1,7 @@
 
 using OrdinaryDiffEq
 using Trixi
+using NLsolve
 
 ###############################################################################
 # semidiscretization of the compressible moist Euler equations

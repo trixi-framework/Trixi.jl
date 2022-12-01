@@ -49,7 +49,6 @@ using Octavian: Octavian, matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
-@reexport using NLsolve: nlsolve
 using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
