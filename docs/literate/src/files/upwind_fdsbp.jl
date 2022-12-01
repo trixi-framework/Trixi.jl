@@ -51,8 +51,8 @@ Matrix(D_upw.plus)
 
 # Many classical flux vector splittings have been developed for finite volume
 # methods and are described in the book "Riemann Solvers and Numerical Methods
-# for Fluid Dynamics: A Pratical Introduction" of Eleuterio F. Toro (2009),
-# [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761). Such a well-known
+# for Fluid Dynamics: A Practical Introduction" of Eleuterio F. Toro (2009),
+# [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761). One such a well-known
 # splitting provided by Trixi.jl is [`splitting_steger_warming`](@ref).
 
 # Trixi.jl comes with several example setups using upwind SBP methods with
