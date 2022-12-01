@@ -166,11 +166,9 @@ end
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
                                  equations::ShallowWaterEquations2D)
-
 Create a boundary state by reflecting the normal velocity component and keep
 the tangential velocity component unchanged. The boundary water height is taken from
 the internal value.
-
 For details see Section 9.2.5 of the book:
 - Eleuterio F. Toro (2001)
   Shock-Capturing Methods for Free-Surface Shallow Flows
@@ -199,6 +197,29 @@ For details see Section 9.2.5 of the book:
   return flux
 end
 
+
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::ShallowWaterEquations2D)
+
+Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::ShallowWaterEquations2D)
+  ## get the appropriate normal vector from the orientation
+  if orientation == 1
+    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4])
+  else # orientation == 2
+    u_boundary = SVector(u_inner[1], u_inner[2], -u_inner[3], u_inner[4])
+  end
+
+  # compute and return the flux using `boundary_condition_slip_wall` routine above
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+
+  return flux
+end
 
 # Calculate 1D flux for a single point
 # Note, the bottom topography has no flux
@@ -555,7 +576,7 @@ end
   v1_avg = 0.5 * (v1_ll  + v1_rr )
   v2_avg = 0.5 * (v2_ll  + v2_rr )
   h2_avg = 0.5 * (h_ll^2 + h_rr^2)
-  p_avg  = 0.5 * equations.gravity * h2_avg
+  p_avg  = 0.5 * equations.gravity * h2_avg 
   v_dot_n_avg = 0.5 * (v_dot_n_ll + v_dot_n_rr)
 
   # Calculate fluxes depending on normal_direction
