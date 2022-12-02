@@ -55,7 +55,7 @@ coordinates_min = (-0.5, -0.5)
 coordinates_max = ( 0.5,  0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=8,
+                initial_refinement_level=6,
                 periodicity=(false,true),
                 n_cells_max=100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
@@ -73,20 +73,16 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-# The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
-save_restart = SaveRestartCallback(interval=5000,
-                                   save_final_restart=true)
-
 save_solution = SaveSolutionCallback(interval=5000,
                                      save_initial_solution=true,
-                                     save_final_solution=false,
+                                     save_final_solution=true,
                                      solution_variables=cons2prim)
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_solution,
                         stepsize_callback)
 
 ###############################################################################
