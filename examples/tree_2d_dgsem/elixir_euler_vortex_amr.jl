@@ -78,30 +78,35 @@ The classical isentropic vortex test case of
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
-  # make sure that the inicenter does not exit the domain, e.g. T=10.0
+  # for error convergence: make sure that the end time is such that the vortex is back at the initial state!!
+  # for the current velocity and domain size: t_end should be a multiple of 20s
   # initial center of the vortex
   inicenter = SVector(0.0, 0.0)
   # size and strength of the vortex
-  iniamplitude = 0.2
+  iniamplitude = 5.0
   # base flow
   rho = 1.0
   v1 = 1.0
   v2 = 1.0
   vel = SVector(v1, v2)
-  p = 10.0
+  p = 25.0
   rt = p / rho                  # ideal gas equation
-  cent = inicenter + vel*t      # advection of center
-  cent = x - cent               # distance to centerpoint
-  #cent=cross(iniaxis,cent)     # distance to axis, tangent vector, length r
-  # cross product with iniaxis = [0,0,1]
+  t_loc = 0.0
+  cent = inicenter + vel*t_loc      # advection of center
+  # ATTENTION: handle periodic BC, but only for v1 = v2 = 1.0 (!!!!)
+
+  cent = x - cent # distance to center point
+
+  # cent = cross(iniaxis, cent) # distance to axis, tangent vector, length r
+  # cross product with iniaxis = [0, 0, 1]
   cent = SVector(-cent[2], cent[1])
   r2 = cent[1]^2 + cent[2]^2
-  du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-  dtemp = -(equations.gamma-1)/(2*equations.gamma*rt)*du^2            # isentrop
-  rho = rho * (1+dtemp)^(1\(equations.gamma-1))
-  vel = vel + du*cent
+  du = iniamplitude / (2*π) * exp(0.5 * (1 - r2)) # vel. perturbation
+  dtemp = -(equations.gamma - 1) / (2 * equations.gamma * rt) * du^2 # isentropic
+  rho = rho * (1 + dtemp)^(1 / (equations.gamma - 1))
+  vel = vel + du * cent
   v1, v2 = vel
-  p = p * (1+dtemp)^(equations.gamma/(equations.gamma-1))
+  p = p * (1 + dtemp)^(equations.gamma / (equations.gamma - 1))
   prim = SVector(rho, v1, v2, p)
   return prim2cons(prim, equations)
 end

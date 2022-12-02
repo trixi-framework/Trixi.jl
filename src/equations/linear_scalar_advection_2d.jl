@@ -243,6 +243,35 @@ end
 end
 
 
+# Essentially first order upwind, see e.g.
+# https://math.stackexchange.com/a/4355076/805029
+function flux_godunov(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  v_normal = equation.advection_velocity[orientation] 
+  if v_normal >= 0
+    return SVector(v_normal * u_L)
+  else 
+    return SVector(v_normal * u_R)
+  end
+end
+
+# Essentially first order upwind, see e.g.
+# https://math.stackexchange.com/a/4355076/805029
+function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  a_normal = dot(equation.advection_velocity, normal_direction)
+  if a_normal >= 0
+    return SVector(a_normal * u_L)
+  else 
+    return SVector(a_normal * u_R)
+  end
+end
+
+
 @inline have_constant_speed(::LinearScalarAdvectionEquation2D) = Val(true)
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation2D)
