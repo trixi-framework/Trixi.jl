@@ -1,6 +1,5 @@
-# TODO: FD
-# !!! warning "Experimental feature"
-#     This is an experimental feature and may change in any future releases.
+# !!! warning "Experimental implementation (upwind SBP)"
+#     This is an experimental feature and may change in future releases.
 
 using OrdinaryDiffEq
 using Trixi
@@ -18,9 +17,9 @@ D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
                          xmin=-1.0, xmax=1.0,
                          N=32)
 flux_splitting = splitting_lax_friedrichs
-solver = DG(D_upw, nothing #= mortar =#,
-            SurfaceIntegralUpwind(flux_splitting),
-            VolumeIntegralUpwind(flux_splitting))
+solver = FDSBP(D_upw,
+               surface_integral=SurfaceIntegralUpwind(flux_splitting),
+               volume_integral=VolumeIntegralUpwind(flux_splitting))
 
 coordinates_min = 0.0
 coordinates_max = 1.0

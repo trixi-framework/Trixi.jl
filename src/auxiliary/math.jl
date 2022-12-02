@@ -199,8 +199,7 @@ Return `x` if `x` is positive, else zero. In other words, return
 `(x + abs(x)) / 2` for real numbers `x`.
 """
 @inline function positive_part(x)
-  o = zero(x)
-  return ifelse(x > o, x, o)
+  return max(x, zero(x))
 end
 
 """
@@ -210,8 +209,7 @@ Return `x` if `x` is negative, else zero. In other words, return
 `(x - abs(x)) / 2` for real numbers `x`.
 """
 @inline function negative_part(x)
-  o = zero(x)
-  return ifelse(x < o, x, o)
+  return min(x, zero(x))
 end
 
 

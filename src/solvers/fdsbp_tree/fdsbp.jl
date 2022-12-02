@@ -1,3 +1,6 @@
+# !!! warning "Experimental implementation (upwind SBP)"
+#     This is an experimental feature and may change in future releases.
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -5,8 +8,28 @@
 @muladd begin
 
 
-# For dispatch
+"""
+    FDSBP(D_SBP; surface_integral, volume_integral)
+
+Specialization of [`DG`](@ref) methods that uses general summation by parts (SBP)
+operators from
+[SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl).
+In particular, this includes classical finite difference (FD) SBP methods.
+These methods have the same structure as classical DG methods - local operations
+on elements with connectivity through interfaces without imposing any continuity
+constraints.
+
+`D_SBP` is an SBP derivative operator from SummationByPartsOperators.jl.
+The other arguments have the same meaning as in [`DG`](@ref) or [`DGSEM`](@ref).
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
 const FDSBP = DG{Basis} where {Basis<:AbstractDerivativeOperator}
+
+function FDSBP(D_SBP::AbstractDerivativeOperator; surface_integral, volume_integral)
+  return DG(D_SBP, nothing #= mortar =#, surface_integral, volume_integral)
+end
 
 
 # General interface methods for SummationByPartsOperators.jl and Trixi.jl
@@ -48,4 +71,4 @@ include("fdsbp_2d.jl")
 include("fdsbp_3d.jl")
 
 
-end
+end # @muladd

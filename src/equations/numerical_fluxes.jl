@@ -324,9 +324,12 @@ end
 A numerical flux `f(u_left, u_right) = f⁺(u_left) + f⁻(u_right)` based on
 flux vector splitting.
 
-The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is analytically
-equivalent to the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
-as numerical flux.
+The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is equivalent to
+the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
+as numerical flux (up to floating point differences).
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
 """
 struct FluxUpwind{Splitting}
   splitting::Splitting
