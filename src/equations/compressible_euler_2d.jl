@@ -308,11 +308,11 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
   # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
   if v_normal <= 0.0
     sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 * equations.gamma * equations.inv_gamma_minus_one)
+    p_star = p_local * (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 * equations.gamma * equations.inv_gamma_minus_one)
   else # v_normal > 0.0
-    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    A = 2 / ((equations.gamma + 1) * rho_local)
     B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
-    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
   end
 
   # For the slip wall we directly set the flux as the normal velocity is zero
