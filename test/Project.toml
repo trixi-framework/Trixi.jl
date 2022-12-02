@@ -1,3 +1,12 @@
+[compat]
+BSON = "0.3.3"
+CairoMakie = "0.6, 0.7, 0.8, 0.9"
+Flux = "0.13"
+ForwardDiff = "0.10"
+MPI = "0.20"
+OrdinaryDiffEq = "5.65, 6"
+Plots = "1.16"
+
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
@@ -11,11 +20,11 @@ Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[compat]
-BSON = "0.3.3"
-CairoMakie = "0.6, 0.7, 0.8, 0.9"
-Flux = "0.13"
-ForwardDiff = "0.10"
-MPI = "0.20"
-OrdinaryDiffEq = "5.65, 6"
-Plots = "1.16"
+[preferences.OrdinaryDiffEq]
+PrecompileAutoSpecialize = false
+PrecompileAutoSwitch = false
+PrecompileDefaultSpecialize = true
+PrecompileFunctionWrapperSpecialize = false
+PrecompileNoSpecialize = false
+PrecompileNonStiff = true
+PrecompileStiff = false
