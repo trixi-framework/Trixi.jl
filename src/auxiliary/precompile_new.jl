@@ -38,7 +38,9 @@ using SnoopPrecompile: @precompile_all_calls
       GC.@preserve u_ode du_ode begin
         u = Trixi.wrap_array(u_ode, semi)
         du = Trixi.wrap_array(du_ode, semi)
-        analysis_callback.affect!(devnull, du, u, u_ode, first(tspan), semi)
+        redirect_stdout(devnull) do
+          analysis_callback.affect!(devnull, du, u, u_ode, first(tspan), semi)
+        end
       end
     end
 
@@ -77,7 +79,9 @@ using SnoopPrecompile: @precompile_all_calls
       GC.@preserve u_ode du_ode begin
         u = Trixi.wrap_array(u_ode, semi)
         du = Trixi.wrap_array(du_ode, semi)
-        analysis_callback.affect!(devnull, du, u, u_ode, first(tspan), semi)
+        redirect_stdout(devnull) do
+          analysis_callback.affect!(devnull, du, u, u_ode, first(tspan), semi)
+        end
       end
     end
 
