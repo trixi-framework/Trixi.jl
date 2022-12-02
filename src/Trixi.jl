@@ -189,6 +189,7 @@ export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
+       FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume,

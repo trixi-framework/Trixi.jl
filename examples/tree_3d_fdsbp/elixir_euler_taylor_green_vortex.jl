@@ -35,9 +35,9 @@ D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
                          xmin=-1.0, xmax=1.0,
                          N=16)
 flux_splitting = splitting_steger_warming
-solver = DG(D_upw, nothing #= mortar =#,
-            SurfaceIntegralUpwind(flux_splitting),
-            VolumeIntegralUpwind(flux_splitting))
+solver = FDSBP(D_upw,
+               surface_integral=SurfaceIntegralUpwind(flux_splitting),
+               volume_integral=VolumeIntegralUpwind(flux_splitting))
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = ( 1.0,  1.0,  1.0) .* pi
