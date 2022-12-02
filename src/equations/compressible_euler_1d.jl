@@ -374,6 +374,9 @@ negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
 
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
 ## References
 
 - Joseph L. Steger and R. F. Warming (1979)
@@ -459,6 +462,9 @@ Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
 
 ## References
 
@@ -550,6 +556,9 @@ Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
 
 ## References
 

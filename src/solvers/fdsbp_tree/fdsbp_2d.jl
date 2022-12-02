@@ -1,3 +1,6 @@
+# !!! warning "Experimental implementation (upwind SBP)"
+#     This is an experimental feature and may change in future releases.
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -350,14 +353,6 @@ function calc_error_norms(func, u, t, analyzer,
 
   return l2_error, linf_error
 end
-
-
-# TODO: FD. Visualization
-#       We need to define better interfaces for all the plotting stuff.
-#       Right now, the easiest solution is to use scatter plots such as
-#       x = semi.cache.elements.node_coordinates[1, :, :, :] |> vec
-#       y = semi.cache.elements.node_coordinates[2, :, :, :] |> vec
-#       scatter(x, y, sol.u[end])
 
 
 end # @muladd
