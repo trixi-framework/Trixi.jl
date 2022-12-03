@@ -59,7 +59,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
 
   # Permutation of indices in a tensor product form
   indices = reshape(1:length(rd.rf), nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.elementType))
+  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.element_type))
   for i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, 1] .= indices[i, 1:2]
     face_indices_tensor_product[:, i, 2] .= indices[i, 3:4]
@@ -88,7 +88,7 @@ function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
 
   # Permutation of indices in a tensor product form
   indices = reshape(1:length(rd.rf), nnodes_1d, nnodes_1d, rd.Nfaces)
-  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.elementType))
+  face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d, ndims(rd.element_type))
   for j in 1:nnodes_1d, i in 1:nnodes_1d # loop over nodes in one face
     face_indices_tensor_product[:, i, j, 1] .= indices[i, j, 1:2]
     face_indices_tensor_product[:, i, j, 2] .= indices[i, j, 3:4]
@@ -308,13 +308,36 @@ end
   end
 end
 
-# Specialized constructor for GaussSBP approximation type on quad elements. Restricting to
-# VolumeIntegralFluxDifferencing for now since there isn't a way to exploit this structure
-# for VolumeIntegralWeakForm yet.
+function DGMulti(element_type::Line,
+                 approximation_type::GaussSBP,
+                 volume_integral, surface_integral;
+                 polydeg::Integer,
+                 surface_flux=flux_central,
+                 kwargs...)
+
+  # explicitly specify Gauss quadrature rule with polydeg+1 points
+  rd = RefElemData(element_type, Polynomial(), polydeg,
+                   quad_rule_vol=StartUpDG.gauss_quad(0, 0, polydeg),
+                   kwargs...)
+
+  # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
+  # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
+  # rd.approximation_type manually so we can dispatch on the `GaussSBP` type.
+  # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
+  rd_gauss = @set rd.approximation_type = GaussSBP()
+
+  # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
+  # the mesh is initialized, since the face interpolation operator is used for that.
+  return DG(rd_gauss, nothing #= mortar =#, surface_integral, volume_integral)
+end
+
+# Specialized constructor for GaussSBP approximation type on quad elements.
+# TODO: I believe this is restricted to `VolumeIntegralFluxDifferencing` for now
+# since there isn't a way to exploit this structure for VolumeIntegralWeakForm yet.
+
 function DGMulti(element_type::Union{Quad, Hex},
                  approximation_type::GaussSBP,
-                 volume_integral::VolumeIntegralFluxDifferencing,
-                 surface_integral=SurfaceIntegralWeakForm(surface_flux);
+                 volume_integral, surface_integral;
                  polydeg::Integer,
                  surface_flux=flux_central,
                  kwargs...)
@@ -331,9 +354,9 @@ function DGMulti(element_type::Union{Quad, Hex},
 
   # Since there is no dedicated GaussSBP approximation type implemented in StartUpDG, we simply
   # initialize `rd = RefElemData(...)` with the appropriate quadrature rules and modify the
-  # rd.approximationType manually so we can dispatch on the `GaussSBP` type.
+  # rd.approximation_type manually so we can dispatch on the `GaussSBP` type.
   # This uses the Setfield @set macro, which behaves similarly to `Trixi.remake`.
-  rd_gauss = @set rd.approximationType = GaussSBP()
+  rd_gauss = @set rd.approximation_type = GaussSBP()
 
   # We will modify the face interpolation operator of rd_gauss later, but want to do so only after
   # the mesh is initialized, since the face interpolation operator is used for that.
@@ -356,7 +379,7 @@ function create_cache(mesh::DGMultiMesh, equations,
   rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
   interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
   interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
-  NDIMS = ndims(rd.elementType)
+  NDIMS = ndims(rd.element_type)
   interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS, interp_matrix_lobatto_to_gauss_1D, uEltype)
   interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS, interp_matrix_gauss_to_lobatto_1D, uEltype)
   inv_gauss_weights = inv.(rd.wq)

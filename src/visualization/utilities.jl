@@ -107,12 +107,12 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGMulti, c
 
   # Construct 1D plotting interpolation matrix `Vp1D` for a single face
   @unpack N, Fmask = rd
-  num_face_points = length(Fmask) ÷ num_faces(rd.elementType)
+  num_face_points = length(Fmask) ÷ num_faces(rd.element_type)
   vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), num_face_points - 1))
   rplot = LinRange(-1, 1, nvisnodes)
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
-  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  num_faces_total = num_faces(rd.element_type) * md.num_elements
   xf, yf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), md.xyz)
   uf = similar(u, size(xf))
   apply_to_each_field((out, x)->out .= reshape(view(x, Fmask, :), num_face_points, num_faces_total), uf, u)
@@ -202,7 +202,7 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
   Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
   num_face_points = N+1
-  num_faces_total = num_faces(rd.elementType) * md.num_elements
+  num_faces_total = num_faces(rd.element_type) * md.num_elements
   xf, yf, uf = map(x->reshape(view(x, Fmask, :), num_face_points, num_faces_total), (md.xyz..., u.data))
 
   num_face_plotting_points = size(Vp1D, 1)
@@ -924,7 +924,7 @@ function distances_from_single_point(nodes, point)
   _, n_nodes, _, _, n_elements = size(nodes)
   shifted_data = nodes.-point
   distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-    
+
   # Iterate over every entry.
   for element in 1:n_elements
     for x in 1:n_nodes

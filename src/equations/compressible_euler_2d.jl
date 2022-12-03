@@ -10,17 +10,17 @@
 
 The compressible Euler equations
 ```math
-\partial t
+\frac{\partial}{\partial t}
 \begin{pmatrix}
 \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
 \end{pmatrix}
 +
-\partial x
+\frac{\partial}{\partial x}
 \begin{pmatrix}
  \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e +p) v_1
 \end{pmatrix}
 +
-\partial y
+\frac{\partial}{\partial y}
 \begin{pmatrix}
 \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e +p) v_2
 \end{pmatrix}
@@ -36,7 +36,6 @@ Here, ``\rho`` is the density, ``v_1``,`v_2` the velocities, ``e`` the specific 
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
 the pressure.
-
 """
 struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
   gamma::RealT               # ratio of specific heats
@@ -220,7 +219,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   c = 2.0
   A = 0.1
   G = 1.0 # gravitational constant, must match coupling solver
-  C_grav = -2.0 * G / pi # 2 == 4 / ndims
+  C_grav = -2 * G / pi # 2 == 4 / ndims
 
   x1, x2 = x
   si, co = sincos(pi * (x1 + x2 - t))
@@ -309,11 +308,11 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
   # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
   if v_normal <= 0.0
     sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-    p_star = p_local * (1.0 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2.0 * equations.gamma * equations.inv_gamma_minus_one)
+    p_star = p_local * (1 + 0.5 * (equations.gamma - 1) * v_normal / sound_speed)^(2 * equations.gamma * equations.inv_gamma_minus_one)
   else # v_normal > 0.0
-    A = 2.0 / ((equations.gamma + 1) * rho_local)
+    A = 2 / ((equations.gamma + 1) * rho_local)
     B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
-    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4.0 * A * (p_local + B)))
+    p_star = p_local + 0.5 * v_normal / A * (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
   end
 
   # For the slip wall we directly set the flux as the normal velocity is zero
@@ -369,7 +368,7 @@ Should be used together with [`StructuredMesh`](@ref).
 end
 
 
-# Calculate 1D flux for a single point
+# Calculate 2D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1 / rho
@@ -389,7 +388,7 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
-# Calculate 1D flux for a single point in the normal direction
+# Calculate 2D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector, equations::CompressibleEulerEquations2D)
   rho_e = last(u)
@@ -662,6 +661,313 @@ end
         + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll) )
 
   return SVector(f1, f2, f3, f4)
+end
+
+
+"""
+    splitting_steger_warming(u, orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
+    splitting_steger_warming(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
+
+Splitting of the compressible Euler flux of Steger and Warming.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- Joseph L. Steger and R. F. Warming (1979)
+  Flux Vector Splitting of the Inviscid Gasdynamic Equations
+  With Application to Finite Difference Methods
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/api/citations/19790020779/downloads/19790020779.pdf)
+"""
+@inline function splitting_steger_warming(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  fm = splitting_steger_warming(u, Val{:minus}(), orientation, equations)
+  fp = splitting_steger_warming(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
+@inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+  a = sqrt(equations.gamma * p / rho)
+
+  if orientation == 1
+    lambda1 = v1
+    lambda2 = v1 + a
+    lambda3 = v1 - a
+
+    lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
+
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * (alpha_p * v1 + a * (lambda2_p - lambda3_p))
+    f3p = rho_2gamma * alpha_p * v2
+    f4p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2) + a * v1 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+  else # orientation == 2
+    lambda1 = v2
+    lambda2 = v2 + a
+    lambda3 = v2 - a
+
+    lambda1_p = positive_part(lambda1) # Same as (lambda_i + abs(lambda_i)) / 2, but faster :)
+    lambda2_p = positive_part(lambda2)
+    lambda3_p = positive_part(lambda3)
+
+    alpha_p = 2 * (equations.gamma - 1) * lambda1_p + lambda2_p + lambda3_p
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1p = rho_2gamma * alpha_p
+    f2p = rho_2gamma * alpha_p * v1
+    f3p = rho_2gamma * (alpha_p * v2 + a * (lambda2_p - lambda3_p))
+    f4p = rho_2gamma * (alpha_p * 0.5 * (v1^2 + v2^2) + a * v2 * (lambda2_p - lambda3_p)
+                        + a^2 * (lambda2_p + lambda3_p) * equations.inv_gamma_minus_one)
+  end
+  return SVector(f1p, f2p, f3p, f4p)
+end
+
+@inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+  a = sqrt(equations.gamma * p / rho)
+
+  if orientation == 1
+    lambda1 = v1
+    lambda2 = v1 + a
+    lambda3 = v1 - a
+
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * (alpha_m * v1 + a * (lambda2_m - lambda3_m))
+    f3m = rho_2gamma * alpha_m * v2
+    f4m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2) + a * v1 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+  else # orientation == 2
+    lambda1 = v2
+    lambda2 = v2 + a
+    lambda3 = v2 - a
+
+    lambda1_m = negative_part(lambda1) # Same as (lambda_i - abs(lambda_i)) / 2, but faster :)
+    lambda2_m = negative_part(lambda2)
+    lambda3_m = negative_part(lambda3)
+
+    alpha_m = 2 * (equations.gamma - 1) * lambda1_m + lambda2_m + lambda3_m
+
+    rho_2gamma = 0.5 * rho / equations.gamma
+    f1m = rho_2gamma * alpha_m
+    f2m = rho_2gamma * alpha_m * v1
+    f3m = rho_2gamma * (alpha_m * v2 + a * (lambda2_m-lambda3_m))
+    f4m = rho_2gamma * (alpha_m * 0.5 * (v1^2 + v2^2) + a * v2 * (lambda2_m - lambda3_m)
+                        + a^2 * (lambda2_m + lambda3_m) * equations.inv_gamma_minus_one)
+  end
+  return SVector(f1m, f2m, f3m, f4m)
+end
+
+
+"""
+    splitting_vanleer_haenel(u, orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
+    splitting_vanleer_haenel(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
+
+Splitting of the compressible Euler flux from van Leer. This splitting further
+contains a reformulation due to Hänel et al. where the energy flux uses the
+enthalpy. The pressure splitting is independent from the splitting of the
+convective terms. As such there are many pressure splittings suggested across
+the literature. We implement the 'p4' variant suggested by Liou and Steffen as
+it proved the most robust in practice.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- Bram van Leer (1982)
+  Flux-Vector Splitting for the Euler Equation
+  [DOI: 10.1007/978-3-642-60543-7_5](https://doi.org/10.1007/978-3-642-60543-7_5)
+- D. Hänel, R. Schwane and G. Seider (1987)
+  On the accuracy of upwind schemes for the solution of the Navier-Stokes equations
+  [DOI: 10.2514/6.1987-1105](https://doi.org/10.2514/6.1987-1105)
+- Meng-Sing Liou and Chris J. Steffen, Jr. (1991)
+  High-Order Polynomial Expansions (HOPE) for Flux-Vector Splitting
+  [NASA Technical Memorandum](https://ntrs.nasa.gov/citations/19910016425)
+"""
+@inline function splitting_vanleer_haenel(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  fm = splitting_vanleer_haenel(u, Val{:minus}(), orientation, equations)
+  fp = splitting_vanleer_haenel(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
+@inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+
+  if orientation == 1
+    M = v1 / a
+    p_plus = 0.5 * (1 + equations.gamma * M) * p
+
+    f1p = 0.25 * rho * a * (M + 1)^2
+    f2p = f1p * v1 + p_plus
+    f3p = f1p * v2
+    f4p = f1p * H
+  else # orientation == 2
+    M = v2 / a
+    p_plus = 0.5 * (1 + equations.gamma * M) * p
+
+    f1p = 0.25 * rho * a * (M + 1)^2
+    f2p = f1p * v1
+    f3p = f1p * v2 + p_plus
+    f4p = f1p * H
+  end
+  return SVector(f1p, f2p, f3p, f4p)
+end
+
+@inline function splitting_vanleer_haenel(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+
+  if orientation == 1
+    M = v1 / a
+    p_minus = 0.5 * (1 - equations.gamma * M) * p
+
+    f1m= -0.25 * rho * a * (M - 1)^2
+    f2m = f1m * v1 + p_minus
+    f3m = f1m * v2
+    f4m = f1m * H
+  else # orientation == 2
+    M = v2 / a
+    p_minus = 0.5 * (1 - equations.gamma * M) * p
+
+    f1m= -0.25 * rho * a * (M - 1)^2
+    f2m = f1m * v1
+    f3m = f1m * v2 + p_minus
+    f4m = f1m * H
+  end
+  return SVector(f1m, f2m, f3m, f4m)
+end
+
+
+"""
+    splitting_lax_friedrichs(u, orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
+    splitting_lax_friedrichs(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations2D)
+
+Naive local Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
+and `f⁻ = 0.5 (f - λ u)` similar to a flux splitting one would apply, e.g.,
+to Burgers' equation.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}`.
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function splitting_lax_friedrichs(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation, equations)
+  fp = splitting_lax_friedrichs(u, Val{:plus}(),  orientation, equations)
+  return fm, fp
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+  lambda = 0.5 * (sqrt(v1^2 + v2^2) + a)
+
+  if orientation == 1
+    #lambda = 0.5 * (abs(v1) + a)
+    f1p = 0.5 * rho * v1 + lambda * u[1]
+    f2p = 0.5 * rho * v1 * v1 + 0.5 * p + lambda * u[2]
+    f3p = 0.5 * rho * v1 * v2 + lambda * u[3]
+    f4p = 0.5 * rho * v1 * H + lambda * u[4]
+  else # orientation == 2
+    #lambda = 0.5 * (abs(v2) + a)
+    f1p = 0.5 * rho * v2 + lambda * u[1]
+    f2p = 0.5 * rho * v2 * v1 + lambda * u[2]
+    f3p = 0.5 * rho * v2 * v2 + 0.5 * p + lambda * u[3]
+    f4p = 0.5 * rho * v2 * H + lambda * u[4]
+  end
+  return SVector(f1p, f2p, f3p, f4p)
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+
+  a = sqrt(equations.gamma * p / rho)
+  H = (rho_e + p) / rho
+  lambda = 0.5 * (sqrt(v1^2 + v2^2) + a)
+
+  if orientation == 1
+    #lambda = 0.5 * (abs(v1) + a)
+    f1m = 0.5 * rho * v1 - lambda * u[1]
+    f2m = 0.5 * rho * v1 * v1 + 0.5 * p - lambda * u[2]
+    f3m = 0.5 * rho * v1 * v2 - lambda * u[3]
+    f4m = 0.5 * rho * v1 * H - lambda * u[4]
+  else # orientation == 2
+    #lambda = 0.5 * (abs(v2) + a)
+    f1m = 0.5 * rho * v2 - lambda * u[1]
+    f2m = 0.5 * rho * v2 * v1 - lambda * u[2]
+    f3m = 0.5 * rho * v2 * v2 + 0.5 * p - lambda * u[3]
+    f4m = 0.5 * rho * v2 * H - lambda * u[4]
+  end
+  return SVector(f1m, f2m, f3m, f4m)
 end
 
 
