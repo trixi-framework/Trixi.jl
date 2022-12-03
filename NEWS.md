@@ -10,7 +10,7 @@ for human readability.
 #### Added
 
 - Experimental support for upwind finite difference summation by parts (FDSBP)
-  has been added. The first implementation requires a `TreeMesh` and comes
+  has been added in Trixi.jl v0.4.55. The first implementation requires a `TreeMesh` and comes
   with several examples in the `examples_dir()` of Trixi.jl.
 - Experimental support for 2D parabolic diffusion terms has been added.
   * `LaplaceDiffusion2D` and `CompressibleNavierStokesDiffusion2D` can be used to add
